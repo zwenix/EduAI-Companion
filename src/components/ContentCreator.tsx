@@ -6,6 +6,7 @@ import {
   Check, X, Plus, Users, Layout, Video, FileCode, HelpCircle, Archive, UserCircle, Image, AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import html2pdf from 'html2pdf.js';
 import { educationalData } from '../lib/educational-data';
 import { generateCAPSContent, generateVisualAid, generateAdminDoc } from '../services/unifiedAiService';
 import { useAi } from '../contexts/AiContext';
@@ -232,6 +233,25 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [teachingResult, setTeachingResult] = useState<any>(null);
   const [visualResult, setVisualResult] = useState<any>(null);
   const [adminResult, setAdminResult] = useState<any>(null);
+  
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownloadPDF = () => {
+    if (contentRef.current) {
+      const opt = {
+        margin:       10,
+        filename:     'edu-ai-content.pdf',
+        image:        { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
+      };
+      html2pdf().from(contentRef.current).set(opt).save();
+    }
+  };
 
   // ─── Teaching Tools State ─────────────────────────────────────────────────
   const [t_category, setT_Category] = useState('');
@@ -727,15 +747,22 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                       </>
                     )}
                   </div>
-                  <div className="flex gap-4">
-                    <button className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl text-white transition-all"><Printer size={18} /></button>
-                    <button className="bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+                  <div className="flex gap-2">
+                    <button onClick={handlePrint} className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl text-white transition-all tooltip" title="Print Content"><Printer size={18} /></button>
+                    <button onClick={handleDownloadPDF} className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl text-white transition-all tooltip" title="Download as PDF"><Download size={18} /></button>
+                    <button className="bg-transparent hover:bg-white/10 border border-white/20 text-white px-4 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2" title="Placeholder">
+                       <Users size={16} /> Assign to Class
+                    </button>
+                    <button className="bg-transparent hover:bg-white/10 border border-white/20 text-white px-4 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2" title="Placeholder">
+                       <UserCircle size={16} /> Specific Learners
+                    </button>
+                    <button className="bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
                        <Save size={16} /> Archive Stream
                     </button>
                   </div>
                 </div>
 
-                <div className="pb-20">
+                <div className="pb-20 bg-white print:bg-white rounded-[32px] p-6 text-black" ref={contentRef}>
                   {activeTab === 'teaching' && (
                     <>
                       {activePreviewTab === 'content' && (

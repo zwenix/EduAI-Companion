@@ -13,10 +13,11 @@ export const callMultiAi = async (provider: AIProvider, messages: any[], model?:
     }
   } catch (error: any) {
     console.error(`Error with ${provider}:`, error);
-    const backendError = error.response?.data?.error;
+    const backendError = error.response?.data?.error || {};
     const status = error.response?.status;
+    const errorMsg = typeof backendError === 'string' ? backendError : backendError?.message || '';
     
-    if (status === 402) {
+    if (status === 402 || errorMsg.includes('credit balance is too low') || errorMsg.includes('Insufficient Balance')) {
       throw new Error(`Insufficient Balance: Your ${provider} account needs a top-up to continue.`);
     }
     
@@ -24,7 +25,7 @@ export const callMultiAi = async (provider: AIProvider, messages: any[], model?:
       throw new Error(`Unauthorized: Your ${provider} API key is invalid or has expired.`);
     }
 
-    throw new Error(backendError || `Failed to call ${provider} (Status: ${status || 'Unknown'})`);
+    throw new Error(errorMsg || (typeof backendError === 'string' ? backendError : JSON.stringify(backendError)) || `Failed to call ${provider} (Status: ${status || 'Unknown'})`);
   }
 };
 

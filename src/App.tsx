@@ -38,11 +38,12 @@ import {
   Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import AITutor from './components/AITutor';
 import ContentCreator from './components/ContentCreator';
 import Messenger from './components/Messenger';
 import ProgressReports from './components/ProgressReports';
 import AutoGrading from './components/AutoGrading';
+import ContentArchive from './components/ContentArchive';
+import AITutorPage from './components/AITutorPage';
 import { SplashScreen } from './components/SplashScreen';
 import RoleSelection from './components/RoleSelection';
 import Logo from './components/Logo';
@@ -155,7 +156,6 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   
   // Dialog States
-  const [isTutorOpen, setTutorOpen] = useState(false);
   const [activeCreatorTab, setActiveCreatorTab] = useState<string | null>(null);
 
   useEffect(() => {
@@ -214,16 +214,14 @@ export default function App() {
         <nav className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
           {[
             { icon: LayoutDashboard, label: 'Dashboard', active: activeTab === 'dashboard', id: 'dashboard' },
-            { icon: FlaskConical, label: 'Content Creator Studio', active: activeTab === 'teaching', id: 'teaching' },
-            { icon: Palette, label: 'Content Archive', active: activeTab === 'visual', id: 'visual' },
-            { icon: FileText, label: 'AI Tutor', active: activeTab === 'admin', id: 'admin' },
+            { icon: FlaskConical, label: 'Content Creator Studio', active: activeCreatorTab !== null && activeTab === 'dashboard', id: 'teaching' },
             { icon: Users, label: 'Student & Class Management', active: activeTab === 'grade1', id: 'grade1' },
-            { icon: TrendingUp, label: 'Progress Reports', active: activeTab === 'tutor', id: 'tutor' },
+            { icon: TrendingUp, label: 'Progress Reports', active: activeTab === 'reports', id: 'reports' },
+            { icon: Brain, label: 'AI Tutor', active: activeTab === 'ai-tutor', id: 'ai-tutor' },
             { icon: MessageSquare, label: 'Communicator & Messenger', active: activeTab === 'messenger', id: 'messenger' },
-            { icon: Scan, label: 'OCR Grader', active: activeTab === 'ocr', id: 'ocr' },
-            { icon: Archive, label: 'Archive', active: activeTab === 'archive', id: 'archive' },
+            { icon: Scan, label: 'OCR - Scan & Autograde', active: activeTab === 'ocr', id: 'ocr' },
+            { icon: Archive, label: 'Content Archive', active: activeTab === 'archive', id: 'archive' },
             { icon: UserCircle, label: 'Portfolios', active: activeTab === 'portfolios', id: 'portfolios' },
-            { icon: FileBarChart, label: 'Reports', active: activeTab === 'reports', id: 'reports' },
           ].map((item) => (
             <SidebarItem 
               key={item.id}
@@ -231,10 +229,10 @@ export default function App() {
               label={item.label} 
               active={item.active} 
               onClick={() => {
-                if (['teaching', 'visual', 'admin', 'grade1'].includes(item.id)) {
+                if (['teaching'].includes(item.id)) {
                   setActiveCreatorTab(item.id);
-                } else if (item.id === 'tutor') {
-                  setTutorOpen(true);
+                } else if (item.id === 'ai-tutor') {
+                  setActiveTab('ai-tutor');
                 } else if (item.id === 'ocr') {
                   setActiveTab('ocr');
                 } else {
@@ -268,7 +266,7 @@ export default function App() {
         {/* Header */}
         <header className={`h-20 border-b ${isDarkMode ? 'border-white/5' : 'border-slate-200'} px-8 flex items-center justify-between shrink-0 relative z-20`}>
           <h2 className={`text-xl font-hand tracking-wide ${isDarkMode ? 'text-white' : 'text-slate-900'} truncate max-w-lg`}>
-            CAPS Project: <span className="text-brand-cyan underline decoration-brand-cyan/20">Mathematics Grade 10</span>
+            CAPS Project: <span className="text-brand-cyan underline decoration-brand-cyan/20">All Subjects</span>
           </h2>
           <div className="flex items-center gap-6">
             <select 
@@ -310,7 +308,7 @@ export default function App() {
                 <div className={`flex flex-col md:flex-row justify-between items-center ${isDarkMode ? 'glass' : 'bg-white border border-slate-200 shadow-sm'} p-8 rounded-[36px] gap-6`}>
                   <div>
                     <h3 className={`text-4xl font-hand ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Teacher Console</h3>
-                    <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-1`}>Manage and generate your Grade 10 Mathematics resources.</p>
+                    <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-1`}>Manage and generate your educational resources.</p>
                   </div>
                   <div className="flex gap-4">
                     <button 
@@ -362,23 +360,19 @@ export default function App() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                       {[
                         { title: "Content Creator Studio", desc: "Lessons, Plans & Assessments.", color: 'text-cyan-400', icon: FlaskConical, id: 'teaching' },
-                        { title: "Content Archive", desc: "Posters, Cards & Displays.", color: 'text-purple-400', icon: Palette, id: 'visual' },
-                        { title: "AI Tutor", desc: "Letters, Notices & Policies.", color: 'text-brand-yellow', icon: FileText, id: 'admin' },
-                        { title: "Student & Class Management", desc: "Specialized Foundation tools.", color: 'text-emerald-400', icon: Sparkles, id: 'grade1' },
-                        { title: "Study Guides", desc: "Comprehensive exam prep docs.", color: 'text-indigo-400', icon: GraduationCap, id: 'study-guides' },
-                        { title: "OCR Grader", desc: "Automated vision grading.", color: 'text-rose-400', icon: Scan, id: 'ocr' },
-                        { title: "Progress Reports", desc: "Voice-enabled interactive teaching.", color: 'text-amber-400', icon: MessageSquare, id: 'tutor' },
-                        { title: "Archive", desc: "Past neural stream history.", color: 'text-brand-cyan', icon: Archive, id: 'archive' },
+                        { title: "Content Archive", desc: "Posters, Cards & Displays.", color: 'text-purple-400', icon: Archive, id: 'archive' },
+                        { title: "AI Tutor", desc: "Interactive intelligence.", color: 'text-brand-yellow', icon: Brain, id: 'ai-tutor' },
+                        { title: "Student & Class Management", desc: "Specialized Foundation tools.", color: 'text-emerald-400', icon: Users, id: 'grade1' },
+                        { title: "OCR - Scan & Autograde", desc: "Automated vision grading.", color: 'text-rose-400', icon: Scan, id: 'ocr' },
+                        { title: "Progress Reports", desc: "Track student performance.", color: 'text-red-400', icon: TrendingUp, id: 'reports' },
+                        { title: "Communicator & Messenger", desc: "School connection hub.", color: 'text-indigo-400', icon: MessageSquare, id: 'messenger' },
+                        { title: "Portfolios", desc: "Student work portfolio.", color: 'text-amber-400', icon: UserCircle, id: 'portfolios' },
                       ].map((item, i) => (
                         <button 
                           key={`feature-${item.id}-${i}`} 
                           onClick={() => {
-                            if (['teaching', 'visual', 'admin', 'grade1', 'study-guides'].includes(item.id)) {
-                              setActiveCreatorTab(item.id === 'study-guides' ? 'teaching' : item.id);
-                            } else if (item.id === 'tutor') {
-                              setActiveTab('tutor');
-                            } else if (item.id === 'ocr') {
-                              setActiveTab('ocr');
+                            if (['teaching'].includes(item.id)) {
+                              setActiveCreatorTab(item.id);
                             } else {
                               setActiveTab(item.id);
                             }
@@ -402,10 +396,14 @@ export default function App() {
               </>
             ) : activeTab === 'messenger' ? (
               <Messenger />
-            ) : activeTab === 'tutor' ? (
+            ) : activeTab === 'reports' ? (
               <ProgressReports />
             ) : activeTab === 'ocr' ? (
               <AutoGrading />
+            ) : activeTab === 'archive' ? (
+              <ContentArchive />
+            ) : activeTab === 'ai-tutor' ? (
+              <AITutorPage />
             ) : (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
@@ -431,7 +429,7 @@ export default function App() {
 
       {/* Floating Action Button */}
       <button 
-        onClick={() => setTutorOpen(true)}
+        onClick={() => setActiveTab('ai-tutor')}
         className="fixed bottom-10 right-10 w-20 h-20 bg-brand-cyan rounded-[28px] text-navy-dark shadow-[0_20px_50px_rgba(6,182,212,0.3)] flex items-center justify-center hover:scale-110 active:scale-90 transition-all z-50 group border-4 border-navy-dark"
       >
         <MessageSquare size={28} className="group-hover:rotate-6 transition-transform" />
@@ -439,7 +437,6 @@ export default function App() {
 
       {/* App Components */}
       <AnimatePresence>
-        {isTutorOpen && <AITutor isOpen={isTutorOpen} onClose={() => setTutorOpen(false)} />}
         {activeCreatorTab && (
           <ContentCreator 
             isOpen={!!activeCreatorTab} 

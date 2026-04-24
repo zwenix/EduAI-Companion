@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, Scan, X, RefreshCw, Loader2, FileCheck, Brain, CheckCircle, AlertCircle, ChevronRight, GraduationCap } from 'lucide-react';
+import { Camera, Upload, Scan, X, RefreshCw, Loader2, FileCheck, Brain, CheckCircle, AlertCircle, ChevronRight, GraduationCap, Download, Printer, UserCircle, Users, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { runOCRAndGrade } from '../services/unifiedAiService';
+import html2pdf from 'html2pdf.js';
+import { runOCRAndGrade, runOCRScan } from '../services/unifiedAiService';
 import { useAi } from '../contexts/AiContext';
 
 export default function AutoGrading() {
@@ -11,13 +12,16 @@ export default function AutoGrading() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+  const [extractResult, setExtractResult] = useState<{ extractedText: string } | null>(null);
   const [rubric, setRubric] = useState('');
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [mode, setMode] = useState<'grade' | 'extract'>('grade');
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     return () => {
@@ -26,6 +30,23 @@ export default function AutoGrading() {
       }
     };
   }, [stream]);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownloadPDF = () => {
+    if (contentRef.current) {
+      const opt = {
+        margin:       10,
+        filename:     'ocr-result.pdf',
+        image:        { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
+      };
+      html2pdf().from(contentRef.current).set(opt).save();
+    }
+  };
 
   const startCamera = async () => {
     setCameraError(null);
@@ -50,6 +71,26 @@ export default function AutoGrading() {
     }
   };
 
+  const handleExtract = async (imageToProcess?: string) => {
+    const img = imageToProcess || capturedImage;
+    if (!img) return;
+    
+    setIsProcessing(true);
+    setProcessingError(null);
+    setResult(null); 
+    setExtractResult(null);
+    setMode('extract');
+    try {
+      const resp = await runOCRScan(img, provider);
+      setExtractResult(resp);
+    } catch (error: any) {
+      console.error("Extraction error:", error);
+      setProcessingError(error.message || "Extraction failed.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleProcess = async (imageToProcess?: string) => {
     const img = imageToProcess || capturedImage;
     if (!img) return;
@@ -57,6 +98,8 @@ export default function AutoGrading() {
     setIsProcessing(true);
     setProcessingError(null);
     setResult(null); // Clear previous result
+    setExtractResult(null);
+    setMode('grade');
     try {
       const gradingResult = await runOCRAndGrade(img, rubric || "Grade accurately based on standard academic quality, checking for correctness, clarity, and completeness.", provider);
       setResult(gradingResult);
@@ -78,7 +121,6 @@ export default function AutoGrading() {
         const dataUrl = canvasRef.current.toDataURL('image/jpeg');
         setCapturedImage(dataUrl);
         stopCamera();
-        handleProcess(dataUrl); // Trigger auto-processing
       }
     }
   };
@@ -90,7 +132,6 @@ export default function AutoGrading() {
       reader.onloadend = () => {
         const dataUrl = reader.result as string;
         setCapturedImage(dataUrl);
-        handleProcess(dataUrl); // Trigger auto-processing
       };
       reader.readAsDataURL(file);
     }
@@ -99,8 +140,10 @@ export default function AutoGrading() {
   const reset = () => {
     setCapturedImage(null);
     setResult(null);
+    setExtractResult(null);
     setRubric('');
     setIsCameraActive(false);
+    setMode('grade');
   };
 
   return (
@@ -159,9 +202,23 @@ export default function AutoGrading() {
               <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover opacity-80" />
               <div className="absolute inset-0 border-2 border-brand-cyan/20 pointer-events-none rounded-[48px]" />
               
-              {/* Guides */}
-              <div className="absolute inset-x-20 top-1/2 -translate-y-1/2 border-y border-brand-cyan/10 h-1/3 pointer-events-none" />
-              <div className="absolute inset-y-20 left-1/2 -translate-x-1/2 border-x border-brand-cyan/10 w-1/3 pointer-events-none" />
+              {/* Enhanced Visual Guides */}
+              <div className="absolute inset-8 border-2 border-dashed border-brand-cyan/50 rounded-3xl pointer-events-none" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[2px] bg-brand-cyan/20 pointer-events-none" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-full w-[2px] bg-brand-cyan/20 pointer-events-none" />
+              
+              <div className="absolute top-12 left-12 w-12 h-12 border-t-4 border-l-4 border-brand-cyan pointer-events-none rounded-tl-xl" />
+              <div className="absolute top-12 right-12 w-12 h-12 border-t-4 border-r-4 border-brand-cyan pointer-events-none rounded-tr-xl" />
+              <div className="absolute bottom-[110px] left-12 w-12 h-12 border-b-4 border-l-4 border-brand-cyan pointer-events-none rounded-bl-xl" />
+              <div className="absolute bottom-[110px] right-12 w-12 h-12 border-b-4 border-r-4 border-brand-cyan pointer-events-none rounded-br-xl" />
+
+              {/* On-screen Instructions */}
+              <div className="absolute top-6 left-0 right-0 flex justify-center pointer-events-none">
+                <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-full flex items-center gap-3 border border-white/10">
+                  <AlertCircle size={16} className="text-brand-cyan" />
+                  <span className="text-white text-xs font-medium tracking-wide">Align document within the frame. Ensure good lighting.</span>
+                </div>
+              </div>
               
               <div className="absolute bottom-10 inset-x-0 flex justify-center gap-6">
                 <button 
@@ -207,18 +264,26 @@ export default function AutoGrading() {
             />
             
             {capturedImage && (
-              <div className={`w-full py-6 rounded-[28px] font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-4 transition-all border ${
+              <div className={`w-full py-6 rounded-[28px] font-black uppercase tracking-[0.2em] text-xs flex flex-col items-center justify-center gap-4 transition-all border ${
                 isProcessing ? 'bg-brand-cyan/10 border-brand-cyan/20 text-brand-cyan' : 'bg-white/5 border-white/10 text-slate-400'
               }`}>
                 {isProcessing ? (
-                  <><Loader2 className="animate-spin" size={20} /> Neural Synthesis Active</>
+                  <div className="flex items-center gap-3"><Loader2 className="animate-spin" size={20} /> Neural Synthesis Active</div>
                 ) : (
-                  <button 
-                    onClick={() => handleProcess()} 
-                    className="flex items-center gap-2 hover:text-brand-cyan transition-colors"
-                  >
-                    <Scan size={18} /> Re-grade Scan
-                  </button>
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={() => handleExtract()} 
+                      className="flex items-center gap-2 hover:text-brand-cyan transition-colors bg-white/5 p-3 rounded-xl px-6"
+                    >
+                      <Scan size={18} /> Extract Text (Scan & Store)
+                    </button>
+                    <button 
+                      onClick={() => handleProcess()} 
+                      className="flex items-center gap-2 hover:text-brand-cyan transition-colors bg-brand-cyan text-navy-dark p-3 rounded-xl px-6"
+                    >
+                      <GraduationCap size={18} /> Autograde
+                    </button>
+                  </div>
                 )}
               </div>
             )}
@@ -243,7 +308,7 @@ export default function AutoGrading() {
               </motion.div>
             )}
             
-            {result ? (
+            {mode === 'grade' && result && (
               <motion.div 
                 key="result"
                 initial={{ opacity: 0, x: 20 }}
@@ -251,60 +316,107 @@ export default function AutoGrading() {
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-8"
               >
-                {/* Score Card */}
-                <div className="glass p-10 rounded-[48px] border border-white/10 relative overflow-hidden group">
-                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-cyan/10 rounded-full blur-3xl group-hover:bg-brand-cyan/20 transition-colors" />
-                  <div className="flex items-center gap-8 relative z-10">
-                    <div className="w-24 h-24 bg-brand-cyan rounded-3xl flex flex-col items-center justify-center text-navy-dark shadow-2xl shadow-cyan-500/30">
-                      <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Score</span>
-                      <span className="text-4xl font-black">{result.totalScore}</span>
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-hand text-white">Grading Complete</h3>
-                      <div className="flex items-center gap-2 mt-2">
-                        <CheckCircle size={14} className="text-emerald-400" />
-                        <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Analysis Verified</span>
+                {/* Result header buttons */}
+                <div className="flex justify-end gap-2 mb-6">
+                  <button onClick={handlePrint} className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl text-white transition-all tooltip" title="Print Content"><Printer size={18} /></button>
+                  <button onClick={handleDownloadPDF} className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl text-white transition-all tooltip" title="Download as PDF"><Download size={18} /></button>
+                  <button className="bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+                     <Save size={16} /> Save Grading
+                  </button>
+                </div>
+
+                <div className="pb-20 bg-white print:bg-white rounded-[32px] p-6 text-black" ref={contentRef}>
+                  {/* Score Card */}
+                  <div className="glass !bg-slate-100 p-10 rounded-[48px] border border-black/10 relative overflow-hidden group mb-8">
+                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-cyan/20 rounded-full blur-3xl transition-colors" />
+                    <div className="flex items-center gap-8 relative z-10">
+                      <div className="w-24 h-24 bg-brand-cyan rounded-3xl flex flex-col items-center justify-center text-navy-dark shadow-xl">
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Score</span>
+                        <span className="text-4xl font-black">{result.totalScore}</span>
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Feedback Box */}
-                <div className="bg-brand-cyan/5 border border-brand-cyan/20 p-8 rounded-[40px] relative">
-                  <h4 className="text-[10px] font-black text-brand-cyan uppercase tracking-[0.3em] mb-4">Comprehensive Feedback</h4>
-                  <p className="text-slate-200 font-medium italic leading-relaxed">
-                    "{result.feedback}"
-                  </p>
-                </div>
-
-                {/* Question Breakdown */}
-                <div className="glass p-8 rounded-[40px] border border-white/5">
-                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6">Question Breakdown</h4>
-                  <div className="space-y-4">
-                    {result.marksPerQuestion?.map((mark: string, i: number) => (
-                      <div key={i} className="flex gap-4 items-start p-4 bg-white/5 rounded-2xl border border-white/5 group hover:bg-white/10 transition-colors">
-                        <div className="w-8 h-8 rounded-xl bg-navy-dark flex items-center justify-center text-[10px] font-black text-brand-cyan shrink-0">
-                          {i+1}
+                      <div>
+                        <h3 className="text-2xl font-hand text-black">Grading Complete</h3>
+                        <div className="flex items-center gap-2 mt-2">
+                          <CheckCircle size={14} className="text-emerald-500" />
+                          <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Analysis Verified</span>
                         </div>
-                        <p className="text-sm text-slate-400 font-medium pt-1 leading-relaxed">
-                          {mark}
-                        </p>
                       </div>
-                    ))}
+                    </div>
                   </div>
-                </div>
 
-                {/* Extracted Text */}
-                <div className="glass p-8 rounded-[40px] border border-white/5">
-                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4">RAW DATA EXTRACTION</h4>
-                  <div className="bg-navy-dark/40 p-6 rounded-2xl border border-white/5">
-                    <p className="text-xs text-slate-500 font-mono leading-relaxed whitespace-pre-wrap">
-                      {result.extractedText}
+                  {/* Feedback Box */}
+                  <div className="bg-brand-cyan/10 border border-brand-cyan/30 p-8 rounded-[40px] relative mb-8">
+                    <h4 className="text-[10px] font-black text-brand-cyan uppercase tracking-[0.3em] mb-4">Comprehensive Feedback</h4>
+                    <p className="text-slate-800 font-medium italic leading-relaxed">
+                      "{result.feedback}"
                     </p>
+                  </div>
+
+                  {/* Question Breakdown */}
+                  <div className="glass !bg-slate-50 p-8 rounded-[40px] border border-black/5 mb-8">
+                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6">Question Breakdown</h4>
+                    <div className="space-y-4">
+                      {result.marksPerQuestion?.map((mark: string, i: number) => (
+                        <div key={i} className="flex gap-4 items-start p-4 bg-white/60 rounded-2xl border border-black/5">
+                          <div className="w-8 h-8 rounded-xl bg-navy-dark flex items-center justify-center text-[10px] font-black text-brand-cyan shrink-0">
+                            {i+1}
+                          </div>
+                          <p className="text-sm text-slate-700 font-medium pt-1 leading-relaxed">
+                            {mark}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Extracted Text */}
+                  <div className="glass !bg-slate-50 p-8 rounded-[40px] border border-black/5">
+                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4">RAW DATA EXTRACTION</h4>
+                    <div className="bg-white p-6 rounded-2xl border border-black/5 shadow-inner">
+                      <p className="text-xs text-slate-700 font-mono leading-relaxed whitespace-pre-wrap">
+                        {result.extractedText}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </motion.div>
-            ) : (
+            )}
+
+            {mode === 'extract' && extractResult && (
+              <motion.div 
+                key="extract"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-8"
+              >
+                {/* Result header buttons */}
+                <div className="flex justify-end gap-2 mb-6">
+                  <button onClick={handlePrint} className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl text-white transition-all tooltip" title="Print Content"><Printer size={18} /></button>
+                  <button onClick={handleDownloadPDF} className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl text-white transition-all tooltip" title="Download as PDF"><Download size={18} /></button>
+                  <button className="bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+                     <Save size={16} /> Archive Document
+                  </button>
+                </div>
+
+                 <div className="pb-20 bg-white print:bg-white rounded-[32px] p-6 text-black" ref={contentRef}>
+                  <div className="glass !bg-slate-50 p-8 rounded-[40px] border border-black/5">
+                    <div className="flex items-center gap-4 mb-6 border-b border-slate-200 pb-4">
+                      <FileCheck className="text-brand-cyan" size={28} />
+                      <h3 className="text-2xl font-hand text-black">Scanned Content</h3>
+                    </div>
+                    <div className="bg-white p-6 rounded-2xl border border-black/5 shadow-inner">
+                      <div className="prose prose-sm max-w-none text-slate-800">
+                         {/* Use simple rendering for OCR data, no markdown interpretation to prevent breaks, just pre-wrap */}
+                         <p className="font-mono whitespace-pre-wrap text-sm leading-relaxed">{extractResult.extractedText}</p>
+                      </div>
+                    </div>
+                  </div>
+                 </div>
+              </motion.div>
+            )}
+
+            {!result && !extractResult && (
               <motion.div 
                 key="empty"
                 initial={{ opacity: 0 }}

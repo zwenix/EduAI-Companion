@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+const ai = new GoogleGenAI({ apiKey: "AIzaSyAaXqaV0BBkwr2ui1hCQ704aSv-POmJmJQ" });
 
 // ─── Prompt Engineering Constants ──────────────────────────────────────────
 
@@ -8,7 +8,7 @@ const MASTER_SYSTEM_PROMPT = `
 You are an expert South African CAPS-aligned educational content designer and senior graphic designer specializing in primary and high school learning materials for South African classrooms.
 
 Your task is to generate BEAUTIFUL, PROFESSIONAL, PRINT-READY classroom materials (worksheets, posters, study guides, infographics, flashcards, diagrams, mind maps, etc.) that are:
-• 100% aligned to the South African CAPS curriculum
+• 100% aligned to the South African CAPS curriculum (specify exact grade, subject, term, topic)
 • Age-appropriate and highly engaging for South African learners
 • Culturally relevant (include South African contexts, diversity, local animals, landmarks, people, languages where appropriate)
 • Visually sophisticated — NEVER use cheap clipart, emojis, or low-quality icons
@@ -20,6 +20,10 @@ STYLE REQUIREMENTS (MANDATORY):
 - Typography: Clean sans-serif fonts (e.g., Poppins, Open Sans, Roboto) for body; bold display fonts only for titles when appropriate
 - Layout: Professional grid-based design with perfect alignment, balanced margins, breathing room
 - NO emojis, NO smiley faces, NO generic stick figures, NO low-resolution icons
+
+When generating any visual material, you MUST output:
+1. A complete markdown-ready textual description (for worksheets/study guides)
+2. A separate, extremely detailed image generation prompt (for AI model used) that will produce a stunning, high-resolution, print-ready illustration or poster
 
 You are never satisfied with mediocre visuals — aim for materials that South African teachers would proudly display in their classrooms or submit to the DBE as exemplars.
 `;
@@ -66,6 +70,7 @@ async function callGemini(fn: () => Promise<any>, retries = 3, delay = 2000): Pr
     const errorMsg = error?.message?.toLowerCase() || '';
     const is429 = errorMsg.includes('429') || error?.status === 429 || error?.code === 429;
     const isQuota = errorMsg.includes('quota') || errorMsg.includes('limit');
+    const is404 = errorMsg.includes('404') || errorMsg.includes('not found') || error?.status === 404;
 
     if (is429 && retries > 0) {
       console.warn(`Gemini rate limited (RPM). Retrying in ${delay}ms... (${retries} left)`);
@@ -77,13 +82,18 @@ async function callGemini(fn: () => Promise<any>, retries = 3, delay = 2000): Pr
       console.error("CRITICAL: Gemini Quota Exceeded (RPD/TPM). Please wait or switch project.");
       throw new Error("Gemini Quota Exceeded: Your daily limit for this API key has been reached. Please try again later today.");
     }
+    
+    if (is404) {
+      console.error("Gemini model/project not found (404):", error);
+      throw new Error("Invalid API Key or Model: The requested entity (project or model) was not found. Please verify your Gemini API key.");
+    }
 
-    throw error;
+    throw new Error(error.message || JSON.stringify(error));
   }
 }
 
 export const generateEducationalContent = async (type: string, details: string) => {
-  const model = "gemini-1.5-flash";
+  const model = "gemini-3-flash-preview";
   const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in Markdown, and ready for classroom use.`;
 
   return await callGemini(async () => {
@@ -100,7 +110,7 @@ export const generateEducationalContent = async (type: string, details: string) 
 };
 
 export const generateCAPSContent = async (input: any) => {
-  const model = "gemini-1.5-flash";
+  const model = "gemini-3-flash-preview";
   const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe content must be strictly CAPS aligned and professionally formatted in HTML.\nInclude an Answer Memo and a Marking Rubric if requested.`;
 
   const prompt = `
@@ -114,13 +124,15 @@ export const generateCAPSContent = async (input: any) => {
     Additional Info: ${input.additionalInstructions}
 
     SPECIFIC VISUAL ENHANCEMENT:
-    For every worksheet/study guide, define ONE stunning hero illustration design prompt that occupies 25–30% of the page. 
+    For every worksheet, create ONE stunning hero illustration at the top that occupies 25–30% of the page. 
     The illustration must be:
     - Directly related to the specific CAPS topic
     - Set in a recognizable South African context
-    - Semi-realistic digital painting style
+    - Semi-realistic digital painting style (like children’s non-fiction books)
     - Emotionally engaging and curiosity-sparking
     - High detail, rich colors, perfect composition
+
+    Additionally, include 2–3 smaller spot illustrations throughout the worksheet to break up text and maintain visual interest.
     
     GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}
   `;
@@ -153,7 +165,7 @@ export const generateCAPSContent = async (input: any) => {
 };
 
 export const generateVisualAid = async (input: any) => {
-  const model = "gemini-1.5-flash";
+  const model = "gemini-3-flash-preview";
   const systemInstruction = MASTER_SYSTEM_PROMPT;
 
   let visualPrompt = "";
@@ -164,29 +176,46 @@ export const generateVisualAid = async (input: any) => {
   if (isPoster) {
     visualPrompt = `
       Create a stunning, museum-quality educational poster for South African Grade ${input.grade} ${input.subject} learners on the CAPS topic: "${input.topic}"
+
       Design specifications:
+      - Size: A2 or A1 portrait orientation, 300 DPI print-ready
       - Style: Modern semi-realistic digital illustration blended with clean educational graphic design
-      - Color palette: Vibrant South African-inspired colors with high contrast for readability
-      - Background: Subtle textured gradient or beautiful contextual South African scene relevant to the topic
-      - Main illustration: One large, breathtaking central illustration that captures the core concept (photorealistic quality but still illustrated)
-      - Typography: Professional hierarchy with clear headings
+      - Color palette: Vibrant South African-inspired colors (savanna sunset oranges, acacia greens, indigo twilight, rich ochre) with high contrast for readability
+      - Background: Subtle textured gradient or beautiful contextual South African scene relevant to the topic (e.g., Kruger bushveld for ecosystems, Table Mountain for geography, rural Eastern Cape classroom for inclusive education, etc.)
+      - Main illustration: One large, breathtaking central illustration that captures the core concept (photorealistic quality but still illustrated, no photos)
+      - Typography hierarchy:
+        - Large bold title at top (font similar to Montserrat Black or Bebas Neue)
+        - Clear section headings
+        - Body text in Open Sans or Poppins, minimum 24pt for classroom visibility
       - Include 4–6 key fact boxes or callouts with bullet points
-      - Diversity: Show South African children from different backgrounds where people are depicted
+      - Add relevant, beautifully illustrated smaller supporting images around the edges
+      - Include the South African coat of arms or CAPS logo discreetly in the bottom corner
+      - Diversity: Show South African children from different backgrounds learning together where people are depicted
+
+      Make this the most beautiful educational poster a South African teacher has ever hung in their classroom.
     `;
   } else if (isInfographic) {
     visualPrompt = `
       Design a visually spectacular CAPS-aligned infographic/mind map on ${input.topic} for Grade ${input.grade}.
+
       Requirements:
       - Central concept in the middle with radiating branches
       - Each branch has a beautifully illustrated icon (custom drawn, not generic)
       - South African contextual examples throughout
+      - Color-coded sections with perfect visual hierarchy
       - Style: Modern flat design with subtle textures and depth
       - Include real South African case studies or examples where possible
     `;
   } else if (isDiagram) {
     visualPrompt = `
       Create a crystal-clear, beautifully illustrated scientific diagram of ${input.topic} specifically adapted for South African Grade ${input.grade} learners.
-      Show the process occurring in a real South African landscape (e.g. Table Mountain, Drakensberg, Karoo, Savanna).
+
+      Show the process occurring in a real South African landscape:
+      - Water cycle: Include Table Mountain, Drakensberg, or Karoo
+      - Food chain: Use indigenous animals (lion, impala, acacia tree, vulture, etc.)
+      - Rock cycle: Feature South African geological formations
+      - Plant structure: Use protea, aloe, or fynbos species
+
       Style: Clean, labeled, semi-realistic illustration with arrows, soft shadows, and depth. National Geographic kids magazine quality.
     `;
   } else {
@@ -228,7 +257,7 @@ export const generateVisualAid = async (input: any) => {
 };
 
 export const generateAdminDoc = async (input: any) => {
-  const model = "gemini-1.5-flash";
+  const model = "gemini-3-flash-preview";
   const systemInstruction = `You are a professional school administrator.
   Generate a formal ${input.documentType} for ${input.schoolName}.
   The tone should be ${input.tone}.`;
@@ -265,8 +294,30 @@ export const generateAdminDoc = async (input: any) => {
   return safeJsonParse(responseText);
 };
 
+export const runOCRScan = async (imageData: string) => {
+  const model = "gemini-3-flash-preview";
+  
+  const prompt = `Extract all text from the attached image accurately.
+  Format it cleanly. Make no other comments.`;
+
+  const responseText = await callGemini(async () => {
+    const response = await ai.models.generateContent({
+      model,
+      contents: {
+        parts: [
+          { text: prompt },
+          { inlineData: { mimeType: "image/jpeg", data: imageData.split(',')[1] } }
+        ]
+      }
+    });
+    return response.text;
+  });
+
+  return { extractedText: responseText };
+};
+
 export const runOCRAndGrade = async (imageData: string, rubric: string) => {
-  const model = "gemini-1.5-flash";
+  const model = "gemini-3-flash-preview";
   
   const prompt = `You are an AI Grader. Analyze the attached image of a student's assessment.
   Reference this rubric: ${rubric}.
@@ -305,7 +356,7 @@ export const runOCRAndGrade = async (imageData: string, rubric: string) => {
 };
 
 export const chatWithTutor = async (messages: { role: 'user' | 'model', parts: { text: string }[] }[]) => {
-  const model = "gemini-1.5-flash";
+  const model = "gemini-3-flash-preview";
   
   return await callGemini(async () => {
     const result = await ai.models.generateContent({

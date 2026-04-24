@@ -83,7 +83,7 @@ async function startServer() {
 
     try {
       const response = await client.chat.completions.create({
-        model: model || (provider === "groq" ? "llama3-8b-8192" : provider === "deepseek" ? "deepseek-chat" : ""),
+        model: model || (provider === "groq" ? "meta-llama/llama-4-scout-17b-16e-instruct" : provider === "deepseek" ? "deepseek-chat" : ""),
         messages,
         temperature,
       });

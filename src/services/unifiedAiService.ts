@@ -4,6 +4,7 @@ import {
   generateVisualAid as geminiGenerateVisual,
   generateAdminDoc as geminiGenerateAdmin,
   runOCRAndGrade as geminiOCR,
+  runOCRScan as geminiOCRScan,
   chatWithTutor as geminiChat
 } from './geminiService';
 
@@ -13,7 +14,15 @@ export const generateEducationalContent = async (type: string, details: string, 
   if (provider === 'gemini') return await geminiGenerateContent(type, details);
   
   const messages = [{ role: 'user', content: `Generate educational content of type ${type} with these details: ${details}. Format as Markdown.` }];
-  return await callMultiAi(provider as AIProvider, messages);
+  try {
+    return await callMultiAi(provider as AIProvider, messages);
+  } catch (error: any) {
+    if (error.message.includes('Insufficient Balance') || error.message.includes('Unauthorized') || error.message.includes('credit') || error.message.includes('status code (no body)') || error.message.includes('400')) {
+      console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
+      return await geminiGenerateContent(type, details);
+    }
+    throw error;
+  }
 };
 
 export const generateCAPSContent = async (input: any, provider: string = 'gemini') => {
@@ -21,11 +30,19 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
   
   // For other providers, we might need to prompt specifically for JSON or handle the response
   const messages = [{ role: 'user', content: `Generate CAPS aligned ${input.contentType} for Grade ${input.grade}. Return as a JSON object with 'content', 'memo', 'rubric', 'successIndicators', and 'imagePrompt'.` }];
-  const response = await callMultiAi(provider as AIProvider, messages);
   try {
-     return JSON.parse(response);
-  } catch (e) {
-     return { content: response, imagePrompt: "Educational classroom scene" };
+    const response = await callMultiAi(provider as AIProvider, messages);
+    try {
+       return JSON.parse(response);
+    } catch (e) {
+       return { content: response, imagePrompt: "Educational classroom scene" };
+    }
+  } catch (error: any) {
+    if (error.message.includes('Insufficient Balance') || error.message.includes('Unauthorized') || error.message.includes('credit') || error.message.includes('status code (no body)') || error.message.includes('400')) {
+      console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
+      return await geminiGenerateCAPS(input);
+    }
+    throw error;
   }
 };
 
@@ -33,11 +50,19 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini')
   if (provider === 'gemini') return await geminiGenerateVisual(input);
   
   const messages = [{ role: 'user', content: `Generate a visual aid design description for ${input.visualType} on topic ${input.topic}. Return JSON with 'content', 'description', 'printInstructions', 'imagePrompt'.` }];
-  const response = await callMultiAi(provider as AIProvider, messages);
   try {
-     return JSON.parse(response);
-  } catch (e) {
-     return { content: response, description: "Visual aid generated", imagePrompt: "Abstract educational graphic" };
+    const response = await callMultiAi(provider as AIProvider, messages);
+    try {
+       return JSON.parse(response);
+    } catch (e) {
+       return { content: response, description: "Visual aid generated", imagePrompt: "Abstract educational graphic" };
+    }
+  } catch (error: any) {
+    if (error.message.includes('Insufficient Balance') || error.message.includes('Unauthorized') || error.message.includes('credit') || error.message.includes('status code (no body)') || error.message.includes('400')) {
+      console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
+      return await geminiGenerateVisual(input);
+    }
+    throw error;
   }
 };
 
@@ -45,11 +70,34 @@ export const generateAdminDoc = async (input: any, provider: string = 'gemini') 
   if (provider === 'gemini') return await geminiGenerateAdmin(input);
   
   const messages = [{ role: 'user', content: `Generate a formal ${input.documentType} for ${input.schoolName}. Tone: ${input.tone}. Return JSON with 'content', 'notes', 'documentType'.` }];
-  const response = await callMultiAi(provider as AIProvider, messages);
   try {
-     return JSON.parse(response);
-  } catch (e) {
-     return { content: response, notes: "Please review before sending.", documentType: input.documentType };
+    const response = await callMultiAi(provider as AIProvider, messages);
+    try {
+       return JSON.parse(response);
+    } catch (e) {
+       return { content: response, notes: "Please review before sending.", documentType: input.documentType };
+    }
+  } catch (error: any) {
+    if (error.message.includes('Insufficient Balance') || error.message.includes('Unauthorized') || error.message.includes('credit') || error.message.includes('status code (no body)') || error.message.includes('400')) {
+      console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
+      return await geminiGenerateAdmin(input);
+    }
+    throw error;
+  }
+};
+
+export const runOCRScan = async (imageData: string, provider: string = 'gemini') => {
+  if (provider === 'gemini') return await geminiOCRScan(imageData);
+  
+  if (provider === 'mistral') {
+    return await geminiOCRScan(imageData);
+  }
+  
+  try {
+    const extractedText = await performOCR(imageData);
+    return { extractedText };
+  } catch (error: any) {
+    return await geminiOCRScan(imageData);
   }
 };
 
@@ -67,13 +115,21 @@ export const runOCRAndGrade = async (imageData: string, rubric: string, provider
     { role: 'system', content: `You are an AI Grader. Use this rubric: ${rubric}` },
     { role: 'user', content: `Grade this text: ${extractedText}. Return JSON with 'totalScore', 'marksPerQuestion[]', 'feedback'.` }
   ];
-  const grading = await callMultiAi('groq', messages); // Use Groq for fast grading
-  
   try {
-    const parsed = JSON.parse(grading);
-    return { ...parsed, extractedText };
-  } catch (e) {
-    return { extractedText, feedback: grading, totalScore: "N/A" };
+    const grading = await callMultiAi('groq', messages); // Use Groq for fast grading
+    
+    try {
+      const parsed = JSON.parse(grading);
+      return { ...parsed, extractedText };
+    } catch (e) {
+      return { extractedText, feedback: grading, totalScore: "N/A" };
+    }
+  } catch (error: any) {
+    if (error.message.includes('Insufficient Balance') || error.message.includes('Unauthorized') || error.message.includes('credit') || error.message.includes('status code (no body)') || error.message.includes('400')) {
+      console.warn(`Provider groq/mistral failed (${error.message}). Falling back to Gemini OCR...`);
+      return await geminiOCR(imageData, rubric);
+    }
+    throw error;
   }
 };
 
@@ -104,5 +160,13 @@ export const chatWithTutor = async (messages: any[], provider: string = 'gemini'
     formattedMessages.shift();
   }
 
-  return await callMultiAi(provider as AIProvider, formattedMessages);
+  try {
+    return await callMultiAi(provider as AIProvider, formattedMessages);
+  } catch (error: any) {
+    if (error.message.includes('Insufficient Balance') || error.message.includes('Unauthorized') || error.message.includes('credit') || error.message.includes('status code (no body)') || error.message.includes('400')) {
+      console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
+      return await geminiChat(messages);
+    }
+    throw error;
+  }
 };
