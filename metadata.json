@@ -1,0 +1,6 @@
+{
+  "name": "EduAI Companion",
+  "description": "An intelligent CAPS-aligned educational platform for personalized learning plans, lesson generation, auto-grading, and AI-powered tutoring.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["AI Content Generation", "OCR Grading", "Voice Tutor"]
+}
