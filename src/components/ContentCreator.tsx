@@ -326,7 +326,35 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     }
   };
 
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignTargetType, setAssignTargetType] = useState<'class' | 'group'>('class');
+  const [assignTargetName, setAssignTargetName] = useState('');
+
   const handleAssign = () => {
+    setShowAssignModal(true);
+  };
+
+  const confirmAssign = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assignTargetName) return;
+
+    try {
+      const { auth, db } = await import('../lib/firebase');
+      const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+      const user = auth.currentUser;
+      if (user) {
+        await setDoc(doc(db, 'notifications', Date.now().toString()), {
+          title: 'Content Assigned',
+          message: `You assigned new content to ${assignTargetType === 'class' ? 'Class' : 'Study Group'}: ${assignTargetName}.`,
+          read: false,
+          userId: user.uid,
+          createdAt: serverTimestamp(),
+        });
+      }
+    } catch (e: any) {
+      console.warn("Failed to notify", e);
+    }
+    setShowAssignModal(false);
     setAssignSuccess(true);
     setTimeout(() => setAssignSuccess(false), 2000);
   };
@@ -921,6 +949,52 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
            )}
         </div>
       </div>
+
+      {/* Assign Modal */}
+      {showAssignModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[32px] p-6 lg:p-8 w-full max-w-md shadow-2xl relative">
+            <button onClick={() => setShowAssignModal(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600">
+              <X size={20} />
+            </button>
+            <h3 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+              <Users className="text-brand-cyan" />
+              Assign Content
+            </h3>
+            <form onSubmit={confirmAssign} className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Assign To</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
+                    <input type="radio" value="class" checked={assignTargetType === 'class'} onChange={() => setAssignTargetType('class')} className="text-brand-cyan focus:ring-brand-cyan" />
+                    Class
+                  </label>
+                  <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
+                    <input type="radio" value="group" checked={assignTargetType === 'group'} onChange={() => setAssignTargetType('group')} className="text-brand-cyan focus:ring-brand-cyan" />
+                    Study Group
+                  </label>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Target Name</label>
+                <input 
+                  type="text" 
+                  value={assignTargetName} 
+                  onChange={e => setAssignTargetName(e.target.value)} 
+                  placeholder={assignTargetType === 'class' ? "e.g. Grade 10A" : "e.g. Math Olympiad Prep"}
+                  className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan"
+                  required
+                />
+              </div>
+
+              <button type="submit" className="w-full bg-brand-cyan hover:bg-cyan-500 text-navy-dark font-black uppercase tracking-widest text-xs py-4 rounded-xl mt-4 transition-all">
+                Create Assignment
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
