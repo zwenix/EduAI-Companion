@@ -12,10 +12,16 @@ export const callMultiAi = async (provider: AIProvider, messages: any[], model?:
       return response.data.choices[0].message.content;
     }
   } catch (error: any) {
-    console.error(`Error with ${provider}:`, error);
     const backendError = error.response?.data?.error || {};
     const status = error.response?.status;
     const errorMsg = typeof backendError === 'string' ? backendError : backendError?.message || '';
+
+    // Instead of console.error, console.warn since we expect to fallback gracefully.
+    if (status) {
+      console.warn(`[multiAiService] API issue with ${provider} (Status: ${status}): ${errorMsg || 'Unknown Error'}`);
+    } else {
+      console.warn(`[multiAiService] Error with ${provider}:`, error.message);
+    }
     
     if (status === 402 || errorMsg.includes('credit balance is too low') || errorMsg.includes('Insufficient Balance')) {
       throw new Error(`Insufficient Balance: Your ${provider} account needs a top-up to continue.`);
@@ -39,15 +45,5 @@ export const performOCR = async (base64Image: string) => {
   } catch (error: any) {
     console.error("OCR error:", error);
     throw new Error("OCR failed");
-  }
-};
-
-export const generateSpeech = async (text: string, voiceId?: string) => {
-  try {
-    const response = await axios.post('/api/tts', { text, voiceId }, { responseType: 'blob' });
-    return URL.createObjectURL(response.data);
-  } catch (error: any) {
-    console.error("TTS error:", error);
-    throw new Error("Text-to-speech failed");
   }
 };

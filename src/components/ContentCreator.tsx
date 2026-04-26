@@ -6,11 +6,14 @@ import {
   Check, X, Plus, Users, Layout, Video, FileCode, HelpCircle, Archive, UserCircle, Image, AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import html2pdf from 'html2pdf.js';
+import { marked } from 'marked';
 import { educationalData } from '../lib/educational-data';
 import { generateCAPSContent, generateVisualAid, generateAdminDoc } from '../services/unifiedAiService';
 import { useAi } from '../contexts/AiContext';
 import Grade1EnglishGenerator from "./Grade1EnglishGenerator";
+import AiImage from './AiImage';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 
 // ─── Utility ───────────────────────────────────────────────────────────────
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
@@ -178,8 +181,52 @@ const Switch = ({ checked, onCheckedChange, id }: any) => (
 
 // ─── Preview Component ────────────────────────────────────────────────────────
 
-function ContentPreview({ html, label }: { html: string; label: string }) {
+function ContentPreview({ html, label }: { html: string | object; label: string }) {
   if (!html) return null;
+  // If the model returned a nested JSON object instead of an HTML string,
+  // we gracefully degrade into a pretty rendering so it doesn't crash.
+  let processedHtml = typeof html === 'object' ? '' : String(html);
+
+  if (typeof html === 'object' && html !== null) {
+    const formatObjectToHtml = (obj: any, depth = 1): string => {
+      let result = '';
+      const headingLevel = Math.min(depth + 1, 6);
+      for (const [key, value] of Object.entries(obj)) {
+        const displayKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+        if (typeof value === 'object' && value !== null) {
+          if (Array.isArray(value)) {
+            result += `<h${headingLevel} class="font-bold mt-4 mb-2 text-slate-800">${displayKey}</h${headingLevel}>`;
+            result += `<ul class="list-disc pl-5 mb-4">`;
+            value.forEach((v: any) => {
+              result += `<li class="mb-2">${typeof v === 'object' ? formatObjectToHtml(v, depth + 1) : v}</li>`;
+            });
+            result += `</ul>`;
+          } else {
+            result += `<h${headingLevel} class="font-bold mt-4 mb-2 text-slate-800">${displayKey}</h${headingLevel}>`;
+            result += `<div class="pl-4 border-l-2 border-slate-200">${formatObjectToHtml(value, depth + 1)}</div>`;
+          }
+        } else {
+          if (key.toLowerCase() === 'title' || key.toLowerCase() === 'heading') {
+             result += `<h${Math.max(1, headingLevel - 1)} class="font-black text-2xl mb-4 text-slate-900">${value}</h${Math.max(1, headingLevel - 1)}>`;
+          } else {
+             result += `<p class="mb-2"><strong class="text-slate-700">${displayKey}:</strong> ${value}</p>`;
+          }
+        }
+      }
+      return result;
+    };
+    processedHtml = formatObjectToHtml(html);
+  }
+  
+  // Fallback to ensuring there's an opening div if it got cut off. 
+  // It looks like sometimes the AI returns 'div style=...'
+  if (typeof html === 'string' && processedHtml.trim().startsWith('div ')) {
+    processedHtml = '<' + processedHtml;
+  }
+
+  // Parse markdown asynchronously or synchronously, marked.parse returns string
+  const rawMarkup = marked.parse(processedHtml) as string;
+
   return (
     <div className="space-y-4">
       <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">
@@ -187,8 +234,8 @@ function ContentPreview({ html, label }: { html: string; label: string }) {
       </h3>
       <div className="bg-white rounded-[32px] overflow-hidden p-8 shadow-2xl relative">
         <div 
-          className="prose prose-sm max-w-none text-slate-900"
-          dangerouslySetInnerHTML={{ __html: html }}
+          className="prose prose-sm max-w-none text-slate-900 markdown-body"
+          dangerouslySetInnerHTML={{ __html: rawMarkup }} 
         />
         <div className="absolute top-4 right-4 text-[10px] text-slate-300 font-bold uppercase tracking-widest pointer-events-none opacity-20">
           EduAI Companion Engine
@@ -228,6 +275,8 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activePreviewTab, setActivePreviewTab] = useState<'content' | 'memo' | 'rubric' | 'assessment'>('content');
+  const [archiveSuccess, setArchiveSuccess] = useState(false);
+  const [assignSuccess, setAssignSuccess] = useState(false);
 
   // Results state
   const [teachingResult, setTeachingResult] = useState<any>(null);
@@ -236,21 +285,62 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   
   const contentRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if ((isLoading || teachingResult || visualResult || adminResult) && window.innerWidth < 1024) {
+      setTimeout(() => {
+        document.getElementById('preview-panel')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [isLoading, teachingResult, visualResult, adminResult]);
+
   const handlePrint = () => {
     window.print();
   };
 
-  const handleDownloadPDF = () => {
-    if (contentRef.current) {
-      const opt = {
-        margin:       10,
-        filename:     'edu-ai-content.pdf',
-        image:        { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas:  { scale: 2 },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
-      };
-      html2pdf().from(contentRef.current).set(opt).save();
+  const handleArchive = () => {
+    const result = activeTab === 'teaching' ? teachingResult : activeTab === 'visual' ? visualResult : adminResult;
+    if (!result) return;
+    
+    const newItem = {
+      id: Date.now().toString(),
+      title: (activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation',
+      subject: (activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : 'Administration') || 'General',
+      grade: (activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : 'All') || 'N/A',
+      contentType: (activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : 'Notice') || 'Document',
+      isSystem: false,
+      createdAt: new Date().toISOString(),
+      content: result.content,
+      memo: result.memo,
+      rubric: result.rubric,
+      imagePrompt: result.imagePrompt
+    };
+
+    try {
+      const existing = JSON.parse(localStorage.getItem('eduai_archive') || '[]');
+      localStorage.setItem('eduai_archive', JSON.stringify([newItem, ...existing]));
+      setArchiveSuccess(true);
+      setTimeout(() => setArchiveSuccess(false), 2000);
+    } catch (e) {
+      console.error('Failed to archive', e);
+      alert('Archive failed: storage might be full.');
     }
+  };
+
+  const handleAssign = () => {
+    setAssignSuccess(true);
+    setTimeout(() => setAssignSuccess(false), 2000);
+  };
+
+  const handleDownloadPDF = () => {
+    if (!contentRef.current) return;
+    const element = contentRef.current;
+    html2pdf().set({
+      margin: 15,
+      filename: `eduai-generated-content.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }).from(element).save();
   };
 
   // ─── Teaching Tools State ─────────────────────────────────────────────────
@@ -406,23 +496,28 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-4 sm:inset-10 z-50 glass rounded-[48px] shadow-[0_40px_120px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden border border-white/10"
+      className="fixed inset-0 sm:inset-4 lg:inset-10 z-[70] backdrop-blur-3xl bg-[#0B1122]/95 sm:glass sm:bg-transparent rounded-none sm:rounded-[32px] lg:rounded-[48px] shadow-[0_40px_120px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden border-0 sm:border border-white/10"
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-8 border-b border-white/5 bg-white/5 px-10">
-        <div className="flex items-center gap-4">
-          <div className="bg-brand-cyan/20 p-2.5 rounded-2xl border border-brand-cyan/20 text-brand-cyan">
-             <FlaskConical size={24} />
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between p-4 lg:p-8 border-b border-white/5 bg-white/5 px-4 lg:px-10 gap-4 shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 lg:gap-4">
+            <div className="bg-brand-cyan/20 p-2 lg:p-2.5 rounded-xl lg:rounded-2xl border border-brand-cyan/20 text-brand-cyan">
+               <FlaskConical size={20} className="lg:w-6 lg:h-6" />
+            </div>
+            <div>
+              <h2 className="text-xl md:text-2xl lg:text-3xl font-hand text-white">Content Creator Studio</h2>
+              <p className="hidden lg:block text-[10px] text-slate-500 uppercase font-black tracking-[0.3em] mt-1">CAPS Intelligence Matrix</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-3xl font-hand text-white">Content Creator Studio</h2>
-            <p className="text-[10px] text-slate-500 uppercase font-black tracking-[0.3em] mt-1">CAPS Intelligence Matrix</p>
-          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl border border-white/10 lg:border-transparent text-slate-400 hover:text-white transition-all lg:hidden flex items-center justify-center shrink-0 min-w-[40px] min-h-[40px]">
+             <X size={20} />
+          </button>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 lg:gap-4 overflow-x-auto scrollbar-hide pb-2 lg:pb-0">
           {/* Labs Toggle */}
-          <div className="bg-white/5 flex p-1.5 rounded-[24px] border border-white/5 gap-1 shadow-inner">
+          <div className="bg-white/5 flex p-1.5 rounded-[24px] border border-white/5 gap-1 shadow-inner shrink-0">
             {[
               { id: 'teaching', icon: FlaskConical, label: 'Content Studio' },
               { id: 'visual', icon: Palette, label: 'Visual Lab' },
@@ -433,24 +528,25 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                 key={lab.id}
                 onClick={() => setActiveTab(lab.id)}
                 className={cn(
-                  "flex items-center gap-2 px-6 py-3 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all",
+                  "flex items-center gap-2 px-4 lg:px-6 py-2.5 lg:py-3 rounded-[18px] text-[10px] lg:text-xs font-black uppercase tracking-widest transition-all",
                   activeTab === lab.id ? "bg-brand-cyan text-navy-dark shadow-xl" : "text-slate-400 hover:text-white"
                 )}
               >
-                <lab.icon size={16} />
-                <span className="hidden md:inline">{lab.label}</span>
+                <lab.icon size={14} className="lg:w-4 lg:h-4" />
+                <span className="whitespace-nowrap hidden sm:inline">{lab.label}</span>
+                <span className="whitespace-nowrap sm:hidden">{lab.label.split(' ')[0]}</span>
               </button>
             ))}
           </div>
-          <button onClick={onClose} className="p-3 hover:bg-white/5 rounded-2xl text-slate-500 transition-all">
+          <button onClick={onClose} className="hidden lg:flex p-3 hover:bg-white/5 rounded-2xl text-slate-500 transition-all shrink-0">
             <X size={24} />
           </button>
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
         {/* Left Form Panel */}
-        <div className="w-full lg:w-[480px] bg-[#0B1122] border-r border-white/5 overflow-y-auto p-10 space-y-8 scrollbar-hide shrink-0">
+        <div className="w-full lg:w-[480px] bg-[#0B1122] lg:border-r border-white/5 lg:overflow-y-auto p-4 lg:p-10 space-y-6 lg:space-y-8 scrollbar-hide shrink-0 h-max lg:h-full">
           <AnimatePresence mode="wait">
             {activeTab === 'teaching' && (
               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
@@ -701,20 +797,20 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
         </div>
 
         {/* Right Preview Panel */}
-        <div className="flex-1 bg-navy-dark/40 overflow-y-auto p-12 scrollbar-hide relative">
+        <div id="preview-panel" className="w-full lg:flex-1 bg-navy-dark/40 lg:overflow-y-auto p-4 sm:p-8 lg:p-12 scrollbar-hide relative lg:h-full">
            <AnimatePresence>
             {error && (
               <motion.div 
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="mb-8 p-6 bg-red-500/10 border border-red-500/20 rounded-[32px] flex items-center justify-between gap-4 text-red-400"
+                className="mb-8 p-4 lg:p-6 bg-red-500/10 border border-red-500/20 rounded-2xl lg:rounded-[32px] flex items-center justify-between gap-4 text-red-400"
               >
                 <div className="flex items-center gap-3">
                   <AlertCircle size={24} className="shrink-0" />
                   <div>
-                    <h4 className="font-hand text-xl text-white">Neural Interference</h4>
-                    <p className="text-sm font-medium">{error}</p>
+                    <h4 className="font-hand text-lg lg:text-xl text-white">Neural Interference</h4>
+                    <p className="text-xs lg:text-sm font-medium">{error}</p>
                   </div>
                 </div>
                 <button onClick={() => setError(null)} className="p-2 hover:bg-white/5 rounded-xl transition-all">
@@ -725,59 +821,72 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
            </AnimatePresence>
 
            {isLoading ? (
-             <div className="h-full flex flex-col items-center justify-center text-center space-y-8">
+             <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-center space-y-8">
                <div className="relative">
                  <div className="absolute inset-0 bg-brand-cyan/20 blur-[60px] animate-pulse"></div>
-                 <FlaskConical size={80} className="text-brand-cyan animate-bounce" />
+                 <FlaskConical size={60} className="text-brand-cyan animate-bounce lg:w-[80px] lg:h-[80px]" />
                </div>
                <div>
-                 <h3 className="text-3xl text-white font-hand">Neural Fabrication Unit</h3>
-                 <p className="text-slate-500 mt-2 font-medium">Calculating CAPS alignments and professional layout hooks...</p>
+                 <h3 className="text-2xl lg:text-3xl text-white font-hand">Neural Fabrication Unit</h3>
+                 <p className="text-slate-500 mt-2 font-medium text-sm lg:text-base">Calculating CAPS alignments and professional layout hooks...</p>
                </div>
              </div>
            ) : hasResult ? (
-             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto space-y-12">
-                <div className="flex justify-between items-center bg-white/5 p-6 rounded-[32px] border border-white/5">
-                  <div className="flex gap-3">
+             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto space-y-8 lg:space-y-12 pb-12">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white/5 p-4 lg:p-6 rounded-2xl lg:rounded-[32px] border border-white/5 gap-4">
+                  <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
                     {activeTab === 'teaching' && (
                       <>
-                        <button onClick={() => setActivePreviewTab('content')} className={cn("px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest", activePreviewTab === 'content' ? "bg-brand-cyan text-navy-dark" : "text-slate-500 hover:text-white")}>Result</button>
-                        {teachingResult.memo && <button onClick={() => setActivePreviewTab('memo')} className={cn("px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest", activePreviewTab === 'memo' ? "bg-brand-yellow text-navy-dark" : "text-slate-500 hover:text-white")}>Memo</button>}
-                        {teachingResult.rubric && <button onClick={() => setActivePreviewTab('rubric')} className={cn("px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest", activePreviewTab === 'rubric' ? "bg-purple-500 text-white" : "text-slate-500 hover:text-white")}>Rubric</button>}
+                        <button onClick={() => setActivePreviewTab('content')} className={cn("px-4 lg:px-6 py-2.5 rounded-xl lg:rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap", activePreviewTab === 'content' ? "bg-brand-cyan text-navy-dark" : "text-slate-500 hover:text-white bg-white/5 lg:bg-transparent")}>Result</button>
+                        {teachingResult.memo && <button onClick={() => setActivePreviewTab('memo')} className={cn("px-4 lg:px-6 py-2.5 rounded-xl lg:rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap", activePreviewTab === 'memo' ? "bg-brand-yellow text-navy-dark" : "text-slate-500 hover:text-white bg-white/5 lg:bg-transparent")}>Memo</button>}
+                        {teachingResult.rubric && <button onClick={() => setActivePreviewTab('rubric')} className={cn("px-4 lg:px-6 py-2.5 rounded-xl lg:rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap", activePreviewTab === 'rubric' ? "bg-purple-500 text-white" : "text-slate-500 hover:text-white bg-white/5 lg:bg-transparent")}>Rubric</button>}
                       </>
                     )}
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={handlePrint} className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl text-white transition-all tooltip" title="Print Content"><Printer size={18} /></button>
-                    <button onClick={handleDownloadPDF} className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl text-white transition-all tooltip" title="Download as PDF"><Download size={18} /></button>
-                    <button className="bg-transparent hover:bg-white/10 border border-white/20 text-white px-4 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2" title="Placeholder">
-                       <Users size={16} /> Assign to Class
+                  <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
+                    <button onClick={handlePrint} className="bg-white/10 hover:bg-white/20 p-2.5 lg:p-3 rounded-xl lg:rounded-2xl text-white transition-all tooltip shrink-0" title="Print Content">
+                      <Printer size={16} className="lg:w-[18px] lg:h-[18px]" />
                     </button>
-                    <button className="bg-transparent hover:bg-white/10 border border-white/20 text-white px-4 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2" title="Placeholder">
-                       <UserCircle size={16} /> Specific Learners
+                    <button onClick={handleDownloadPDF} className="bg-white/10 hover:bg-white/20 p-2.5 lg:p-3 rounded-xl lg:rounded-2xl text-white transition-all tooltip shrink-0" title="Download as PDF">
+                      <Download size={16} className="lg:w-[18px] lg:h-[18px]" />
                     </button>
-                    <button className="bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
-                       <Save size={16} /> Archive Stream
+                    <button 
+                      onClick={handleAssign}
+                      className={cn(
+                        "transition-all border px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl font-black uppercase tracking-widest text-[9px] lg:text-[10px] flex items-center gap-2 shrink-0",
+                        assignSuccess ? "bg-emerald-500 border-emerald-500 text-white" : "bg-transparent hover:bg-white/10 border-white/20 text-white"
+                      )} 
+                      title="Assign to learners"
+                    >
+                       {assignSuccess ? <Check size={14} className="lg:w-4 lg:h-4" /> : <Users size={14} className="lg:w-4 lg:h-4" />}
+                       {assignSuccess ? 'Assigned' : 'Assign'}
+                    </button>
+                    <button 
+                      onClick={handleArchive}
+                      className={cn(
+                        "transition-all px-4 lg:px-6 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl font-black uppercase tracking-widest text-[9px] lg:text-[10px] flex items-center gap-2 shrink-0",
+                        archiveSuccess ? "bg-emerald-500 text-white" : "bg-brand-cyan hover:bg-cyan-500 text-navy-dark"
+                      )}
+                    >
+                       {archiveSuccess ? <Check size={14} className="lg:w-4 lg:h-4" /> : <Save size={14} className="lg:w-4 lg:h-4" />}
+                       {archiveSuccess ? 'Archived' : 'Archive'}
                     </button>
                   </div>
                 </div>
 
-                <div className="pb-20 bg-white print:bg-white rounded-[32px] p-6 text-black" ref={contentRef}>
+                <div className="pb-20 bg-white print:bg-white rounded-[32px] p-6 text-black printable-doc" ref={contentRef}>
                   {activeTab === 'teaching' && (
                     <>
                       {activePreviewTab === 'content' && (
                         <div className="space-y-8">
-                          <ContentPreview html={teachingResult.content} label="Integrated Material" />
                           {teachingResult.imagePrompt && (
-                            <div className="glass p-8 rounded-[32px] border border-white/5 space-y-4">
-                              <h3 className="text-[10px] font-black text-brand-cyan uppercase tracking-[0.2em]">
-                                Hero Illustration Blueprint
-                              </h3>
-                              <p className="text-xs text-slate-400 italic leading-relaxed bg-white/5 p-4 rounded-2xl border border-white/5">
-                                "{teachingResult.imagePrompt}"
-                              </p>
-                            </div>
+                            <AiImage 
+                              prompt={teachingResult.imagePrompt} 
+                              aspectRatio="video"
+                              className="w-full mb-8"
+                            />
                           )}
+                          <ContentPreview html={teachingResult.content} label="Integrated Material" />
                         </div>
                       )}
                       {activePreviewTab === 'memo' && <ContentPreview html={teachingResult.memo} label="Expert Answer Key" />}
@@ -786,34 +895,14 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   )}
                   {activeTab === 'visual' && (
                     <div className="space-y-8">
-                      <ContentPreview html={visualResult.content} label="Digital Visual Asset" />
                       {visualResult.imagePrompt && (
-                        <div className="glass p-8 rounded-[32px] border border-white/5 space-y-4">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-[10px] font-black text-brand-cyan uppercase tracking-[0.2em]">
-                              Generated Visual Prompt
-                            </h3>
-                            <button className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-500 hover:text-white transition-colors">
-                              <RefreshCw size={12} />
-                              Regenerate Asset
-                            </button>
-                          </div>
-                          <p className="text-xs text-slate-400 italic leading-relaxed bg-white/5 p-4 rounded-2xl border border-white/5">
-                            "{visualResult.imagePrompt}"
-                          </p>
-                          <div className="aspect-video bg-navy-deep rounded-2xl border border-white/5 flex flex-col items-center justify-center text-center p-8 space-y-4 overflow-hidden relative group">
-                            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-brand-cyan/10 opacity-50"></div>
-                            <Sparkles size={40} className="text-brand-cyan animate-pulse relative z-10" />
-                            <div className="relative z-10">
-                              <p className="text-sm text-white font-bold mb-1">Visual Asset Blueprint Ready</p>
-                              <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Connect to image fabrication engine to initialize</p>
-                            </div>
-                            <button className="relative z-10 mt-4 bg-brand-cyan text-navy-dark px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all shadow-lg shadow-cyan-500/20">
-                              Generate Asset Now
-                            </button>
-                          </div>
-                        </div>
+                        <AiImage 
+                          prompt={visualResult.imagePrompt} 
+                          aspectRatio="portrait"
+                          className="w-full max-w-2xl mx-auto mb-8"
+                        />
                       )}
+                      <ContentPreview html={visualResult.content} label="Digital Visual Asset" />
                     </div>
                   )}
                   {activeTab === 'admin' && <ContentPreview html={adminResult.content} label="Official Correspondence" />}

@@ -3,8 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 const ai = new GoogleGenAI({ apiKey: "AIzaSyAaXqaV0BBkwr2ui1hCQ704aSv-POmJmJQ" });
 
 // ─── Prompt Engineering Constants ──────────────────────────────────────────
-
-const MASTER_SYSTEM_PROMPT = `
+export const MASTER_SYSTEM_PROMPT = `
 You are an expert South African CAPS-aligned educational content designer and senior graphic designer specializing in primary and high school learning materials for South African classrooms.
 
 Your task is to generate BEAUTIFUL, PROFESSIONAL, PRINT-READY classroom materials (worksheets, posters, study guides, infographics, flashcards, diagrams, mind maps, etc.) that are:
@@ -28,14 +27,14 @@ When generating any visual material, you MUST output:
 You are never satisfied with mediocre visuals — aim for materials that South African teachers would proudly display in their classrooms or submit to the DBE as exemplars.
 `;
 
-const IMAGE_PROMPT_GOLDEN_RULE = `
+export const IMAGE_PROMPT_GOLDEN_RULE = `
 Ultra-detailed digital illustration, professional educational graphic design, vibrant colors, perfect composition, sharp focus, 300 DPI print quality, award-winning children’s non-fiction book style, no text overlays (text will be added separately), no borders, no frames, no watermarks, no emojis, no cartoonish exaggeration, suitable for South African classroom display, museum-quality detail
 `;
 
 /**
  * Robustly parses JSON from a model's response text.
  */
-const safeJsonParse = (text: string | null | undefined): any => {
+export const safeJsonParse = (text: string | null | undefined): any => {
   if (!text) return {};
   try {
     const trimmed = text.trim();
@@ -111,7 +110,7 @@ export const generateEducationalContent = async (type: string, details: string) 
 
 export const generateCAPSContent = async (input: any) => {
   const model = "gemini-3-flash-preview";
-  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe content must be strictly CAPS aligned and professionally formatted in HTML.\nInclude an Answer Memo and a Marking Rubric if requested.`;
+  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must have strictly HTML strings for educational content.\nIMPORTANT: The 'content', 'memo', and 'rubric' keys MUST contain beautifully formatted HTML using Tailwind CSS utility classes. DO NOT output nested JSON objects for these fields.`;
 
   const prompt = `
     Type: ${input.contentType}
@@ -166,7 +165,7 @@ export const generateCAPSContent = async (input: any) => {
 
 export const generateVisualAid = async (input: any) => {
   const model = "gemini-3-flash-preview";
-  const systemInstruction = MASTER_SYSTEM_PROMPT;
+  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nThe 'content' field in your JSON response MUST be valid HTML designed carefully using Tailwind CSS utility classes. DO NOT use nested JSON objects in the 'content' field.`;
 
   let visualPrompt = "";
   const isPoster = input.visualType?.toLowerCase().includes('poster');
@@ -260,7 +259,8 @@ export const generateAdminDoc = async (input: any) => {
   const model = "gemini-3-flash-preview";
   const systemInstruction = `You are a professional school administrator.
   Generate a formal ${input.documentType} for ${input.schoolName}.
-  The tone should be ${input.tone}.`;
+  The tone should be ${input.tone}.
+  IMPORTANT: The 'content' field MUST be formatted as a visually pleasing HTML string using Tailwind CSS utility classes. DO NOT nest a JSON object.`;
 
   const prompt = `
     Type: ${input.documentType}
@@ -303,12 +303,12 @@ export const runOCRScan = async (imageData: string) => {
   const responseText = await callGemini(async () => {
     const response = await ai.models.generateContent({
       model,
-      contents: {
-        parts: [
+      contents: [
+        { role: 'user', parts: [
           { text: prompt },
           { inlineData: { mimeType: "image/jpeg", data: imageData.split(',')[1] } }
-        ]
-      }
+        ]}
+      ]
     });
     return response.text;
   });
@@ -329,12 +329,12 @@ export const runOCRAndGrade = async (imageData: string, rubric: string) => {
   const responseText = await callGemini(async () => {
     const response = await ai.models.generateContent({
       model,
-      contents: {
-        parts: [
+      contents: [
+        { role: 'user', parts: [
           { text: prompt },
           { inlineData: { mimeType: "image/jpeg", data: imageData.split(',')[1] } }
-        ]
-      },
+        ]}
+      ],
       config: {
         responseMimeType: "application/json",
         responseSchema: {

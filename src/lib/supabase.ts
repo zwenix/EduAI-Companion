@@ -9,6 +9,12 @@ export const supabase = {
     getUser: async () => {
       // Mocked user for demo purposes
       return { data: { user: { id: 'mock-user-id', email: 'guest@example.com' } }, error: null };
+    },
+    signInWithPassword: async ({ email, password }: any) => {
+      return { data: { user: { id: 'mock-user-id', email } }, error: null };
+    },
+    signInWithOAuth: async ({ provider, options }: any) => {
+      return { data: { provider, url: 'mocked-url' }, error: null };
     }
   },
   from: (table: string) => ({

@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "profile": {
+      "title": "Profile",
+      "description": "User profile containing their role",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["teacher", "student", "parent", "admin"] },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "email", "role", "updatedAt"]
+    },
+    "student": {
+      "title": "Student",
+      "description": "Student managed in Class Management",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "grade": { "type": "string" },
+        "email": { "type": "string" },
+        "status": { "type": "string", "enum": ["Active", "Inactive"] },
+        "teacherId": { "type": "string", "description": "The teacher that created/manages this student" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["name", "grade", "email", "status", "teacherId", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/profiles/{userId}": {
+      "schema": { "$ref": "#/entities/profile" },
+      "description": "User profiles by auth uid"
+    },
+    "/students/{studentId}": {
+      "schema": { "$ref": "#/entities/student" },
+      "description": "Students list managed by teachers"
+    }
+  }
+}

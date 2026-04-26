@@ -11,11 +11,20 @@ const AiContext = createContext<AiContextType | undefined>(undefined);
 
 export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {
-    return (localStorage.getItem('eduai_provider') as AIProvider) || 'gemini';
+    try {
+      const saved = localStorage.getItem('eduai_provider');
+      return (saved as AIProvider) || 'gemini';
+    } catch (e) {
+      return 'gemini';
+    }
   });
 
   useEffect(() => {
-    localStorage.setItem('eduai_provider', provider);
+    try {
+      localStorage.setItem('eduai_provider', provider);
+    } catch (e) {
+      console.error('Failed to save provider to localStorage', e);
+    }
   }, [provider]);
 
   return (

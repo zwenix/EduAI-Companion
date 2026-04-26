@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, Scan, X, RefreshCw, Loader2, FileCheck, Brain, CheckCircle, AlertCircle, ChevronRight, GraduationCap, Download, Printer, UserCircle, Users, Save } from 'lucide-react';
+import { Camera, Upload, Scan, X, RefreshCw, Loader2, FileCheck, Brain, CheckCircle, AlertCircle, ChevronRight, GraduationCap, Download, Printer, UserCircle, Users, Save, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import html2pdf from 'html2pdf.js';
+import { marked } from 'marked';
 import { runOCRAndGrade, runOCRScan } from '../services/unifiedAiService';
 import { useAi } from '../contexts/AiContext';
+
+const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
 export default function AutoGrading() {
   const { provider } = useAi();
@@ -22,6 +24,7 @@ export default function AutoGrading() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [archiveSuccess, setArchiveSuccess] = useState(false);
 
   React.useEffect(() => {
     return () => {
@@ -36,15 +39,36 @@ export default function AutoGrading() {
   };
 
   const handleDownloadPDF = () => {
-    if (contentRef.current) {
-      const opt = {
-        margin:       10,
-        filename:     'ocr-result.pdf',
-        image:        { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas:  { scale: 2 },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
-      };
-      html2pdf().from(contentRef.current).set(opt).save();
+    window.print();
+  };
+
+  const handleArchive = () => {
+    const data = mode === 'grade' ? result : extractResult;
+    if (!data) return;
+
+    const newItem = {
+      id: Date.now().toString(),
+      title: mode === 'grade' ? 'Grading Report' : 'Text Extraction',
+      subject: 'Assessment',
+      grade: 'N/A',
+      contentType: mode === 'grade' ? 'Grading' : 'OCR Scan',
+      isSystem: false,
+      createdAt: new Date().toISOString(),
+      content: mode === 'extract' ? `<p class="font-mono whitespace-pre-wrap">${data.extractedText}</p>` : `
+        <h3>Overall Score: ${data.totalScore}</h3>
+        <p><strong>Feedback:</strong> ${data.feedback}</p>
+        <h4>Question Breakdown:</h4>
+        <ul>${data.marksPerQuestion?.map((m: string) => `<li>${m}</li>`).join('')}</ul>
+      `
+    };
+
+    try {
+      const existing = JSON.parse(localStorage.getItem('eduai_archive') || '[]');
+      localStorage.setItem('eduai_archive', JSON.stringify([newItem, ...existing]));
+      setArchiveSuccess(true);
+      setTimeout(() => setArchiveSuccess(false), 2000);
+    } catch (e) {
+      console.error('Archive error:', e);
     }
   };
 
@@ -320,12 +344,19 @@ export default function AutoGrading() {
                 <div className="flex justify-end gap-2 mb-6">
                   <button onClick={handlePrint} className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl text-white transition-all tooltip" title="Print Content"><Printer size={18} /></button>
                   <button onClick={handleDownloadPDF} className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl text-white transition-all tooltip" title="Download as PDF"><Download size={18} /></button>
-                  <button className="bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
-                     <Save size={16} /> Save Grading
+                  <button 
+                    onClick={handleArchive}
+                    className={cn(
+                      "transition-all px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2",
+                      archiveSuccess ? "bg-emerald-500 text-white" : "bg-brand-cyan hover:bg-cyan-500 text-navy-dark"
+                    )}
+                  >
+                     {archiveSuccess ? <Check size={16} /> : <Save size={16} />}
+                     {archiveSuccess ? 'Stored' : 'Save Grading'}
                   </button>
                 </div>
 
-                <div className="pb-20 bg-white print:bg-white rounded-[32px] p-6 text-black" ref={contentRef}>
+                <div className="pb-20 bg-white print:bg-white rounded-[32px] p-6 text-black printable-doc" ref={contentRef}>
                   {/* Score Card */}
                   <div className="glass !bg-slate-100 p-10 rounded-[48px] border border-black/10 relative overflow-hidden group mb-8">
                     <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-cyan/20 rounded-full blur-3xl transition-colors" />
@@ -347,9 +378,9 @@ export default function AutoGrading() {
                   {/* Feedback Box */}
                   <div className="bg-brand-cyan/10 border border-brand-cyan/30 p-8 rounded-[40px] relative mb-8">
                     <h4 className="text-[10px] font-black text-brand-cyan uppercase tracking-[0.3em] mb-4">Comprehensive Feedback</h4>
-                    <p className="text-slate-800 font-medium italic leading-relaxed">
-                      "{result.feedback}"
-                    </p>
+                    <div className="text-slate-800 font-medium italic leading-relaxed prose prose-sm max-w-none markdown-body"
+                      dangerouslySetInnerHTML={{ __html: marked.parse(result.feedback) as string }}
+                    />
                   </div>
 
                   {/* Question Breakdown */}
@@ -394,12 +425,19 @@ export default function AutoGrading() {
                 <div className="flex justify-end gap-2 mb-6">
                   <button onClick={handlePrint} className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl text-white transition-all tooltip" title="Print Content"><Printer size={18} /></button>
                   <button onClick={handleDownloadPDF} className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl text-white transition-all tooltip" title="Download as PDF"><Download size={18} /></button>
-                  <button className="bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
-                     <Save size={16} /> Archive Document
+                  <button 
+                    onClick={handleArchive}
+                    className={cn(
+                      "transition-all px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2",
+                      archiveSuccess ? "bg-emerald-500 text-white" : "bg-brand-cyan hover:bg-cyan-500 text-navy-dark"
+                    )}
+                  >
+                     {archiveSuccess ? <Check size={16} /> : <Save size={16} />}
+                     {archiveSuccess ? 'Archived' : 'Archive Document'}
                   </button>
                 </div>
 
-                 <div className="pb-20 bg-white print:bg-white rounded-[32px] p-6 text-black" ref={contentRef}>
+                 <div className="pb-20 bg-white print:bg-white rounded-[32px] p-6 text-black printable-doc" ref={contentRef}>
                   <div className="glass !bg-slate-50 p-8 rounded-[40px] border border-black/5">
                     <div className="flex items-center gap-4 mb-6 border-b border-slate-200 pb-4">
                       <FileCheck className="text-brand-cyan" size={28} />

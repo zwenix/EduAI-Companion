@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { Camera, X, Scan, Check, Loader2, AlertCircle, RefreshCw, FileCheck, Brain } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { runOCRAndGrade } from '../services/geminiService';
+import { runOCRAndGrade } from '../services/unifiedAiService';
+import { useAi } from '../contexts/AiContext';
 
 export default function OCRScanner({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+  const { provider } = useAi();
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -50,7 +52,7 @@ export default function OCRScanner({ isOpen, onClose }: { isOpen: boolean, onClo
     if (!capturedImage) return;
     setIsProcessing(true);
     try {
-      const gradingResult = await runOCRAndGrade(capturedImage, rubric || "Grade accurately based on general quality.");
+      const gradingResult = await runOCRAndGrade(capturedImage, rubric || "Grade accurately based on general quality.", provider);
       setResult(gradingResult);
     } catch (error) {
        console.error(error);

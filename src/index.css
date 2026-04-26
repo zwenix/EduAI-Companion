@@ -75,3 +75,39 @@
 .drop-shadow-glow {
   filter: drop-shadow(0 0 20px rgba(6, 182, 212, 0.4));
 }
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  body *, html * {
+    visibility: hidden;
+  }
+
+  .printable-doc, .printable-doc * {
+    visibility: visible;
+  }
+
+  /* Neutralize all parent overflows and sizing that could clip content */
+  html, body, #root, .flex-1, .overflow-hidden, .overflow-y-auto, main, div {
+    overflow: visible !important;
+    position: static !important;
+    height: auto !important;
+    min-height: auto !important;
+  }
+
+  .printable-doc {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}

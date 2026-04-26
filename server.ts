@@ -20,28 +20,19 @@ async function startServer() {
 
   // --- AI Provider Clients ---
 
-  const deepseek = new OpenAI({
-    apiKey: process.env.DEEPSEEK_API_KEY || "dummy",
-    baseURL: "https://api.deepseek.com/v1",
-  });
-
   const groq = new OpenAI({
     apiKey: process.env.GROQ_API_KEY || "dummy",
     baseURL: "https://api.groq.com/openai/v1",
   });
 
+  const alibaba = new OpenAI({
+    apiKey: process.env.ALIBABA_API_KEY || "dummy",
+    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  });
+
   const mistral = new OpenAI({
     apiKey: process.env.MISTRAL_API_KEY || "dummy",
     baseURL: "https://api.mistral.ai/v1",
-  });
-
-  const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY || "dummy",
-  });
-
-  const fireworks = new OpenAI({
-    apiKey: process.env.FIREWORKS_API_KEY || "dummy",
-    baseURL: "https://api.fireworks.ai/inference/v1",
   });
 
   // --- API Routes ---
@@ -60,8 +51,8 @@ async function startServer() {
 
     switch (provider) {
       case "deepseek":
-        client = deepseek;
-        apiKey = process.env.DEEPSEEK_API_KEY || "";
+        client = groq; // Now mapped to Groq
+        apiKey = process.env.GROQ_API_KEY || "";
         break;
       case "groq":
         client = groq;
@@ -72,8 +63,8 @@ async function startServer() {
         apiKey = process.env.MISTRAL_API_KEY || "";
         break;
       case "fireworks":
-        client = fireworks;
-        apiKey = process.env.FIREWORKS_API_KEY || "";
+        client = alibaba; // Now mapped to Alibaba
+        apiKey = process.env.ALIBABA_API_KEY || "";
         break;
     }
 
@@ -83,14 +74,24 @@ async function startServer() {
 
     try {
       const response = await client.chat.completions.create({
-        model: model || (provider === "groq" ? "meta-llama/llama-4-scout-17b-16e-instruct" : provider === "deepseek" ? "deepseek-chat" : ""),
+        model: model || (
+          provider === "deepseek" ? "llama-3.3-70b-versatile" : 
+          provider === "groq" ? "llama-4-scout-17b-16e-instruct" : 
+          provider === "mistral" ? "open-mistral-nemo" : 
+          provider === "fireworks" ? "qwen3-vl-plus-2025-12-19" : 
+          ""
+        ),
         messages,
         temperature,
       });
       res.json(response);
     } catch (error: any) {
-      console.error(`${provider} error:`, error);
       const status = error.status || 500;
+      if (status !== 500) {
+        console.warn(`${provider} API returned status ${status}: ${error.message || 'Error'}`);
+      } else {
+        console.error(`${provider} error:`, error.message || error);
+      }
       res.status(status).json({ 
         error: error.message,
         provider,
@@ -101,35 +102,35 @@ async function startServer() {
   });
 
   app.post("/api/anthropic", async (req, res) => {
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return res.status(400).json({ error: "Anthropic API key missing." });
+    // We remap this to Groq qwen3-32b
+    if (!process.env.GROQ_API_KEY) {
+      return res.status(400).json({ error: "Groq API key missing." });
     }
-    let { messages, model = "claude-3-haiku-20240307", max_tokens = 1000, system } = req.body;
+    let { messages, model = "qwen3-32b", max_tokens = 1000, system } = req.body;
     
-    // Anthropic requires system messages to be a separate parameter
-    if (!system) {
-      const systemMessageIndex = messages.findIndex((m: any) => m.role === 'system');
-      if (systemMessageIndex !== -1) {
-        system = messages[systemMessageIndex].content;
-        messages = messages.filter((_: any, i: number) => i !== systemMessageIndex);
-      }
+    // Anthropic had system split from messages, put it back for open-ai if needed
+    if (system && !messages.some((m: any) => m.role === 'system')) {
+      messages = [{ role: 'system', content: system }, ...messages];
     }
 
     try {
-      const response = await anthropic.messages.create({
+      const response = await groq.chat.completions.create({
         model,
-        max_tokens,
-        system,
         messages,
+        max_tokens,
       });
       res.json(response);
     } catch (error: any) {
-      console.error("Anthropic error:", error);
       const status = error.status || 500;
+      if (status !== 500) {
+        console.warn(`Anthropic mapped API returned status ${status}: ${error.message || 'Error'}`);
+      } else {
+        console.error("Anthropic mapped error:", error.message || error);
+      }
       res.status(status).json({ 
         error: error.message,
         provider: "anthropic",
-        type: error.type
+        type: error.type 
       });
     }
   });
@@ -154,38 +155,6 @@ async function startServer() {
       res.json(response.data);
     } catch (error: any) {
       console.error("OCR error:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/tts", async (req, res) => {
-    const { text, voiceId = "21m00Tcm4lcv85ieW5F3" } = req.body;
-    const apiKey = process.env.ELEVENLABS_API_KEY;
-
-    if (!apiKey) {
-      return res.status(400).json({ error: "ElevenLabs API key missing." });
-    }
-
-    try {
-      const response = await axios.post(
-        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-        {
-          text,
-          model_id: "eleven_monolingual_v1",
-          voice_settings: { stability: 0.5, similarity_boost: 0.5 },
-        },
-        {
-          headers: {
-            "xi-api-key": apiKey,
-            "Content-Type": "application/json",
-          },
-          responseType: "arraybuffer",
-        }
-      );
-      res.set("Content-Type", "audio/mpeg");
-      res.send(Buffer.from(response.data));
-    } catch (error: any) {
-      console.error("TTS error:", error);
       res.status(500).json({ error: error.message });
     }
   });

@@ -8,7 +8,7 @@ export const SplashScreen = () => {
     >
       <div className="animate-fadeInZoom text-center">
         <img
-          src="https://i.ibb.co/tTc5gG5k/eduaicompanion-logo2-preview-1772467621580-2-preview-1772473153046.png"
+          src="https://i.ibb.co/tTc5gG5k/eduai-company-logo2-preview-177246762158%200-2-preview-177247315%203046.png"
           alt="EduAI Companion Logo"
           style={{ width: 'auto', height: '299px' }}
           className="mx-auto drop-shadow-glow"

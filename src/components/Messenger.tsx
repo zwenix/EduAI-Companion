@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Send, User, Search, MessageSquare, Plus, MoreVertical, Phone, Video, Smile, Paperclip } from 'lucide-react';
 
+const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
+
 const MESSAGES = [
   { id: 1, sender: 'Principal Mkhize', text: 'Good morning everyone, just a reminder about the staff meeting at 14:00.', time: '08:15', unread: false },
   { id: 2, sender: 'Mrs. Steyn (Grade 4)', text: 'Can anyone help with the projector in Room 12?', time: '09:30', unread: true },
@@ -14,12 +16,15 @@ export default function Messenger() {
   const [message, setMessage] = useState('');
 
   return (
-    <div className="h-full flex flex-col md:flex-row bg-[#0B1122] rounded-[48px] overflow-hidden border border-white/5 shadow-2xl">
+    <div className="h-full flex flex-col md:flex-row bg-[#0B1122] rounded-[2rem] lg:rounded-[48px] overflow-hidden border border-white/5 shadow-2xl relative">
       {/* Sidebar */}
-      <div className="w-full md:w-80 border-r border-white/5 flex flex-col shrink-0">
-        <div className="p-6 border-b border-white/5">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-hand text-white">Communicator</h2>
+      <div className={cn(
+        "w-full md:w-80 border-r border-white/5 flex flex-col shrink-0 transition-transform h-full",
+        activeChat && "hidden md:flex"
+      )}>
+        <div className="p-4 lg:p-6 border-b border-white/5">
+          <div className="flex items-center justify-between mb-4 lg:mb-6">
+            <h2 className="text-xl lg:text-2xl font-hand text-white">Communicator</h2>
             <button className="p-2 hover:bg-white/5 rounded-xl text-brand-cyan transition-all">
               <Plus size={20} />
             </button>
@@ -39,7 +44,7 @@ export default function Messenger() {
             <button
               key={msg.id}
               onClick={() => setActiveChat(msg.id)}
-              className={`w-full text-left p-4 rounded-3xl transition-all group ${
+              className={`w-full text-left p-4 rounded-2xl lg:rounded-3xl transition-all group ${
                 activeChat === msg.id 
                 ? 'bg-brand-cyan/20 border border-brand-cyan/30' 
                 : 'hover:bg-white/5 border border-transparent'
@@ -61,24 +66,33 @@ export default function Messenger() {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-[#0F172A]/50 backdrop-blur-3xl">
+      <div className={cn(
+        "flex-1 flex flex-col min-w-0 bg-[#0F172A]/50 backdrop-blur-3xl h-full",
+        !activeChat && "hidden md:flex"
+      )}>
         {activeChat ? (
           <>
             {/* Chat Header */}
-            <div className="h-20 px-8 border-b border-white/5 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-slate-800 flex items-center justify-center text-brand-cyan font-black border border-white/5 shadow-xl">
+            <div className="h-16 lg:h-20 px-4 lg:px-8 border-b border-white/5 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3 lg:gap-4">
+                <button 
+                  onClick={() => setActiveChat(null)}
+                  className="md:hidden p-2 -ml-2 text-slate-400 hover:text-white"
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl bg-slate-800 flex items-center justify-center text-brand-cyan font-black border border-white/5 shadow-xl shrink-0">
                   {MESSAGES.find(m => m.id === activeChat)?.sender[0]}
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">{MESSAGES.find(m => m.id === activeChat)?.sender}</h3>
-                  <p className="text-[10px] text-emerald-400 uppercase font-black tracking-widest">Active Now</p>
+                  <h3 className="text-xs lg:text-sm font-bold text-white truncate max-w-[120px] sm:max-w-[180px]">{MESSAGES.find(m => m.id === activeChat)?.sender}</h3>
+                  <p className="text-[9px] lg:text-[10px] text-emerald-400 uppercase font-black tracking-widest hidden sm:block">Active Now</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 text-slate-400">
-                <button className="p-2 hover:bg-white/5 rounded-xl hover:text-white transition-all"><Phone size={18} /></button>
-                <button className="p-2 hover:bg-white/5 rounded-xl hover:text-white transition-all"><Video size={18} /></button>
-                <button className="p-2 hover:bg-white/5 rounded-xl hover:text-white transition-all"><MoreVertical size={18} /></button>
+              <div className="flex items-center gap-1 lg:gap-4 text-slate-400 shrink-0">
+                <button className="p-2 hover:bg-white/5 rounded-xl hover:text-white transition-all"><Phone size={16} className="lg:w-[18px] lg:h-[18px]" /></button>
+                <button className="p-2 hover:bg-white/5 rounded-xl hover:text-white transition-all"><Video size={16} className="lg:w-[18px] lg:h-[18px]" /></button>
+                <button className="p-2 hover:bg-white/5 rounded-xl hover:text-white transition-all"><MoreVertical size={16} className="lg:w-[18px] lg:h-[18px]" /></button>
               </div>
             </div>
 

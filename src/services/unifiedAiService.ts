@@ -5,19 +5,39 @@ import {
   generateAdminDoc as geminiGenerateAdmin,
   runOCRAndGrade as geminiOCR,
   runOCRScan as geminiOCRScan,
-  chatWithTutor as geminiChat
+  chatWithTutor as geminiChat,
+  MASTER_SYSTEM_PROMPT,
+  IMAGE_PROMPT_GOLDEN_RULE,
+  safeJsonParse
 } from './geminiService';
 
 import { callMultiAi, performOCR, AIProvider } from './multiAiService';
 
+const isProviderFailure = (error: any) => {
+  const msg = error?.message?.toLowerCase() || '';
+  return (
+    msg.includes('insufficient balance') ||
+    msg.includes('unauthorized') ||
+    msg.includes('402') ||
+    msg.includes('401') ||
+    msg.includes('400') ||
+    msg.includes('credit') ||
+    msg.includes('balance is too low') ||
+    msg.includes('status code (no body)')
+  );
+};
+
 export const generateEducationalContent = async (type: string, details: string, provider: string = 'gemini') => {
   if (provider === 'gemini') return await geminiGenerateContent(type, details);
   
-  const messages = [{ role: 'user', content: `Generate educational content of type ${type} with these details: ${details}. Format as Markdown.` }];
+  const messages = [
+    { role: 'system', content: MASTER_SYSTEM_PROMPT },
+    { role: 'user', content: `Generate educational content of type ${type} with these details: ${details}. Format as Markdown.` }
+  ];
   try {
     return await callMultiAi(provider as AIProvider, messages);
   } catch (error: any) {
-    if (error.message.includes('Insufficient Balance') || error.message.includes('Unauthorized') || error.message.includes('credit') || error.message.includes('status code (no body)') || error.message.includes('400')) {
+    if (isProviderFailure(error)) {
       console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
       return await geminiGenerateContent(type, details);
     }
@@ -28,17 +48,40 @@ export const generateEducationalContent = async (type: string, details: string, 
 export const generateCAPSContent = async (input: any, provider: string = 'gemini') => {
   if (provider === 'gemini') return await geminiGenerateCAPS(input);
   
-  // For other providers, we might need to prompt specifically for JSON or handle the response
-  const messages = [{ role: 'user', content: `Generate CAPS aligned ${input.contentType} for Grade ${input.grade}. Return as a JSON object with 'content', 'memo', 'rubric', 'successIndicators', and 'imagePrompt'.` }];
+  const messages = [
+    { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be rich, professionally formatted HTML strings designed using Tailwind CSS utility classes. DO NOT use nested JSON objects for the content.\nInclude an Answer Memo and a Marking Rubric if requested.` },
+    { role: 'user', content: `
+    Type: ${input.contentType}
+    Grade: ${input.grade}
+    Subject: ${input.subject}
+    Topic: ${input.topic}
+    Objective: ${input.objective}
+    Learner Profile: ${input.learnerProfile}
+    
+    SPECIFIC VISUAL ENHANCEMENT:
+    For every worksheet, create ONE stunning hero illustration prompt.
+    
+    Return as a pure JSON object containing ONLY the following keys:
+    {
+      "content": "<HTML STRING GOES HERE>",
+      "memo": "<HTML STRING GOES HERE>",
+      "rubric": "<HTML STRING GOES HERE>",
+      "successIndicators": ["string", "string"],
+      "imagePrompt": "Detailed prompt..."
+    }
+    
+    IMAGE GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}
+    ` }
+  ];
   try {
     const response = await callMultiAi(provider as AIProvider, messages);
-    try {
-       return JSON.parse(response);
-    } catch (e) {
-       return { content: response, imagePrompt: "Educational classroom scene" };
+    const parsed = safeJsonParse(response);
+    if (Object.keys(parsed).length === 0) {
+      return { content: response, imagePrompt: "Educational classroom scene" };
     }
+    return parsed;
   } catch (error: any) {
-    if (error.message.includes('Insufficient Balance') || error.message.includes('Unauthorized') || error.message.includes('credit') || error.message.includes('status code (no body)') || error.message.includes('400')) {
+    if (isProviderFailure(error)) {
       console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
       return await geminiGenerateCAPS(input);
     }
@@ -49,16 +92,32 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
 export const generateVisualAid = async (input: any, provider: string = 'gemini') => {
   if (provider === 'gemini') return await geminiGenerateVisual(input);
   
-  const messages = [{ role: 'user', content: `Generate a visual aid design description for ${input.visualType} on topic ${input.topic}. Return JSON with 'content', 'description', 'printInstructions', 'imagePrompt'.` }];
+  const messages = [
+    { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nThe response must be a JSON object, but the 'content' field MUST be a rich, professionally formatted HTML string designed using Tailwind CSS utility classes. DO NOT use nested JSON objects for the content.` },
+    { role: 'user', content: `Generate a visual aid design for ${input.visualType} on topic ${input.topic} for Grade ${input.grade}.
+    Style: ${input.style}
+    Color: ${input.colorScheme}
+    Specific Content: ${input.specificContent}
+    
+    Return as a pure JSON object containing ONLY the following keys:
+    {
+      "content": "<HTML STRING GOES HERE>",
+      "description": "string",
+      "printInstructions": "string",
+      "imagePrompt": "Detailed prompt..."
+    }
+    
+    IMAGE GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}` }
+  ];
   try {
     const response = await callMultiAi(provider as AIProvider, messages);
-    try {
-       return JSON.parse(response);
-    } catch (e) {
-       return { content: response, description: "Visual aid generated", imagePrompt: "Abstract educational graphic" };
+    const parsed = safeJsonParse(response);
+    if (Object.keys(parsed).length === 0) {
+      return { content: response, description: "Visual aid generated", imagePrompt: "Abstract educational graphic" };
     }
+    return parsed;
   } catch (error: any) {
-    if (error.message.includes('Insufficient Balance') || error.message.includes('Unauthorized') || error.message.includes('credit') || error.message.includes('status code (no body)') || error.message.includes('400')) {
+    if (isProviderFailure(error)) {
       console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
       return await geminiGenerateVisual(input);
     }
@@ -69,16 +128,25 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini')
 export const generateAdminDoc = async (input: any, provider: string = 'gemini') => {
   if (provider === 'gemini') return await geminiGenerateAdmin(input);
   
-  const messages = [{ role: 'user', content: `Generate a formal ${input.documentType} for ${input.schoolName}. Tone: ${input.tone}. Return JSON with 'content', 'notes', 'documentType'.` }];
+  const messages = [
+    { role: 'system', content: `You are an expert school administrator. Generate highly professional, nicely formatted HTML documents.` },
+    { role: 'user', content: `Generate a formal ${input.documentType} for ${input.schoolName}. Tone: ${input.tone}. 
+Return as a pure JSON object containing ONLY the following keys:
+{
+  "content": "<HTML STRING GOES HERE (styled with Tailwind CSS)>",
+  "notes": "string",
+  "documentType": "${input.documentType}"
+}` }
+  ];
   try {
     const response = await callMultiAi(provider as AIProvider, messages);
-    try {
-       return JSON.parse(response);
-    } catch (e) {
-       return { content: response, notes: "Please review before sending.", documentType: input.documentType };
+    const parsed = safeJsonParse(response);
+    if (Object.keys(parsed).length === 0) {
+      return { content: response, notes: "Please review before sending.", documentType: input.documentType };
     }
+    return parsed;
   } catch (error: any) {
-    if (error.message.includes('Insufficient Balance') || error.message.includes('Unauthorized') || error.message.includes('credit') || error.message.includes('status code (no body)') || error.message.includes('400')) {
+    if (isProviderFailure(error)) {
       console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
       return await geminiGenerateAdmin(input);
     }
@@ -125,7 +193,7 @@ export const runOCRAndGrade = async (imageData: string, rubric: string, provider
       return { extractedText, feedback: grading, totalScore: "N/A" };
     }
   } catch (error: any) {
-    if (error.message.includes('Insufficient Balance') || error.message.includes('Unauthorized') || error.message.includes('credit') || error.message.includes('status code (no body)') || error.message.includes('400')) {
+    if (isProviderFailure(error)) {
       console.warn(`Provider groq/mistral failed (${error.message}). Falling back to Gemini OCR...`);
       return await geminiOCR(imageData, rubric);
     }
@@ -137,7 +205,9 @@ export const chatWithTutor = async (messages: any[], provider: string = 'gemini'
   if (provider === 'gemini') return await geminiChat(messages);
   
   // Format messages for OpenAI/Anthropic
-  let formattedMessages: any[] = [];
+  let formattedMessages: any[] = [
+    { role: 'system', content: "You are a friendly and encouraging South African school tutor for EduAI Companion. You help students understand complex CAPS curriculum concepts in simple terms. Use local South African examples (e.g. using Rands, referring to provinces) and be patient. Keep explanations concise." }
+  ];
   let lastRole: string | null = null;
 
   for (const m of messages) {
@@ -163,7 +233,7 @@ export const chatWithTutor = async (messages: any[], provider: string = 'gemini'
   try {
     return await callMultiAi(provider as AIProvider, formattedMessages);
   } catch (error: any) {
-    if (error.message.includes('Insufficient Balance') || error.message.includes('Unauthorized') || error.message.includes('credit') || error.message.includes('status code (no body)') || error.message.includes('400')) {
+    if (isProviderFailure(error)) {
       console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
       return await geminiChat(messages);
     }

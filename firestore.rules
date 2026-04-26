@@ -1,0 +1,71 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitives
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    
+    // Validation Helpers
+    function isValidProfile(data) {
+      return data.keys().hasAll(['id', 'email', 'role', 'updatedAt']) 
+        && data.keys().size() == 4
+        && data.id is string && data.id.size() <= 128
+        && data.email is string && data.email.size() <= 256
+        && data.role in ['teacher', 'student', 'parent', 'admin']
+        && data.updatedAt == request.time;
+    }
+
+    function isValidStudent(data) {
+      return data.keys().hasAll(['name', 'grade', 'email', 'status', 'teacherId', 'createdAt', 'updatedAt'])
+        && data.keys().size() == 7
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 120
+        && data.grade is string && data.grade.size() > 0 && data.grade.size() <= 100
+        && data.email is string && data.email.size() <= 256
+        && data.status in ['Active', 'Inactive']
+        && data.teacherId is string && data.teacherId == request.auth.uid
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    match /profiles/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow create: if isSignedIn() && isValidId(userId) && request.auth.uid == userId
+        && isValidProfile(incoming()) && incoming().id == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(userId) && request.auth.uid == userId
+        && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'updatedAt'])
+        && incoming().role in ['teacher', 'student', 'parent', 'admin']
+        && incoming().updatedAt == request.time;
+    }
+
+    match /students/{studentId} {
+      allow get: if isSignedIn() && isValidId(studentId) && existing().teacherId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+      
+      allow create: if isSignedIn() && isValidId(studentId)
+        && isValidStudent(incoming());
+        
+      allow update: if isSignedIn() && isValidId(studentId) 
+        && existing().teacherId == request.auth.uid
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'grade', 'email', 'status', 'updatedAt'])
+        && incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 120
+        && incoming().grade is string && incoming().grade.size() > 0 && incoming().grade.size() <= 100
+        && incoming().email is string && incoming().email.size() <= 256
+        && incoming().status in ['Active', 'Inactive']
+        && incoming().updatedAt == request.time;
+        
+      allow delete: if isSignedIn() && isValidId(studentId) && existing().teacherId == request.auth.uid;
+    }
+
+  }
+}
