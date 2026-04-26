@@ -83,7 +83,7 @@ const LandingPage = ({ onEnter }: { onEnter: () => void }) => {
       <nav className="h-24 px-6 lg:px-12 flex items-center justify-between relative z-10 max-w-7xl mx-auto w-full">
         <div className="flex items-center gap-3">
           <Logo className="w-10 h-10" />
-          <span className="text-2xl font-bold tracking-wide text-white">
+          <span className="text-2xl font-hand tracking-wide text-white">
             EduAI <span className="text-yellow-400">Companion</span>
           </span>
         </div>
@@ -151,7 +151,7 @@ const LandingPage = ({ onEnter }: { onEnter: () => void }) => {
         >
           <div className="relative rounded-[40px] overflow-hidden shadow-2xl aspect-[4/5] sm:aspect-square lg:aspect-[4/5]">
              <img 
-               src="/landing-image.jpg.jpg" 
+               src="/landing-image.jpg" 
                alt="Classroom adventure" 
                className="w-full h-full object-cover transition-opacity duration-500"
              />
