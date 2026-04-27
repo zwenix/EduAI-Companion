@@ -69,6 +69,10 @@ const ADMIN_TYPES: Record<string, string[]> = {
     'General School Notice', 'Timetable Template', 'Attendance Register',
     'Subject Improvement Plan', 'School Calendar Event Notice',
   ],
+  'Certificates & Stationery': [
+    'Academic Achievement Certificate', 'Participation Certificate',
+    'Custom Seal / Emblem', 'Official School Letterhead',
+  ],
   'Learner-Facing': [
     'Disciplinary Notice', 'Classroom Rules', 'Homework Policy Letter',
     'Detention Notice', 'Achievement Certificate',
@@ -439,6 +443,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [a_tone, setA_Tone] = useState('');
   const [a_replySlip, setA_ReplySlip] = useState(false);
   const [a_extraInstructions, setA_ExtraInstructions] = useState('');
+  const [a_generateImage, setA_GenerateImage] = useState(false);
 
   // ─── Foundation State ─────────────────────────────────────────────────
   const [f_grade, setF_Grade] = useState('1');
@@ -529,7 +534,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
         date: a_date, language: a_language, purpose: a_purpose, keyPoints: a_keyPoints,
         tone: a_tone, includeReplySlip: a_replySlip, additionalInstructions: a_extraInstructions
       }, provider);
-      setAdminResult(result);
+      setAdminResult({ ...result, shouldGenerateImage: a_generateImage, userImagePrompt: a_extraInstructions });
     } catch (err: any) { 
       console.error(err); 
       setError(err.message || "Failed to draft official correspondence.");
@@ -851,6 +856,27 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   <Textarea className="min-h-[100px]" placeholder="What is the main goal of this correspondence?" value={a_purpose} onChange={(e: any) => setA_Purpose(e.target.value)} />
                 </div>
 
+                <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-slate-800">Generate Seal / Illustration</Label>
+                      <p className="text-[10px] text-slate-500 mt-1">Use AI to generate a custom emblem or visual for this</p>
+                    </div>
+                    <button 
+                      onClick={() => setA_GenerateImage(!a_generateImage)}
+                      className={cn("w-12 h-6 rounded-full relative transition-colors", a_generateImage ? "bg-slate-700" : "bg-slate-200")}
+                    >
+                      <div className={cn("w-4 h-4 bg-white rounded-full absolute top-1 transition-all", a_generateImage ? "left-7" : "left-1")} />
+                    </button>
+                  </div>
+                  {a_generateImage && (
+                    <div className="space-y-2 pt-2">
+                       <Label>Image Prompt Override <span className="opacity-50">(Optional)</span></Label>
+                       <Textarea className="min-h-[80px]" placeholder="Specific instructions for the AI image generator..." value={a_extraInstructions} onChange={(e: any) => setA_ExtraInstructions(e.target.value)} />
+                    </div>
+                  )}
+                </div>
+
                 <button onClick={handleGenerateAdmin} disabled={isLoading} className="w-full bg-slate-700 hover:bg-slate-600 text-white h-16 rounded-[24px] font-black uppercase tracking-widest text-[11px] flex items-center justify-center gap-3">
                   {isLoading ? <Loader2 className="animate-spin" /> : <ClipboardList size={18} />}
                   {isLoading ? "Drafting..." : "Generate Admin Doc"}
@@ -1036,7 +1062,18 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                       <ContentPreview html={visualResult.content} label="Digital Visual Asset" />
                     </div>
                   )}
-                  {activeTab === 'admin' && <ContentPreview html={adminResult.content} label="Official Correspondence" />}
+                  {activeTab === 'admin' && (
+                    <div className="space-y-8">
+                      {adminResult.shouldGenerateImage && (adminResult.userImagePrompt || adminResult.imagePrompt) && (
+                        <AiImage 
+                          prompt={adminResult.userImagePrompt || adminResult.imagePrompt} 
+                          aspectRatio="square"
+                          className="w-1/2 max-w-sm mx-auto mb-8"
+                        />
+                      )}
+                      <ContentPreview html={adminResult.content} label="Official Correspondence" />
+                    </div>
+                  )}
                 </div>
              </motion.div>
            ) : (

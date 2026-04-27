@@ -63,9 +63,9 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
     
     Return as a pure JSON object containing ONLY the following keys:
     {
-      "content": "<HTML STRING GOES HERE>",
-      "memo": "<HTML STRING GOES HERE>",
-      "rubric": "<HTML STRING GOES HERE>",
+      "content": "<MARKDOWN STRING GOES HERE>",
+      "memo": "<MARKDOWN STRING GOES HERE>",
+      "rubric": "<MARKDOWN STRING GOES HERE>",
       "successIndicators": ["string", "string"],
       "imagePrompt": "Detailed prompt..."
     }
@@ -101,7 +101,7 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini')
     
     Return as a pure JSON object containing ONLY the following keys:
     {
-      "content": "<HTML STRING GOES HERE>",
+      "content": "<MARKDOWN STRING GOES HERE>",
       "description": "string",
       "printInstructions": "string",
       "imagePrompt": "Detailed prompt..."
@@ -129,13 +129,14 @@ export const generateAdminDoc = async (input: any, provider: string = 'gemini') 
   if (provider === 'gemini') return await geminiGenerateAdmin(input);
   
   const messages = [
-    { role: 'system', content: `You are an expert school administrator. Generate highly professional, nicely formatted text.` },
+    { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nGenerate highly professional, beautifully formatted text using Rich Markdown.` },
     { role: 'user', content: `Generate a formal ${input.documentType} for ${input.schoolName}. Tone: ${input.tone}. 
 Return as a pure JSON object containing ONLY the following keys:
 {
   "content": "<MARKDOWN STRING GOES HERE>",
   "notes": "string",
-  "documentType": "${input.documentType}"
+  "documentType": "${input.documentType}",
+  "imagePrompt": "prompt for custom seal or emblem if applicable"
 }` }
   ];
   try {
