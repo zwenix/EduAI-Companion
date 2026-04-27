@@ -71,25 +71,63 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
  */
 export const safeJsonParse = (text: string | null | undefined): any => {
   if (!text) return {};
+
+  let processedText = text;
+  // Remove <think>...</think> completely
+  processedText = processedText.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  // Also remove unclosed <think> if needed, though usually means missing JSON altogether
+  processedText = processedText.replace(/<think>[\s\S]*$/gi, '');
+
+  const fixJsonStr = (str: string) => {
+    let result = '';
+    let inString = false;
+    let escapeNext = false;
+    for (let i = 0; i < str.length; i++) {
+      const char = str[i];
+      if (escapeNext) {
+        escapeNext = false;
+        result += char;
+        continue;
+      }
+      if (char === '\\') {
+        escapeNext = true;
+        result += char;
+        continue;
+      }
+      if (char === '"') {
+        inString = !inString;
+      }
+      if (inString && (char === '\n' || char === '\r' || char === '\t')) {
+        if (char === '\n') result += '\\n';
+        if (char === '\r') result += '\\r';
+        if (char === '\t') result += '\\t';
+        continue;
+      }
+      result += char;
+    }
+    return result;
+  };
+
   try {
-    const trimmed = text.trim();
+    const trimmed = processedText.trim();
     return JSON.parse(trimmed);
   } catch (e) {
-    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    let fixedText = fixJsonStr(processedText);
+    const jsonMatch = fixedText.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch && jsonMatch[1]) {
       try {
         return JSON.parse(jsonMatch[1].trim());
       } catch (e2) {}
     }
-    const startIdx = text.indexOf('{');
-    const endIdx = text.lastIndexOf('}');
+    const startIdx = fixedText.indexOf('{');
+    const endIdx = fixedText.lastIndexOf('}');
     if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
       try {
-        const potentialJson = text.substring(startIdx, endIdx + 1);
+        const potentialJson = fixedText.substring(startIdx, endIdx + 1);
         return JSON.parse(potentialJson);
       } catch (e3) {}
     }
-    console.error("Failed to parse AI response as JSON:", text);
+    console.error("Failed to parse AI response as JSON:", processedText);
     return {};
   }
 };

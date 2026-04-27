@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export type AIProvider = 'llama-primary' | 'llama-secondary' | 'alibaba';
+export type AIProvider = 'llama-primary' | 'llama-secondary' | 'groq-qwen';
 
 export const callMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
   try {
@@ -23,7 +23,7 @@ export const callMultiAi = async (provider: AIProvider, messages: any[], model?:
     }
     
     if (status === 401) {
-      throw new Error(`Unauthorized (401): Your ${provider} API key is invalid or has expired. Please check your AI Studio settings and ensure the key has no trailing spaces. For Alibaba, it should start with sk-.`);
+      throw new Error(`Unauthorized (401): Your ${provider} API key is invalid or has expired. Please check your AI Studio settings and ensure the key has no trailing spaces.`);
     }
 
     throw new Error(errorMsg || (typeof backendError === 'string' ? backendError : JSON.stringify(backendError)) || `Failed to call ${provider} (Status: ${status || 'Unknown'})`);

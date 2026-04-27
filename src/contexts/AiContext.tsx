@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type AIProvider = 'gemini' | 'llama-primary' | 'llama-secondary' | 'alibaba';
+export type AIProvider = 'gemini' | 'llama-primary' | 'llama-secondary' | 'groq-qwen';
 
 interface AiContextType {
   provider: AIProvider;
@@ -9,7 +9,7 @@ interface AiContextType {
 
 const AiContext = createContext<AiContextType | undefined>(undefined);
 
-const VALID_PROVIDERS: AIProvider[] = ['gemini', 'llama-primary', 'llama-secondary', 'alibaba'];
+const VALID_PROVIDERS: AIProvider[] = ['gemini', 'llama-primary', 'llama-secondary', 'groq-qwen'];
 
 export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {

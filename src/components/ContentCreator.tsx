@@ -185,7 +185,7 @@ const Switch = ({ checked, onCheckedChange, id }: any) => (
 
 // ─── Preview Component ────────────────────────────────────────────────────────
 
-function ContentPreview({ html, label }: { html: string | object; label: string }) {
+function ContentPreview({ html, label, isDarkMode }: { html: string | object; label: string, isDarkMode?: boolean }) {
   if (!html) return null;
   // If the model returned a nested JSON object instead of an HTML string,
   // we gracefully degrade into a pretty rendering so it doesn't crash.
@@ -233,15 +233,15 @@ function ContentPreview({ html, label }: { html: string | object; label: string 
 
   return (
     <div className="space-y-4">
-      <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">
+      <h3 className={`text-[11px] font-black uppercase tracking-[0.2em] mb-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
         {label}
       </h3>
-      <div className="bg-white rounded-[32px] overflow-hidden p-8 shadow-2xl relative">
+      <div className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10 dark-preview-rendered' : 'bg-white text-slate-900 border-slate-200'} border rounded-[32px] overflow-hidden p-8 shadow-2xl relative`}>
         <div 
-          className="prose prose-sm max-w-none text-slate-900 markdown-body"
+          className="prose prose-sm max-w-none markdown-body" // Removed hardcoded text-slate-900 here, letting parent cascade
           dangerouslySetInnerHTML={{ __html: rawMarkup }} 
         />
-        <div className="absolute top-4 right-4 text-[10px] text-slate-300 font-bold uppercase tracking-widest pointer-events-none opacity-20">
+        <div className={`absolute top-4 right-4 text-[10px] font-bold uppercase tracking-widest pointer-events-none opacity-20 ${isDarkMode ? 'text-slate-400' : 'text-slate-300'}`}>
           EduAI Companion Engine
         </div>
       </div>
@@ -273,7 +273,7 @@ function AdvancedSection({ children, label }: { children: React.ReactNode; label
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching' }: { isOpen: boolean, onClose: () => void, initialTab?: string }) {
+export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching', isDarkMode = true }: { isOpen: boolean, onClose: () => void, initialTab?: string, isDarkMode?: boolean }) {
   const { provider } = useAi();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [isLoading, setIsLoading] = useState(false);
@@ -1043,11 +1043,11 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                               className="w-full mb-8"
                             />
                           )}
-                          <ContentPreview html={teachingResult.content} label="Integrated Material" />
+                          <ContentPreview html={teachingResult.content} label="Integrated Material" isDarkMode={isDarkMode} />
                         </div>
                       )}
-                      {activePreviewTab === 'memo' && <ContentPreview html={teachingResult.memo} label="Expert Answer Key" />}
-                      {activePreviewTab === 'rubric' && <ContentPreview html={teachingResult.rubric} label="Marks Allocation Matrix" />}
+                      {activePreviewTab === 'memo' && <ContentPreview html={teachingResult.memo} label="Expert Answer Key" isDarkMode={isDarkMode} />}
+                      {activePreviewTab === 'rubric' && <ContentPreview html={teachingResult.rubric} label="Marks Allocation Matrix" isDarkMode={isDarkMode} />}
                     </>
                   )}
                   {activeTab === 'visual' && (
@@ -1059,7 +1059,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                           className="w-full max-w-2xl mx-auto mb-8"
                         />
                       )}
-                      <ContentPreview html={visualResult.content} label="Digital Visual Asset" />
+                      <ContentPreview html={visualResult.content} label="Digital Visual Asset" isDarkMode={isDarkMode} />
                     </div>
                   )}
                   {activeTab === 'admin' && (
@@ -1071,7 +1071,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                           className="w-1/2 max-w-sm mx-auto mb-8"
                         />
                       )}
-                      <ContentPreview html={adminResult.content} label="Official Correspondence" />
+                      <ContentPreview html={adminResult.content} label="Official Correspondence" isDarkMode={isDarkMode} />
                     </div>
                   )}
                 </div>

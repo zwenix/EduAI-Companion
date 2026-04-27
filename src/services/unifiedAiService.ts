@@ -158,9 +158,8 @@ Return as a pure JSON object containing ONLY the following keys:
 export const runOCRScan = async (imageData: string, provider: string = 'gemini') => {
   if (provider === 'gemini') return await geminiOCRScan(imageData);
   
-  if (provider === 'alibaba') {
-     // Qwen VL Plus can do image processing directly through the multi-ai if we pass imageData 
-     // but our multi-ai isn't fully set up for base64 images yet. We fallback to OCR space.
+  if (provider === 'groq-qwen') {
+     // Multi-ai isn't fully set up for base64 images yet via Groq. We fallback to OCR space.
   }
   
   try {

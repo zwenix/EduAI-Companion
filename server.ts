@@ -42,15 +42,9 @@ async function startServer() {
     switch (provider) {
       case "llama-primary":
       case "llama-secondary":
+      case "groq-qwen":
         client = groq;
         apiKey = process.env.GROQ_API_KEY || "";
-        break;
-      case "alibaba":
-        client = new OpenAI({
-          apiKey: (process.env.ALIBABA_API_KEY || "").trim(),
-          baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-        });
-        apiKey = (process.env.ALIBABA_API_KEY || "").trim();
         break;
     }
 
@@ -62,12 +56,13 @@ async function startServer() {
       const response = await client.chat.completions.create({
         model: model || (
           provider === "llama-primary" ? "llama-3.3-70b-versatile" : 
-          provider === "llama-secondary" ? "llama-3.1-8b-instant" : 
-          provider === "alibaba" ? "qwen-vl-plus" :
+          provider === "llama-secondary" ? "meta-llama/llama-4-scout-17b-16e-instruct" : 
+          provider === "groq-qwen" ? "qwen/qwen3-32b" :
           ""
         ),
         messages,
         temperature,
+        max_completion_tokens: 8192,
       });
       res.json(response);
     } catch (error: any) {

@@ -53,6 +53,11 @@ import RoleSelection from './components/RoleSelection';
 import LoginPage from './components/LoginPage';
 import Logo from './components/Logo';
 import NotificationsDropdown from './components/NotificationsDropdown';
+import StudentPractice from './components/StudentPractice';
+import StudentNotes from './components/StudentNotes';
+import StudentDashboard from './components/StudentDashboard';
+import ParentDashboard from './components/ParentDashboard';
+import AdminDashboard from './components/AdminDashboard';
 
 const SidebarItem = ({ icon: Icon, label, active, onClick, collapsed }: { icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean }) => (
   <button
@@ -151,7 +156,7 @@ const LandingPage = ({ onEnter }: { onEnter: () => void }) => {
         >
           <div className="relative rounded-[40px] overflow-hidden shadow-2xl aspect-[4/5] sm:aspect-square lg:aspect-[4/5]">
              <img 
-               src="/landing-image.jpg?v=2" 
+               src="https://i.ibb.co/CsvbkGYG/landing-image.jpg" 
                alt="Classroom adventure" 
                className="w-full h-full object-cover transition-opacity duration-500"
              />
@@ -337,18 +342,49 @@ export default function App() {
         </div>
 
         <nav className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
-          {[
-            { icon: LayoutDashboard, label: 'Dashboard', active: activeTab === 'dashboard', id: 'dashboard' },
-            { icon: FlaskConical, label: 'Content Creator Studio', active: activeCreatorTab !== null && activeTab === 'dashboard', id: 'teaching' },
-            { icon: Users, label: 'Class & Student Management', active: activeTab === 'class-management', id: 'class-management' },
-            { icon: Sparkles, label: 'Foundation Phase Tools', active: activeCreatorTab === 'grade1' || activeTab === 'grade1', id: 'grade1' },
-            { icon: TrendingUp, label: 'Progress Reports', active: activeTab === 'reports', id: 'reports' },
-            { icon: Brain, label: 'AI Tutor', active: activeTab === 'ai-tutor', id: 'ai-tutor' },
-            { icon: MessageSquare, label: 'Communicator & Messenger', active: activeTab === 'messenger', id: 'messenger' },
-            { icon: Scan, label: 'Scan & Autograde', active: activeTab === 'ocr', id: 'ocr' },
-            { icon: Archive, label: 'Content Archive', active: activeTab === 'archive', id: 'archive' },
-            { icon: UserCircle, label: 'Portfolios', active: activeTab === 'portfolios', id: 'portfolios' },
-          ].map((item) => (
+          {(function() {
+            if (userRole === 'student') {
+              return [
+                { icon: LayoutDashboard, label: 'Dashboard', active: activeTab === 'dashboard', id: 'dashboard' },
+                { icon: Brain, label: 'AI Tutor', active: activeTab === 'ai-tutor', id: 'ai-tutor' },
+                { icon: ClipboardCheck, label: 'Practice & Exercises', active: activeTab === 'student-practice', id: 'student-practice' },
+                { icon: BookOpen, label: 'Study Notes & Revision', active: activeTab === 'student-notes', id: 'student-notes' },
+                { icon: TrendingUp, label: 'My Progress', active: activeTab === 'reports', id: 'reports' },
+                { icon: UserCircle, label: 'My Portfolio', active: activeTab === 'portfolios', id: 'portfolios' },
+                { icon: MessageSquare, label: 'Chat', active: activeTab === 'messenger', id: 'messenger' },
+              ];
+            }
+            if (userRole === 'parent') {
+              return [
+                { icon: LayoutDashboard, label: 'Dashboard', active: activeTab === 'dashboard', id: 'dashboard' },
+                { icon: TrendingUp, label: "Child's Progress", active: activeTab === 'reports', id: 'reports' },
+                { icon: MessageSquare, label: 'Teacher Communicator', active: activeTab === 'messenger', id: 'messenger' },
+                { icon: FileText, label: 'Assignments & Timetable', active: activeTab === 'portfolios', id: 'portfolios' },
+              ];
+            }
+            if (userRole === 'admin') {
+              return [
+                { icon: LayoutDashboard, label: 'Dashboard', active: activeTab === 'dashboard', id: 'dashboard' },
+                { icon: School, label: 'School Management', active: activeTab === 'class-management', id: 'class-management' },
+                { icon: FileText, label: 'Official Correspondence', active: activeCreatorTab !== null && activeTab === 'dashboard', id: 'teaching' },
+                { icon: Archive, label: 'Content Archive', active: activeTab === 'archive', id: 'archive' },
+                { icon: TrendingUp, label: 'Reports & Analytics', active: activeTab === 'reports', id: 'reports' },
+              ];
+            }
+            // default teacher
+            return [
+              { icon: LayoutDashboard, label: 'Dashboard', active: activeTab === 'dashboard', id: 'dashboard' },
+              { icon: FlaskConical, label: 'Content Creator Studio', active: activeCreatorTab !== null && activeTab === 'dashboard', id: 'teaching' },
+              { icon: Users, label: 'Class & Student Management', active: activeTab === 'class-management', id: 'class-management' },
+              { icon: Sparkles, label: 'Foundation Phase Tools', active: activeCreatorTab === 'grade1' || activeTab === 'grade1', id: 'grade1' },
+              { icon: TrendingUp, label: 'Progress Reports', active: activeTab === 'reports', id: 'reports' },
+              { icon: Brain, label: 'AI Tutor', active: activeTab === 'ai-tutor', id: 'ai-tutor' },
+              { icon: MessageSquare, label: 'Communicator & Messenger', active: activeTab === 'messenger', id: 'messenger' },
+              { icon: Scan, label: 'Scan & Autograde', active: activeTab === 'ocr', id: 'ocr' },
+              { icon: Archive, label: 'Content Archive', active: activeTab === 'archive', id: 'archive' },
+              { icon: UserCircle, label: 'Portfolios', active: activeTab === 'portfolios', id: 'portfolios' },
+            ];
+          })().map((item) => (
             <SidebarItem 
               key={item.id}
               icon={item.icon} 
@@ -394,7 +430,7 @@ export default function App() {
       </motion.aside>
 
       {/* Main Content */}
-      <main className={`flex-1 flex flex-col overflow-hidden relative ${isDarkMode ? 'bg-[#0F172A]' : 'bg-slate-50'} transition-colors duration-500`}>
+      <main className={`flex-1 flex flex-col overflow-hidden relative ${isDarkMode ? 'bg-[#0F172A] dark-theme' : 'bg-slate-50'} transition-colors duration-500`}>
         {/* Header */}
         <header className={`h-20 border-b ${isDarkMode ? 'border-white/5' : 'border-slate-200'} px-4 lg:px-8 flex items-center justify-between shrink-0 relative z-20`}>
           <div className="flex items-center gap-4 overflow-hidden">
@@ -422,9 +458,9 @@ export default function App() {
               }`}
             >
               <option value="llama-primary">Llama 3.3 70B (Primary)</option>
-              <option value="llama-secondary">Llama 3.1 8B (Secondary)</option>
+              <option value="llama-secondary">Llama 4 Scout (17B)</option>
               <option value="gemini">Gemini (Fallback)</option>
-              <option value="alibaba">Qwen Plus (Content/Visuals)</option>
+              <option value="groq-qwen">Groq Qwen 3 32B</option>
             </select>
             <button 
               onClick={() => setIsDarkMode(!isDarkMode)}
@@ -452,7 +488,14 @@ export default function App() {
             >
               <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8 pb-12">
             {activeTab === 'dashboard' ? (
-              <>
+              userRole === 'student' ? (
+                <StudentDashboard isDarkMode={isDarkMode} />
+              ) : userRole === 'parent' ? (
+                <ParentDashboard isDarkMode={isDarkMode} />
+              ) : userRole === 'admin' ? (
+                <AdminDashboard isDarkMode={isDarkMode} />
+              ) : (
+                <>
                 {/* Action Bar */}
                 <div className={`flex flex-col md:flex-row justify-between items-center ${isDarkMode ? 'glass' : 'bg-white border border-slate-200 shadow-sm'} p-8 rounded-[36px] gap-6`}>
                   <div>
@@ -541,6 +584,7 @@ export default function App() {
                       </div>
                     </div>
                   </>
+                )
                 ) : activeTab === 'messenger' ? (
                   <Messenger />
                 ) : activeTab === 'reports' ? (
@@ -553,6 +597,10 @@ export default function App() {
                   <ContentArchive />
                 ) : activeTab === 'ai-tutor' ? (
                   <AITutorPage />
+                ) : activeTab === 'student-practice' ? (
+                  <StudentPractice isDarkMode={isDarkMode} />
+                ) : activeTab === 'student-notes' ? (
+                  <StudentNotes isDarkMode={isDarkMode} />
                 ) : (
                   <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200 shadow-sm'} p-12 rounded-[48px] text-center min-h-[500px] flex flex-col items-center justify-center`}>
                     <div className={`w-28 h-28 ${isDarkMode ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-100'} rounded-[36px] flex items-center justify-center mb-8`}>
@@ -591,6 +639,7 @@ export default function App() {
             isOpen={!!activeCreatorTab} 
             initialTab={activeCreatorTab}
             onClose={() => setActiveCreatorTab(null)} 
+            isDarkMode={isDarkMode}
           />
         )}
       </AnimatePresence>
