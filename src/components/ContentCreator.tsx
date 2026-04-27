@@ -359,16 +359,29 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     setTimeout(() => setAssignSuccess(false), 2000);
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (!contentRef.current) return;
     const element = contentRef.current;
-    html2pdf().set({
-      margin: 15,
-      filename: `eduai-generated-content.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    }).from(element).save();
+    
+    // Add a wrapper to ensure printing works smoothly inside App
+    try {
+      // @ts-ignore
+      const html2pdfLib = (await import('html2pdf.js')).default || window.html2pdf;
+      if (html2pdfLib) {
+         html2pdfLib().set({
+            margin: 15,
+            filename: `eduai-generated-content.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+          }).from(element).save();
+          return;
+      }
+    } catch(err) {
+       console.warn("Failed html2pdf", err);
+    }
+    
+    window.print();
   };
 
   // ─── Teaching Tools State ─────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type AIProvider = 'gemini' | 'deepseek' | 'groq' | 'mistral' | 'anthropic' | 'fireworks';
+export type AIProvider = 'gemini' | 'llama-primary' | 'llama-secondary' | 'alibaba';
 
 interface AiContextType {
   provider: AIProvider;
@@ -9,13 +9,18 @@ interface AiContextType {
 
 const AiContext = createContext<AiContextType | undefined>(undefined);
 
+const VALID_PROVIDERS: AIProvider[] = ['gemini', 'llama-primary', 'llama-secondary', 'alibaba'];
+
 export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {
     try {
-      const saved = localStorage.getItem('eduai_provider');
-      return (saved as AIProvider) || 'gemini';
+      const saved = localStorage.getItem('eduai_provider') as AIProvider;
+      if (saved && VALID_PROVIDERS.includes(saved)) {
+        return saved;
+      }
+      return 'llama-primary';
     } catch (e) {
-      return 'gemini';
+      return 'llama-primary';
     }
   });
 

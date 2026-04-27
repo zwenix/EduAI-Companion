@@ -26,7 +26,7 @@ export default function NotificationsDropdown({ isDarkMode }: { isDarkMode: bool
          return tB - tA;
       });
       setNotifications(data);
-    });
+    }, (error) => console.error("Notifications snapshot fail:", error));
 
     return () => unsubscribe();
   }, []);

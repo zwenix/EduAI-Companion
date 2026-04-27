@@ -38,6 +38,35 @@ service cloud.firestore {
         && data.updatedAt == request.time;
     }
 
+    function isValidClass(data) {
+      return data.keys().hasAll(['name', 'subject', 'teacherId', 'createdAt'])
+        && data.keys().size() == 4
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 120
+        && data.subject is string && data.subject.size() >= 0 && data.subject.size() <= 120
+        && data.teacherId is string && data.teacherId == request.auth.uid
+        && data.createdAt == request.time;
+    }
+
+    function isValidStudyGroup(data) {
+      return data.keys().hasAll(['name', 'description', 'members', 'teacherId', 'createdAt'])
+        && data.keys().size() == 5
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 120
+        && data.description is string && data.description.size() <= 500
+        && data.members is list && data.members.size() <= 1000
+        && data.teacherId is string && data.teacherId == request.auth.uid
+        && data.createdAt == request.time;
+    }
+    
+    function isValidNotification(data) {
+      return data.keys().hasAll(['title', 'message', 'read', 'userId', 'createdAt'])
+        && data.keys().size() == 5
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+        && data.message is string && data.message.size() > 0 && data.message.size() <= 1000
+        && data.read is bool
+        && data.userId is string && data.userId == request.auth.uid
+        && data.createdAt == request.time;
+    }
+
     match /profiles/{userId} {
       allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
       allow create: if isSignedIn() && isValidId(userId) && request.auth.uid == userId
@@ -67,5 +96,37 @@ service cloud.firestore {
       allow delete: if isSignedIn() && isValidId(studentId) && existing().teacherId == request.auth.uid;
     }
 
+    match /classes/{classId} {
+      allow get: if isSignedIn() && isValidId(classId) && existing().teacherId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(classId) && isValidClass(incoming());
+      allow update: if isSignedIn() && isValidId(classId) && existing().teacherId == request.auth.uid
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'subject'])
+        && incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 120
+        && incoming().subject is string && incoming().subject.size() >= 0 && incoming().subject.size() <= 120;
+      allow delete: if isSignedIn() && isValidId(classId) && existing().teacherId == request.auth.uid;
+    }
+    
+    match /study_groups/{groupId} {
+      allow get: if isSignedIn() && isValidId(groupId) && existing().teacherId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(groupId) && isValidStudyGroup(incoming());
+      allow update: if isSignedIn() && isValidId(groupId) && existing().teacherId == request.auth.uid
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'members'])
+        && incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 120
+        && incoming().description is string && incoming().description.size() <= 500
+        && incoming().members is list && incoming().members.size() <= 1000;
+      allow delete: if isSignedIn() && isValidId(groupId) && existing().teacherId == request.auth.uid;
+    }
+
+    match /notifications/{notificationId} {
+      allow get: if isSignedIn() && isValidId(notificationId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(notificationId) && isValidNotification(incoming());
+      allow update: if isSignedIn() && isValidId(notificationId) && existing().userId == request.auth.uid
+        && incoming().diff(existing()).affectedKeys().hasOnly(['read'])
+        && incoming().read is bool;
+      allow delete: if isSignedIn() && isValidId(notificationId) && existing().userId == request.auth.uid;
+    }
   }
 }

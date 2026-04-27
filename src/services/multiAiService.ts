@@ -1,16 +1,11 @@
 import axios from 'axios';
 
-export type AIProvider = 'deepseek' | 'groq' | 'mistral' | 'anthropic' | 'fireworks';
+export type AIProvider = 'llama-primary' | 'llama-secondary' | 'alibaba';
 
 export const callMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
   try {
-    if (provider === 'anthropic') {
-      const response = await axios.post('/api/anthropic', { messages, model });
-      return response.data.content[0].text;
-    } else {
-      const response = await axios.post(`/api/ai/${provider}`, { messages, model });
-      return response.data.choices[0].message.content;
-    }
+    const response = await axios.post(`/api/ai/${provider}`, { messages, model });
+    return response.data.choices[0].message.content;
   } catch (error: any) {
     const backendError = error.response?.data?.error || {};
     const status = error.response?.status;

@@ -25,16 +25,6 @@ async function startServer() {
     baseURL: "https://api.groq.com/openai/v1",
   });
 
-  const alibaba = new OpenAI({
-    apiKey: process.env.ALIBABA_API_KEY || "dummy",
-    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-  });
-
-  const mistral = new OpenAI({
-    apiKey: process.env.MISTRAL_API_KEY || "dummy",
-    baseURL: "https://api.mistral.ai/v1",
-  });
-
   // --- API Routes ---
 
   app.get("/api/health", (req, res) => {
@@ -50,20 +40,16 @@ async function startServer() {
     let apiKey = "";
 
     switch (provider) {
-      case "deepseek":
-        client = groq; // Now mapped to Groq
-        apiKey = process.env.GROQ_API_KEY || "";
-        break;
-      case "groq":
+      case "llama-primary":
+      case "llama-secondary":
         client = groq;
         apiKey = process.env.GROQ_API_KEY || "";
         break;
-      case "mistral":
-        client = mistral;
-        apiKey = process.env.MISTRAL_API_KEY || "";
-        break;
-      case "fireworks":
-        client = alibaba; // Now mapped to Alibaba
+      case "alibaba":
+        client = new OpenAI({
+          apiKey: process.env.ALIBABA_API_KEY || "dummy",
+          baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        });
         apiKey = process.env.ALIBABA_API_KEY || "";
         break;
     }
@@ -75,10 +61,9 @@ async function startServer() {
     try {
       const response = await client.chat.completions.create({
         model: model || (
-          provider === "deepseek" ? "llama-3.3-70b-versatile" : 
-          provider === "groq" ? "llama-4-scout-17b-16e-instruct" : 
-          provider === "mistral" ? "open-mistral-nemo" : 
-          provider === "fireworks" ? "qwen3-vl-plus-2025-12-19" : 
+          provider === "llama-primary" ? "llama-3.3-70b-versatile" : 
+          provider === "llama-secondary" ? "llama-3.1-8b-instant" : 
+          provider === "alibaba" ? "qwen-vl-plus" :
           ""
         ),
         messages,
@@ -96,40 +81,6 @@ async function startServer() {
         error: error.message,
         provider,
         code: error.code,
-        type: error.type 
-      });
-    }
-  });
-
-  app.post("/api/anthropic", async (req, res) => {
-    // We remap this to Groq qwen3-32b
-    if (!process.env.GROQ_API_KEY) {
-      return res.status(400).json({ error: "Groq API key missing." });
-    }
-    let { messages, model = "qwen3-32b", max_tokens = 1000, system } = req.body;
-    
-    // Anthropic had system split from messages, put it back for open-ai if needed
-    if (system && !messages.some((m: any) => m.role === 'system')) {
-      messages = [{ role: 'system', content: system }, ...messages];
-    }
-
-    try {
-      const response = await groq.chat.completions.create({
-        model,
-        messages,
-        max_tokens,
-      });
-      res.json(response);
-    } catch (error: any) {
-      const status = error.status || 500;
-      if (status !== 500) {
-        console.warn(`Anthropic mapped API returned status ${status}: ${error.message || 'Error'}`);
-      } else {
-        console.error("Anthropic mapped error:", error.message || error);
-      }
-      res.status(status).json({ 
-        error: error.message,
-        provider: "anthropic",
         type: error.type 
       });
     }

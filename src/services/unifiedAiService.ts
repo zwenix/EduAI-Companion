@@ -157,8 +157,9 @@ Return as a pure JSON object containing ONLY the following keys:
 export const runOCRScan = async (imageData: string, provider: string = 'gemini') => {
   if (provider === 'gemini') return await geminiOCRScan(imageData);
   
-  if (provider === 'mistral') {
-    return await geminiOCRScan(imageData);
+  if (provider === 'alibaba') {
+     // Qwen VL Plus can do image processing directly through the multi-ai if we pass imageData 
+     // but our multi-ai isn't fully set up for base64 images yet. We fallback to OCR space.
   }
   
   try {
@@ -172,19 +173,13 @@ export const runOCRScan = async (imageData: string, provider: string = 'gemini')
 export const runOCRAndGrade = async (imageData: string, rubric: string, provider: string = 'gemini') => {
   if (provider === 'gemini') return await geminiOCR(imageData, rubric);
   
-  // Mistral or OCR.space
-  if (provider === 'mistral') {
-    // Mistral vision if implemented, otherwise fallback
-    return await geminiOCR(imageData, rubric);
-  }
-  
   const extractedText = await performOCR(imageData);
   const messages = [
     { role: 'system', content: `You are an AI Grader. Use this rubric: ${rubric}` },
     { role: 'user', content: `Grade this text: ${extractedText}. Return JSON with 'totalScore', 'marksPerQuestion[]', 'feedback'.` }
   ];
   try {
-    const grading = await callMultiAi('groq', messages); // Use Groq for fast grading
+    const grading = await callMultiAi(provider as AIProvider, messages);
     
     try {
       const parsed = JSON.parse(grading);
@@ -194,7 +189,7 @@ export const runOCRAndGrade = async (imageData: string, rubric: string, provider
     }
   } catch (error: any) {
     if (isProviderFailure(error)) {
-      console.warn(`Provider groq/mistral failed (${error.message}). Falling back to Gemini OCR...`);
+      console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini OCR...`);
       return await geminiOCR(imageData, rubric);
     }
     throw error;

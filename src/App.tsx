@@ -151,7 +151,7 @@ const LandingPage = ({ onEnter }: { onEnter: () => void }) => {
         >
           <div className="relative rounded-[40px] overflow-hidden shadow-2xl aspect-[4/5] sm:aspect-square lg:aspect-[4/5]">
              <img 
-               src="/landing-image.jpg" 
+               src="/landing-image.jpg?v=2" 
                alt="Classroom adventure" 
                className="w-full h-full object-cover transition-opacity duration-500"
              />
@@ -421,12 +421,10 @@ export default function App() {
                 : 'bg-white border border-slate-200 text-slate-600 hover:border-brand-cyan focus:border-brand-cyan shadow-sm'
               }`}
             >
-              <option value="gemini">Gemini (Default)</option>
-              <option value="deepseek">Llama 3.3 70B (Groq)</option>
-              <option value="groq">Llama 4 Scout 17B (Groq)</option>
-              <option value="mistral">Mistral</option>
-              <option value="anthropic">Qwen3 32B (Groq)</option>
-              <option value="fireworks">Qwen3 VL Plus (Alibaba)</option>
+              <option value="llama-primary">Llama 3.3 70B (Primary)</option>
+              <option value="llama-secondary">Llama 3.1 8B (Secondary)</option>
+              <option value="gemini">Gemini (Fallback)</option>
+              <option value="alibaba">Qwen VL Plus (Vision)</option>
             </select>
             <button 
               onClick={() => setIsDarkMode(!isDarkMode)}

@@ -60,18 +60,18 @@ export default function ClassManagement() {
     const qStudents = query(collection(db, 'students'), where('teacherId', '==', user.uid));
     const unsubStudents = onSnapshot(qStudents, (snapshot) => {
       setStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student)));
-    });
+    }, (error) => console.error("Students snapshot fail:", error));
 
     const qClasses = query(collection(db, 'classes'), where('teacherId', '==', user.uid));
     const unsubClasses = onSnapshot(qClasses, (snapshot) => {
       setClasses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ClassModel)));
-    });
+    }, (error) => console.error("Classes snapshot fail:", error));
 
     const qGroups = query(collection(db, 'study_groups'), where('teacherId', '==', user.uid));
     const unsubGroups = onSnapshot(qGroups, (snapshot) => {
       setStudyGroups(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as StudyGroup)));
       setIsLoading(false);
-    });
+    }, (error) => console.error("Groups snapshot fail:", error));
 
     return () => { unsubStudents(); unsubClasses(); unsubGroups(); };
   }, []);
