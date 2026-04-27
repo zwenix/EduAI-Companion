@@ -5,6 +5,8 @@ import { marked } from 'marked';
 import { runOCRAndGrade, runOCRScan } from '../services/unifiedAiService';
 import { useAi } from '../contexts/AiContext';
 
+import { printContent, downloadAsHTML } from '../lib/printUtils';
+
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
 export default function AutoGrading() {
@@ -35,11 +37,11 @@ export default function AutoGrading() {
   }, [stream]);
 
   const handlePrint = () => {
-    window.print();
+    printContent(contentRef, "EduAI-AutoGrading");
   };
 
   const handleDownloadPDF = () => {
-    window.print();
+    downloadAsHTML(contentRef, "EduAI-AutoGrading.html");
   };
 
   const handleArchive = () => {

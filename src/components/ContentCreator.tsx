@@ -10,10 +10,10 @@ import { marked } from 'marked';
 import { educationalData } from '../lib/educational-data';
 import { generateCAPSContent, generateVisualAid, generateAdminDoc } from '../services/unifiedAiService';
 import { useAi } from '../contexts/AiContext';
-import Grade1EnglishGenerator from "./Grade1EnglishGenerator";
 import AiImage from './AiImage';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
+import { printContent, downloadAsHTML } from '../lib/printUtils';
 
 // ─── Utility ───────────────────────────────────────────────────────────────
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
@@ -294,7 +294,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   }, [isLoading, teachingResult, visualResult, adminResult]);
 
   const handlePrint = () => {
-    window.print();
+    printContent(contentRef, "EduAI-Output");
   };
 
   const handleArchive = () => {
@@ -359,29 +359,8 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     setTimeout(() => setAssignSuccess(false), 2000);
   };
 
-  const handleDownloadPDF = async () => {
-    if (!contentRef.current) return;
-    const element = contentRef.current;
-    
-    // Add a wrapper to ensure printing works smoothly inside App
-    try {
-      // @ts-ignore
-      const html2pdfLib = (await import('html2pdf.js')).default || window.html2pdf;
-      if (html2pdfLib) {
-         html2pdfLib().set({
-            margin: 15,
-            filename: `eduai-generated-content.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, logging: false },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-          }).from(element).save();
-          return;
-      }
-    } catch(err) {
-       console.warn("Failed html2pdf", err);
-    }
-    
-    window.print();
+  const handleDownloadPDF = () => {
+    downloadAsHTML(contentRef, "EduAI-Generated-Content.html");
   };
 
   // ─── Teaching Tools State ─────────────────────────────────────────────────
@@ -461,6 +440,13 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [a_replySlip, setA_ReplySlip] = useState(false);
   const [a_extraInstructions, setA_ExtraInstructions] = useState('');
 
+  // ─── Foundation State ─────────────────────────────────────────────────
+  const [f_grade, setF_Grade] = useState('1');
+  const [f_topic, setF_Topic] = useState('Phonics');
+  const [f_specific, setF_Specific] = useState('');
+  const [f_theme, setF_Theme] = useState('Animals');
+  const [f_language, setF_Language] = useState('English HL');
+
   const a_subjects = useMemo(() => {
     if (!a_grade) return [];
     const gradeData = educationalData[a_grade];
@@ -502,10 +488,32 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
         specificContent: v_specificContent, quantity: v_quantity,
         generateImage: v_generateImage, additionalInstructions: v_extraInstructions
       }, provider);
-      setVisualResult(result);
+      setVisualResult({
+         ...result,
+         shouldGenerateImage: v_generateImage,
+         userImagePrompt: v_extraInstructions
+      });
     } catch (err: any) { 
       console.error(err); 
       setError(err.message || "Failed to design visual asset.");
+    } finally { setIsLoading(false); }
+  };
+
+  const handleGenerateFoundation = async () => {
+    setIsLoading(true);
+    setError(null);
+    setTeachingResult(null); // Reusing teaching result panel
+    setActivePreviewTab('content');
+    try {
+      const result = await generateCAPSContent({
+        category: 'Foundation Phase Pack', contentType: `${f_topic} Pack`, grade: f_grade, subject: f_language,
+        topic: f_topic, term: 'Any', language: f_language, objective: `Focus on ${f_specific} with a ${f_theme} theme.`,
+        learnerProfile: 'Foundation Phase Learners (Grade 1-3)', additionalInstructions: ''
+      }, provider);
+      setTeachingResult(result);
+    } catch (err: any) { 
+      console.error(err); 
+      setError(err.message || "Failed to generate Foundation Phase reading pack.");
     } finally { setIsLoading(false); }
   };
 
@@ -530,7 +538,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
 
   if (!isOpen) return null;
 
-  const hasResult = (activeTab === 'teaching' && !!teachingResult) || (activeTab === 'visual' && !!visualResult) || (activeTab === 'admin' && !!adminResult);
+  const hasResult = ((activeTab === 'teaching' || activeTab === 'grade1') && !!teachingResult) || (activeTab === 'visual' && !!visualResult) || (activeTab === 'admin' && !!adminResult);
 
   return (
     <motion.div 
@@ -768,6 +776,27 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   <Textarea className="min-h-[80px]" placeholder="Specific words, concepts or numbers to include..." value={v_specificContent} onChange={(e: any) => setV_SpecificContent(e.target.value)} />
                 </div>
 
+                <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-slate-800">Generate Hero Image</Label>
+                      <p className="text-[10px] text-slate-500 mt-1">Use AI to generate an illustration for this visual aid</p>
+                    </div>
+                    <button 
+                      onClick={() => setV_GenerateImage(!v_generateImage)}
+                      className={cn("w-12 h-6 rounded-full relative transition-colors", v_generateImage ? "bg-purple-500" : "bg-slate-200")}
+                    >
+                      <div className={cn("w-4 h-4 bg-white rounded-full absolute top-1 transition-all", v_generateImage ? "left-7" : "left-1")} />
+                    </button>
+                  </div>
+                  {v_generateImage && (
+                    <div className="space-y-2 pt-2">
+                       <Label>Image Prompt Override <span className="opacity-50">(Optional)</span></Label>
+                       <Textarea className="min-h-[80px]" placeholder="Specific instructions for the AI image generator..." value={v_extraInstructions} onChange={(e: any) => setV_ExtraInstructions(e.target.value)} />
+                    </div>
+                  )}
+                </div>
+
                 <button onClick={handleGenerateVisual} disabled={isLoading} className="w-full bg-purple-500 hover:bg-purple-600 text-white h-16 rounded-[24px] font-black uppercase tracking-widest text-[11px] flex items-center justify-center gap-3">
                   {isLoading ? <Loader2 className="animate-spin" /> : <ImageIcon size={18} />}
                   {isLoading ? "Designing..." : "Create Visual Aid"}
@@ -830,9 +859,70 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
             )}
 
             {activeTab === 'grade1' && (
-               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-                 <Grade1EnglishGenerator />
-               </motion.div>
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                <div>
+                  <p className="text-[10px] text-pink-500 font-black uppercase tracking-[0.2em] mb-2">🎈 Early Learners</p>
+                  <p className="text-sm text-slate-500 leading-relaxed">Phonics, sight words, and reading comprehension specifically mapped for Grades 1 - 3.</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>Grade Level</Label>
+                    <Select value={f_grade} onValueChange={setF_Grade} placeholder="Grade">
+                      {(close: any) => (
+                        <>
+                          <SelectItem onClick={() => { setF_Grade('1'); close(); }} active={f_grade === '1'}>Grade 1</SelectItem>
+                          <SelectItem onClick={() => { setF_Grade('2'); close(); }} active={f_grade === '2'}>Grade 2</SelectItem>
+                          <SelectItem onClick={() => { setF_Grade('3'); close(); }} active={f_grade === '3'}>Grade 3</SelectItem>
+                        </>
+                      )}
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Focus Area</Label>
+                    <Select value={f_topic} onValueChange={setF_Topic} placeholder="Select Focus">
+                      {(close: any) => (
+                        <>
+                          <SelectItem onClick={() => { setF_Topic('Phonics'); close(); }} active={f_topic === 'Phonics'}>Phonics</SelectItem>
+                          <SelectItem onClick={() => { setF_Topic('Sight Words'); close(); }} active={f_topic === 'Sight Words'}>Sight Words</SelectItem>
+                          <SelectItem onClick={() => { setF_Topic('Reading Comprehension'); close(); }} active={f_topic === 'Reading Comprehension'}>Reading Comp</SelectItem>
+                          <SelectItem onClick={() => { setF_Topic('Handwriting Practice'); close(); }} active={f_topic === 'Handwriting Practice'}>Handwriting</SelectItem>
+                        </>
+                      )}
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Specific Target</Label>
+                  <Input placeholder="e.g. 'sh' and 'ch' sounds, or specific sight words..." value={f_specific} onChange={(e: any) => setF_Specific(e.target.value)} />
+                  <p className="text-[10px] text-slate-500">Optional: specify exactly what to focus on.</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>Theme / Context</Label>
+                    <Input placeholder="e.g. Space, Animals..." value={f_theme} onChange={(e: any) => setF_Theme(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Language</Label>
+                    <Select value={f_language} onValueChange={setF_Language} placeholder="Language">
+                      {(close: any) => (
+                        <>
+                          <SelectItem onClick={() => { setF_Language('English HL'); close(); }} active={f_language === 'English HL'}>English HL</SelectItem>
+                          <SelectItem onClick={() => { setF_Language('English FAL'); close(); }} active={f_language === 'English FAL'}>English FAL</SelectItem>
+                          <SelectItem onClick={() => { setF_Language('Afrikaans HT'); close(); }} active={f_language === 'Afrikaans HT'}>Afrikaans HT</SelectItem>
+                        </>
+                      )}
+                    </Select>
+                  </div>
+                </div>
+
+                <button onClick={handleGenerateFoundation} disabled={isLoading} className="w-full bg-pink-500 hover:bg-pink-600 text-white h-16 rounded-[24px] font-black uppercase tracking-widest text-[11px] flex items-center justify-center gap-3">
+                  {isLoading ? <Loader2 className="animate-spin" /> : <BookOpen size={18} />}
+                  {isLoading ? "Designing..." : "Create Reading Pack"}
+                </button>
+              </motion.div>
             )}
           </AnimatePresence>
         </div>
@@ -876,7 +966,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
              <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto space-y-8 lg:space-y-12 pb-12">
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white/5 p-4 lg:p-6 rounded-2xl lg:rounded-[32px] border border-white/5 gap-4">
                   <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
-                    {activeTab === 'teaching' && (
+                    {(activeTab === 'teaching' || activeTab === 'grade1') && (
                       <>
                         <button onClick={() => setActivePreviewTab('content')} className={cn("px-4 lg:px-6 py-2.5 rounded-xl lg:rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap", activePreviewTab === 'content' ? "bg-brand-cyan text-navy-dark" : "text-slate-500 hover:text-white bg-white/5 lg:bg-transparent")}>Result</button>
                         {teachingResult.memo && <button onClick={() => setActivePreviewTab('memo')} className={cn("px-4 lg:px-6 py-2.5 rounded-xl lg:rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap", activePreviewTab === 'memo' ? "bg-brand-yellow text-navy-dark" : "text-slate-500 hover:text-white bg-white/5 lg:bg-transparent")}>Memo</button>}
@@ -916,7 +1006,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                 </div>
 
                 <div className="pb-20 bg-white print:bg-white rounded-[32px] p-6 text-black printable-doc" ref={contentRef}>
-                  {activeTab === 'teaching' && (
+                  {(activeTab === 'teaching' || activeTab === 'grade1') && (
                     <>
                       {activePreviewTab === 'content' && (
                         <div className="space-y-8">
@@ -936,9 +1026,9 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   )}
                   {activeTab === 'visual' && (
                     <div className="space-y-8">
-                      {visualResult.imagePrompt && (
+                      {visualResult.shouldGenerateImage && (visualResult.userImagePrompt || visualResult.imagePrompt) && (
                         <AiImage 
-                          prompt={visualResult.imagePrompt} 
+                          prompt={visualResult.userImagePrompt || visualResult.imagePrompt} 
                           aspectRatio="portrait"
                           className="w-full max-w-2xl mx-auto mb-8"
                         />

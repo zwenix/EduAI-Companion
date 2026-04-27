@@ -21,7 +21,7 @@ STYLE REQUIREMENTS (MANDATORY):
 - NO emojis, NO smiley faces, NO generic stick figures, NO low-resolution icons
 
 When generating any visual material, you MUST output:
-1. The actual educational content fully formatted in Markdown or HTML (Do NOT describe the formatting like "Large Blue Text", just use the proper markdown or HTML tags).
+1. The actual educational content fully formatted in Markdown (Do NOT describe the formatting like "Large Blue Text", just use the proper markdown tags).
 2. A separate, extremely detailed image generation prompt (for AI model used) that will produce a stunning, high-resolution, print-ready illustration or poster
 
 You are never satisfied with mediocre visuals — aim for materials that South African teachers would proudly display in their classrooms or submit to the DBE as exemplars.
@@ -110,7 +110,7 @@ export const generateEducationalContent = async (type: string, details: string) 
 
 export const generateCAPSContent = async (input: any) => {
   const model = "gemini-3-flash-preview";
-  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must have strictly HTML strings for educational content.\nIMPORTANT: The 'content', 'memo', and 'rubric' keys MUST contain beautifully formatted HTML using Tailwind CSS utility classes. DO NOT output nested JSON objects for these fields.`;
+  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must have strictly Markdown strings for educational content.\nIMPORTANT: The 'content', 'memo', and 'rubric' keys MUST contain beautifully formatted Markdown. DO NOT output HTML or nested JSON objects for these fields.`;
 
   const prompt = `
     Type: ${input.contentType}
@@ -146,9 +146,9 @@ export const generateCAPSContent = async (input: any) => {
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            content: { type: Type.STRING, description: "The main education material in HTML format" },
-            memo: { type: Type.STRING, description: "The answer key in HTML format" },
-            rubric: { type: Type.STRING, description: "The marking rubric in HTML format" },
+            content: { type: Type.STRING, description: "The main education material in Markdown format" },
+            memo: { type: Type.STRING, description: "The answer key in Markdown format" },
+            rubric: { type: Type.STRING, description: "The marking rubric in Markdown format" },
             assessmentCriteria: { type: Type.STRING, description: "CAPS alignment notes" },
             successIndicators: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Array of success indicators" },
             imagePrompt: { type: Type.STRING, description: "Detailed prompt for generating a hero illustration" }
@@ -165,7 +165,7 @@ export const generateCAPSContent = async (input: any) => {
 
 export const generateVisualAid = async (input: any) => {
   const model = "gemini-3-flash-preview";
-  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nThe 'content' field in your JSON response MUST be valid HTML designed carefully using Tailwind CSS utility classes. DO NOT use nested JSON objects in the 'content' field.`;
+  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nThe 'content' field in your JSON response MUST be valid Markdown text. DO NOT use HTML or nested JSON objects in the 'content' field.`;
 
   let visualPrompt = "";
   const isPoster = input.visualType?.toLowerCase().includes('poster');
@@ -240,7 +240,7 @@ export const generateVisualAid = async (input: any) => {
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            content: { type: Type.STRING, description: "HTML/CSS content for visual aid" },
+            content: { type: Type.STRING, description: "Markdown content for visual aid" },
             description: { type: Type.STRING, description: "Design summary" },
             printInstructions: { type: Type.STRING, description: "Advice for teacher" },
             imagePrompt: { type: Type.STRING, description: "Detailed prompt for generating the main visual asset illustration" }
@@ -260,7 +260,7 @@ export const generateAdminDoc = async (input: any) => {
   const systemInstruction = `You are a professional school administrator.
   Generate a formal ${input.documentType} for ${input.schoolName}.
   The tone should be ${input.tone}.
-  IMPORTANT: The 'content' field MUST be formatted as a visually pleasing HTML string using Tailwind CSS utility classes. DO NOT nest a JSON object.`;
+  IMPORTANT: The 'content' field MUST be formatted as a visually pleasing Markdown string. DO NOT use HTML or nest a JSON object.`;
 
   const prompt = `
     Type: ${input.documentType}
@@ -280,7 +280,7 @@ export const generateAdminDoc = async (input: any) => {
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            content: { type: Type.STRING, description: "Formal HTML document" },
+            content: { type: Type.STRING, description: "Formal Markdown document" },
             notes: { type: Type.STRING, description: "Usage advice" },
             documentType: { type: Type.STRING, description: "The type of document generated" }
           },

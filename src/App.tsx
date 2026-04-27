@@ -424,7 +424,7 @@ export default function App() {
               <option value="llama-primary">Llama 3.3 70B (Primary)</option>
               <option value="llama-secondary">Llama 3.1 8B (Secondary)</option>
               <option value="gemini">Gemini (Fallback)</option>
-              <option value="alibaba">Qwen VL Plus (Vision)</option>
+              <option value="alibaba">Qwen Plus (Content/Visuals)</option>
             </select>
             <button 
               onClick={() => setIsDarkMode(!isDarkMode)}

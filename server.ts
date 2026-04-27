@@ -47,10 +47,10 @@ async function startServer() {
         break;
       case "alibaba":
         client = new OpenAI({
-          apiKey: process.env.ALIBABA_API_KEY || "dummy",
+          apiKey: (process.env.ALIBABA_API_KEY || "").trim(),
           baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
         });
-        apiKey = process.env.ALIBABA_API_KEY || "";
+        apiKey = (process.env.ALIBABA_API_KEY || "").trim();
         break;
     }
 

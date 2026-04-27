@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Box, Search, Library, History, ExternalLink, Loader2, Trash2, Eye, Edit3, FileDown, Send, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
+import { printContent, downloadAsHTML } from '../lib/printUtils';
 
 // Mock data to simulate the user's generated content and system templates
 const INITIAL_ARCHIVE = [
@@ -49,7 +50,7 @@ export default function ContentArchive() {
   };
 
   const handleDownloadPDF = async () => {
-    window.print();
+    printContent(printableRef, "EduAI-Archive-Item");
   };
 
   const handleAssign = () => {
@@ -207,7 +208,7 @@ export default function ContentArchive() {
                     className="flex items-center justify-center gap-2 border border-emerald-500 text-emerald-600 hover:bg-emerald-50 px-4 lg:px-6 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl font-bold transition-all text-xs lg:text-base flex-1 sm:flex-none disabled:opacity-50"
                   >
                     {isDownloading ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />} 
-                    {isDownloading ? 'Saving...' : 'Save PDF'}
+                    {isDownloading ? 'Saving...' : 'Print / Save PDF'}
                   </button>
                 </div>
                 

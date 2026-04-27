@@ -49,7 +49,7 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
   if (provider === 'gemini') return await geminiGenerateCAPS(input);
   
   const messages = [
-    { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be rich, professionally formatted HTML strings designed using Tailwind CSS utility classes. DO NOT use nested JSON objects for the content.\nInclude an Answer Memo and a Marking Rubric if requested.` },
+    { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be rich, professionally formatted Markdown text. DO NOT use HTML tags or Tailwind classes. ONLY use standard Markdown formatting (e.g., # Headings, **bold**, *italics*, bullet points). The UI will handle the styling.` },
     { role: 'user', content: `
     Type: ${input.contentType}
     Grade: ${input.grade}
@@ -93,7 +93,7 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini')
   if (provider === 'gemini') return await geminiGenerateVisual(input);
   
   const messages = [
-    { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nThe response must be a JSON object, but the 'content' field MUST be a rich, professionally formatted HTML string designed using Tailwind CSS utility classes. DO NOT use nested JSON objects for the content.` },
+    { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nThe response must be a JSON object, but the 'content' field MUST be rich, professionally formatted Markdown text. DO NOT use HTML tags or Tailwind classes.` },
     { role: 'user', content: `Generate a visual aid design for ${input.visualType} on topic ${input.topic} for Grade ${input.grade}.
     Style: ${input.style}
     Color: ${input.colorScheme}
@@ -129,11 +129,11 @@ export const generateAdminDoc = async (input: any, provider: string = 'gemini') 
   if (provider === 'gemini') return await geminiGenerateAdmin(input);
   
   const messages = [
-    { role: 'system', content: `You are an expert school administrator. Generate highly professional, nicely formatted HTML documents.` },
+    { role: 'system', content: `You are an expert school administrator. Generate highly professional, nicely formatted text.` },
     { role: 'user', content: `Generate a formal ${input.documentType} for ${input.schoolName}. Tone: ${input.tone}. 
 Return as a pure JSON object containing ONLY the following keys:
 {
-  "content": "<HTML STRING GOES HERE (styled with Tailwind CSS)>",
+  "content": "<MARKDOWN STRING GOES HERE>",
   "notes": "string",
   "documentType": "${input.documentType}"
 }` }
