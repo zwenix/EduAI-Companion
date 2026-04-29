@@ -112,33 +112,3 @@
     box-shadow: none !important;
   }
 }
-
-/* Global Dark Mode Overrides for dynamically loaded sub-components */
-.dark-theme .bg-white {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  color: #f1f5f9;
-}
-
-.dark-theme .text-slate-900,
-.dark-theme .text-slate-800,
-.dark-theme .text-slate-700,
-.dark-theme .text-navy-dark {
-  color: #f8fafc !important;
-}
-
-.dark-theme .bg-slate-50 {
-  background-color: rgba(0, 0, 0, 0.2) !important;
-  border-color: rgba(255, 255, 255, 0.05) !important;
-}
-
-.dark-theme .text-slate-500,
-.dark-theme .text-slate-400 {
-  color: #cbd5e1 !important;
-}
-
-.dark-theme .border-slate-100, 
-.dark-theme .border-slate-200 {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
-

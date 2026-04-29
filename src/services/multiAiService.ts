@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export type AIProvider = 'llama-primary' | 'llama-secondary' | 'groq-qwen';
+export type AIProvider = 'llama-primary' | 'llama-secondary' | 'groq-qwen' | 'groq-vision';
 
 export const callMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
   try {
@@ -30,9 +30,9 @@ export const callMultiAi = async (provider: AIProvider, messages: any[], model?:
   }
 };
 
-export const performOCR = async (base64Image: string) => {
+export const performOCR = async (base64Image: string, language: string = 'eng') => {
   try {
-    const response = await axios.post('/api/ocr', { image: base64Image });
+    const response = await axios.post('/api/ocr', { image: base64Image, language });
     if (response.data.ParsedResults && response.data.ParsedResults.length > 0) {
       return response.data.ParsedResults[0].ParsedText;
     }

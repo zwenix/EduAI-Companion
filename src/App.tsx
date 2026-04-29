@@ -38,7 +38,8 @@ import {
   Sparkles,
   Menu,
   X,
-  Zap
+  Zap,
+  School
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ContentCreator from './components/ContentCreator';
@@ -58,6 +59,8 @@ import StudentNotes from './components/StudentNotes';
 import StudentDashboard from './components/StudentDashboard';
 import ParentDashboard from './components/ParentDashboard';
 import AdminDashboard from './components/AdminDashboard';
+import SettingsPage from './components/Settings';
+import Helpdesk from './components/Helpdesk';
 
 const SidebarItem = ({ icon: Icon, label, active, onClick, collapsed }: { icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean }) => (
   <button
@@ -224,7 +227,7 @@ const LandingPage = ({ onEnter }: { onEnter: () => void }) => {
 import { useAi, AIProvider as AIProviderType } from './contexts/AiContext';
 
 export default function App() {
-  const { provider, setProvider } = useAi();
+  const { provider, setProvider, ttsProvider, setTtsProvider, ocrProvider, setOcrProvider, imageProvider, setImageProvider } = useAi();
   const [isRefreshing, setIsRefreshing] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
@@ -375,14 +378,15 @@ export default function App() {
             return [
               { icon: LayoutDashboard, label: 'Dashboard', active: activeTab === 'dashboard', id: 'dashboard' },
               { icon: FlaskConical, label: 'Content Creator Studio', active: activeCreatorTab !== null && activeTab === 'dashboard', id: 'teaching' },
-              { icon: Users, label: 'Class & Student Management', active: activeTab === 'class-management', id: 'class-management' },
-              { icon: Sparkles, label: 'Foundation Phase Tools', active: activeCreatorTab === 'grade1' || activeTab === 'grade1', id: 'grade1' },
-              { icon: TrendingUp, label: 'Progress Reports', active: activeTab === 'reports', id: 'reports' },
-              { icon: Brain, label: 'AI Tutor', active: activeTab === 'ai-tutor', id: 'ai-tutor' },
-              { icon: MessageSquare, label: 'Communicator & Messenger', active: activeTab === 'messenger', id: 'messenger' },
-              { icon: Scan, label: 'Scan & Autograde', active: activeTab === 'ocr', id: 'ocr' },
               { icon: Archive, label: 'Content Archive', active: activeTab === 'archive', id: 'archive' },
+              { icon: Brain, label: 'AI Tutor', active: activeTab === 'ai-tutor', id: 'ai-tutor' },
+              { icon: Scan, label: 'Scan & Autograde', active: activeTab === 'ocr', id: 'ocr' },
+              { icon: TrendingUp, label: 'Progress Reports', active: activeTab === 'reports', id: 'reports' },
+              { icon: MessageSquare, label: 'Communicator & Messenger', active: activeTab === 'messenger', id: 'messenger' },
               { icon: UserCircle, label: 'Portfolios', active: activeTab === 'portfolios', id: 'portfolios' },
+              { icon: Users, label: 'Class & Student Management', active: activeTab === 'class-management', id: 'class-management' },
+              { icon: Settings, label: 'Settings', active: activeTab === 'settings', id: 'settings' },
+              { icon: HelpCircle, label: 'Helpdesk & Technical Support', active: activeTab === 'helpdesk', id: 'helpdesk' },
             ];
           })().map((item) => (
             <SidebarItem 
@@ -397,6 +401,10 @@ export default function App() {
                   setActiveTab('ai-tutor');
                 } else if (item.id === 'ocr') {
                   setActiveTab('ocr');
+                } else if (item.id === 'settings') {
+                  setActiveTab('settings');
+                } else if (item.id === 'helpdesk') {
+                  setActiveTab('helpdesk');
                 } else {
                   setActiveTab(item.id);
                 }
@@ -448,19 +456,61 @@ export default function App() {
           </div>
           
           <div className="flex items-center gap-2 lg:gap-6">
+            <div className="hidden lg:flex items-center gap-2">
+              <select 
+                value={ocrProvider}
+                onChange={(e) => setOcrProvider(e.target.value as 'ocrspace' | 'gemini')}
+                className={`text-[10px] font-bold tracking-wider px-3 py-1.5 rounded-lg outline-none transition-all ${
+                  isDarkMode 
+                  ? 'bg-white/5 border border-white/10 text-emerald-400 focus:border-emerald-500 [&>option]:bg-slate-800 [&>option]:text-emerald-400' 
+                  : 'bg-white border border-slate-200 text-slate-600 focus:border-emerald-500 shadow-sm [&>option]:bg-white [&>option]:text-slate-600'
+                }`}
+              >
+                <option value="gemini">OCR: Gemini Vision</option>
+                <option value="groq-vision">OCR: Llama 3.2 Vision (Free)</option>
+                <option value="ocrspace">OCR: OCR.Space Engine</option>
+              </select>
+
+              <select 
+                value={imageProvider}
+                onChange={(e) => setImageProvider(e.target.value as 'pollinations' | 'glm-image')}
+                className={`text-[10px] font-bold tracking-wider px-3 py-1.5 rounded-lg outline-none transition-all ${
+                  isDarkMode 
+                  ? 'bg-white/5 border border-white/10 text-orange-400 focus:border-orange-500 [&>option]:bg-slate-800 [&>option]:text-orange-400' 
+                  : 'bg-white border border-slate-200 text-slate-600 focus:border-orange-500 shadow-sm [&>option]:bg-white [&>option]:text-slate-600'
+                }`}
+              >
+                <option value="pollinations">IMG: FLUX.2 [klein]</option>
+                <option value="glm-image">IMG: Z-AI CogView</option>
+              </select>
+
+              <select 
+                value={ttsProvider}
+                onChange={(e) => setTtsProvider(e.target.value as 'browser' | 'elevenlabs')}
+                className={`text-[10px] font-bold tracking-wider px-3 py-1.5 rounded-lg outline-none transition-all ${
+                  isDarkMode 
+                  ? 'bg-white/5 border border-white/10 text-purple-400 focus:border-purple-500 [&>option]:bg-slate-800 [&>option]:text-purple-400' 
+                  : 'bg-white border border-slate-200 text-slate-600 focus:border-purple-500 shadow-sm [&>option]:bg-white [&>option]:text-slate-600'
+                }`}
+              >
+                <option value="browser">TTS: Browser Core</option>
+                <option value="elevenlabs">TTS: ElevenLabs HD</option>
+              </select>
+            </div>
             <select 
               value={provider} 
               onChange={(e) => setProvider(e.target.value as AIProviderType)}
-              className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl outline-none transition-all ${
+              className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl outline-none transition-all hidden sm:block ${
                 isDarkMode 
-                ? 'bg-white/5 border border-white/10 text-brand-cyan hover:border-brand-cyan/50 focus:border-brand-cyan' 
-                : 'bg-white border border-slate-200 text-slate-600 hover:border-brand-cyan focus:border-brand-cyan shadow-sm'
+                ? 'bg-white/5 border border-white/10 text-brand-cyan hover:border-brand-cyan/50 focus:border-brand-cyan [&>option]:bg-slate-800 [&>option]:text-brand-cyan' 
+                : 'bg-white border border-slate-200 text-slate-600 hover:border-brand-cyan focus:border-brand-cyan shadow-sm [&>option]:bg-white [&>option]:text-slate-600'
               }`}
             >
+              <option value="gemini">Gemini 2.0 Flash</option>
               <option value="llama-primary">Llama 3.3 70B (Primary)</option>
-              <option value="llama-secondary">Llama 4 Scout (17B)</option>
-              <option value="gemini">Gemini (Fallback)</option>
-              <option value="groq-qwen">Groq Qwen 3 32B</option>
+              <option value="llama-secondary">Llama 4 Scout (Preview)</option>
+              <option value="groq-qwen">Qwen-QwQ-32B (CAPS Reasoning)</option>
+              <option value="groq-vision">Llama 3.2 11B (Vision)</option>
             </select>
             <button 
               onClick={() => setIsDarkMode(!isDarkMode)}
@@ -551,12 +601,13 @@ export default function App() {
                             { title: "Content Creator Studio", desc: "Lessons, Plans & Assessments.", color: 'text-cyan-400', icon: FlaskConical, id: 'teaching' },
                             { title: "Content Archive", desc: "Posters, Cards & Displays.", color: 'text-purple-400', icon: Archive, id: 'archive' },
                             { title: "AI Tutor", desc: "Interactive intelligence.", color: 'text-brand-yellow', icon: Brain, id: 'ai-tutor' },
-                            { title: "Class & Student Management", desc: "Manage your learners.", color: 'text-indigo-400', icon: Users, id: 'class-management' },
-                            { title: "Foundation Phase Tools", desc: "Specialized Foundation tools.", color: 'text-emerald-400', icon: Sparkles, id: 'grade1' },
                             { title: "Scan & Autograde", desc: "Automated vision grading.", color: 'text-rose-400', icon: Scan, id: 'ocr' },
                             { title: "Progress Reports", desc: "Track student performance.", color: 'text-red-400', icon: TrendingUp, id: 'reports' },
                             { title: "Communicator & Messenger", desc: "School connection hub.", color: 'text-indigo-400', icon: MessageSquare, id: 'messenger' },
                             { title: "Portfolios", desc: "Student work portfolio.", color: 'text-amber-400', icon: UserCircle, id: 'portfolios' },
+                            { title: "Class & Student Management", desc: "Manage your learners.", color: 'text-indigo-400', icon: Users, id: 'class-management' },
+                            { title: "Settings", desc: "Account & App preferences.", color: 'text-slate-400', icon: Settings, id: 'settings' },
+                            { title: "Helpdesk", desc: "Technical Support & FAQ.", color: 'text-blue-400', icon: HelpCircle, id: 'helpdesk' },
                           ].map((item, i) => (
                             <button 
                               key={`feature-${item.id}-${i}`} 
@@ -601,6 +652,10 @@ export default function App() {
                   <StudentPractice isDarkMode={isDarkMode} />
                 ) : activeTab === 'student-notes' ? (
                   <StudentNotes isDarkMode={isDarkMode} />
+                ) : activeTab === 'settings' ? (
+                  <SettingsPage isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+                ) : activeTab === 'helpdesk' ? (
+                  <Helpdesk isDarkMode={isDarkMode} />
                 ) : (
                   <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200 shadow-sm'} p-12 rounded-[48px] text-center min-h-[500px] flex flex-col items-center justify-center`}>
                     <div className={`w-28 h-28 ${isDarkMode ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-100'} rounded-[36px] flex items-center justify-center mb-8`}>

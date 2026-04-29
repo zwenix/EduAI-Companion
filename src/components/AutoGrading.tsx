@@ -9,8 +9,18 @@ import { printContent, downloadAsHTML } from '../lib/printUtils';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
+const LANGUAGES = [
+  { value: 'English',   label: 'English' },
+  { value: 'Spanish',   label: 'Spanish' },
+  { value: 'French',    label: 'French' },
+  { value: 'German',    label: 'German' },
+  { value: 'isiZulu',   label: 'isiZulu' },
+  { value: 'isiXhosa',  label: 'isiXhosa' },
+  { value: 'Afrikaans', label: 'Afrikaans' },
+];
+
 export default function AutoGrading() {
-  const { provider } = useAi();
+  const { provider, ocrProvider } = useAi();
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -21,6 +31,7 @@ export default function AutoGrading() {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [mode, setMode] = useState<'grade' | 'extract'>('grade');
+  const [ocrLanguage, setOcrLanguage] = useState('English');
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -107,7 +118,7 @@ export default function AutoGrading() {
     setExtractResult(null);
     setMode('extract');
     try {
-      const resp = await runOCRScan(img, provider);
+      const resp = await runOCRScan(img, provider, ocrProvider, ocrLanguage);
       setExtractResult(resp);
     } catch (error: any) {
       console.error("Extraction error:", error);
@@ -127,7 +138,7 @@ export default function AutoGrading() {
     setExtractResult(null);
     setMode('grade');
     try {
-      const gradingResult = await runOCRAndGrade(img, rubric || "Grade accurately based on standard academic quality, checking for correctness, clarity, and completeness.", provider);
+      const gradingResult = await runOCRAndGrade(img, rubric || "Grade accurately based on standard academic quality, checking for correctness, clarity, and completeness.", provider, ocrProvider, ocrLanguage);
       setResult(gradingResult);
     } catch (error: any) {
       console.error("Processing error:", error);
@@ -184,10 +195,23 @@ export default function AutoGrading() {
           </p>
         </div>
         
-        <div className="flex gap-4">
+        <div className="flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex flex-col">
+            <label className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-widest pl-1">OCR Language</label>
+            <select 
+              value={ocrLanguage} 
+              onChange={e => setOcrLanguage(e.target.value)}
+              className="bg-navy-dark border border-white/10 outline-none text-slate-300 text-xs font-black uppercase tracking-widest py-3 px-4 rounded-2xl [&>option]:bg-slate-900"
+            >
+              <option value="English">English</option>
+              {LANGUAGES.filter(l => l.value !== 'English').map(l => (
+                <option key={l.value} value={l.value}>{l.label}</option>
+              ))}
+            </select>
+          </div>
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="glass px-6 py-3 rounded-2xl flex items-center gap-3 text-xs font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all border border-white/5"
+            className="glass px-6 py-3 rounded-2xl flex items-center gap-3 text-xs font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all border border-white/5 h-[42px]"
           >
             <Upload size={18} className="text-brand-cyan" />
             Upload Scan
@@ -358,7 +382,7 @@ export default function AutoGrading() {
                   </button>
                 </div>
 
-                <div className="pb-20 bg-white print:bg-white rounded-[32px] p-6 text-black printable-doc" ref={contentRef}>
+                <div className="pb-20 bg-white print:bg-white rounded-[32px] p-6 text-slate-900 printable-doc" ref={contentRef}>
                   {/* Score Card */}
                   <div className="glass !bg-slate-100 p-10 rounded-[48px] border border-black/10 relative overflow-hidden group mb-8">
                     <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-cyan/20 rounded-full blur-3xl transition-colors" />
@@ -368,7 +392,7 @@ export default function AutoGrading() {
                         <span className="text-4xl font-black">{result.totalScore}</span>
                       </div>
                       <div>
-                        <h3 className="text-2xl font-hand text-black">Grading Complete</h3>
+                        <h3 className="text-2xl font-hand text-slate-900">Grading Complete</h3>
                         <div className="flex items-center gap-2 mt-2">
                           <CheckCircle size={14} className="text-emerald-500" />
                           <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Analysis Verified</span>
@@ -439,11 +463,11 @@ export default function AutoGrading() {
                   </button>
                 </div>
 
-                 <div className="pb-20 bg-white print:bg-white rounded-[32px] p-6 text-black printable-doc" ref={contentRef}>
+                 <div className="pb-20 bg-white print:bg-white rounded-[32px] p-6 text-slate-900 printable-doc" ref={contentRef}>
                   <div className="glass !bg-slate-50 p-8 rounded-[40px] border border-black/5">
                     <div className="flex items-center gap-4 mb-6 border-b border-slate-200 pb-4">
                       <FileCheck className="text-brand-cyan" size={28} />
-                      <h3 className="text-2xl font-hand text-black">Scanned Content</h3>
+                      <h3 className="text-2xl font-hand text-slate-900">Scanned Content</h3>
                     </div>
                     <div className="bg-white p-6 rounded-2xl border border-black/5 shadow-inner">
                       <div className="prose prose-sm max-w-none text-slate-800">

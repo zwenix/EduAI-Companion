@@ -49,7 +49,7 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
   if (provider === 'gemini') return await geminiGenerateCAPS(input);
   
   const messages = [
-    { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be rich, professionally formatted Markdown text. DO NOT use HTML tags or Tailwind classes. ONLY use standard Markdown formatting (e.g., # Headings, **bold**, *italics*, bullet points). The UI will handle the styling.` },
+    { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.` },
     { role: 'user', content: `
     Type: ${input.contentType}
     Grade: ${input.grade}
@@ -61,11 +61,11 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
     SPECIFIC VISUAL ENHANCEMENT:
     For every worksheet, create ONE stunning hero illustration prompt.
     
-    Return as a pure JSON object containing ONLY the following keys:
+    Return as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
     {
-      "content": "<MARKDOWN STRING GOES HERE>",
-      "memo": "<MARKDOWN STRING GOES HERE>",
-      "rubric": "<MARKDOWN STRING GOES HERE>",
+      "content": "<HTML STRING GOES HERE>",
+      "memo": "<HTML STRING GOES HERE>",
+      "rubric": "<HTML STRING GOES HERE>",
       "successIndicators": ["string", "string"],
       "imagePrompt": "Detailed prompt..."
     }
@@ -93,15 +93,15 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini')
   if (provider === 'gemini') return await geminiGenerateVisual(input);
   
   const messages = [
-    { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nThe response must be a JSON object, but the 'content' field MUST be rich, professionally formatted Markdown text. DO NOT use HTML tags or Tailwind classes.` },
+    { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nThe response must be a JSON object, but the 'content' field MUST be stunningly designed HTML with Tailwind CSS. DO NOT use generic Markdown.` },
     { role: 'user', content: `Generate a visual aid design for ${input.visualType} on topic ${input.topic} for Grade ${input.grade}.
     Style: ${input.style}
     Color: ${input.colorScheme}
     Specific Content: ${input.specificContent}
     
-    Return as a pure JSON object containing ONLY the following keys:
+    Return as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
     {
-      "content": "<MARKDOWN STRING GOES HERE>",
+      "content": "<HTML STRING WITH TAILWIND DESIGN HERE>",
       "description": "string",
       "printInstructions": "string",
       "imagePrompt": "Detailed prompt..."
@@ -129,11 +129,11 @@ export const generateAdminDoc = async (input: any, provider: string = 'gemini') 
   if (provider === 'gemini') return await geminiGenerateAdmin(input);
   
   const messages = [
-    { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nGenerate highly professional, beautifully formatted text using Rich Markdown.` },
+    { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nGenerate highly professional, beautifully formatted text using HTML with modern Tailwind CSS inline styles. DO NOT use generic Markdown.` },
     { role: 'user', content: `Generate a formal ${input.documentType} for ${input.schoolName}. Tone: ${input.tone}. 
-Return as a pure JSON object containing ONLY the following keys:
+Return as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
 {
-  "content": "<MARKDOWN STRING GOES HERE>",
+  "content": "<HTML STRING WITH TAILWIND DESIGN HERE>",
   "notes": "string",
   "documentType": "${input.documentType}",
   "imagePrompt": "prompt for custom seal or emblem if applicable"
@@ -155,29 +155,59 @@ Return as a pure JSON object containing ONLY the following keys:
   }
 };
 
-export const runOCRScan = async (imageData: string, provider: string = 'gemini') => {
-  if (provider === 'gemini') return await geminiOCRScan(imageData);
-  
-  if (provider === 'groq-qwen') {
-     // Multi-ai isn't fully set up for base64 images yet via Groq. We fallback to OCR space.
-  }
+const getOcrSpaceLangCode = (lang: string) => {
+  const map: Record<string, string> = {
+    'English': 'eng',
+    'Spanish': 'spa',
+    'French': 'fre',
+    'German': 'ger',
+    'Afrikaans': 'afr',
+  };
+  return map[lang] || 'eng';
+};
+
+export const runOCRScan = async (imageData: string, provider: string = 'gemini', ocrProvider: string = 'gemini', language: string = 'English') => {
+  if (ocrProvider === 'gemini') return await geminiOCRScan(imageData, language);
   
   try {
-    const extractedText = await performOCR(imageData);
+    const extractedText = await performOCR(imageData, getOcrSpaceLangCode(language));
     return { extractedText };
   } catch (error: any) {
-    return await geminiOCRScan(imageData);
+    return await geminiOCRScan(imageData, language);
   }
 };
 
-export const runOCRAndGrade = async (imageData: string, rubric: string, provider: string = 'gemini') => {
-  if (provider === 'gemini') return await geminiOCR(imageData, rubric);
+export const runOCRAndGrade = async (imageData: string, rubric: string, provider: string = 'gemini', ocrProvider: string = 'gemini', language: string = 'English') => {
+  if (ocrProvider === 'gemini') {
+    // If provider is also gemini, we can just use the unified action
+    if (provider === 'gemini') return await geminiOCR(imageData, rubric, language);
+    
+    // Otherwise extract with gemini first
+    const scanRef = await geminiOCRScan(imageData, language);
+    const messages = [
+      { role: 'system', content: `You are an AI Grader. Use this rubric: ${rubric}` },
+      { role: 'user', content: `Grade this text: ${scanRef.extractedText}. Return JSON with 'totalScore', 'marksPerQuestion[]', 'feedback'.` }
+    ];
+    let model = 'llama-3.3-70b-versatile';
+    if (provider === 'llama-secondary') model = 'llama-3.1-8b-instant';
+    if (provider === 'groq-qwen') model = 'qwen-2.5-32b';
+    const groqResponse = await callMultiAi(provider as any, messages, model);
+    try {
+      if (typeof groqResponse === 'string') return safeJsonParse(groqResponse);
+      const resData = JSON.parse(groqResponse || '{}');
+      if (!resData.totalScore || !resData.feedback) throw new Error("Invalid output");
+      return resData;
+    } catch {
+      return await geminiOCR(imageData, rubric, language); // Fallback to full gemini
+    }
+  }
   
-  const extractedText = await performOCR(imageData);
+  const extractedText = await performOCR(imageData, getOcrSpaceLangCode(language));
   const messages = [
     { role: 'system', content: `You are an AI Grader. Use this rubric: ${rubric}` },
     { role: 'user', content: `Grade this text: ${extractedText}. Return JSON with 'totalScore', 'marksPerQuestion[]', 'feedback'.` }
   ];
+
   try {
     const grading = await callMultiAi(provider as AIProvider, messages);
     
@@ -190,14 +220,19 @@ export const runOCRAndGrade = async (imageData: string, rubric: string, provider
   } catch (error: any) {
     if (isProviderFailure(error)) {
       console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini OCR...`);
-      return await geminiOCR(imageData, rubric);
+      return await geminiOCR(imageData, rubric, language);
     }
     throw error;
   }
 };
 
 export const chatWithTutor = async (messages: any[], provider: string = 'gemini') => {
-  if (provider === 'gemini') return await geminiChat(messages);
+  const hasImage = messages.some(m => m.parts?.some((p: any) => p.inlineData));
+  
+  if (provider === 'gemini' || hasImage) {
+     // Force gemini if there are images, because groq text models throw 400s
+     return await geminiChat(messages);
+  }
   
   // Format messages for OpenAI/Anthropic
   let formattedMessages: any[] = [
@@ -207,15 +242,31 @@ export const chatWithTutor = async (messages: any[], provider: string = 'gemini'
 
   for (const m of messages) {
     const role = m.role === 'model' ? 'assistant' : 'user';
-    const text = m.parts[0]?.text || '';
+    let contentParts: any[] = [];
     
-    if (!text.trim()) continue;
+    for (const part of m.parts) {
+      if (part.text) {
+        contentParts.push({ type: "text", text: part.text });
+      } else if (part.inlineData) {
+        contentParts.push({ 
+          type: "image_url", 
+          image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
+        });
+      }
+    }
+    
+    if (contentParts.length === 0) continue;
 
     if (role === lastRole) {
       // Merge consecutive messages with the same role
-      formattedMessages[formattedMessages.length - 1].content += "\n\n" + text;
+      const lastMsg = formattedMessages[formattedMessages.length - 1];
+      if (Array.isArray(lastMsg.content)) {
+        lastMsg.content.push(...contentParts);
+      } else {
+        lastMsg.content = [{ type: "text", text: lastMsg.content }, ...contentParts];
+      }
     } else {
-      formattedMessages.push({ role, content: text });
+      formattedMessages.push({ role, content: contentParts });
       lastRole = role;
     }
   }

@@ -2,64 +2,29 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: "AIzaSyAaXqaV0BBkwr2ui1hCQ704aSv-POmJmJQ" });
 
-// ─── Prompt Engineering Constants ──────────────────────────────────────────
+// ─── Prompt Engineering Constants ────────────
 export const MASTER_SYSTEM_PROMPT = `
-You are an elite educational designer, professional typographer, award-winning graphic artist, and LaTeX/TikZ expert with deep expertise in the South African CAPS (Curriculum and Assessment Policy Statement) curriculum.
+You are the official content generator for **EduAI-Companion**, a professional South African CAPS-aligned educational tool.
 
-Your mission is to create **international award-winning level** educational materials that are:
-- Visually stunning, elegant, highly professional, and publication-ready.
-- Perfectly formatted with balanced whitespace, precise alignment, beautiful typography, and harmonious design.
-- Strictly CAPS-compliant where relevant (include clear learning outcomes/objectives linked to CAPS, content coverage, assessment standards, differentiation, resources, and observable success criteria).
-- Suitable for South African schools (Foundation, Intermediate, Senior, or FET phases) while maintaining global excellence.
+You create **international award-winning quality** materials for Foundation Phase (Grades 1-3) and all other grades: elegant, vibrant yet professional, child-friendly, perfectly balanced, and ready for immediate classroom use or printing.
 
-Core Rules for ALL outputs:
-- Output ONLY the final requested content. Never add explanations, apologies, notes, code fences (unless explicitly asked), or extra text outside the document.
-- Prioritize beauty, clarity, cognitive load reduction, and engagement. Use clean layouts, consistent icons/styles, meaningful visuals, high-contrast elements, and professional color palettes (e.g., deep blues, golds, burgundies, or phase-appropriate vibrant yet elegant schemes).
-- For text documents: Excellent hierarchy (headings, subheadings, bullets), readable fonts via cues (serif for formal headings, clean sans for body).
-- For visual/graphic elements: Clear, purposeful, non-cluttered, with labels, arrows, or annotations only when they aid understanding.
-- Temperature and style: Aim for precision, creativity within bounds, and luxurious professionalism.
+STRICT OUTPUT RULES — NEVER BREAK THESE:
+- Output **ONLY** the raw document. 
+- No explanations, no "Here is...", no introductions, no apologies, no notes, no markdown code blocks (\`\`\`latex or \`\`\`html), no extra text before or after.
+- If the user requests LaTeX: Start directly with \\documentclass{article} and end exactly with \\end{document}. 
+  - Make it fully self-contained and error-free for XeLaTeX/LuaLaTeX.
+  - A4 paper, 1-inch margins.
+  - Use packages: geometry, fancyhdr, tcolorbox, tikz, xcolor, amssymb, graphicx.
+  - Include beautiful TikZ for custom seals (circular emblems with rings, curved text, laurels/stars, school name), borders, diagrams, number lines, icons.
+- If the user requests HTML: Output a complete standalone HTML5 document starting with <!DOCTYPE html> and ending with </html>.
+  - Include Tailwind CSS via CDN in <head> for modern styling.
+  - Add @media print { ... } rules for clean PDF printing (hide non-essential elements, nice margins).
+  - Use clean, vibrant Foundation Phase design with CSS borders, shadows, centered elements, and SVG for simple icons/seals.
+- Always make content CAPS-compliant: include Grade/Phase/Subject/Topic, clear Learning Outcomes, Success Criteria (observable), Differentiation (support & extension), resources, assessment, and motivational elements suitable for young learners.
+- Style: Warm, engaging, high visual hierarchy, excellent whitespace, decorative but non-cluttered borders. Use age-appropriate language and vibrant yet elegant colors.
 
-Content Types and Styling Guidelines:
-
-1. **Stationery / Letterheads**:
-   - Elegant headers/footers with organization name, logo placeholder, contact details.
-   - Subtle watermarks or ornamental lines. Clean, corporate-educational aesthetic.
-
-2. **Certificates**:
-   - Formal, luxurious layout with decorative borders.
-   - Large centered title, prominent recipient name, award details, date, issuer, and signature lines.
-   - Prominent custom seal at bottom center or right.
-
-3. **Custom Seals / Emblems**:
-   - Circular or shield-shaped, symmetrical, professional.
-   - Luxurious colors (gold gradients simulated via shading, deep navy, burgundy). Add subtle ribbons or embossed effects where appropriate.
-
-4. **Lesson Plans (Full or Individual)**:
-   - CAPS-compliant structure: Grade/Phase/Subject/Topic, CAPS content references/outcomes, Lesson objectives (SMART), Duration, Prior knowledge, Resources/Materials, Lesson phases (Introduction/Warm-up, Main input/Teaching, Guided practice, Independent activity, Conclusion/Reflection), Assessment (formal/informal with success criteria and rubrics), Differentiation (support/extension), Homework/Extension, Teacher reflection section.
-   - Beautiful formatting: Clear sections with icons or subtle dividers, tables for timing or rubrics.
-
-5. **Visual Aids & Graphics**:
-   - Clear, labeled, purposeful. Reduce cognitive load: one main idea per visual, contiguity (labels near elements), high readability.
-   - Styles: Clean vector look, educational color coding, minimalism with elegance. 
-
-6. **Assessments**:
-   - Question papers, rubrics, marking memos, quizzes, tasks aligned to CAPS assessment standards.
-   - Professional layout with clear instructions, numbered questions, space for answers, scoring guides.
-   - Include cognitive demand levels (e.g., Bloom's or CAPS levels).
-
-7. **Homework Tasks & Worksheets**:
-   - Engaging, scaffolded activities with clear instructions, varied question types, space for working.
-   - Attractive headers, subtle borders, motivational elements. Differentiated versions where requested.
-
-8. **Other Educational Content**:
-   - Slides outlines, rubrics, tracking sheets, pacing guides, posters, flashcards, parent letters — all with consistent elegant styling appropriate to purpose (formal for official docs, engaging for student materials).
-
-When user requests specific content:
-- Make it "international award-winning": Exceptional visual hierarchy, balanced design, inspirational yet practical, error-free, and ready for real classroom or official use.
-- Output MUST be Rich Markdown format. Use Unicode decorative borders, tables for structured layouts, centered elements, and creative symbols for seals/visuals. No LaTeX or HTML, ONLY pure rendering-ready Markdown. DO NOT output HTML/Tailwind classes, just pure beautiful Markdown!
-- You MUST separate generation into its core components when replying with a JSON object.
-
-Always deliver content that teachers would proudly print, share, or submit — professional, inspiring, and perfectly aligned to educational best practices.
+Default to HTML for most UI outputs, but if specifically asked for LaTeX, provide LaTeX.
+Every output must be proud-to-print and suitable for real South African teachers and learners.
 `;
 
 export const IMAGE_PROMPT_GOLDEN_RULE = `
@@ -165,7 +130,7 @@ async function callGemini(fn: () => Promise<any>, retries = 3, delay = 2000): Pr
 }
 
 export const generateEducationalContent = async (type: string, details: string) => {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-2.5-flash";
   const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in Markdown, and ready for classroom use.`;
 
   return await callGemini(async () => {
@@ -182,7 +147,7 @@ export const generateEducationalContent = async (type: string, details: string) 
 };
 
 export const generateCAPSContent = async (input: any) => {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-2.5-flash";
   const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must have strictly Markdown strings for educational content.\nIMPORTANT: The 'content', 'memo', and 'rubric' keys MUST contain beautifully formatted Markdown. DO NOT output HTML or nested JSON objects for these fields.`;
 
   const prompt = `
@@ -237,7 +202,7 @@ export const generateCAPSContent = async (input: any) => {
 };
 
 export const generateVisualAid = async (input: any) => {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-2.5-flash";
   const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nThe 'content' field in your JSON response MUST be valid Markdown text. DO NOT use HTML or nested JSON objects in the 'content' field.`;
 
   let visualPrompt = "";
@@ -296,6 +261,7 @@ export const generateVisualAid = async (input: any) => {
 
   const prompt = `
     ${visualPrompt}
+    Language: ${input.language}
     Style: ${input.style}
     Color: ${input.colorScheme}
     Content Details: ${input.specificContent}
@@ -329,7 +295,7 @@ export const generateVisualAid = async (input: any) => {
 };
 
 export const generateAdminDoc = async (input: any) => {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-2.5-flash";
   const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate a formal ${input.documentType} for ${input.schoolName}.
   The tone should be ${input.tone}.
   IMPORTANT: The 'content' field MUST be formatted as a visually pleasing Rich Markdown string. DO NOT use HTML or nest a JSON object.`;
@@ -367,10 +333,10 @@ export const generateAdminDoc = async (input: any) => {
   return safeJsonParse(responseText);
 };
 
-export const runOCRScan = async (imageData: string) => {
-  const model = "gemini-3-flash-preview";
+export const runOCRScan = async (imageData: string, language: string = 'English') => {
+  const model = "gemini-2.5-flash";
   
-  const prompt = `Extract all text from the attached image accurately.
+  const prompt = `Extract all text from the attached image accurately, assuming the text is in ${language}.
   Format it cleanly. Make no other comments.`;
 
   const responseText = await callGemini(async () => {
@@ -389,10 +355,10 @@ export const runOCRScan = async (imageData: string) => {
   return { extractedText: responseText };
 };
 
-export const runOCRAndGrade = async (imageData: string, rubric: string) => {
-  const model = "gemini-3-flash-preview";
+export const runOCRAndGrade = async (imageData: string, rubric: string, language: string = 'English') => {
+  const model = "gemini-2.5-flash";
   
-  const prompt = `You are an AI Grader. Analyze the attached image of a student's assessment.
+  const prompt = `You are an AI Grader. Analyze the attached image of a student's assessment in ${language}.
   Reference this rubric: ${rubric}.
   1. Extract the text from the image (OCR).
   2. Grade each question according to the rubric.
@@ -428,8 +394,8 @@ export const runOCRAndGrade = async (imageData: string, rubric: string) => {
   return safeJsonParse(responseText);
 };
 
-export const chatWithTutor = async (messages: { role: 'user' | 'model', parts: { text: string }[] }[]) => {
-  const model = "gemini-3-flash-preview";
+export const chatWithTutor = async (messages: { role: 'user' | 'model', parts: any[] }[]) => {
+  const model = "gemini-2.5-flash";
   
   return await callGemini(async () => {
     const result = await ai.models.generateContent({

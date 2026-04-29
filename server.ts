@@ -43,6 +43,7 @@ async function startServer() {
       case "llama-primary":
       case "llama-secondary":
       case "groq-qwen":
+      case "groq-vision":
         client = groq;
         apiKey = process.env.GROQ_API_KEY || "";
         break;
@@ -57,7 +58,8 @@ async function startServer() {
         model: model || (
           provider === "llama-primary" ? "llama-3.3-70b-versatile" : 
           provider === "llama-secondary" ? "meta-llama/llama-4-scout-17b-16e-instruct" : 
-          provider === "groq-qwen" ? "qwen/qwen3-32b" :
+          provider === "groq-qwen" ? "qwen/qwen-qwq-32b" :
+          provider === "groq-vision" ? "llama-3.2-11b-vision-preview" :
           ""
         ),
         messages,
@@ -103,6 +105,29 @@ async function startServer() {
       console.error("OCR error:", error);
       res.status(500).json({ error: error.message });
     }
+  });
+
+  app.post("/api/images/generate", async (req, res) => {
+    const { prompt, provider } = req.body;
+    
+    if (provider === "glm-image") {
+      const apiKey = process.env.ZHIPU_API_KEY;
+      if (!apiKey) return res.status(400).json({ error: "ZHIPU_API_KEY missing" });
+      
+      try {
+        const response = await axios.post(
+          "https://open.bigmodel.cn/api/paas/v4/images/generations",
+          { model: "cogview-3", prompt: prompt },
+          { headers: { Authorization: `Bearer ${apiKey}` } }
+        );
+        return res.json({ url: response.data.data[0].url });
+      } catch (error: any) {
+        console.error("Zhipu image error:", error.response?.data || error.message);
+        return res.status(500).json({ error: error.response?.data?.error?.message || "Failed to generate image" });
+      }
+    }
+    
+    return res.status(400).json({ error: "Unsupported provider" });
   });
 
   // --- Vite Middleware ---

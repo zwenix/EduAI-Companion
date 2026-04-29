@@ -66,17 +66,27 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
           </div>
           <div className="space-y-2">
             <label className={`text-xs font-bold uppercase ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Subject</label>
-            <select value={subject} onChange={e => { setSubject(e.target.value); setTopic(''); }} className={`w-full p-3 rounded-xl border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'border-slate-200 bg-slate-50'}`}>
-              <option value="" className={isDarkMode ? 'bg-slate-800' : ''}>Select a subject...</option>
-              {subjects.map(s => <option key={s} value={s} className={isDarkMode ? 'bg-slate-800 text-white' : ''}>{s}</option>)}
-            </select>
+            {subject === 'Other' ? (
+              <input type="text" placeholder="Type custom subject..." onChange={e => setSubject(e.target.value)} className={`w-full p-3 rounded-xl border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'border-slate-200 bg-slate-50'}`} autoFocus />
+            ) : (
+              <select value={subject} onChange={e => { setSubject(e.target.value); setTopic(''); }} className={`w-full p-3 rounded-xl border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'border-slate-200 bg-slate-50'}`}>
+                <option value="" className={isDarkMode ? 'bg-slate-800' : ''}>Select a subject...</option>
+                {subjects.map(s => <option key={s} value={s} className={isDarkMode ? 'bg-slate-800 text-white' : ''}>{s}</option>)}
+                <option value="Other" className={isDarkMode ? 'bg-slate-800 text-brand-cyan font-bold' : 'text-brand-cyan font-bold'}>+ Custom Subject...</option>
+              </select>
+            )}
           </div>
           <div className="space-y-2">
             <label className={`text-xs font-bold uppercase ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Topic / Focus</label>
-            <select value={topic} onChange={e => setTopic(e.target.value)} disabled={!subject} className={`w-full p-3 rounded-xl border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white disabled:opacity-50' : 'border-slate-200 bg-slate-50 disabled:opacity-50'}`}>
-               <option value="" className={isDarkMode ? 'bg-slate-800' : ''}>Select a topic...</option>
-               {topics.map(t => <option key={t} value={t} className={isDarkMode ? 'bg-slate-800 text-white' : ''}>{t}</option>)}
-            </select>
+            {topic === 'Other' ? (
+              <input type="text" placeholder="Type custom topic..." onChange={e => setTopic(e.target.value)} className={`w-full p-3 rounded-xl border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'border-slate-200 bg-slate-50'}`} autoFocus />
+            ) : (
+              <select value={topic} onChange={e => setTopic(e.target.value)} disabled={!subject} className={`w-full p-3 rounded-xl border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white disabled:opacity-50' : 'border-slate-200 bg-slate-50 disabled:opacity-50'}`}>
+                 <option value="" className={isDarkMode ? 'bg-slate-800' : ''}>Select a topic...</option>
+                 {topics.map(t => <option key={t} value={t} className={isDarkMode ? 'bg-slate-800 text-white' : ''}>{t}</option>)}
+                 <option value="Other" className={isDarkMode ? 'bg-slate-800 text-brand-cyan font-bold' : 'text-brand-cyan font-bold'}>+ Custom Topic...</option>
+              </select>
+            )}
           </div>
           <button onClick={generateNotes} disabled={loading || !subject || !topic} className={`w-full ${isDarkMode ? 'bg-brand-cyan hover:bg-brand-cyan/80 text-white' : 'bg-slate-800 hover:bg-slate-700 text-white'} font-bold py-4 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 mt-4`}>
             {loading ? <Loader2 className="animate-spin" /> : <BrainCircuit />}
@@ -86,8 +96,11 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
 
         <div className="lg:col-span-2">
           {result ? (
-            <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[24px] shadow-sm content-preview-html text-slate-800 ${isDarkMode ? 'dark-preview-rendered' : ''}`}>
-              <div dangerouslySetInnerHTML={{ __html: marked.parse(result.content || result) as string }} className={isDarkMode ? 'text-slate-200' : 'text-slate-800'} />
+            <div className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} p-8 rounded-[24px] border shadow-sm`}>
+              <div 
+                dangerouslySetInnerHTML={{ __html: marked.parse(result.content || result) as string }} 
+                className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-800'}`} 
+              />
             </div>
           ) : (
              <div className={`${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'} p-12 rounded-[24px] border border-dashed text-center flex flex-col items-center justify-center opacity-70`}>
