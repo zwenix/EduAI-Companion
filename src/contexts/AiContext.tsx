@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type AIProvider = 'gemini' | 'llama-primary' | 'llama-secondary' | 'groq-qwen' | 'groq-vision';
 export type TTSProvider = 'browser' | 'elevenlabs';
-export type OCRProvider = 'gemini' | 'ocrspace';
+export type OCRProvider = 'gemini' | 'ocrspace' | 'groq-vision';
 export type ImageProvider = 'pollinations' | 'glm-image';
 
 interface AiContextType {
@@ -20,7 +20,7 @@ const AiContext = createContext<AiContextType | undefined>(undefined);
 
 const VALID_PROVIDERS: AIProvider[] = ['gemini', 'llama-primary', 'llama-secondary', 'groq-qwen', 'groq-vision'];
 const VALID_TTS: TTSProvider[] = ['browser', 'elevenlabs'];
-const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace'];
+const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace', 'groq-vision'];
 const VALID_IMAGE: ImageProvider[] = ['pollinations', 'glm-image'];
 
 export const AiProvider = ({ children }: { children: React.ReactNode }) => {
@@ -48,9 +48,9 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [ocrProvider, setOcrProvider] = useState<OCRProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_ocr_provider') as OCRProvider;
-      return saved && VALID_OCR.includes(saved) ? saved : 'gemini';
+      return saved && VALID_OCR.includes(saved) ? saved : 'groq-vision';
     } catch {
-      return 'gemini';
+      return 'groq-vision';
     }
   });
 

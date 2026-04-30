@@ -4,27 +4,20 @@ const ai = new GoogleGenAI({ apiKey: "AIzaSyAaXqaV0BBkwr2ui1hCQ704aSv-POmJmJQ" }
 
 // ─── Prompt Engineering Constants ────────────
 export const MASTER_SYSTEM_PROMPT = `
-You are the official content generator for **EduAI-Companion**, a professional South African CAPS-aligned educational tool.
+You are the official AI content generator for **EduAI Companion** — a premium South African CAPS-aligned educational platform.
 
-You create **international award-winning quality** materials for Foundation Phase (Grades 1-3) and all other grades: elegant, vibrant yet professional, child-friendly, perfectly balanced, and ready for immediate classroom use or printing.
+Your outputs must match or exceed the professional quality of the provided EduAI templates: clean, modern, vibrant yet elegant layouts with colored section banners, excellent visual hierarchy, clear instructions, answer lines/boxes, scoring areas, motivational elements, and perfect print-readiness for classroom use.
 
-STRICT OUTPUT RULES — NEVER BREAK THESE:
-- Output **ONLY** the raw document. 
-- No explanations, no "Here is...", no introductions, no apologies, no notes, no markdown code blocks (\`\`\`latex or \`\`\`html), no extra text before or after.
-- If the user requests LaTeX: Start directly with \\documentclass{article} and end exactly with \\end{document}. 
-  - Make it fully self-contained and error-free for XeLaTeX/LuaLaTeX.
-  - A4 paper, 1-inch margins.
-  - Use packages: geometry, fancyhdr, tcolorbox, tikz, xcolor, amssymb, graphicx.
-  - Include beautiful TikZ for custom seals (circular emblems with rings, curved text, laurels/stars, school name), borders, diagrams, number lines, icons.
-- If the user requests HTML: Output a complete standalone HTML5 document starting with <!DOCTYPE html> and ending with </html>.
-  - Include Tailwind CSS via CDN in <head> for modern styling.
-  - Add @media print { ... } rules for clean PDF printing (hide non-essential elements, nice margins).
-  - Use clean, vibrant Foundation Phase design with CSS borders, shadows, centered elements, and SVG for simple icons/seals.
-- Always make content CAPS-compliant: include Grade/Phase/Subject/Topic, clear Learning Outcomes, Success Criteria (observable), Differentiation (support & extension), resources, assessment, and motivational elements suitable for young learners.
-- Style: Warm, engaging, high visual hierarchy, excellent whitespace, decorative but non-cluttered borders. Use age-appropriate language and vibrant yet elegant colors.
+STRICT OUTPUT RULES (NEVER violate these):
+- Output **ONLY** the raw, complete document. 
+- No explanations, no "Here is the output", no introductions, no notes, no markdown fences (\`\`\`), no extra text before or after the content.
+- If user requests **LaTeX**: Start directly with \\documentclass{article} and end with \\end{document}. Use A4 paper, geometry package for margins, tcolorbox or TikZ for colored section headers/borders, xcolor for vibrant accents, and include a custom circular TikZ seal/emblem where appropriate (with "EduAI Companion" or school name).
+- If user requests **HTML**: Output a complete standalone HTML5 document with Tailwind CSS via CDN. Include beautiful @media print styles for perfect PDF printing. Use clean sans-serif fonts, colored section headers (blue/teal/orange/purple/green gradients), boxed answer areas, and EduAI branding at top and footer.
+- Always include: EduAI Companion branding (logo placeholder or text "EduAI Companion | CAPS Aligned | eduai-companion.github.io"), Grade/Phase/Subject/Term, Name/Date/Total score fields, clear CAPS-linked learning outcomes or focus, differentiated activities where suitable, and a motivational footer.
+- Style for Foundation Phase (Gr R–3): Warm, playful, colorful, large fonts, icons/SVGs/TikZ for visuals, child-friendly language.
+- Style for Intermediate/Senior (Gr 4–7): Professional, structured, with clear marking schemes.
 
-Default to HTML for most UI outputs, but if specifically asked for LaTeX, provide LaTeX.
-Every output must be proud-to-print and suitable for real South African teachers and learners.
+Make every output teacher-proud, parent-shareable, and ready for immediate printing or digital use in South African schools.
 `;
 
 export const IMAGE_PROMPT_GOLDEN_RULE = `
@@ -90,7 +83,14 @@ export const safeJsonParse = (text: string | null | undefined): any => {
       try {
         const potentialJson = fixedText.substring(startIdx, endIdx + 1);
         return JSON.parse(potentialJson);
-      } catch (e3) {}
+      } catch (e3) {
+        // Fallback for JS object literals (handling backticks)
+        try {
+           const potentialJson2 = processedText.substring(processedText.indexOf('{'), processedText.lastIndexOf('}') + 1);
+           const evaluated = new Function('return ' + potentialJson2)();
+           if (typeof evaluated === 'object' && evaluated !== null) return evaluated;
+        } catch(e4) {}
+      }
     }
     console.error("Failed to parse AI response as JSON:", processedText);
     return {};

@@ -50,28 +50,37 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
   
   const messages = [
     { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.` },
-    { role: 'user', content: `
-    Type: ${input.contentType}
-    Grade: ${input.grade}
-    Subject: ${input.subject}
-    Topic: ${input.topic}
-    Objective: ${input.objective}
-    Learner Profile: ${input.learnerProfile}
-    
-    SPECIFIC VISUAL ENHANCEMENT:
-    For every worksheet, create ONE stunning hero illustration prompt.
-    
-    Return as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
-    {
-      "content": "<HTML STRING GOES HERE>",
-      "memo": "<HTML STRING GOES HERE>",
-      "rubric": "<HTML STRING GOES HERE>",
-      "successIndicators": ["string", "string"],
-      "imagePrompt": "Detailed prompt..."
+    { role: 'user', content: `Create a beautifully designed HTML document for a CAPS-aligned Grade ${input.grade} ${input.subject} ${input.contentType} on the topic "${input.topic}".
+
+Requirements (match the professional EduAI template style exactly):
+- Vibrant colored section headers (use blue/teal for main title, orange/green/purple for subsections).
+- Include fields for Name, Date, Total Score (e.g., ___ / 50).
+- Clear numbered questions with answer lines or boxes.
+- Include marking scheme in brackets [marks] next to each question or section.
+- Add motivational elements, success criteria, or encouraging footer text.
+- For worksheets/assessments: Mix question types (multiple choice with circles/boxes, true/false, short answer, drawing/coloring activities).
+- For visuals: Include space for drawings, tables, or describe/embed simple SVG elements (number lines, shapes, icons).
+- Branding: Top header with "EduAI Companion | CAPS Aligned", footer with "South Africa" and motivational phrase.
+- Foundation Phase: Use larger fonts, playful language, and colorful accents suitable for young learners.
+- Make it fully ready-to-print: balanced whitespace, professional alignment, and elegant design.
+
+Objective: ${input.objective}
+Learner Profile: ${input.learnerProfile}
+
+SPECIFIC VISUAL ENHANCEMENT:
+For every worksheet/document, create ONE stunning hero illustration prompt.
+
+Return the result as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
+{
+  "content": "<HTML CODE FOR THE MAIN DOCUMENT HERE>",
+  "memo": "<HTML CODE FOR THE ANSWER MEMO HERE>",
+  "rubric": "<HTML CODE FOR THE GRADING RUBRIC HERE>",
+  "successIndicators": ["string", "string"],
+  "imagePrompt": "Detailed prompt matching IMAGE GUIDE..."
+}
+
+IMAGE GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}`
     }
-    
-    IMAGE GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}
-    ` }
   ];
   try {
     const response = await callMultiAi(provider as AIProvider, messages);
@@ -169,6 +178,25 @@ const getOcrSpaceLangCode = (lang: string) => {
 export const runOCRScan = async (imageData: string, provider: string = 'gemini', ocrProvider: string = 'gemini', language: string = 'English') => {
   if (ocrProvider === 'gemini') return await geminiOCRScan(imageData, language);
   
+  if (ocrProvider === 'groq-vision') {
+    const messages = [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: `Please extract all the text from this image exactly as it appears. Keep formatting where possible. The language is ${language}.` },
+          { type: "image_url", image_url: { url: imageData.startsWith('data:image') ? imageData : `data:image/jpeg;base64,${imageData}` } }
+        ]
+      }
+    ];
+    try {
+      const text = await callMultiAi('groq-vision', messages);
+      return { extractedText: text };
+    } catch(err) {
+      console.warn("groq vision failed, fallback to gemini", err);
+      return await geminiOCRScan(imageData, language);
+    }
+  }
+  
   try {
     const extractedText = await performOCR(imageData, getOcrSpaceLangCode(language));
     return { extractedText };
@@ -178,48 +206,42 @@ export const runOCRScan = async (imageData: string, provider: string = 'gemini',
 };
 
 export const runOCRAndGrade = async (imageData: string, rubric: string, provider: string = 'gemini', ocrProvider: string = 'gemini', language: string = 'English') => {
-  if (ocrProvider === 'gemini') {
-    // If provider is also gemini, we can just use the unified action
-    if (provider === 'gemini') return await geminiOCR(imageData, rubric, language);
-    
-    // Otherwise extract with gemini first
-    const scanRef = await geminiOCRScan(imageData, language);
-    const messages = [
-      { role: 'system', content: `You are an AI Grader. Use this rubric: ${rubric}` },
-      { role: 'user', content: `Grade this text: ${scanRef.extractedText}. Return JSON with 'totalScore', 'marksPerQuestion[]', 'feedback'.` }
-    ];
-    let model = 'llama-3.3-70b-versatile';
-    if (provider === 'llama-secondary') model = 'llama-3.1-8b-instant';
-    if (provider === 'groq-qwen') model = 'qwen-2.5-32b';
-    const groqResponse = await callMultiAi(provider as any, messages, model);
-    try {
-      if (typeof groqResponse === 'string') return safeJsonParse(groqResponse);
-      const resData = JSON.parse(groqResponse || '{}');
-      if (!resData.totalScore || !resData.feedback) throw new Error("Invalid output");
-      return resData;
-    } catch {
-      return await geminiOCR(imageData, rubric, language); // Fallback to full gemini
-    }
+  if (provider === 'gemini' && ocrProvider === 'gemini') {
+    return await geminiOCR(imageData, rubric, language);
   }
   
-  const extractedText = await performOCR(imageData, getOcrSpaceLangCode(language));
+  const scanRef = await runOCRScan(imageData, provider, ocrProvider, language);
+  const extractedText = scanRef.extractedText;
+
   const messages = [
     { role: 'system', content: `You are an AI Grader. Use this rubric: ${rubric}` },
     { role: 'user', content: `Grade this text: ${extractedText}. Return JSON with 'totalScore', 'marksPerQuestion[]', 'feedback'.` }
   ];
+  
+  if (provider === 'gemini') {
+    // Gemini can process text grading
+    return await geminiOCR(imageData, rubric, language);
+  }
 
   try {
-    const grading = await callMultiAi(provider as AIProvider, messages);
+    let model = 'llama-3.3-70b-versatile';
+    if (provider === 'llama-secondary') model = 'llama-3.1-8b-instant';
+    if (provider === 'groq-qwen') model = 'qwen-2.5-32b';
+    
+    const grading = await callMultiAi(provider as AIProvider, messages, model);
     
     try {
-      const parsed = JSON.parse(grading);
-      return { ...parsed, extractedText };
+      if (typeof grading === 'string') {
+        const parsed = safeJsonParse(grading);
+        return { ...parsed, extractedText };
+      }
+      return { extractedText, feedback: grading, totalScore: "N/A" };
     } catch (e) {
       return { extractedText, feedback: grading, totalScore: "N/A" };
     }
   } catch (error: any) {
     if (isProviderFailure(error)) {
-      console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini OCR...`);
+      console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
       return await geminiOCR(imageData, rubric, language);
     }
     throw error;

@@ -191,9 +191,8 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
                       onChange={(e) => setProvider(e.target.value as any)}
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
-                      <option value="gemini">Gemini 2.0 Flash (Fast)</option>
-                      <option value="groq">Llama 3.3 70B (Primary)</option>
-                      <option value="groq-vision">Llama 3.2 11B (Vision)</option>
+                      <option value="llama-primary">Llama 3.3 70B Versatile (Primary)</option>
+                      <option value="gemini">Gemini 2.0 Flash (Fallback)</option>
                     </select>
                   </div>
 
@@ -204,8 +203,8 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
                       onChange={(e) => setImageProvider(e.target.value as any)}
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
-                      <option value="pollinations">FLUX.2 [klein]</option>
-                      <option value="zhipu">Z-AI CogView</option>
+                      <option value="pollinations">FLUX.2 [klein] 4B</option>
+                      <option value="glm-image">Z-AI CogView</option>
                     </select>
                   </div>
 
@@ -216,9 +215,9 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
                       onChange={(e) => setOcrProvider(e.target.value as any)}
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
-                      <option value="gemini">Gemini Vision PRO</option>
-                      <option value="groq-vision">Llama 3.2 Vision (Free)</option>
-                      <option value="ocr.space">OCR.Space Core</option>
+                      <option value="groq-vision">Llama 3.2 Vision (Primary)</option>
+                      <option value="gemini">Gemini Vision (Fallback)</option>
+                      <option value="ocrspace">OCR.Space Core</option>
                     </select>
                   </div>
 
@@ -229,8 +228,7 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
                       onChange={(e) => setTtsProvider(e.target.value as any)}
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
-                      <option value="browser">Browser Core HD</option>
-                      <option value="elevenlabs">ElevenLabs Multi-Lingual</option>
+                      <option value="browser">Browser Core HD (Free)</option>
                     </select>
                   </div>
                 </div>
