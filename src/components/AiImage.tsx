@@ -27,13 +27,12 @@ export default function AiImage({ prompt, className = '', aspectRatio = 'square'
       if (imageProvider === 'pollinations') {
         const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&model=flux&seed=${retryCount}`;
         if (active) setImageUrl(url);
-      } else if (imageProvider === 'zhipu' || imageProvider === 'glm-image') {
+      } else if (imageProvider === 'huggingface') {
         try {
-          // Send request with provider zhipu
           const res = await fetch('/api/images/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, provider: 'zhipu', model: 'cogview-3-plus' })
+            body: JSON.stringify({ prompt, provider: 'huggingface' })
           });
           const data = await res.json();
           if (data.url && active) {
@@ -42,12 +41,11 @@ export default function AiImage({ prompt, className = '', aspectRatio = 'square'
             throw new Error(data.error || 'Failed to generate image');
           }
         } catch (err: any) {
-          console.error("Zhipu Image Error:", err);
+          console.warn("HuggingFace Image Warn:", err.message);
           
-          // Fallback to pollinations on failure, especially if the model doesn't exist
           if (active) {
             console.warn("Falling back to Pollinations...");
-            const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${retryCount + 1}`;
+            const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&model=flux&seed=${retryCount + 1}`;
             setImageUrl(url);
           }
         }

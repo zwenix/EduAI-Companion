@@ -14,21 +14,22 @@ import {
 import { callMultiAi, performOCR, AIProvider } from './multiAiService';
 
 const isProviderFailure = (error: any) => {
-  const msg = error?.message?.toLowerCase() || '';
-  return (
-    msg.includes('insufficient balance') ||
-    msg.includes('unauthorized') ||
-    msg.includes('402') ||
-    msg.includes('401') ||
-    msg.includes('400') ||
-    msg.includes('credit') ||
-    msg.includes('balance is too low') ||
-    msg.includes('status code (no body)')
-  );
+  return true; // Always fallback if the primary provider fails!
 };
 
 export const generateEducationalContent = async (type: string, details: string, provider: string = 'gemini') => {
-  if (provider === 'gemini') return await geminiGenerateContent(type, details);
+  if (provider === 'gemini') {
+    try {
+      return await geminiGenerateContent(type, details);
+    } catch (err: any) {
+      if (err.message?.includes('Quota') || err.message?.includes('429')) {
+        console.warn("Gemini limit hit, auto-falling back to llama-primary...");
+        provider = 'llama-primary';
+      } else {
+        throw err;
+      }
+    }
+  }
   
   const messages = [
     { role: 'system', content: MASTER_SYSTEM_PROMPT },
@@ -46,7 +47,18 @@ export const generateEducationalContent = async (type: string, details: string, 
 };
 
 export const generateCAPSContent = async (input: any, provider: string = 'gemini') => {
-  if (provider === 'gemini') return await geminiGenerateCAPS(input);
+  if (provider === 'gemini') {
+    try {
+      return await geminiGenerateCAPS(input);
+    } catch (err: any) {
+      if (err.message?.includes('Quota') || err.message?.includes('429')) {
+        console.warn("Gemini limit hit, auto-falling back to llama-primary...");
+        provider = 'llama-primary';
+      } else {
+        throw err;
+      }
+    }
+  }
   
   const messages = [
     { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.` },
@@ -99,7 +111,18 @@ IMAGE GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}`
 };
 
 export const generateVisualAid = async (input: any, provider: string = 'gemini') => {
-  if (provider === 'gemini') return await geminiGenerateVisual(input);
+  if (provider === 'gemini') {
+    try {
+      return await geminiGenerateVisual(input);
+    } catch (err: any) {
+      if (err.message?.includes('Quota') || err.message?.includes('429')) {
+        console.warn("Gemini limit hit, auto-falling back to llama-primary...");
+        provider = 'llama-primary';
+      } else {
+        throw err;
+      }
+    }
+  }
   
   const messages = [
     { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nThe response must be a JSON object, but the 'content' field MUST be stunningly designed HTML with Tailwind CSS. DO NOT use generic Markdown.` },
@@ -135,7 +158,18 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini')
 };
 
 export const generateAdminDoc = async (input: any, provider: string = 'gemini') => {
-  if (provider === 'gemini') return await geminiGenerateAdmin(input);
+  if (provider === 'gemini') {
+    try {
+      return await geminiGenerateAdmin(input);
+    } catch (err: any) {
+      if (err.message?.includes('Quota') || err.message?.includes('429')) {
+        console.warn("Gemini limit hit, auto-falling back to llama-primary...");
+        provider = 'llama-primary';
+      } else {
+        throw err;
+      }
+    }
+  }
   
   const messages = [
     { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nGenerate highly professional, beautifully formatted text using HTML with modern Tailwind CSS inline styles. DO NOT use generic Markdown.` },
@@ -176,7 +210,18 @@ const getOcrSpaceLangCode = (lang: string) => {
 };
 
 export const runOCRScan = async (imageData: string, provider: string = 'gemini', ocrProvider: string = 'gemini', language: string = 'English') => {
-  if (ocrProvider === 'gemini') return await geminiOCRScan(imageData, language);
+  if (ocrProvider === 'gemini') {
+    try {
+      return await geminiOCRScan(imageData, language);
+    } catch (err: any) {
+      if (err.message?.includes('Quota') || err.message?.includes('429')) {
+        console.warn("Gemini limit hit, auto-falling back to groq-vision...");
+        ocrProvider = 'groq-vision';
+      } else {
+        throw err;
+      }
+    }
+  }
   
   if (ocrProvider === 'groq-vision') {
     const messages = [
@@ -207,7 +252,17 @@ export const runOCRScan = async (imageData: string, provider: string = 'gemini',
 
 export const runOCRAndGrade = async (imageData: string, rubric: string, provider: string = 'gemini', ocrProvider: string = 'gemini', language: string = 'English') => {
   if (provider === 'gemini' && ocrProvider === 'gemini') {
-    return await geminiOCR(imageData, rubric, language);
+    try {
+      return await geminiOCR(imageData, rubric, language);
+    } catch (err: any) {
+      if (err.message?.includes('Quota') || err.message?.includes('429')) {
+        console.warn("Gemini limit hit, auto-falling back to llama-primary for OCR grading...");
+        provider = 'llama-primary';
+        ocrProvider = 'groq-vision';
+      } else {
+        throw err;
+      }
+    }
   }
   
   const scanRef = await runOCRScan(imageData, provider, ocrProvider, language);
@@ -220,7 +275,15 @@ export const runOCRAndGrade = async (imageData: string, rubric: string, provider
   
   if (provider === 'gemini') {
     // Gemini can process text grading
-    return await geminiOCR(imageData, rubric, language);
+    try {
+      return await geminiOCR(imageData, rubric, language);
+    } catch(err: any) {
+      if (err.message?.includes('Quota') || err.message?.includes('429')) {
+        provider = 'llama-primary';
+      } else {
+        throw err;
+      }
+    }
   }
 
   try {
@@ -253,7 +316,18 @@ export const chatWithTutor = async (messages: any[], provider: string = 'gemini'
   
   if (provider === 'gemini' || hasImage) {
      // Force gemini if there are images, because groq text models throw 400s
-     return await geminiChat(messages);
+     try {
+       return await geminiChat(messages);
+     } catch(err: any) {
+       if (err.message && (err.message.includes('Quota') || err.message.includes('429'))) {
+         if (hasImage) {
+           throw new Error("Cannot fallback, Image context requires Gemini API, but quota is exceeded.");
+         }
+         provider = 'llama-primary';
+       } else {
+         throw err;
+       }
+     }
   }
   
   // Format messages for OpenAI/Anthropic

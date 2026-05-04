@@ -3,7 +3,7 @@ import {
   Settings as SettingsIcon, Bell, Shield, Key, Moon, Sun, 
   Monitor, Save, AlertCircle, User, CreditCard, 
   Database, Activity, Lock, Mail, Phone, Globe,
-  LogOut, Trash2
+  LogOut, Trash2, Plus
 } from 'lucide-react';
 import { useAi } from '../contexts/AiContext';
 
@@ -203,8 +203,8 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
                       onChange={(e) => setImageProvider(e.target.value as any)}
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
-                      <option value="pollinations">FLUX.2 [klein] 4B</option>
-                      <option value="glm-image">Z-AI CogView</option>
+                      <option value="huggingface">FLUX.2 [klein] 4B (HuggingFace)</option>
+                      <option value="pollinations">FLUX.1 [schnell] (Pollinations)</option>
                     </select>
                   </div>
 

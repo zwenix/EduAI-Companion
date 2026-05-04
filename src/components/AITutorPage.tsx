@@ -76,6 +76,14 @@ export default function AITutorPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
+  useEffect(() => {
+    // Pre-load voices to ensure they are available for synchronous playback 
+    // to bypass user interaction restrictions on iOS/Safari
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.getVoices();
+    }
+  }, []);
+
   const handlePlayAudio = useCallback(async (text: string, index: number) => {
     if (isAudioPlaying === index) {
       if (isAudioPaused) {
@@ -95,6 +103,8 @@ export default function AITutorPage() {
     try {
       setTimeout(() => setIsTtsLoading(null), 500); 
       await speakText(text, ttsProvider, language);
+      setIsAudioPlaying(null);
+      setIsAudioPaused(false);
     } catch (err) {
       console.error('[AI Tutor] TTS failed:', err);
       setIsTtsLoading(null);

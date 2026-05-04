@@ -3,7 +3,7 @@ import { TTSProvider } from '../contexts/AiContext';
 let currentAudio: HTMLAudioElement | null = null;
 let currentUtterance: SpeechSynthesisUtterance | null = null;
 
-export const speakText = async (text: string, provider: TTSProvider, language: string = 'en') => {
+export const speakText = async (text: string, provider: TTSProvider, language: string = 'en'): Promise<void> => {
   stopSpeaking(); // Stop any currently playing audio
 
   if (provider === 'elevenlabs') {
@@ -12,7 +12,7 @@ export const speakText = async (text: string, provider: TTSProvider, language: s
       const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
       if (!apiKey) {
          console.warn('VITE_ELEVENLABS_API_KEY is missing. Falling back to browser TTS.');
-         return speakWithBrowser(text, language);
+         return await speakWithBrowser(text, language);
       }
 
       // 21m00Tcm4TlvDq8ikWAM = Rachel (default)
@@ -48,37 +48,65 @@ export const speakText = async (text: string, provider: TTSProvider, language: s
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       currentAudio = audio;
-      audio.play();
+      
+      return new Promise((resolve) => {
+        audio.onended = () => resolve();
+        audio.onerror = () => resolve();
+        audio.play();
+      });
 
     } catch (error) {
       console.error('ElevenLabs TTS failed:', error);
-      speakWithBrowser(text, language);
+      return await speakWithBrowser(text, language);
     }
   } else {
-    speakWithBrowser(text, language);
+    return await speakWithBrowser(text, language);
   }
 };
 
-export const speakWithBrowser = (text: string, language: string) => {
-  if (!('speechSynthesis' in window)) return;
-  
-  const utterance = new SpeechSynthesisUtterance(text);
-  
-  // Set language
-  if (language === 'af') utterance.lang = 'af-ZA';
-  else if (language === 'zu') utterance.lang = 'zu-ZA';
-  else if (language === 'st') utterance.lang = 'st-ZA';
-  else utterance.lang = 'en-US';
+export const speakWithBrowser = (text: string, language: string): Promise<void> => {
+  return new Promise((resolve) => {
+    if (!('speechSynthesis' in window)) return resolve();
+    
+    // Strip markdown and special chars for better TTS 
+    let cleanText = text.replace(/[*_#`~>|-]/g, '');
+    cleanText = cleanText.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); 
+    cleanText = cleanText.replace(/!\[[^\]]*\]\([^)]+\)/g, '');
+    
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.volume = 1;
+    utterance.rate = 0.95;
+    
+    if (language === 'af') utterance.lang = 'af-ZA';
+    else if (language === 'zu') utterance.lang = 'zu-ZA';
+    else if (language === 'st') utterance.lang = 'st-ZA';
+    else utterance.lang = 'en-US';
 
-  // Find a voice that matches
-  const voices = window.speechSynthesis.getVoices();
-  const matchedVoice = voices.find(v => v.lang.startsWith(utterance.lang.split('-')[0]));
-  if (matchedVoice) {
-    utterance.voice = matchedVoice;
-  }
-
-  currentUtterance = utterance;
-  window.speechSynthesis.speak(utterance);
+    utterance.onend = () => resolve();
+    utterance.onerror = () => resolve();
+  
+    const setupVoice = () => {
+      const voices = window.speechSynthesis.getVoices();
+      const matchedVoice = voices.find(v => v.lang.startsWith(utterance.lang.split('-')[0]));
+      if (matchedVoice) {
+        utterance.voice = matchedVoice;
+      }
+      currentUtterance = utterance;
+      window.speechSynthesis.speak(utterance);
+    };
+  
+    if (window.speechSynthesis.getVoices().length > 0) {
+      setupVoice();
+    } else {
+      window.speechSynthesis.onvoiceschanged = () => {
+        setupVoice();
+      };
+      // fallback if onvoiceschanged doesn't fire
+      setTimeout(() => {
+        if (!currentUtterance) setupVoice();
+      }, 500);
+    }
+  });
 };
 
 export const pauseSpeaking = () => {

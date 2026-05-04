@@ -117,7 +117,7 @@ async function callGemini(fn: () => Promise<any>, retries = 3, delay = 2000): Pr
 
     if (isQuota) {
       console.error("CRITICAL: Gemini Quota Exceeded (RPD/TPM). Please wait or switch project.");
-      throw new Error("Gemini Quota Exceeded: Your daily limit for this API key has been reached. Please try again later today.");
+      throw new Error('Gemini Quota Exceeded');
     }
     
     if (is404) {
@@ -131,12 +131,12 @@ async function callGemini(fn: () => Promise<any>, retries = 3, delay = 2000): Pr
 
 export const generateEducationalContent = async (type: string, details: string) => {
   const model = "gemini-2.5-flash";
-  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in Markdown, and ready for classroom use.`;
+  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN.`;
 
   return await callGemini(async () => {
     const response = await ai.models.generateContent({
       model,
-      contents: `Generate a ${type} based on the following details: ${details}. Format as valid markdown.`,
+      contents: `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design).`,
       config: {
         systemInstruction,
         temperature: 0.7,
@@ -148,7 +148,7 @@ export const generateEducationalContent = async (type: string, details: string) 
 
 export const generateCAPSContent = async (input: any) => {
   const model = "gemini-2.5-flash";
-  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must have strictly Markdown strings for educational content.\nIMPORTANT: The 'content', 'memo', and 'rubric' keys MUST contain beautifully formatted Markdown. DO NOT output HTML or nested JSON objects for these fields.`;
+  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.`;
 
   const prompt = `
     Type: ${input.contentType}
@@ -169,7 +169,14 @@ export const generateCAPSContent = async (input: any) => {
     - Emotionally engaging and curiosity-sparking
     - High detail, rich colors, perfect composition
 
-    Additionally, include 2–3 smaller spot illustrations throughout the worksheet to break up text and maintain visual interest.
+    REQUIREMENTS FOR HTML DESIGN:
+    - Include full-width colored banners (e.g. orange for Life Skills, teal/blue for Math, purple/pink for Languages).
+    - Add a large circular badge in the top right for the Grade (e.g., "Grade 4").
+    - "Name: ____ Date: _____ Total __ / 30" layout below header.
+    - Question text styles: Make them bold with distinct numbered bullets (e.g. circles with white text).
+    - Options/Answers: Enclose multiple choices or matching lists inside pill-shaped boxes with a colored border or background.
+    - Footer: "EduAI Companion | CAPS Aligned | eduai-companion.github.io".
+    - DO NOT USE MARKDOWN. Write raw HTML inside the JSON content values using tailwind CSS classes.
     
     GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}
   `;
@@ -203,7 +210,7 @@ export const generateCAPSContent = async (input: any) => {
 
 export const generateVisualAid = async (input: any) => {
   const model = "gemini-2.5-flash";
-  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nThe 'content' field in your JSON response MUST be valid Markdown text. DO NOT use HTML or nested JSON objects in the 'content' field.`;
+  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nThe 'content' field in your JSON response MUST be stunningly designed HTML with Tailwind CSS. DO NOT use generic Markdown.`;
 
   let visualPrompt = "";
   const isPoster = input.visualType?.toLowerCase().includes('poster');
@@ -212,24 +219,19 @@ export const generateVisualAid = async (input: any) => {
 
   if (isPoster) {
     visualPrompt = `
-      Create a stunning, museum-quality educational poster for South African Grade ${input.grade} ${input.subject} learners on the CAPS topic: "${input.topic}"
+      Create a stunning, print-ready educational poster for South African Grade ${input.grade} ${input.subject} learners on the CAPS topic: "${input.topic}"
 
-      Design specifications:
-      - Size: A2 or A1 portrait orientation, 300 DPI print-ready
-      - Style: Modern semi-realistic digital illustration blended with clean educational graphic design
-      - Color palette: Vibrant South African-inspired colors (savanna sunset oranges, acacia greens, indigo twilight, rich ochre) with high contrast for readability
-      - Background: Subtle textured gradient or beautiful contextual South African scene relevant to the topic (e.g., Kruger bushveld for ecosystems, Table Mountain for geography, rural Eastern Cape classroom for inclusive education, etc.)
-      - Main illustration: One large, breathtaking central illustration that captures the core concept (photorealistic quality but still illustrated, no photos)
-      - Typography hierarchy:
-        - Large bold title at top (font similar to Montserrat Black or Bebas Neue)
-        - Clear section headings
-        - Body text in Open Sans or Poppins, minimum 24pt for classroom visibility
-      - Include 4–6 key fact boxes or callouts with bullet points
-      - Add relevant, beautifully illustrated smaller supporting images around the edges
-      - Include the South African coat of arms or CAPS logo discreetly in the bottom corner
-      - Diversity: Show South African children from different backgrounds learning together where people are depicted
-
-      Make this the most beautiful educational poster a South African teacher has ever hung in their classroom.
+      DESIGN REQUIREMENTS (Based on EduAI Companion Templates):
+      - HTML/Tailwind ONLY. Do not use markdown.
+      - Layout: A massive central Hero Image taking up the middle 50% of the poster.
+      - Top Banner: Large, playful, multi-colored bubble-letter style title (e.g., using text-shadows, varied colors per word) centered at the top.
+      - Floating Fact Boxes: 4-6 small floating fact boxes positioned around the central image. Each box should have a colored outline (e.g., solid 4px red, green, blue border), white background, small playful SVG icon/emoji, and short, legible text.
+      - Colorful Accents: Use stars, arrows, or small badges scattered around the poster to make it feel playful and engaging.
+      - Footer Layout: Include 3-4 neat little text boxes in a row at the very bottom containing extra info or activities. Include EduAI or CAPS branding.
+      - Typography: Use bold, playful sans-serif fonts suitable for primary school learners.
+      - Colors: Sky blue background, primary color accents (bright yellow, striking red, vibrant green).
+      
+      Make it vibrant, instantly engaging, and child-friendly.
     `;
   } else if (isInfographic) {
     visualPrompt = `
@@ -298,7 +300,7 @@ export const generateAdminDoc = async (input: any) => {
   const model = "gemini-2.5-flash";
   const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate a formal ${input.documentType} for ${input.schoolName}.
   The tone should be ${input.tone}.
-  IMPORTANT: The 'content' field MUST be formatted as a visually pleasing Rich Markdown string. DO NOT use HTML or nest a JSON object.`;
+  IMPORTANT: The 'content' field MUST be formatted as visually pleasing HTML string styled with Tailwind CSS classes. DO NOT use generic Markdown.`;
 
   const prompt = `
     Type: ${input.documentType}
@@ -318,7 +320,7 @@ export const generateAdminDoc = async (input: any) => {
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            content: { type: Type.STRING, description: "Formal Markdown document" },
+            content: { type: Type.STRING, description: "Formal HTML document styled with Tailwind CSS" },
             notes: { type: Type.STRING, description: "Usage advice" },
             documentType: { type: Type.STRING, description: "The type of document generated" },
             imagePrompt: { type: Type.STRING, description: "Detailed prompt for seals or related graphics, if applicable" }

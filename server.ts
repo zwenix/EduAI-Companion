@@ -12,6 +12,8 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+import { HfInference } from "@huggingface/inference";
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -58,7 +60,7 @@ async function startServer() {
         model: model || (
           provider === "llama-primary" ? "llama-3.3-70b-versatile" : 
           provider === "llama-secondary" ? "meta-llama/llama-4-scout-17b-16e-instruct" : 
-          provider === "groq-qwen" ? "qwen/qwen-qwq-32b" :
+          provider === "groq-qwen" ? "qwen-qwq-32b" :
           provider === "groq-vision" ? "llama-3.2-11b-vision-preview" :
           ""
         ),
@@ -110,20 +112,23 @@ async function startServer() {
   app.post("/api/images/generate", async (req, res) => {
     const { prompt, provider } = req.body;
     
-    if (provider === "glm-image") {
-      const apiKey = process.env.ZHIPU_API_KEY;
-      if (!apiKey) return res.status(400).json({ error: "ZHIPU_API_KEY missing" });
+    if (provider === "huggingface") {
+      const apiKey = process.env.HUGGINGFACE_API_KEY;
+      if (!apiKey) return res.status(400).json({ error: "HUGGINGFACE_API_KEY missing" });
       
       try {
-        const response = await axios.post(
-          "https://open.bigmodel.cn/api/paas/v4/images/generations",
-          { model: "cogview-3", prompt: prompt },
-          { headers: { Authorization: `Bearer ${apiKey}` } }
-        );
-        return res.json({ url: response.data.data[0].url });
+        const hf = new HfInference(apiKey);
+        const imageBlob = await hf.textToImage({
+          model: 'black-forest-labs/FLUX.1-schnell',
+          inputs: prompt,
+          parameters: { negative_prompt: 'blurry' }
+        });
+        const arrayBuffer = await imageBlob.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+        return res.json({ url: `data:image/jpeg;base64,${base64}` });
       } catch (error: any) {
-        console.error("Zhipu image error:", error.response?.data || error.message);
-        return res.status(500).json({ error: error.response?.data?.error?.message || "Failed to generate image" });
+        console.warn("HuggingFace image warn:", error.message);
+        return res.status(500).json({ error: error.message || "Failed to generate image via HuggingFace" });
       }
     }
     

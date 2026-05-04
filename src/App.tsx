@@ -473,15 +473,15 @@ export default function App() {
 
               <select 
                 value={imageProvider}
-                onChange={(e) => setImageProvider(e.target.value as 'pollinations' | 'glm-image')}
+                onChange={(e) => setImageProvider(e.target.value as 'huggingface' | 'pollinations')}
                 className={`text-[10px] font-bold tracking-wider px-3 py-1.5 rounded-lg outline-none transition-all ${
                   isDarkMode 
                   ? 'bg-white/5 border border-white/10 text-orange-400 focus:border-orange-500 [&>option]:bg-slate-800 [&>option]:text-orange-400' 
                   : 'bg-white border border-slate-200 text-slate-600 focus:border-orange-500 shadow-sm [&>option]:bg-white [&>option]:text-slate-600'
                 }`}
               >
-                <option value="pollinations">IMG: FLUX.2 [klein]</option>
-                <option value="glm-image">IMG: Z-AI CogView</option>
+                <option value="huggingface">IMG: FLUX.2 (HF)</option>
+                <option value="pollinations">IMG: FLUX.1 (POL)</option>
               </select>
 
               <select 
