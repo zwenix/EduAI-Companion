@@ -315,10 +315,22 @@ export default function AutoGrading() {
             
             {capturedImage && (
               <div className={`w-full py-6 rounded-[28px] font-black uppercase tracking-[0.2em] text-xs flex flex-col items-center justify-center gap-4 transition-all border ${
-                isProcessing ? 'bg-brand-cyan/10 border-brand-cyan/20 text-brand-cyan' : 'bg-white/5 border-white/10 text-slate-400'
+                isProcessing ? 'bg-brand-cyan/5 border-brand-cyan/20 text-brand-cyan' : 'bg-white/5 border-white/10 text-slate-400'
               }`}>
                 {isProcessing ? (
-                  <div className="flex items-center gap-3"><Loader2 className="animate-spin" size={20} /> Neural Synthesis Active</div>
+                  <div className="flex flex-col items-center gap-3 w-full max-w-[200px] mx-auto px-4">
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="animate-spin" size={20} /> Neural Synthesis Active
+                    </div>
+                    <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden mt-1 shadow-inner">
+                      <motion.div 
+                        initial={{ width: "0%" }}
+                        animate={{ width: "90%" }}
+                        transition={{ duration: 10, ease: "easeOut" }}
+                        className="h-full bg-brand-cyan rounded-full shadow-[0_0_8px_rgba(6,182,212,0.6)]"
+                      />
+                    </div>
+                  </div>
                 ) : (
                   <div className="flex gap-4">
                     <button 

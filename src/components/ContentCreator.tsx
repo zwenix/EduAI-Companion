@@ -88,10 +88,20 @@ const TONES = ['Formal & Professional', 'Warm & Friendly', 'Informative & Clear'
 
 // ─── Shared UI Components (Simulating Shadcn) ───────────────────────────────
 
-const Label = ({ children, className }: { children: React.ReactNode, className?: string }) => (
-  <label className={cn("text-xs font-semibold uppercase tracking-wider block", className)}>
-    {children}
-  </label>
+const Label = ({ children, tooltip, className }: { children: React.ReactNode, tooltip?: string, className?: string }) => (
+  <div className="flex items-center gap-2 group relative">
+    <label className={cn("text-xs font-semibold uppercase tracking-wider block text-slate-400", className)}>
+      {children}
+    </label>
+    {tooltip && (
+      <HelpCircle size={14} className="text-slate-500 cursor-help" />
+    )}
+    {tooltip && (
+      <div className="absolute bottom-full left-0 mb-2 w-max max-w-[200px] bg-slate-800 text-slate-200 text-xs rounded-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl border border-white/10 z-50 normal-case tracking-normal font-normal">
+        {tooltip}
+      </div>
+    )}
+  </div>
 );
 
 const Input = ({ className, isDarkMode, ...props }: any) => (
@@ -303,10 +313,13 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
           Print / Save PDF
         </button>
       </div>
-      <div className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} border rounded-[32px] overflow-hidden p-4 lg:p-8 shadow-2xl relative`}>
+      <div className={`${isDarkMode ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'} border rounded-[32px] overflow-hidden p-4 lg:p-8 shadow-2xl relative`}>
         <div 
           ref={contentRef}
-          className={cn(isHtmlDoc ? "" : "prose prose-sm max-w-none markdown-body", isDarkMode ? "prose-invert" : "")}
+          className={cn(
+            isHtmlDoc ? "text-slate-800" : "prose prose-sm max-w-none markdown-body", 
+            isDarkMode && !isHtmlDoc ? "prose-invert text-slate-200" : (isHtmlDoc ? "" : "text-slate-900")
+          )}
           dangerouslySetInnerHTML={{ __html: rawMarkup }} 
         />
         <div className={`absolute top-4 right-4 text-[10px] font-bold uppercase tracking-widest pointer-events-none opacity-20 ${isDarkMode ? 'text-slate-400' : 'text-slate-300'}`}>
@@ -680,9 +693,9 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   <p className="text-sm text-slate-500 leading-relaxed">Lesson plans, worksheets, and rubrics — perfectly CAPS-aligned.</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
-                    <Label>Category</Label>
+                    <Label tooltip="Select the broad category of content to filter document types.">Category</Label>
                     <Select value={t_category} onValueChange={setT_Category} placeholder="Pick Lab" isDarkMode={isDarkMode}>
                       {(close: any) => Object.keys(TEACHING_CATEGORIES).map(cat => (
                         <SelectItem key={cat} onClick={() => { setT_Category(cat); setT_Type(''); close(); }} active={t_category === cat} isDarkMode={isDarkMode}>{cat}</SelectItem>
@@ -690,7 +703,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Document Type</Label>
+                    <Label tooltip="The specific output format (e.g. Worksheet, Lesson Plan).">Document Type</Label>
                     <Select value={t_type} onValueChange={setT_Type} placeholder="Select Type" disabled={!t_category} isDarkMode={isDarkMode}>
                       {(close: any) => TEACHING_CATEGORIES[t_category]?.map(type => (
                         <SelectItem key={type} onClick={() => { setT_Type(type); close(); }} active={t_type === type} isDarkMode={isDarkMode}>{type}</SelectItem>
@@ -699,7 +712,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Grade</Label>
                     <Select value={t_grade} onValueChange={setT_Grade} placeholder="Grade" isDarkMode={isDarkMode}>
@@ -714,7 +727,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Language</Label>
                     <Select value={t_language} onValueChange={setT_Language} placeholder="Language" isDarkMode={isDarkMode}>
@@ -722,7 +735,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Difficulty</Label>
+                    <Label tooltip="Level of cognitive demand or Bloom's Taxonomy level." className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Difficulty</Label>
                     <Select value={t_difficulty} onValueChange={setT_Difficulty} placeholder="Select Difficulty" isDarkMode={isDarkMode}>
                       {(close: any) => DIFFICULTIES.map(diff => <SelectItem key={diff} onClick={() => { setT_Difficulty(diff); close(); }} active={t_difficulty === diff} isDarkMode={isDarkMode}>{diff}</SelectItem>)}
                     </Select>
@@ -743,7 +756,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                 </div>
 
                 <div className="space-y-2">
-                  <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Topic / Strand</Label>
+                  <Label tooltip="The CAPS topic, strand, or specific concept to cover." className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Topic / Strand</Label>
                   <Select value={t_topic} onValueChange={setT_Topic} placeholder="Specific Area" disabled={!t_subject} isDarkMode={isDarkMode}>
                     {(close: any) => (
                       <>
@@ -755,7 +768,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   {t_topic === 'Other' && <Input placeholder="Type custom topic" value={t_customTopic} onChange={(e: any) => setT_CustomTopic(e.target.value)} isDarkMode={isDarkMode} />}
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Duration</Label>
                     <Input placeholder="e.g. 45 min" value={t_duration} onChange={(e: any) => setT_Duration(e.target.value)} isDarkMode={isDarkMode} />
@@ -769,17 +782,17 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                 <div className="flex gap-10 py-4">
                   <div className="flex items-center gap-3">
                     <Switch checked={t_memo} onCheckedChange={setT_Memo} id="t-memo" isDarkMode={isDarkMode} />
-                    <Label className={isDarkMode ? "text-slate-300" : "text-slate-600"}>Include Memo</Label>
+                    <Label tooltip="Generates an answer memo/key for any questions created." className={isDarkMode ? "text-slate-300" : "text-slate-600"}>Include Memo</Label>
                   </div>
                   <div className="flex items-center gap-3">
                     <Switch checked={t_rubric} onCheckedChange={setT_Rubric} id="t-rubric" isDarkMode={isDarkMode} />
-                    <Label className={isDarkMode ? "text-slate-300" : "text-slate-600"}>Include Rubric</Label>
+                    <Label tooltip="Generates an assessment rubric for grading." className={isDarkMode ? "text-slate-300" : "text-slate-600"}>Include Rubric</Label>
                   </div>
                 </div>
 
                 <AdvancedSection label="Advanced Neural Configuration">
                   <div className="space-y-4">
-                    <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Learning Objective</Label>
+                    <Label tooltip="Clear outcomes for the lesson (e.g. 'Learners will be able to...')" className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Learning Objective</Label>
                     <Textarea placeholder="What is the goal?" value={t_objective} onChange={(e: any) => setT_Objective(e.target.value)} isDarkMode={isDarkMode} />
                   </div>
                 </AdvancedSection>
@@ -803,7 +816,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   <p className="text-sm text-slate-500 leading-relaxed">Posters, diagrams, and cards for the modern classroom.</p>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Visual Type</Label>
                     <Select value={v_type} onValueChange={setV_Type} placeholder="Select Type" isDarkMode={isDarkMode}>
@@ -823,7 +836,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Grade</Label>
                     <Select value={v_grade} onValueChange={setV_Grade} placeholder="Grade" isDarkMode={isDarkMode}>
@@ -845,7 +858,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Topic / Strand</Label>
+                  <Label tooltip="The specific concept or topic to be visualized.">Topic / Strand</Label>
                   <Select value={v_topic} onValueChange={setV_Topic} placeholder="Specific Area" disabled={!v_subject}>
                     {(close: any) => (
                       <>
@@ -857,15 +870,15 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   {v_topic === 'Other' && <Input placeholder="Type custom topic" value={v_customTopic} onChange={(e: any) => setV_CustomTopic(e.target.value)} />}
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
-                    <Label>Color Scheme</Label>
+                    <Label tooltip="The color palette applied to the design.">Color Scheme</Label>
                     <Select value={v_colorScheme} onValueChange={setV_ColorScheme} placeholder="Pick Colors">
                       {(close: any) => COLOR_SCHEMES.map(c => <SelectItem key={c} onClick={() => { setV_ColorScheme(c); close(); }} active={v_colorScheme === c}>{c}</SelectItem>)}
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Visual Style</Label>
+                    <Label tooltip="Aesthetic flavor or art style (e.g., Clean, Playful).">Visual Style</Label>
                     <Select value={v_style} onValueChange={setV_Style} placeholder="Select Style">
                       {(close: any) => VISUAL_STYLES.map(s => <SelectItem key={s} onClick={() => { setV_Style(s); close(); }} active={v_style === s}>{s}</SelectItem>)}
                     </Select>
@@ -873,14 +886,14 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Specific Content</Label>
+                  <Label tooltip="Add any specific context, text content, or examples to include.">Specific Content</Label>
                   <Textarea className="min-h-[80px]" placeholder="Specific words, concepts or numbers to include..." value={v_specificContent} onChange={(e: any) => setV_SpecificContent(e.target.value)} />
                 </div>
 
                 <div className={cn("space-y-4 p-4 rounded-xl border transition-colors", isDarkMode ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200")}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label className={isDarkMode ? "text-slate-300" : "text-slate-800"}>Generate Hero Image</Label>
+                    <Label tooltip="Generates an actual AI image via Flux model to embed in the design." className={isDarkMode ? "text-slate-300" : "text-slate-800"}>Generate Hero Image</Label>
                       <p className={cn("text-[10px] mt-1", isDarkMode ? "text-slate-500" : "text-slate-500")}>Use AI to generate an illustration for this visual aid</p>
                     </div>
                     <Switch checked={v_generateImage} onCheckedChange={setV_GenerateImage} isDarkMode={isDarkMode} />
@@ -907,7 +920,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   <p className="text-sm text-slate-500 leading-relaxed">Professional school documentation made instant.</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Document Type</Label>
                     <Select value={a_type} onValueChange={setA_Type} placeholder="Select Doc" isDarkMode={isDarkMode}>
@@ -927,7 +940,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Grade</Label>
                     <Select value={a_grade} onValueChange={setA_Grade} placeholder="Grade" isDarkMode={isDarkMode}>
@@ -948,7 +961,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Tone</Label>
                     <Select value={a_tone} onValueChange={setA_Tone} placeholder="Select Tone" isDarkMode={isDarkMode}>
@@ -962,7 +975,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                 </div>
 
                 <div className="space-y-2">
-                  <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Message Purpose</Label>
+                  <Label tooltip="The intent of the admin communication (e.g. inform parents, request permission)." className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Message Purpose</Label>
                   <Textarea className="min-h-[100px]" placeholder="What is the main goal of this correspondence?" value={a_purpose} onChange={(e: any) => setA_Purpose(e.target.value)} isDarkMode={isDarkMode} />
                 </div>
 
@@ -996,7 +1009,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   <p className="text-sm text-slate-500 leading-relaxed">Phonics, sight words, and reading comprehension specifically mapped for Grades 1 - 3.</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Grade Level</Label>
                     <Select value={f_grade} onValueChange={setF_Grade} placeholder="Grade" isDarkMode={isDarkMode}>
@@ -1030,7 +1043,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   <p className="text-[10px] text-slate-500">Optional: specify exactly what to focus on.</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Theme / Context</Label>
                     <Input placeholder="e.g. Space, Animals..." value={f_theme} onChange={(e: any) => setF_Theme(e.target.value)} isDarkMode={isDarkMode} />
@@ -1091,6 +1104,14 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                <div>
                  <h3 className="text-2xl lg:text-3xl text-white font-hand">Neural Fabrication Unit</h3>
                  <p className="text-slate-500 mt-2 font-medium text-sm lg:text-base">Calculating CAPS alignments and professional layout hooks...</p>
+                 <div className="w-64 h-1.5 bg-white/5 rounded-full overflow-hidden mt-8 mx-auto shadow-inner">
+                   <motion.div 
+                     initial={{ width: "0%" }}
+                     animate={{ width: "85%" }}
+                     transition={{ duration: 15, ease: "easeOut" }}
+                     className="h-full bg-brand-cyan rounded-full shadow-[0_0_10px_rgba(6,182,212,0.5)]"
+                   />
+                 </div>
                </div>
              </div>
            ) : hasResult ? (
@@ -1170,9 +1191,9 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                     <div className="space-y-8">
                       {visualResult.shouldGenerateImage && (visualResult.userImagePrompt || visualResult.imagePrompt) && (
                         <AiImage 
-                          prompt={visualResult.userImagePrompt || visualResult.imagePrompt} 
+                          prompt={`${visualResult.userImagePrompt || visualResult.imagePrompt}, Visual Style: ${v_style}, Color Scheme: ${v_colorScheme}, Educational illustration`}
                           aspectRatio="portrait"
-                          className="w-full max-w-2xl mx-auto mb-8"
+                          className="w-full max-w-2xl mx-auto mb-8 shadow-2xl"
                         />
                       )}
                       <ContentPreview html={visualResult.content} label="Digital Visual Asset" isDarkMode={isDarkMode} />

@@ -37,7 +37,22 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
       </div>
 
       <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
-         <h3 className={`text-2xl font-hand mb-6 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Upcoming Tasks & Revisions</h3>
+         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+           <h3 className={`text-2xl font-hand ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Upcoming Tasks & Revisions</h3>
+           <div className="flex items-center gap-4">
+             <span className={`text-sm font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+               2 of 5 Completed
+             </span>
+             <div className={`w-32 h-2.5 rounded-full ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200'} overflow-hidden`}>
+               <motion.div 
+                 initial={{ width: 0 }} 
+                 animate={{ width: "40%" }} 
+                 transition={{ duration: 1, ease: "easeOut" }}
+                 className="h-full bg-brand-cyan rounded-full"
+               />
+             </div>
+           </div>
+         </div>
          <div className="space-y-4">
             <div className={`p-4 rounded-2xl border ${isDarkMode ? 'border-white/10 bg-white/5 hover:border-brand-cyan' : 'border-slate-100 bg-slate-50 hover:border-brand-cyan'} flex items-center justify-between transition-colors group cursor-pointer`}>
                <div className="flex items-center gap-4">

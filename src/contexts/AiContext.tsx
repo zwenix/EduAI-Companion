@@ -59,7 +59,7 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [imageProvider, setImageProvider] = useState<ImageProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_image_provider') as ImageProvider;
-      if (saved === 'zhipu' || saved === 'glm-image') return 'pollinations';
+      if ((saved as string) === 'zhipu' || (saved as string) === 'glm-image') return 'pollinations';
       return saved && VALID_IMAGE.includes(saved) ? saved : 'pollinations';
     } catch {
       return 'pollinations';
