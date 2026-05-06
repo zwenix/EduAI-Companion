@@ -118,13 +118,12 @@ async function startServer() {
       
       try {
         const hf = new HfInference(apiKey);
-        const result = await hf.textToImage({
+        const imageBlob = await hf.textToImage({
           model: 'black-forest-labs/FLUX.1-schnell',
           inputs: prompt,
           parameters: { negative_prompt: 'blurry' }
         });
-        const blob = result as unknown as Blob;
-        const arrayBuffer = await blob.arrayBuffer();
+        const arrayBuffer = await imageBlob.arrayBuffer();
         const base64 = Buffer.from(arrayBuffer).toString('base64');
         return res.json({ url: `data:image/jpeg;base64,${base64}` });
       } catch (error: any) {

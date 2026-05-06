@@ -11,12 +11,11 @@ Your outputs must match or exceed the professional quality of the provided EduAI
 STRICT OUTPUT RULES (NEVER violate these):
 - Output **ONLY** the raw, complete document. 
 - No explanations, no "Here is the output", no introductions, no notes, no markdown fences (\`\`\`), no extra text before or after the content.
-- If user requests **LaTeX**: Start directly with \\documentclass{article} and end with \\end{document}. Use A4 paper, geometry package for margins, tcolorbox or TikZ for colored section headers/borders, xcolor for vibrant accents, and include a custom circular TikZ seal/emblem where appropriate.
-- If user requests **HTML**: Output **ONLY** an HTML fragment (no <html>, <head>, or <body> tags). Use standard Tailwind CSS classes. Do NOT include Tailwind CDN. ALWAYS explicitly set text colors (e.g. \`text-slate-800\`, \`text-black\`) for any section where you set a light background (e.g. \`bg-white\`, \`bg-slate-50\`) to ensure the text is visible even if the app wrapper is in dark mode. Include EduAI branding at top and bottom.
+- If user requests **LaTeX**: Start directly with \\documentclass{article} and end with \\end{document}. Use A4 paper, geometry package for margins, tcolorbox or TikZ for colored section headers/borders, xcolor for vibrant accents, and include a custom circular TikZ seal/emblem where appropriate (with "EduAI Companion" or school name).
+- If user requests **HTML**: Output a complete standalone HTML5 document with Tailwind CSS via CDN. Include beautiful @media print styles for perfect PDF printing. Use clean sans-serif fonts, colored section headers (blue/teal/orange/purple/green gradients), boxed answer areas, and EduAI branding at top and footer.
 - Always include: EduAI Companion branding (logo placeholder or text "EduAI Companion | CAPS Aligned | eduai-companion.github.io"), Grade/Phase/Subject/Term, Name/Date/Total score fields, clear CAPS-linked learning outcomes or focus, differentiated activities where suitable, and a motivational footer.
 - Style for Foundation Phase (Gr R–3): Warm, playful, colorful, large fonts, icons/SVGs/TikZ for visuals, child-friendly language.
 - Style for Intermediate/Senior (Gr 4–7): Professional, structured, with clear marking schemes.
-- Context: ALWAYS incorporate authentic South African contextual examples, names, currencies (ZAR), and local scenarios across all content.
 
 Make every output teacher-proud, parent-shareable, and ready for immediate printing or digital use in South African schools.
 `;
@@ -217,7 +216,6 @@ export const generateVisualAid = async (input: any) => {
   const isPoster = input.visualType?.toLowerCase().includes('poster');
   const isInfographic = input.visualType?.toLowerCase().includes('infographic') || input.visualType?.toLowerCase().includes('mind map');
   const isDiagram = input.visualType?.toLowerCase().includes('diagram');
-  const isFlashcard = input.visualType?.toLowerCase().includes('flashcard');
 
   if (isPoster) {
     visualPrompt = `
@@ -259,15 +257,6 @@ export const generateVisualAid = async (input: any) => {
 
       Style: Clean, labeled, semi-realistic illustration with arrows, soft shadows, and depth. National Geographic kids magazine quality.
     `;
-  } else if (isFlashcard) {
-    visualPrompt = `
-      Design a beautiful, printable set of educational flashcards on ${input.topic} for Grade ${input.grade} learners.
-
-      Requirements:
-      - HTML/Tailwind layout creating a grid of 4 to 6 flashcards per page (print-ready).
-      - Each card needs a front and back (or term/definition pair). Use clear borders for cutting.
-      - Ensure you use South African contextual examples, terms, money/rands, or relatable local elements.
-    `;
   } else {
     visualPrompt = `Create a highly visual ${input.visualType} for Grade ${input.grade} ${input.subject} on topic ${input.topic}.`;
   }
@@ -275,12 +264,10 @@ export const generateVisualAid = async (input: any) => {
   const prompt = `
     ${visualPrompt}
     Language: ${input.language}
-    Visual Style: ${input.style || 'Modern Clean'}
-    Color Scheme: ${input.colorScheme || 'Bright'}
+    Style: ${input.style}
+    Color: ${input.colorScheme}
     Content Details: ${input.specificContent}
-    Quantity: ${input.quantity || 'Standard'}
-    Important: MUST include South African contextual elements and examples throughout the design and text.
-    User Image Directives: ${input.additionalInstructions || 'None'}
+    Quantity: ${input.quantity}
     Additional Info: ${IMAGE_PROMPT_GOLDEN_RULE}
   `;
 
