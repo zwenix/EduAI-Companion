@@ -127,13 +127,10 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini')
   const messages = [
     { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nThe response must be a JSON object, but the 'content' field MUST be stunningly designed HTML with Tailwind CSS. DO NOT use generic Markdown.` },
     { role: 'user', content: `Generate a visual aid design for ${input.visualType} on topic ${input.topic} for Grade ${input.grade}.
-    Style: ${input.style || 'Modern Clean'}
-    Color: ${input.colorScheme || 'Bright'}
+    Style: ${input.style}
+    Color: ${input.colorScheme}
     Specific Content: ${input.specificContent}
-    Quantity: ${input.quantity || 'Standard'}
-    Important: MUST include South African contextual elements and examples throughout the design and text.
-    User Image Directives: ${input.additionalInstructions || 'None'}
-
+    
     Return as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
     {
       "content": "<HTML STRING WITH TAILWIND DESIGN HERE>",
