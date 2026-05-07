@@ -245,7 +245,10 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
     processedHtml = '<' + processedHtml;
   }
 
-  const isHtmlDoc = processedHtml.trim().toLowerCase().startsWith('<!doctype') || processedHtml.trim().toLowerCase().startsWith('<html');
+  const isHtmlDoc = processedHtml.trim().toLowerCase().startsWith('<!doctype') || 
+                   processedHtml.trim().toLowerCase().startsWith('<html') ||
+                   processedHtml.trim().toLowerCase().startsWith('<div') ||
+                   processedHtml.trim().toLowerCase().startsWith('<section');
   const rawMarkup = isHtmlDoc ? processedHtml : marked.parse(processedHtml) as string;
 
   const handlePrint = () => {
