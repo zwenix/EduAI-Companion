@@ -27,12 +27,13 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_provider') as AIProvider;
+      if (saved === 'gemini') return 'llama-primary'; // Force existing users away from gemini to save quota
       if (saved && VALID_PROVIDERS.includes(saved)) {
         return saved;
       }
-      return 'gemini';
+      return 'llama-primary';
     } catch (e) {
-      return 'gemini';
+      return 'llama-primary';
     }
   });
 
@@ -48,9 +49,10 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [ocrProvider, setOcrProvider] = useState<OCRProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_ocr_provider') as OCRProvider;
-      return saved && VALID_OCR.includes(saved) ? saved : 'gemini';
+      if (saved === 'gemini') return 'groq-vision'; // Save quota
+      return saved && VALID_OCR.includes(saved) ? saved : 'groq-vision';
     } catch {
-      return 'gemini';
+      return 'groq-vision';
     }
   });
 
