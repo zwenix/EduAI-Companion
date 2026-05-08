@@ -245,18 +245,47 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
     processedHtml = '<' + processedHtml;
   }
 
-  const isHtmlDoc = processedHtml.trim().toLowerCase().startsWith('<!doctype') || 
-                   processedHtml.trim().toLowerCase().startsWith('<html') ||
-                   processedHtml.trim().toLowerCase().startsWith('<div') ||
-                   processedHtml.trim().toLowerCase().startsWith('<section');
-  const rawMarkup = isHtmlDoc ? processedHtml : marked.parse(processedHtml) as string;
+  const isHtmlFragment = processedHtml.trim().toLowerCase().startsWith('<div') || 
+                         processedHtml.trim().toLowerCase().startsWith('<section') ||
+                         processedHtml.trim().toLowerCase().startsWith('<article') ||
+                         processedHtml.trim().toLowerCase().startsWith('<svg');
+
+  const isFullHtmlDoc = processedHtml.trim().toLowerCase().startsWith('<!doctype') || 
+                   processedHtml.trim().toLowerCase().startsWith('<html');
+                   
+  const useIframe = isFullHtmlDoc || isHtmlFragment;
+  
+  let finalIframeContent = processedHtml;
+  if (useIframe) {
+      if (isFullHtmlDoc && !finalIframeContent.includes('tailwindcss')) {
+          if (finalIframeContent.includes('<head>')) {
+              finalIframeContent = finalIframeContent.replace('<head>', '<head><script src="https://cdn.tailwindcss.com"></script>');
+          } else if (finalIframeContent.includes('<html')) {
+              finalIframeContent = finalIframeContent.replace(/<html[^>]*>/i, '$&<head><script src="https://cdn.tailwindcss.com"></script></head>');
+          }
+      } else if (isHtmlFragment) {
+          // Wrap fragment with Tailwind CSS
+          finalIframeContent = `<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>body { margin: 0; padding: 1rem; }</style>
+</head>
+<body class="bg-white text-slate-900">
+    ${finalIframeContent}
+</body>
+</html>`;
+      }
+  }
+
+  const rawMarkup = useIframe ? processedHtml : marked.parse(processedHtml) as string;
 
   const handlePrint = () => {
     try {
       const printWindow = window.open('', '_blank');
       if (printWindow) {
-        if (isHtmlDoc) {
-          printWindow.document.write(rawMarkup);
+        if (useIframe) {
+          printWindow.document.write(finalIframeContent);
         } else {
           printWindow.document.write(`
             <!DOCTYPE html>
@@ -306,12 +335,21 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
           Print / Save PDF
         </button>
       </div>
-      <div className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} border rounded-[32px] overflow-hidden p-4 lg:p-8 shadow-2xl relative`}>
-        <div 
-          ref={contentRef}
-          className={cn(isHtmlDoc ? "" : "prose prose-sm max-w-none markdown-body", isDarkMode ? "prose-invert" : "")}
-          dangerouslySetInnerHTML={{ __html: rawMarkup }} 
-        />
+      <div className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} border rounded-[32px] overflow-hidden p-4 lg:p-8 shadow-2xl relative min-h-[400px]`}>
+        {useIframe ? (
+          <iframe 
+            srcDoc={finalIframeContent} 
+            className="w-full h-[600px] border-0 bg-white rounded-xl"
+            title="Content Preview"
+            sandbox="allow-scripts allow-same-origin"
+          />
+        ) : (
+          <div 
+            ref={contentRef}
+            className={cn("prose prose-sm max-w-none markdown-body", isDarkMode ? "prose-invert" : "")}
+            dangerouslySetInnerHTML={{ __html: processedHtml.trim().startsWith('<') ? processedHtml : rawMarkup }} 
+          />
+        )}
         <div className={`absolute top-4 right-4 text-[10px] font-bold uppercase tracking-widest pointer-events-none opacity-20 ${isDarkMode ? 'text-slate-400' : 'text-slate-300'}`}>
           EduAI Companion Engine
         </div>
@@ -488,6 +526,9 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [v_quantity, setV_Quantity] = useState('');
   const [v_generateImage, setV_GenerateImage] = useState(false);
   const [v_extraInstructions, setV_ExtraInstructions] = useState('');
+  const [v_variations, setV_Variations] = useState(1);
+  const [v_currentVariation, setV_CurrentVariation] = useState(0);
+  const [visualResults, setVisualResults] = useState<any[]>([]);
 
   const v_subjects = useMemo(() => {
     if (!v_grade) return [];
@@ -559,19 +600,47 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     const finalTopic = v_topic === 'Other' ? v_customTopic : v_topic;
     setIsLoading(true);
     setError(null);
+    setVisualResults([]);
     setVisualResult(null);
+    setV_CurrentVariation(0);
+    
     try {
-      const result = await generateVisualAid({
-        visualType: v_type, grade: v_grade, subject: finalSubject, topic: finalTopic,
-        language: v_language, colorScheme: v_colorScheme, style: v_style,
-        specificContent: v_specificContent, quantity: v_quantity,
-        generateImage: v_generateImage, additionalInstructions: v_extraInstructions
-      }, provider);
-      setVisualResult({
-         ...result,
-         shouldGenerateImage: v_generateImage,
-         userImagePrompt: v_extraInstructions
-      });
+      const results = [];
+      const count = Math.min(Math.max(1, v_variations), 3);
+      
+      for (let i = 0; i < count; i++) {
+        // Slightly vary the color scheme or style for variations if they are not fixed
+        const currentColorScheme = count > 1 && i > 0 ? (i === 1 ? 'Vibrant & Modern' : 'Soft Pastels') : v_colorScheme;
+        
+        const result = await generateVisualAid({
+          visualType: v_type, 
+          grade: v_grade, 
+          subject: finalSubject, 
+          topic: finalTopic,
+          language: v_language, 
+          colorScheme: currentColorScheme, 
+          style: v_style,
+          specificContent: v_specificContent, 
+          quantity: v_quantity,
+          generateImage: v_generateImage, 
+          additionalInstructions: i > 0 ? `${v_extraInstructions} (Variation ${i+1}: Use a distinct but professional color palette)` : v_extraInstructions
+        }, provider);
+        
+        results.push({
+           ...result,
+           shouldGenerateImage: v_generateImage,
+           userImagePrompt: v_extraInstructions
+        });
+        
+        // Show the first one immediately if we're doing multiple
+        if (i === 0) {
+          setVisualResults([results[0]]);
+          setVisualResult(results[0]);
+        }
+      }
+      
+      setVisualResults(results);
+      setVisualResult(results[0]);
     } catch (err: any) { 
       console.error(err); 
       setError(err.message || "Failed to design visual asset.");
@@ -780,7 +849,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   </div>
                 </div>
 
-                <AdvancedSection label="Advanced Neural Configuration">
+                <AdvancedSection label="Advanced Neural Configuration" isDarkMode={isDarkMode}>
                   <div className="space-y-4">
                     <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Learning Objective</Label>
                     <Textarea placeholder="What is the goal?" value={t_objective} onChange={(e: any) => setT_Objective(e.target.value)} isDarkMode={isDarkMode} />
@@ -803,26 +872,54 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
                 <div>
                   <p className="text-[10px] text-purple-400 font-black uppercase tracking-[0.2em] mb-2">🎨 Visual Architects</p>
-                  <p className="text-sm text-slate-500 leading-relaxed">Posters, diagrams, and cards for the modern classroom.</p>
+                  <p className="text-sm text-slate-500 leading-relaxed">AI-enhanced posters, flashcards, and diagrams for the modern classroom.</p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Visual Type</Label>
-                    <Select value={v_type} onValueChange={setV_Type} placeholder="Select Type" isDarkMode={isDarkMode}>
-                      {(close: any) => Object.entries(VISUAL_TYPES).map(([cat, items]) => (
-                        <div key={cat} className="space-y-1">
-                          <p className={`text-[8px] font-black px-4 py-2 uppercase tracking-widest ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}>{cat}</p>
-                          {items.map(item => <SelectItem key={item} onClick={() => { setV_Type(item); close(); }} active={v_type === item} isDarkMode={isDarkMode}>{item}</SelectItem>)}
-                        </div>
+                    <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Visual Category</Label>
+                    <Select value={v_category} onValueChange={setV_Category} placeholder="Pick Lab" isDarkMode={isDarkMode}>
+                      {(close: any) => Object.keys(VISUAL_TYPES).map(cat => (
+                        <SelectItem key={cat} onClick={() => { setV_Category(cat); setV_Type(''); close(); }} active={v_category === cat} isDarkMode={isDarkMode}>{cat}</SelectItem>
                       ))}
                     </Select>
                   </div>
+                  <div className="space-y-2">
+                    <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Visual Type</Label>
+                    <Select value={v_type} onValueChange={setV_Type} placeholder="Select Type" disabled={!v_category} isDarkMode={isDarkMode}>
+                      {(close: any) => VISUAL_TYPES[v_category]?.map(type => (
+                        <SelectItem key={type} onClick={() => { setV_Type(type); close(); }} active={v_type === type} isDarkMode={isDarkMode}>{type}</SelectItem>
+                      ))}
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Language</Label>
                     <Select value={v_language} onValueChange={setV_Language} placeholder="Language" isDarkMode={isDarkMode}>
                       {(close: any) => LANGUAGES.map(l => <SelectItem key={l} onClick={() => { setV_Language(l); close(); }} active={v_language === l} isDarkMode={isDarkMode}>{l}</SelectItem>)}
                     </Select>
+                  </div>
+                  <div className="space-y-2">
+                     <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Variations</Label>
+                     <div className="flex gap-2">
+                       {[1, 2, 3].map(n => (
+                         <button
+                           key={n}
+                           type="button"
+                           onClick={() => setV_Variations(n)}
+                           className={cn(
+                             "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all border",
+                             v_variations === n 
+                               ? "bg-brand-cyan text-navy-dark border-brand-cyan shadow-lg" 
+                               : (isDarkMode ? "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10" : "bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200")
+                           )}
+                         >
+                           {n}
+                         </button>
+                       ))}
+                     </div>
                   </div>
                 </div>
 
@@ -848,36 +945,36 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Topic / Strand</Label>
-                  <Select value={v_topic} onValueChange={setV_Topic} placeholder="Specific Area" disabled={!v_subject}>
+                  <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Topic / Strand</Label>
+                  <Select value={v_topic} onValueChange={setV_Topic} placeholder="Specific Area" disabled={!v_subject} isDarkMode={isDarkMode}>
                     {(close: any) => (
                       <>
-                        {v_topics.map(t => <SelectItem key={t} onClick={() => { setV_Topic(t); close(); }} active={v_topic === t}>{t}</SelectItem>)}
-                        <SelectItem key="Other" onClick={() => { setV_Topic('Other'); close(); }} active={v_topic === 'Other'}>Other...</SelectItem>
+                        {v_topics.map(t => <SelectItem key={t} onClick={() => { setV_Topic(t); close(); }} active={v_topic === t} isDarkMode={isDarkMode}>{t}</SelectItem>)}
+                        <SelectItem key="Other" onClick={() => { setV_Topic('Other'); close(); }} active={v_topic === 'Other'} isDarkMode={isDarkMode}>Other...</SelectItem>
                       </>
                     )}
                   </Select>
-                  {v_topic === 'Other' && <Input placeholder="Type custom topic" value={v_customTopic} onChange={(e: any) => setV_CustomTopic(e.target.value)} />}
+                  {v_topic === 'Other' && <Input placeholder="Type custom topic" value={v_customTopic} onChange={(e: any) => setV_CustomTopic(e.target.value)} isDarkMode={isDarkMode} />}
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label>Color Scheme</Label>
-                    <Select value={v_colorScheme} onValueChange={setV_ColorScheme} placeholder="Pick Colors">
-                      {(close: any) => COLOR_SCHEMES.map(c => <SelectItem key={c} onClick={() => { setV_ColorScheme(c); close(); }} active={v_colorScheme === c}>{c}</SelectItem>)}
+                    <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Color Scheme</Label>
+                    <Select value={v_colorScheme} onValueChange={setV_ColorScheme} placeholder="Pick Colors" isDarkMode={isDarkMode}>
+                      {(close: any) => COLOR_SCHEMES.map(c => <SelectItem key={c} onClick={() => { setV_ColorScheme(c); close(); }} active={v_colorScheme === c} isDarkMode={isDarkMode}>{c}</SelectItem>)}
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Visual Style</Label>
-                    <Select value={v_style} onValueChange={setV_Style} placeholder="Select Style">
-                      {(close: any) => VISUAL_STYLES.map(s => <SelectItem key={s} onClick={() => { setV_Style(s); close(); }} active={v_style === s}>{s}</SelectItem>)}
+                    <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Visual Style</Label>
+                    <Select value={v_style} onValueChange={setV_Style} placeholder="Select Style" isDarkMode={isDarkMode}>
+                      {(close: any) => VISUAL_STYLES.map(s => <SelectItem key={s} onClick={() => { setV_Style(s); close(); }} active={v_style === s} isDarkMode={isDarkMode}>{s}</SelectItem>)}
                     </Select>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Specific Content</Label>
-                  <Textarea className="min-h-[80px]" placeholder="Specific words, concepts or numbers to include..." value={v_specificContent} onChange={(e: any) => setV_SpecificContent(e.target.value)} />
+                  <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Specific Content</Label>
+                  <Textarea className="min-h-[80px]" placeholder="Specific words, concepts or numbers to include..." value={v_specificContent} onChange={(e: any) => setV_SpecificContent(e.target.value)} isDarkMode={isDarkMode} />
                 </div>
 
                 <div className={cn("space-y-4 p-4 rounded-xl border transition-colors", isDarkMode ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200")}>
@@ -1171,14 +1268,39 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   )}
                   {activeTab === 'visual' && (
                     <div className="space-y-8">
-                      {visualResult.shouldGenerateImage && (visualResult.userImagePrompt || visualResult.imagePrompt) && (
+                      {visualResults.length > 1 && (
+                        <div className="flex justify-center mb-8">
+                           <div className="bg-white/5 border border-white/10 p-1.5 rounded-2xl flex gap-1 shadow-lg">
+                              {visualResults.map((_, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={() => {
+                                    setV_CurrentVariation(idx);
+                                    setVisualResult(visualResults[idx]);
+                                  }}
+                                  className={cn(
+                                    "px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                    v_currentVariation === idx 
+                                      ? "bg-brand-cyan text-navy-dark shadow-xl" 
+                                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                                  )}
+                                >
+                                  Variation {idx + 1}
+                                </button>
+                              ))}
+                           </div>
+                        </div>
+                      )}
+                      {visualResult && visualResult.shouldGenerateImage && (visualResult.userImagePrompt || visualResult.imagePrompt) && (
                         <AiImage 
                           prompt={visualResult.userImagePrompt || visualResult.imagePrompt} 
                           aspectRatio="portrait"
                           className="w-full max-w-2xl mx-auto mb-8"
                         />
                       )}
-                      <ContentPreview html={visualResult.content} label="Digital Visual Asset" isDarkMode={isDarkMode} />
+                      {visualResult && (
+                        <ContentPreview html={visualResult.content} label="Digital Visual Asset" isDarkMode={isDarkMode} />
+                      )}
                     </div>
                   )}
                   {activeTab === 'admin' && (

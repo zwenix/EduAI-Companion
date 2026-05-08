@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: "AIzaSyAaXqaV0BBkwr2ui1hCQ704aSv-POmJmJQ" });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 // ─── Prompt Engineering Constants ────────────
 export const MASTER_SYSTEM_PROMPT = `
@@ -8,14 +8,20 @@ You are the official AI content generator for **EduAI Companion** — a premium 
 
 Your outputs must match or exceed the professional quality of the provided EduAI templates: clean, modern, vibrant yet elegant layouts with colored section banners, excellent visual hierarchy, clear instructions, answer lines/boxes, scoring areas, motivational elements, and perfect print-readiness for classroom use.
 
+VISUAL DESIGN DOCTRINE (Follow these for every HTML output):
+1. **Vibrant Headers**: Use full-width background banners with bold colors (Math = Teal/Blue, Science = Orange/Green, Languages = Purple/Pink, Social Sciences = Ochre/Earth). 
+2. **Playful Typography**: Use large, bold titles. For posters, use multi-colored words or decorative text-shadows to make titles pop like a game.
+3. **Modular Layout**: Use cards with soft rounded corners (rounded-3xl) and subtle borders. For worksheets, include clearly marked sections (Section A, Section B) with score indicators (e.g., [10 marks]).
+4. **Interactive Elements**: Use pill-shaped boxes for checkboxes, multiple-choice options, or vocabulary terms. Add playful icons (using SVGs or small emojis) next to instructions.
+5. **Child-Friendly Language**: Be encouraging and patient. Use South African context (Rands, local names, provinces, local flora/fauna).
+6. **Total Print Readiness**: Include "Name: __________ Date: __________" fields and EduAI footer branding on every page.
+
 STRICT OUTPUT RULES (NEVER violate these):
 - Output **ONLY** the raw, complete document. 
-- No explanations, no "Here is the output", no introductions, no notes, no markdown fences (\`\`\`), no extra text before or after the content.
-- If user requests **LaTeX**: Start directly with \\documentclass{article} and end with \\end{document}. Use A4 paper, geometry package for margins, tcolorbox or TikZ for colored section headers/borders, xcolor for vibrant accents, and include a custom circular TikZ seal/emblem where appropriate (with "EduAI Companion" or school name).
-- If user requests **HTML**: Output a complete standalone HTML5 document with Tailwind CSS via CDN. Include beautiful @media print styles for perfect PDF printing. Use clean sans-serif fonts, colored section headers (blue/teal/orange/purple/green gradients), boxed answer areas, and EduAI branding at top and footer.
-- Always include: EduAI Companion branding (logo placeholder or text "EduAI Companion | CAPS Aligned | eduai-companion.github.io"), Grade/Phase/Subject/Term, Name/Date/Total score fields, clear CAPS-linked learning outcomes or focus, differentiated activities where suitable, and a motivational footer.
-- Style for Foundation Phase (Gr R–3): Warm, playful, colorful, large fonts, icons/SVGs/TikZ for visuals, child-friendly language.
-- Style for Intermediate/Senior (Gr 4–7): Professional, structured, with clear marking schemes.
+- No explanations, no markdown fences (\`\`\`), no extra text.
+- If user requests **HTML**: Output a complete standalone HTML5 document with Tailwind CSS via CDN. Include beautiful @media print styles.
+- For Primary School (Gr R–3): Use very large fonts (text-2xl or larger for body), lots of white space, and clear, simple instructions with visual cues.
+- For Intermediate/Senior (Gr 4–7): Use more structured, professional layouts with table-based comparisons or labeled diagrams.
 
 Make every output teacher-proud, parent-shareable, and ready for immediate printing or digital use in South African schools.
 `;
@@ -216,6 +222,7 @@ export const generateVisualAid = async (input: any) => {
   const isPoster = input.visualType?.toLowerCase().includes('poster');
   const isInfographic = input.visualType?.toLowerCase().includes('infographic') || input.visualType?.toLowerCase().includes('mind map');
   const isDiagram = input.visualType?.toLowerCase().includes('diagram');
+  const isFlashcard = input.visualType?.toLowerCase().includes('flashcard') || input.visualType?.toLowerCase().includes('learning card');
 
   if (isPoster) {
     visualPrompt = `
@@ -223,15 +230,29 @@ export const generateVisualAid = async (input: any) => {
 
       DESIGN REQUIREMENTS (Based on EduAI Companion Templates):
       - HTML/Tailwind ONLY. Do not use markdown.
-      - Layout: A massive central Hero Image taking up the middle 50% of the poster.
-      - Top Banner: Large, playful, multi-colored bubble-letter style title (e.g., using text-shadows, varied colors per word) centered at the top.
-      - Floating Fact Boxes: 4-6 small floating fact boxes positioned around the central image. Each box should have a colored outline (e.g., solid 4px red, green, blue border), white background, small playful SVG icon/emoji, and short, legible text.
-      - Colorful Accents: Use stars, arrows, or small badges scattered around the poster to make it feel playful and engaging.
+      - Layout: A massive central Hero Image (illustration) taking up the middle 50% of the poster.
+      - Top Banner: Large, playful, multi-colored bubble-letter style title (using text-shadows, varied colors per word) centered at the top.
+      - Floating Fact Boxes: 4-6 small floating fact boxes positioned around the central image. Each box should have a thick colored outline (e.g., solid 4px red, green, blue border), white background, small playful SVG icon/emoji, and short, legible text.
+      - Title Style: Give each letter or word a different vibrant color.
+      - Visual hierarchy: Make it look like an adventure map or a colorful infographic.
       - Footer Layout: Include 3-4 neat little text boxes in a row at the very bottom containing extra info or activities. Include EduAI or CAPS branding.
-      - Typography: Use bold, playful sans-serif fonts suitable for primary school learners.
+      - Typography: Use bold, playful sans-serif fonts.
       - Colors: Sky blue background, primary color accents (bright yellow, striking red, vibrant green).
       
       Make it vibrant, instantly engaging, and child-friendly.
+    `;
+  } else if (isFlashcard) {
+    visualPrompt = `
+      Design a set of professional, double-sided educational flashcards for Grade ${input.grade} ${input.subject} on "${input.topic}".
+      
+      DESIGN REQUIREMENTS:
+      - Show multiple cards in a grid (2 or 3 per row).
+      - Each card should have:
+        - Front side: Large title, high-quality icon/emoji, and a very short hint.
+        - Back side: Explanation, a South African contextual example, and a small "Did you know?" fact.
+      - Card style: rounded-3xl corners, thick colored borders (2px), subtle shadow.
+      - Use vibrant colors that change per card.
+      - Ensure text is large and legible (text-xl for titles).
     `;
   } else if (isInfographic) {
     visualPrompt = `

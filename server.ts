@@ -59,9 +59,9 @@ async function startServer() {
       const response = await client.chat.completions.create({
         model: model || (
           provider === "llama-primary" ? "llama-3.3-70b-versatile" : 
-          provider === "llama-secondary" ? "meta-llama/llama-4-scout-17b-16e-instruct" : 
-          provider === "groq-qwen" ? "qwen-qwq-32b" :
-          provider === "groq-vision" ? "llama-3.2-11b-vision-preview" :
+          provider === "llama-secondary" ? "llama-3.1-8b-instant" : 
+          provider === "groq-qwen" ? "qwen3.6-plus" :
+          provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
           ""
         ),
         messages,
@@ -123,7 +123,7 @@ async function startServer() {
           inputs: prompt,
           parameters: { negative_prompt: 'blurry' }
         });
-        const arrayBuffer = await imageBlob.arrayBuffer();
+        const arrayBuffer = await (imageBlob as any).arrayBuffer();
         const base64 = Buffer.from(arrayBuffer).toString('base64');
         return res.json({ url: `data:image/jpeg;base64,${base64}` });
       } catch (error: any) {

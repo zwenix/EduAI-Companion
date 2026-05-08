@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Settings as SettingsIcon, Bell, Shield, Key, Moon, Sun, 
   Monitor, Save, AlertCircle, User, CreditCard, 
@@ -6,21 +6,118 @@ import {
   LogOut, Trash2, Plus
 } from 'lucide-react';
 import { useAi } from '../contexts/AiContext';
+import { auth, db } from '../lib/firebase';
+import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
 interface SettingsProps {
   isDarkMode: boolean;
   setIsDarkMode: (dm: boolean) => void;
+  onLogout?: () => void;
+  onSwitchRole?: () => void;
+  onSwitchUser?: () => void;
 }
 
-export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
+export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitchRole, onSwitchUser }: SettingsProps) {
   const { provider, ocrProvider, ttsProvider, imageProvider, setProvider, setOcrProvider, setTtsProvider, setImageProvider } = useAi();
   const [notifications, setNotifications] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(true);
-  const [fullName, setFullName] = useState('Dr. Sarah Mkize');
-  const [school, setSchool] = useState('Houghton Academy');
+  
+  const [fullName, setFullName] = useState(() => localStorage.getItem('eduai_user_name') || 'Dr. Sarah Mkize');
+  const [school, setSchool] = useState(() => localStorage.getItem('eduai_user_school') || 'Houghton Academy');
+  const [phone, setPhone] = useState(() => localStorage.getItem('eduai_user_phone') || '+27 72 000 0000');
+  const [jobTitle, setJobTitle] = useState(() => localStorage.getItem('eduai_user_job') || 'Professional Educator');
+  const [photoUrl, setPhotoUrl] = useState(() => localStorage.getItem('eduai_user_photo') || '');
+  const [profileEmail, setProfileEmail] = useState('');
+  
   const [activeSubTab, setActiveSubTab] = useState('personal');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (auth.currentUser) {
+        setProfileEmail(auth.currentUser.email || '');
+        try {
+          const docRef = doc(db, 'users', auth.currentUser.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.name) setFullName(data.name);
+            if (data.school) setSchool(data.school);
+            if (data.phone) setPhone(data.phone);
+            if (data.jobTitle) setJobTitle(data.jobTitle);
+            if (data.photoUrl) setPhotoUrl(data.photoUrl);
+            
+            // Sync to local storage for quick access across app
+            localStorage.setItem('eduai_user_name', data.name || '');
+            localStorage.setItem('eduai_user_school', data.school || '');
+            localStorage.setItem('eduai_user_phone', data.phone || '');
+            localStorage.setItem('eduai_user_job', data.jobTitle || '');
+            localStorage.setItem('eduai_user_photo', data.photoUrl || '');
+          }
+        } catch (error) {
+          console.error("Error fetching profile", error);
+          if (auth.currentUser) {
+            handleFirestoreError(error, OperationType.GET, 'users/' + auth.currentUser.uid);
+          }
+        }
+      }
+      setIsLoading(false);
+    }
+    fetchProfile();
+  }, []);
+
+  const handleSavePersonal = async () => {
+    if (!auth.currentUser) return;
+    
+    // Optimistic UI updates
+    localStorage.setItem('eduai_user_name', fullName);
+    localStorage.setItem('eduai_user_school', school);
+    localStorage.setItem('eduai_user_phone', phone);
+    localStorage.setItem('eduai_user_job', jobTitle);
+    localStorage.setItem('eduai_user_photo', photoUrl);
+    
+    try {
+      const docRef = doc(db, 'users', auth.currentUser.uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        await updateDoc(docRef, {
+          name: fullName,
+          school: school,
+          jobTitle: jobTitle,
+          phone: phone,
+          photoUrl: photoUrl,
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        await setDoc(docRef, {
+          name: fullName,
+          email: auth.currentUser.email || '',
+          role: 'teacher', // fallback role
+          school: school,
+          jobTitle: jobTitle,
+          phone: phone,
+          photoUrl: photoUrl,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
+      alert('Personal details saved successfully to Firebase.');
+    } catch (error) {
+       console.error("Firebase update failed", error);
+       alert('Personal details failed to save to Firebase.');
+       handleFirestoreError(error, OperationType.WRITE, 'users/' + auth.currentUser.uid);
+    }
+  };
+  
+  const triggerImageUpload = () => {
+    const url = prompt('Enter image URL for profile picture (or leave blank for initials):', photoUrl);
+    if (url !== null) {
+      setPhotoUrl(url);
+    }
+  };
 
   const subTabs = [
     { id: 'personal', label: 'Personal', icon: User },
@@ -28,6 +125,10 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
     { id: 'ai', label: 'AI Configuration', icon: Activity },
     { id: 'billing', label: 'Plan & Billing', icon: CreditCard },
   ];
+
+  if (isLoading) {
+    return <div className="p-12 text-center text-slate-500">Loading settings...</div>;
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-20">
@@ -62,8 +163,16 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
               {tab.label}
             </button>
           ))}
-          <div className="pt-8 opacity-50">
-            <button className="w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest text-red-500 hover:bg-red-500/10 transition-all">
+          <div className="pt-8 opacity-50 space-y-2">
+            <button onClick={onSwitchRole} className="w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-500/10 transition-all">
+              <User size={18} />
+              Switch Role
+            </button>
+            <button onClick={onSwitchUser} className="w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-500/10 transition-all">
+              <SettingsIcon size={18} />
+              Switch User
+            </button>
+            <button onClick={onLogout} className="w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest text-red-500 hover:bg-red-500/10 transition-all">
               <LogOut size={18} />
               Logout Session
             </button>
@@ -75,17 +184,21 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
           {activeSubTab === 'personal' && (
             <div className={cn("rounded-[48px] p-8 lg:p-12 space-y-10", isDarkMode ? "glass" : "bg-white border border-slate-200 shadow-sm")}>
               <div className="flex items-center gap-6">
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-full bg-brand-cyan/20 flex items-center justify-center text-4xl text-brand-cyan font-hand border-2 border-brand-cyan/30">
-                    SM
-                  </div>
+                <div className="relative cursor-pointer" onClick={triggerImageUpload}>
+                  {photoUrl ? (
+                    <img src={photoUrl} alt="Profile" className="w-24 h-24 rounded-full object-cover border-2 border-brand-cyan/30 shadow-lg" />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-brand-cyan/20 flex items-center justify-center text-4xl text-brand-cyan font-hand border-2 border-brand-cyan/30">
+                      {fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'SM'}
+                    </div>
+                  )}
                   <button className="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow-lg border border-slate-100 text-slate-600 hover:bg-slate-50">
                     <Plus size={16} />
                   </button>
                 </div>
                 <div>
                   <h2 className={cn("text-2xl font-bold", isDarkMode ? "text-white" : "text-slate-900")}>{fullName}</h2>
-                  <p className="text-slate-500">Professional Educator • {school}</p>
+                  <p className="text-slate-500">{jobTitle} • {school}</p>
                 </div>
               </div>
 
@@ -109,6 +222,17 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
                   />
                 </div>
                 <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Job Title</label>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      value={jobTitle}
+                      onChange={(e) => setJobTitle(e.target.value)}
+                      className={cn("w-full px-5 py-4 rounded-2xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")} 
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Contact Email</label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -120,17 +244,25 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 lg:col-span-2">
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Phone Matrix</label>
                   <div className="relative">
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input 
                       type="tel" 
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
                       placeholder="+27 72 000 0000"
                       className={cn("w-full pl-12 pr-5 py-4 rounded-2xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")} 
                     />
                   </div>
                 </div>
+              </div>
+              
+              <div className="flex justify-end pt-4">
+                <button onClick={handleSavePersonal} className="flex items-center gap-2 bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-cyan-500/25 transition-all">
+                  <Save size={16} /> Save Changes
+                </button>
               </div>
 
               <div className="pt-6 border-t border-white/5 space-y-6">

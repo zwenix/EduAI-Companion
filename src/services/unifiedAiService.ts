@@ -289,7 +289,7 @@ export const runOCRAndGrade = async (imageData: string, rubric: string, provider
   try {
     let model = 'llama-3.3-70b-versatile';
     if (provider === 'llama-secondary') model = 'llama-3.1-8b-instant';
-    if (provider === 'groq-qwen') model = 'qwen-2.5-32b';
+    if (provider === 'groq-qwen') model = 'qwen3.6-plus';
     
     const grading = await callMultiAi(provider as AIProvider, messages, model);
     

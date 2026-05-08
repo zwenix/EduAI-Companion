@@ -100,27 +100,41 @@ export default function Messenger() {
             <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
               <div className="flex justify-center mb-8">
                 <span className="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em] bg-white/5 px-4 py-2 rounded-full border border-white/5">
-                  Today
+                  Safe Neural Stream Established
                 </span>
               </div>
               
-              <div className="flex gap-4 max-w-lg">
-                <div className="shrink-0 w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center text-[10px] text-brand-cyan font-black border border-white/5">
-                   {MESSAGES.find(m => m.id === activeChat)?.sender[0]}
-                </div>
-                <div className="p-4 rounded-3xl rounded-tl-none bg-white/5 border border-white/10 text-slate-300 text-sm leading-relaxed shadow-xl">
-                  {MESSAGES.find(m => m.id === activeChat)?.text}
-                </div>
-              </div>
-
-              <div className="flex gap-4 max-w-lg ml-auto flex-row-reverse">
-                <div className="shrink-0 w-8 h-8 rounded-xl bg-brand-cyan flex items-center justify-center text-[10px] text-navy-dark font-black shadow-lg">
-                   Y
-                </div>
-                <div className="p-4 rounded-3xl rounded-tr-none bg-brand-cyan text-navy-dark text-sm leading-relaxed font-medium shadow-xl shadow-cyan-500/20">
-                  I'm on my way to help now. Give me 5 minutes!
-                </div>
-              </div>
+              <AnimatePresence>
+                {MESSAGES.map((m, idx) => (
+                   <motion.div 
+                     key={`msg-${idx}`} 
+                     initial={{ opacity: 0, x: -20 }}
+                     animate={{ opacity: 1, x: 0 }}
+                     className="flex gap-4 max-w-lg mb-6"
+                   >
+                     <div className="shrink-0 w-10 h-10 rounded-2xl bg-slate-800 flex items-center justify-center text-xs text-brand-cyan font-black border border-white/5 shadow-lg">
+                        {m.sender[0]}
+                     </div>
+                     <div className="p-5 rounded-3xl rounded-tl-none bg-white/5 border border-white/10 text-slate-300 text-sm leading-relaxed shadow-xl backdrop-blur-md">
+                        <p className="font-bold text-slate-400 text-[10px] uppercase mb-1">{m.sender}</p>
+                        {m.text}
+                     </div>
+                   </motion.div>
+                ))}
+                
+                <motion.div 
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex gap-4 max-w-lg ml-auto flex-row-reverse mb-6"
+                >
+                  <div className="shrink-0 w-10 h-10 rounded-2xl bg-brand-cyan flex items-center justify-center text-xs text-navy-dark font-black shadow-xl shadow-cyan-500/20">
+                     ZW
+                  </div>
+                  <div className="p-5 rounded-3xl rounded-tr-none bg-brand-cyan text-navy-dark text-sm leading-relaxed font-bold shadow-2xl shadow-cyan-500/20">
+                    Educational context received. Processing high-quality CAPS output now! 🚀
+                  </div>
+                </motion.div>
+              </AnimatePresence>
             </div>
 
             {/* Chat Input */}

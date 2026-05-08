@@ -1,11 +1,15 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Sparkles, User, Mic, Loader2, Play, Square, History as HistoryIcon, GraduationCap, Pause, Image as ImageIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { chatWithTutor } from '../services/unifiedAiService';
 import { marked } from 'marked';
 import { useAi } from '../contexts/AiContext';
 import { speakText, stopSpeaking, pauseSpeaking, resumeSpeaking } from '../services/ttsService';
 import Logo from './Logo';
 import AiImage from './AiImage';
+import { auth, db } from '../lib/firebase';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
 
 type ChatMessage = {
   role: 'user' | 'model';
@@ -67,14 +71,61 @@ export default function AITutorPage() {
   }, []);
 
   useEffect(() => {
-    if (messages.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-    }
-  }, [messages]);
-
-  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    const fetchAiChats = async () => {
+      if (auth.currentUser) {
+        try {
+           const docRef = doc(db, 'ai_tutor_sessions', auth.currentUser.uid);
+           const docSnap = await getDoc(docRef);
+           if (docSnap.exists() && docSnap.data().messages) {
+              const loadedMessages = JSON.parse(docSnap.data().messages);
+              setMessages(loadedMessages);
+           } else {
+             const localData = localStorage.getItem(STORAGE_KEY);
+             if (localData) setMessages(JSON.parse(localData));
+           }
+        } catch (error) {
+           console.error("Error fetching AI chat history", error);
+           handleFirestoreError(error, OperationType.GET, 'ai_tutor_sessions/' + auth.currentUser.uid);
+        }
+      }
+    };
+    fetchAiChats();
+  }, []);
+
+  const saveMessagesToFirebase = async (newMessages: ChatMessage[]) => {
+    if (auth.currentUser && newMessages.length > 0) {
+       try {
+         const docRef = doc(db, 'ai_tutor_sessions', auth.currentUser.uid);
+         const docSnap = await getDoc(docRef);
+         if (docSnap.exists()) {
+           await updateDoc(docRef, {
+             messages: JSON.stringify(newMessages),
+             updatedAt: serverTimestamp()
+           });
+         } else {
+           await setDoc(docRef, {
+             userId: auth.currentUser.uid,
+             messages: JSON.stringify(newMessages),
+             updatedAt: serverTimestamp()
+           });
+         }
+       } catch (error) {
+         console.error("Error saving AI chat history", error);
+         handleFirestoreError(error, OperationType.WRITE, 'ai_tutor_sessions/' + auth.currentUser.uid);
+       }
+    }
+  };
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+      saveMessagesToFirebase(messages);
+    }
+  }, [messages]);
 
   useEffect(() => {
     // Pre-load voices to ensure they are available for synchronous playback 
@@ -282,12 +333,18 @@ export default function AITutorPage() {
           messages.map((msg, i) => (
             <div key={i} className={`flex items-end gap-2 lg:gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
               {msg.role === 'model' && (
-                <div className="w-8 h-8 lg:w-10 lg:h-10 flex flex-col items-center justify-center shrink-0">
-                  <Logo className="w-full h-full object-contain drop-shadow-sm" />
-                </div>
+                <motion.div 
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  className="w-8 h-8 lg:w-12 lg:h-12 flex flex-col items-center justify-center shrink-0"
+                >
+                  <Logo className="w-full h-full object-contain drop-shadow-md p-1 bg-white rounded-2xl shadow-lg border-2 border-brand-cyan/20" />
+                </motion.div>
               )}
               
-              <div className={`p-3 lg:p-4 max-w-[85%] lg:max-w-[80%] shadow-sm ${
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0, y: 10 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                className={`p-4 lg:p-6 max-w-[85%] lg:max-w-[80%] shadow-xl ${
                 msg.role === 'user' 
                   ? 'bg-brand-cyan text-navy-dark rounded-2xl lg:rounded-3xl rounded-br-md font-medium' 
                   : 'bg-white border border-slate-200 rounded-2xl lg:rounded-3xl rounded-bl-md text-slate-700'
@@ -310,8 +367,8 @@ export default function AITutorPage() {
                     )}
                     <p className="text-sm lg:text-[15px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                   </div>
-                )}
-              </div>
+                )} 
+              </motion.div>
               
               {msg.role === 'model' && (
                 <div className="flex flex-col gap-2 shrink-0">

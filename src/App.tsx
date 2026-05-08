@@ -506,10 +506,10 @@ export default function App() {
                 : 'bg-white border border-slate-200 text-slate-600 hover:border-brand-cyan focus:border-brand-cyan shadow-sm [&>option]:bg-white [&>option]:text-slate-600'
               }`}
             >
-              <option value="gemini">Gemini 2.0 Flash</option>
+              <option value="gemini">Gemini 3 Flash</option>
               <option value="llama-primary">Llama 3.3 70B (Primary)</option>
               <option value="llama-secondary">Llama 4 Scout (Preview)</option>
-              <option value="groq-qwen">Qwen-QwQ-32B (CAPS Reasoning)</option>
+              <option value="groq-qwen">Alibaba Qwen3.6-Plus (CAPS Reasoning)</option>
               <option value="groq-vision">Llama 3.2 11B (Vision)</option>
             </select>
             <button 
@@ -519,8 +519,12 @@ export default function App() {
               {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
             <NotificationsDropdown isDarkMode={isDarkMode} />
-            <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-[10px] lg:rounded-[14px] ${isDarkMode ? 'bg-slate-800 border border-white/5 shadow-2xl' : 'bg-white shadow-xl'} flex items-center justify-center text-xs lg:text-sm font-black text-brand-cyan shrink-0`}>
-              ZW
+            <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-[10px] lg:rounded-[14px] ${isDarkMode ? 'bg-slate-800 border border-white/5 shadow-2xl' : 'bg-white shadow-xl'} flex items-center justify-center text-xs lg:text-sm font-black text-brand-cyan shrink-0 overflow-hidden`}>
+              {localStorage.getItem('eduai_user_photo') ? (
+                <img src={localStorage.getItem('eduai_user_photo')!} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                (localStorage.getItem('eduai_user_name') || 'SM').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+              )}
             </div>
           </div>
         </header>
@@ -653,22 +657,46 @@ export default function App() {
                 ) : activeTab === 'student-notes' ? (
                   <StudentNotes isDarkMode={isDarkMode} />
                 ) : activeTab === 'settings' ? (
-                  <SettingsPage isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+                  <SettingsPage 
+                    isDarkMode={isDarkMode} 
+                    setIsDarkMode={setIsDarkMode}
+                    onLogout={() => {
+                      setShowDashboard(false);
+                      setShowLogin(false);
+                      setUserRole(null);
+                    }}
+                    onSwitchRole={() => setNeedsRoleSetup(true)}
+                    onSwitchUser={() => {
+                      setShowDashboard(false);
+                      setShowLogin(true);
+                      setUserRole(null);
+                    }}
+                  />
                 ) : activeTab === 'helpdesk' ? (
                   <Helpdesk isDarkMode={isDarkMode} />
-                ) : (
+                ) : ( 
                   <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200 shadow-sm'} p-12 rounded-[48px] text-center min-h-[500px] flex flex-col items-center justify-center`}>
-                    <div className={`w-28 h-28 ${isDarkMode ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-100'} rounded-[36px] flex items-center justify-center mb-8`}>
-                      <Logo className="w-20 h-20" />
+                    <Logo className="w-40 h-40 mb-8" />
+                    <h3 className={`text-4xl font-hand mb-4 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                      Exploring New Worlds!
+                    </h3>
+                    <p className={`text-slate-500 max-w-sm mx-auto font-medium leading-relaxed`}> 
+                      Our robot engineers are currently adding more magic to this module. For now, check out the <span className="text-brand-cyan font-bold">AI Tutor</span> or <span className="text-brand-cyan font-bold">Content Creator</span>! 
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4 mt-10">
+                      <button 
+                        onClick={() => setActiveTab('dashboard')}
+                        className="bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-10 py-4 rounded-3xl font-black uppercase tracking-widest text-[11px] shadow-xl shadow-cyan-500/30 transition-all active:scale-95"
+                      >
+                        Back to HQ
+                      </button>
+                      <button 
+                        onClick={() => setActiveTab('ai-tutor')}
+                        className="bg-white/5 border border-white/10 text-white px-10 py-4 rounded-3xl font-black uppercase tracking-widest text-[11px] hover:bg-white/10 transition-all"
+                      >
+                        Talk to Tutor
+                      </button>
                     </div>
-                    <h3 className={`text-4xl font-hand mb-4 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>System Offline</h3>
-                    <p className={`text-slate-500 max-w-sm mx-auto font-medium`}> This module is currently undergoing neural calibration. Please check back after the next CAPS update.</p>
-                    <button 
-                      onClick={() => setActiveTab('dashboard')}
-                      className="mt-10 bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-10 py-4 rounded-3xl font-black uppercase tracking-widest text-[11px] shadow-xl shadow-cyan-500/30 transition-all active:scale-95"
-                    >
-                      Return to Dashboard
-                    </button>
                   </div>
                 )}
               </div>
