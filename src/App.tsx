@@ -72,13 +72,14 @@ import { signOut } from 'firebase/auth';
 const SidebarItem = ({ icon: Icon, label, active, onClick, collapsed }: { icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all duration-300 text-sm font-medium group ${
+    title={collapsed ? label : undefined}
+    className={`flex items-center ${collapsed ? 'justify-center w-12 h-12 mx-auto px-0 py-0' : 'w-full gap-3 px-3 py-2.5'} rounded-2xl transition-all duration-300 text-sm font-medium group ${
       active 
       ? 'bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/30 shadow-[0_0_15px_-3px_rgba(6,182,212,0.3)]' 
       : 'text-slate-400 hover:text-white hover:bg-white/5'
     }`}
   >
-    <Icon size={20} className={`${active ? 'text-brand-cyan' : 'group-hover:text-brand-cyan'} transition-colors`} />
+    <Icon size={20} className={`${active ? 'text-brand-cyan' : 'group-hover:text-brand-cyan'} transition-colors shrink-0`} />
     {!collapsed && <span className="truncate">{label}</span>}
   </button>
 );
@@ -95,7 +96,12 @@ const LandingPage = ({ onEnter }: { onEnter: () => void }) => {
       </div>
 
       {/* Navbar */}
-      <nav className="h-24 px-6 lg:px-12 flex items-center justify-between relative z-10 max-w-7xl mx-auto w-full">
+      <motion.nav 
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="h-24 px-6 lg:px-12 flex items-center justify-between relative z-10 max-w-7xl mx-auto w-full"
+      >
         <div className="flex items-center gap-3">
           <Logo className="w-10 h-10" />
           <span className="text-2xl font-hand tracking-wide text-white">
@@ -113,35 +119,63 @@ const LandingPage = ({ onEnter }: { onEnter: () => void }) => {
             Get Started
           </button>
         </div>
-      </nav>
+      </motion.nav>
 
       {/* Hero */}
       <div className="flex-1 max-w-7xl mx-auto w-full px-6 lg:px-12 pt-10 pb-20 relative z-10 flex flex-col lg:flex-row items-center gap-12">
         <motion.div
-           initial={{ opacity: 0, x: -20 }}
+           initial={{ opacity: 0, x: -30 }}
            animate={{ opacity: 1, x: 0 }}
+           transition={{ duration: 0.8, ease: "easeOut" }}
            className="flex-1 text-center lg:text-left"
         >
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md outline outline-1 outline-white/20 px-4 py-2 rounded-full mb-6 text-sm font-semibold text-white">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md outline outline-1 outline-white/20 px-4 py-2 rounded-full mb-6 text-sm font-semibold text-white"
+          >
              <Sparkles size={16} className="text-yellow-400" /> 
              The Smartest Way to Learn!
-          </div>
+          </motion.div>
           
-          <h1 className="text-6xl md:text-7xl lg:text-8xl font-black text-white mb-6 leading-tight drop-shadow-md">
+          <motion.h1 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+            className="text-6xl md:text-7xl lg:text-8xl font-black text-white mb-6 leading-tight drop-shadow-md"
+          >
             Learning is an <br />
             <span className="text-yellow-400 relative inline-block">
               Adventure!
-              <svg className="absolute -bottom-2 lg:-bottom-4 left-0 w-full h-4 lg:h-6 text-yellow-400" viewBox="0 0 200 20" preserveAspectRatio="none">
+              <motion.svg 
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{ duration: 1, delay: 0.5, ease: "easeInOut" }}
+                className="absolute -bottom-2 lg:-bottom-4 left-0 w-full h-4 lg:h-6 text-yellow-400" 
+                viewBox="0 0 200 20" 
+                preserveAspectRatio="none"
+              >
                 <path d="M0,10 Q25,20 50,10 T100,10 T150,10 T200,10" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
-              </svg>
+              </motion.svg>
             </span>
-          </h1>
+          </motion.h1>
           
-          <p className="text-lg lg:text-xl text-blue-50/90 mb-10 max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed drop-shadow-sm">
+          <motion.p 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.6 }}
+            className="text-lg lg:text-xl text-blue-50/90 mb-10 max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed drop-shadow-sm"
+          >
             Magic lesson plans, super homework help, and your very own AI robot tutor! 🚀
-          </p>
+          </motion.p>
           
-          <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.6 }}
+            className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4"
+          >
             <button 
               onClick={onEnter}
               className="w-full sm:w-auto bg-yellow-400 hover:bg-yellow-300 text-slate-900 px-8 py-4 rounded-2xl font-bold text-lg transition-all shadow-xl shadow-yellow-400/30 active:scale-95 flex items-center justify-center gap-2"
@@ -154,7 +188,7 @@ const LandingPage = ({ onEnter }: { onEnter: () => void }) => {
             >
               Sign In
             </button>
-          </div>
+          </motion.div>
         </motion.div>
 
         {/* Hero Image / Illustration Area */}
@@ -384,10 +418,10 @@ export default function App() {
           width: isMobile ? (isMobileSidebarOpen ? 280 : 0) : (isSidebarOpen ? 280 : 80),
           x: isMobile && !isMobileSidebarOpen ? -280 : 0
         }}
-        className={`${isDarkMode ? 'bg-[#0B1122]' : 'bg-white shadow-xl'} border-r ${isDarkMode ? 'border-white/5' : 'border-slate-200'} h-full flex flex-col p-6 fixed lg:relative shrink-0 z-[60] lg:z-40 transition-colors duration-500 overflow-hidden`}
+        className={`${isDarkMode ? 'bg-[#0B1122]' : 'bg-white shadow-xl'} border-r ${isDarkMode ? 'border-white/5' : 'border-slate-200'} h-full flex flex-col ${isSidebarOpen ? 'p-6' : 'py-6 px-3 lg:px-4'} fixed lg:relative shrink-0 z-[60] lg:z-40 transition-all duration-300 overflow-hidden`}
       >
-        <div className="flex items-center justify-between mb-10 px-2 min-w-[230px]">
-          <div className="flex items-center gap-3">
+        <div className={`flex items-center ${isSidebarOpen || isMobile ? 'justify-between mb-10 px-2 min-w-[230px]' : 'justify-center mb-10 min-w-0'}`}>
+          <div className={`flex items-center ${isSidebarOpen || isMobile ? 'gap-3' : 'justify-center w-full'}`}>
             <Logo />
             {(isSidebarOpen || isMobile) && (
               <motion.h1 
@@ -406,7 +440,7 @@ export default function App() {
           )}
         </div>
 
-        <nav className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
+        <nav className="flex-1 min-h-0 space-y-2 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {(function() {
             if (userRole === 'student') {
               return [
@@ -477,11 +511,11 @@ export default function App() {
           ))}
         </nav>
 
-        <div className={`mt-auto pt-4 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-100'} space-y-2 overflow-hidden`}>
+        <div className={`mt-auto pt-4 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-100'} space-y-2 overflow-hidden flex justify-center`}>
           {!isMobile && (
             <button 
               onClick={() => setSidebarOpen(!isSidebarOpen)}
-              className={`w-full flex items-center justify-center p-3 rounded-2xl ${isDarkMode ? 'hover:bg-white/5 text-slate-500' : 'hover:bg-slate-100 text-slate-400'} transition-colors`}
+              className={`flex items-center justify-center rounded-2xl ${isSidebarOpen ? 'w-full p-3' : 'w-12 h-12'} ${isDarkMode ? 'hover:bg-white/5 text-slate-500' : 'hover:bg-slate-100 text-slate-400'} transition-colors`}
             >
               <ChevronRight className={`transition-transform duration-300 ${isSidebarOpen ? 'rotate-180' : 'rotate-0'}`} />
             </button>

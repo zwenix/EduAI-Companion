@@ -27,6 +27,11 @@ async function startServer() {
     baseURL: "https://api.groq.com/openai/v1",
   });
 
+  const alibaba = new OpenAI({
+    apiKey: process.env.ALIBABA_API_KEY || "dummy",
+    baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+  });
+
   // --- API Routes ---
 
   app.get("/api/health", (req, res) => {
@@ -44,15 +49,18 @@ async function startServer() {
     switch (provider) {
       case "llama-primary":
       case "llama-secondary":
-      case "groq-qwen":
       case "groq-vision":
         client = groq;
         apiKey = process.env.GROQ_API_KEY || "";
         break;
+      case "alibaba-qwen":
+        client = alibaba;
+        apiKey = process.env.ALIBABA_API_KEY || "";
+        break;
     }
 
-    if (!client || !apiKey) {
-      return res.status(400).json({ error: `Provider ${provider} not configured or API key missing.` });
+    if (!apiKey || apiKey === "dummy" || apiKey === 'undefined') {
+      return res.status(400).json({ error: { message: `Provider ${provider} is not configured. Please add the ${provider === 'alibaba-qwen' ? 'ALIBABA_API_KEY' : 'API_KEY'} in the application settings.` }});
     }
 
     try {
@@ -60,7 +68,7 @@ async function startServer() {
         model: model || (
           provider === "llama-primary" ? "llama-3.3-70b-versatile" : 
           provider === "llama-secondary" ? "llama-3.1-8b-instant" : 
-          provider === "groq-qwen" ? "qwen3.6-plus" :
+          provider === "alibaba-qwen" ? "qwen-plus" :
           provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
           ""
         ),

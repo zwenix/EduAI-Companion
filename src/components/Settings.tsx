@@ -324,6 +324,7 @@ export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitch
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
                       <option value="llama-primary">Llama 3.3 70B Versatile (Primary)</option>
+                      <option value="alibaba-qwen">Alibaba Qwen-Plus (CAPS Reasoning)</option>
                       <option value="gemini">Gemini 2.0 Flash (Fallback)</option>
                     </select>
                   </div>
