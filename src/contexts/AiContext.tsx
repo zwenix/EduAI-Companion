@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 export type AIProvider = 'gemini' | 'llama-primary' | 'llama-secondary' | 'alibaba-qwen' | 'alibaba-deepseek' | 'groq-vision';
 export type TTSProvider = 'browser' | 'elevenlabs';
 export type OCRProvider = 'gemini' | 'ocrspace' | 'groq-vision';
-export type ImageProvider = 'huggingface' | 'pollinations' | 'alibaba-qwen-image';
+export type ImageProvider = 'huggingface' | 'pollinations-schnell' | 'pollinations-turbo' | 'pollinations-klein' | 'alibaba-qwen-image';
 
 interface AiContextType {
   provider: AIProvider;
@@ -21,7 +21,7 @@ const AiContext = createContext<AiContextType | undefined>(undefined);
 const VALID_PROVIDERS: AIProvider[] = ['gemini', 'llama-primary', 'llama-secondary', 'alibaba-qwen', 'alibaba-deepseek', 'groq-vision'];
 const VALID_TTS: TTSProvider[] = ['browser', 'elevenlabs'];
 const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace', 'groq-vision'];
-const VALID_IMAGE: ImageProvider[] = ['huggingface', 'pollinations', 'alibaba-qwen-image'];
+const VALID_IMAGE: ImageProvider[] = ['huggingface', 'pollinations-schnell', 'pollinations-turbo', 'pollinations-klein', 'alibaba-qwen-image'];
 
 export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {
@@ -57,10 +57,10 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [imageProvider, setImageProvider] = useState<ImageProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_image_provider') as any;
-      if (saved === 'zhipu' || saved === 'glm-image') return 'pollinations';
-      return saved && VALID_IMAGE.includes(saved) ? saved : 'pollinations';
+      if (saved === 'zhipu' || saved === 'glm-image' || saved === 'pollinations') return 'pollinations-schnell';
+      return saved && VALID_IMAGE.includes(saved) ? saved : 'pollinations-schnell';
     } catch {
-      return 'pollinations';
+      return 'pollinations-schnell';
     }
   });
 

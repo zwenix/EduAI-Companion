@@ -577,7 +577,7 @@ export default function App() {
                     }`}
                     title="OCR Engine"
                   >
-                    <option value="gemini">OCR: Gemini 2.5 Flash</option>
+                    <option value="gemini">OCR: Gemini 3.0 Flash</option>
                     <option value="groq-vision">OCR: Llama 3.2 Vision</option>
                     <option value="ocrspace">OCR: OCR.Space</option>
                   </select>
@@ -594,7 +594,9 @@ export default function App() {
                   >
                     <option value="alibaba-qwen-image">IMG: Qwen-Image 2.0</option>
                     <option value="huggingface">IMG: FLUX.1 (HF)</option>
-                    <option value="pollinations">IMG: FLUX.1 (POL)</option>
+                    <option value="pollinations-schnell">IMG: Flux Schnell</option>
+                    <option value="pollinations-turbo">IMG: Z-Image Turbo</option>
+                    <option value="pollinations-klein">IMG: FLUX.2 Klein 4B</option>
                   </select>
 
                   <select 
@@ -625,7 +627,7 @@ export default function App() {
                   <option value="llama-primary">Llama 3.3 70B (Primary)</option>
                   <option value="alibaba-qwen">Alibaba Qwen-Plus (Reasoning)</option>
                   <option value="alibaba-deepseek">Alibaba DeepSeek V3 (Coding)</option>
-                  <option value="gemini">Gemini 2.5 Flash (Fallback)</option>
+                  <option value="gemini">Gemini 3.0 Flash (Fallback)</option>
                 </select>
                 <button 
                   onClick={() => setIsDarkMode(!isDarkMode)}

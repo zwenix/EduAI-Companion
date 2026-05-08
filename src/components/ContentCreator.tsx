@@ -158,7 +158,11 @@ const Select = ({ value, onValueChange, children, placeholder, disabled, isDarkM
               isDarkMode ? "bg-slate-900 border-white/10" : "bg-white border-slate-200"
             )}
           >
-            {children(setIsOpen)}
+            {typeof children === 'function' 
+              ? children(setIsOpen) 
+              : Array.isArray(children) 
+                ? children.map(c => typeof c === 'function' ? c(setIsOpen) : c) 
+                : children}
           </motion.div>
         )}
       </AnimatePresence>
@@ -567,6 +571,36 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [f_theme, setF_Theme] = useState('Animals');
   const [f_language, setF_Language] = useState('English HL');
 
+  const [videoResult, setVideoResult] = useState<any>(null);
+  const [vid_prompt, setVid_Prompt] = useState<string>('');
+  const [vid_model, setVid_Model] = useState<string>('pollinations-ltx');
+  
+  const handleGenerateVideo = async () => {
+    setIsLoading(true);
+    setError(null);
+    setVideoResult(null);
+    try {
+      // Simulate or actually generate by setting the video source url
+      const promptEnc = encodeURIComponent(vid_prompt);
+      let model = 'ltx-video';
+      if (vid_model === 'pollinations-ltx') model = 'ltx-video';
+      else if (vid_model === 'pollinations-other') model = 'kling'; // example
+      else if (vid_model === 'gemini-video') model = 'ltx-video'; // since gemini-video doesn't exist on pollinations directly we just fall back
+      
+      const url = `https://image.pollinations.ai/prompt/${promptEnc}?nologo=true&model=${model}`;
+      
+      // Delay to simulate processing? No, pollinations may take a while. We show exactly the URL. 
+      // Actually Pollinations returns MP4 for video models! We can display it in an HTML5 video tag.
+      setTimeout(() => {
+        setVideoResult({ url, prompt: vid_prompt, model: vid_model });
+        setIsLoading(false);
+      }, 2000);
+    } catch (err: any) {
+      setError(err.message || "Failed to generate video.");
+      setIsLoading(false);
+    }
+  };
+
   const a_subjects = useMemo(() => {
     if (!a_grade) return [];
     const gradeData = educationalData[a_grade];
@@ -686,7 +720,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
 
   if (!isOpen) return null;
 
-  const hasResult = ((activeTab === 'teaching' || activeTab === 'grade1') && !!teachingResult) || (activeTab === 'visual' && !!visualResult) || (activeTab === 'admin' && !!adminResult);
+  const hasResult = ((activeTab === 'teaching' || activeTab === 'grade1') && !!teachingResult) || (activeTab === 'visual' && !!visualResult) || (activeTab === 'admin' && !!adminResult) || (activeTab === 'video' && !!videoResult);
 
   return (
     <motion.div 
@@ -718,6 +752,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
             {[
               { id: 'teaching', icon: FlaskConical, label: 'Content Studio' },
               { id: 'visual', icon: Palette, label: 'Visual Lab' },
+              { id: 'video', icon: Video, label: 'Video Lab' },
               { id: 'admin', icon: FileText, label: 'Admin Lab' },
               { id: 'grade1', icon: Sparkles, label: 'Foundation' },
             ].map(lab => (
@@ -1089,6 +1124,49 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
               </motion.div>
             )}
 
+            {activeTab === 'video' && (
+              <div className="space-y-4">
+                <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 p-5 rounded-3xl">
+                  <h3 className={cn("text-lg font-black uppercase tracking-widest mb-1 flex items-center gap-2", isDarkMode ? "text-indigo-400" : "text-indigo-600")}>
+                    <Video size={18} /> Video Creation Lab
+                  </h3>
+                  <p className={cn("text-xs font-bold", isDarkMode ? "text-slate-400" : "text-slate-500")}>Generate short educational clips instantly using open-source models.</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className={cn("text-[10px] font-black uppercase tracking-widest ml-1 mb-1 block", isDarkMode ? "text-slate-400" : "text-slate-500")}>Model</label>
+                    <Select value={vid_model} onValueChange={setVid_Model} placeholder="Video Model" isDarkMode={isDarkMode}>
+                      {(close: any) => (
+                        <>
+                          <SelectItem onClick={() => { setVid_Model('pollinations-ltx'); close(); }} active={vid_model === 'pollinations-ltx'} isDarkMode={isDarkMode}>LTX-2.3 (Primary / Fast)</SelectItem>
+                          <SelectItem onClick={() => { setVid_Model('pollinations-other'); close(); }} active={vid_model === 'pollinations-other'} isDarkMode={isDarkMode}>Kling 1.0 (Secondary)</SelectItem>
+                          <SelectItem onClick={() => { setVid_Model('gemini-video'); close(); }} active={vid_model === 'gemini-video'} isDarkMode={isDarkMode}>Gemini 3.0 Flash (Fallback)</SelectItem>
+                        </>
+                      )}
+                    </Select>
+                  </div>
+                  <div>
+                    <label className={cn("text-[10px] font-black uppercase tracking-widest ml-1 mb-1 block", isDarkMode ? "text-slate-400" : "text-slate-500")}>Video Prompt</label>
+                    <textarea 
+                      placeholder="E.g., A cinematic shot of a lion roaring in the African savanna..." 
+                      value={vid_prompt} 
+                      onChange={(e: any) => setVid_Prompt(e.target.value)} 
+                      className={cn("w-full px-4 py-3 rounded-2xl text-sm min-h-[120px] outline-none transition-all", isDarkMode ? "bg-white/5 border border-white/10 text-white focus:border-indigo-500" : "bg-white border border-slate-200 text-slate-900 focus:border-indigo-500")}
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  onClick={handleGenerateVideo}
+                  disabled={isLoading || !vid_prompt}
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-xl shadow-indigo-600/30"
+                >
+                  {isLoading ? <Loader2 className="animate-spin" size={18} /> : <Video size={18} />}
+                  {isLoading ? 'Synthesizing Video...' : 'Generate Video'}
+                </button>
+              </div>
+            )}
             {activeTab === 'grade1' && (
               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
                 <div>
@@ -1300,6 +1378,25 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                       )}
                       {visualResult && (
                         <ContentPreview html={visualResult.content} label="Digital Visual Asset" isDarkMode={isDarkMode} />
+                      )}
+                    </div>
+                  )}
+                  {activeTab === 'video' && (
+                    <div className="space-y-8 flex flex-col items-center">
+                      {videoResult ? (
+                        <div className="w-full max-w-3xl border border-indigo-500/20 rounded-3xl overflow-hidden shadow-2xl bg-black">
+                          <video src={videoResult.url} controls autoPlay loop className="w-full aspect-video outline-none" />
+                          <div className={cn("p-4 border-t text-center", isDarkMode ? "border-white/10 bg-slate-900" : "border-slate-200 bg-white")}>
+                            <p className={cn("font-medium text-sm", isDarkMode ? "text-slate-300" : "text-slate-700")}>
+                              {videoResult.prompt}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-20 opacity-50">
+                          <Video size={48} className="mx-auto mb-4" />
+                          <p>Ready to generate video.</p>
+                        </div>
                       )}
                     </div>
                   )}

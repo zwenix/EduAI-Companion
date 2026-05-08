@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export type AIProvider = 'llama-primary' | 'llama-secondary' | 'alibaba-qwen' | 'groq-vision';
+export type AIProvider = 'llama-primary' | 'llama-secondary' | 'alibaba-qwen' | 'alibaba-deepseek' | 'groq-vision';
 
 export const callMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
   try {

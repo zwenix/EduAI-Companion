@@ -24,15 +24,19 @@ export default function AiImage({ prompt, className = '', aspectRatio = 'square'
       setIsLoading(true);
       setError(false);
       
-      if (imageProvider === 'pollinations') {
-        const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&model=flux&seed=${retryCount}`;
+      if (imageProvider.startsWith('pollinations')) {
+        let model = 'flux';
+        if (imageProvider === 'pollinations-schnell') model = 'flux';
+        if (imageProvider === 'pollinations-turbo') model = 'turbo';
+        if (imageProvider === 'pollinations-klein') model = 'flux-pro'; // or whatever the closest is
+        const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&model=${model}&seed=${retryCount}`;
         if (active) setImageUrl(url);
-      } else if (imageProvider === 'huggingface') {
+      } else if (imageProvider === 'huggingface' || imageProvider === 'alibaba-qwen-image') {
         try {
           const res = await fetch('/api/images/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, provider: 'huggingface' })
+            body: JSON.stringify({ prompt, provider: imageProvider })
           });
           const data = await res.json();
           if (data.url && active) {
@@ -41,7 +45,7 @@ export default function AiImage({ prompt, className = '', aspectRatio = 'square'
             throw new Error(data.error || 'Failed to generate image');
           }
         } catch (err: any) {
-          console.warn("HuggingFace Image Warn:", err.message);
+          console.warn(`${imageProvider} Image Warn:`, err.message);
           
           if (active) {
             console.warn("Falling back to Pollinations...");

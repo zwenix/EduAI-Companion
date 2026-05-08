@@ -326,7 +326,7 @@ export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitch
                       <option value="llama-primary">Llama 3.3 70B Versatile (Primary)</option>
                       <option value="alibaba-qwen">Alibaba Qwen-Plus (CAPS Reasoning)</option>
                       <option value="alibaba-deepseek">Alibaba DeepSeek V3 (Coding)</option>
-                      <option value="gemini">Gemini 2.5 Flash (Fallback)</option>
+                      <option value="gemini">Gemini 3.0 Flash (Fallback)</option>
                     </select>
                   </div>
 
@@ -339,7 +339,9 @@ export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitch
                     >
                       <option value="alibaba-qwen-image">Qwen-Image 2.0 Pro</option>
                       <option value="huggingface">FLUX.1 [schnell] (HuggingFace)</option>
-                      <option value="pollinations">FLUX.1 [schnell] (Pollinations)</option>
+                      <option value="pollinations-schnell">Flux Schnell (Pollinations)</option>
+                      <option value="pollinations-turbo">Z-Image Turbo (Pollinations)</option>
+                      <option value="pollinations-klein">FLUX.2 Klein 4B (Pollinations)</option>
                     </select>
                   </div>
 
