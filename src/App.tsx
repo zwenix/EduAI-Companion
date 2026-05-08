@@ -39,7 +39,12 @@ import {
   Menu,
   X,
   Zap,
-  School
+  School,
+  Home,
+  ArrowLeft,
+  LogOut,
+  RefreshCcw,
+  UserCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ContentCreator from './components/ContentCreator';
@@ -61,6 +66,8 @@ import ParentDashboard from './components/ParentDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import SettingsPage from './components/Settings';
 import Helpdesk from './components/Helpdesk';
+import { auth } from './lib/firebase';
+import { signOut } from 'firebase/auth';
 
 const SidebarItem = ({ icon: Icon, label, active, onClick, collapsed }: { icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean }) => (
   <button
@@ -234,20 +241,75 @@ export default function App() {
   const [needsRoleSetup, setNeedsRoleSetup] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [previousTabs, setPreviousTabs] = useState<string[]>([]);
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+
   // Dialog States
   const [activeCreatorTab, setActiveCreatorTab] = useState<string | null>(null);
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+    const handleActivity = () => {
+      setIsHeaderVisible(true);
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        setIsHeaderVisible(false);
+        setIsProfileDropdownOpen(false);
+      }, 5000); // hide after 5 seconds of inactivity
+    };
+    window.addEventListener('mousemove', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+    window.addEventListener('scroll', handleActivity, true);
+    
+    handleActivity();
+    
+    return () => {
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+      window.removeEventListener('scroll', handleActivity, true);
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  const changeTab = (newTab: string) => {
+    setPreviousTabs(prev => [...prev, activeTab]);
+    setActiveTab(newTab);
+  };
+
+  const goBack = () => {
+    if (previousTabs.length > 0) {
+      const newHistory = [...previousTabs];
+      const prev = newHistory.pop();
+      setPreviousTabs(newHistory);
+      if (prev) setActiveTab(prev);
+    } else {
+      setActiveTab('dashboard');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setShowDashboard(false);
+      setShowLogin(false);
+      setUserRole(null);
+    } catch (error) {
+      console.error('Error logging out', error);
+    }
+  };
 
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
       if (mobile) setSidebarOpen(false);
-      else setSidebarOpen(true);
+      // Removed else branch to preserve user preference or default to false on desktop
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -398,15 +460,15 @@ export default function App() {
                 if (['teaching', 'grade1'].includes(item.id)) {
                   setActiveCreatorTab(item.id);
                 } else if (item.id === 'ai-tutor') {
-                  setActiveTab('ai-tutor');
+                  changeTab('ai-tutor');
                 } else if (item.id === 'ocr') {
-                  setActiveTab('ocr');
+                  changeTab('ocr');
                 } else if (item.id === 'settings') {
-                  setActiveTab('settings');
+                  changeTab('settings');
                 } else if (item.id === 'helpdesk') {
-                  setActiveTab('helpdesk');
+                  changeTab('helpdesk');
                 } else {
-                  setActiveTab(item.id);
+                  changeTab(item.id);
                 }
                 if (isMobile) setMobileSidebarOpen(false);
               }} 
@@ -416,16 +478,6 @@ export default function App() {
         </nav>
 
         <div className={`mt-auto pt-4 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-100'} space-y-2 overflow-hidden`}>
-          <SidebarItem 
-            icon={Settings} 
-            label="Settings" 
-            active={activeTab === 'settings'} 
-            onClick={() => {
-              setActiveTab('settings');
-              if (isMobile) setMobileSidebarOpen(false);
-            }} 
-            collapsed={!isSidebarOpen && !isMobile}
-          />
           {!isMobile && (
             <button 
               onClick={() => setSidebarOpen(!isSidebarOpen)}
@@ -440,97 +492,125 @@ export default function App() {
       {/* Main Content */}
       <main className={`flex-1 flex flex-col overflow-hidden relative ${isDarkMode ? 'bg-[#0F172A] dark-theme' : 'bg-slate-50'} transition-colors duration-500`}>
         {/* Header */}
-        <header className={`h-20 border-b ${isDarkMode ? 'border-white/5' : 'border-slate-200'} px-4 lg:px-8 flex items-center justify-between shrink-0 relative z-20`}>
-          <div className="flex items-center gap-4 overflow-hidden">
-            {isMobile && (
-              <button 
-                onClick={() => setMobileSidebarOpen(true)}
-                className={`p-2 rounded-xl ${isDarkMode ? 'bg-white/5 text-white' : 'bg-slate-100 text-slate-600'}`}
-              >
-                <Menu size={20} />
-              </button>
-            )}
-            <h2 className={`text-lg lg:text-xl font-hand tracking-wide ${isDarkMode ? 'text-white' : 'text-slate-900'} truncate`}>
-              CAPS Project: <span className="text-brand-cyan underline decoration-brand-cyan/20">All Subjects</span>
-            </h2>
-          </div>
-          
-          <div className="flex items-center gap-2 lg:gap-6">
-            <div className="hidden lg:flex items-center gap-2">
-              <select 
-                value={ocrProvider}
-                onChange={(e) => setOcrProvider(e.target.value as 'ocrspace' | 'gemini')}
-                className={`text-[10px] font-bold tracking-wider px-3 py-1.5 rounded-lg outline-none transition-all ${
-                  isDarkMode 
-                  ? 'bg-white/5 border border-white/10 text-emerald-400 focus:border-emerald-500 [&>option]:bg-slate-800 [&>option]:text-emerald-400' 
-                  : 'bg-white border border-slate-200 text-slate-600 focus:border-emerald-500 shadow-sm [&>option]:bg-white [&>option]:text-slate-600'
-                }`}
-              >
-                <option value="gemini">OCR: Gemini Vision</option>
-                <option value="groq-vision">OCR: Llama 3.2 Vision (Free)</option>
-                <option value="ocrspace">OCR: OCR.Space Engine</option>
-              </select>
-
-              <select 
-                value={imageProvider}
-                onChange={(e) => setImageProvider(e.target.value as 'huggingface' | 'pollinations')}
-                className={`text-[10px] font-bold tracking-wider px-3 py-1.5 rounded-lg outline-none transition-all ${
-                  isDarkMode 
-                  ? 'bg-white/5 border border-white/10 text-orange-400 focus:border-orange-500 [&>option]:bg-slate-800 [&>option]:text-orange-400' 
-                  : 'bg-white border border-slate-200 text-slate-600 focus:border-orange-500 shadow-sm [&>option]:bg-white [&>option]:text-slate-600'
-                }`}
-              >
-                <option value="huggingface">IMG: FLUX.2 (HF)</option>
-                <option value="pollinations">IMG: FLUX.1 (POL)</option>
-              </select>
-
-              <select 
-                value={ttsProvider}
-                onChange={(e) => setTtsProvider(e.target.value as 'browser' | 'elevenlabs')}
-                className={`text-[10px] font-bold tracking-wider px-3 py-1.5 rounded-lg outline-none transition-all ${
-                  isDarkMode 
-                  ? 'bg-white/5 border border-white/10 text-purple-400 focus:border-purple-500 [&>option]:bg-slate-800 [&>option]:text-purple-400' 
-                  : 'bg-white border border-slate-200 text-slate-600 focus:border-purple-500 shadow-sm [&>option]:bg-white [&>option]:text-slate-600'
-                }`}
-              >
-                <option value="browser">TTS: Browser Core</option>
-                <option value="elevenlabs">TTS: ElevenLabs HD</option>
-              </select>
-            </div>
-            <select 
-              value={provider} 
-              onChange={(e) => setProvider(e.target.value as AIProviderType)}
-              className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl outline-none transition-all hidden sm:block ${
-                isDarkMode 
-                ? 'bg-white/5 border border-white/10 text-brand-cyan hover:border-brand-cyan/50 focus:border-brand-cyan [&>option]:bg-slate-800 [&>option]:text-brand-cyan' 
-                : 'bg-white border border-slate-200 text-slate-600 hover:border-brand-cyan focus:border-brand-cyan shadow-sm [&>option]:bg-white [&>option]:text-slate-600'
-              }`}
+        <AnimatePresence>
+          {isHeaderVisible && (
+            <motion.header 
+              initial={{ y: -80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -80, opacity: 0 }}
+              className={`absolute top-0 left-0 right-0 h-20 border-b ${isDarkMode ? 'border-white/5 bg-[#0F172A]/90' : 'border-slate-200 bg-slate-50/90'} backdrop-blur-md px-4 lg:px-8 flex items-center justify-between shrink-0 z-40 transition-colors duration-500`}
             >
-              <option value="gemini">Gemini 3 Flash</option>
-              <option value="llama-primary">Llama 3.3 70B (Primary)</option>
-              <option value="llama-secondary">Llama 4 Scout (Preview)</option>
-              <option value="groq-qwen">Alibaba Qwen3.6-Plus (CAPS Reasoning)</option>
-              <option value="groq-vision">Llama 3.2 11B (Vision)</option>
-            </select>
-            <button 
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`p-2 rounded-full ${isDarkMode ? 'bg-white/5 text-brand-yellow' : 'bg-slate-100 text-slate-600'} hover:scale-110 transition-all`}
-            >
-              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-            <NotificationsDropdown isDarkMode={isDarkMode} />
-            <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-[10px] lg:rounded-[14px] ${isDarkMode ? 'bg-slate-800 border border-white/5 shadow-2xl' : 'bg-white shadow-xl'} flex items-center justify-center text-xs lg:text-sm font-black text-brand-cyan shrink-0 overflow-hidden`}>
-              {localStorage.getItem('eduai_user_photo') ? (
-                <img src={localStorage.getItem('eduai_user_photo')!} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                (localStorage.getItem('eduai_user_name') || 'SM').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-              )}
-            </div>
-          </div>
-        </header>
+              <div className="flex items-center gap-3 overflow-hidden">
+                {isMobile && (
+                  <button 
+                    onClick={() => setMobileSidebarOpen(true)}
+                    className={`p-2 rounded-xl ${isDarkMode ? 'bg-white/5 text-white' : 'bg-slate-100 text-slate-600'}`}
+                  >
+                    <Menu size={20} />
+                  </button>
+                )}
+                
+                {/* Navigation Buttons */}
+                <button 
+                  onClick={goBack}
+                  className={`p-2 rounded-xl ${isDarkMode ? 'hover:bg-white/10 text-white' : 'hover:bg-slate-200 text-slate-600'} transition-all`}
+                  title="Go Back"
+                >
+                  <ArrowLeft size={18} />
+                </button>
+                <button 
+                  onClick={() => setActiveTab('dashboard')}
+                  className={`p-2 rounded-xl ${isDarkMode ? 'hover:bg-white/10 text-white' : 'hover:bg-slate-200 text-slate-600'} transition-all`}
+                  title="Home"
+                >
+                  <Home size={18} />
+                </button>
+
+                <h2 className={`text-lg lg:text-xl font-hand tracking-wide ml-2 ${isDarkMode ? 'text-white' : 'text-slate-900'} truncate hidden sm:block`}>
+                  CAPS Project: <span className="text-brand-cyan underline decoration-brand-cyan/20">All Subjects</span>
+                </h2>
+              </div>
+              
+              <div className="flex items-center gap-2 lg:gap-5">
+                <button 
+                  onClick={() => setIsDarkMode(!isDarkMode)}
+                  className={`p-2 rounded-full ${isDarkMode ? 'bg-white/5 text-brand-yellow hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'} transition-all`}
+                >
+                  {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
+                <NotificationsDropdown isDarkMode={isDarkMode} />
+                
+                {/* Profile Dropdown */}
+                <div className="relative">
+                  <button 
+                    onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                    className={`w-8 h-8 lg:w-10 lg:h-10 rounded-[10px] lg:rounded-[14px] ${isDarkMode ? 'bg-slate-800 border border-white/5 shadow-2xl hover:border-brand-cyan/50' : 'bg-white shadow-xl hover:border-brand-cyan'} flex items-center justify-center text-xs lg:text-sm font-black text-brand-cyan shrink-0 overflow-hidden transition-all`}
+                  >
+                    {localStorage.getItem('eduai_user_photo') ? (
+                      <img src={localStorage.getItem('eduai_user_photo')!} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      (localStorage.getItem('eduai_user_name') || 'SM').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+                    )}
+                  </button>
+
+                  <AnimatePresence>
+                    {isProfileDropdownOpen && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className={`absolute right-0 mt-3 w-56 rounded-2xl shadow-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'} z-50`}
+                      >
+                        <div className={`p-4 border-b ${isDarkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                          <p className={`font-semibold text-sm truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                            {localStorage.getItem('eduai_user_name') || 'Student Member'}
+                          </p>
+                          <p className={`text-xs mt-0.5 truncate ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                            {localStorage.getItem('eduai_user_email') || 'student@eduai.app'}
+                          </p>
+                          <div className={`mt-2 inline-block px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${isDarkMode ? 'bg-brand-cyan/20 text-brand-cyan' : 'bg-brand-cyan/10 text-brand-cyan'}`}>
+                            {userRole || 'Teacher'}
+                          </div>
+                        </div>
+                        
+                        <div className="p-2 space-y-1">
+                          <button 
+                            onClick={() => { changeTab('settings'); setIsProfileDropdownOpen(false); }}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors ${isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-50 text-slate-700'}`}
+                          >
+                            <Settings size={16} /> My Settings
+                          </button>
+                          <button 
+                            onClick={() => { setNeedsRoleSetup(true); setIsProfileDropdownOpen(false); }}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors ${isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-50 text-slate-700'}`}
+                          >
+                            <UserCheck size={16} /> Switch Role
+                          </button>
+                          <button 
+                            onClick={handleLogout}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors ${isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-50 text-slate-700'}`}
+                          >
+                            <RefreshCcw size={16} /> Switch User
+                          </button>
+                          <div className={`h-px my-1 ${isDarkMode ? 'bg-white/10' : 'bg-slate-100'}`} />
+                          <button 
+                            onClick={handleLogout}
+                            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors hover:bg-red-500/10 text-red-500"
+                          >
+                            <LogOut size={16} /> Log Out
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </motion.header>
+          )}
+        </AnimatePresence>
 
         {/* Content Container with Animations */}
-        <div className="flex-1 overflow-hidden relative">
+        <div className="flex-1 overflow-hidden relative pt-20">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}

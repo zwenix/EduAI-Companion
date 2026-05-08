@@ -33,7 +33,14 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
     
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      
+      if (result.user) {
+        localStorage.setItem('eduai_user_name', result.user.displayName || '');
+        localStorage.setItem('eduai_user_photo', result.user.photoURL || '');
+        localStorage.setItem('eduai_user_email', result.user.email || '');
+      }
+
       setIsGoogle(false);
       onSuccess();
     } catch (err: any) {
