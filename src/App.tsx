@@ -566,6 +566,67 @@ export default function App() {
               </div>
               
               <div className="flex items-center gap-2 lg:gap-5">
+                <div className="hidden xl:flex items-center gap-2 mr-2">
+                  <select 
+                    value={ocrProvider}
+                    onChange={(e) => setOcrProvider(e.target.value as any)}
+                    className={`text-[9px] font-bold tracking-wider px-2 py-1.5 rounded-lg outline-none transition-all ${
+                      isDarkMode 
+                      ? 'bg-white/5 border border-white/10 text-emerald-400 focus:border-emerald-500 [&>option]:bg-slate-800' 
+                      : 'bg-white border border-slate-200 text-slate-600 focus:border-emerald-500 shadow-sm'
+                    }`}
+                    title="OCR Engine"
+                  >
+                    <option value="gemini">OCR: Gemini 2.5 Flash</option>
+                    <option value="groq-vision">OCR: Llama 3.2 Vision</option>
+                    <option value="ocrspace">OCR: OCR.Space</option>
+                  </select>
+
+                  <select 
+                    value={imageProvider}
+                    onChange={(e) => setImageProvider(e.target.value as any)}
+                    className={`text-[9px] font-bold tracking-wider px-2 py-1.5 rounded-lg outline-none transition-all ${
+                      isDarkMode 
+                      ? 'bg-white/5 border border-white/10 text-orange-400 focus:border-orange-500 [&>option]:bg-slate-800' 
+                      : 'bg-white border border-slate-200 text-slate-600 focus:border-orange-500 shadow-sm'
+                    }`}
+                    title="Image Generation Engine"
+                  >
+                    <option value="alibaba-qwen-image">IMG: Qwen-Image 2.0</option>
+                    <option value="huggingface">IMG: FLUX.1 (HF)</option>
+                    <option value="pollinations">IMG: FLUX.1 (POL)</option>
+                  </select>
+
+                  <select 
+                    value={ttsProvider}
+                    onChange={(e) => setTtsProvider(e.target.value as any)}
+                    className={`text-[9px] font-bold tracking-wider px-2 py-1.5 rounded-lg outline-none transition-all ${
+                      isDarkMode 
+                      ? 'bg-white/5 border border-white/10 text-purple-400 focus:border-purple-500 [&>option]:bg-slate-800' 
+                      : 'bg-white border border-slate-200 text-slate-600 focus:border-purple-500 shadow-sm'
+                    }`}
+                    title="Text-to-Speech Engine"
+                  >
+                    <option value="browser">TTS: Browser Core</option>
+                    <option value="elevenlabs">TTS: ElevenLabs HD</option>
+                  </select>
+                </div>
+                
+                <select 
+                  value={provider} 
+                  onChange={(e) => setProvider(e.target.value as any)}
+                  className={`text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 sm:px-4 py-2 rounded-xl outline-none transition-all hidden lg:block ${
+                    isDarkMode 
+                    ? 'bg-white/5 border border-white/10 text-brand-cyan hover:border-brand-cyan/50 focus:border-brand-cyan [&>option]:bg-slate-800 [&>option]:text-brand-cyan' 
+                    : 'bg-white border border-slate-200 text-slate-600 hover:border-brand-cyan focus:border-brand-cyan shadow-sm [&>option]:bg-white [&>option]:text-slate-600'
+                  }`}
+                  title="Primary Text Model"
+                >
+                  <option value="llama-primary">Llama 3.3 70B (Primary)</option>
+                  <option value="alibaba-qwen">Alibaba Qwen-Plus (Reasoning)</option>
+                  <option value="alibaba-deepseek">Alibaba DeepSeek V3 (Coding)</option>
+                  <option value="gemini">Gemini 2.5 Flash (Fallback)</option>
+                </select>
                 <button 
                   onClick={() => setIsDarkMode(!isDarkMode)}
                   className={`p-2 rounded-full ${isDarkMode ? 'bg-white/5 text-brand-yellow hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'} transition-all`}

@@ -325,7 +325,8 @@ export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitch
                     >
                       <option value="llama-primary">Llama 3.3 70B Versatile (Primary)</option>
                       <option value="alibaba-qwen">Alibaba Qwen-Plus (CAPS Reasoning)</option>
-                      <option value="gemini">Gemini 2.0 Flash (Fallback)</option>
+                      <option value="alibaba-deepseek">Alibaba DeepSeek V3 (Coding)</option>
+                      <option value="gemini">Gemini 2.5 Flash (Fallback)</option>
                     </select>
                   </div>
 
@@ -336,7 +337,8 @@ export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitch
                       onChange={(e) => setImageProvider(e.target.value as any)}
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
-                      <option value="huggingface">FLUX.2 [klein] 4B (HuggingFace)</option>
+                      <option value="alibaba-qwen-image">Qwen-Image 2.0 Pro</option>
+                      <option value="huggingface">FLUX.1 [schnell] (HuggingFace)</option>
                       <option value="pollinations">FLUX.1 [schnell] (Pollinations)</option>
                     </select>
                   </div>

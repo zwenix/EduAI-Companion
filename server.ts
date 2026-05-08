@@ -54,6 +54,7 @@ async function startServer() {
         apiKey = process.env.GROQ_API_KEY || "";
         break;
       case "alibaba-qwen":
+      case "alibaba-deepseek":
         client = alibaba;
         apiKey = process.env.ALIBABA_API_KEY || "";
         break;
@@ -69,6 +70,7 @@ async function startServer() {
           provider === "llama-primary" ? "llama-3.3-70b-versatile" : 
           provider === "llama-secondary" ? "llama-3.1-8b-instant" : 
           provider === "alibaba-qwen" ? "qwen-plus" :
+          provider === "alibaba-deepseek" ? "deepseek-v3" :
           provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
           ""
         ),
@@ -120,6 +122,26 @@ async function startServer() {
   app.post("/api/images/generate", async (req, res) => {
     const { prompt, provider } = req.body;
     
+    if (provider === "alibaba-qwen-image") {
+      const apiKey = process.env.ALIBABA_API_KEY;
+      if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
+        return res.status(400).json({ error: "ALIBABA_API_KEY missing" });
+      }
+
+      try {
+        const response = await alibaba.images.generate({
+          model: 'qwen-image-2.0-pro-2026-04-22',
+          prompt: prompt,
+          n: 1,
+          size: "1024x1024",
+        });
+        return res.json({ url: response.data[0].url });
+      } catch (error: any) {
+        console.warn("Alibaba image warn:", error.message);
+        return res.status(500).json({ error: error.message || "Failed to generate image via Alibaba" });
+      }
+    }
+
     if (provider === "huggingface") {
       const apiKey = process.env.HUGGINGFACE_API_KEY;
       if (!apiKey) return res.status(400).json({ error: "HUGGINGFACE_API_KEY missing" });
