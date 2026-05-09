@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import axios from "axios";
+import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
 
@@ -122,6 +123,41 @@ async function startServer() {
   app.post("/api/images/generate", async (req, res) => {
     const { prompt, provider } = req.body;
     
+    if (provider === "gemini-imagen") {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
+        return res.status(400).json({ error: "GEMINI_API_KEY missing" });
+      }
+
+      try {
+        const geminiAi = new GoogleGenAI({ apiKey });
+        const response = await geminiAi.models.generateImages({
+          model: 'imagen-3.0-generate-002',
+          prompt: prompt,
+          config: {
+            numberOfImages: 1,
+            outputMimeType: 'image/jpeg',
+            aspectRatio: '1:1'
+          }
+        });
+        
+        // Response format usually creates an array of images. We need to extract base64 or url
+        // GoogleGenAI SDK returns `generatedImages` array.
+        if (response.generatedImages && response.generatedImages.length > 0) {
+          const image = response.generatedImages[0];
+          // image.image.imageBytes usually holds the base64 string
+          const base64 = image.image.imageBytes;
+          if (base64) {
+            return res.json({ url: `data:image/jpeg;base64,${base64}` });
+          }
+        }
+        throw new Error("Failed to extract image from Gemini response");
+      } catch (error: any) {
+        console.warn("Gemini Imagen warn:", error.message);
+        return res.status(500).json({ error: error.message || "Failed to generate image via Gemini" });
+      }
+    }
+
     if (provider === "alibaba-qwen-image") {
       const apiKey = process.env.ALIBABA_API_KEY;
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {

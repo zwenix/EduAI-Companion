@@ -337,6 +337,7 @@ export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitch
                       onChange={(e) => setImageProvider(e.target.value as any)}
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
+                      <option value="gemini-imagen">Gemini Imagen 3 (Primary)</option>
                       <option value="alibaba-qwen-image">Qwen-Image 2.0 Pro</option>
                       <option value="huggingface">FLUX.1 [schnell] (HuggingFace)</option>
                       <option value="pollinations-schnell">Flux Schnell (Pollinations)</option>

@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 export type AIProvider = 'gemini' | 'llama-primary' | 'llama-secondary' | 'alibaba-qwen' | 'alibaba-deepseek' | 'groq-vision';
 export type TTSProvider = 'browser' | 'elevenlabs';
 export type OCRProvider = 'gemini' | 'ocrspace' | 'groq-vision';
-export type ImageProvider = 'huggingface' | 'pollinations-schnell' | 'pollinations-turbo' | 'pollinations-klein' | 'alibaba-qwen-image';
+export type ImageProvider = 'gemini-imagen' | 'huggingface' | 'pollinations-schnell' | 'pollinations-turbo' | 'pollinations-klein' | 'alibaba-qwen-image';
 
 interface AiContextType {
   provider: AIProvider;
@@ -21,7 +21,7 @@ const AiContext = createContext<AiContextType | undefined>(undefined);
 const VALID_PROVIDERS: AIProvider[] = ['gemini', 'llama-primary', 'llama-secondary', 'alibaba-qwen', 'alibaba-deepseek', 'groq-vision'];
 const VALID_TTS: TTSProvider[] = ['browser', 'elevenlabs'];
 const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace', 'groq-vision'];
-const VALID_IMAGE: ImageProvider[] = ['huggingface', 'pollinations-schnell', 'pollinations-turbo', 'pollinations-klein', 'alibaba-qwen-image'];
+const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'huggingface', 'pollinations-schnell', 'pollinations-turbo', 'pollinations-klein', 'alibaba-qwen-image'];
 
 export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {

@@ -564,6 +564,7 @@ export default function App() {
                 }`}
                 title="Image Generation Engine"
               >
+                <option value="gemini-imagen">IMG: Gemini Imagen 3</option>
                 <option value="alibaba-qwen-image">IMG: Qwen-Image 2.0</option>
                 <option value="huggingface">IMG: FLUX.1 (HF)</option>
                 <option value="pollinations-schnell">IMG: Flux Schnell</option>

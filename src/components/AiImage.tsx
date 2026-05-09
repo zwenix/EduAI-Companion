@@ -31,7 +31,7 @@ export default function AiImage({ prompt, className = '', aspectRatio = 'square'
         if (imageProvider === 'pollinations-klein') model = 'flux-pro'; // or whatever the closest is
         const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&model=${model}&seed=${retryCount}`;
         if (active) setImageUrl(url);
-      } else if (imageProvider === 'huggingface' || imageProvider === 'alibaba-qwen-image') {
+      } else if (imageProvider === 'huggingface' || imageProvider === 'alibaba-qwen-image' || imageProvider === 'gemini-imagen') {
         try {
           const res = await fetch('/api/images/generate', {
             method: 'POST',
