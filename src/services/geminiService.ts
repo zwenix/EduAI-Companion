@@ -136,7 +136,7 @@ async function callGemini(fn: () => Promise<any>, retries = 3, delay = 2000): Pr
 }
 
 export const generateEducationalContent = async (type: string, details: string) => {
-  const model = "gemini-3.0-flash";
+  const model = "gemini-3-flash-preview";
   const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN.`;
 
   return await callGemini(async () => {
@@ -153,7 +153,7 @@ export const generateEducationalContent = async (type: string, details: string) 
 };
 
 export const generateCAPSContent = async (input: any) => {
-  const model = "gemini-3.0-flash";
+  const model = "gemini-3-flash-preview";
   const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.`;
 
   const prompt = `
@@ -215,7 +215,7 @@ export const generateCAPSContent = async (input: any) => {
 };
 
 export const generateVisualAid = async (input: any) => {
-  const model = "gemini-3.0-flash";
+  const model = "gemini-3-flash-preview";
   const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nThe 'content' field in your JSON response MUST be stunningly designed HTML with Tailwind CSS. DO NOT use generic Markdown.`;
 
   let visualPrompt = "";
@@ -318,7 +318,7 @@ export const generateVisualAid = async (input: any) => {
 };
 
 export const generateAdminDoc = async (input: any) => {
-  const model = "gemini-3.0-flash";
+  const model = "gemini-3-flash-preview";
   const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate a formal ${input.documentType} for ${input.schoolName}.
   The tone should be ${input.tone}.
   IMPORTANT: The 'content' field MUST be formatted as visually pleasing HTML string styled with Tailwind CSS classes. DO NOT use generic Markdown.`;
@@ -357,7 +357,7 @@ export const generateAdminDoc = async (input: any) => {
 };
 
 export const runOCRScan = async (imageData: string, language: string = 'English') => {
-  const model = "gemini-3.0-flash";
+  const model = "gemini-3-flash-preview";
   
   const prompt = `Extract all text from the attached image accurately, assuming the text is in ${language}.
   Format it cleanly. Make no other comments.`;
@@ -379,7 +379,7 @@ export const runOCRScan = async (imageData: string, language: string = 'English'
 };
 
 export const runOCRAndGrade = async (imageData: string, rubric: string, language: string = 'English') => {
-  const model = "gemini-3.0-flash";
+  const model = "gemini-3-flash-preview";
   
   const prompt = `You are an AI Grader. Analyze the attached image of a student's assessment in ${language}.
   Reference this rubric: ${rubric}.
@@ -418,7 +418,7 @@ export const runOCRAndGrade = async (imageData: string, rubric: string, language
 };
 
 export const chatWithTutor = async (messages: { role: 'user' | 'model', parts: any[] }[]) => {
-  const model = "gemini-3.0-flash";
+  const model = "gemini-3-flash-preview";
   
   return await callGemini(async () => {
     const result = await ai.models.generateContent({

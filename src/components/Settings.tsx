@@ -326,7 +326,7 @@ export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitch
                       <option value="llama-primary">Llama 3.3 70B Versatile (Primary)</option>
                       <option value="alibaba-qwen">Alibaba Qwen-Plus (CAPS Reasoning)</option>
                       <option value="alibaba-deepseek">Alibaba DeepSeek V3 (Coding)</option>
-                      <option value="gemini">Gemini 3.0 Flash (Fallback)</option>
+                      <option value="gemini">Gemini 3 Flash (Fallback)</option>
                     </select>
                   </div>
 
@@ -353,7 +353,7 @@ export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitch
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
                       <option value="groq-vision">Llama 3.2 Vision (Primary)</option>
-                      <option value="gemini">Gemini Vision (Fallback)</option>
+                      <option value="gemini">Gemini 3 Flash (Vision)</option>
                       <option value="ocrspace">OCR.Space Core</option>
                     </select>
                   </div>

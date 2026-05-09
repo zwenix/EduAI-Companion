@@ -1141,7 +1141,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                         <>
                           <SelectItem onClick={() => { setVid_Model('pollinations-ltx'); close(); }} active={vid_model === 'pollinations-ltx'} isDarkMode={isDarkMode}>LTX-2.3 (Primary / Fast)</SelectItem>
                           <SelectItem onClick={() => { setVid_Model('pollinations-other'); close(); }} active={vid_model === 'pollinations-other'} isDarkMode={isDarkMode}>Kling 1.0 (Secondary)</SelectItem>
-                          <SelectItem onClick={() => { setVid_Model('gemini-video'); close(); }} active={vid_model === 'gemini-video'} isDarkMode={isDarkMode}>Gemini 3.0 Flash (Fallback)</SelectItem>
+                          <SelectItem onClick={() => { setVid_Model('gemini-video'); close(); }} active={vid_model === 'gemini-video'} isDarkMode={isDarkMode}>Gemini 3 Flash (Fallback)</SelectItem>
                         </>
                       )}
                     </Select>
