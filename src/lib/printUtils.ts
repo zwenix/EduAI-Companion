@@ -2,6 +2,11 @@ export const printContent = (contentRef: React.RefObject<HTMLDivElement | null>,
     try {
         if (!contentRef.current) return;
         const html = contentRef.current.innerHTML;
+        const getParentStyles = () => {
+            return Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+                .map(el => el.outerHTML)
+                .join('\n');
+        };
         const printWindow = window.open('', '_blank');
         
         if (printWindow) {
@@ -10,7 +15,7 @@ export const printContent = (contentRef: React.RefObject<HTMLDivElement | null>,
                 <html>
                 <head>
                     <title>${title}</title>
-                    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+                    ${getParentStyles()}
                     <style>
                         @media print {
                             @page { margin: 15mm; }
