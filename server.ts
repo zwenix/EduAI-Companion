@@ -116,6 +116,44 @@ async function startServer() {
     }
   });
 
+  app.post("/api/tts/google", async (req, res) => {
+    const { text, lang } = req.body;
+    try {
+      const googleTTS = await import("google-tts-api");
+      const urls = googleTTS.getAllAudioUrls(text, { lang, slow: false, splitPunct: ',.?!' });
+      res.json({ urls: urls.map(u => u.url) });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/tts/hf", async (req, res) => {
+    const { text, model } = req.body;
+    const apiKey = process.env.HUGGINGFACE_API_KEY;
+    try {
+      if (!fetch) {
+         // Some node versions might not have global fetch if very old, but since we use node 22 it's fine.
+      }
+      const fetchResponse = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": apiKey ? `Bearer ${apiKey}` : ""
+        },
+        body: JSON.stringify({ inputs: text }) // Note: HF TTS expects "inputs"
+      });
+      if (!fetchResponse.ok) {
+        throw new Error(`HF returned ${fetchResponse.status}`);
+      }
+      const buffer = await fetchResponse.arrayBuffer();
+      const base64 = Buffer.from(buffer).toString("base64");
+      res.json({ audio: `data:audio/flac;base64,${base64}` });
+    } catch (e: any) {
+      console.warn("HF TTS Error:", e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post("/api/images/generate", async (req, res) => {
     const { prompt, provider } = req.body;
     

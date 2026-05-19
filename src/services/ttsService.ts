@@ -1,5 +1,5 @@
 import { TTSProvider } from '../contexts/AiContext';
-import * as googleTTS from 'google-tts-api';
+
 
 let currentAudio: HTMLAudioElement | null = null;
 let currentUtterance: SpeechSynthesisUtterance | null = null;
@@ -107,17 +107,17 @@ export const speakWithHuggingFace = async (text: string, language: string): Prom
       for (let chunk of chunks) {
         if (!chunk.trim()) continue;
         fetchPromises.push(
-          fetch(`https://api-inference.huggingface.co/models/${model}`, {
+          fetch('/api/tts/hf', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${import.meta.env.VITE_HUGGINGFACE_API_KEY || ''}` // Works for public models even without key sometimes, but better with key
-            },
-            body: JSON.stringify({ inputs: chunk.trim() })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: chunk.trim(), model })
           }).then(res => {
             if (!res.ok) throw new Error("HF TTS Failed");
-            return res.blob();
-          }).then(blob => URL.createObjectURL(blob))
+            return res.json();
+          }).then(data => {
+            if (data.error) throw new Error(data.error);
+            return data.audio;
+          })
         );
       }
 
@@ -157,30 +157,42 @@ export const speakWithGoogle = async (text: string, language: string): Promise<v
     cleanText = cleanText.replace(/!\[[^\]]*\]\([^)]+\)/g, '');
     if (!cleanText.trim()) return resolve();
     
-    try {
-      const code = getLangCode(language);
-      const urls = googleTTS.getAllAudioUrls(cleanText, { lang: code, slow: false, splitPunct: ',.?!' });
-      audioQueue = urls.map(u => u.url);
-      
-      const playNext = () => {
-        if (audioQueue.length === 0) return resolve();
-        const nextUrl = audioQueue.shift();
-        if (!nextUrl) return resolve();
+    const run = async () => {
+      try {
+        const code = getLangCode(language);
+        const res = await fetch('/api/tts/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: cleanText, lang: code })
+        });
         
-        currentAudio = new Audio(nextUrl);
-        currentAudio.onended = () => playNext();
-        currentAudio.onerror = () => {
-          console.error("Google TTS audio playback failed");
-          resolve(); 
+        if (!res.ok) throw new Error("Google TTS proxy failed");
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        
+        audioQueue = data.urls;
+        
+        const playNext = () => {
+          if (audioQueue.length === 0) return resolve();
+          const nextUrl = audioQueue.shift();
+          if (!nextUrl) return resolve();
+          
+          currentAudio = new Audio(nextUrl);
+          currentAudio.onended = () => playNext();
+          currentAudio.onerror = () => {
+            console.error("Google TTS audio playback failed");
+            resolve(); 
+          };
+          currentAudio.play();
         };
-        currentAudio.play();
-      };
-      
-      playNext();
-    } catch (err) {
-      console.error('Google TTS error:', err);
-      speakWithBrowser(text, language).then(resolve);
-    }
+        
+        playNext();
+      } catch (err) {
+        console.error('Google TTS error:', err);
+        speakWithBrowser(text, language).then(resolve);
+      }
+    };
+    run();
   });
 };
 
