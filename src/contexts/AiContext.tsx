@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type AIProvider = 'gemini' | 'llama-primary' | 'llama-secondary' | 'alibaba-qwen' | 'alibaba-deepseek' | 'groq-vision';
-export type TTSProvider = 'browser' | 'elevenlabs';
+export type TTSProvider = 'browser' | 'elevenlabs' | 'huggingface';
 export type OCRProvider = 'gemini' | 'ocrspace' | 'groq-vision';
 export type ImageProvider = 'gemini-imagen' | 'huggingface' | 'pollinations-schnell' | 'pollinations-turbo' | 'pollinations-klein' | 'alibaba-qwen-image';
 
@@ -19,7 +19,7 @@ interface AiContextType {
 const AiContext = createContext<AiContextType | undefined>(undefined);
 
 const VALID_PROVIDERS: AIProvider[] = ['gemini', 'llama-primary', 'llama-secondary', 'alibaba-qwen', 'alibaba-deepseek', 'groq-vision'];
-const VALID_TTS: TTSProvider[] = ['browser', 'elevenlabs'];
+const VALID_TTS: TTSProvider[] = ['browser', 'elevenlabs', 'huggingface'];
 const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace', 'groq-vision'];
 const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'huggingface', 'pollinations-schnell', 'pollinations-turbo', 'pollinations-klein', 'alibaba-qwen-image'];
 

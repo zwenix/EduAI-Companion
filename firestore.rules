@@ -140,5 +140,32 @@ service cloud.firestore {
                      && incoming().diff(existing()).affectedKeys().hasOnly(['messages', 'updatedAt']);
     }
 
+    function isValidCreatedContent(data) {
+      return data.keys().size() >= 8 && data.keys().size() <= 13
+        && data.title is string && data.title.size() <= 200
+        && data.subject is string && data.subject.size() <= 100
+        && data.grade is string && data.grade.size() <= 50
+        && data.contentType is string && data.contentType.size() <= 50
+        && data.content is string && data.content.size() <= 500000
+        && data.teacherId is string && data.teacherId == request.auth.uid
+        && data.isSystem is bool
+        && data.createdAt is timestamp
+        && (!('memo' in data) || (data.memo is string && data.memo.size() <= 50000))
+        && (!('rubric' in data) || (data.rubric is string && data.rubric.size() <= 100000))
+        && (!('imagePrompt' in data) || (data.imagePrompt is string && data.imagePrompt.size() <= 5000))
+        && (!('previewUrl' in data) || (data.previewUrl is string && data.previewUrl.size() <= 2000))
+        && (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+    match /created_content/{contentId} {
+      allow get: if isSignedIn() && isValidId(contentId) && existing().teacherId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(contentId) && isValidCreatedContent(incoming()) && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && isValidId(contentId) && existing().teacherId == request.auth.uid && isValidCreatedContent(incoming())
+                     && incoming().teacherId == existing().teacherId
+                     && incoming().createdAt == existing().createdAt
+                     && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'subject', 'grade', 'contentType', 'content', 'isSystem', 'memo', 'rubric', 'imagePrompt', 'previewUrl', 'updatedAt']);
+      allow delete: if isSignedIn() && isValidId(contentId) && existing().teacherId == request.auth.uid;
+    }
+
   }
 }

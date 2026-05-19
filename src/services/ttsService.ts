@@ -13,8 +13,8 @@ export const speakText = async (text: string, provider: TTSProvider, language: s
     try {
       const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
       if (!apiKey) {
-         console.warn('VITE_ELEVENLABS_API_KEY is missing. Falling back to Google TTS API.');
-         return await speakWithGoogle(text, language);
+         console.warn('VITE_ELEVENLABS_API_KEY is missing. Falling back to HuggingFace or Google TTS.');
+         return await speakWithHuggingFace(text, language);
       }
 
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}`, {
@@ -56,8 +56,10 @@ export const speakText = async (text: string, provider: TTSProvider, language: s
 
     } catch (error) {
       console.error('ElevenLabs TTS failed:', error);
-      return await speakWithGoogle(text, language);
+      return await speakWithHuggingFace(text, language);
     }
+  } else if (provider === 'huggingface') {
+    return await speakWithHuggingFace(text, language);
   } else {
     return await speakWithGoogle(text, language);
   }
@@ -72,6 +74,77 @@ const getLangCode = (language: string): string => {
   if (language.toLowerCase().includes('french')) return 'fr';
   if (language.toLowerCase().includes('german')) return 'de';
   return 'en';
+};
+
+export const speakWithHuggingFace = async (text: string, language: string): Promise<void> => {
+  try {
+    const code = getLangCode(language);
+    let model = 'facebook/mms-tts-eng';
+    if (code === 'zu') model = 'facebook/mms-tts-zul';
+    else if (code === 'xh') model = 'facebook/mms-tts-xho';
+    else if (code === 'af') model = 'facebook/mms-tts-afr';
+    else if (code === 'st') model = 'facebook/mms-tts-sot';
+    else if (code === 'es') model = 'facebook/mms-tts-spa';
+    else if (code === 'fr') model = 'facebook/mms-tts-fra';
+    else if (code === 'de') model = 'facebook/mms-tts-deu';
+    
+    // Some models like espnet/kan-bayashi_ljspeech_vits are better for English 
+    if (code === 'en') model = 'espnet/kan-bayashi_ljspeech_vits';
+
+    const cleanText = text.replace(/[*_#`~>|-]/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/!\[[^\]]*\]\([^)]+\)/g, '');
+    if (!cleanText.trim()) return;
+
+    // Split text into chunks because HF inference API limits length
+    const chunks = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
+    
+    return new Promise(async (resolve) => {
+      audioQueue = [];
+      let fetchPromises = [];
+
+      for (let chunk of chunks) {
+        if (!chunk.trim()) continue;
+        fetchPromises.push(
+          fetch(`https://api-inference.huggingface.co/models/${model}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_HUGGINGFACE_API_KEY || ''}` // Works for public models even without key sometimes, but better with key
+            },
+            body: JSON.stringify({ inputs: chunk.trim() })
+          }).then(res => {
+            if (!res.ok) throw new Error("HF TTS Failed");
+            return res.blob();
+          }).then(blob => URL.createObjectURL(blob))
+        );
+      }
+
+      try {
+        const urls = await Promise.all(fetchPromises);
+        audioQueue = urls;
+
+        const playNext = () => {
+          if (audioQueue.length === 0) return resolve();
+          const nextUrl = audioQueue.shift();
+          if (!nextUrl) return resolve();
+          
+          currentAudio = new Audio(nextUrl);
+          currentAudio.onended = () => playNext();
+          currentAudio.onerror = () => {
+            console.error("HF Audio play error");
+            resolve();
+          };
+          currentAudio.play();
+        };
+        playNext();
+      } catch (err) {
+        console.error("HuggingFace TTS error", err);
+        return await speakWithGoogle(text, language).then(resolve);
+      }
+    });
+  } catch (error) {
+    console.error('Hugging Face inference error:', error);
+    return await speakWithGoogle(text, language);
+  }
 };
 
 export const speakWithGoogle = async (text: string, language: string): Promise<void> => {

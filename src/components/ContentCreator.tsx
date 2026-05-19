@@ -423,32 +423,47 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     printContent(contentRef, "EduAI-Output");
   };
 
-  const handleArchive = () => {
+  const handleArchive = async () => {
     const result = activeTab === 'teaching' ? teachingResult : activeTab === 'visual' ? visualResult : adminResult;
     if (!result) return;
     
+    // Fallbacks to empty strings for potentially undefined fields to comply with firestore schema
     const newItem = {
-      id: Date.now().toString(),
       title: (activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation',
       subject: (activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : 'Administration') || 'General',
       grade: (activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : 'All') || 'N/A',
       contentType: (activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : 'Notice') || 'Document',
       isSystem: false,
-      createdAt: new Date().toISOString(),
-      content: result.content,
-      memo: result.memo,
-      rubric: result.rubric,
-      imagePrompt: result.imagePrompt
+      content: result.content || " ",
+      memo: result.memo || undefined,
+      rubric: result.rubric || undefined,
+      imagePrompt: result.imagePrompt || undefined
     };
 
     try {
-      const existing = JSON.parse(localStorage.getItem('eduai_archive') || '[]');
-      localStorage.setItem('eduai_archive', JSON.stringify([newItem, ...existing]));
-      setArchiveSuccess(true);
-      setTimeout(() => setArchiveSuccess(false), 2000);
+      const { auth, db } = await import('../lib/firebase');
+      const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+      const { handleFirestoreError, OperationType } = await import('../lib/firestoreHelpers');
+      const user = auth.currentUser;
+      if (user) {
+        const docId = Date.now().toString();
+        await setDoc(doc(db, 'created_content', docId), {
+          ...newItem,
+          teacherId: user.uid,
+          createdAt: serverTimestamp()
+        }).catch(err => handleFirestoreError(err, OperationType.CREATE, 'created_content/' + docId));
+        setArchiveSuccess(true);
+        setTimeout(() => setArchiveSuccess(false), 2000);
+      } else {
+        // Fallback to local storage
+        const existing = JSON.parse(localStorage.getItem('eduai_archive') || '[]');
+        localStorage.setItem('eduai_archive', JSON.stringify([{id: Date.now().toString(), createdAt: new Date().toISOString(), ...newItem}, ...existing]));
+        setArchiveSuccess(true);
+        setTimeout(() => setArchiveSuccess(false), 2000);
+      }
     } catch (e) {
       console.error('Failed to archive', e);
-      alert('Archive failed: storage might be full.');
+      alert('Archive failed.');
     }
   };
 

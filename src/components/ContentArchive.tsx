@@ -3,34 +3,41 @@ import { Box, Search, Library, History, ExternalLink, Loader2, Trash2, Eye, Edit
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
 import { printContent, downloadAsHTML } from '../lib/printUtils';
+import { auth, db } from '../lib/firebase';
+import { collection, query, where, getDocs, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
+import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
 
 // Mock data to simulate the user's generated content and system templates
 const INITIAL_ARCHIVE = [
   { id: '1', title: 'Algebra Introduction', subject: 'Mathematics', grade: '9', contentType: 'Lesson Plan', isSystem: true, createdAt: new Date() },
   { id: '2', title: 'Savanna Ecosytems Visual', subject: 'Natural Sciences', grade: '6', contentType: 'Poster', isSystem: true, createdAt: new Date(Date.now() - 86400000) },
-  { id: '3', title: 'Parent Evening Notice', subject: 'Administration', grade: 'All', contentType: 'Notice', isSystem: false, createdAt: new Date(Date.now() - 172800000) },
-  { id: '4', title: 'Life Skills Flashcards', subject: 'Life Skills', grade: '3', contentType: 'Visual Aid', isSystem: false, createdAt: new Date(Date.now() - 259200000) },
+  { id: '3', title: 'Parent Evening Notice', subject: 'Administration', grade: 'All', contentType: 'Notice', isSystem: true, createdAt: new Date(Date.now() - 172800000) },
+  { id: '4', title: 'Life Skills Flashcards', subject: 'Life Skills', grade: '3', contentType: 'Visual Aid', isSystem: true, createdAt: new Date(Date.now() - 259200000) },
 ];
 
 export default function ContentArchive() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [items, setItems] = useState(INITIAL_ARCHIVE);
+  const [items, setItems] = useState<any[]>(INITIAL_ARCHIVE);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const printableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('eduai_archive');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Combine with system defaults if needed, or just replace
-        setItems([...parsed, ...INITIAL_ARCHIVE]);
-      } catch (e) {
-        console.error('Failed to load archive', e);
-      }
-    }
+    if (!auth.currentUser) return;
+    const q = query(collection(db, 'created_content'), where('teacherId', '==', auth.currentUser.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedItems = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date()
+      }));
+      setItems([...fetchedItems, ...INITIAL_ARCHIVE]);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'created_content');
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const filteredItems = items.filter(item => 
@@ -38,15 +45,21 @@ export default function ContentArchive() {
     item.subject?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const updated = items.filter(i => i.id !== id);
-    setItems(updated);
-    
-    // Also update localStorage
-    const saved = JSON.parse(localStorage.getItem('eduai_archive') || '[]');
-    const filteredSaved = saved.filter((i: any) => i.id !== id);
-    localStorage.setItem('eduai_archive', JSON.stringify(filteredSaved));
+    if (auth.currentUser) {
+      try {
+        await deleteDoc(doc(db, 'created_content', id));
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, 'created_content/' + id);
+      }
+    } else {
+      const updated = items.filter(i => i.id !== id);
+      setItems(updated);
+      const saved = JSON.parse(localStorage.getItem('eduai_archive') || '[]');
+      const filteredSaved = saved.filter((i: any) => i.id !== id);
+      localStorage.setItem('eduai_archive', JSON.stringify(filteredSaved));
+    }
   };
 
   const handleDownloadPDF = async () => {

@@ -390,6 +390,18 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {isMobile && isMobileSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setMobileSidebarOpen(false)}
+            className="fixed inset-0 bg-black/60 z-[50]"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
       <motion.aside 
         initial={false}
@@ -588,6 +600,7 @@ export default function App() {
               >
                 <option value="browser">TTS: Browser Core</option>
                 <option value="elevenlabs">TTS: ElevenLabs HD</option>
+                <option value="huggingface">TTS: HuggingFace MMS</option>
               </select>
             </div>
             
