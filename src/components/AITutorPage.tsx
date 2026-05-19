@@ -213,34 +213,59 @@ export default function AITutorPage() {
     }
   }, [input, messages, provider, priorityTopic, language, selectedImage]);
 
-  useEffect(() => {
+  const handleMicClick = useCallback(() => {
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+    
     if (typeof window === 'undefined') return;
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) return;
+    if (!SR) {
+      alert('Voice recognition not supported in this browser.');
+      return;
+    }
 
     const rec = new SR();
     rec.continuous = false;
     rec.interimResults = false;
+    
+    if (language === 'Afrikaans') rec.lang = 'af-ZA';
+    else if (language === 'isiZulu') rec.lang = 'zu-ZA';
+    else if (language === 'isiXhosa') rec.lang = 'xh-ZA';
+    else if (language === 'Sesotho') rec.lang = 'st-ZA';
+    else if (language === 'Spanish') rec.lang = 'es-ES';
+    else if (language === 'French') rec.lang = 'fr-FR';
+    else if (language === 'German') rec.lang = 'de-DE';
+    else rec.lang = 'en-US';
+
     rec.onresult = (e: any) => { 
       const transcript = e.results[0][0].transcript;
       setInput(transcript); 
       setIsRecording(false); 
       handleSend(transcript);
     };
-    rec.onerror = () => { setIsRecording(false); };
-    rec.onend = () => setIsRecording(false);
+    
+    rec.onerror = (e: any) => { 
+      console.error('Speech recognition error:', e);
+      setIsRecording(false); 
+    };
+    
+    rec.onend = () => {
+      setIsRecording(false);
+    };
+    
     recognitionRef.current = rec;
-  }, [handleSend]);
-
-  const handleMicClick = useCallback(() => {
-    if (isRecording) { recognitionRef.current?.stop(); }
-    else if (recognitionRef.current) {
-      try { recognitionRef.current.start(); setIsRecording(true); }
-      catch (e) { console.error('Mic error:', e); }
-    } else {
-      alert('Voice recognition not supported in this browser.');
+    
+    try { 
+      rec.start(); 
+      setIsRecording(true); 
+    } catch (e) { 
+      console.error('Mic error:', e); 
+      setIsRecording(false);
     }
-  }, [isRecording]);
+  }, [isRecording, language, handleSend]);
 
   const handleStopAudio = useCallback(() => {
     stopSpeaking();

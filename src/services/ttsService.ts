@@ -63,7 +63,7 @@ export const speakText = async (text: string, provider: TTSProvider, language: s
   }
 };
 
-const getLangCode = (language: string) => {
+const getLangCode = (language: string): string => {
   if (language.toLowerCase().includes('afrikaans') || language === 'af') return 'af';
   if (language.toLowerCase().includes('zulu') || language === 'zu') return 'zu';
   if (language.toLowerCase().includes('xhosa') || language === 'xh') return 'xh';
@@ -71,7 +71,7 @@ const getLangCode = (language: string) => {
   if (language.toLowerCase().includes('spanish')) return 'es';
   if (language.toLowerCase().includes('french')) return 'fr';
   if (language.toLowerCase().includes('german')) return 'de';
-  return 'en-ZA';
+  return 'en';
 };
 
 export const speakWithGoogle = async (text: string, language: string): Promise<void> => {
