@@ -367,6 +367,7 @@ export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitch
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
                       <option value="browser">Browser Core HD (Free)</option>
+                      <option value="google-tts">Google TTS (Free)</option>
                       <option value="elevenlabs">ElevenLabs Pro (Key Required)</option>
                       <option value="huggingface">HuggingFace MMS (Free)</option>
                     </select>

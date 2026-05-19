@@ -611,6 +611,7 @@ export default function App() {
                 <option value="browser">TTS: Browser Core</option>
                 <option value="elevenlabs">TTS: ElevenLabs HD</option>
                 <option value="huggingface">TTS: HuggingFace MMS</option>
+                <option value="google-tts">TTS: Google TTS</option>
               </select>
             </div>
             

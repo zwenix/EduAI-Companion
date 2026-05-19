@@ -60,8 +60,11 @@ export const speakText = async (text: string, provider: TTSProvider, language: s
     }
   } else if (provider === 'huggingface') {
     return await speakWithHuggingFace(text, language);
-  } else {
+  } else if (provider === 'google-tts') {
     return await speakWithGoogle(text, language);
+  } else {
+    // browser falls back to browser synthesis
+    return await speakWithBrowser(text, language);
   }
 };
 
