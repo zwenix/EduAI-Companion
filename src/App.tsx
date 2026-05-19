@@ -73,14 +73,25 @@ const SidebarItem = ({ icon: Icon, label, active, onClick, collapsed, isDarkMode
   <button
     onClick={onClick}
     title={collapsed ? label : undefined}
-    className={`flex items-center ${collapsed ? 'justify-center w-12 h-12 mx-auto px-0 py-0' : 'w-full gap-3 px-3 py-2.5'} rounded-2xl transition-all duration-300 text-sm font-medium group ${
+    className={`flex items-center w-full gap-3 px-3 py-2.5 rounded-2xl transition-all duration-300 text-sm font-medium group ${
       active 
       ? `bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/30 shadow-[0_0_15px_-3px_rgba(6,182,212,0.3)]` 
-      : `${isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`
-    }`}
+      : `${isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'} border border-transparent`
+    } ${collapsed ? 'justify-center !px-0' : 'justify-start'}`}
   >
     <Icon size={20} className={`${active ? 'text-brand-cyan' : `group-hover:${isDarkMode ? 'text-white' : 'text-slate-900'}`} transition-colors shrink-0`} />
-    {!collapsed && <span className="truncate">{label}</span>}
+    <AnimatePresence>
+      {!collapsed && (
+        <motion.span 
+          initial={{ opacity: 0, width: 0 }}
+          animate={{ opacity: 1, width: "auto" }}
+          exit={{ opacity: 0, width: 0 }}
+          className="truncate whitespace-nowrap overflow-hidden text-left"
+        >
+          {label}
+        </motion.span>
+      )}
+    </AnimatePresence>
   </button>
 );
 
@@ -410,20 +421,23 @@ export default function App() {
           x: isMobile ? (isMobileSidebarOpen ? 0 : -280) : 0
         }}
         transition={{ type: "spring", bounce: 0, duration: 0.3 }}
-        className={`${isDarkMode ? 'bg-[#0B1122]' : 'bg-white shadow-xl'} border-r ${isDarkMode ? 'border-white/5' : 'border-slate-200'} h-full flex flex-col ${isSidebarOpen || isMobile ? 'p-6' : 'py-6 px-3 lg:px-4'} fixed lg:relative shrink-0 z-[60] lg:z-40 overflow-hidden`}
+        className={`${isDarkMode ? 'bg-[#0B1122]' : 'bg-white shadow-xl'} border-r ${isDarkMode ? 'border-white/5' : 'border-slate-200'} h-full flex flex-col py-6 px-3 lg:px-4 fixed lg:relative shrink-0 z-[60] lg:z-40 overflow-hidden`}
       >
-        <div className={`flex items-center ${isSidebarOpen || isMobile ? 'justify-between mb-10 px-2 min-w-[230px]' : 'justify-center mb-10 min-w-0'}`}>
-          <div className={`flex items-center ${isSidebarOpen || isMobile ? 'gap-3' : 'justify-center w-full'}`}>
+        <div className={`flex items-center justify-between mb-10 min-w-0 ${isSidebarOpen || isMobile ? 'px-2' : ''}`}>
+          <div className="flex items-center gap-3">
             <Logo />
-            {(isSidebarOpen || isMobile) && (
-              <motion.h1 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className={`font-hand text-2xl tracking-widest whitespace-nowrap ${isDarkMode ? 'text-white' : 'text-slate-900'}`}
-              >
-                EduAI Companion
-              </motion.h1>
-            )}
+            <AnimatePresence>
+              {(isSidebarOpen || isMobile) && (
+                <motion.h1 
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: "auto" }}
+                  exit={{ opacity: 0, width: 0 }}
+                  className={`font-hand text-2xl tracking-widest whitespace-nowrap overflow-hidden ${isDarkMode ? 'text-white' : 'text-slate-900'}`}
+                >
+                  EduAI Companion
+                </motion.h1>
+              )}
+            </AnimatePresence>
           </div>
           {isMobile && (
             <button onClick={() => setMobileSidebarOpen(false)} className={isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"}>
@@ -436,64 +450,60 @@ export default function App() {
           {(function() {
             if (userRole === 'student') {
               return [
-                { icon: LayoutDashboard, label: 'Dashboard', active: activeTab === 'dashboard' && activeCreatorTab === null, id: 'dashboard' },
-                { icon: Brain, label: 'AI Tutor', active: activeTab === 'ai-tutor' && activeCreatorTab === null, id: 'ai-tutor' },
-                { icon: ClipboardCheck, label: 'Practice & Exercises', active: activeTab === 'student-practice' && activeCreatorTab === null, id: 'student-practice' },
-                { icon: BookOpen, label: 'Study Notes & Revision', active: activeTab === 'student-notes' && activeCreatorTab === null, id: 'student-notes' },
-                { icon: TrendingUp, label: 'My Progress', active: activeTab === 'reports' && activeCreatorTab === null, id: 'reports' },
-                { icon: UserCircle, label: 'My Portfolio', active: activeTab === 'portfolios' && activeCreatorTab === null, id: 'portfolios' },
-                { icon: MessageSquare, label: 'Chat', active: activeTab === 'messenger' && activeCreatorTab === null, id: 'messenger' },
+                { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
+                { icon: Brain, label: 'AI Tutor', id: 'ai-tutor' },
+                { icon: ClipboardCheck, label: 'Practice & Exercises', id: 'student-practice' },
+                { icon: BookOpen, label: 'Study Notes & Revision', id: 'student-notes' },
+                { icon: TrendingUp, label: 'My Progress', id: 'reports' },
+                { icon: UserCircle, label: 'My Portfolio', id: 'portfolios' },
+                { icon: MessageSquare, label: 'Chat', id: 'messenger' },
               ];
             }
             if (userRole === 'parent') {
               return [
-                { icon: LayoutDashboard, label: 'Dashboard', active: activeTab === 'dashboard' && activeCreatorTab === null, id: 'dashboard' },
-                { icon: TrendingUp, label: "Child's Progress", active: activeTab === 'reports' && activeCreatorTab === null, id: 'reports' },
-                { icon: MessageSquare, label: 'Teacher Communicator', active: activeTab === 'messenger' && activeCreatorTab === null, id: 'messenger' },
-                { icon: FileText, label: 'Assignments & Timetable', active: activeTab === 'portfolios' && activeCreatorTab === null, id: 'portfolios' },
+                { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
+                { icon: TrendingUp, label: "Child's Progress", id: 'reports' },
+                { icon: MessageSquare, label: 'Teacher Communicator', id: 'messenger' },
+                { icon: FileText, label: 'Assignments & Timetable', id: 'portfolios' },
               ];
             }
             if (userRole === 'admin') {
               return [
-                { icon: LayoutDashboard, label: 'Dashboard', active: activeTab === 'dashboard' && activeCreatorTab === null, id: 'dashboard' },
-                { icon: School, label: 'School Management', active: activeTab === 'class-management' && activeCreatorTab === null, id: 'class-management' },
-                { icon: FileText, label: 'Official Correspondence', active: activeCreatorTab !== null, id: 'teaching' },
-                { icon: Archive, label: 'Content Archive', active: activeTab === 'archive' && activeCreatorTab === null, id: 'archive' },
-                { icon: TrendingUp, label: 'Reports & Analytics', active: activeTab === 'reports' && activeCreatorTab === null, id: 'reports' },
+                { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
+                { icon: School, label: 'School Management', id: 'class-management' },
+                { icon: FileText, label: 'Official Correspondence', id: 'teaching' },
+                { icon: Archive, label: 'Content Archive', id: 'archive' },
+                { icon: TrendingUp, label: 'Reports & Analytics', id: 'reports' },
               ];
             }
             // default teacher
             return [
-              { icon: LayoutDashboard, label: 'Dashboard', active: activeTab === 'dashboard' && activeCreatorTab === null, id: 'dashboard' },
-              { icon: FlaskConical, label: 'Content Creator Studio', active: activeCreatorTab !== null, id: 'teaching' },
-              { icon: Archive, label: 'Content Archive', active: activeTab === 'archive' && activeCreatorTab === null, id: 'archive' },
-              { icon: Brain, label: 'AI Tutor', active: activeTab === 'ai-tutor' && activeCreatorTab === null, id: 'ai-tutor' },
-              { icon: Scan, label: 'Scan & Autograde', active: activeTab === 'ocr' && activeCreatorTab === null, id: 'ocr' },
-              { icon: TrendingUp, label: 'Progress Reports', active: activeTab === 'reports' && activeCreatorTab === null, id: 'reports' },
-              { icon: MessageSquare, label: 'Communicator & Messenger', active: activeTab === 'messenger' && activeCreatorTab === null, id: 'messenger' },
-              { icon: UserCircle, label: 'Portfolios', active: activeTab === 'portfolios' && activeCreatorTab === null, id: 'portfolios' },
-              { icon: Users, label: 'Class & Student Management', active: activeTab === 'class-management' && activeCreatorTab === null, id: 'class-management' },
-              { icon: Settings, label: 'Settings', active: activeTab === 'settings' && activeCreatorTab === null, id: 'settings' },
-              { icon: HelpCircle, label: 'Helpdesk & Technical Support', active: activeTab === 'helpdesk' && activeCreatorTab === null, id: 'helpdesk' },
+              { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
+              { icon: FlaskConical, label: 'Content Creator Studio', id: 'teaching' },
+              { icon: Archive, label: 'Content Archive', id: 'archive' },
+              { icon: Brain, label: 'AI Tutor', id: 'ai-tutor' },
+              { icon: Scan, label: 'Scan & Autograde', id: 'ocr' },
+              { icon: TrendingUp, label: 'Progress Reports', id: 'reports' },
+              { icon: MessageSquare, label: 'Communicator & Messenger', id: 'messenger' },
+              { icon: UserCircle, label: 'Portfolios', id: 'portfolios' },
+              { icon: Users, label: 'Class & Student Management', id: 'class-management' },
+              { icon: Settings, label: 'Settings', id: 'settings' },
+              { icon: HelpCircle, label: 'Helpdesk & Technical Support', id: 'helpdesk' },
             ];
           })().map((item) => (
             <SidebarItem 
               key={item.id}
               icon={item.icon} 
               label={item.label} 
-              active={item.active} 
+              active={
+                activeCreatorTab !== null 
+                ? item.id === 'teaching' 
+                : activeTab === item.id
+              } 
               isDarkMode={isDarkMode}
               onClick={() => {
-                if (['teaching', 'grade1'].includes(item.id)) {
+                if (['teaching'].includes(item.id)) {
                   setActiveCreatorTab(item.id);
-                } else if (item.id === 'ai-tutor') {
-                  changeTab('ai-tutor');
-                } else if (item.id === 'ocr') {
-                  changeTab('ocr');
-                } else if (item.id === 'settings') {
-                  changeTab('settings');
-                } else if (item.id === 'helpdesk') {
-                  changeTab('helpdesk');
                 } else {
                   changeTab(item.id);
                 }
