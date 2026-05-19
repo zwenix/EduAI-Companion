@@ -578,6 +578,8 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [f_language, setF_Language] = useState('English HL');
 
   const [videoResult, setVideoResult] = useState<any>(null);
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [isVideoError, setIsVideoError] = useState(false);
   const [vid_prompt, setVid_Prompt] = useState<string>('');
   const [vid_model, setVid_Model] = useState<string>('pollinations-ltx');
   
@@ -585,6 +587,8 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     setIsLoading(true);
     setError(null);
     setVideoResult(null);
+    setIsVideoError(false);
+    setIsVideoLoading(true);
     try {
       // Simulate or actually generate by setting the video source url
       const promptEnc = encodeURIComponent(vid_prompt);
@@ -1390,9 +1394,37 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   {activeTab === 'video' && (
                     <div className="space-y-8 flex flex-col items-center">
                       {videoResult ? (
-                        <div className="w-full max-w-3xl border border-indigo-500/20 rounded-3xl overflow-hidden shadow-2xl bg-black">
-                          <video src={videoResult.url} controls autoPlay loop className="w-full aspect-video outline-none" />
-                          <div className={cn("p-4 border-t text-center", isDarkMode ? "border-white/10 bg-slate-900" : "border-slate-200 bg-white")}>
+                        <div className="w-full max-w-3xl border border-indigo-500/20 rounded-3xl overflow-hidden shadow-2xl bg-black relative min-h-[300px] flex items-center justify-center">
+                          {isVideoLoading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-20">
+                              <Loader2 className="w-8 h-8 text-white animate-spin" />
+                            </div>
+                          )}
+                          {!isVideoError ? (
+                            <video 
+                              src={videoResult.url} 
+                              controls 
+                              autoPlay 
+                              loop 
+                              className="w-full aspect-video outline-none" 
+                              onLoadStart={() => setIsVideoLoading(true)}
+                              onLoadedData={() => setIsVideoLoading(false)}
+                              onError={(e) => {
+                                console.error('Video error occurred while trying to load the video.');
+                                setIsVideoError(true);
+                                setIsVideoLoading(false);
+                              }}
+                            />
+                          ) : (
+                            <img 
+                              src={videoResult.url} 
+                              alt="Generated content fallback" 
+                              className="w-full aspect-video object-cover"
+                              onLoad={() => setIsVideoLoading(false)}
+                              onError={() => setIsVideoLoading(false)}
+                            />
+                          )}
+                          <div className={cn("p-4 border-t text-center absolute bottom-0 left-0 right-0 z-10", isDarkMode ? "border-white/10 bg-slate-900/80 backdrop-blur-md" : "border-slate-200 bg-white/80 backdrop-blur-md")}>
                             <p className={cn("font-medium text-sm", isDarkMode ? "text-slate-300" : "text-slate-700")}>
                               {videoResult.prompt}
                             </p>
