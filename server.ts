@@ -1,7 +1,6 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
-import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
@@ -9,9 +8,6 @@ import axios from "axios";
 import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 import { HfInference } from "@huggingface/inference";
 

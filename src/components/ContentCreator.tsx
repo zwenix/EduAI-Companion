@@ -1138,9 +1138,9 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
               <div className="space-y-4">
                 <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 p-5 rounded-3xl">
                   <h3 className={cn("text-lg font-black uppercase tracking-widest mb-1 flex items-center gap-2", isDarkMode ? "text-indigo-400" : "text-indigo-600")}>
-                    <Video size={18} /> Video Creation Lab
+                    <Video size={18} /> Cinematic Generator
                   </h3>
-                  <p className={cn("text-xs font-bold", isDarkMode ? "text-slate-400" : "text-slate-500")}>Generate short educational clips instantly using open-source models.</p>
+                  <p className={cn("text-xs font-bold", isDarkMode ? "text-slate-400" : "text-slate-500")}>Generate dynamic, cinematic motion frames instantly (Video APIs are currently replaced by motion frames for stability).</p>
                 </div>
 
                 <div className="space-y-4">
@@ -1149,9 +1149,9 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                     <Select value={vid_model} onValueChange={setVid_Model} placeholder="Video Model" isDarkMode={isDarkMode}>
                       {(close: any) => (
                         <>
-                          <SelectItem onClick={() => { setVid_Model('pollinations-ltx'); close(); }} active={vid_model === 'pollinations-ltx'} isDarkMode={isDarkMode}>LTX-2.3 (Primary / Fast)</SelectItem>
-                          <SelectItem onClick={() => { setVid_Model('pollinations-other'); close(); }} active={vid_model === 'pollinations-other'} isDarkMode={isDarkMode}>Kling 1.0 (Secondary)</SelectItem>
-                          <SelectItem onClick={() => { setVid_Model('gemini-video'); close(); }} active={vid_model === 'gemini-video'} isDarkMode={isDarkMode}>Gemini 3 Flash (Fallback)</SelectItem>
+                          <SelectItem onClick={() => { setVid_Model('pollinations-ltx'); close(); }} active={vid_model === 'pollinations-ltx'} isDarkMode={isDarkMode}>Cinematic Frame (Primary)</SelectItem>
+                          <SelectItem onClick={() => { setVid_Model('pollinations-other'); close(); }} active={vid_model === 'pollinations-other'} isDarkMode={isDarkMode}>Motion Frame (Secondary)</SelectItem>
+                          <SelectItem onClick={() => { setVid_Model('gemini-video'); close(); }} active={vid_model === 'gemini-video'} isDarkMode={isDarkMode}>Gemini Fallback</SelectItem>
                         </>
                       )}
                     </Select>
@@ -1419,7 +1419,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                             <img 
                               src={videoResult.url} 
                               alt="Generated content fallback" 
-                              className="w-full aspect-video object-cover"
+                              className="w-full aspect-video object-cover animate-[pulse_4s_ease-in-out_infinite] hover:scale-105 transition-transform duration-[5000ms]"
                               onLoad={() => setIsVideoLoading(false)}
                               onError={() => setIsVideoLoading(false)}
                             />

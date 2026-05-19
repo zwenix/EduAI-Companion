@@ -23,6 +23,7 @@
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "firebase": "^12.12.1",
+    "google-tts-api": "^2.0.2",
     "html2pdf.js": "^0.14.0",
     "lucide-react": "^0.546.0",
     "marked": "^18.0.2",

@@ -1,24 +1,23 @@
 import { TTSProvider } from '../contexts/AiContext';
+import * as googleTTS from 'google-tts-api';
 
 let currentAudio: HTMLAudioElement | null = null;
 let currentUtterance: SpeechSynthesisUtterance | null = null;
+let isAudioPaused = false;
+let audioQueue: string[] = [];
 
-export const speakText = async (text: string, provider: TTSProvider, language: string = 'en'): Promise<void> => {
+export const speakText = async (text: string, provider: TTSProvider, language: string = 'en', voice: string = '21m00Tcm4TlvDq8ikWAM'): Promise<void> => {
   stopSpeaking(); // Stop any currently playing audio
 
   if (provider === 'elevenlabs') {
     try {
-      // Free/demo key or standard way. We should require a key ideally, but we'll try to use a standard voice endpoint
       const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
       if (!apiKey) {
-         console.warn('VITE_ELEVENLABS_API_KEY is missing. Falling back to browser TTS.');
-         return await speakWithBrowser(text, language);
+         console.warn('VITE_ELEVENLABS_API_KEY is missing. Falling back to Google TTS API.');
+         return await speakWithGoogle(text, language);
       }
 
-      // 21m00Tcm4TlvDq8ikWAM = Rachel (default)
-      const voiceId = "21m00Tcm4TlvDq8ikWAM"; 
-
-      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}`, {
         method: 'POST',
         headers: {
           'accept': 'audio/mpeg',
@@ -57,18 +56,62 @@ export const speakText = async (text: string, provider: TTSProvider, language: s
 
     } catch (error) {
       console.error('ElevenLabs TTS failed:', error);
-      return await speakWithBrowser(text, language);
+      return await speakWithGoogle(text, language);
     }
   } else {
-    return await speakWithBrowser(text, language);
+    return await speakWithGoogle(text, language);
   }
+};
+
+const getLangCode = (language: string) => {
+  if (language.toLowerCase().includes('afrikaans') || language === 'af') return 'af';
+  if (language.toLowerCase().includes('zulu') || language === 'zu') return 'zu';
+  if (language.toLowerCase().includes('xhosa') || language === 'xh') return 'xh';
+  if (language.toLowerCase().includes('sesotho') || language === 'st') return 'st';
+  if (language.toLowerCase().includes('spanish')) return 'es';
+  if (language.toLowerCase().includes('french')) return 'fr';
+  if (language.toLowerCase().includes('german')) return 'de';
+  return 'en-ZA';
+};
+
+export const speakWithGoogle = async (text: string, language: string): Promise<void> => {
+  return new Promise((resolve) => {
+    let cleanText = text.replace(/[*_#`~>|-]/g, '');
+    cleanText = cleanText.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); 
+    cleanText = cleanText.replace(/!\[[^\]]*\]\([^)]+\)/g, '');
+    if (!cleanText.trim()) return resolve();
+    
+    try {
+      const code = getLangCode(language);
+      const urls = googleTTS.getAllAudioUrls(cleanText, { lang: code, slow: false, splitPunct: ',.?!' });
+      audioQueue = urls.map(u => u.url);
+      
+      const playNext = () => {
+        if (audioQueue.length === 0) return resolve();
+        const nextUrl = audioQueue.shift();
+        if (!nextUrl) return resolve();
+        
+        currentAudio = new Audio(nextUrl);
+        currentAudio.onended = () => playNext();
+        currentAudio.onerror = () => {
+          console.error("Google TTS audio playback failed");
+          resolve(); 
+        };
+        currentAudio.play();
+      };
+      
+      playNext();
+    } catch (err) {
+      console.error('Google TTS error:', err);
+      speakWithBrowser(text, language).then(resolve);
+    }
+  });
 };
 
 export const speakWithBrowser = (text: string, language: string): Promise<void> => {
   return new Promise((resolve) => {
     if (!('speechSynthesis' in window)) return resolve();
     
-    // Strip markdown and special chars for better TTS 
     let cleanText = text.replace(/[*_#`~>|-]/g, '');
     cleanText = cleanText.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); 
     cleanText = cleanText.replace(/!\[[^\]]*\]\([^)]+\)/g, '');
@@ -77,17 +120,15 @@ export const speakWithBrowser = (text: string, language: string): Promise<void> 
     utterance.volume = 1;
     utterance.rate = 0.95;
     
-    if (language === 'af') utterance.lang = 'af-ZA';
-    else if (language === 'zu') utterance.lang = 'zu-ZA';
-    else if (language === 'st') utterance.lang = 'st-ZA';
-    else utterance.lang = 'en-US';
+    const code = getLangCode(language);
+    utterance.lang = code === 'en' ? 'en-US' : (code.length === 2 ? `${code}-${code.toUpperCase()}` : code);
 
     utterance.onend = () => resolve();
     utterance.onerror = () => resolve();
   
     const setupVoice = () => {
       const voices = window.speechSynthesis.getVoices();
-      const matchedVoice = voices.find(v => v.lang.startsWith(utterance.lang.split('-')[0]));
+      const matchedVoice = voices.find(v => v.lang.startsWith(code) || v.lang.startsWith(utterance.lang.split('-')[0]));
       if (matchedVoice) {
         utterance.voice = matchedVoice;
       }
@@ -98,13 +139,8 @@ export const speakWithBrowser = (text: string, language: string): Promise<void> 
     if (window.speechSynthesis.getVoices().length > 0) {
       setupVoice();
     } else {
-      window.speechSynthesis.onvoiceschanged = () => {
-        setupVoice();
-      };
-      // fallback if onvoiceschanged doesn't fire
-      setTimeout(() => {
-        if (!currentUtterance) setupVoice();
-      }, 500);
+      window.speechSynthesis.onvoiceschanged = () => setupVoice();
+      setTimeout(() => { if (!currentUtterance) setupVoice(); }, 500);
     }
   });
 };
@@ -119,6 +155,7 @@ export const pauseSpeaking = () => {
 };
 
 export const stopSpeaking = () => {
+  audioQueue = [];
   if (currentAudio) {
     currentAudio.pause();
     currentAudio.currentTime = 0;

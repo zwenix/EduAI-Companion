@@ -29,12 +29,16 @@ const LANGUAGES = [
 ];
 
 const VOICES = [
-  { value: 'Algenib',  label: 'Algenib (Female)' },
-  { value: 'Achernar', label: 'Achernar (Male)' },
-  { value: 'Enif',     label: 'Enif (Female)' },
-  { value: 'Canopus',  label: 'Canopus (Male)' },
-  { value: 'Arcturus', label: 'Arcturus (Male)' },
-  { value: 'Procyon',  label: 'Procyon (Male)' },
+  { value: '21m00Tcm4TlvDq8ikWAM', label: 'Rachel (Female)' },
+  { value: 'AZnzlk1XvdvUeBnXmlld', label: 'Domi (Female)' },
+  { value: 'EXAVITQu4vr4xnSDxMaL', label: 'Bella (Female)' },
+  { value: 'LcfcDJNUP1GQjkvn1xUw', label: 'Emily (Female)' },
+  { value: 'MF3mGyEYCl7XYWbV9V6O', label: 'Elli (Female)' },
+  { value: '29vD33N1CtxCmqQRPOAB', label: 'Drew (Male)' },
+  { value: 'CYw3kZ02Hs0563khs1Fj', label: 'Dave (Male)' },
+  { value: 'ErXwobaYiN019PkySvjV', label: 'Antoni (Male)' },
+  { value: 'TX3OmvcUxq7OylEpIMJl', label: 'Liam (Male)' },
+  { value: 'VR6AewLTigWG4xSOukaG', label: 'Arnold (Male)' },
 ];
 
 const STORAGE_KEY = 'eduai_chat_history_page';
@@ -49,7 +53,7 @@ export default function AITutorPage() {
   const [isAudioPaused, setIsAudioPaused] = useState<boolean>(false);
   const [language, setLanguage] = useState('English');
   const [priorityTopic, setPriorityTopic] = useState('General');
-  const [voice, setVoice] = useState('Algenib');
+  const [voice, setVoice] = useState('21m00Tcm4TlvDq8ikWAM');
   const [isRecording, setIsRecording] = useState(false);
   const [visuals, setVisuals] = useState<Record<number, boolean>>({});
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -153,7 +157,7 @@ export default function AITutorPage() {
     setIsTtsLoading(index);
     try {
       setTimeout(() => setIsTtsLoading(null), 500); 
-      await speakText(text, ttsProvider, language);
+      await speakText(text, ttsProvider, language, voice);
       setIsAudioPlaying(null);
       setIsAudioPaused(false);
     } catch (err) {
