@@ -596,7 +596,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [isVideoError, setIsVideoError] = useState(false);
   const [vid_prompt, setVid_Prompt] = useState<string>('');
-  const [vid_model, setVid_Model] = useState<string>('pollinations-ltx');
+  const [vid_model, setVid_Model] = useState<string>('replicate-minimax');
   
   const handleGenerateVideo = async () => {
     setIsLoading(true);
@@ -605,24 +605,27 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     setIsVideoError(false);
     setIsVideoLoading(true);
     try {
-      // Simulate or actually generate by setting the video source url
-      const promptEnc = encodeURIComponent(vid_prompt);
-      let model = 'ltx-video';
-      if (vid_model === 'pollinations-ltx') model = 'ltx-video';
-      else if (vid_model === 'pollinations-other') model = 'kling'; // example
-      else if (vid_model === 'gemini-video') model = 'ltx-video'; // since gemini-video doesn't exist on pollinations directly we just fall back
+      const res = await fetch("/api/video/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: vid_prompt, model: vid_model })
+      });
       
-      const url = `https://image.pollinations.ai/prompt/${promptEnc}?nologo=true&model=${model}`;
+      const data = await res.json();
       
-      // Delay to simulate processing? No, pollinations may take a while. We show exactly the URL. 
-      // Actually Pollinations returns MP4 for video models! We can display it in an HTML5 video tag.
-      setTimeout(() => {
-        setVideoResult({ url, prompt: vid_prompt, model: vid_model });
-        setIsLoading(false);
-      }, 2000);
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to generate video");
+      }
+      
+      if (!data.url) throw new Error("No video URL returned");
+      
+      setVideoResult({ url: data.url, prompt: vid_prompt, model: vid_model });
+      setIsLoading(false);
     } catch (err: any) {
       setError(err.message || "Failed to generate video.");
+      setIsVideoError(true);
       setIsLoading(false);
+      setIsVideoLoading(false);
     }
   };
 
@@ -1164,9 +1167,8 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                     <Select value={vid_model} onValueChange={setVid_Model} placeholder="Video Model" isDarkMode={isDarkMode}>
                       {(close: any) => (
                         <>
-                          <SelectItem onClick={() => { setVid_Model('pollinations-ltx'); close(); }} active={vid_model === 'pollinations-ltx'} isDarkMode={isDarkMode}>Cinematic Frame (Primary)</SelectItem>
-                          <SelectItem onClick={() => { setVid_Model('pollinations-other'); close(); }} active={vid_model === 'pollinations-other'} isDarkMode={isDarkMode}>Motion Frame (Secondary)</SelectItem>
-                          <SelectItem onClick={() => { setVid_Model('gemini-video'); close(); }} active={vid_model === 'gemini-video'} isDarkMode={isDarkMode}>Gemini Fallback</SelectItem>
+                          <SelectItem onClick={() => { setVid_Model('replicate-minimax'); close(); }} active={vid_model === 'replicate-minimax'} isDarkMode={isDarkMode}>Minimax Video</SelectItem>
+                          <SelectItem onClick={() => { setVid_Model('replicate-luma'); close(); }} active={vid_model === 'replicate-luma'} isDarkMode={isDarkMode}>Luma Ray</SelectItem>
                         </>
                       )}
                     </Select>

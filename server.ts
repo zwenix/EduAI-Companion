@@ -154,6 +154,33 @@ async function startServer() {
     }
   });
 
+  app.post("/api/video/generate", async (req, res) => {
+    const { prompt, model } = req.body;
+    const apiKey = process.env.REPLICATE_API_TOKEN;
+    if (!apiKey) {
+      return res.status(400).json({ error: "REPLICATE_API_TOKEN is required. Please set it in Settings -> Secrets." });
+    }
+    try {
+      const Replicate = (await import("replicate")).default;
+      const replicate = new Replicate({ auth: apiKey });
+      
+      const modelIdentifier = model === "replicate-minimax" ? "minimax/video-01" : "luma/ray";
+      
+      const output = await replicate.run(
+        modelIdentifier as any,
+        {
+          input: { prompt: prompt }
+        }
+      );
+      
+      const url = Array.isArray(output) ? output[0] : (output as any)?.url || output;
+      res.json({ url });
+    } catch (e: any) {
+      console.warn("Replicate Video Error:", e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post("/api/images/generate", async (req, res) => {
     const { prompt, provider } = req.body;
     
