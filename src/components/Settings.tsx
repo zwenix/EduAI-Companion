@@ -39,30 +39,30 @@ export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitch
     const fetchProfile = async () => {
       if (auth.currentUser) {
         setProfileEmail(auth.currentUser.email || '');
+        let currentName = auth.currentUser.displayName || fullName;
+        let currentPhoto = auth.currentUser.photoURL || photoUrl;
+        
         try {
           const docRef = doc(db, 'users', auth.currentUser.uid);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             const data = docSnap.data();
-            if (data.name) setFullName(data.name);
+            if (data.name) currentName = data.name;
             if (data.school) setSchool(data.school);
             if (data.phone) setPhone(data.phone);
             if (data.jobTitle) setJobTitle(data.jobTitle);
-            if (data.photoUrl) setPhotoUrl(data.photoUrl);
-            
-            // Sync to local storage for quick access across app
-            localStorage.setItem('eduai_user_name', data.name || '');
-            localStorage.setItem('eduai_user_school', data.school || '');
-            localStorage.setItem('eduai_user_phone', data.phone || '');
-            localStorage.setItem('eduai_user_job', data.jobTitle || '');
-            localStorage.setItem('eduai_user_photo', data.photoUrl || '');
+            if (data.photoUrl) currentPhoto = data.photoUrl;
           }
         } catch (error) {
           console.error("Error fetching profile", error);
-          if (auth.currentUser) {
-            handleFirestoreError(error, OperationType.GET, 'users/' + auth.currentUser.uid);
-          }
+          handleFirestoreError(error, OperationType.GET, 'users/' + auth.currentUser.uid);
         }
+        
+        setFullName(currentName);
+        setPhotoUrl(currentPhoto);
+        
+        localStorage.setItem('eduai_user_name', currentName || '');
+        localStorage.setItem('eduai_user_photo', currentPhoto || '');
       }
       setIsLoading(false);
     }
@@ -85,6 +85,7 @@ export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitch
       if (docSnap.exists()) {
         await updateDoc(docRef, {
           name: fullName,
+          email: profileEmail,
           school: school,
           jobTitle: jobTitle,
           phone: phone,
@@ -94,7 +95,7 @@ export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitch
       } else {
         await setDoc(docRef, {
           name: fullName,
-          email: auth.currentUser.email || '',
+          email: profileEmail || auth.currentUser.email || '',
           role: 'teacher', // fallback role
           school: school,
           jobTitle: jobTitle,
@@ -238,9 +239,10 @@ export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitch
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input 
                       type="email" 
-                      value="teacher@houghton.school.za"
-                      disabled
-                      className={cn("w-full pl-12 pr-5 py-4 rounded-2xl text-sm opacity-50 cursor-not-allowed", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")} 
+                      value={profileEmail}
+                      onChange={(e) => setProfileEmail(e.target.value)}
+                      placeholder="teacher@school.com"
+                      className={cn("w-full pl-12 pr-5 py-4 rounded-2xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")} 
                     />
                   </div>
                 </div>
@@ -404,7 +406,7 @@ export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitch
                       </div>
                       <div>
                         <p className={cn("font-bold", isDarkMode ? "text-white" : "text-slate-900")}>Google Authentication</p>
-                        <p className="text-xs text-slate-500">Linked to teacher@houghton.school.za</p>
+                        <p className="text-xs text-slate-500">Linked to {profileEmail || 'unknown'}</p>
                       </div>
                     </div>
                     <button className={cn("px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border transition-all", isDarkMode ? "border-white/10 text-slate-400" : "border-slate-200 text-slate-500")}>Unlink</button>

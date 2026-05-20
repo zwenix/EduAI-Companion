@@ -40,6 +40,12 @@ export default function AutoGrading() {
   const [archiveSuccess, setArchiveSuccess] = useState(false);
 
   React.useEffect(() => {
+    if (isCameraActive && stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [isCameraActive, stream, videoRef.current]);
+
+  React.useEffect(() => {
     return () => {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());

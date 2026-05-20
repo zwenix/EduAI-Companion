@@ -62,6 +62,7 @@ import NotificationsDropdown from './components/NotificationsDropdown';
 import StudentPractice from './components/StudentPractice';
 import StudentNotes from './components/StudentNotes';
 import StudentDashboard from './components/StudentDashboard';
+import StudentPortfolio from './components/StudentPortfolio';
 import ParentDashboard from './components/ParentDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import SettingsPage from './components/Settings';
@@ -832,6 +833,8 @@ export default function App() {
                   <StudentPractice isDarkMode={isDarkMode} />
                 ) : activeTab === 'student-notes' ? (
                   <StudentNotes isDarkMode={isDarkMode} />
+                ) : activeTab === 'portfolios' ? (
+                  <StudentPortfolio isDarkMode={isDarkMode} />
                 ) : activeTab === 'settings' ? (
                   <SettingsPage 
                     isDarkMode={isDarkMode} 
