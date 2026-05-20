@@ -614,10 +614,15 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
         body: JSON.stringify({ prompt: vid_prompt, model: vid_model })
       });
       
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (e: any) {
+        throw new Error("Server returned an invalid response. This might be a timeout or configuration error.");
+      }
       
       if (!res.ok) {
-        throw new Error(data.error || "Failed to initiate video generation");
+        throw new Error(data?.error || "Failed to initiate video generation");
       }
       
       const predictionId = data.id;
@@ -633,7 +638,14 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
       while (true) {
         await new Promise(r => setTimeout(r, 5000));
         const statusRes = await fetch(`/api/video/status/${predictionId}`);
-        const statusData = await statusRes.json();
+        
+        let statusData;
+        try {
+          statusData = await statusRes.json();
+        } catch (e: any) {
+           clearInterval(progressInterval);
+           throw new Error("Failed to check video status: Server returned invalid content.");
+        }
         
         if (!statusRes.ok) {
            clearInterval(progressInterval);
@@ -1529,13 +1541,11 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                               }}
                             />
                           ) : (
-                            <img 
-                              src={videoResult.url} 
-                              alt="Generated content fallback" 
-                              className="w-full aspect-video object-cover animate-[pulse_4s_ease-in-out_infinite] hover:scale-105 transition-transform duration-[5000ms]"
-                              onLoad={() => setIsVideoLoading(false)}
-                              onError={() => setIsVideoLoading(false)}
-                            />
+                            <div className="w-full aspect-video flex flex-col items-center justify-center text-slate-400 bg-slate-900 border border-slate-800 rounded-2xl">
+                              <Video size={48} className="mb-4 opacity-50" />
+                              <p className="px-4 text-center">Video playback unavailable or format not supported.</p>
+                              <a href={videoResult.url} target="_blank" rel="noreferrer" className="mt-4 text-brand-cyan hover:underline text-sm font-bold tracking-widest uppercase">Open Video Direct Link</a>
+                            </div>
                           )}
                           <div className={cn("p-4 border-t text-center absolute bottom-0 left-0 right-0 z-10", isDarkMode ? "border-white/10 bg-slate-900/80 backdrop-blur-md" : "border-slate-200 bg-white/80 backdrop-blur-md")}>
                             <p className={cn("font-medium text-sm", isDarkMode ? "text-slate-300" : "text-slate-700")}>
