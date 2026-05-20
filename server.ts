@@ -191,9 +191,16 @@ async function startServer() {
       }
 
       try {
-        const geminiAi = new GoogleGenAI({ apiKey });
+        const geminiAi = new GoogleGenAI({ 
+          apiKey,
+          httpOptions: {
+            headers: {
+              'User-Agent': 'aistudio-build',
+            }
+          }
+        });
         const response = await geminiAi.models.generateImages({
-          model: 'imagen-3.0-generate-002',
+          model: 'gemini-2.5-flash-image',
           prompt: prompt,
           config: {
             numberOfImages: 1,
