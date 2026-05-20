@@ -1,5 +1,23 @@
 import React from 'react';
 import { ShieldAlert, Users, School, Activity, Server, FileText, Calendar } from 'lucide-react';
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+
+const userGrowthData = [
+  { name: 'Jan', students: 1200, teachers: 80 },
+  { name: 'Feb', students: 1400, teachers: 85 },
+  { name: 'Mar', students: 1600, teachers: 95 },
+  { name: 'Apr', students: 2100, teachers: 110 },
+  { name: 'May', students: 2800, teachers: 130 },
+  { name: 'Jun', students: 3200, teachers: 142 },
+];
+
+const resourceData = [
+  { name: 'Database', value: 400 },
+  { name: 'Storage', value: 300 },
+  { name: 'API Compute', value: 300 },
+  { name: 'Bandwidth', value: 200 },
+];
+const COLORS = ['#06b6d4', '#10b981', '#6366f1', '#f59e0b'];
 
 export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) {
   return (
@@ -37,6 +55,66 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
          ))}
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Chart 1: User Growth */}
+        <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm flex flex-col`}>
+          <h3 className={`text-xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>User Growth Trends</h3>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={userGrowthData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorTeachers" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="name" stroke={isDarkMode ? '#475569' : '#94a3b8'} tick={{ fill: isDarkMode ? '#94a3b8' : '#64748b' }} />
+                <YAxis stroke={isDarkMode ? '#475569' : '#94a3b8'} tick={{ fill: isDarkMode ? '#94a3b8' : '#64748b' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#334155' : '#e2e8f0'} vertical={false} />
+                <Tooltip 
+                   contentStyle={{ backgroundColor: isDarkMode ? '#1e293b' : '#ffffff', borderColor: isDarkMode ? '#334155' : '#e2e8f0', color: isDarkMode ? '#f8fafc' : '#0f172a', borderRadius: '16px' }}
+                />
+                <Legend />
+                <Area type="monotone" dataKey="students" stroke="#06b6d4" fillOpacity={1} fill="url(#colorStudents)" name="Students" />
+                <Area type="monotone" dataKey="teachers" stroke="#6366f1" fillOpacity={1} fill="url(#colorTeachers)" name="Educators" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Chart 2: Resource Utilization */}
+        <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm flex flex-col`}>
+          <h3 className={`text-xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Resource Utilization</h3>
+           <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={resourceData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={80}
+                  outerRadius={110}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {resourceData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                   contentStyle={{ backgroundColor: isDarkMode ? '#1e293b' : '#ffffff', borderColor: isDarkMode ? '#334155' : '#e2e8f0', color: isDarkMode ? '#f8fafc' : '#0f172a', borderRadius: '16px' }}
+                />
+                <Legend layout="vertical" verticalAlign="middle" align="right" />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
          <div className="lg:col-span-8 space-y-6">
             <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
@@ -62,7 +140,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
             </div>
          </div>
          <div className="lg:col-span-4 space-y-6">
-            <div className={`p-8 rounded-[36px] shadow-lg ${isDarkMode ? 'bg-slate-800 border border-slate-700' : 'bg-slate-800' } text-white`}>
+            <div className={`p-8 rounded-[36px] shadow-lg ${isDarkMode ? 'bg-slate-800 border border-slate-700' : 'bg-slate-800' } text-white h-full`}>
                <h3 className="text-xl font-bold mb-4">Quick Actions</h3>
                <div className="space-y-3">
                   <button className="w-full bg-slate-700 hover:bg-slate-600 transition-colors p-4 rounded-2xl text-left font-medium text-sm flex justify-between items-center">
