@@ -522,7 +522,9 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [t_differentiation, setT_Differentiation] = useState('');
   const [t_memo, setT_Memo] = useState(true);
   const [t_rubric, setT_Rubric] = useState(true);
+  const [t_dependencies, setT_Dependencies] = useState('');
   const [t_extraInstructions, setT_ExtraInstructions] = useState('');
+  const [generationProgress, setGenerationProgress] = useState(0);
 
   const t_subjects = useMemo(() => {
     if (!t_grade) return [];
@@ -641,20 +643,40 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     const finalSubject = t_subject === 'Other' ? t_customSubject : t_subject;
     const finalTopic = t_topic === 'Other' ? t_customTopic : t_topic;
     setIsLoading(true);
+    setGenerationProgress(0);
     setError(null);
     setTeachingResult(null);
     setActivePreviewTab('content');
+    
+    // Simulate progress during generation
+    const progressInterval = setInterval(() => {
+      setGenerationProgress(prev => Math.min(prev + Math.floor(Math.random() * 8) + 2, 95));
+    }, 400);
+
     try {
+      const compiledInstructions = 
+        (t_extraInstructions ? t_extraInstructions + '\n' : '') +
+        (t_dependencies ? `TASK DEPENDENCIES / PRE-REQUISITES:\n${t_dependencies}\n` : '');
+
       const result = await generateCAPSContent({
         category: t_category, contentType: t_type, grade: t_grade, subject: finalSubject,
         topic: finalTopic, term: t_term, language: t_language, objective: t_objective,
-        learnerProfile: t_profile, additionalInstructions: t_extraInstructions
+        learnerProfile: t_profile, additionalInstructions: compiledInstructions
       }, provider);
-      setTeachingResult(result);
+      
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
+      
+      setTimeout(() => {
+        setTeachingResult(result);
+        setIsLoading(false);
+      }, 400);
     } catch (err: any) { 
       console.error(err); 
+      clearInterval(progressInterval);
       setError(err.message || "Failed to fabricate teaching material.");
-    } finally { setIsLoading(false); }
+      setIsLoading(false);
+    }
   };
 
   const handleGenerateVisual = async () => {
@@ -912,6 +934,19 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   </div>
                 </div>
 
+                {(t_type === 'Lesson Plan' || t_type === 'Unit Plan') && (
+                  <div className="space-y-4">
+                    <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Task Dependencies & Pre-requisites</Label>
+                    <Textarea 
+                      placeholder="e.g. Learners must have completed fractional basic test. Review chapter 2 first." 
+                      value={t_dependencies} 
+                      onChange={(e: any) => setT_Dependencies(e.target.value)} 
+                      isDarkMode={isDarkMode} 
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-widest">Link related tasks to ensure a logical curriculum progression.</p>
+                  </div>
+                )}
+
                 <AdvancedSection label="Advanced Neural Configuration" isDarkMode={isDarkMode}>
                   <div className="space-y-4">
                     <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Learning Objective</Label>
@@ -919,15 +954,31 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   </div>
                 </AdvancedSection>
 
-                <button 
-                  type="button"
-                  onClick={handleGenerateTeaching}
-                  disabled={isLoading}
-                  className="w-full bg-brand-cyan hover:bg-cyan-500 text-navy-dark h-16 rounded-[24px] font-black uppercase tracking-widest text-[11px] flex items-center justify-center gap-3 shadow-xl shadow-cyan-500/20 active:scale-95 transition-all"
-                >
-                  {isLoading ? <Loader2 className="animate-spin" /> : <Zap size={18} />}
-                  {isLoading ? "Fabricating Material..." : `Generate ${t_type || "Content"}`}
-                </button>
+                <div>
+                  <button 
+                    type="button"
+                    onClick={handleGenerateTeaching}
+                    disabled={isLoading}
+                    className="w-full bg-brand-cyan hover:bg-cyan-500 text-navy-dark h-16 rounded-[24px] font-black uppercase tracking-widest text-[11px] flex items-center justify-center gap-3 shadow-xl shadow-cyan-500/20 active:scale-95 transition-all"
+                  >
+                    {isLoading ? <Loader2 className="animate-spin" /> : <Zap size={18} />}
+                    {isLoading ? "Fabricating Material..." : `Generate ${t_type || "Content"}`}
+                  </button>
+                  {isLoading && (
+                    <div className="mt-4 px-2">
+                       <div className="flex justify-between text-[10px] mb-2 font-black uppercase tracking-widest">
+                         <span className={isDarkMode ? 'text-brand-cyan' : 'text-slate-600'}>Compiling Curriculum</span>
+                         <span className={isDarkMode ? 'text-brand-cyan' : 'text-slate-600'}>{generationProgress}%</span>
+                       </div>
+                       <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDarkMode ? 'bg-white/10' : 'bg-slate-200'}`}>
+                         <div 
+                           className="h-full bg-brand-cyan transition-all duration-300"
+                           style={{ width: `${generationProgress}%` }}
+                         />
+                       </div>
+                    </div>
+                  )}
+                </div>
               </motion.div>
             )}
 

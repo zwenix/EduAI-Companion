@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { BookOpen, Loader2, FileText, BrainCircuit } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { BookOpen, Loader2, FileText, BrainCircuit, Download } from 'lucide-react';
 import { generateEducationalContent } from '../services/geminiService';
 import { marked } from 'marked';
 import { educationalData } from '../lib/educational-data';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
   const [grade, setGrade] = useState('10');
@@ -10,7 +12,9 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
   const [topic, setTopic] = useState('');
   const [format, setFormat] = useState('Study Notes');
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<any>(null);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const subjects = useMemo(() => {
     if (!grade) return [];
@@ -26,15 +30,62 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
 
   const generateNotes = async () => {
     setLoading(true);
+    setProgress(0);
     setResult(null);
+    
+    // Simulate progress during API calling
+    const progressInterval = setInterval(() => {
+      setProgress(prev => Math.min(prev + Math.floor(Math.random() * 10) + 5, 95));
+    }, 500);
+
     try {
       const prompt = `Grade: ${grade}\nSubject: ${subject}\nTopic: ${topic}\nFormat: ${format}`;
       const res = await generateEducationalContent(`${format} aligned to CAPS`, prompt);
-      setResult(res);
+      clearInterval(progressInterval);
+      setProgress(100);
+      setTimeout(() => {
+         setResult(res);
+         setLoading(false);
+      }, 300);
     } catch (e) {
       console.error(e);
+      clearInterval(progressInterval);
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const handleExportPDF = async () => {
+    if (!printRef.current) return;
+    
+    try {
+      const canvas = await html2canvas(printRef.current, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: 'a4'
+      });
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      let heightLeft = pdfHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pdf.internal.pageSize.getHeight();
+
+      while (heightLeft >= 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pdf.internal.pageSize.getHeight();
+      }
+
+      pdf.save(`${subject.replace(/\s+/g, '_')}_${topic.replace(/\s+/g, '_')}_Notes.pdf`);
+    } catch (error) {
+      console.error("Failed to generate PDF", error);
+    }
   };
   
   return (
@@ -88,19 +139,43 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
               </select>
             )}
           </div>
-          <button onClick={generateNotes} disabled={loading || !subject || !topic} className={`w-full ${isDarkMode ? 'bg-brand-cyan hover:bg-brand-cyan/80 text-white' : 'bg-slate-800 hover:bg-slate-700 text-white'} font-bold py-4 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 mt-4`}>
+          <button onClick={generateNotes} disabled={loading || !subject || !topic} className={`w-full ${isDarkMode ? 'bg-brand-cyan hover:bg-brand-cyan/80 text-navy-dark' : 'bg-slate-800 hover:bg-slate-700 text-white'} font-bold py-4 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 mt-4 transition-all`}>
             {loading ? <Loader2 className="animate-spin" /> : <BrainCircuit />}
-            Generate {format}
+            {loading ? 'Generating...' : `Generate ${format}`}
           </button>
+          {loading && (
+            <div className="mt-4">
+              <div className="flex justify-between text-xs mb-1 font-bold">
+                <span className={isDarkMode ? 'text-brand-cyan' : 'text-slate-600'}>Generating Content</span>
+                <span className={isDarkMode ? 'text-brand-cyan' : 'text-slate-600'}>{progress}%</span>
+              </div>
+              <div className={`w-full h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-white/10' : 'bg-slate-200'}`}>
+                <div 
+                  className="h-full bg-brand-cyan transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="lg:col-span-2">
           {result ? (
-            <div className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} p-8 rounded-[24px] border shadow-sm`}>
-              <div 
-                dangerouslySetInnerHTML={{ __html: marked.parse(result.content || result) as string }} 
-                className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-800'}`} 
-              />
+            <div className="space-y-4">
+              <div className="flex justify-end">
+                <button 
+                  onClick={handleExportPDF}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl transition-all ${isDarkMode ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+                >
+                  <Download size={16} /> Export to PDF
+                </button>
+              </div>
+              <div ref={printRef} className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} p-8 rounded-[24px] border shadow-sm`}>
+                <div 
+                  dangerouslySetInnerHTML={{ __html: marked.parse(result.content || result) as string }} 
+                  className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-800'}`} 
+                />
+              </div>
             </div>
           ) : (
              <div className={`${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'} p-12 rounded-[24px] border border-dashed text-center flex flex-col items-center justify-center opacity-70`}>

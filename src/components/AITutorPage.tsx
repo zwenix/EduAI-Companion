@@ -57,6 +57,7 @@ export default function AITutorPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [visuals, setVisuals] = useState<Record<number, boolean>>({});
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [generationProgress, setGenerationProgress] = useState(0);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -179,6 +180,11 @@ export default function AITutorPage() {
     setSelectedImage(null);
     setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
+    setGenerationProgress(0);
+
+    const progressInterval = setInterval(() => {
+      setGenerationProgress(prev => Math.min(prev + Math.floor(Math.random() * 12) + 2, 95));
+    }, 400);
 
     try {
       const chatMessagesForTutor = messages.map(m => {
@@ -202,13 +208,20 @@ export default function AITutorPage() {
       chatMessagesForTutor.push({ role: 'user', parts: newParts });
 
       const response = await chatWithTutor(chatMessagesForTutor, provider);
-      const modelMsg: ChatMessage = { role: 'model', text: response || 'I could not process that.' };
-      setMessages(prev => [...prev, modelMsg]);
+      
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
+      
+      setTimeout(() => {
+        const modelMsg: ChatMessage = { role: 'model', text: response || 'I could not process that.' };
+        setMessages(prev => [...prev, modelMsg]);
+        setIsLoading(false);
+      }, 300);
 
     } catch (error) {
       console.error('[AI Tutor] send failed:', error);
+      clearInterval(progressInterval);
       alert('Failed to get response. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   }, [input, messages, provider, priorityTopic, language, selectedImage]);
@@ -445,10 +458,17 @@ export default function AITutorPage() {
             <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl bg-white border border-slate-200 flex flex-col items-center justify-center shrink-0 shadow-sm text-brand-cyan animate-pulse">
                <Sparkles className="w-4 h-4 lg:w-5 lg:h-5" />
             </div>
-            <div className="bg-white border border-slate-200 rounded-2xl lg:rounded-3xl rounded-tl-md px-4 lg:px-6 py-3 lg:py-5 flex items-center gap-1.5 shadow-sm">
-               <span className="w-1.5 lg:w-2 h-1.5 lg:h-2 bg-brand-cyan rounded-full animate-bounce"></span>
-               <span className="w-1.5 lg:w-2 h-1.5 lg:h-2 bg-brand-cyan rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-               <span className="w-1.5 lg:w-2 h-1.5 lg:h-2 bg-brand-cyan rounded-full animate-bounce"></span>
+            <div className="bg-white border border-slate-200 rounded-2xl lg:rounded-3xl rounded-tl-md px-5 py-4 flex flex-col gap-2 min-w-[200px] shadow-sm">
+               <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-500">
+                 <span>Tutor is thinking...</span>
+                 <span>{generationProgress}%</span>
+               </div>
+               <div className="w-full h-1.5 rounded-full overflow-hidden bg-slate-100">
+                 <div 
+                   className="h-full bg-brand-cyan transition-all duration-300"
+                   style={{ width: `${generationProgress}%` }}
+                 />
+               </div>
             </div>
           </div>
         )}

@@ -38,6 +38,7 @@ export default function AutoGrading() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [archiveSuccess, setArchiveSuccess] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
 
   React.useEffect(() => {
     if (isCameraActive && stream && videoRef.current) {
@@ -119,17 +120,28 @@ export default function AutoGrading() {
     if (!img) return;
     
     setIsProcessing(true);
+    setGenerationProgress(0);
     setProcessingError(null);
     setResult(null); 
     setExtractResult(null);
     setMode('extract');
+    
+    const progressInterval = setInterval(() => {
+      setGenerationProgress(prev => Math.min(prev + Math.floor(Math.random() * 15) + 5, 95));
+    }, 300);
+
     try {
       const resp = await runOCRScan(img, provider, ocrProvider, ocrLanguage);
-      setExtractResult(resp);
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
+      setTimeout(() => {
+        setExtractResult(resp);
+        setIsProcessing(false);
+      }, 300);
     } catch (error: any) {
       console.error("Extraction error:", error);
+      clearInterval(progressInterval);
       setProcessingError(error.message || "Extraction failed.");
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -139,17 +151,28 @@ export default function AutoGrading() {
     if (!img) return;
     
     setIsProcessing(true);
+    setGenerationProgress(0);
     setProcessingError(null);
     setResult(null); // Clear previous result
     setExtractResult(null);
     setMode('grade');
+    
+    const progressInterval = setInterval(() => {
+      setGenerationProgress(prev => Math.min(prev + Math.floor(Math.random() * 8) + 2, 95));
+    }, 400);
+
     try {
       const gradingResult = await runOCRAndGrade(img, rubric || "Grade accurately based on standard academic quality, checking for correctness, clarity, and completeness.", provider, ocrProvider, ocrLanguage);
-      setResult(gradingResult);
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
+      setTimeout(() => {
+        setResult(gradingResult);
+        setIsProcessing(false);
+      }, 400);
     } catch (error: any) {
       console.error("Processing error:", error);
+      clearInterval(progressInterval);
       setProcessingError(error.message || "Neuro-analysis failed. Please check your AI config or try another provider.");
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -324,7 +347,18 @@ export default function AutoGrading() {
                 isProcessing ? 'bg-brand-cyan/10 border-brand-cyan/20 text-brand-cyan' : 'bg-white/5 border-white/10 text-slate-400'
               }`}>
                 {isProcessing ? (
-                  <div className="flex items-center gap-3"><Loader2 className="animate-spin" size={20} /> Neural Synthesis Active</div>
+                  <div className="w-full px-8">
+                     <div className="flex justify-between items-center w-full mb-3">
+                       <span className="flex items-center gap-3"><Loader2 className="animate-spin" size={20} /> Neural Synthesis Active</span>
+                       <span>{generationProgress}%</span>
+                     </div>
+                     <div className="w-full h-1.5 rounded-full overflow-hidden bg-navy-dark/40 border border-white/5 shadow-inner">
+                       <div 
+                         className="h-full bg-brand-cyan transition-all duration-300"
+                         style={{ width: `${generationProgress}%` }}
+                       />
+                     </div>
+                  </div>
                 ) : (
                   <div className="flex gap-4">
                     <button 
