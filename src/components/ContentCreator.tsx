@@ -602,6 +602,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   
   const handleGenerateVideo = async () => {
     setIsLoading(true);
+    setGenerationProgress(0);
     setError(null);
     setVideoResult(null);
     setIsVideoError(false);
@@ -616,12 +617,40 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
       const data = await res.json();
       
       if (!res.ok) {
-        throw new Error(data.error || "Failed to generate video");
+        throw new Error(data.error || "Failed to initiate video generation");
       }
       
-      if (!data.url) throw new Error("No video URL returned");
+      const predictionId = data.id;
+      if (!predictionId) throw new Error("No prediction ID returned");
+
+      let progress = 5;
+      const progressInterval = setInterval(() => {
+        progress = Math.min(progress + Math.floor(Math.random() * 3), 90);
+        setGenerationProgress(progress);
+      }, 2000);
+
+      // Poll until succeeded or failed
+      while (true) {
+        await new Promise(r => setTimeout(r, 5000));
+        const statusRes = await fetch(`/api/video/status/${predictionId}`);
+        const statusData = await statusRes.json();
+        
+        if (!statusRes.ok) {
+           clearInterval(progressInterval);
+           throw new Error(statusData.error || "Failed to check video status");
+        }
+        
+        if (statusData.status === "succeeded") {
+           clearInterval(progressInterval);
+           setGenerationProgress(100);
+           setVideoResult({ url: statusData.url, prompt: vid_prompt, model: vid_model });
+           break;
+        } else if (statusData.status === "failed" || statusData.status === "canceled") {
+           clearInterval(progressInterval);
+           throw new Error("Video generation failed or was canceled.");
+        }
+      }
       
-      setVideoResult({ url: data.url, prompt: vid_prompt, model: vid_model });
       setIsLoading(false);
     } catch (err: any) {
       setError(err.message || "Failed to generate video.");
@@ -1235,14 +1264,30 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   </div>
                 </div>
 
-                <button 
-                  onClick={handleGenerateVideo}
-                  disabled={isLoading || !vid_prompt}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-xl shadow-indigo-600/30"
-                >
-                  {isLoading ? <Loader2 className="animate-spin" size={18} /> : <Video size={18} />}
-                  {isLoading ? 'Synthesizing Video...' : 'Generate Video'}
-                </button>
+                <div>
+                  <button 
+                    onClick={handleGenerateVideo}
+                    disabled={isLoading || !vid_prompt}
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-xl shadow-indigo-600/30"
+                  >
+                    {isLoading ? <Loader2 className="animate-spin" size={18} /> : <Video size={18} />}
+                    {isLoading ? 'Synthesizing Video...' : 'Generate Video'}
+                  </button>
+                  {isLoading && (
+                    <div className="mt-4 px-2">
+                       <div className="flex justify-between text-[10px] mb-2 font-black uppercase tracking-widest">
+                         <span className={isDarkMode ? 'text-indigo-400' : 'text-slate-600'}>Rendering Video Frame by Frame</span>
+                         <span className={isDarkMode ? 'text-indigo-400' : 'text-slate-600'}>{generationProgress}%</span>
+                       </div>
+                       <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDarkMode ? 'bg-white/10' : 'bg-slate-200'}`}>
+                         <div 
+                           className="h-full bg-indigo-500 transition-all duration-300"
+                           style={{ width: `${generationProgress}%` }}
+                         />
+                       </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             {activeTab === 'grade1' && (

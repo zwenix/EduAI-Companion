@@ -166,17 +166,38 @@ async function startServer() {
       
       const modelIdentifier = model === "replicate-minimax" ? "minimax/video-01" : "luma/ray";
       
-      const output = await replicate.run(
-        modelIdentifier as any,
-        {
-          input: { prompt: prompt }
-        }
-      );
+      const prediction = await replicate.predictions.create({
+        model: modelIdentifier as any,
+        input: { prompt: prompt }
+      });
       
-      const url = Array.isArray(output) ? output[0] : (output as any)?.url || output;
-      res.json({ url });
+      res.json({ id: prediction.id, status: prediction.status });
     } catch (e: any) {
       console.warn("Replicate Video Error:", e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/video/status/:id", async (req, res) => {
+    const apiKey = process.env.REPLICATE_API_TOKEN;
+    if (!apiKey) {
+      return res.status(400).json({ error: "REPLICATE_API_TOKEN is required." });
+    }
+    try {
+      const Replicate = (await import("replicate")).default;
+      const replicate = new Replicate({ auth: apiKey });
+      
+      const prediction = await replicate.predictions.get(req.params.id);
+      
+      if (prediction.status === "succeeded") {
+         const url = Array.isArray(prediction.output) ? prediction.output[0] : (prediction.output as any)?.url || prediction.output;
+         res.json({ status: prediction.status, url });
+      } else if (prediction.status === "failed" || prediction.status === "canceled") {
+         res.status(500).json({ error: "Video generation failed or was canceled." });
+      } else {
+         res.json({ status: prediction.status });
+      }
+    } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
   });
