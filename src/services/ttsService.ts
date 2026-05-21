@@ -133,10 +133,16 @@ export const speakWithHuggingFace = async (text: string, language: string): Prom
           currentAudio = new Audio(nextUrl);
           currentAudio.onended = () => playNext();
           currentAudio.onerror = () => {
-            console.error("HF Audio play error");
-            resolve();
+            console.warn("HF Audio play error, falling back to Google TTS");
+            speakWithGoogle(text, language).then(resolve);
           };
-          currentAudio.play();
+          const playPromise = currentAudio.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(err => {
+              console.warn("HF Audio play rejected, falling back to Google TTS", err);
+              speakWithGoogle(text, language).then(resolve);
+            });
+          }
         };
         playNext();
       } catch (err) {
@@ -180,10 +186,16 @@ export const speakWithGoogle = async (text: string, language: string): Promise<v
           currentAudio = new Audio(nextUrl);
           currentAudio.onended = () => playNext();
           currentAudio.onerror = () => {
-            console.error("Google TTS audio playback failed");
-            resolve(); 
+            console.warn("Google TTS audio playback failed, falling back to browser speech synthesis");
+            speakWithBrowser(text, language).then(resolve);
           };
-          currentAudio.play();
+          const playPromise = currentAudio.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(err => {
+              console.warn("Google TTS play rejected, falling back to browser speech synthesis", err);
+              speakWithBrowser(text, language).then(resolve);
+            });
+          }
         };
         
         playNext();

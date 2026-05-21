@@ -51,36 +51,36 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#0B1122] relative overflow-hidden font-sans">
+    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-[#00d2ff] via-[#3a7bd5] to-[#8e44ad] relative overflow-hidden font-sans animate-fadeInZoom">
       {/* Dynamic Background */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute top-0 left-[10%] w-[500px] h-[500px] bg-brand-cyan/20 rounded-full blur-[120px] mix-blend-screen animate-pulse" />
-        <div className="absolute bottom-0 right-[10%] w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-[150px] mix-blend-screen" />
+        <div className="absolute top-10 left-[10%] w-64 h-64 bg-brand-yellow/30 rounded-full blur-[80px] mix-blend-screen animate-pulse" />
+        <div className="absolute bottom-10 right-[10%] w-80 h-80 bg-brand-pink/30 rounded-full blur-[100px] mix-blend-screen" />
       </div>
 
       {/* Login Container */}
       <div className="w-full max-w-[420px] mx-4 relative z-10">
-        <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-8 sm:p-10 shadow-2xl overflow-hidden ring-1 ring-white/5">
+        <div className="bg-white/20 backdrop-blur-3xl border-4 border-white/40 rounded-[2.5rem] p-8 sm:p-10 shadow-2xl kid-shadow overflow-hidden">
           {/* Logo & Header */}
           <div className="flex flex-col items-center mb-6 text-center">
-            <div className="w-20 h-20 flex items-center justify-center mb-6 transform hover:scale-105 transition-transform duration-300">
+            <div className="w-24 h-24 flex items-center justify-center mb-4 transform hover:scale-105 transition-transform duration-300 bg-white/30 rounded-3xl border-4 border-white">
                <img 
                 src="https://i.ibb.co/tTc5gG5k/eduai-company-logo2-preview-177246762158%200-2-preview-177247315%203046.png"
                 alt="EduAI Logo"
-                className="w-full h-full object-contain scale-125 drop-shadow-md"
+                className="w-full h-full object-contain scale-110 drop-shadow-md"
               />
             </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Welcome back</h1>
-            <p className="text-sm text-slate-400 font-medium">Log in to your EduAI terminal</p>
+            <h1 className="text-4xl font-black text-white tracking-tight mb-2 font-display drop-shadow-md">Welcome back! 👋</h1>
+            <p className="text-base text-blue-50 font-bold drop-shadow-sm">Log in to your magical adventure</p>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-200 text-sm text-center">
+            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-white font-bold text-sm text-center">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-4">
               {/* Email Input */}
               <div className="relative group">
@@ -89,7 +89,7 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="Email address"
-                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-cyan/50 focus:border-brand-cyan/50 transition-all font-medium"
+                  className="w-full h-14 bg-white/20 border-2 border-white/50 rounded-2xl px-5 text-white placeholder-blue-100 focus:outline-none focus:ring-4 focus:ring-brand-yellow/50 focus:border-brand-yellow transition-all font-bold text-lg kid-shadow-hover"
                   required
                 />
               </div>
@@ -101,7 +101,7 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="Password"
-                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-cyan/50 focus:border-brand-cyan/50 transition-all font-medium"
+                  className="w-full h-14 bg-white/20 border-2 border-white/50 rounded-2xl px-5 text-white placeholder-blue-100 focus:outline-none focus:ring-4 focus:ring-brand-yellow/50 focus:border-brand-yellow transition-all font-bold text-lg kid-shadow-hover"
                   required
                 />
               </div>
@@ -111,24 +111,24 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
             <button 
               type="submit" 
               disabled={isLoading || isGoogle}
-              className="w-full h-14 bg-brand-cyan hover:bg-cyan-500 text-slate-900 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+              className="w-full h-14 mt-6 bg-brand-yellow hover:bg-[#ffdf40] text-slate-800 rounded-[28px] font-display font-black text-xl flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed kid-shadow-hover border-4 border-[#ffdf40]/50"
             >
               {isLoading ? (
                 <Loader2 className="w-6 h-6 animate-spin text-slate-900" />
               ) : (
                 <>
-                  Sign in
-                  <ArrowRight className="w-5 h-5 opacity-70 group-hover:opacity-100 transition-opacity" />
+                  Let's Go!
+                  <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" strokeWidth={3} />
                 </>
               )}
             </button>
 
-            <div className="relative flex items-center py-2">
-              <div className="flex-grow border-t border-white/10"></div>
-              <span className="shrink-0 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Or continue with
+            <div className="relative flex items-center py-4">
+              <div className="flex-grow border-t-2 border-white/30"></div>
+              <span className="shrink-0 px-4 text-sm font-black uppercase tracking-wider text-white drop-shadow-md">
+                Or play with
               </span>
-              <div className="flex-grow border-t border-white/10"></div>
+              <div className="flex-grow border-t-2 border-white/30"></div>
             </div>
 
             {/* Google Sign In */}
@@ -136,12 +136,12 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
               type="button"
               onClick={handleGoogle} 
               disabled={isLoading || isGoogle}
-              className="w-full h-14 bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 rounded-2xl font-semibold flex items-center justify-center gap-3 transition-all duration-300 shadow-sm"
+              className="w-full h-14 bg-white border-4 border-white/80 hover:bg-slate-50 text-slate-800 rounded-[28px] font-display font-black text-lg flex items-center justify-center gap-3 transition-all duration-300 kid-shadow-hover"
             >
               {isGoogle ? (
-                <Loader2 className="w-5 h-5 text-slate-600 animate-spin" />
+                <Loader2 className="w-6 h-6 text-slate-600 animate-spin" />
               ) : (
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <svg className="w-6 h-6" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                   <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
@@ -153,15 +153,15 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
           </form>
 
           {/* Footer */}
-          <div className="mt-8 text-center">
-            <p className="text-sm text-slate-400 font-medium">
-              Don't have an account?{' '}
+          <div className="mt-8 text-center bg-white/10 rounded-2xl p-4">
+            <p className="text-base text-white font-bold">
+              New here?{' '}
               <button 
                 type="button" 
                 onClick={onSignUpClick}
-                className="text-brand-cyan hover:text-cyan-400 font-semibold transition-colors focus:outline-none focus:underline"
+                className="text-brand-yellow hover:text-[#ffdf40] font-black transition-colors focus:outline-none focus:underline"
               >
-                Sign up
+                Sign up!
               </button>
             </p>
           </div>

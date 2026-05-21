@@ -814,58 +814,77 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const hasResult = ((activeTab === 'teaching' || activeTab === 'grade1') && !!teachingResult) || (activeTab === 'visual' && !!visualResult) || (activeTab === 'admin' && !!adminResult) || (activeTab === 'video' && !!videoResult);
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 sm:inset-4 lg:inset-10 z-[70] backdrop-blur-3xl bg-[#0B1122]/95 sm:glass sm:bg-transparent rounded-none sm:rounded-[32px] lg:rounded-[48px] shadow-[0_40px_120px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden border-0 sm:border border-white/10"
-    >
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between p-4 lg:p-8 border-b border-white/5 bg-white/5 px-4 lg:px-10 gap-4 shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 lg:gap-4">
-            <div className="bg-brand-cyan/20 p-2 lg:p-2.5 rounded-xl lg:rounded-2xl border border-brand-cyan/20 text-brand-cyan">
-               <FlaskConical size={20} className="lg:w-6 lg:h-6" />
+    <>
+      {/* Backdrop for click away dismiss */}
+      <div 
+        onClick={onClose}
+        className="fixed inset-0 bg-[#070b13]/80 backdrop-blur-md z-[65] cursor-pointer"
+      />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="fixed inset-0 sm:inset-4 lg:inset-10 z-[70] backdrop-blur-3xl bg-[#0B1122]/95 sm:glass sm:bg-transparent rounded-none sm:rounded-[32px] lg:rounded-[48px] shadow-[0_40px_120px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden border-0 sm:border border-white/10"
+      >
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between p-4 lg:p-8 border-b border-white/5 bg-white/5 px-4 lg:px-10 gap-4 shrink-0">
+          <div className="flex items-center justify-between w-full lg:w-auto">
+            <div className="flex items-center gap-3 lg:gap-4 font-sans">
+              <div className="bg-brand-cyan/20 p-2 lg:p-2.5 rounded-xl lg:rounded-2xl border border-brand-cyan/20 text-brand-cyan font-sans">
+                 <FlaskConical size={20} className="lg:w-6 lg:h-6" />
+              </div>
+              <div className="font-sans">
+                <h2 className="text-xl md:text-2xl lg:text-3xl font-hand text-white">Content Creator Studio</h2>
+                <p className="hidden lg:block text-[10px] text-slate-500 uppercase font-black tracking-[0.3em] mt-1 font-sans">CAPS Intelligence Matrix</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl md:text-2xl lg:text-3xl font-hand text-white">Content Creator Studio</h2>
-              <p className="hidden lg:block text-[10px] text-slate-500 uppercase font-black tracking-[0.3em] mt-1">CAPS Intelligence Matrix</p>
+            {/* Always visible Close Button on Mobile/Tablet right in row 1 */}
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="lg:hidden flex p-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-200 hover:text-white rounded-xl border border-red-500/30 transition-all font-sans font-black uppercase tracking-widest text-[9px] items-center gap-1 hover:scale-105 active:scale-95 shadow-md shadow-red-500/10"
+            >
+              <X size={16} strokeWidth={3} />
+              <span>Close</span>
+            </button>
+          </div>
+          
+          <div className="flex items-center justify-between lg:justify-end gap-2 lg:gap-4 overflow-x-auto scrollbar-hide pb-2 lg:pb-0">
+            {/* Labs Toggle */}
+            <div className="bg-white/5 flex p-1.5 rounded-[24px] border border-white/5 gap-1 shadow-inner shrink-0 font-sans">
+              {[
+                { id: 'teaching', icon: FlaskConical, label: 'Content Studio' },
+                { id: 'visual', icon: Palette, label: 'Visual Lab' },
+                { id: 'video', icon: Video, label: 'Video Lab' },
+                { id: 'admin', icon: FileText, label: 'Admin Lab' },
+                { id: 'grade1', icon: Sparkles, label: 'Foundation' },
+              ].map(lab => (
+                <button 
+                  key={lab.id}
+                  onClick={() => setActiveTab(lab.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 lg:px-6 py-2.5 lg:py-3 rounded-[18px] text-[10px] lg:text-xs font-black uppercase tracking-widest transition-all font-sans",
+                    activeTab === lab.id ? "bg-brand-cyan text-navy-dark shadow-xl" : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  <lab.icon size={14} className="lg:w-4 lg:h-4" />
+                  <span className="whitespace-nowrap hidden sm:inline">{lab.label}</span>
+                  <span className="whitespace-nowrap sm:hidden">{lab.label.split(' ')[0]}</span>
+                </button>
+              ))}
             </div>
+            {/* Highly visible unified close button on Desktop */}
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="hidden lg:flex p-3 bg-red-500/20 hover:bg-red-500/30 text-red-100 hover:text-white rounded-2xl border border-red-500/30 transition-all font-sans font-black uppercase tracking-widest text-[10px] items-center gap-1.5 shrink-0 hover:scale-105 active:scale-95 shadow-lg shadow-red-500/10"
+              title="Close Studio"
+            >
+              <X size={18} strokeWidth={3} />
+              <span>Close</span>
+            </button>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl border border-white/10 lg:border-transparent text-slate-400 hover:text-white transition-all lg:hidden flex items-center justify-center shrink-0 min-w-[40px] min-h-[40px]">
-             <X size={20} />
-          </button>
         </div>
-        
-        <div className="flex items-center gap-2 lg:gap-4 overflow-x-auto scrollbar-hide pb-2 lg:pb-0">
-          {/* Labs Toggle */}
-          <div className="bg-white/5 flex p-1.5 rounded-[24px] border border-white/5 gap-1 shadow-inner shrink-0">
-            {[
-              { id: 'teaching', icon: FlaskConical, label: 'Content Studio' },
-              { id: 'visual', icon: Palette, label: 'Visual Lab' },
-              { id: 'video', icon: Video, label: 'Video Lab' },
-              { id: 'admin', icon: FileText, label: 'Admin Lab' },
-              { id: 'grade1', icon: Sparkles, label: 'Foundation' },
-            ].map(lab => (
-              <button 
-                key={lab.id}
-                onClick={() => setActiveTab(lab.id)}
-                className={cn(
-                  "flex items-center gap-2 px-4 lg:px-6 py-2.5 lg:py-3 rounded-[18px] text-[10px] lg:text-xs font-black uppercase tracking-widest transition-all",
-                  activeTab === lab.id ? "bg-brand-cyan text-navy-dark shadow-xl" : "text-slate-400 hover:text-white"
-                )}
-              >
-                <lab.icon size={14} className="lg:w-4 lg:h-4" />
-                <span className="whitespace-nowrap hidden sm:inline">{lab.label}</span>
-                <span className="whitespace-nowrap sm:hidden">{lab.label.split(' ')[0]}</span>
-              </button>
-            ))}
-          </div>
-          <button onClick={onClose} className="hidden lg:flex p-3 hover:bg-white/5 rounded-2xl text-slate-500 transition-all shrink-0">
-            <X size={24} />
-          </button>
-        </div>
-      </div>
 
       <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
         {/* Left Form Panel */}
@@ -1635,5 +1654,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
         </div>
       )}
     </motion.div>
-  );
+  </>
+);
 }

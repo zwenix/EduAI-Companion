@@ -298,28 +298,28 @@ export default function AITutorPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] lg:h-[calc(100vh-140px)] w-full max-w-5xl mx-auto rounded-none lg:rounded-[3rem] overflow-hidden border-0 lg:border border-slate-200 shadow-none lg:shadow-xl bg-slate-50 relative">
+    <div className="flex flex-col h-[calc(100vh-80px)] lg:h-[calc(100vh-140px)] w-full max-w-5xl mx-auto rounded-[2rem] lg:rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl bg-[#0F172A] relative">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 lg:p-6 bg-white border-b border-slate-200 shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 lg:p-6 bg-[#0B1122]/90 border-b border-white/15 shrink-0 backdrop-blur-md">
         <div className="flex items-center justify-between sm:block">
-          <h1 className="text-2xl lg:text-3xl font-hand tracking-wide flex items-center text-slate-800">
+          <h1 className="text-2xl lg:text-3xl font-hand tracking-wide flex items-center text-white">
             <div className="mr-2 lg:mr-4"><Logo className="w-6 h-6 lg:w-8 lg:h-8" /></div>
             AI Tutor
           </h1>
-          <p className="hidden sm:flex text-xs text-slate-500 font-bold uppercase tracking-widest mt-2 items-center">
-            <HistoryIcon className="h-3 w-3 mr-1" /> Chats saved locally
+          <p className="hidden sm:flex text-xs text-slate-400 font-bold uppercase tracking-widest mt-2 items-center">
+            <HistoryIcon className="h-3 w-3 mr-1 text-brand-cyan" /> Chats saved locally
           </p>
         </div>
         <div className="flex flex-wrap gap-2 lg:gap-4 mt-2 sm:mt-0 justify-end">
           <div className="flex flex-col flex-1 sm:flex-none">
-            <label className="text-[9px] lg:text-[10px] uppercase font-black text-slate-400 mb-0.5 lg:mb-1">Priority Topic</label>
+            <label className="text-[9px] lg:text-[10px] uppercase font-black text-brand-cyan/80 mb-0.5 lg:mb-1">Priority Topic</label>
             <select 
               value={['General', 'Mathematics', 'Physical Sciences', 'Life Sciences', 'History', 'Geography', 'Languages'].includes(priorityTopic) ? priorityTopic : 'Other'} 
               onChange={e => {
                 if (e.target.value === 'Other') setPriorityTopic('');
                 else setPriorityTopic(e.target.value);
               }}
-              className="bg-slate-100 border-none outline-none text-slate-700 text-xs lg:text-sm font-medium py-1.5 lg:py-2 px-3 lg:px-4 rounded-lg lg:rounded-xl w-full sm:w-auto [&>option]:bg-slate-800 [&>option]:text-white mb-2"
+              className="bg-white/10 hover:bg-white/15 transition-all border border-white/10 outline-none text-white text-xs lg:text-sm font-medium py-1.5 lg:py-2 px-3 lg:px-4 rounded-lg lg:rounded-xl w-full sm:w-auto [&>option]:bg-[#0B1122] [&>option]:text-white mb-2 cursor-pointer"
             >
               <option value="General">General</option>
               <option value="Mathematics">Mathematics</option>
@@ -336,27 +336,27 @@ export default function AITutorPage() {
                 placeholder="Type topic..." 
                 value={priorityTopic}
                 onChange={e => setPriorityTopic(e.target.value)}
-                className="bg-slate-100 border-none outline-none text-slate-700 text-xs lg:text-sm font-medium py-1.5 lg:py-2 px-3 lg:px-4 rounded-lg lg:rounded-xl w-full sm:w-auto placeholder:text-slate-400"
+                className="bg-white/10 border border-white/15 outline-none text-white text-xs lg:text-sm font-medium py-1.5 lg:py-2 px-3 lg:px-4 rounded-lg lg:rounded-xl w-full sm:w-auto placeholder:text-slate-400"
                 autoFocus
               />
             )}
           </div>
           <div className="flex flex-col flex-1 sm:flex-none">
-            <label className="text-[9px] lg:text-[10px] uppercase font-black text-slate-400 mb-0.5 lg:mb-1">Language</label>
+            <label className="text-[9px] lg:text-[10px] uppercase font-black text-brand-cyan/80 mb-0.5 lg:mb-1">Language</label>
             <select 
               value={language} 
               onChange={e => setLanguage(e.target.value)}
-              className="bg-slate-100 border-none outline-none text-slate-700 text-xs lg:text-sm font-medium py-1.5 lg:py-2 px-3 lg:px-4 rounded-lg lg:rounded-xl w-full sm:w-auto [&>option]:bg-slate-800 [&>option]:text-white"
+              className="bg-white/10 hover:bg-white/15 transition-all border border-white/10 outline-none text-white text-xs lg:text-sm font-medium py-1.5 lg:py-2 px-3 lg:px-4 rounded-lg lg:rounded-xl w-full sm:w-auto [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer"
             >
               {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
             </select>
           </div>
           <div className="flex flex-col flex-1 sm:flex-none">
-            <label className="text-[9px] lg:text-[10px] uppercase font-black text-slate-400 mb-0.5 lg:mb-1">Voice</label>
+            <label className="text-[9px] lg:text-[10px] uppercase font-black text-brand-cyan/80 mb-0.5 lg:mb-1">Voice</label>
             <select 
               value={voice} 
               onChange={e => setVoice(e.target.value)}
-              className="bg-slate-100 border-none outline-none text-slate-700 text-xs lg:text-sm font-medium py-1.5 lg:py-2 px-3 lg:px-4 rounded-lg lg:rounded-xl w-full sm:w-auto [&>option]:bg-slate-800 [&>option]:text-white"
+              className="bg-white/10 hover:bg-white/15 transition-all border border-white/10 outline-none text-white text-xs lg:text-sm font-medium py-1.5 lg:py-2 px-3 lg:px-4 rounded-lg lg:rounded-xl w-full sm:w-auto [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer"
             >
               {VOICES.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
             </select>
@@ -365,11 +365,13 @@ export default function AITutorPage() {
       </div>
 
       {/* Chat Window */}
-      <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-4 lg:space-y-6 bg-slate-50/50">
+      <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-4 lg:space-y-6 bg-[#0d1527]/50">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-slate-400 opacity-50 px-6">
-            <GraduationCap size={40} className="mb-4 text-brand-cyan opacity-80" />
-            <p className="text-center font-medium font-hand text-xl lg:text-2xl">Ask me anything about your school subjects, or upload a picture to learn about it! 🚀</p>
+          <div className="flex flex-col items-center justify-center h-full text-slate-400 px-6">
+            <div className="bg-brand-cyan/15 p-4 rounded-3xl mb-4 border border-brand-cyan/20">
+               <GraduationCap size={44} className="text-brand-cyan" />
+            </div>
+            <p className="text-center font-semibold font-hand text-xl lg:text-3xl text-slate-200">Ask me anything about your school subjects, or upload a picture to learn about it! 🚀</p>
           </div>
         ) : (
           messages.map((msg, i) => (
@@ -379,25 +381,25 @@ export default function AITutorPage() {
                   whileHover={{ scale: 1.1, rotate: 5 }}
                   className="w-8 h-8 lg:w-12 lg:h-12 flex flex-col items-center justify-center shrink-0"
                 >
-                  <Logo className="w-full h-full object-contain drop-shadow-md p-1 bg-white rounded-2xl shadow-lg border-2 border-brand-cyan/20" />
+                  <Logo className="w-full h-full object-contain drop-shadow-md p-1 bg-[#1E293B] rounded-2xl shadow-lg border-2 border-brand-cyan/20" />
                 </motion.div>
               )}
               
               <motion.div 
                 initial={{ scale: 0.9, opacity: 0, y: 10 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
-                className={`p-4 lg:p-6 max-w-[85%] lg:max-w-[80%] shadow-xl ${
+                className={`p-4 lg:p-6 max-w-[85%] lg:max-w-[80%] shadow-2xl ${
                 msg.role === 'user' 
-                  ? 'bg-brand-cyan text-navy-dark rounded-2xl lg:rounded-3xl rounded-br-md font-medium' 
-                  : 'bg-white border border-slate-200 rounded-2xl lg:rounded-3xl rounded-bl-md text-slate-700'
+                  ? 'bg-gradient-to-r from-brand-cyan to-[#00a2cc] text-slate-950 rounded-2xl lg:rounded-3xl rounded-br-none font-bold' 
+                  : 'bg-[#1E293B] border border-white/10 rounded-2xl lg:rounded-3xl rounded-bl-none text-slate-100'
               }`}>
                 {msg.role === 'model' ? (
                   <div className="flex flex-col gap-4">
-                    <div className="prose prose-xs lg:prose-sm max-w-none prose-p:leading-relaxed markdown-body"
+                    <div className="prose prose-xs lg:prose-sm max-w-none prose-p:leading-relaxed prose-invert markdown-body"
                       dangerouslySetInnerHTML={{ __html: marked.parse(msg.text) as string }}
                     />
                     {visuals[i] && (
-                      <div className="pt-2 border-t border-slate-100">
+                      <div className="pt-2 border-t border-white/5">
                         <AiImage prompt={`Educational illustration showing: ${msg.text.substring(0, 300)}`} aspectRatio="video" className="w-full max-w-md" />
                       </div>
                     )}
@@ -405,7 +407,7 @@ export default function AITutorPage() {
                 ) : (
                   <div className="flex flex-col gap-2">
                     {msg.image && (
-                      <img src={msg.image} alt="Uploaded" className="max-w-[200px] lg:max-w-[250px] rounded-xl object-contain mb-2" />
+                      <img src={msg.image} alt="Uploaded" className="max-w-[200px] lg:max-w-[250px] rounded-xl object-contain mb-2 border border-white/10 shadow-md" />
                     )}
                     <p className="text-sm lg:text-[15px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                   </div>
@@ -415,18 +417,20 @@ export default function AITutorPage() {
               {msg.role === 'model' && (
                 <div className="flex flex-col gap-2 shrink-0">
                   <button
-                    className={`w-8 h-8 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl flex items-center justify-center transition-colors ${
-                      isAudioPlaying === i && !isAudioPaused ? 'bg-cyan-100 text-cyan-600' : 'bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600'
+                    className={`w-8 h-8 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl flex items-center justify-center transition-colors border ${
+                      isAudioPlaying === i && !isAudioPaused 
+                        ? 'bg-brand-cyan/20 border-brand-cyan text-brand-cyan shadow-lg shadow-brand-cyan/10' 
+                        : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
                     }`}
                     onClick={() => handlePlayAudio(msg.text, i)}
                     disabled={isTtsLoading === i}
                     title={isAudioPlaying === i && !isAudioPaused ? "Pause" : "Play"}
                   >
-                    {isTtsLoading === i ? <Loader2 className="w-3 h-3 lg:w-4 lg:h-4 animate-spin" /> : isAudioPlaying === i && !isAudioPaused ? <Pause className="w-3 h-3 lg:w-4 lg:h-4" /> : <Play className="w-3 h-3 lg:w-4 lg:h-4 ml-0.5 lg:ml-1" />}
+                    {isTtsLoading === i ? <Loader2 className="w-3 h-3 lg:w-4 lg:h-4 animate-spin text-brand-cyan" /> : isAudioPlaying === i && !isAudioPaused ? <Pause className="w-3 h-3 lg:w-4 lg:h-4" /> : <Play className="w-3 h-3 lg:w-4 lg:h-4 ml-0.5 lg:ml-1" />}
                   </button>
                   {isAudioPlaying === i && (
                     <button
-                      className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl flex items-center justify-center transition-colors bg-red-100 text-red-600 hover:bg-red-200"
+                      className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl flex items-center justify-center transition-colors bg-red-500/20 text-red-200 border border-red-500/30 hover:bg-red-500/30"
                       onClick={handleStopAudio}
                       title="Stop"
                     >
@@ -434,8 +438,10 @@ export default function AITutorPage() {
                     </button>
                   )}
                   <button
-                    className={`w-8 h-8 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl flex items-center justify-center transition-colors ${
-                      visuals[i] ? 'bg-purple-100 text-purple-600' : 'bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600'
+                    className={`w-8 h-8 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl flex items-center justify-center transition-colors border ${
+                      visuals[i] 
+                        ? 'bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-lg shadow-purple-500/10' 
+                        : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
                     }`}
                     onClick={() => setVisuals(prev => ({...prev, [i]: !prev[i]}))}
                     title="Generate Visual Aid"
@@ -446,8 +452,8 @@ export default function AITutorPage() {
               )}
               
               {msg.role === 'user' && (
-                <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl bg-slate-200 border border-slate-300 flex items-center justify-center shrink-0 text-slate-500 shadow-sm">
-                  <User className="w-4 h-4 lg:w-5 lg:h-5" />
+                <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl bg-[#1E293B] border border-white/10 flex items-center justify-center shrink-0 text-slate-300 shadow-sm">
+                  <User className="w-4 h-4 lg:w-5 lg:h-5 text-brand-cyan" />
                 </div>
               )}
             </div>
@@ -455,15 +461,15 @@ export default function AITutorPage() {
         )}
         {isLoading && (
           <div className="flex items-start gap-2 lg:gap-4">
-            <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl bg-white border border-slate-200 flex flex-col items-center justify-center shrink-0 shadow-sm text-brand-cyan animate-pulse">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center justify-center shrink-0 shadow-sm text-brand-cyan animate-pulse">
                <Sparkles className="w-4 h-4 lg:w-5 lg:h-5" />
             </div>
-            <div className="bg-white border border-slate-200 rounded-2xl lg:rounded-3xl rounded-tl-md px-5 py-4 flex flex-col gap-2 min-w-[200px] shadow-sm">
-               <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-500">
+            <div className="bg-[#1E293B] border border-white/10 rounded-2xl lg:rounded-3xl rounded-tl-none px-5 py-4 flex flex-col gap-2 min-w-[200px] shadow-sm">
+               <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400">
                  <span>Tutor is thinking...</span>
                  <span>{generationProgress}%</span>
                </div>
-               <div className="w-full h-1.5 rounded-full overflow-hidden bg-slate-100">
+               <div className="w-full h-1.5 rounded-full overflow-hidden bg-white/10">
                  <div 
                    className="h-full bg-brand-cyan transition-all duration-300"
                    style={{ width: `${generationProgress}%` }}
@@ -476,15 +482,15 @@ export default function AITutorPage() {
       </div>
 
       {/* Input Bar */}
-      <div className="p-4 lg:p-6 bg-white border-t border-slate-200 shrink-0 flex flex-col gap-2">
+      <div className="p-4 lg:p-6 bg-[#0B1122]/95 border-t border-white/15 shrink-0 flex flex-col gap-2">
         {selectedImage && (
           <div className="relative inline-block self-start ml-2 lg:ml-4">
-            <img src={selectedImage} alt="Preview" className="h-16 lg:h-20 rounded-lg object-contain border border-slate-200 shadow-sm" />
+            <img src={selectedImage} alt="Preview" className="h-16 lg:h-20 rounded-lg object-contain border border-white/10 shadow-sm" />
             <button 
               onClick={() => setSelectedImage(null)}
               className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 scale-75"
             >
-              <Pause className="w-4 h-4 rotate-45" /> {/* Close icon using rotated Pause/Plus alternatively, or just an X */}
+              <Pause className="w-4 h-4 rotate-45" />
             </button>
           </div>
         )}
@@ -498,7 +504,7 @@ export default function AITutorPage() {
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-slate-100 text-slate-500 border border-slate-200 flex items-center justify-center hover:bg-slate-200 transition-all shrink-0"
+            className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-white/5 text-slate-300 border border-white/10 flex items-center justify-center hover:bg-white/15 hover:text-white transition-all shrink-0"
             title="Upload Image"
           >
             <ImageIcon className="w-4 h-4 lg:w-5 lg:h-5" />
@@ -510,12 +516,12 @@ export default function AITutorPage() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !isLoading && (input.trim() || selectedImage) && handleSend()}
-              className="w-full pl-5 lg:pl-6 pr-12 lg:pr-14 h-12 lg:h-14 rounded-full border-2 border-slate-200 focus:border-brand-cyan focus:outline-none bg-slate-50 transition-all font-medium text-slate-700 text-sm lg:text-base"
+              className="w-full pl-5 lg:pl-6 pr-12 lg:pr-14 h-12 lg:h-14 rounded-full border-2 border-white/10 focus:border-brand-cyan focus:outline-none bg-white/5 transition-all font-medium text-white text-sm lg:text-base placeholder:text-slate-500"
               disabled={isLoading}
             />
             <button
               className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-                isRecording ? 'bg-red-100 text-red-500 animate-pulse' : 'text-slate-400 hover:bg-slate-200 hover:text-slate-600'
+                isRecording ? 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/30' : 'text-slate-400 hover:bg-white/10 hover:text-slate-200'
               }`}
               onClick={handleMicClick}
               disabled={isLoading}
@@ -526,14 +532,14 @@ export default function AITutorPage() {
           <button 
             onClick={() => handleSend()} 
             disabled={isLoading || (!input.trim() && !selectedImage)} 
-            className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-navy-dark text-white shadow-lg flex items-center justify-center hover:bg-slate-800 disabled:opacity-50 transition-all shrink-0"
+            className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-brand-cyan text-slate-950 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 disabled:opacity-50 transition-all shrink-0 font-black cursor-pointer shadow-brand-cyan/20"
           >
             <Sparkles className="w-4 h-4 lg:w-5 lg:h-5" />
           </button>
           {isAudioPlaying !== null && (
             <button 
                onClick={handleStopAudio} 
-               className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center hover:bg-red-600 transition-all shrink-0"
+               className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all shrink-0 cursor-pointer shadow-red-500/20"
             >
               <Square className="w-4 h-4 lg:w-5 lg:h-5" />
             </button>

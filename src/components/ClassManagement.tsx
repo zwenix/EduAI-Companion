@@ -265,7 +265,8 @@ export default function ClassManagement() {
             </div>
           </div>
           <div className="bg-white rounded-[24px] shadow-sm border border-slate-200 overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
@@ -308,6 +309,46 @@ export default function ClassManagement() {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Stacked List View */}
+            <div className="block sm:hidden divide-y divide-slate-100 bg-[#F8FAFC]/50">
+              {filteredStudents.map(student => (
+                <div key={student.id} className="p-4 space-y-3 hover:bg-slate-50/80 transition-all">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-brand-cyan/15 text-brand-cyan flex items-center justify-center text-xs font-bold shrink-0">
+                        {student.name.charAt(0)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-800 text-sm truncate">{student.name}</p>
+                        <p className="text-xs text-slate-500 truncate">{student.email}</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => handleDeleteStudent(student.id, student.name)} 
+                      className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all shrink-0 border border-slate-100 bg-white" 
+                      title="Remove"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                    <div className="flex items-center gap-1 text-[11px] text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-100">
+                      <GraduationCap size={13} className="text-brand-cyan" />
+                      <span>Class: <strong className="font-bold text-slate-800">{student.grade}</strong></span>
+                    </div>
+                    
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${student.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                      {student.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {filteredStudents.length === 0 && (
+                <div className="py-12 text-center text-slate-550 text-xs font-medium">No learners found.</div>
+              )}
             </div>
           </div>
         </div>

@@ -4,18 +4,18 @@ import { motion } from 'motion/react';
 
 export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }) {
   return (
-    <div className="space-y-8">
-      <div className="bg-gradient-to-br from-indigo-600 to-cyan-500 p-10 rounded-[36px] text-white shadow-xl relative overflow-hidden flex flex-col justify-end min-h-[350px]">
-         <div className="absolute top-0 right-0 p-8 opacity-20">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="bg-gradient-to-br from-indigo-600 to-cyan-500 p-6 sm:p-10 rounded-[28px] sm:rounded-[36px] text-white shadow-xl relative overflow-hidden flex flex-col justify-end min-h-[260px] sm:min-h-[350px]">
+         <div className="absolute top-0 right-0 p-8 opacity-20 hidden sm:block">
            <Brain size={250} />
          </div>
          <div className="relative z-10">
-            <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-4 py-1.5 text-sm font-bold text-yellow-300 mb-4 shadow-sm">
+            <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-4 py-1.5 text-xs sm:text-sm font-bold text-yellow-300 mb-4 shadow-sm">
               <Star size={16} className="animate-pulse" /> Welcome back, Discovery Cadet! 🚀
             </motion.div>
-            <h2 className="text-5xl lg:text-7xl font-hand mb-2 tracking-wide text-white drop-shadow-lg leading-tight">Ready for your <br/> next mission?</h2>
-            <div className="flex items-center gap-4 mt-6">
-              <div className="flex-1 bg-white/20 h-4 rounded-full overflow-hidden border border-white/10">
+            <h2 className="text-3xl sm:text-5xl lg:text-7xl font-hand mb-2 tracking-wide text-white drop-shadow-lg leading-tight">Ready for your <br/> next mission?</h2>
+            <div className="flex items-center gap-4 mt-4 sm:mt-6">
+              <div className="flex-1 bg-white/20 h-3 sm:h-4 rounded-full overflow-hidden border border-white/10">
                  <motion.div 
                    initial={{ width: 0 }} 
                    animate={{ width: '65%' }}
@@ -23,25 +23,25 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
                    className="h-full bg-yellow-400 shadow-[0_0_15px_#facc15]" 
                  />
               </div>
-              <span className="text-sm font-black text-white whitespace-nowrap uppercase tracking-widest text-[10px]">Level 12 • 65%</span>
+              <span className="text-[9px] sm:text-[10px] font-black text-white whitespace-nowrap uppercase tracking-widest">Level 12 • 65%</span>
             </div>
-            <p className="text-lg text-blue-100 font-medium mt-4 group">Your learning path is glowing! <span className="text-yellow-400 font-black inline-block animate-bounce ml-1">7 Day Streak! 🔥</span></p>
+            <p className="text-sm sm:text-lg text-blue-100 font-medium mt-3 sm:mt-4 group animate-pulse">Your learning path is glowing! <span className="text-yellow-400 font-black inline-block animate-bounce ml-1">7 Day Streak! 🔥</span></p>
           </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
          {[
            { label: 'Mastery Score', value: '84%', icon: Target, color: 'text-emerald-500' },
            { label: 'Modules Complete', value: '12', icon: CheckCircle, color: 'text-indigo-500' },
            { label: 'Current Streak', value: '7', icon: Flame, color: 'text-yellow-500' }
          ].map((stat, i) => (
-           <div key={i} className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-6 rounded-[32px] shadow-sm flex items-center justify-between hover:scale-[1.02] transition-all`}>
+           <div key={i} className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] shadow-sm flex items-center justify-between hover:scale-[1.02] transition-all`}>
               <div>
-                <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{stat.label}</p>
-                <h3 className={`text-3xl font-hand mt-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stat.value}</h3>
+                <p className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{stat.label}</p>
+                <h3 className={`text-2xl sm:text-3xl font-hand mt-0.5 sm:mt-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stat.value}</h3>
               </div>
-              <div className={`w-12 h-12 rounded-2xl ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-100'} border flex flex-col items-center justify-center ${stat.color}`}>
-                <stat.icon size={24} />
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-100'} border flex flex-col items-center justify-center ${stat.color}`}>
+                <stat.icon size={20} />
               </div>
            </div>
          ))}

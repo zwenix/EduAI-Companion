@@ -74,20 +74,20 @@ const SidebarItem = ({ icon: Icon, label, active, onClick, collapsed, isDarkMode
   <button
     onClick={onClick}
     title={collapsed ? label : undefined}
-    className={`flex items-center w-full gap-3 px-3 py-2.5 rounded-2xl transition-all duration-300 text-sm font-medium group ${
+    className={`flex items-center w-full gap-3 px-4 py-3 rounded-[20px] transition-all duration-300 text-sm font-bold group ${
       active 
-      ? `bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/30 shadow-[0_0_15px_-3px_rgba(6,182,212,0.3)]` 
-      : `${isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'} border border-transparent`
+      ? `bg-brand-cyan text-white shadow-lg shadow-cyan-500/30 scale-[1.02]` 
+      : `${isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'} border border-transparent hover:scale-100`
     } ${collapsed ? 'justify-center !px-0' : 'justify-start'}`}
   >
-    <Icon size={20} className={`${active ? 'text-brand-cyan' : `group-hover:${isDarkMode ? 'text-white' : 'text-slate-900'}`} transition-colors shrink-0`} />
+    <Icon size={22} className={`${active ? 'text-white' : `group-hover:${isDarkMode ? 'text-white' : 'text-slate-900'}`} transition-colors shrink-0 ${active && 'animate-bounce'}`} style={{ animationDuration: '2s' }} />
     <AnimatePresence>
       {!collapsed && (
         <motion.span 
           initial={{ opacity: 0, width: 0 }}
           animate={{ opacity: 1, width: "auto" }}
           exit={{ opacity: 0, width: 0 }}
-          className="truncate whitespace-nowrap overflow-hidden text-left"
+          className="truncate whitespace-nowrap overflow-hidden text-left font-sans"
         >
           {label}
         </motion.span>
@@ -98,37 +98,37 @@ const SidebarItem = ({ icon: Icon, label, active, onClick, collapsed, isDarkMode
 
 const LandingPage = ({ onEnter }: { onEnter: () => void }) => {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0EA5E9] via-[#3B82F6] to-[#312E81] relative overflow-hidden flex flex-col font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-[#00d2ff] via-[#3a7bd5] to-[#8e44ad] relative overflow-hidden flex flex-col font-sans animate-fadeInZoom">
       {/* Subtle Star Decorations */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <Sparkles className="absolute top-20 left-10 text-white/20 w-8 h-8" />
-        <Sparkles className="absolute top-40 right-20 text-white/20 w-12 h-12" />
-        <Sparkles className="absolute bottom-1/3 left-1/4 text-white/10 w-6 h-6" />
-        <Sparkles className="absolute top-1/2 right-1/4 text-white/10 w-10 h-10" />
+        <Sparkles className="absolute top-20 left-10 text-white/30 w-10 h-10 animate-float" style={{ animationDelay: '0s' }} />
+        <Sparkles className="absolute top-40 right-20 text-white/30 w-14 h-14 animate-float" style={{ animationDelay: '1s' }} />
+        <Sparkles className="absolute bottom-1/3 left-1/4 text-white/20 w-8 h-8 animate-float" style={{ animationDelay: '2s' }} />
+        <Sparkles className="absolute top-1/2 right-1/4 text-white/20 w-12 h-12 animate-float" style={{ animationDelay: '3s' }} />
       </div>
 
       {/* Navbar */}
       <motion.nav 
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+        transition={{ duration: 0.6, ease: "easeOut", type: "spring", stiffness: 120 }}
         className="h-24 px-6 lg:px-12 flex items-center justify-between relative z-10 max-w-7xl mx-auto w-full"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 bg-white/20 backdrop-blur-md px-4 py-2 rounded-[30px] border border-white/30 kid-shadow">
           <Logo className="w-10 h-10" />
-          <span className="text-2xl font-hand tracking-wide text-white">
-            EduAI <span className="text-yellow-400">Companion</span>
+          <span className="text-2xl font-display font-bold tracking-wide text-white">
+            EduAI <span className="text-brand-yellow">Companion</span>
           </span>
         </div>
-        <div className="flex items-center gap-6">
-          <button onClick={onEnter} className="text-white font-semibold hover:text-yellow-200 transition-colors">
+        <div className="flex items-center gap-4 lg:gap-6">
+          <button onClick={onEnter} className="hidden sm:block text-white font-bold hover:text-brand-yellow transition-colors font-display text-lg">
             Sign In
           </button>
           <button 
             onClick={onEnter}
-            className="bg-yellow-400 hover:bg-yellow-300 text-slate-900 px-6 py-2.5 rounded-full font-bold transition-all shadow-lg shadow-yellow-400/20 active:scale-95"
+            className="bg-brand-yellow hover:bg-[#ffdf40] text-slate-800 px-8 py-3 rounded-[30px] font-display font-bold text-lg transition-all kid-shadow-hover active:scale-95 border-2 border-[#fdbb2d]/50"
           >
-            Get Started
+            Get Started!
           </button>
         </div>
       </motion.nav>
@@ -142,33 +142,33 @@ const LandingPage = ({ onEnter }: { onEnter: () => void }) => {
            className="flex-1 text-center lg:text-left"
         >
           <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md outline outline-1 outline-white/20 px-4 py-2 rounded-full mb-6 text-sm font-semibold text-white"
+            initial={{ opacity: 0, y: 20, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.6, type: "spring" }}
+            className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md border border-white/40 px-5 py-2.5 rounded-full mb-6 text-sm font-bold text-white kid-shadow uppercase tracking-wider"
           >
-             <Sparkles size={16} className="text-yellow-400" /> 
+             <Sparkles size={18} className="text-brand-yellow" /> 
              The Smartest Way to Learn!
           </motion.div>
           
           <motion.h1 
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.6 }}
-            className="text-6xl md:text-7xl lg:text-8xl font-black text-white mb-6 leading-tight drop-shadow-md"
+            className="text-6xl md:text-7xl lg:text-8xl font-black text-white mb-6 leading-[1.1] drop-shadow-lg font-display"
           >
             Learning is an <br />
-            <span className="text-yellow-400 relative inline-block">
+            <span className="text-brand-yellow relative inline-block drop-shadow-md">
               Adventure!
               <motion.svg 
                 initial={{ pathLength: 0, opacity: 0 }}
                 animate={{ pathLength: 1, opacity: 1 }}
                 transition={{ duration: 1, delay: 0.5, ease: "easeInOut" }}
-                className="absolute -bottom-2 lg:-bottom-4 left-0 w-full h-4 lg:h-6 text-yellow-400" 
+                className="absolute -bottom-2 lg:-bottom-4 left-0 w-full h-4 lg:h-6 text-brand-yellow drop-shadow-md" 
                 viewBox="0 0 200 20" 
                 preserveAspectRatio="none"
               >
-                <path d="M0,10 Q25,20 50,10 T100,10 T150,10 T200,10" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
+                <path d="M0,10 Q25,20 50,10 T100,10 T150,10 T200,10" fill="none" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
               </motion.svg>
             </span>
           </motion.h1>
@@ -177,101 +177,113 @@ const LandingPage = ({ onEnter }: { onEnter: () => void }) => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.6 }}
-            className="text-lg lg:text-xl text-blue-50/90 mb-10 max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed drop-shadow-sm"
+            className="text-xl lg:text-2xl text-blue-50/90 mb-10 max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed drop-shadow-sm font-sans"
           >
             Magic lesson plans, super homework help, and your very own AI robot tutor! 🚀
           </motion.p>
           
           <motion.div 
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8, duration: 0.6 }}
             className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4"
           >
             <button 
               onClick={onEnter}
-              className="w-full sm:w-auto bg-yellow-400 hover:bg-yellow-300 text-slate-900 px-8 py-4 rounded-2xl font-bold text-lg transition-all shadow-xl shadow-yellow-400/30 active:scale-95 flex items-center justify-center gap-2"
+              className="w-full sm:w-auto bg-brand-yellow hover:bg-[#ffdf40] text-slate-800 px-10 py-5 rounded-[36px] font-display font-black text-xl transition-all kid-shadow-hover active:scale-95 flex items-center justify-center gap-3 border-4 border-white/20"
             >
-              Start My Adventure &rarr;
+              Start My Adventure <ChevronRight strokeWidth={4} />
             </button>
             <button 
               onClick={onEnter}
-              className="w-full sm:w-auto bg-transparent border-2 border-white/30 hover:bg-white/10 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all backdrop-blur-md flex items-center justify-center"
+              className="w-full sm:w-auto bg-white/10 hover:bg-white/20 border-4 border-white/40 text-white px-10 py-5 rounded-[36px] font-display font-bold text-xl transition-all backdrop-blur-md flex items-center justify-center kid-shadow-hover"
             >
-              Sign In
+              Log In
             </button>
           </motion.div>
         </motion.div>
 
         {/* Hero Image / Illustration Area */}
         <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
+          initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
+          animate={{ opacity: 1, scale: 1, rotate: 0 }}
+          transition={{ delay: 0.3, type: "spring", stiffness: 100 }}
           className="flex-1 relative w-full max-w-lg lg:max-w-none"
         >
-          <div className="relative rounded-[40px] overflow-hidden shadow-2xl aspect-[4/5] sm:aspect-square lg:aspect-[4/5]">
+          <div className="relative rounded-[48px] overflow-hidden shadow-2xl kid-shadow border-8 border-white/20 aspect-[4/5] sm:aspect-square lg:aspect-[4/5] bg-white/10 backdrop-blur-sm animate-float">
              <img 
                src="https://i.ibb.co/CsvbkGYG/landing-image.jpg" 
                alt="Classroom adventure" 
-               className="w-full h-full object-cover transition-opacity duration-500"
+               className="w-full h-full object-cover"
              />
-             <div className="absolute inset-0 bg-gradient-to-t from-[#3B82F6]/50 to-transparent pointer-events-none" />
+             <div className="absolute inset-0 bg-gradient-to-t from-[#3a7bd5]/60 to-transparent pointer-events-none" />
           </div>
           
           {/* Floating Badge */}
           <motion.div 
-            animate={{ y: [0, -10, 0] }}
-            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-            className="absolute -bottom-6 -right-6 lg:bottom-10 lg:-right-10 w-32 h-32 lg:w-40 lg:h-40 bg-[#00BCD4] rounded-full shadow-2xl flex items-center justify-center border-4 border-white/20 backdrop-blur-sm z-20"
+            animate={{ y: [-15, 15, -15], rotate: [-5, 5, -5] }}
+            transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+            className="absolute -bottom-8 -right-8 lg:bottom-4 lg:-right-8 w-36 h-36 lg:w-44 lg:h-44 bg-brand-pink rounded-full shadow-2xl flex items-center justify-center border-8 border-white z-20 kid-shadow"
           >
-            <p className="text-white font-bold text-center text-sm lg:text-lg leading-tight">
-              100% Fun <br/> Learning! 🎉
+            <p className="text-white font-display font-black text-center text-lg lg:text-xl leading-tight">
+              100% Fun <br/> <span className="text-2xl lg:text-3xl">🎉</span>
+            </p>
+          </motion.div>
+
+          {/* Second Floating Badge */}
+          <motion.div 
+            animate={{ y: [15, -15, 15], rotate: [5, -5, 5] }}
+            transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
+            className="absolute -top-6 -left-6 lg:top-10 lg:-left-10 w-24 h-24 lg:w-28 lg:h-28 bg-brand-cyan rounded-full shadow-2xl flex items-center justify-center border-6 border-white z-20 kid-shadow"
+          >
+            <p className="text-white font-display font-black text-center text-3xl lg:text-4xl">
+              🚀
             </p>
           </motion.div>
         </motion.div>
       </div>
 
       {/* Features Section */}
-      <div className="w-full max-w-6xl mx-auto px-6 lg:px-12 py-20 relative z-10">
+      <div className="w-full max-w-7xl mx-auto px-6 lg:px-12 py-24 relative z-10">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-4 drop-shadow-md">Your Super Powers! 🦸‍♂️</h2>
-          <p className="text-lg text-blue-100 font-medium max-w-2xl mx-auto drop-shadow-sm">Everything you need to be a top student or a master teacher, all powered by magic AI.</p>
+          <h2 className="text-5xl md:text-6xl font-black text-white mb-6 drop-shadow-md font-display">Your Super Powers! 🦸‍♂️</h2>
+          <p className="text-xl text-blue-100 font-bold max-w-2xl mx-auto drop-shadow-sm">Everything you need to be a top student or a master teacher, all powered by magic AI.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {[
-            { title: "Magic Lessons", desc: "Create amazing lesson plans in a flash! Perfect for any subject.", icon: Zap, bg: "bg-orange-500/20 text-orange-400" },
-            { title: "Super Worksheets", desc: "Fun worksheets and exercises that you'll actually love doing!", icon: Palette, bg: "bg-pink-500/20 text-pink-400" },
-            { title: "Smart Bot Tutor", desc: "Ask your friendly AI tutor anything, anytime! It never sleeps.", icon: Brain, bg: "bg-blue-400/20 text-blue-400" },
-            { title: "Instant Grades", desc: "Get your results and helpful tips right away. No more waiting!", icon: Sparkles, bg: "bg-yellow-400/20 text-yellow-400" },
-            { title: "Skill Tracker", desc: "Watch your skills grow like a rocket ship! 🚀", icon: TrendingUp, bg: "bg-emerald-500/20 text-emerald-400" },
-            { title: "Cool Posters", desc: "Make beautiful posters for your room or classroom.", icon: Image, bg: "bg-purple-500/20 text-purple-400" },
+            { title: "Magic Lessons", desc: "Create amazing lesson plans in a flash! Perfect for any subject.", icon: Zap, bg: "bg-orange-500", shadow: "shadow-orange-500/40" },
+            { title: "Super Worksheets", desc: "Fun worksheets and exercises that you'll actually love doing!", icon: Palette, bg: "bg-brand-pink", shadow: "shadow-pink-500/40" },
+            { title: "Smart Bot Tutor", desc: "Ask your friendly AI tutor anything, anytime! It never sleeps.", icon: Brain, bg: "bg-brand-cyan", shadow: "shadow-cyan-500/40" },
+            { title: "Instant Grades", desc: "Get your results and helpful tips right away. No more waiting!", icon: Sparkles, bg: "bg-brand-yellow", shadow: "shadow-yellow-500/40" },
+            { title: "Skill Tracker", desc: "Watch your skills grow like a rocket ship! reach for the stars.", icon: TrendingUp, bg: "bg-brand-green", shadow: "shadow-green-500/40" },
+            { title: "Cool Posters", desc: "Make beautiful posters for your room or classroom.", icon: Image, bg: "bg-brand-purple", shadow: "shadow-purple-500/40" },
           ].map((feature, i) => (
             <motion.div 
               key={i}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="bg-white/10 backdrop-blur-md border border-white/10 rounded-3xl p-8 text-center hover:bg-white/20 transition-colors shadow-xl shadow-black/5"
+              initial={{ opacity: 0, y: 30, scale: 0.9 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ delay: i * 0.1, type: "spring", stiffness: 100 }}
+              className="bg-white/20 backdrop-blur-xl border-2 border-white/30 rounded-[40px] p-8 text-center hover:bg-white/30 transition-all kid-shadow-hover transform hover:-translate-y-2 relative overflow-hidden group"
             >
-              <div className={`w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-6 ${feature.bg}`}>
-                <feature.icon size={32} />
+              <div className={`absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16 transition-transform group-hover:scale-150`}></div>
+              <div className={`w-20 h-20 mx-auto rounded-[28px] flex items-center justify-center mb-6 ${feature.bg} text-white shadow-xl ${feature.shadow} border-4 border-white/20 rotate-3 group-hover:rotate-0 transition-all`}>
+                <feature.icon size={40} />
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
-              <p className="text-sm text-blue-100/90 leading-relaxed font-medium">{feature.desc}</p>
+              <h3 className="text-2xl font-black text-white mb-3 font-display">{feature.title}</h3>
+              <p className="text-base text-blue-50 leading-relaxed font-bold">{feature.desc}</p>
             </motion.div>
           ))}
         </div>
       </div>
 
-      <footer className="mt-auto px-6 lg:px-12 py-10 bg-[#1e1b4b]/50 border-t border-white/10 text-center lg:text-left flex flex-col lg:flex-row justify-between items-center gap-4 text-xs font-semibold text-slate-400">
-        <div className="flex items-center gap-2">
-          <Logo className="w-5 h-5 grayscale opacity-50" />
-          <span>EduAI <span className="text-yellow-400/50">Companion</span></span>
+      <footer className="mt-auto px-6 lg:px-12 py-8 bg-black/20 border-t border-white/10 text-center lg:text-left flex flex-col lg:flex-row justify-between items-center gap-4 text-sm font-bold text-white/70 backdrop-blur-md">
+        <div className="flex items-center gap-3">
+          <Logo className="w-8 h-8 opacity-80" />
+          <span className="font-display text-lg">EduAI <span className="text-brand-yellow">Companion</span></span>
         </div>
-        <p>© 2026 EduAI Companion. All rights reserved by Zwelakhe Msuthu - Owner & Developer</p>
+        <p>© 2026 EduAI Companion. Built with 💖</p>
       </footer>
     </div>
   );
@@ -402,18 +414,6 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {isMobile && isMobileSidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setMobileSidebarOpen(false)}
-            className="fixed inset-0 bg-black/60 z-[50]"
-          />
-        )}
-      </AnimatePresence>
-
       {/* Sidebar */}
       <motion.aside 
         initial={false}
@@ -447,7 +447,7 @@ export default function App() {
           )}
         </div>
 
-        <nav className="flex-1 min-h-0 space-y-2 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <nav className="flex-1 min-h-0 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
           {(function() {
             if (userRole === 'student') {
               return [
@@ -728,21 +728,24 @@ export default function App() {
               ) : (
                 <>
                 {/* Action Bar */}
-                <div className={`flex flex-col md:flex-row justify-between items-center ${isDarkMode ? 'glass' : 'bg-white border border-slate-200 shadow-sm'} p-8 rounded-[36px] gap-6`}>
-                  <div>
-                    <h3 className={`text-4xl font-hand ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Teacher Console</h3>
-                    <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-1`}>Manage and generate your educational resources.</p>
+                <div className={`flex flex-col md:flex-row justify-between items-center ${isDarkMode ? 'bg-indigo-900/40 border-indigo-500/30' : 'bg-[#fff5ee] border-[#ffebd6] shadow-md'} border p-8 md:p-10 rounded-[40px] gap-6 relative overflow-hidden`}>
+                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-yellow/20 rounded-full blur-2xl"></div>
+                  <div className="absolute bottom-0 left-10 w-32 h-32 bg-brand-cyan/20 rounded-full blur-2xl"></div>
+                  
+                  <div className="relative z-10 text-center md:text-left">
+                    <h3 className={`text-4xl lg:text-5xl font-display font-black ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Teacher Console 👩‍🏫</h3>
+                    <p className={`text-base font-bold ${isDarkMode ? 'text-indigo-200' : 'text-slate-500'} mt-2 max-w-sm`}>Manage and generate magic educational resources.</p>
                   </div>
-                  <div className="flex gap-4">
+                  <div className="flex flex-col sm:flex-row gap-4 relative z-10 w-full md:w-auto">
                     <button 
                       onClick={() => setActiveCreatorTab('teaching')}
-                      className="bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-cyan-500/25 flex items-center gap-2 transition-all active:scale-95"
+                      className="bg-brand-yellow hover:bg-[#ffdf40] text-slate-800 px-8 py-4 rounded-[30px] font-display font-bold text-sm lg:text-base kid-shadow-hover flex items-center justify-center gap-2 transition-all active:scale-95 w-full sm:w-auto"
                     >
-                      <Plus size={18} /> Content Creator Studio
+                      <Plus size={20} strokeWidth={3} /> Create Content!
                     </button>
                     <button 
                       onClick={() => setActiveTab('archive')}
-                      className={`px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[11px] border ${isDarkMode ? 'border-white/10 hover:bg-white/5 text-white' : 'border-slate-200 hover:bg-slate-50 text-slate-600'} transition-all`}
+                      className={`px-8 py-4 rounded-[30px] font-display font-bold text-sm lg:text-base border-4 ${isDarkMode ? 'border-indigo-400/30 hover:bg-indigo-400/10 text-indigo-100' : 'border-[#ffdf40] hover:bg-[#ffebd6] text-slate-700'} transition-all kid-shadow-hover w-full sm:w-auto flex justify-center`}
                     >
                        View Archive
                     </button>
@@ -751,25 +754,25 @@ export default function App() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                       {[
-                        { label: 'Learners', value: '1,248', change: '+12%', icon: Users, color: 'text-brand-cyan', glow: 'shadow-cyan-500/20' },
-                        { label: 'Graded', value: '432', change: '+5%', icon: ClipboardCheck, color: 'text-purple-400', glow: 'shadow-purple-500/20' },
-                        { label: 'Generated', value: '86', change: '+24%', icon: FileText, color: 'text-brand-yellow', glow: 'shadow-yellow-500/20' },
-                        { label: 'Sessions', value: '15.4k', change: '+18%', icon: MessageSquare, color: 'text-emerald-400', glow: 'shadow-emerald-500/20' }
+                        { label: 'Learners', value: '1,248', change: '+12%', icon: Users, color: 'text-brand-cyan', bg: 'bg-cyan-500/10', glow: 'shadow-cyan-500/20', displayColor: isDarkMode ? 'text-cyan-400' : 'text-cyan-600' },
+                        { label: 'Graded', value: '432', change: '+5%', icon: ClipboardCheck, color: 'text-brand-purple', bg: 'bg-purple-500/10', glow: 'shadow-purple-500/20', displayColor: isDarkMode ? 'text-purple-400' : 'text-purple-600'  },
+                        { label: 'Generated', value: '86', change: '+24%', icon: FileText, color: 'text-brand-yellow', bg: 'bg-yellow-500/10', glow: 'shadow-yellow-500/20', displayColor: isDarkMode ? 'text-yellow-400' : 'text-yellow-600' },
+                        { label: 'Sessions', value: '15.4k', change: '+18%', icon: MessageSquare, color: 'text-brand-green', bg: 'bg-green-500/10', glow: 'shadow-green-500/20', displayColor: isDarkMode ? 'text-green-400' : 'text-green-600' }
                       ].map((stat, i) => (
                         <div 
                           key={`stat-${i}`} 
-                          className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200 shadow-sm'} p-5 lg:p-7 rounded-[28px] lg:rounded-[32px]`}
+                          className={`${isDarkMode ? 'glass border-white/5' : 'bg-white border-2 border-slate-100'} p-6 lg:p-8 rounded-[36px] kid-shadow hover:-translate-y-1 transition-transform`}
                         >
                           <div className="flex justify-between items-start mb-4">
-                            <div className={`${stat.color} p-2 rounded-xl bg-white/5 border border-white/10 ${stat.glow} shadow-lg`}>
-                              <stat.icon size={20} />
+                            <div className={`${stat.color} p-3 rounded-[20px] ${stat.bg} ${stat.glow} shadow-xl`}>
+                              <stat.icon size={24} strokeWidth={2.5} />
                             </div>
-                            <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+                            <span className="text-brand-green text-[12px] font-black uppercase tracking-widest bg-brand-green/10 px-2 py-1 rounded-lg">
                               {stat.change}
                             </span>
                           </div>
-                          <p className={`text-[9px] uppercase font-black tracking-[0.2em] ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{stat.label}</p>
-                          <h3 className={`text-3xl lg:text-4xl font-hand mt-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stat.value}</h3>
+                          <p className={`text-[11px] uppercase font-bold tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{stat.label}</p>
+                          <h3 className={`text-3xl lg:text-4xl font-display font-black mt-2 ${stat.displayColor}`}>{stat.value}</h3>
                         </div>
                       ))}
                     </div>
@@ -779,16 +782,16 @@ export default function App() {
                       <div className="lg:col-span-12">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                           {[
-                            { title: "Content Creator Studio", desc: "Lessons, Plans & Assessments.", color: 'text-cyan-400', icon: FlaskConical, id: 'teaching' },
-                            { title: "Content Archive", desc: "Posters, Cards & Displays.", color: 'text-purple-400', icon: Archive, id: 'archive' },
-                            { title: "AI Tutor", desc: "Interactive intelligence.", color: 'text-brand-yellow', icon: Brain, id: 'ai-tutor' },
-                            { title: "Scan & Autograde", desc: "Automated vision grading.", color: 'text-rose-400', icon: Scan, id: 'ocr' },
-                            { title: "Progress Reports", desc: "Track student performance.", color: 'text-red-400', icon: TrendingUp, id: 'reports' },
-                            { title: "Communicator & Messenger", desc: "School connection hub.", color: 'text-indigo-400', icon: MessageSquare, id: 'messenger' },
-                            { title: "Portfolios", desc: "Student work portfolio.", color: 'text-amber-400', icon: UserCircle, id: 'portfolios' },
-                            { title: "Class & Student Management", desc: "Manage your learners.", color: 'text-indigo-400', icon: Users, id: 'class-management' },
-                            { title: "Settings", desc: "Account & App preferences.", color: 'text-slate-400', icon: Settings, id: 'settings' },
-                            { title: "Helpdesk", desc: "Technical Support & FAQ.", color: 'text-blue-400', icon: HelpCircle, id: 'helpdesk' },
+                            { title: "Content Creator Studio", desc: "Lessons, Plans & Assessments.", color: 'text-brand-cyan', bg20: 'bg-cyan-500/20', border30: 'border-cyan-500/30', bg10: 'bg-cyan-500/10', icon: FlaskConical, id: 'teaching' },
+                            { title: "Content Archive", desc: "Posters, Cards & Displays.", color: 'text-brand-purple', bg20: 'bg-purple-500/20', border30: 'border-purple-500/30', bg10: 'bg-purple-500/10', icon: Archive, id: 'archive' },
+                            { title: "AI Tutor", desc: "Interactive intelligence.", color: 'text-brand-yellow', bg20: 'bg-yellow-500/20', border30: 'border-yellow-500/30', bg10: 'bg-yellow-500/10', icon: Brain, id: 'ai-tutor' },
+                            { title: "Scan & Autograde", desc: "Automated vision grading.", color: 'text-brand-pink', bg20: 'bg-pink-500/20', border30: 'border-pink-500/30', bg10: 'bg-pink-500/10', icon: Scan, id: 'ocr' },
+                            { title: "Progress Reports", desc: "Track student performance.", color: 'text-orange-400', bg20: 'bg-orange-500/20', border30: 'border-orange-500/30', bg10: 'bg-orange-500/10', icon: TrendingUp, id: 'reports' },
+                            { title: "Communicator & Messenger", desc: "School connection hub.", color: 'text-indigo-400', bg20: 'bg-indigo-500/20', border30: 'border-indigo-500/30', bg10: 'bg-indigo-500/10', icon: MessageSquare, id: 'messenger' },
+                            { title: "Portfolios", desc: "Student work portfolio.", color: 'text-emerald-400', bg20: 'bg-emerald-500/20', border30: 'border-emerald-500/30', bg10: 'bg-emerald-500/10', icon: UserCircle, id: 'portfolios' },
+                            { title: "Class & Student Management", desc: "Manage your learners.", color: 'text-blue-400', bg20: 'bg-blue-500/20', border30: 'border-blue-500/30', bg10: 'bg-blue-500/10', icon: Users, id: 'class-management' },
+                            { title: "Settings", desc: "Account & App preferences.", color: 'text-slate-400', bg20: 'bg-slate-500/20', border30: 'border-slate-500/30', bg10: 'bg-slate-500/10', icon: Settings, id: 'settings' },
+                            { title: "Helpdesk", desc: "Technical Support & FAQ.", color: 'text-indigo-300', bg20: 'bg-indigo-400/20', border30: 'border-indigo-400/30', bg10: 'bg-indigo-400/10', icon: HelpCircle, id: 'helpdesk' },
                           ].map((item, i) => (
                             <button 
                               key={`feature-${item.id}-${i}`} 
@@ -799,16 +802,16 @@ export default function App() {
                                   setActiveTab(item.id);
                                 }
                               }}
-                              className={`group ${isDarkMode ? 'glass hover:bg-white/10' : 'bg-white border border-slate-200 hover:border-brand-cyan shadow-sm'} p-6 lg:p-8 rounded-[36px] lg:rounded-[42px] transition-all text-left relative overflow-hidden backdrop-blur-xl`}
+                              className={`group ${isDarkMode ? 'glass hover:bg-white/10' : 'bg-white border-2 border-slate-100'} p-6 lg:p-8 rounded-[40px] transition-all text-left relative overflow-hidden backdrop-blur-xl kid-shadow-hover hover:-translate-y-2 flex flex-col items-center sm:items-start text-center sm:text-left`}
                             >
-                              <div className={`w-14 h-14 lg:w-16 lg:h-16 rounded-[20px] lg:rounded-[24px] flex items-center justify-center mb-4 lg:mb-6 bg-white/5 border border-white/10 ${item.color} group-hover:scale-110 transition-transform shadow-inner`}>
-                                <item.icon size={isMobile ? 26 : 32} />
+                              <div className={`w-16 h-16 lg:w-20 lg:h-20 rounded-[24px] lg:rounded-[28px] flex items-center justify-center mb-4 lg:mb-6 ${item.bg20} border-4 ${item.border30} ${item.color} group-hover:scale-110 transition-transform shadow-inner`}>
+                                <item.icon size={isMobile ? 32 : 40} strokeWidth={2} />
                               </div>
-                              <h4 className={`text-xl lg:text-2xl font-hand ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{item.title}</h4>
-                              <p className={`text-[11px] lg:text-[12px] font-medium leading-relaxed ${isDarkMode ? 'text-slate-500' : 'text-slate-500'} mt-1`}>{item.desc}</p>
+                              <h4 className={`text-xl lg:text-2xl font-display font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{item.title}</h4>
+                              <p className={`text-xs lg:text-sm font-bold leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-2`}>{item.desc}</p>
                               
-                              <div className="absolute top-4 right-6 opacity-0 group-hover:opacity-100 transition-all">
-                                <Plus size={18} className={item.color} />
+                              <div className={`absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-all ${item.color} ${item.bg10} p-2 rounded-full`}>
+                                <ChevronRight size={24} strokeWidth={3} />
                               </div>
                             </button>
                           ))}

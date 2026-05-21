@@ -121,9 +121,35 @@ async function startServer() {
     try {
       const googleTTS = await import("google-tts-api");
       const urls = googleTTS.getAllAudioUrls(text, { lang, slow: false, splitPunct: ',.?!' });
-      res.json({ urls: urls.map(u => u.url) });
+      // Map URLs to our server-side proxy to completely bypass iframe CORS and referrer restriction policies
+      const proxiedUrls = urls.map(u => `/api/tts/proxy?url=${encodeURIComponent(u.url)}`);
+      res.json({ urls: proxiedUrls });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/tts/proxy", async (req, res) => {
+    const { url } = req.query;
+    if (!url || typeof url !== "string") {
+      return res.status(400).send("Missing URL parameter");
+    }
+    try {
+      const response = await axios({
+        method: "get",
+        url: url,
+        responseType: "stream",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Referer": "https://translate.google.com/"
+        }
+      });
+      const contentType = response.headers["content-type"];
+      res.setHeader("Content-Type", typeof contentType === "string" ? contentType : "audio/mpeg");
+      response.data.pipe(res);
+    } catch (error: any) {
+      console.warn("Audio proxy error:", error.message);
+      res.status(500).send("Audio proxy failed");
     }
   });
 
@@ -300,6 +326,90 @@ async function startServer() {
     }
     
     return res.status(400).json({ error: "Unsupported provider" });
+  });
+
+  // --- Individual Learner Development Plan (ILDP) Route ---
+
+  function generateLocalFallbackILDP(studentName: string, grade: string, subjects: any[]) {
+    const lowSubjects = subjects.filter((s: any) => s.mark < 70);
+    const highSubjects = subjects.filter((s: any) => s.mark >= 75);
+
+    const strengths = highSubjects.map((s: any) => `Excellent mastery of foundational concepts and high accuracy in Grade ${grade} ${s.name} (${s.mark}%).`)
+      .slice(0, 3);
+    if (strengths.length === 0) {
+      strengths.push("Shows great curiosity, consistent learning attitude, and active participation in class discussions.");
+    }
+
+    const weaknesses = lowSubjects.map((s: any) => `Currently finding some topics challenging in ${s.name} (${s.mark}%), requiring targeted revision and problem-solving exercises.`)
+      .slice(0, 3);
+    if (weaknesses.length === 0) {
+      weaknesses.push(`Doing well overall; could benefit from challenging extension tasks to nurture advanced thinking skills.`);
+    }
+
+    const recommendations = [
+      `Engage with the personalized exercises in Content Creator Studio, focusing specifically on weak areas.`,
+      `Hold 1-on-1 focus chats with the EduAI Tutor to review problem-solving strategies.`,
+      `Form small group study sessions with peers using Study Groups in Class Management.`
+    ];
+
+    const actionPlan = [
+      { task: "Revise high-priority syllabus sections and build summaries", milestone: "Within 2 weeks", status: "In Progress" },
+      { task: "Consult AI Tutor for interactive quizzes on weaker chapters", milestone: "Within 3 weeks", status: "Pending" },
+      { task: "Submit a practice portfolio task for teacher review", milestone: "Before major exam", status: "Pending" }
+    ];
+
+    return { strengths, weaknesses, recommendations, actionPlan };
+  }
+
+  app.post("/api/reports/ildp", async (req, res) => {
+    const { studentName, grade, subjects } = req.body;
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
+      return res.json(generateLocalFallbackILDP(studentName, grade, subjects));
+    }
+    try {
+      const geminiAi = new GoogleGenAI({ 
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          }
+        }
+      });
+      const prompt = `
+        You are a supportive, insightful educational counselor and South African school advisor.
+        Generate a constructive and professional Individual Learner Development Plan (ILDP) for a school student with this profile:
+        Student Name: ${studentName}
+        Grade: ${grade}
+        Performance Stats: ${JSON.stringify(subjects)}
+
+        The response must be a valid raw JSON object matching this exact TypeScript interface:
+        {
+          "strengths": string[];
+          "weaknesses": string[];
+          "recommendations": string[];
+          "actionPlan": { task: string; milestone: string; status: 'Pending' | 'In Progress' | 'Completed' }[];
+        }
+
+        Make sure your recommendations are encouraging and specifically reference their low/high subjects. Align suggestions with South African CAPS-standards (e.g. SBA, formative tests). Do not format the response with markdown formatting (no backticks, no text like 'json' or explanations), only output a parseable JSON block.
+      `;
+      const response = await geminiAi.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.7,
+        }
+      });
+      const text = response.text || "";
+      const trimmed = text.trim();
+      const cleanJson = trimmed.startsWith("```") ? trimmed.replace(/^```json\s*/i, "").replace(/```$/, "").trim() : trimmed;
+      const data = JSON.parse(cleanJson);
+      res.json(data);
+    } catch (err: any) {
+      console.warn("Gemini ILDP Generation failed, using local builder:", err.message);
+      res.json(generateLocalFallbackILDP(studentName, grade, subjects));
+    }
   });
 
   // --- Vite Middleware ---
