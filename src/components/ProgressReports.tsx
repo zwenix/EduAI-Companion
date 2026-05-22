@@ -12,7 +12,7 @@ import {
   LineChart, Line, AreaChart, Area, Legend
 } from 'recharts';
 import { db, auth } from '../lib/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, updateDoc, doc } from 'firebase/firestore';
 
 // --- Static Mock Data with comprehensive subject-by-subject histories and assessments ---
 const MOCK_STUDENTS = [
@@ -213,6 +213,22 @@ export default function ProgressReports() {
     return () => { unsubClasses(); unsubStudents(); };
   }, []);
 
+  // Synchronize custom plans from database and local cache
+  useEffect(() => {
+    const cached = JSON.parse(localStorage.getItem('eduai_custom_plans') || '{}');
+    const plansFromFirebase: Record<string, any> = {};
+    firebaseStudents.forEach(student => {
+      if (student.idp) {
+        plansFromFirebase[student.id] = student.idp;
+      }
+    });
+    setCustomPlans(prev => ({
+      ...cached,
+      ...plansFromFirebase,
+      ...prev
+    }));
+  }, [firebaseStudents]);
+
   // Merge mock students with Firebase students so that any custom-added learner dynamically functions!
   const allStudents = useMemo(() => {
     const parsedFirebase = firebaseStudents.map(student => {
@@ -228,7 +244,8 @@ export default function ProgressReports() {
         grade: student.grade || 'Grade 10A',
         email: student.email || `${student.name.replace(/\s+/g, '.').toLowerCase()}@school.za`,
         status: student.status || 'Active',
-        subjects: [
+        idp: student.idp || null,
+        subjects: student.subjects || [
           { name: 'Mathematics', mark: mathScore, termHistory: [mathScore - 9, mathScore - 4, mathScore - 2, mathScore], assessments: [ { title: 'Algebra Portfolio', score: mathScore + 4, type: 'SBA' }, { title: 'Diagnostic Test', score: mathScore - 5, type: 'Test' } ] },
           { name: 'Physical Sciences', mark: scienceScore, termHistory: [scienceScore - 11, scienceScore - 6, scienceScore - 1, scienceScore], assessments: [ { title: 'Stoichiometry SBA', score: scienceScore - 3, type: 'SBA' }, { title: 'Mechanics Practical', score: scienceScore + 5, type: 'Practical' } ] },
           { name: 'English First Additional Language', mark: englishScore, termHistory: [englishScore - 5, englishScore - 2, englishScore - 1, englishScore], assessments: [ { title: 'Summary SBA', score: englishScore + 2, type: 'SBA' }, { title: 'Grammar review', score: englishScore - 4, type: 'Quiz' } ] }
@@ -317,6 +334,30 @@ export default function ProgressReports() {
     };
   }, [customPlans, selectedStudentId]);
 
+  // Persistent save helper for IDPs
+  const savePlanToStorageAndFirestore = async (studentId: string, updatedPlan: any) => {
+    setCustomPlans(prev => ({
+      ...prev,
+      [studentId]: updatedPlan
+    }));
+
+    // Cache locally
+    const cached = JSON.parse(localStorage.getItem('eduai_custom_plans') || '{}');
+    cached[studentId] = updatedPlan;
+    localStorage.setItem('eduai_custom_plans', JSON.stringify(cached));
+
+    // Firebase update if live student
+    if (!studentId.startsWith('mock-') && auth.currentUser) {
+      try {
+        await updateDoc(doc(db, 'students', studentId), {
+          idp: updatedPlan
+        });
+      } catch (err) {
+        console.error("Failed to sync IDP to Firestore:", err);
+      }
+    }
+  };
+
   // Simulate generation loading with beautiful stages
   const handleGenerateAIPlan = async () => {
     setIsGenerating(true);
@@ -353,10 +394,7 @@ export default function ProgressReports() {
 
       const data = await response.json();
       setTimeout(() => {
-        setCustomPlans(prev => ({
-          ...prev,
-          [selectedStudentId]: data
-        }));
+        savePlanToStorageAndFirestore(selectedStudentId, data);
         setGenerationProgress(100);
         setIsGenerating(false);
       }, 4200);
@@ -383,10 +421,7 @@ export default function ProgressReports() {
     };
     updatedPlan.actionPlan = [...updatedPlan.actionPlan, newTask];
 
-    setCustomPlans(prev => ({
-      ...prev,
-      [selectedStudentId]: updatedPlan
-    }));
+    savePlanToStorageAndFirestore(selectedStudentId, updatedPlan);
 
     setNewMilestoneText('');
     setNewMilestoneLine('');
@@ -398,10 +433,7 @@ export default function ProgressReports() {
     const task = updatedPlan.actionPlan[index];
     if (task) {
       task.status = task.status === 'Completed' ? 'Pending' : 'Completed';
-      setCustomPlans(prev => ({
-        ...prev,
-        [selectedStudentId]: updatedPlan
-      }));
+      savePlanToStorageAndFirestore(selectedStudentId, updatedPlan);
     }
   };
 

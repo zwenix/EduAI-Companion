@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Users, Search, Plus, Edit2, Trash2, Mail, GraduationCap, X, BookOpen } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
@@ -45,10 +45,110 @@ export default function ClassManagement() {
   const [isAddingClass, setIsAddingClass] = useState(false);
   const [isAddingGroup, setIsAddingGroup] = useState(false);
 
+  // CSV Bulk Import states
+  const [learnerAddMode, setLearnerAddMode] = useState<'manual' | 'csv'>('manual');
+  const [csvStudents, setCsvStudents] = useState<{ name: string; email: string; grade: string }[]>([]);
+  const [csvError, setCsvError] = useState('');
+  const [isImportingCsv, setIsImportingCsv] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Forms
   const [learnerForm, setLearnerForm] = useState({ name: '', grade: '', email: '', status: 'Active' as const });
   const [classForm, setClassForm] = useState({ name: '', subject: '' });
   const [groupForm, setGroupForm] = useState({ name: '', description: '', selectedMembers: [] as string[] });
+
+  const handleCsvSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setCsvError('');
+    setCsvStudents([]);
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        if (!text) throw new Error("Could not read file contents.");
+        
+        const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+        if (lines.length < 2) {
+          throw new Error("CSV file must contain a header row and at least one student record.");
+        }
+        
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const nameIdx = headers.findIndex(h => h.includes('name'));
+        const emailIdx = headers.findIndex(h => h.includes('email'));
+        const gradeIdx = headers.findIndex(h => h.includes('class') || h.includes('grade'));
+        
+        if (nameIdx === -1 || emailIdx === -1) {
+          throw new Error("CSV header must contain analogous fields for 'Name' and 'Email'. (e.g., Name,Email,Class/Grade)");
+        }
+        
+        const parsedList = [];
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(',').map(c => c.trim().replace(/^["']|["']$/g, ""));
+          if (cols.length < 2) continue;
+          
+          parsedList.push({
+            name: cols[nameIdx] || '',
+            email: cols[emailIdx] || '',
+            grade: gradeIdx !== -1 ? cols[gradeIdx] || 'Grade 10A' : 'Grade 10A'
+          });
+        }
+        
+        if (parsedList.length === 0) {
+          throw new Error("No student records parsed from the CSV.");
+        }
+        
+        setCsvStudents(parsedList);
+      } catch (err: any) {
+        setCsvError(err.message || "Failed to parse CSV file.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleBulkImportCsv = async () => {
+    const user = auth.currentUser;
+    if (!user) return alert('Please sign in first');
+    if (csvStudents.length === 0) return;
+    
+    setIsImportingCsv(true);
+    let successCount = 0;
+    
+    for (const item of csvStudents) {
+      const id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+      try {
+        await setDoc(doc(db, 'students', id), {
+          name: item.name,
+          email: item.email,
+          grade: item.grade,
+          status: 'Active',
+          teacherId: user.uid,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        
+        // Notification
+        await setDoc(doc(db, 'notifications', id), {
+          title: 'Learner Enrolled',
+          message: `Learner ${item.name} enrolled via bulk CSV.`,
+          read: false,
+          userId: user.uid,
+          createdAt: serverTimestamp(),
+        });
+        successCount++;
+      } catch (e) {
+        console.error("Failed to import student CSV row", item, e);
+      }
+    }
+    
+    alert(`Successfully imported ${successCount} out of ${csvStudents.length} learners!`);
+    setIsImportingCsv(false);
+    setIsAddingLearner(false);
+    setCsvStudents([]);
+    setLearnerAddMode('manual');
+  };
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -429,22 +529,83 @@ export default function ClassManagement() {
       {isAddingLearner && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold">Add Learner</h3>
-              <button type="button" onClick={() => setIsAddingLearner(false)}><X className="text-slate-400" /></button>
+              <button type="button" onClick={() => {
+                setIsAddingLearner(false);
+                setCsvStudents([]);
+                setCsvError('');
+                setLearnerAddMode('manual');
+              }}><X className="text-slate-400" /></button>
             </div>
-            <form onSubmit={handleCreateLearner} className="space-y-4">
-              <div><label className="block text-sm font-semibold mb-1">Name</label><input required className="w-full border rounded-xl p-3" value={learnerForm.name} onChange={e => setLearnerForm({...learnerForm, name: e.target.value})} /></div>
-              <div><label className="block text-sm font-semibold mb-1">Email</label><input type="email" required className="w-full border rounded-xl p-3" value={learnerForm.email} onChange={e => setLearnerForm({...learnerForm, email: e.target.value})} /></div>
-              <div><label className="block text-sm font-semibold mb-1">Class</label>
-                <select required className="w-full border rounded-xl p-3 bg-white" value={learnerForm.grade} onChange={e => setLearnerForm({...learnerForm, grade: e.target.value})}>
-                  <option value="">Select Class</option>
-                  {classes.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                </select>
-                {classes.length === 0 && <p className="text-xs text-rose-500 mt-1">Please create a class first.</p>}
+
+            {/* Selector Tab for Manual vs CSV */}
+            <div className="flex border-b border-slate-200 mb-6 font-medium text-sm">
+              <button 
+                type="button" 
+                onClick={() => setLearnerAddMode('manual')}
+                className={`flex-1 pb-2.5 border-b-2 text-center transition-colors ${learnerAddMode === 'manual' ? 'border-brand-cyan text-brand-cyan font-bold' : 'border-transparent text-slate-400 hover:text-slate-500'}`}
+              >
+                Manual Entry
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setLearnerAddMode('csv')}
+                className={`flex-1 pb-2.5 border-b-2 text-center transition-colors ${learnerAddMode === 'csv' ? 'border-brand-cyan text-brand-cyan font-bold' : 'border-transparent text-slate-400 hover:text-slate-500'}`}
+              >
+                CSV Bulk Import
+              </button>
+            </div>
+
+            {learnerAddMode === 'manual' ? (
+              <form onSubmit={handleCreateLearner} className="space-y-4">
+                <div><label className="block text-sm font-semibold mb-1">Name</label><input required className="w-full border rounded-xl p-3" value={learnerForm.name} onChange={e => setLearnerForm({...learnerForm, name: e.target.value})} /></div>
+                <div><label className="block text-sm font-semibold mb-1">Email</label><input type="email" required className="w-full border rounded-xl p-3" value={learnerForm.email} onChange={e => setLearnerForm({...learnerForm, email: e.target.value})} /></div>
+                <div><label className="block text-sm font-semibold mb-1">Class</label>
+                  <select required className="w-full border rounded-xl p-3 bg-white" value={learnerForm.grade} onChange={e => setLearnerForm({...learnerForm, grade: e.target.value})}>
+                    <option value="">Select Class</option>
+                    {classes.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  </select>
+                  {classes.length === 0 && <p className="text-xs text-rose-500 mt-1">Please create a class first.</p>}
+                </div>
+                <button type="submit" className="w-full bg-brand-cyan text-slate-900 font-bold py-3 rounded-xl mt-4">Save Learner</button>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-slate-55 p-4 rounded-2xl border border-dashed border-slate-200 text-center flex flex-col items-center justify-center cursor-pointer hover:border-brand-cyan transition-colors" onClick={() => fileInputRef.current?.click()}>
+                  <p className="text-xs font-semibold text-slate-500 mb-2">Upload student roster spreadsheet</p>
+                  <p className="text-[10px] text-slate-400 mb-3">(Supported layout: Name, Email, Grade)</p>
+                  <button type="button" className="text-xs bg-slate-100 px-3 py-1.5 rounded-lg border font-bold hover:bg-slate-200">Select CSV File</button>
+                  <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleCsvSelect} />
+                </div>
+
+                {csvError && <p className="text-xs text-rose-500 font-medium bg-rose-50 p-2.5 rounded-xl border border-rose-100">{csvError}</p>}
+                {csvStudents.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="bg-emerald-50 text-emerald-800 p-3 rounded-xl text-xs font-semibold border border-emerald-100">
+                      Successfully parsed {csvStudents.length} student records from CSV!
+                    </div>
+                    <div className="max-h-40 overflow-y-auto border rounded-xl divide-y text-xs text-slate-600 bg-slate-50">
+                      {csvStudents.slice(0, 5).map((s, idx) => (
+                        <div key={idx} className="p-2 flex justify-between">
+                          <span className="font-bold">{s.name}</span>
+                          <span>{s.email} ({s.grade})</span>
+                        </div>
+                      ))}
+                      {csvStudents.length > 5 && <div className="p-2 text-center text-slate-400">...and {csvStudents.length - 5} more records</div>}
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={handleBulkImportCsv} 
+                      disabled={isImportingCsv}
+                      className="w-full bg-brand-cyan hover:bg-cyan-500 text-slate-900 font-bold py-3 rounded-xl mt-4 flex items-center justify-center gap-2"
+                    >
+                      {isImportingCsv ? 'Enrolling Learners...' : `Enroll ${csvStudents.length} Students`}
+                    </button>
+                  </div>
+                )}
               </div>
-              <button type="submit" className="w-full bg-brand-cyan text-slate-900 font-bold py-3 rounded-xl mt-4">Save Learner</button>
-            </form>
+            )}
           </div>
         </div>
       )}
