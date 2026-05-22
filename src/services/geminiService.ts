@@ -31,7 +31,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 `;
 
 /**
- * Robustly parses JSON from a model's response text.
+ * Robustly parses JSON from a model's response text, with custom property-extraction
+ * heuristics to gracefully heal and reconstruct truncated or malformed responses.
  */
 export const safeJsonParse = (text: string | null | undefined): any => {
   if (!text) return {};
@@ -72,17 +73,55 @@ export const safeJsonParse = (text: string | null | undefined): any => {
     return result;
   };
 
+  const extractField = (jsonStr: string, fieldName: string): string | null => {
+    // Matches "fieldName" : "value" (handles escaped quotes and catches unclosed quotes at end of stream via $)
+    const regex = new RegExp(`"${fieldName}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)(?:"|$)`);
+    const match = jsonStr.match(regex);
+    if (match) {
+      let val = match[1];
+      // Unescape standard JSON string escapes
+      val = val
+        .replace(/\\"/g, '"')
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '\r')
+        .replace(/\\t/g, '\t')
+        .replace(/\\\\/g, '\\');
+      return val;
+    }
+    return null;
+  };
+
+  const extractArrayField = (jsonStr: string, fieldName: string): string[] => {
+    const regex = new RegExp(`"${fieldName}"\\s*:\\s*\\[([\\s\\S]*?)\\]`);
+    const match = jsonStr.match(regex);
+    if (match) {
+      try {
+        return JSON.parse(`[${match[1]}]`);
+      } catch {
+        // Split by comma and clean up quotes
+        return match[1]
+          .split(',')
+          .map(item => item.trim().replace(/^"/, '').replace(/$/, '').replace(/"$/, '').trim())
+          .filter(Boolean);
+      }
+    }
+    return [];
+  };
+
   try {
     const trimmed = processedText.trim();
     return JSON.parse(trimmed);
   } catch (e) {
     let fixedText = fixJsonStr(processedText);
     const jsonMatch = fixedText.match(/```(?:json)?\s*([\s\S]*?)```/);
+    const textToSearch = (jsonMatch && jsonMatch[1]) ? jsonMatch[1].trim() : fixedText;
+
     if (jsonMatch && jsonMatch[1]) {
       try {
         return JSON.parse(jsonMatch[1].trim());
       } catch (e2) {}
     }
+
     const startIdx = fixedText.indexOf('{');
     const endIdx = fixedText.lastIndexOf('}');
     if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
@@ -98,6 +137,35 @@ export const safeJsonParse = (text: string | null | undefined): any => {
         } catch(e4) {}
       }
     }
+
+    // ─── POWERFALLBACK: HEAL TRUNCATED JSON PROPERTIES ───
+    const fallbackObj: any = {};
+    const stringFields = [
+      "content", "memo", "rubric", "assessmentCriteria", "imagePrompt",
+      "description", "printInstructions", "notes", "documentType",
+      "extractedText", "feedback", "totalScore"
+    ];
+    
+    for (const field of stringFields) {
+      const extracted = extractField(textToSearch, field);
+      if (extracted !== null) {
+        fallbackObj[field] = extracted;
+      }
+    }
+    
+    const arrayFields = ["successIndicators", "marksPerQuestion"];
+    for (const field of arrayFields) {
+      const extracted = extractArrayField(textToSearch, field);
+      if (extracted.length > 0) {
+        fallbackObj[field] = extracted;
+      }
+    }
+
+    if (fallbackObj.content || fallbackObj.extractedText || fallbackObj.feedback || fallbackObj.description) {
+      console.warn("safeJsonParse: Reconstructed truncated JSON response successfully via fallback regex extraction!");
+      return fallbackObj;
+    }
+
     console.error("Failed to parse AI response as JSON:", processedText);
     return {};
   }
@@ -136,7 +204,7 @@ async function callGemini(fn: () => Promise<any>, retries = 3, delay = 2000): Pr
 }
 
 export const generateEducationalContent = async (type: string, details: string) => {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-3.5-flash";
   const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN.`;
 
   return await callGemini(async () => {
@@ -153,7 +221,7 @@ export const generateEducationalContent = async (type: string, details: string) 
 };
 
 export const generateCAPSContent = async (input: any) => {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-3.5-flash";
   const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.`;
 
   const prompt = `
@@ -215,7 +283,7 @@ export const generateCAPSContent = async (input: any) => {
 };
 
 export const generateVisualAid = async (input: any) => {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-3.5-flash";
   const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nThe 'content' field in your JSON response MUST be stunningly designed HTML with Tailwind CSS. DO NOT use generic Markdown.`;
 
   let visualPrompt = "";
@@ -318,7 +386,7 @@ export const generateVisualAid = async (input: any) => {
 };
 
 export const generateAdminDoc = async (input: any) => {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-3.5-flash";
   const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate a formal ${input.documentType} for ${input.schoolName}.
   The tone should be ${input.tone}.
   IMPORTANT: The 'content' field MUST be formatted as visually pleasing HTML string styled with Tailwind CSS classes. DO NOT use generic Markdown.`;
@@ -357,7 +425,7 @@ export const generateAdminDoc = async (input: any) => {
 };
 
 export const runOCRScan = async (imageData: string, language: string = 'English') => {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-3.5-flash";
   
   const prompt = `Extract all text from the attached image accurately, assuming the text is in ${language}.
   Format it cleanly. Make no other comments.`;
@@ -379,7 +447,7 @@ export const runOCRScan = async (imageData: string, language: string = 'English'
 };
 
 export const runOCRAndGrade = async (imageData: string, rubric: string, language: string = 'English') => {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-3.5-flash";
   
   const prompt = `You are an AI Grader. Analyze the attached image of a student's assessment in ${language}.
   Reference this rubric: ${rubric}.
@@ -418,7 +486,7 @@ export const runOCRAndGrade = async (imageData: string, rubric: string, language
 };
 
 export const chatWithTutor = async (messages: { role: 'user' | 'model', parts: any[] }[]) => {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-3.5-flash";
   
   return await callGemini(async () => {
     const result = await ai.models.generateContent({

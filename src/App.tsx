@@ -591,9 +591,9 @@ export default function App() {
                 }`}
                 title="Image Generation Engine"
               >
-                <option value="gemini-imagen">IMG: Gemini Imagen 3</option>
-                <option value="alibaba-qwen-image">IMG: Qwen-Image 2.0</option>
-                <option value="huggingface">IMG: FLUX.1 (HF)</option>
+                <option value="gemini-imagen">IMG: Gemini 2.5 Flash Image</option>
+                <option value="alibaba-qwen-image">IMG: qwen-image-max</option>
+                <option value="huggingface">IMG: qwen-image-plus-2026-01-09</option>
                 <option value="pollinations-schnell">IMG: Flux Schnell</option>
                 <option value="pollinations-turbo">IMG: Z-Image Turbo</option>
                 <option value="pollinations-klein">IMG: FLUX.2 Klein 4B</option>
@@ -627,8 +627,8 @@ export default function App() {
               title="Primary Text Model"
             >
               <option value="llama-primary">Llama 3.3 70B (Primary)</option>
-              <option value="alibaba-qwen">Alibaba Qwen-Plus (Reasoning)</option>
-              <option value="alibaba-deepseek">Alibaba DeepSeek V3 (Coding)</option>
+              <option value="alibaba-qwen">Alibaba qwen3.7-max (Reasoning)</option>
+              <option value="alibaba-deepseek">Alibaba qwen3.6-plus (Reasoning & Coding)</option>
               <option value="gemini">Gemini 3 Flash (Fallback)</option>
             </select>
             <button 

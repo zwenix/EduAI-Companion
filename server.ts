@@ -66,8 +66,8 @@ async function startServer() {
         model: model || (
           provider === "llama-primary" ? "llama-3.3-70b-versatile" : 
           provider === "llama-secondary" ? "llama-3.1-8b-instant" : 
-          provider === "alibaba-qwen" ? "qwen-plus" :
-          provider === "alibaba-deepseek" ? "deepseek-v3" :
+          provider === "alibaba-qwen" ? "qwen3.7-max" :
+          provider === "alibaba-deepseek" ? "qwen3.6-plus" :
           provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
           ""
         ),
@@ -258,30 +258,55 @@ async function startServer() {
             }
           }
         });
-        const response = await geminiAi.models.generateImages({
-          model: 'gemini-2.5-flash-image',
-          prompt: prompt,
+        const response = await geminiAi.models.generateContent({
+          model: 'gemini-3.1-flash-image-preview',
+          contents: {
+            parts: [
+              {
+                text: prompt,
+              },
+            ],
+          },
           config: {
-            numberOfImages: 1,
-            outputMimeType: 'image/jpeg',
-            aspectRatio: '1:1'
+            imageConfig: {
+              aspectRatio: "1:1",
+              imageSize: "1K"
+            }
           }
         });
         
-        // Response format usually creates an array of images. We need to extract base64 or url
-        // GoogleGenAI SDK returns `generatedImages` array.
-        if (response.generatedImages && response.generatedImages.length > 0) {
-          const image = response.generatedImages[0];
-          // image.image.imageBytes usually holds the base64 string
-          const base64 = image.image.imageBytes;
-          if (base64) {
-            return res.json({ url: `data:image/jpeg;base64,${base64}` });
+        // Extract the base64 encoded image from candidates
+        let base64 = "";
+        const parts = response.candidates?.[0]?.content?.parts;
+        if (parts && parts.length > 0) {
+          for (const part of parts) {
+            if (part.inlineData && part.inlineData.data) {
+              base64 = part.inlineData.data;
+              break;
+            }
           }
+        }
+
+        if (base64) {
+          return res.json({ url: `data:image/jpeg;base64,${base64}` });
         }
         throw new Error("Failed to extract image from Gemini response");
       } catch (error: any) {
-        console.warn("Gemini Imagen warn:", error.message);
-        return res.status(500).json({ error: error.message || "Failed to generate image via Gemini" });
+        let errMsg = error.message || "Failed to generate image via Gemini";
+        try {
+          if (errMsg.trim().startsWith('{')) {
+            const parsed = JSON.parse(errMsg);
+            if (parsed.error && parsed.error.message) {
+              errMsg = parsed.error.message;
+            }
+          }
+        } catch (e) {}
+
+        console.warn("Gemini Imagen warn:", errMsg);
+        if (errMsg.includes("API key not valid") || errMsg.includes("INVALID_ARGUMENT")) {
+          errMsg = "The Google Gemini API Key provided is either invalid or lacks permissions for paid image generation (gemini-3.1-flash-image-preview). Please ensure your key has correct billing/rights, or use a free provider like Pollinations.";
+        }
+        return res.status(500).json({ error: errMsg });
       }
     }
 
@@ -293,7 +318,7 @@ async function startServer() {
 
       try {
         const response = await alibaba.images.generate({
-          model: 'qwen-image-2.0-pro-2026-04-22',
+          model: 'qwen-image-max',
           prompt: prompt,
           n: 1,
           size: "1024x1024",
@@ -306,22 +331,22 @@ async function startServer() {
     }
 
     if (provider === "huggingface") {
-      const apiKey = process.env.HUGGINGFACE_API_KEY;
-      if (!apiKey) return res.status(400).json({ error: "HUGGINGFACE_API_KEY missing" });
+      const apiKey = process.env.ALIBABA_API_KEY;
+      if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
+        return res.status(400).json({ error: "ALIBABA_API_KEY missing (required for Alibaba qwen-image-plus model)" });
+      }
       
       try {
-        const hf = new HfInference(apiKey);
-        const imageBlob = await hf.textToImage({
-          model: 'black-forest-labs/FLUX.1-schnell',
-          inputs: prompt,
-          parameters: { negative_prompt: 'blurry' }
+        const response = await alibaba.images.generate({
+          model: 'qwen-image-plus-2026-01-09',
+          prompt: prompt,
+          n: 1,
+          size: "1024x1024",
         });
-        const arrayBuffer = await (imageBlob as any).arrayBuffer();
-        const base64 = Buffer.from(arrayBuffer).toString('base64');
-        return res.json({ url: `data:image/jpeg;base64,${base64}` });
+        return res.json({ url: response.data[0].url });
       } catch (error: any) {
-        console.warn("HuggingFace image warn:", error.message);
-        return res.status(500).json({ error: error.message || "Failed to generate image via HuggingFace" });
+        console.warn("Alibaba qwen-image-plus warn:", error.message);
+        return res.status(500).json({ error: error.message || "Failed to generate image via Alibaba qwen-image-plus" });
       }
     }
     
@@ -394,7 +419,7 @@ async function startServer() {
         Make sure your recommendations are encouraging and specifically reference their low/high subjects. Align suggestions with South African CAPS-standards (e.g. SBA, formative tests). Do not format the response with markdown formatting (no backticks, no text like 'json' or explanations), only output a parseable JSON block.
       `;
       const response = await geminiAi.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",

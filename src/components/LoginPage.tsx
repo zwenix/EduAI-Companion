@@ -45,7 +45,16 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
       onSuccess();
     } catch (err: any) {
       console.error(err);
-      setError(err instanceof Error ? err.message : String(err));
+      const errMsg = err?.message || String(err);
+      const errCode = err?.code || "";
+
+      if (errCode === 'auth/popup-closed-by-user' || errMsg.includes('popup-closed-by-user')) {
+        setError("The login window was closed. Please try again! (Tip: If you are using Google AI Studio, make sure you clicked \"Open in a new tab\" to allow the login popup to connect properly).");
+      } else if (errCode === 'auth/popup-blocked' || errMsg.includes('popup-blocked')) {
+        setError("The login popup was blocked by your browser. Please enable popups for this site or open the app in a new tab.");
+      } else {
+        setError(errMsg);
+      }
       setIsGoogle(false);
     }
   };
