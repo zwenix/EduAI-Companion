@@ -34,25 +34,40 @@ service cloud.firestore {
     }
 
     function isValidStudent(data) {
-      return data.keys().size() >= 6 && data.keys().size() <= 9
-        && data.name is string && data.name.size() <= 100
+      return data.name is string && data.name.size() <= 100
         && data.grade is string && data.grade.size() <= 50
         && data.email is string && data.email.size() <= 150
         && data.status is string && data.status in ['Active', 'Inactive']
-        && data.teacherId is string && data.teacherId == request.auth.uid
-        && data.createdAt is timestamp
+        && (!('teacherId' in data) || data.teacherId == null || (data.teacherId is string && data.teacherId.size() <= 128))
+        && (!('createdAt' in data) || data.createdAt == null || data.createdAt is timestamp)
         && (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp)
-        && (!('parentId' in data) || data.parentId == null || (data.parentId is string && data.parentId.size() <= 128));
+        && (!('parentId' in data) || data.parentId == null || (data.parentId is string && data.parentId.size() <= 128))
+        && (!('streak' in data) || data.streak is int)
+        && (!('lastActiveDate' in data) || data.lastActiveDate is string)
+        && (!('subjects' in data) || data.subjects is list)
+        && (!('idp' in data) || data.idp is map);
     }
     match /students/{studentId} {
-      allow get: if isSignedIn() && isValidId(studentId) && existing().teacherId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming()) && incoming().createdAt == request.time;
-      allow update: if isSignedIn() && isValidId(studentId) && existing().teacherId == request.auth.uid && isValidStudent(incoming())
-                     && incoming().teacherId == existing().teacherId
-                     && incoming().createdAt == existing().createdAt
-                     && incoming().updatedAt == request.time
-                     && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'grade', 'email', 'status', 'updatedAt', 'parentId']);
+      allow get: if isSignedIn() && isValidId(studentId) && (
+        existing().teacherId == request.auth.uid || 
+        existing().email == request.auth.token.email
+      );
+      allow list: if isSignedIn() && (
+        resource.data.teacherId == request.auth.uid || 
+        resource.data.email == request.auth.token.email
+      );
+      allow create: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming()) && (
+        incoming().teacherId == request.auth.uid || 
+        incoming().email == request.auth.token.email
+      );
+      allow update: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming()) && (
+        // Case 1: The teacher is updating
+        (existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'grade', 'email', 'status', 'updatedAt', 'parentId', 'subjects', 'idp', 'lastActiveDate', 'streak'])) ||
+        // Case 2: The student is self-updating progress, streak, or IDPs
+        (existing().email == request.auth.token.email &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['lastActiveDate', 'streak', 'idp', 'updatedAt', 'subjects']))
+      );
       allow delete: if isSignedIn() && isValidId(studentId) && existing().teacherId == request.auth.uid;
     }
 

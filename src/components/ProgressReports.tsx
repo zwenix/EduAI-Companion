@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, updateDoc, doc } from 'firebase/firestore';
+import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 
 // --- Static Mock Data with comprehensive subject-by-subject histories and assessments ---
 const MOCK_STUDENTS = [
@@ -451,14 +452,23 @@ export default function ProgressReports() {
       // Add a small delay to ensure rendering triggers if needed
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Capture element with html2canvas (configured for crisp rendering, background color preservation)
-      const canvas = await html2canvas(element, {
-        scale: 2, // High resolution crisp text and graphics
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#0f172a', // Consistent theme background
-        logging: false,
-      });
+      // Intercept modern 'oklch' color styles before running html2canvas
+      const restoreGetComputedStyle = patchOklchForHtml2canvas();
+
+      let canvas;
+      try {
+        // Capture element with html2canvas (configured for crisp rendering, background color preservation)
+        canvas = await html2canvas(element, {
+          scale: 2, // High resolution crisp text and graphics
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#0f172a', // Consistent theme background
+          logging: false,
+        });
+      } finally {
+        // Restore standard getComputedStyle immediately
+        restoreGetComputedStyle();
+      }
 
       const imgData = canvas.toDataURL('image/png');
       

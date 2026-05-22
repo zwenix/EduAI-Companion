@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import axios from "axios";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 dotenv.config();
 
@@ -240,13 +240,73 @@ async function startServer() {
     }
   });
 
+  // Helper for server-side JSON healing
+  function safeJsonParse(text: string | null | undefined): any {
+    if (!text) return {};
+    let processedText = text.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<think>[\s\S]*$/gi, '');
+    try {
+      return JSON.parse(processedText.trim());
+    } catch {
+      // Find JSON block
+      const startIdx = processedText.indexOf('{');
+      const endIdx = processedText.lastIndexOf('}');
+      if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+        try {
+          return JSON.parse(processedText.substring(startIdx, endIdx + 1));
+        } catch {}
+      }
+      return { content: processedText };
+    }
+  }
+
+  const MASTER_SYSTEM_PROMPT = `
+You are the official AI content generator for **EduAI Companion** — a premium South African CAPS-aligned educational platform.
+
+Your outputs must match or exceed the professional quality of our signature EduAI templates: clean, extremely modern, highly vibrant, and interactive layouts. Use full-width background color banners, excellent visual hierarchy, clear instructions, bold answer lines/boxes, scoring areas, educational illustrations/diagrams, and total print-readiness.
+
+VISUAL STYLING DOCTRINE (Follow these for all HTML output):
+1. **Full-Width Banners & Section Colors**: Every page must start with a header banner spanning full width with deep, vibrant colors matching the learning domain:
+   - Mathematics: Teal & Blue gradients (e.g., from-teal-500 to-blue-600)
+   - Natural Sciences / Life Sciences: Orange, Green & Turquoise (e.g., from-emerald-500 to-teal-700)
+   - Languages / Literacy: Purple, Pink & Indigo (e.g., from-purple-500 to-indigo-600)
+   - Social Sciences / Life Skills: Warm Amber, Red & Gold (e.g., from-amber-500 to-red-600)
+2. **Visual Layout and Negative Space**: Always use clean card blocks with a default light theme container (white bg cards on very light gray/zinc ground), rounded corners (rounded-[2.5rem]), thick playful borders (2px to 4px), and spacious padding. Never overlap text or place white text on light backgrounds.
+3. **South African Pedagogical Context**: Always use local South African framing (e.g., Rands, local names like Thabo, Zola, Liam, South African provinces, indigenous fynbos, Table Mountain, local wild animals). Always align content explicitly with CAPS guidelines.
+4. **Primary / Foundation Phase (Grades R-3) Layouts**:
+   - Use ultra-large text sizes (e.g., text-2xl or text-3xl for instruction text), massive line heights, and extensive white space.
+   - For Phonics / Word Blending, present letter sounds in structured grid tables with bold colored borders. E.g., cards for Jolly Phonics matching letters with small illustrations (S s | Snake, A a | Ant). Blending exercises must show arrows with buttons: s a t -> sat.
+   - For worksheets: Include large, thick-dotted words for "Trace & Copy" activities, or letter blocks. Ensure there are large, beautiful boxes/borders for child drawing or writing.
+5. **Intermediate / Senior Phase (Grades 4-7) Layouts**:
+   - Use structured, professional, multi-column bento grids and table-based summaries.
+   - For Life Skills / Emotions: Use modular grid cards (e.g. 3x2 grid) with soft borders and distinct emoji/icon representations for each feeling, with discussion scenarios.
+   - For Assessments / Worksheets: Always include a prominent Header Badge with "NAME: __________  DATE: __________" fields, and a beautiful bold Score Card in the bottom right with a thick yellow/amber border (e.g., "SCORE: _____ / 50 Marks"). 
+   - Section headers must use pill-shaped colored borders. True/False questions must display "T / F" inside colorful circles or pill indicators. Radio options must look like tappable capsule options.
+6. **Hero Illustrations / Space for Visuals**: Every generated worksheet or poster MUST include an elegantly positioned block representing the primary illustration. If the generator suggests an image, embed a container with a relative graphic or the configured illustration safely in the design.
+7. **Motivational elements**: Add small encouraging banners (e.g. "Amazing job! Keep shining! ✨") at the bottom of the tasks.
+
+STRICT OUTPUT RULES (NEVER violate these):
+- Output **ONLY** the raw, complete document. 
+- No explanations, no markdown fences (\`\`\`), no extra text.
+- If user requests **HTML**: Output a complete standalone HTML5 document with Tailwind CSS via CDN. Include beautiful @media print styles.
+- For Primary School (Gr R–3): Use very large fonts (text-2xl or larger for body), lots of white space, and clear, simple instructions with visual cues.
+- For Intermediate/Senior (Gr 4–7): Use more structured, professional layouts with table-based comparisons or labeled diagrams.
+
+Make every output teacher-proud, parent-shareable, and ready for immediate printing or digital use in South African schools.
+`;
+
+  const IMAGE_PROMPT_GOLDEN_RULE = `
+Ultra-detailed digital illustration, professional educational graphic design, vibrant colors, perfect composition, sharp focus, 300 DPI print quality, award-winning children’s non-fiction book style, no text overlays (text will be added separately), no borders, no frames, no watermarks, no emojis, no cartoonish exaggeration, suitable for South African classroom display, museum-quality detail
+`;
+
   app.post("/api/images/generate", async (req, res) => {
     const { prompt, provider } = req.body;
     
     if (provider === "gemini-imagen") {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-        return res.status(400).json({ error: "GEMINI_API_KEY missing" });
+        console.warn("GEMINI_API_KEY missing for images, falling back to Pollinations Flux");
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        return res.json({ url });
       }
 
       try {
@@ -275,7 +335,6 @@ async function startServer() {
           }
         });
         
-        // Extract the base64 encoded image from candidates
         let base64 = "";
         const parts = response.candidates?.[0]?.content?.parts;
         if (parts && parts.length > 0) {
@@ -292,28 +351,18 @@ async function startServer() {
         }
         throw new Error("Failed to extract image from Gemini response");
       } catch (error: any) {
-        let errMsg = error.message || "Failed to generate image via Gemini";
-        try {
-          if (errMsg.trim().startsWith('{')) {
-            const parsed = JSON.parse(errMsg);
-            if (parsed.error && parsed.error.message) {
-              errMsg = parsed.error.message;
-            }
-          }
-        } catch (e) {}
-
-        console.warn("Gemini Imagen warn:", errMsg);
-        if (errMsg.includes("API key not valid") || errMsg.includes("INVALID_ARGUMENT")) {
-          errMsg = "The Google Gemini API Key provided is either invalid or lacks permissions for paid image generation (gemini-3.1-flash-image-preview). Please ensure your key has correct billing/rights, or use a free provider like Pollinations.";
-        }
-        return res.status(500).json({ error: errMsg });
+        console.warn("Gemini Imagen failed, automatically falling back to Pollinations Flux...", error.message || error);
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        return res.json({ url });
       }
     }
 
     if (provider === "alibaba-qwen-image") {
       const apiKey = process.env.ALIBABA_API_KEY;
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-        return res.status(400).json({ error: "ALIBABA_API_KEY missing" });
+        console.warn("ALIBABA_API_KEY missing, utilizing Pollinations fallback");
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        return res.json({ url });
       }
 
       try {
@@ -325,15 +374,18 @@ async function startServer() {
         });
         return res.json({ url: response.data[0].url });
       } catch (error: any) {
-        console.warn("Alibaba image warn:", error.message);
-        return res.status(500).json({ error: error.message || "Failed to generate image via Alibaba" });
+        console.warn("Alibaba image failed, falling back to Pollinations...", error.message);
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        return res.json({ url });
       }
     }
 
     if (provider === "huggingface") {
       const apiKey = process.env.ALIBABA_API_KEY;
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-        return res.status(400).json({ error: "ALIBABA_API_KEY missing (required for Alibaba qwen-image-plus model)" });
+        console.warn("ALIBABA_API_KEY for qwen-image-plus missing, utilizing Pollinations fallback");
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        return res.json({ url });
       }
       
       try {
@@ -345,12 +397,303 @@ async function startServer() {
         });
         return res.json({ url: response.data[0].url });
       } catch (error: any) {
-        console.warn("Alibaba qwen-image-plus warn:", error.message);
-        return res.status(500).json({ error: error.message || "Failed to generate image via Alibaba qwen-image-plus" });
+        console.warn("Alibaba qwen-image-plus failed, falling back to Pollinations...", error.message);
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        return res.json({ url });
       }
     }
     
-    return res.status(400).json({ error: "Unsupported provider" });
+    // Any other provider
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+    return res.json({ url });
+  });
+
+  // --- Secure Server-Side Gemini Action Agent Router ---
+  app.post("/api/gemini/action", async (req, res) => {
+    const { action, input } = req.body;
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
+      return res.status(400).json({ error: "GEMINI_API_KEY is not configured in settings." });
+    }
+
+    try {
+      const geminiAi = new GoogleGenAI({ 
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          }
+        }
+      });
+      const model = "gemini-3.5-flash";
+
+      switch (action) {
+        case "generate-educational": {
+          const { type, details } = input;
+          const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN.`;
+          const response = await geminiAi.models.generateContent({
+            model,
+            contents: `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design).`,
+            config: {
+              systemInstruction,
+              temperature: 0.7,
+            },
+          });
+          return res.json({ text: response.text });
+        }
+
+        case "generate-caps": {
+          const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.`;
+          const prompt = `
+            Type: ${input.contentType}
+            Grade: ${input.grade}
+            Subject: ${input.subject}
+            Topic: ${input.topic}
+            Language: ${input.language}
+            Objective: ${input.objective}
+            Learner Profile: ${input.learnerProfile}
+            Additional Info: ${input.additionalInstructions}
+
+            SPECIFIC VISUAL ENHANCEMENT:
+            For every worksheet, create ONE stunning hero illustration at the top that occupies 25–30% of the page. 
+            The illustration must be:
+            - Directly related to the specific CAPS topic
+            - Set in a recognizable South African context
+            - Semi-realistic digital painting style (like children’s non-fiction books)
+            - Emotionally engaging and curiosity-sparking
+            - High detail, rich colors, perfect composition
+
+            REQUIREMENTS FOR HTML DESIGN:
+            - Include full-width colored banners (e.g. orange for Life Skills, teal/blue for Math, purple/pink for Languages).
+            - Add a large circular badge in the top right for the Grade (e.g., "Grade 4").
+            - "Name: ____ Date: _____ Total __ / 30" layout below header.
+            - Question text styles: Make them bold with distinct numbered bullets (e.g. circles with white text).
+            - Options/Answers: Enclose multiple choices or matching lists inside pill-shaped boxes with a colored border or background.
+            - Footer: "EduAI Companion | CAPS Aligned | eduai-companion.github.io".
+            - DO NOT USE MARKDOWN. Write raw HTML inside the JSON content values using tailwind CSS classes.
+            
+            GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}
+          `;
+          const response = await geminiAi.models.generateContent({
+            model,
+            contents: prompt,
+            config: {
+              systemInstruction,
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  content: { type: Type.STRING },
+                  memo: { type: Type.STRING },
+                  rubric: { type: Type.STRING },
+                  assessmentCriteria: { type: Type.STRING },
+                  successIndicators: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  imagePrompt: { type: Type.STRING }
+                },
+                required: ["content", "imagePrompt"]
+              }
+            }
+          });
+          return res.json(safeJsonParse(response.text));
+        }
+
+        case "generate-visual": {
+          const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nThe 'content' field in your JSON response MUST be stunningly designed HTML with Tailwind CSS. DO NOT use generic Markdown.`;
+          const isPoster = input.visualType?.toLowerCase().includes('poster');
+          const isInfographic = input.visualType?.toLowerCase().includes('infographic') || input.visualType?.toLowerCase().includes('mind map');
+          const isDiagram = input.visualType?.toLowerCase().includes('diagram');
+          const isFlashcard = input.visualType?.toLowerCase().includes('flashcard') || input.visualType?.toLowerCase().includes('learning card');
+
+          let visualPrompt = "";
+          if (isPoster) {
+            visualPrompt = `
+              Create a stunning, print-ready educational poster for South African Grade ${input.grade} ${input.subject} learners on the CAPS topic: "${input.topic}"
+
+              DESIGN REQUIREMENTS (Based on EduAI Companion Templates):
+              - HTML/Tailwind ONLY. Do not use markdown.
+              - Layout: A massive central Hero Image (illustration) taking up the middle 50% of the poster.
+              - Top Banner: Large, playful, multi-colored bubble-letter style title (using text-shadows, varied colors per word) centered at the top.
+              - Floating Fact Boxes: 4-6 small floating fact boxes positioned around the central image. Each box should have a thick colored outline (e.g., solid 4px red, green, blue border), white background, small playful SVG icon/emoji, and short, legible text.
+              - Title Style: Give each letter or word a different vibrant color.
+              - Visual hierarchy: Make it look like an adventure map or a colorful infographic.
+              - Footer Layout: Include 3-4 neat little text boxes in a row at the very bottom containing extra info or activities. Include EduAI or CAPS branding.
+              - Typography: Use bold, playful sans-serif fonts.
+              - Colors: Sky blue background, primary color accents (bright yellow, striking red, vibrant green).
+              
+              Make it vibrant, instantly engaging, and child-friendly.
+            `;
+          } else if (isFlashcard) {
+            visualPrompt = `
+              Design a set of professional, double-sided educational flashcards for Grade ${input.grade} ${input.subject} on "${input.topic}".
+              
+              DESIGN REQUIREMENTS:
+              - Show multiple cards in a grid (2 or 3 per row).
+              - Each card should have:
+                - Front side: Large title, high-quality icon/emoji, and a very short hint.
+                - Back side: Explanation, a South African contextual example, and a small "Did you know?" fact.
+              - Card style: rounded-3xl corners, thick colored borders (2px), subtle shadow.
+              - Use vibrant colors that change per card.
+              - Ensure text is large and legible (text-xl for titles).
+            `;
+          } else if (isInfographic) {
+            visualPrompt = `
+              Design a visually spectacular CAPS-aligned infographic/mind map on ${input.topic} for Grade ${input.grade}.
+
+              Requirements:
+              - Central concept in the middle with radiating branches
+              - Each branch has a beautifully illustrated icon (custom drawn, not generic)
+              - South African contextual examples throughout
+              - Color-coded sections with perfect visual hierarchy
+              - Style: Modern flat design with subtle textures and depth
+              - Include real South African case studies or examples where possible
+            `;
+          } else if (isDiagram) {
+            visualPrompt = `
+              Create a crystal-clear, beautifully illustrated scientific diagram of ${input.topic} specifically adapted for South African Grade ${input.grade} learners.
+
+              Show the process occurring in a real South African landscape:
+              - Water cycle: Include Table Mountain, Drakensberg, or Karoo
+              - Food chain: Use indigenous animals (lion, impala, acacia tree, vulture, etc.)
+              - Rock cycle: Feature South African geological formations
+              - Plant structure: Use protea, aloe, or fynbos species
+
+              Style: Clean, labeled, semi-realistic illustration with arrows, soft shadows, and depth. National Geographic kids magazine quality.
+            `;
+          } else {
+            visualPrompt = `Create a highly visual ${input.visualType} for Grade ${input.grade} ${input.subject} on topic ${input.topic}.`;
+          }
+
+          const prompt = `
+            ${visualPrompt}
+            Language: ${input.language}
+            Style: ${input.style}
+            Color: ${input.colorScheme}
+            Content Details: ${input.specificContent}
+            Quantity: ${input.quantity}
+            Additional Info: ${IMAGE_PROMPT_GOLDEN_RULE}
+          `;
+
+          const response = await geminiAi.models.generateContent({
+            model,
+            contents: prompt,
+            config: { 
+              systemInstruction, 
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  content: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  printInstructions: { type: Type.STRING },
+                  imagePrompt: { type: Type.STRING }
+                },
+                required: ["content", "description", "imagePrompt"]
+              }
+            }
+          });
+          return res.json(safeJsonParse(response.text));
+        }
+
+        case "generate-admin": {
+          const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate a formal ${input.documentType} for ${input.schoolName}.
+          The tone should be ${input.tone}.
+          IMPORTANT: The 'content' field MUST be formatted as visually pleasing HTML string styled with Tailwind CSS classes. DO NOT use generic Markdown.`;
+          const prompt = `
+            Type: ${input.documentType}
+            Purpose: ${input.purpose}
+            Key Points: ${input.keyPoints}
+            Include Reply Slip: ${input.includeReplySlip}
+            Language: ${input.language}
+          `;
+          const response = await geminiAi.models.generateContent({
+            model,
+            contents: prompt,
+            config: { 
+              systemInstruction, 
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  content: { type: Type.STRING },
+                  notes: { type: Type.STRING },
+                  documentType: { type: Type.STRING },
+                  imagePrompt: { type: Type.STRING }
+                },
+                required: ["content", "documentType"]
+              }
+            }
+          });
+          return res.json(safeJsonParse(response.text));
+        }
+
+        case "ocr-scan": {
+          const { imageData, language } = input;
+          const prompt = `Extract all text from the attached image accurately, assuming the text is in ${language}.
+          Format it cleanly. Make no other comments.`;
+          const response = await geminiAi.models.generateContent({
+            model,
+            contents: [
+              { role: 'user', parts: [
+                { text: prompt },
+                { inlineData: { mimeType: "image/jpeg", data: imageData.split(',')[1] } }
+              ]}
+            ]
+          });
+          return res.json({ extractedText: response.text });
+        }
+
+        case "ocr-grade": {
+          const { imageData, rubric, language } = input;
+          const prompt = `You are an AI Grader. Analyze the attached image of a student's assessment in ${language}.
+          Reference this rubric: ${rubric}.
+          1. Extract the text from the image (OCR).
+          2. Grade each question according to the rubric.
+          3. Provide constructive feedback for the student.
+          4. Summarize the total score.`;
+          const response = await geminiAi.models.generateContent({
+            model,
+            contents: [
+              { role: 'user', parts: [
+                { text: prompt },
+                { inlineData: { mimeType: "image/jpeg", data: imageData.split(',')[1] } }
+              ]}
+            ],
+            config: {
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  extractedText: { type: Type.STRING },
+                  marksPerQuestion: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  feedback: { type: Type.STRING },
+                  totalScore: { type: Type.STRING }
+                },
+                required: ["extractedText", "marksPerQuestion", "feedback", "totalScore"]
+              }
+            }
+          });
+          return res.json(safeJsonParse(response.text));
+        }
+
+        case "chat": {
+          const { messages } = input;
+          const response = await geminiAi.models.generateContent({
+            model,
+            contents: messages,
+            config: {
+              systemInstruction: "You are a friendly and encouraging South African school tutor for EduAI Companion. You help students understand complex CAPS curriculum concepts in simple terms. Use local South African examples (e.g. using Rands, referring to provinces) and be patient. Keep explanations concise.",
+            }
+          });
+          return res.json({ text: response.text });
+        }
+
+        default:
+          return res.status(400).json({ error: "Unsupported action" });
+      }
+    } catch (error: any) {
+      console.error(`Gemini server error for action '${action}':`, error.message || error);
+      return res.status(500).json({ error: error.message || "Failed to execute server-side action." });
+    }
   });
 
   // --- Individual Learner Development Plan (ILDP) Route ---

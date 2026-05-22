@@ -15,6 +15,7 @@ import AiImage from './AiImage';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 import { printContent, downloadAsHTML } from '../lib/printUtils';
+import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 
 // ─── Utility ───────────────────────────────────────────────────────────────
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
@@ -622,9 +623,9 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
       contentType: (activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : 'Notice') || 'Document',
       isSystem: false,
       content: result.content || " ",
-      memo: result.memo || undefined,
-      rubric: result.rubric || undefined,
-      imagePrompt: result.imagePrompt || undefined
+      memo: result.memo || null,
+      rubric: result.rubric || null,
+      imagePrompt: result.imagePrompt || null
     };
 
     try {
@@ -688,7 +689,26 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   };
 
   const handleDownloadPDF = () => {
-    downloadAsHTML(contentRef, "EduAI-Generated-Content.html");
+    if (!contentRef.current) return;
+    
+    const element = contentRef.current;
+    
+    const opt = {
+      margin:       10,
+      filename:     `${editTitle ? editTitle.replace(/\s+/g, '_') : 'EduAI_Companion_Document'}.pdf`,
+      image:        { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
+      jsPDF:        { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
+      pagebreak:    { mode: ['avoid-all' as const, 'css' as const, 'legacy' as const] }
+    };
+
+    const restoreGetComputedStyle = patchOklchForHtml2canvas();
+    
+    html2pdf().from(element).set(opt).save().catch((err: any) => {
+      console.error("PDF download failed:", err);
+    }).finally(() => {
+      restoreGetComputedStyle();
+    });
   };
 
   // ─── Teaching Tools State ─────────────────────────────────────────────────
