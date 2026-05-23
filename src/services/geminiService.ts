@@ -1,4 +1,5 @@
 import axios from "axios";
+import { GoogleGenAI, Type } from "@google/genai";
 
 // ─── Prompt Engineering Constants ────────────
 export const MASTER_SYSTEM_PROMPT = `
@@ -177,61 +178,362 @@ export const safeJsonParse = (text: string | null | undefined): any => {
   }
 };
 
+// ─── Browser Fallback Execution Client ─────────
+let clientGenAi: any = null;
+const getClientGenAI = () => {
+  if (!clientGenAi) {
+    const apiKey = (process.env as any).GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not configured in settings or environment.");
+    }
+    clientGenAi = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
+  }
+  return clientGenAi;
+};
+
+const executeClientGeminiAction = async (action: string, input: any) => {
+  const geminiAi = getClientGenAI();
+  const model = "gemini-3.5-flash";
+
+  switch (action) {
+    case "generate-educational": {
+      const { type, details } = input;
+      const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN.`;
+      const response = await geminiAi.models.generateContent({
+        model,
+        contents: `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design).`,
+        config: {
+          systemInstruction,
+          temperature: 0.7,
+        },
+      });
+      return { text: response.text };
+    }
+
+    case "generate-caps": {
+      const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.`;
+      const prompt = `
+        Type: ${input.contentType}
+        Grade: ${input.grade}
+        Subject: ${input.subject}
+        Topic: ${input.topic}
+        Language: ${input.language}
+        Objective: ${input.objective}
+        Learner Profile: ${input.learnerProfile}
+        Additional Info: ${input.additionalInstructions}
+
+        SPECIFIC VISUAL ENHANCEMENT:
+        For every worksheet, create ONE stunning hero illustration at the top that occupies 25–30% of the page. 
+        The illustration must be:
+        - Directly related to the specific CAPS topic
+        - Set in a recognizable South African context
+        - Semi-realistic digital painting style (like children’s non-fiction books)
+        - Emotionally engaging and curiosity-sparking
+        - High detail, rich colors, perfect composition
+
+        REQUIREMENTS FOR HTML DESIGN:
+        - Include full-width colored banners (e.g. orange for Life Skills, teal/blue for Math, purple/pink for Languages).
+        - Add a large circular badge in the top right for the Grade (e.g., "Grade 4").
+        - "Name: ____ Date: _____ Total __ / 30" layout below header.
+        - Question text styles: Make them bold with distinct numbered bullets (e.g. circles with white text).
+        - Options/Answers: Enclose multiple choices or matching lists inside pill-shaped boxes with a colored border or background.
+        - Footer: "EduAI Companion | CAPS Aligned | eduai-companion.github.io".
+        - DO NOT USE MARKDOWN. Write raw HTML inside the JSON content values using tailwind CSS classes.
+        
+        GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}
+      `;
+      const response = await geminiAi.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          systemInstruction,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              content: { type: Type.STRING },
+              memo: { type: Type.STRING },
+              rubric: { type: Type.STRING },
+              assessmentCriteria: { type: Type.STRING },
+              successIndicators: { type: Type.ARRAY, items: { type: Type.STRING } },
+              imagePrompt: { type: Type.STRING }
+            },
+            required: ["content", "imagePrompt"]
+          }
+        }
+      });
+      return safeJsonParse(response.text);
+    }
+
+    case "generate-visual": {
+      const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nThe 'content' field in your JSON response MUST be stunningly designed HTML with Tailwind CSS. DO NOT use generic Markdown.`;
+      const isPoster = input.visualType?.toLowerCase().includes('poster');
+      const isInfographic = input.visualType?.toLowerCase().includes('infographic') || input.visualType?.toLowerCase().includes('mind map');
+      const isDiagram = input.visualType?.toLowerCase().includes('diagram');
+      const isFlashcard = input.visualType?.toLowerCase().includes('flashcard') || input.visualType?.toLowerCase().includes('learning card');
+
+      let visualPrompt = "";
+      if (isPoster) {
+        visualPrompt = `Create a stunningly designed educational classroom Poster for Grade ${input.grade} ${input.subject} on topic ${input.topic}.\nStyle: ${input.style}\nColorScheme: ${input.colorScheme}\nSpecific Content details: ${input.specificContent}\nRequirements:\n- Visually immersive layout with massive display headers (spanning full-width container width using gorgeous text and high contrast typography)\n- Center diagram/concept mapping blocks bordered in playful colors\n- Tidy and legible educational content boxes of text with white icons inside deep-colored parent boxes or labels.\n- Make this print-perfect and vibrant!`;
+      } else if (isFlashcard) {
+        visualPrompt = `Design a set of ${input.quantity || 4} highly engaging educational Learning Flashcards or revision cards on cards grid layout for Grade ${input.grade} ${input.subject} on topic ${input.topic}.\nColor Scheme: ${input.colorScheme}\nStyle: ${input.style}\nContent Details: ${input.specificContent}\nRequirements:\n- Layout should represent a 2x2 grid or list of cards with rounded borders, thick color accents, and a distinct question/concept side and answer side.\n- Use cute borders, symbols, or styled numbered keys.`;
+      } else if (isInfographic) {
+        visualPrompt = `Design a beautifully structured bento-grid educational Infographic or Concept Mind Map for Grade ${input.grade} ${input.subject} on topic ${input.topic}.\nColorScheme: ${input.colorScheme}\nStyle: ${input.style}\nContent Details: ${input.specificContent}\nRequirements:\n- Multi-column layout with 3 to 5 discrete content cards, tables, or comparison boxes.\n- Give each box a different border color (e.g. orange, blue, green).\n- Include definitions, interesting facts, and bullet lists with custom bullet items (like circles or checkmarks).`;
+      } else if (isDiagram) {
+        visualPrompt = `Create a detailed Science/Educational Visual Diagram with clear labels and annotations for Grade ${input.grade} ${input.subject} on topic ${input.topic}.\nColorScheme: ${input.colorScheme}\nStyle: ${input.style}\nContent Details: ${input.specificContent}\nRequirements:\n- Beautiful layout focusing on labeling parts (e.g., cell parts, water cycle, layers of volcanic system, plant parts).\n- Represent labeled part pointers explicitly using clear tables, list callouts, or SVG elements with annotations.`;
+      } else {
+        visualPrompt = `Create a highly visual ${input.visualType} for Grade ${input.grade} ${input.subject} on topic ${input.topic}.`;
+      }
+
+      const prompt = `
+        ${visualPrompt}
+        Language: ${input.language}
+        Style: ${input.style}
+        Color: ${input.colorScheme}
+        Content Details: ${input.specificContent}
+        Quantity: ${input.quantity}
+        Additional Info: ${IMAGE_PROMPT_GOLDEN_RULE}
+      `;
+
+      const response = await geminiAi.models.generateContent({
+        model,
+        contents: prompt,
+        config: { 
+          systemInstruction, 
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              content: { type: Type.STRING },
+              description: { type: Type.STRING },
+              printInstructions: { type: Type.STRING },
+              imagePrompt: { type: Type.STRING }
+            },
+            required: ["content", "description", "imagePrompt"]
+          }
+        }
+      });
+      return safeJsonParse(response.text);
+    }
+
+    case "generate-admin": {
+      const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate a formal ${input.documentType} for ${input.schoolName}.
+      The tone should be ${input.tone}.
+      IMPORTANT: The 'content' field MUST be formatted as visually pleasing HTML string styled with Tailwind CSS classes. DO NOT use generic Markdown.`;
+      const prompt = `
+        Type: ${input.documentType}
+        Purpose: ${input.purpose}
+        Key Points: ${input.keyPoints}
+        Include Reply Slip: ${input.includeReplySlip}
+        Language: ${input.language}
+      `;
+      const response = await geminiAi.models.generateContent({
+        model,
+        contents: prompt,
+        config: { 
+          systemInstruction, 
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              content: { type: Type.STRING },
+              notes: { type: Type.STRING },
+              documentType: { type: Type.STRING },
+              imagePrompt: { type: Type.STRING }
+            },
+            required: ["content", "documentType"]
+          }
+        }
+      });
+      return safeJsonParse(response.text);
+    }
+
+    case "ocr-scan": {
+      const { imageData, language } = input;
+      const prompt = `Extract all text from the attached image accurately, assuming the text is in ${language}.
+      Format it cleanly. Make no other comments.`;
+      const response = await geminiAi.models.generateContent({
+        model,
+        contents: [
+          { role: 'user', parts: [
+            { text: prompt },
+            { inlineData: { mimeType: "image/jpeg", data: imageData.split(',')[1] } }
+          ]}
+        ]
+      });
+      return { extractedText: response.text };
+    }
+
+    case "ocr-grade": {
+      const { imageData, rubric, language } = input;
+      const prompt = `You are an AI Grader. Analyze the attached image of a student's assessment in ${language}.
+      Reference this rubric: ${rubric}.
+      1. Extract the text from the image (OCR).
+      2. Grade each question according to the rubric.
+      3. Provide constructive feedback for the student.
+      4. Summarize the total score.`;
+      const response = await geminiAi.models.generateContent({
+        model,
+        contents: [
+          { role: 'user', parts: [
+            { text: prompt },
+            { inlineData: { mimeType: "image/jpeg", data: imageData.split(',')[1] } }
+          ]}
+        ],
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              extractedText: { type: Type.STRING },
+              marksPerQuestion: { type: Type.ARRAY, items: { type: Type.STRING } },
+              feedback: { type: Type.STRING },
+              totalScore: { type: Type.STRING }
+            },
+            required: ["extractedText", "marksPerQuestion", "feedback", "totalScore"]
+          }
+        }
+      });
+      return safeJsonParse(response.text);
+    }
+
+    case "chat": {
+      const { messages } = input;
+      const response = await geminiAi.models.generateContent({
+        model,
+        contents: messages,
+        config: {
+          systemInstruction: "You are a friendly and encouraging South African school tutor for EduAI Companion. You help students understand complex CAPS curriculum concepts in simple terms. Use local South African examples (e.g. using Rands, referring to provinces) and be patient. Keep explanations concise.",
+        }
+      });
+      return { text: response.text };
+    }
+
+    default:
+      throw new Error(`Unsupported client gemini action: ${action}`);
+  }
+};
+
 /**
  * Route proxy calls to the secure full-stack backend
  */
 export const generateEducationalContent = async (type: string, details: string) => {
-  const response = await axios.post("/api/gemini/action", {
-    action: "generate-educational",
-    input: { type, details }
-  });
-  return response.data.text;
+  try {
+    const response = await axios.post("/api/gemini/action", {
+      action: "generate-educational",
+      input: { type, details }
+    });
+    return response.data.text;
+  } catch (error: any) {
+    if (error.response?.status === 404 || !error.response) {
+      console.warn("Express /api/gemini/action returned 404. Running direct browser fallback...");
+      const res = await executeClientGeminiAction("generate-educational", { type, details });
+      return res.text;
+    }
+    throw error;
+  }
 };
 
 export const generateCAPSContent = async (input: any) => {
-  const response = await axios.post("/api/gemini/action", {
-    action: "generate-caps",
-    input
-  });
-  return response.data;
+  try {
+    const response = await axios.post("/api/gemini/action", {
+      action: "generate-caps",
+      input
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 404 || !error.response) {
+      console.warn("Express /api/gemini/action returned 404. Running direct browser fallback...");
+      return await executeClientGeminiAction("generate-caps", input);
+    }
+    throw error;
+  }
 };
 
 export const generateVisualAid = async (input: any) => {
-  const response = await axios.post("/api/gemini/action", {
-    action: "generate-visual",
-    input
-  });
-  return response.data;
+  try {
+    const response = await axios.post("/api/gemini/action", {
+      action: "generate-visual",
+      input
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 404 || !error.response) {
+      console.warn("Express /api/gemini/action returned 404. Running direct browser fallback...");
+      return await executeClientGeminiAction("generate-visual", input);
+    }
+    throw error;
+  }
 };
 
 export const generateAdminDoc = async (input: any) => {
-  const response = await axios.post("/api/gemini/action", {
-    action: "generate-admin",
-    input
-  });
-  return response.data;
+  try {
+    const response = await axios.post("/api/gemini/action", {
+      action: "generate-admin",
+      input
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 404 || !error.response) {
+      console.warn("Express /api/gemini/action returned 404. Running direct browser fallback...");
+      return await executeClientGeminiAction("generate-admin", input);
+    }
+    throw error;
+  }
 };
 
 export const runOCRScan = async (imageData: string, language: string = 'English') => {
-  const response = await axios.post("/api/gemini/action", {
-    action: "ocr-scan",
-    input: { imageData, language }
-  });
-  return response.data;
+  try {
+    const response = await axios.post("/api/gemini/action", {
+      action: "ocr-scan",
+      input: { imageData, language }
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 404 || !error.response) {
+      console.warn("Express /api/gemini/action returned 404. Running direct browser fallback...");
+      return await executeClientGeminiAction("ocr-scan", { imageData, language });
+    }
+    throw error;
+  }
 };
 
 export const runOCRAndGrade = async (imageData: string, rubric: string, language: string = 'English') => {
-  const response = await axios.post("/api/gemini/action", {
-    action: "ocr-grade",
-    input: { imageData, rubric, language }
-  });
-  return response.data;
+  try {
+    const response = await axios.post("/api/gemini/action", {
+      action: "ocr-grade",
+      input: { imageData, rubric, language }
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 404 || !error.response) {
+      console.warn("Express /api/gemini/action returned 404. Running direct browser fallback...");
+      return await executeClientGeminiAction("ocr-grade", { imageData, rubric, language });
+    }
+    throw error;
+  }
 };
 
 export const chatWithTutor = async (messages: any[]) => {
-  const response = await axios.post("/api/gemini/action", {
-    action: "chat",
-    input: { messages }
-  });
-  return response.data.text;
+  try {
+    const response = await axios.post("/api/gemini/action", {
+      action: "chat",
+      input: { messages }
+    });
+    return response.data.text;
+  } catch (error: any) {
+    if (error.response?.status === 404 || !error.response) {
+      console.warn("Express /api/gemini/action returned 404. Running direct browser fallback...");
+      const res = await executeClientGeminiAction("chat", { messages });
+      return res.text;
+    }
+    throw error;
+  }
 };
