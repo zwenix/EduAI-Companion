@@ -1,33 +1,30 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import dotenv from "dotenv";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import axios from "axios";
 import { GoogleGenAI, Type } from "@google/genai";
+import { HfInference } from "@huggingface/inference";
 
 dotenv.config();
 
-import { HfInference } from "@huggingface/inference";
+const app = express();
+const PORT = 3000;
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+app.use(express.json({ limit: '10mb' }));
 
-  app.use(express.json({ limit: '10mb' }));
+// --- AI Provider Clients ---
 
-  // --- AI Provider Clients ---
+const groq = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY || "dummy",
+  baseURL: "https://api.groq.com/openai/v1",
+});
 
-  const groq = new OpenAI({
-    apiKey: process.env.GROQ_API_KEY || "dummy",
-    baseURL: "https://api.groq.com/openai/v1",
-  });
-
-  const alibaba = new OpenAI({
-    apiKey: process.env.ALIBABA_API_KEY || "dummy",
-    baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-  });
+const alibaba = new OpenAI({
+  apiKey: process.env.ALIBABA_API_KEY || "dummy",
+  baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+});
 
   // --- API Routes ---
 
@@ -780,9 +777,20 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     }
   });
 
-  // --- Vite Middleware ---
+// Export the app for serverless platforms like Vercel
+export default app;
 
+// --- Standard Node.js / Container Bootstrap ---
+const isVercel = !!process.env.VERCEL;
+
+async function bootstrap() {
+  if (isVercel) {
+    return;
+  }
+
+  // --- Vite Middleware ---
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -801,4 +809,6 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
   });
 }
 
-startServer();
+bootstrap().catch((err) => {
+  console.error("Standalone server bootstrap failed:", err);
+});
