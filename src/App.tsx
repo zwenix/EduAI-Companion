@@ -48,7 +48,9 @@ import {
   Cloud,
   CloudDownload,
   Wifi,
-  Check
+  Check,
+  Smartphone,
+  Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
@@ -326,7 +328,31 @@ export default function App() {
   const [isOfflineViewerOpen, setIsOfflineViewerOpen] = useState(false);
   const [selectedOfflineMaterial, setSelectedOfflineMaterial] = useState<any>(null);
   const [offlineSearchQuery, setOfflineSearchQuery] = useState('');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isAppInstallable, setIsAppInstallable] = useState(false);
+  const [isAlreadyInstalled, setIsAlreadyInstalled] = useState(false);
+  const [pwaBannerDismissed, setPwaBannerDismissed] = useState(() => {
+    return localStorage.getItem('eduai_pwa_banner_dismissed') === 'true';
+  });
   const [syncToast, setSyncToast] = useState<{ show: boolean; message: string; type: 'success' | 'info' | 'error' }>({ show: false, message: '', type: 'info' });
+
+  const installPWAApp = async () => {
+    if (!deferredPrompt) {
+      triggerToast("Install prompt is not ready yet. Try using your native browser menu to 'Install' or 'Add to Home Screen'.", "info");
+      return;
+    }
+    try {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User choice outcome: ${outcome}`);
+      if (outcome === 'accepted') {
+        setIsAppInstallable(false);
+      }
+      setDeferredPrompt(null);
+    } catch (err) {
+      console.error("Failed to prompt PWA installation: ", err);
+    }
+  };
 
   const triggerToast = (message: string, type: 'success' | 'info' | 'error' = 'info') => {
     setSyncToast({ show: true, message, type });
@@ -462,6 +488,38 @@ export default function App() {
       console.error('Error logging out', error);
     }
   };
+
+  useEffect(() => {
+    // Check if running in standalone display mode
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+      || (navigator as any).standalone 
+      || document.referrer.includes('android-app://');
+    
+    setIsAlreadyInstalled(!!isStandalone);
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsAppInstallable(true);
+      console.log('Beforeinstallprompt event triggered and captured');
+    };
+
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
+      setIsAppInstallable(false);
+      setIsAlreadyInstalled(true);
+      console.log('PWA app was installed successfully');
+      triggerToast("EduAI Companion installed on your device successfully! 🎉", "success");
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -636,6 +694,29 @@ export default function App() {
             />
           ))}
         </nav>
+
+        {/* PWA Install Promo */}
+        {isAppInstallable && (
+          <div className="px-3 py-2 shrink-0 flex justify-center">
+            {(!isSidebarOpen && !isMobile) ? (
+              <button
+                onClick={installPWAApp}
+                title="Install EduAI Companion Offline App"
+                className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-tr from-brand-cyan to-indigo-500 hover:scale-110 active:scale-90 shadow-md shadow-brand-cyan/20 transition-all cursor-pointer border-0 outline-none text-white"
+              >
+                <Smartphone size={16} className="animate-pulse" />
+              </button>
+            ) : (
+              <button
+                onClick={installPWAApp}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2.5xl font-display font-black text-[10px] tracking-wider shadow-md shadow-brand-cyan/15 transform hover:scale-[1.02] active:scale-[0.98] transition-all bg-gradient-to-r from-brand-cyan to-indigo-500 hover:to-indigo-600 text-white cursor-pointer border-0 outline-none"
+              >
+                <Smartphone size={14} className="animate-bounce shrink-0" />
+                <span>INSTALL OFFLINE APP</span>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Sync Status Section (Only for Students) */}
         {userRole === 'student' && (
@@ -1078,6 +1159,9 @@ export default function App() {
                       setShowLogin(true);
                       setUserRole(null);
                     }}
+                    isAppInstallable={isAppInstallable}
+                    installPWAApp={installPWAApp}
+                    isAlreadyInstalled={isAlreadyInstalled}
                   />
                 ) : activeTab === 'helpdesk' ? (
                   <Helpdesk isDarkMode={isDarkMode} />

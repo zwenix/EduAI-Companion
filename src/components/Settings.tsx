@@ -3,7 +3,7 @@ import {
   Settings as SettingsIcon, Bell, Shield, Key, Moon, Sun, 
   Monitor, Save, AlertCircle, User, CreditCard, 
   Database, Activity, Lock, Mail, Phone, Globe,
-  LogOut, Trash2, Plus
+  LogOut, Trash2, Plus, Smartphone, Download
 } from 'lucide-react';
 import { useAi } from '../contexts/AiContext';
 import { auth, db } from '../lib/firebase';
@@ -18,9 +18,21 @@ interface SettingsProps {
   onLogout?: () => void;
   onSwitchRole?: () => void;
   onSwitchUser?: () => void;
+  isAppInstallable?: boolean;
+  installPWAApp?: () => void;
+  isAlreadyInstalled?: boolean;
 }
 
-export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitchRole, onSwitchUser }: SettingsProps) {
+export default function Settings({ 
+  isDarkMode, 
+  setIsDarkMode, 
+  onLogout, 
+  onSwitchRole, 
+  onSwitchUser,
+  isAppInstallable = false,
+  installPWAApp,
+  isAlreadyInstalled = false 
+}: SettingsProps) {
   const { provider, ocrProvider, ttsProvider, imageProvider, setProvider, setOcrProvider, setTtsProvider, setImageProvider } = useAi();
   const [notifications, setNotifications] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(true);
@@ -124,6 +136,7 @@ export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitch
     { id: 'personal', label: 'Personal', icon: User },
     { id: 'security', label: 'Security', icon: Lock },
     { id: 'ai', label: 'AI Configuration', icon: Activity },
+    { id: 'pwa', label: 'App Install (PWA)', icon: Smartphone },
     { id: 'billing', label: 'Plan & Billing', icon: CreditCard },
   ];
 
@@ -423,6 +436,90 @@ export default function Settings({ isDarkMode, setIsDarkMode, onLogout, onSwitch
                     </div>
                     <button className="bg-brand-cyan text-navy-dark px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest">Rotatate Key</button>
                   </div>
+                </div>
+             </div>
+          )}
+
+          {activeSubTab === 'pwa' && (
+             <div className={cn("rounded-[48px] p-8 lg:p-12 space-y-8", isDarkMode ? "glass" : "bg-white border border-slate-200 shadow-sm")}>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="p-3 bg-cyan-500/10 rounded-2xl text-brand-cyan">
+                    <Smartphone size={24} />
+                  </div>
+                  <div>
+                    <h2 className={cn("text-2xl font-bold", isDarkMode ? "text-white" : "text-slate-900")}>EduAI Desktop & Mobile App</h2>
+                    <p className="text-sm text-slate-500">Progressive Web App (PWA) installation and offline capabilities.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className={cn("p-6 rounded-3xl border text-center flex flex-col justify-between", isDarkMode ? "bg-white/5 border-white/5 text-slate-300" : "bg-slate-50 border-slate-200 text-slate-700")}>
+                    <div>
+                      <div className="text-3xl mb-2">📡</div>
+                      <h4 className={cn("font-bold mb-1", isDarkMode ? "text-white" : "text-slate-900")}>Offline Autonomy</h4>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">Cache your study guides, flashcards, generated notes and review materials effortlessly to study without active cellular networks.</p>
+                    </div>
+                  </div>
+                  <div className={cn("p-6 rounded-3xl border text-center flex flex-col justify-between", isDarkMode ? "bg-white/5 border-white/5 text-slate-300" : "bg-slate-50 border-slate-200 text-slate-700")}>
+                    <div>
+                      <div className="text-3xl mb-2">⚡</div>
+                      <h4 className={cn("font-bold mb-1", isDarkMode ? "text-white" : "text-slate-900")}>Speed Boots</h4>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">Direct hardware acceleration-grade launching, rendering UI layouts faster and avoiding typical browser address overhead.</p>
+                    </div>
+                  </div>
+                  <div className={cn("p-6 rounded-3xl border text-center flex flex-col justify-between", isDarkMode ? "bg-white/5 border-white/5 text-slate-300" : "bg-slate-50 border-slate-200 text-slate-700")}>
+                    <div>
+                      <div className="text-3xl mb-2">📱</div>
+                      <h4 className={cn("font-bold mb-1", isDarkMode ? "text-white" : "text-slate-900")}>Standalone Mode</h4>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">Launches seamlessly in its own secure, edge-to-edge window. Lives on your home screen or dock just like an app store app.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={cn("p-8 rounded-[36px] border space-y-6 flex flex-col md:flex-row items-center justify-between gap-6", isDarkMode ? "bg-white/5 border-white/5" : "bg-[#06b6d4]/5 border-[#06b6d4]/15")}>
+                  <div className="space-y-2 text-center md:text-left">
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                      <span className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-slate-800")}>Installation Protocol Status</span>
+                      {isAlreadyInstalled ? (
+                        <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-emerald-500/20">
+                          ✓ ACTIVE & LINKED
+                        </span>
+                      ) : isAppInstallable ? (
+                        <span className="bg-cyan-500/20 text-brand-cyan text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-[#06b6d4]/20 animate-pulse">
+                          ● READY TO INSTALL
+                        </span>
+                      ) : (
+                        <span className="bg-slate-500/20 text-slate-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-white/5">
+                          STANDALONE CAPABLE
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 max-w-xl">
+                      {isAlreadyInstalled 
+                        ? "EduAI Companion is already successfully running in standalone mode! Check your app drawer or desktop icons to launch."
+                        : isAppInstallable
+                        ? "Ready to run natively. Press the trigger button to prompt direct home-screen integration."
+                        : "To install EduAI Companion natively from inside this environment, we recommend popping this preview open in a new tab, or choosing 'Add to Home Screen' or 'Install' directly inside your browser settings."}
+                    </p>
+                  </div>
+
+                  {!isAlreadyInstalled && isAppInstallable && installPWAApp && (
+                    <button 
+                      onClick={installPWAApp}
+                      className="flex items-center gap-2.5 bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-cyan-500/25 active:scale-95 transition-all whitespace-nowrap cursor-pointer border-0 outline-none"
+                    >
+                      <Download size={16} /> Install Now
+                    </button>
+                  )}
+                </div>
+
+                <div className={cn("p-6 rounded-2xl text-xs space-y-3", isDarkMode ? "bg-white/5" : "bg-slate-50")}>
+                  <h4 className={cn("font-bold uppercase tracking-wider text-slate-500 text-[10px]")}>Manual Setup Guide (All Platforms)</h4>
+                  <ul className="list-disc pl-5 space-y-1.5 text-slate-500">
+                    <li><strong className={isDarkMode ? "text-white/80" : "text-slate-700"}>Android (Chrome / Edge)</strong>: Tap the three-dot menu icon in your top right, and search for <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</li>
+                    <li><strong className={isDarkMode ? "text-white/80" : "text-slate-700"}>iOS iPhone & iPad (Safari)</strong>: Tap the share utility box (square icon with up-arrow) at the screen bottom, scroll, and select <strong>"Add to Home Screen"</strong>.</li>
+                    <li><strong className={isDarkMode ? "text-white/80" : "text-slate-700"}>macOS & Windows (Edge / Chrome)</strong>: Press the computer icon with down-arrow popping up right in your URL address bar, or open native browser menus to select <strong>"Install EduAI Companion"</strong>.</li>
+                  </ul>
                 </div>
              </div>
           )}
