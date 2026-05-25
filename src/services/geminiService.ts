@@ -432,12 +432,14 @@ export const generateEducationalContent = async (type: string, details: string) 
     });
     return response.data.text;
   } catch (error: any) {
-    if (error.response?.status === 404 || !error.response) {
-      console.warn("Express /api/gemini/action returned 404. Running direct browser fallback...");
+    console.warn("Express /api/gemini/action failed or timed out. Running direct browser fallback...", error.message || error);
+    try {
       const res = await executeClientGeminiAction("generate-educational", { type, details });
       return res.text;
+    } catch (fallbackError: any) {
+      console.error("Direct browser-side fallback also failed:", fallbackError);
+      throw error;
     }
-    throw error;
   }
 };
 
@@ -449,11 +451,13 @@ export const generateCAPSContent = async (input: any) => {
     });
     return response.data;
   } catch (error: any) {
-    if (error.response?.status === 404 || !error.response) {
-      console.warn("Express /api/gemini/action returned 404. Running direct browser fallback...");
+    console.warn("Express /api/gemini/action failed or timed out. Running direct browser fallback...", error.message || error);
+    try {
       return await executeClientGeminiAction("generate-caps", input);
+    } catch (fallbackError: any) {
+      console.error("Direct browser-side fallback also failed:", fallbackError);
+      throw error;
     }
-    throw error;
   }
 };
 
@@ -465,11 +469,13 @@ export const generateVisualAid = async (input: any) => {
     });
     return response.data;
   } catch (error: any) {
-    if (error.response?.status === 404 || !error.response) {
-      console.warn("Express /api/gemini/action returned 404. Running direct browser fallback...");
+    console.warn("Express /api/gemini/action failed or timed out. Running direct browser fallback...", error.message || error);
+    try {
       return await executeClientGeminiAction("generate-visual", input);
+    } catch (fallbackError: any) {
+      console.error("Direct browser-side fallback also failed:", fallbackError);
+      throw error;
     }
-    throw error;
   }
 };
 
@@ -481,11 +487,13 @@ export const generateAdminDoc = async (input: any) => {
     });
     return response.data;
   } catch (error: any) {
-    if (error.response?.status === 404 || !error.response) {
-      console.warn("Express /api/gemini/action returned 404. Running direct browser fallback...");
+    console.warn("Express /api/gemini/action failed or timed out. Running direct browser fallback...", error.message || error);
+    try {
       return await executeClientGeminiAction("generate-admin", input);
+    } catch (fallbackError: any) {
+      console.error("Direct browser-side fallback also failed:", fallbackError);
+      throw error;
     }
-    throw error;
   }
 };
 
@@ -497,11 +505,13 @@ export const runOCRScan = async (imageData: string, language: string = 'English'
     });
     return response.data;
   } catch (error: any) {
-    if (error.response?.status === 404 || !error.response) {
-      console.warn("Express /api/gemini/action returned 404. Running direct browser fallback...");
+    console.warn("Express /api/gemini/action failed or timed out. Running direct browser fallback...", error.message || error);
+    try {
       return await executeClientGeminiAction("ocr-scan", { imageData, language });
+    } catch (fallbackError: any) {
+      console.error("Direct browser-side fallback also failed:", fallbackError);
+      throw error;
     }
-    throw error;
   }
 };
 
@@ -513,11 +523,13 @@ export const runOCRAndGrade = async (imageData: string, rubric: string, language
     });
     return response.data;
   } catch (error: any) {
-    if (error.response?.status === 404 || !error.response) {
-      console.warn("Express /api/gemini/action returned 404. Running direct browser fallback...");
+    console.warn("Express /api/gemini/action failed or timed out. Running direct browser fallback...", error.message || error);
+    try {
       return await executeClientGeminiAction("ocr-grade", { imageData, rubric, language });
+    } catch (fallbackError: any) {
+      console.error("Direct browser-side fallback also failed:", fallbackError);
+      throw error;
     }
-    throw error;
   }
 };
 
@@ -529,11 +541,13 @@ export const chatWithTutor = async (messages: any[]) => {
     });
     return response.data.text;
   } catch (error: any) {
-    if (error.response?.status === 404 || !error.response) {
-      console.warn("Express /api/gemini/action returned 404. Running direct browser fallback...");
+    console.warn("Express /api/gemini/action failed or timed out. Running direct browser fallback...", error.message || error);
+    try {
       const res = await executeClientGeminiAction("chat", { messages });
       return res.text;
+    } catch (fallbackError: any) {
+      console.error("Direct browser-side fallback also failed:", fallbackError);
+      throw error;
     }
-    throw error;
   }
 };
