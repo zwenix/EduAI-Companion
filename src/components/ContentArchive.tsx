@@ -28,6 +28,7 @@ const getCategoryColor = (type: string) => {
 
 export default function ContentArchive() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('All');
   const [items, setItems] = useState<any[]>(INITIAL_ARCHIVE);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -79,11 +80,17 @@ export default function ContentArchive() {
     };
   }, []);
 
-  const filteredItems = items.filter(item => 
-    item.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    item.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.grade?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const subjects = ['All', ...Array.from(new Set(items.map(item => item.subject).filter(Boolean)))];
+
+  const filteredItems = items.filter(item => {
+    const matchesSearch = item.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      item.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.grade?.toString().toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesSubject = subjectFilter === 'All' || item.subject === subjectFilter;
+    
+    return matchesSearch && matchesSubject;
+  });
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -161,16 +168,36 @@ export default function ContentArchive() {
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative mb-6 lg:mb-8">
-        <Search className="absolute left-5 lg:left-6 top-1/2 -translate-y-1/2 h-4 w-4 lg:h-5 lg:w-5 text-slate-400" />
-        <input 
-          type="text"
-          placeholder="Search your archive..." 
-          className="w-full pl-12 lg:pl-14 pr-6 py-3 lg:py-4 rounded-full bg-white border border-slate-200 shadow-sm focus:outline-none focus:border-brand-cyan transition-all text-slate-700 text-sm lg:text-base"
-          value={searchTerm} 
-          onChange={(e) => setSearchTerm(e.target.value)} 
-        />
+      {/* Filters and Search Bar */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6 lg:mb-8">
+        <div className="relative flex-1">
+          <Search className="absolute left-5 lg:left-6 top-1/2 -translate-y-1/2 h-4 w-4 lg:h-5 lg:w-5 text-slate-400" />
+          <input 
+            type="text"
+            placeholder="Search your archive..." 
+            className="w-full pl-12 lg:pl-14 pr-6 py-3 lg:py-4 rounded-full bg-white border border-slate-200 shadow-sm focus:outline-none focus:border-brand-cyan transition-all text-slate-700 text-sm lg:text-base"
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)} 
+          />
+        </div>
+        <div className="relative sm:w-64 shrink-0">
+          <select
+            value={subjectFilter}
+            onChange={(e) => setSubjectFilter(e.target.value)}
+            className="w-full appearance-none px-6 py-3 lg:py-4 rounded-full bg-white border border-slate-200 shadow-sm focus:outline-none focus:border-brand-cyan transition-all text-slate-700 text-sm lg:text-base cursor-pointer"
+          >
+            {subjects.map((subject: any) => (
+              <option key={subject} value={subject}>
+                {subject === 'All' ? 'All Subjects' : subject}
+              </option>
+            ))}
+          </select>
+          <div className="absolute right-5 lg:right-6 top-1/2 -translate-y-1/2 pointer-events-none">
+            <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1.5L6 6.5L11 1.5" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </div>
       </div>
 
       {/* Archive Grid */}
