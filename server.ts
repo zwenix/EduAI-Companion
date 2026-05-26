@@ -359,47 +359,33 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       }
     }
 
-    if (provider === "alibaba-qwen-image") {
-      const apiKey = process.env.ALIBABA_API_KEY;
-      if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-        console.warn("ALIBABA_API_KEY missing, utilizing Pollinations fallback");
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
-        return res.json({ url });
-      }
-
-      try {
-        const response = await alibaba.images.generate({
-          model: 'qwen-image-max',
-          prompt: prompt,
-          n: 1,
-          size: "1024x1024",
-        });
-        return res.json({ url: response.data[0].url });
-      } catch (error: any) {
-        console.warn("Alibaba image failed, falling back to Pollinations...", error.message);
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
-        return res.json({ url });
-      }
-    }
-
     if (provider === "huggingface") {
-      const apiKey = process.env.ALIBABA_API_KEY;
+      const apiKey = process.env.HUGGINGFACE_API_KEY;
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-        console.warn("ALIBABA_API_KEY for qwen-image-plus missing, utilizing Pollinations fallback");
+        console.warn("HUGGINGFACE_API_KEY missing, utilizing Pollinations fallback");
         const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
       
       try {
-        const response = await alibaba.images.generate({
-          model: 'qwen-image-plus-2026-01-09',
-          prompt: prompt,
-          n: 1,
-          size: "1024x1024",
+        const fetchResponse = await fetch(`https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({ inputs: prompt })
         });
-        return res.json({ url: response.data[0].url });
+        
+        if (!fetchResponse.ok) {
+          throw new Error(`HF returned ${fetchResponse.status}`);
+        }
+        
+        const buffer = await fetchResponse.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString("base64");
+        return res.json({ url: `data:image/jpeg;base64,${base64}` });
       } catch (error: any) {
-        console.warn("Alibaba qwen-image-plus failed, falling back to Pollinations...", error.message);
+        console.warn("HuggingFace image failed, falling back to Pollinations...", error.message);
         const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
@@ -445,7 +431,20 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         }
 
         case "generate-caps": {
+          const isStudyGuide = input.contentType === 'Study Guide / Learning Notes';
           const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.`;
+          
+          let studyGuideRequirements = "";
+          if (isStudyGuide) {
+            studyGuideRequirements = `
+            CRITICAL STUDY GUIDE REQUIREMENTS:
+            - This is a Study Guide/Learning Notes document. The primary content MUST be comprehensive, article-like, or textbook chapter-like notes.
+            - Break down the concepts logically into paragraphs, using rich explanations that a learner can actually study from.
+            - Include illustrations or visual aids (describe or embed them using CSS/HTML shapes, or leave marked spaces for the hero illustration).
+            - You can include a few exercises, examples, or a worksheet section at the end, but the MAJORITY of the document must be the detailed educational reading material and notes.
+            `;
+          }
+
           const prompt = `
             Type: ${input.contentType}
             Grade: ${input.grade}
@@ -457,7 +456,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
             Additional Info: ${input.additionalInstructions}
 
             SPECIFIC VISUAL ENHANCEMENT:
-            For every worksheet, create ONE stunning hero illustration at the top that occupies 25–30% of the page. 
+            For every worksheet/document, create ONE stunning hero illustration at the top that occupies 25–30% of the page. 
             The illustration must be:
             - Directly related to the specific CAPS topic
             - Set in a recognizable South African context
@@ -468,11 +467,12 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
             REQUIREMENTS FOR HTML DESIGN:
             - Include full-width colored banners (e.g. orange for Life Skills, teal/blue for Math, purple/pink for Languages).
             - Add a large circular badge in the top right for the Grade (e.g., "Grade 4").
-            - "Name: ____ Date: _____ Total __ / 30" layout below header.
+            - "Name: ____ Date: _____ Total __ / 30" layout below header (if applicable).
             - Question text styles: Make them bold with distinct numbered bullets (e.g. circles with white text).
             - Options/Answers: Enclose multiple choices or matching lists inside pill-shaped boxes with a colored border or background.
             - Footer: "EduAI Companion | CAPS Aligned | eduai-companion.github.io".
             - DO NOT USE MARKDOWN. Write raw HTML inside the JSON content values using tailwind CSS classes.
+            ${studyGuideRequirements}
             
             GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}
           `;

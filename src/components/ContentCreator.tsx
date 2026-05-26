@@ -16,6 +16,9 @@ import AiImage from './AiImage';
 import html2pdf from 'html2pdf.js';
 import { printContent, downloadAsHTML } from '../lib/printUtils';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
+import { db, auth } from '../lib/firebase';
+import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
 
 // ─── Utility ───────────────────────────────────────────────────────────────
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
@@ -451,9 +454,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     };
 
     try {
-      const { auth, db } = await import('../lib/firebase');
-      const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
-      const { handleFirestoreError, OperationType } = await import('../lib/firestoreHelpers');
       const user = auth.currentUser;
       if (user) {
         await setDoc(doc(db, 'created_content', docId), {
@@ -477,9 +477,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     if (!currentDocId) return;
 
     try {
-      const { auth, db } = await import('../lib/firebase');
-      const { doc, updateDoc, serverTimestamp } = await import('firebase/firestore');
-      const { handleFirestoreError, OperationType } = await import('../lib/firestoreHelpers');
       const user = auth.currentUser;
       if (user) {
         await updateDoc(doc(db, 'created_content', currentDocId), {
@@ -629,9 +626,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     };
 
     try {
-      const { auth, db } = await import('../lib/firebase');
-      const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
-      const { handleFirestoreError, OperationType } = await import('../lib/firestoreHelpers');
       const user = auth.currentUser;
       if (user) {
         const docId = Date.now().toString();
@@ -668,8 +662,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     if (!assignTargetName) return;
 
     try {
-      const { auth, db } = await import('../lib/firebase');
-      const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
       const user = auth.currentUser;
       if (user) {
         await setDoc(doc(db, 'notifications', Date.now().toString()), {

@@ -60,13 +60,19 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
     }
   }
   
+  const isStudyGuide = input.contentType === 'Study Guide / Learning Notes';
+  let studyGuideRequirements = "";
+  if (isStudyGuide) {
+    studyGuideRequirements = `\nCRITICAL STUDY GUIDE REQUIREMENTS:\n- This is a Study Guide/Learning Notes document. The primary content MUST be comprehensive, article-like, or textbook chapter-like notes.\n- Break down the concepts logically into paragraphs, using rich explanations that a learner can actually study from.\n- Include illustrations or visual aids (describe or embed them using simple SVGs/CSS).\n- You can include a few exercises, examples, or a worksheet section at the end, but the MAJORITY of the document must be the detailed educational reading material and notes.`;
+  }
+
   const messages = [
     { role: 'system', content: `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.` },
     { role: 'user', content: `Create a beautifully designed HTML document for a CAPS-aligned Grade ${input.grade} ${input.subject} ${input.contentType} on the topic "${input.topic}".
 
 Requirements (match the professional EduAI template style exactly):
 - Vibrant colored section headers (use blue/teal for main title, orange/green/purple for subsections).
-- Include fields for Name, Date, Total Score (e.g., ___ / 50).
+- Include fields for Name, Date, Total Score (e.g., ___ / 50) if applicable.
 - Clear numbered questions with answer lines or boxes.
 - Include marking scheme in brackets [marks] next to each question or section.
 - Add motivational elements, success criteria, or encouraging footer text.
@@ -75,6 +81,7 @@ Requirements (match the professional EduAI template style exactly):
 - Branding: Top header with "EduAI Companion | CAPS Aligned", footer with "South Africa" and motivational phrase.
 - Foundation Phase: Use larger fonts, playful language, and colorful accents suitable for young learners.
 - Make it fully ready-to-print: balanced whitespace, professional alignment, and elegant design.
+- DO NOT USE MARKDOWN. Write raw HTML inside the JSON content values using tailwind CSS classes.${studyGuideRequirements}
 
 Objective: ${input.objective}
 Learner Profile: ${input.learnerProfile}

@@ -353,8 +353,7 @@ export default function Settings({
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
                       <option value="gemini-imagen">Gemini 2.5 Flash Image (Primary)</option>
-                      <option value="alibaba-qwen-image">Alibaba qwen-image-max</option>
-                      <option value="huggingface">Alibaba qwen-image-plus-2026-01-09</option>
+                      <option value="huggingface">HuggingFace FLUX.1 (Key Req)</option>
                       <option value="pollinations-schnell">Flux Schnell (Pollinations)</option>
                       <option value="pollinations-turbo">Z-Image Turbo (Pollinations)</option>
                       <option value="pollinations-klein">FLUX.2 Klein 4B (Pollinations)</option>

@@ -5,14 +5,16 @@ import html2canvas from 'html2canvas';
 import { 
   TrendingUp, Users, BookOpen, Award, CheckCircle, Clock, AlertCircle, 
   Search, Sparkles, Filter, Check, User, RefreshCw, Send, Download, 
-  ArrowLeft, Activity, ChevronRight, Plus, FileText, Brain, Percent, ClipboardList, CheckSquare
+  ArrowLeft, Activity, ChevronRight, Plus, FileText, Brain, Percent, ClipboardList, CheckSquare,
+  Edit2, Trash2, X
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   LineChart, Line, AreaChart, Area, Legend
 } from 'recharts';
 import { db, auth } from '../lib/firebase';
-import { collection, query, where, onSnapshot, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, updateDoc, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 
 // --- Static Mock Data with comprehensive subject-by-subject histories and assessments ---
@@ -194,6 +196,81 @@ export default function ProgressReports() {
   const [isDownloading, setIsDownloading] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
+  // CRUD Learner States
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
+  const [showEditStudentModal, setShowEditStudentModal] = useState(false);
+  const [newStudentName, setNewStudentName] = useState('');
+  const [newStudentEmail, setNewStudentEmail] = useState('');
+  const [newStudentGrade, setNewStudentGrade] = useState('Grade 10A');
+
+  const [editStudentName, setEditStudentName] = useState('');
+  const [editStudentEmail, setEditStudentEmail] = useState('');
+  const [editStudentGrade, setEditStudentGrade] = useState('');
+  const [editStudentStatus, setEditStudentStatus] = useState('Active');
+
+  const handleCreateStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStudentName.trim()) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const docId = `student_${Date.now()}`;
+    const email = newStudentEmail.trim() || `${newStudentName.replace(/\s+/g, '.').toLowerCase()}@school.za`;
+    
+    // Deterministic seed for initial realistic scores
+    const seed = newStudentName.charCodeAt(0) || 72;
+    const mathScore = Math.min(95, Math.max(42, (seed % 40) + 50));
+    const scienceScore = Math.min(95, Math.max(40, ((seed + 5) % 40) + 45));
+    const englishScore = Math.min(93, Math.max(50, ((seed + 12) % 30) + 60));
+
+    try {
+      await setDoc(doc(db, 'students', docId), {
+        id: docId,
+        name: newStudentName.trim(),
+        grade: newStudentGrade,
+        email: email,
+        status: 'Active',
+        teacherId: user.uid,
+        createdAt: serverTimestamp(),
+        subjects: [
+          { name: 'Mathematics', mark: mathScore, termHistory: [mathScore - 9, mathScore - 4, mathScore - 2, mathScore], assessments: [ { title: 'Algebra Portfolio', score: mathScore + 4, type: 'SBA' }, { title: 'Diagnostic Test', score: mathScore - 5, type: 'Test' } ] },
+          { name: 'Physical Sciences', mark: scienceScore, termHistory: [scienceScore - 11, scienceScore - 6, scienceScore - 1, scienceScore], assessments: [ { title: 'Stoichiometry SBA', score: scienceScore - 3, type: 'SBA' }, { title: 'Mechanics Practical', score: scienceScore + 5, type: 'Practical' } ] },
+          { name: 'English First Additional Language', mark: englishScore, termHistory: [englishScore - 5, englishScore - 2, englishScore - 1, englishScore], assessments: [ { title: 'Summary SBA', score: englishScore + 2, type: 'SBA' }, { title: 'Grammar review', score: englishScore - 4, type: 'Quiz' } ] }
+        ]
+      });
+      setShowAddStudentModal(false);
+      setNewStudentName('');
+      setNewStudentEmail('');
+      setSelectedStudentId(docId);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, 'students/' + docId);
+    }
+  };
+
+  const handleUpdateStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editStudentName.trim() || !currentStudent) return;
+    
+    // Prevent updating unseeded mock fallback record directly
+    if (currentStudent.id.startsWith('mock-') && !currentStudent.id.includes('_')) {
+      alert("This is a preview student. Please add a new student instead.");
+      setShowEditStudentModal(false);
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, 'students', currentStudent.id), {
+        name: editStudentName.trim(),
+        email: editStudentEmail.trim(),
+        grade: editStudentGrade,
+        status: editStudentStatus
+      });
+      setShowEditStudentModal(false);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, 'students/' + currentStudent.id);
+    }
+  };
+
   // Listen to Firestore classes and students
   useEffect(() => {
     const user = auth.currentUser;
@@ -207,9 +284,28 @@ export default function ProgressReports() {
 
     // Students
     const qStudents = query(collection(db, 'students'), where('teacherId', '==', user.uid));
-    const unsubStudents = onSnapshot(qStudents, (snapshot) => {
-      setFirebaseStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (error) => console.log("Students sub error:", error));
+    const unsubStudents = onSnapshot(qStudents, async (snapshot) => {
+      if (snapshot.empty) {
+        console.log("Seeding student documents to Firestore for new teacher...");
+        for (const mock of MOCK_STUDENTS) {
+          const docId = `${mock.id}_${user.uid}`;
+          try {
+            await setDoc(doc(db, 'students', docId), {
+              ...mock,
+              id: docId,
+              teacherId: user.uid,
+              createdAt: serverTimestamp(),
+            });
+          } catch (e) {
+            console.error("Failed to seed student doc", e);
+          }
+        }
+      } else {
+        setFirebaseStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'students');
+    });
 
     return () => { unsubClasses(); unsubStudents(); };
   }, []);
@@ -253,12 +349,21 @@ export default function ProgressReports() {
         ]
       };
     });
-    return [...MOCK_STUDENTS, ...parsedFirebase];
+    return parsedFirebase.length > 0 ? parsedFirebase : MOCK_STUDENTS;
   }, [firebaseStudents]);
 
   // Handle defaults when selecting student
   const currentStudent = useMemo(() => {
     return allStudents.find(s => s.id === selectedStudentId) || allStudents[0];
+  }, [allStudents, selectedStudentId]);
+
+  // Keep selectedStudentId valid
+  useEffect(() => {
+    if (allStudents.length > 0) {
+      if (!allStudents.find(s => s.id === selectedStudentId)) {
+        setSelectedStudentId(allStudents[0].id);
+      }
+    }
   }, [allStudents, selectedStudentId]);
 
   // Set default subject when student changes
@@ -348,7 +453,7 @@ export default function ProgressReports() {
     localStorage.setItem('eduai_custom_plans', JSON.stringify(cached));
 
     // Firebase update if live student
-    if (!studentId.startsWith('mock-') && auth.currentUser) {
+    if (auth.currentUser && !(studentId.startsWith('mock-') && !studentId.includes('_'))) {
       try {
         await updateDoc(doc(db, 'students', studentId), {
           idp: updatedPlan
@@ -395,7 +500,7 @@ export default function ProgressReports() {
 
       const data = await response.json();
       setTimeout(() => {
-        savePlanToStorageAndFirestore(selectedStudentId, data);
+        savePlanToStorageAndFirestore(currentStudent.id, data);
         setGenerationProgress(100);
         setIsGenerating(false);
       }, 4200);
@@ -422,7 +527,7 @@ export default function ProgressReports() {
     };
     updatedPlan.actionPlan = [...updatedPlan.actionPlan, newTask];
 
-    savePlanToStorageAndFirestore(selectedStudentId, updatedPlan);
+    savePlanToStorageAndFirestore(currentStudent.id, updatedPlan);
 
     setNewMilestoneText('');
     setNewMilestoneLine('');
@@ -434,7 +539,7 @@ export default function ProgressReports() {
     const task = updatedPlan.actionPlan[index];
     if (task) {
       task.status = task.status === 'Completed' ? 'Pending' : 'Completed';
-      savePlanToStorageAndFirestore(selectedStudentId, updatedPlan);
+      savePlanToStorageAndFirestore(currentStudent.id, updatedPlan);
     }
   };
 
@@ -750,10 +855,25 @@ export default function ProgressReports() {
           {/* LEFT INDEX FOR SEARCH AND ROSTER LISTING (cols-4) */}
           {(!isMobile || mobileActiveSubView === 'roster') && (
             <div className="lg:col-span-4 bg-[#0d1527]/40 border border-white/5 p-4 sm:p-6 lg:p-8 rounded-[28px] sm:rounded-[40px] space-y-6">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Search size={14} className="text-brand-cyan" />
-                Learner Index Search
-              </h3>
+              <div className="flex justify-between items-center sm:gap-4">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Search size={14} className="text-brand-cyan" />
+                  Learner Index Search
+                </h3>
+                <button 
+                  onClick={() => {
+                    setNewStudentName('');
+                    setNewStudentEmail('');
+                    setNewStudentGrade('Grade 10A');
+                    setShowAddStudentModal(true);
+                  }}
+                  className="flex items-center gap-1.5 bg-brand-cyan/25 hover:bg-brand-cyan/35 text-brand-cyan rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border border-brand-cyan/35 shadow-sm"
+                  title="Add new student"
+                >
+                  <Plus size={12} />
+                  <span>Add</span>
+                </button>
+              </div>
 
               {/* Direct Search Inputs */}
               <div className="space-y-4">
@@ -901,10 +1021,43 @@ export default function ProgressReports() {
                       </div>
                     </div>
 
-                    <div className="flex gap-3 w-full md:w-auto shrink-0">
+                    <div className="flex flex-wrap gap-2 w-full md:w-auto shrink-0">
+                      <button 
+                        onClick={() => {
+                          setEditStudentName(currentStudent.name);
+                          setEditStudentEmail(currentStudent.email);
+                          setEditStudentGrade(currentStudent.grade);
+                          setEditStudentStatus(currentStudent.status || 'Active');
+                          setShowEditStudentModal(true);
+                        }}
+                        className="p-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl transition-all cursor-pointer"
+                        title="Edit learner profile"
+                      >
+                        <Edit2 size={14} className="text-brand-cyan" />
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          if (currentStudent.id.startsWith('mock-') && !currentStudent.id.includes('_')) {
+                            alert("Cannot delete preview mock students.");
+                            return;
+                          }
+                          if (confirm(`Are you sure you want to completely delete learner record ${currentStudent.name}?`)) {
+                            try {
+                              await deleteDoc(doc(db, 'students', currentStudent.id));
+                              setSelectedStudentId('');
+                            } catch (e) {
+                              handleFirestoreError(e, OperationType.DELETE, 'students/' + currentStudent.id);
+                            }
+                          }
+                        }}
+                        className="p-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 rounded-2xl transition-all cursor-pointer"
+                        title="Delete learner record"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                       <button 
                         onClick={handleSyncToParents}
-                        className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl px-5 py-3 text-xs font-black uppercase tracking-widest transition-all"
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl px-5 py-3 text-xs font-black uppercase tracking-widest transition-all cursor-pointer"
                         title="Sync report with Parent Portal"
                       >
                         <Send size={14} />
@@ -1275,6 +1428,167 @@ export default function ProgressReports() {
           </div>
           )}
         </motion.div>
+      )}
+
+      {/* Enroll Student Modal */}
+      {showAddStudentModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-navy-dark/80 backdrop-blur-sm p-4">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-full max-w-md bg-slate-950 border border-white/10 rounded-[32px] p-6 sm:p-8 space-y-6 shadow-2xl relative"
+          >
+            <div className="flex justify-between items-center border-b border-white/5 pb-4">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Plus className="text-brand-cyan" size={20} />
+                Enroll New Learner
+              </h3>
+              <button 
+                onClick={() => setShowAddStudentModal(false)}
+                className="text-slate-400 hover:text-white p-1 hover:bg-white/10 rounded-full transition-all cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateStudent} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-black tracking-widest text-slate-400">FullName</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. Sipho Nkosi"
+                  value={newStudentName}
+                  onChange={e => setNewStudentName(e.target.value)}
+                  className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-black tracking-widest text-slate-400">Email Address (Optional)</label>
+                <input 
+                  type="email"
+                  placeholder="e.g. sipho@gmail.com"
+                  value={newStudentEmail}
+                  onChange={e => setNewStudentEmail(e.target.value)}
+                  className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-black tracking-widest text-slate-400">Class Grade</label>
+                <select 
+                  value={newStudentGrade}
+                  onChange={e => setNewStudentGrade(e.target.value)}
+                  className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white uppercase font-bold focus:outline-none cursor-pointer"
+                >
+                  <option value="Grade 10A">Grade 10A</option>
+                  <option value="Grade 10B">Grade 10B</option>
+                  <option value="Grade 11C">Grade 11C</option>
+                  <option value="Grade 9A">Grade 9A</option>
+                  <option value="GrR">Grade R</option>
+                  <option value="Gr1">Grade 1</option>
+                  <option value="Gr2">Grade 2</option>
+                  <option value="Gr3">Grade 3</option>
+                </select>
+              </div>
+
+              <button 
+                type="submit"
+                className="w-full bg-brand-cyan hover:scale-105 active:scale-95 text-navy-dark font-black uppercase tracking-widest p-4 rounded-xl text-xs transition-colors mt-4 cursor-pointer shadow-lg shadow-cyan-500/10"
+              >
+                Complete Enrollment
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Edit Student Modal */}
+      {showEditStudentModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-navy-dark/80 backdrop-blur-sm p-4">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-full max-w-md bg-slate-950 border border-white/10 rounded-[32px] p-6 sm:p-8 space-y-6 shadow-2xl relative"
+          >
+            <div className="flex justify-between items-center border-b border-white/5 pb-4">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Edit2 className="text-brand-cyan" size={18} />
+                Edit Learner Profile
+              </h3>
+              <button 
+                onClick={() => setShowEditStudentModal(false)}
+                className="text-slate-400 hover:text-white p-1 hover:bg-white/10 rounded-full transition-all cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateStudent} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-black tracking-widest text-slate-400">FullName</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. Sipho Nkosi"
+                  value={editStudentName}
+                  onChange={e => setEditStudentName(e.target.value)}
+                  className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-black tracking-widest text-slate-400">Email Address</label>
+                <input 
+                  type="email"
+                  required
+                  placeholder="e.g. sipho@gmail.com"
+                  value={editStudentEmail}
+                  onChange={e => setEditStudentEmail(e.target.value)}
+                  className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-black tracking-widest text-slate-400">Class Grade</label>
+                <select 
+                  value={editStudentGrade}
+                  onChange={e => setEditStudentGrade(e.target.value)}
+                  className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white uppercase font-bold focus:outline-none cursor-pointer"
+                >
+                  <option value="Grade 10A">Grade 10A</option>
+                  <option value="Grade 10B">Grade 10B</option>
+                  <option value="Grade 11C">Grade 11C</option>
+                  <option value="Grade 9A">Grade 9A</option>
+                  <option value="GrR">Grade R</option>
+                  <option value="Gr1">Grade 1</option>
+                  <option value="Gr2">Grade 2</option>
+                  <option value="Gr3">Grade 3</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-black tracking-widest text-slate-400">Status</label>
+                <select 
+                  value={editStudentStatus}
+                  onChange={e => setEditStudentStatus(e.target.value)}
+                  className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white uppercase font-bold focus:outline-none cursor-pointer"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+
+              <button 
+                type="submit"
+                className="w-full bg-brand-cyan hover:scale-105 active:scale-95 text-navy-dark font-black uppercase tracking-widest p-4 rounded-xl text-xs transition-colors mt-4 cursor-pointer shadow-lg shadow-cyan-500/10"
+              >
+                Save Changes
+              </button>
+            </form>
+          </motion.div>
+        </div>
       )}
     </div>
   );

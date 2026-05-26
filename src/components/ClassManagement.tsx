@@ -44,6 +44,9 @@ export default function ClassManagement() {
   const [isAddingLearner, setIsAddingLearner] = useState(false);
   const [isAddingClass, setIsAddingClass] = useState(false);
   const [isAddingGroup, setIsAddingGroup] = useState(false);
+  const [isEditingLearner, setIsEditingLearner] = useState(false);
+  const [editingLearnerId, setEditingLearnerId] = useState('');
+  const [editLearnerForm, setEditLearnerForm] = useState({ name: '', grade: '', email: '', status: 'Active' as 'Active' | 'Inactive' });
 
   // CSV Bulk Import states
   const [learnerAddMode, setLearnerAddMode] = useState<'manual' | 'csv'>('manual');
@@ -201,6 +204,31 @@ export default function ClassManagement() {
         createdAt: serverTimestamp(),
       });
     } catch (err: any) { alert(err.message); }
+  };
+
+  const handleEditLearner = (student: Student) => {
+    setEditingLearnerId(student.id);
+    setEditLearnerForm({ name: student.name, grade: student.grade, email: student.email, status: student.status });
+    setIsEditingLearner(true);
+  };
+
+  const handleUpdateLearner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLearnerId) return;
+
+    try {
+      await updateDoc(doc(db, 'students', editingLearnerId), {
+        name: editLearnerForm.name,
+        email: editLearnerForm.email,
+        grade: editLearnerForm.grade,
+        status: editLearnerForm.status,
+        updatedAt: serverTimestamp()
+      });
+      setIsEditingLearner(false);
+      setEditingLearnerId('');
+    } catch (err: any) {
+      alert("Error updating student: " + err.message);
+    }
   };
 
   const handleCreateClass = async (e: React.FormEvent) => {
@@ -397,7 +425,10 @@ export default function ClassManagement() {
                       </td>
                       <td className="py-4 px-6 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => handleDeleteStudent(student.id, student.name)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="Remove">
+                          <button onClick={() => handleEditLearner(student)} className="p-2 text-slate-400 hover:text-brand-cyan hover:bg-cyan-50 rounded-lg transition-colors cursor-pointer" title="Edit Profile">
+                            <Edit2 size={16} />
+                          </button>
+                          <button onClick={() => handleDeleteStudent(student.id, student.name)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer" title="Remove">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -425,13 +456,23 @@ export default function ClassManagement() {
                         <p className="text-xs text-slate-500 truncate">{student.email}</p>
                       </div>
                     </div>
-                    <button 
-                      onClick={() => handleDeleteStudent(student.id, student.name)} 
-                      className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all shrink-0 border border-slate-100 bg-white" 
-                      title="Remove"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button 
+                        onClick={() => handleEditLearner(student)} 
+                        className="p-2 text-slate-400 hover:text-brand-cyan hover:bg-cyan-50 rounded-xl transition-all shrink-0 border border-slate-100 bg-white cursor-pointer" 
+                        title="Edit Profile"
+                      >
+                        <Edit2 size={15} />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteStudent(student.id, student.name)} 
+                        className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all shrink-0 border border-slate-100 bg-white cursor-pointer" 
+                        title="Remove"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="flex items-center justify-between pt-1 border-t border-slate-100">
@@ -657,6 +698,67 @@ export default function ClassManagement() {
                 </div>
               </div>
               <button type="submit" className="w-full bg-emerald-400 text-slate-900 font-bold py-3 rounded-xl mt-4">Create Group</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isEditingLearner && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-3">
+              <h3 className="text-xl font-bold text-slate-900">Edit Learner Profile</h3>
+              <button type="button" onClick={() => setIsEditingLearner(false)}>
+                <X className="text-slate-400 cursor-pointer hover:text-slate-600" />
+              </button>
+            </div>
+            <form onSubmit={handleUpdateLearner} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-1 text-slate-700">Name</label>
+                <input 
+                  required 
+                  className="w-full border border-slate-200 rounded-xl p-3 text-slate-900 focus:outline-none focus:border-brand-cyan" 
+                  value={editLearnerForm.name} 
+                  onChange={e => setEditLearnerForm({...editLearnerForm, name: e.target.value})} 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1 text-slate-700">Email</label>
+                <input 
+                  type="email" 
+                  required 
+                  className="w-full border border-slate-200 rounded-xl p-3 text-slate-900 focus:outline-none focus:border-brand-cyan" 
+                  value={editLearnerForm.email} 
+                  onChange={e => setEditLearnerForm({...editLearnerForm, email: e.target.value})} 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1 text-slate-700">Class</label>
+                <select 
+                  required 
+                  className="w-full border border-slate-200 rounded-xl p-3 bg-white text-slate-900 focus:outline-none focus:border-brand-cyan" 
+                  value={editLearnerForm.grade} 
+                  onChange={e => setEditLearnerForm({...editLearnerForm, grade: e.target.value})}
+                >
+                  <option value="">Select Class</option>
+                  {classes.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1 text-slate-700">Status</label>
+                <select 
+                  required 
+                  className="w-full border border-slate-200 rounded-xl p-3 bg-white text-slate-900 focus:outline-none focus:border-brand-cyan" 
+                  value={editLearnerForm.status} 
+                  onChange={e => setEditLearnerForm({...editLearnerForm, status: e.target.value as 'Active' | 'Inactive'})}
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+              <button type="submit" className="w-full bg-brand-cyan text-slate-900 font-bold py-3 rounded-xl mt-4 cursor-pointer hover:bg-opacity-95 transition-all">
+                Save Changes
+              </button>
             </form>
           </div>
         </div>
