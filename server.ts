@@ -47,13 +47,11 @@ const alibaba = new OpenAI({
 
     switch (provider) {
       case "llama-primary":
-      case "llama-secondary":
       case "groq-vision":
         client = groq;
         apiKey = process.env.GROQ_API_KEY || "";
         break;
       case "alibaba-qwen":
-      case "alibaba-deepseek":
         client = alibaba;
         apiKey = process.env.ALIBABA_API_KEY || "";
         break;
@@ -67,9 +65,7 @@ const alibaba = new OpenAI({
       const response = await client.chat.completions.create({
         model: model || (
           provider === "llama-primary" ? "llama-3.3-70b-versatile" : 
-          provider === "llama-secondary" ? "llama-3.1-8b-instant" : 
           provider === "alibaba-qwen" ? "qwen3.7-max" :
-          provider === "alibaba-deepseek" ? "qwen3.6-plus" :
           provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
           ""
         ),

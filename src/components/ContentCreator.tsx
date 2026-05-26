@@ -356,7 +356,7 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
             srcDoc={finalIframeContent} 
             className="w-full h-[600px] border-0 bg-white rounded-xl"
             title="Content Preview"
-            sandbox="allow-scripts allow-same-origin"
+            sandbox="allow-scripts"
           />
         ) : (
           <div 
@@ -464,9 +464,9 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
           handleFirestoreError(err, OperationType.CREATE, 'created_content/' + docId);
         });
       } else {
-        // Fallback to local storage
-        const existing = JSON.parse(localStorage.getItem('eduai_archive') || '[]');
-        localStorage.setItem('eduai_archive', JSON.stringify([{id: docId, createdAt: new Date().toISOString(), ...newItem}, ...existing]));
+        // Fallback to IndexedDB
+        const { saveStudyNote } = await import('../lib/offlineDB');
+        await saveStudyNote({id: docId, createdAt: new Date().toISOString(), ...newItem});
       }
     } catch (e) {
       console.error('Failed to auto-save content to firestore', e);
@@ -637,9 +637,9 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
         setArchiveSuccess(true);
         setTimeout(() => setArchiveSuccess(false), 2000);
       } else {
-        // Fallback to local storage
-        const existing = JSON.parse(localStorage.getItem('eduai_archive') || '[]');
-        localStorage.setItem('eduai_archive', JSON.stringify([{id: Date.now().toString(), createdAt: new Date().toISOString(), ...newItem}, ...existing]));
+        // Fallback to IndexedDB
+        const { saveStudyNote } = await import('../lib/offlineDB');
+        await saveStudyNote({id: Date.now().toString(), createdAt: new Date().toISOString(), ...newItem});
         setArchiveSuccess(true);
         setTimeout(() => setArchiveSuccess(false), 2000);
       }

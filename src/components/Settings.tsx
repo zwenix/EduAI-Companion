@@ -340,7 +340,6 @@ export default function Settings({
                     >
                       <option value="llama-primary">Llama 3.3 70B Versatile (Primary)</option>
                       <option value="alibaba-qwen">Alibaba qwen3.7-max (CAPS Reasoning)</option>
-                      <option value="alibaba-deepseek">Alibaba qwen3.6-plus (Reasoning & Coding)</option>
                       <option value="gemini">Gemini 3 Flash (Fallback)</option>
                     </select>
                   </div>

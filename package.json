@@ -26,6 +26,7 @@
     "google-tts-api": "^2.0.2",
     "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.14.0",
+    "idb": "^8.0.3",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.546.0",
     "marked": "^18.0.2",

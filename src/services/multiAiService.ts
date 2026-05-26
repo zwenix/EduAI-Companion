@@ -1,25 +1,24 @@
 import axios from 'axios';
 
-export type AIProvider = 'llama-primary' | 'llama-secondary' | 'alibaba-qwen' | 'alibaba-deepseek' | 'groq-vision';
+export type AIProvider = 'llama-primary' | 'alibaba-qwen' | 'groq-vision';
 
 const executeClientMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
   let url = "";
   let apiKey = "";
   let selectedModel = model;
 
-  if (provider === 'llama-primary' || provider === 'llama-secondary' || provider === 'groq-vision') {
+  if (provider === 'llama-primary' || provider === 'groq-vision') {
     url = "https://api.groq.com/openai/v1/chat/completions";
     apiKey = (process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "";
     if (!selectedModel) {
       selectedModel = provider === 'llama-primary' ? "llama-3.3-70b-versatile" :
-                      provider === 'llama-secondary' ? "llama-3.1-8b-instant" :
                       "llama-3.2-11b-vision-instant";
     }
-  } else if (provider === 'alibaba-qwen' || provider === 'alibaba-deepseek') {
+  } else if (provider === 'alibaba-qwen') {
     url = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
     apiKey = (process.env as any).ALIBABA_API_KEY || (import.meta as any).env?.VITE_ALIBABA_API_KEY || "";
     if (!selectedModel) {
-      selectedModel = provider === 'alibaba-qwen' ? "qwen3.7-max" : "qwen3.6-plus";
+      selectedModel = "qwen3.7-max";
     }
   }
 

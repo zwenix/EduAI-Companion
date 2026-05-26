@@ -15,6 +15,17 @@ const INITIAL_ARCHIVE = [
   { id: '4', title: 'Life Skills Flashcards', subject: 'Life Skills', grade: '3', contentType: 'Visual Aid', isSystem: true, createdAt: new Date(Date.now() - 259200000) },
 ];
 
+const getCategoryColor = (type: string) => {
+  const t = (type || '').toLowerCase();
+  if (t.includes('assessment') || t.includes('test') || t.includes('exam')) return 'bg-red-100 text-red-700 border border-red-200';
+  if (t.includes('lesson') || t.includes('plan')) return 'bg-emerald-100 text-emerald-700 border border-emerald-200';
+  if (t.includes('revision') || t.includes('guide') || t.includes('notes')) return 'bg-purple-100 text-purple-700 border border-purple-200';
+  if (t.includes('poster') || t.includes('visual')) return 'bg-pink-100 text-pink-700 border border-pink-200';
+  if (t.includes('notice') || t.includes('admin')) return 'bg-orange-100 text-orange-700 border border-orange-200';
+  if (t.includes('worksheet') || t.includes('activity')) return 'bg-blue-100 text-blue-700 border border-blue-200';
+  return 'bg-brand-yellow/30 text-slate-800 border border-brand-yellow/50';
+};
+
 export default function ContentArchive() {
   const [searchTerm, setSearchTerm] = useState('');
   const [items, setItems] = useState<any[]>(INITIAL_ARCHIVE);
@@ -24,25 +35,54 @@ export default function ContentArchive() {
   const printableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
-    const q = query(collection(db, 'created_content'), where('teacherId', '==', auth.currentUser.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedItems = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date()
-      }));
-      setItems([...fetchedItems, ...INITIAL_ARCHIVE]);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'created_content');
-    });
+    let unsubscribe: any;
+    
+    const loadItems = async () => {
+      let combinedItems = [...INITIAL_ARCHIVE];
+      
+      try {
+        const { getStudyNotes } = await import('../lib/offlineDB');
+        const offlineItems = await getStudyNotes();
+        const formattedOffline = offlineItems.map(item => ({
+          ...item,
+          isSystem: false,
+          createdAt: typeof item.createdAt === 'string' ? new Date(item.createdAt) : item.createdAt
+        }));
+        // Filter out initial archive items just in case they overlap
+        const offlineOnly = formattedOffline.filter(o => !INITIAL_ARCHIVE.find(i => i.id === o.id));
+        combinedItems = [...offlineOnly, ...INITIAL_ARCHIVE];
+      } catch (e) {
+        console.warn("Could not load offline items", e);
+      }
+      
+      setItems(combinedItems);
 
-    return () => unsubscribe();
+      if (auth.currentUser) {
+        const q = query(collection(db, 'created_content'), where('teacherId', '==', auth.currentUser.uid));
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedItems = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate() || new Date()
+          }));
+          setItems([...fetchedItems, ...combinedItems]);
+        }, (error) => {
+          handleFirestoreError(error, OperationType.LIST, 'created_content');
+        });
+      }
+    };
+    
+    loadItems();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const filteredItems = items.filter(item => 
     item.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    item.subject?.toLowerCase().includes(searchTerm.toLowerCase())
+    item.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.grade?.toString().toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
@@ -56,9 +96,18 @@ export default function ContentArchive() {
     } else {
       const updated = items.filter(i => i.id !== id);
       setItems(updated);
-      const saved = JSON.parse(localStorage.getItem('eduai_archive') || '[]');
-      const filteredSaved = saved.filter((i: any) => i.id !== id);
-      localStorage.setItem('eduai_archive', JSON.stringify(filteredSaved));
+      
+      try {
+        const { getStudyNotes, saveStudyNote, clearStudyNotes } = await import('../lib/offlineDB');
+        const offlineItems = await getStudyNotes();
+        const filteredSaved = offlineItems.filter((i: any) => i.id !== id);
+        await clearStudyNotes();
+        for (const item of filteredSaved) {
+          await saveStudyNote(item);
+        }
+      } catch (e) {
+        console.error("Failed to delete offline item", e);
+      }
     }
   };
 
@@ -129,11 +178,18 @@ export default function ContentArchive() {
         {filteredItems.map((item) => (
           <div key={item.id} className="bg-white border border-slate-200 rounded-[2rem] lg:rounded-[2.5rem] p-5 lg:p-6 hover:shadow-xl transition-all relative group flex flex-col h-full">
             <div className="flex justify-between items-start mb-3 lg:mb-4">
-              <span className={`px-2.5 lg:px-3 py-1 rounded-full text-[9px] lg:text-[10px] font-black tracking-widest uppercase ${item.isSystem ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
-                {item.isSystem ? 'Official' : 'History'} • Gr {item.grade}
-              </span>
+              <div className="flex gap-2 flex-wrap items-center">
+                <span className={`px-2.5 lg:px-3 py-1 rounded-full text-[9px] lg:text-[10px] font-black tracking-widest uppercase ${item.isSystem ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+                  {item.isSystem ? 'Official' : 'History'} • Gr {item.grade}
+                </span>
+                {item.contentType && (
+                  <span className={`px-2.5 lg:px-3 py-1 rounded-full text-[9px] lg:text-[10px] font-black tracking-widest uppercase ${getCategoryColor(item.contentType)}`}>
+                    {item.contentType}
+                  </span>
+                )}
+              </div>
               {!item.isSystem && (
-                <button onClick={(e) => handleDelete(item.id, e)} className="text-slate-400 hover:text-red-500 transition-colors p-1 bg-slate-50 hover:bg-red-50 rounded-full">
+                <button onClick={(e) => handleDelete(item.id, e)} className="text-slate-400 hover:text-red-500 transition-colors p-1 bg-slate-50 hover:bg-red-50 rounded-full shrink-0">
                   <Trash2 size={16} />
                 </button>
               )}

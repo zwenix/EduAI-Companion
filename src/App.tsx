@@ -328,6 +328,16 @@ export default function App() {
   const [isOfflineViewerOpen, setIsOfflineViewerOpen] = useState(false);
   const [selectedOfflineMaterial, setSelectedOfflineMaterial] = useState<any>(null);
   const [offlineSearchQuery, setOfflineSearchQuery] = useState('');
+  const [offlineMaterials, setOfflineMaterials] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (isOfflineViewerOpen) {
+      import('./lib/offlineDB').then(({ getStudyNotes }) => {
+        getStudyNotes().then(setOfflineMaterials).catch(console.error);
+      });
+    }
+  }, [isOfflineViewerOpen]);
+
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isAppInstallable, setIsAppInstallable] = useState(false);
   const [isAlreadyInstalled, setIsAlreadyInstalled] = useState(false);
@@ -428,8 +438,15 @@ export default function App() {
         }
       ];
 
+      const { saveStudyNote, clearStudyNotes } = await import('./lib/offlineDB');
+      await clearStudyNotes();
+      
       const finalCache = [...fetchedItems, ...curriculumBackups];
-      localStorage.setItem('eduai_cached_materials', JSON.stringify(finalCache));
+      for (const item of finalCache) {
+        await saveStudyNote(item);
+      }
+      localStorage.setItem('eduai_cached_materials_status', 'idb_migrated');
+
       
       clearInterval(interval);
       setSyncProgress(100);
@@ -933,7 +950,6 @@ export default function App() {
             >
               <option value="llama-primary">Llama 3.3 70B (Primary)</option>
               <option value="alibaba-qwen">Alibaba qwen3.7-max (Reasoning)</option>
-              <option value="alibaba-deepseek">Alibaba qwen3.6-plus (Reasoning & Coding)</option>
               <option value="gemini">Gemini 3 Flash (Fallback)</option>
             </select>
             <button 
@@ -1319,8 +1335,7 @@ export default function App() {
                   <div id="offline-list" className="flex-1 overflow-y-auto p-2 space-y-1">
                     {(function() {
                       try {
-                        const items = JSON.parse(localStorage.getItem('eduai_cached_materials') || '[]');
-                        const filtered = items.filter((item: any) => {
+                        const filtered = offlineMaterials.filter((item: any) => {
                           const query = offlineSearchQuery.toLowerCase().trim();
                           if (!query) return true;
                           const title = (item.title || '').toLowerCase();
@@ -1328,7 +1343,7 @@ export default function App() {
                           return title.includes(query) || subject.includes(query);
                         });
 
-                        if (items.length === 0) {
+                        if (offlineMaterials.length === 0) {
                           return (
                             <div className="p-6 text-center">
                               <p className="text-xs font-bold text-slate-400">Your Vault is currently empty!</p>
