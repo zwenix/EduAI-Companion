@@ -9,54 +9,13 @@ let audioQueue: string[] = [];
 export const speakText = async (text: string, provider: TTSProvider, language: string = 'en', voice: string = '21m00Tcm4TlvDq8ikWAM'): Promise<void> => {
   stopSpeaking(); // Stop any currently playing audio
 
-  if (provider === 'elevenlabs') {
+  if (provider === 'groq-whisper') {
     try {
-      const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
-      if (!apiKey) {
-         console.warn('VITE_ELEVENLABS_API_KEY is missing. Falling back to HuggingFace or Google TTS.');
-         return await speakWithHuggingFace(text, language);
-      }
-
-      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}`, {
-        method: 'POST',
-        headers: {
-          'accept': 'audio/mpeg',
-          'xi-api-key': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: text,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75
-          }
-        })
-      });
-
-      if (!response.ok) {
-        let errData = 'Unknown error';
-        try {
-          const json = await response.json();
-          errData = json.detail?.message || json.detail || JSON.stringify(json);
-        } catch(e) { }
-        throw new Error(`ElevenLabs API error (${response.status}): ${errData}`);
-      }
-
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
-      currentAudio = audio;
-      
-      return new Promise((resolve) => {
-        audio.onended = () => resolve();
-        audio.onerror = () => resolve();
-        audio.play();
-      });
-
+      console.info("Groq's whisper-large-v3-turbo selected. (Whisper is an ASR transcription model; utilizing high-quality Google TTS/Browser Core fallback for vocal synthesis output).");
+      return await speakWithGoogle(text, language);
     } catch (error) {
-      console.error('ElevenLabs TTS failed:', error);
-      return await speakWithHuggingFace(text, language);
+      console.error('Groq whisper TTS fallback failed:', error);
+      return await speakWithBrowser(text, language);
     }
   } else if (provider === 'huggingface') {
     return await speakWithHuggingFace(text, language);

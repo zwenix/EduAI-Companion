@@ -32,8 +32,14 @@ export const generateEducationalContent = async (type: string, details: string, 
   }
   
   const messages = [
-    { role: 'system', content: MASTER_SYSTEM_PROMPT },
-    { role: 'user', content: `Generate educational content of type ${type} with these details: ${details}. Format as Markdown.` }
+    { 
+      role: 'system', 
+      content: `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN.` 
+    },
+    { 
+      role: 'user', 
+      content: `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design).` 
+    }
   ];
   try {
     return await callMultiAi(provider as AIProvider, messages);
@@ -294,7 +300,7 @@ export const runOCRAndGrade = async (imageData: string, rubric: string, provider
   }
 
   try {
-    let model = 'llama-3.3-70b-versatile';
+    let model = provider === 'llama-primary' ? 'meta-llama/llama-4-scout-17b-16e-instruct' : 'llama-3.3-70b-versatile';
     if (provider === 'alibaba-qwen') model = 'qwen3.7-max';
     
     const grading = await callMultiAi(provider as AIProvider, messages, model);

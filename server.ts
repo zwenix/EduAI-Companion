@@ -47,6 +47,7 @@ const alibaba = new OpenAI({
 
     switch (provider) {
       case "llama-primary":
+      case "llama-secondary":
       case "groq-vision":
         client = groq;
         apiKey = process.env.GROQ_API_KEY || "";
@@ -57,23 +58,188 @@ const alibaba = new OpenAI({
         break;
     }
 
+    const callGeminiFallback = async (msgs: any[]): Promise<any> => {
+      const geminiApiKey = process.env.GEMINI_API_KEY;
+      if (!geminiApiKey || geminiApiKey === "dummy" || geminiApiKey === "undefined") {
+        throw new Error("GEMINI_API_KEY is not configured for fallback.");
+      }
+      const gAi = new GoogleGenAI({ apiKey: geminiApiKey });
+      
+      const geminiContents = msgs.map((m: any) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content || "" }]
+      }));
+
+      let geminiResponse;
+      try {
+        console.info("Trying final Gemini 3.5 Flash fallback...");
+        geminiResponse = await gAi.models.generateContent({
+          model: "gemini-3.5-flash",
+          contents: geminiContents,
+        });
+      } catch (gErr) {
+        console.warn("Gemini 3.5 Flash fallback failed or not found, trying 'gemini-1.5-flash'...", gErr);
+        geminiResponse = await gAi.models.generateContent({
+          model: "gemini-1.5-flash",
+          contents: geminiContents,
+        });
+      }
+
+      const textContent = geminiResponse.text || "";
+      return {
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: "assistant",
+              content: textContent
+            },
+            finish_reason: "stop"
+          }
+        ]
+      };
+    };
+
     if (!apiKey || apiKey === "dummy" || apiKey === 'undefined') {
+      if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "dummy" && process.env.GEMINI_API_KEY !== "undefined") {
+        console.warn(`No Groq API provider key configured. Falling back directly to Gemini 3.5 Flash...`);
+        try {
+          const responseData = await callGeminiFallback(messages);
+          return res.json(responseData);
+        } catch (geminiErr: any) {
+          return res.status(400).json({ error: { message: `Provider ${provider} is not configured and final Gemini fallback failed: ${geminiErr.message}` }});
+        }
+      }
       return res.status(400).json({ error: { message: `Provider ${provider} is not configured. Please add the ${provider === 'alibaba-qwen' ? 'ALIBABA_API_KEY' : 'API_KEY'} in the application settings.` }});
     }
 
     try {
-      const response = await client.chat.completions.create({
-        model: model || (
-          provider === "llama-primary" ? "llama-3.3-70b-versatile" : 
-          provider === "alibaba-qwen" ? "qwen3.7-max" :
-          provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
-          ""
-        ),
-        messages,
-        temperature,
+      let selectedModel = model || (
+        provider === "llama-primary" ? "meta-llama/llama-4-scout-17b-16e-instruct" : 
+        provider === "llama-secondary" ? "llama-3.3-70b-versatile" :
+        provider === "alibaba-qwen" ? "qwen3.7-max" :
+        provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
+        ""
+      );
+
+      const enhancedMessages = [...messages];
+      if (provider === "llama-primary" || provider === "llama-secondary") {
+        const systemMessageIndex = enhancedMessages.findIndex(m => m.role === 'system');
+        const coreInstruction = `
+[STRICT CORE VISUAL STYLE, PRESENTATION AND LAYOUT OBJECTIVE - FOR ALL LLAMA MODELS]:
+- You represent the premium South African CAPS-aligned educational platform (EduAI Companion).
+- You MUST generate extremely high-quality, fully detailed educational materials of premium visual layout complexity, matching or exceeding Qwen 3.7 Max and Gemini models!
+- ALWAYS render output directly in elegant, multi-layered HTML templates using standard Tailwind CSS utility classes inside style/class fields. DO NOT generate basic plain text or simple lines.
+- NEVER truncate, minimize, abbreviate, mock, or summarize any part of the text or questions. Give complete, fully-fleshed out sentences and rich paragraphs.
+
+EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
+1. HEADER BANNER (VIBRANT & COLORFUL):
+   - Wrap the main document header in a full-width, rounded-[2rem] or rounded-[2.5rem] gradient container with padding py-8 px-6 or py-10 px-8, shadow-lg, text-white, relative overflow-hidden.
+   - Use educational domain gradients:
+     * Mathematics: Teal & Blue (from-teal-500 to-blue-600)
+     * Natural Sciences / Life Sciences: Orange, Green & Turquoise (from-emerald-500 to-teal-700)
+     * Languages / Literacy: Purple, Pink & Indigo (from-purple-500 to-indigo-600)
+     * Social Sciences / Life Skills: Warm Amber, Red & Gold (from-amber-500 to-red-600)
+   - Add big friendly emojis (e.g., 🦁, 🐘, 🎨, 🧪, 📐) and crisp, clear sub-labels.
+
+2. STUDENT INFO & SCORE BADGE (AWARD-WINNING CARD):
+   - Wrap in a soft rounded-3xl borders, white bg container with layout flex or grid: "Student Name: _____________" and "Date: _____________"
+   - Place a beautiful Score Board in the bottom-right or as an side-badge wrapped in a thick, cheerful border (solid 3px yellow-400 or border-amber-400), with bold colored text like "TOTAL SCORE: _____ / 30" inside an inline block.
+
+3. MATCHING & SOUND ASSOCIATIONS (ELEGANT GRIDS - NOT INLINE TEXT):
+   - DO NOT write "Ll | Draw line to: Lion".
+   - Instead, use responsive 2-column grid container "<div class=\"grid grid-cols-2 gap-4 my-6\">"
+     * Left Column: Rounded-2xl letters inside small square cards with border-2 border-dashed border-purple-300 text-center font-bold text-3xl py-4 bg-purple-50
+     * Right Column: Corresponding cute targets/emoji (e.g. "🦁 Lion") inside matches cards with border-2 border-solid border-slate-200 py-4 px-6 text-xl font-medium bg-white hover:bg-slate-50
+   - Make it feel interactive, tactile, and professional!
+
+4. TRACING & HANDWRITING ACTIVITIES (LARGE DOTTED LETTERS):
+   - Generate words using large, beautiful dotted-style letters. E.g., wrap letters in class "text-slate-200 border-b-2 border-dashed border-slate-300 text-5xl font-bold tracking-widest" so the student can trace over them easily.
+   - Create extensive spacing, empty cards, or wide drawing blocks "<div class=\"border-2 border-dashed border-slate-300 rounded-3xl h-48 flex items-center justify-center text-slate-400 bg-slate-50\">" for activities.
+
+5. BENTO INFOGRAPHICS & DISCUSSION RULES:
+   - For guide content or discussion scenarios, build a responsive grid of card elements ("grid grid-cols-1 md:grid-cols-2 gap-6").
+   - Use unique accent colors per card, including header icons, motivational stickers, and certain soft color fills.
+
+6. STRICTLY FORBIDDEN:
+   - Never output markdown text, plain backticks, or raw horizontal rule tags ("---") for sections.
+   - Do not use raw unstyled bullet points or text-based lines.
+   - Inject style and class directly with absolute detail, using rich layout grids and colorful containers to match the beautiful, teacher-proud standard of Qwen 3.7 Max perfectly!
+`;
+        if (systemMessageIndex !== -1) {
+          enhancedMessages[systemMessageIndex] = {
+            ...enhancedMessages[systemMessageIndex],
+            content: `${enhancedMessages[systemMessageIndex].content}\n\n${coreInstruction}`
+          };
+        } else {
+          enhancedMessages.unshift({
+            role: "system",
+            content: coreInstruction
+          });
+        }
+      }
+
+      // Automatically configure JSON mode if JSON is requested
+      const isJsonPreferred = enhancedMessages.some((m: any) => 
+        typeof m.content === 'string' && m.content.toLowerCase().includes('json')
+      );
+
+      const completionParams: any = {
+        model: selectedModel,
+        messages: enhancedMessages,
+        temperature: 0.7, // Consistently set temperature to 0.7 for creative layout structuring
+        max_tokens: 8192, // Universal kompatibility parameter for Groq outputs
         max_completion_tokens: 8192,
-      });
-      res.json(response);
+      };
+
+      if (isJsonPreferred && (provider === "llama-primary" || provider === "llama-secondary" || provider === "alibaba-qwen")) {
+        completionParams.response_format = { type: "json_object" };
+      }
+
+      try {
+        const response = await client.chat.completions.create(completionParams);
+        return res.json(response);
+      } catch (err: any) {
+        console.warn(`Attempt with ${selectedModel} failed: ${err.message || err}`);
+        
+        if (provider === "llama-primary") {
+          console.warn(`llama-primary failed. Falling back to llama-secondary (llama-3.3-70b-versatile)...`);
+          try {
+            const fallbackParams: any = {
+              model: "llama-3.3-70b-versatile",
+              messages: enhancedMessages,
+              temperature: 0.7,
+              max_tokens: 8192,
+              max_completion_tokens: 8192,
+            };
+            if (isJsonPreferred) {
+              fallbackParams.response_format = { type: "json_object" };
+            }
+            const fallbackResponse = await client.chat.completions.create(fallbackParams);
+            return res.json(fallbackResponse);
+          } catch (secondaryErr: any) {
+            console.warn(`llama-secondary failed as well: ${secondaryErr.message || secondaryErr}. Falling back to final Gemini 3.5 Flash...`);
+            try {
+              const geminiResponse = await callGeminiFallback(enhancedMessages);
+              return res.json(geminiResponse);
+            } catch (geminiErr: any) {
+              console.error("All fallback models exhausted for llama-primary!");
+              throw geminiErr;
+            }
+          }
+        } else if (provider === "llama-secondary") {
+          console.warn(`llama-secondary failed. Falling back to final Gemini 3.5 Flash...`);
+          try {
+            const geminiResponse = await callGeminiFallback(enhancedMessages);
+            return res.json(geminiResponse);
+          } catch (geminiErr: any) {
+            console.error("All fallback models exhausted for llama-secondary!");
+            throw geminiErr;
+          }
+        } else {
+          throw err;
+        }
+      }
     } catch (error: any) {
       const status = error.status || 500;
       if (status !== 500) {
@@ -316,22 +482,43 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
             }
           }
         });
-        const response = await geminiAi.models.generateContent({
-          model: 'gemini-3.1-flash-image-preview',
-          contents: {
-            parts: [
-              {
-                text: prompt,
-              },
-            ],
-          },
-          config: {
-            imageConfig: {
-              aspectRatio: "1:1",
-              imageSize: "1K"
+        let response;
+        try {
+          response = await geminiAi.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: {
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
+            },
+            config: {
+              imageConfig: {
+                aspectRatio: "1:1",
+                imageSize: "1K"
+              }
             }
-          }
-        });
+          });
+        } catch (err) {
+          console.warn("Imagen model 'gemini-2.5-flash-image' failed/not found, trying 'imagen-3.0-generate-002'...", err);
+          response = await geminiAi.models.generateContent({
+            model: 'imagen-3.0-generate-002',
+            contents: {
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
+            },
+            config: {
+              imageConfig: {
+                aspectRatio: "1:1",
+                imageSize: "1K"
+              }
+            }
+          });
+        }
         
         let base64 = "";
         const parts = response.candidates?.[0]?.content?.parts;
@@ -411,11 +598,26 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       });
       const model = "gemini-3.5-flash";
 
+      const generateContentWithFallback = async (options: { model: string, contents: any, config?: any }) => {
+        try {
+          return await geminiAi.models.generateContent(options);
+        } catch (err: any) {
+          if (options.model === "gemini-3.5-flash" || options.model === "gemini-3.1-flash-image-preview") {
+            console.warn(`Gemini model '${options.model}' failed/not found. Falling back to 'gemini-1.5-flash'...`);
+            return await geminiAi.models.generateContent({
+              ...options,
+              model: "gemini-1.5-flash"
+            });
+          }
+          throw err;
+        }
+      };
+
       switch (action) {
         case "generate-educational": {
           const { type, details } = input;
           const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN.`;
-          const response = await geminiAi.models.generateContent({
+          const response = await generateContentWithFallback({
             model,
             contents: `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design).`,
             config: {
@@ -472,7 +674,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
             
             GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}
           `;
-          const response = await geminiAi.models.generateContent({
+          const response = await generateContentWithFallback({
             model,
             contents: prompt,
             config: {
@@ -571,7 +773,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
             Additional Info: ${IMAGE_PROMPT_GOLDEN_RULE}
           `;
 
-          const response = await geminiAi.models.generateContent({
+          const response = await generateContentWithFallback({
             model,
             contents: prompt,
             config: { 
@@ -603,7 +805,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
             Include Reply Slip: ${input.includeReplySlip}
             Language: ${input.language}
           `;
-          const response = await geminiAi.models.generateContent({
+          const response = await generateContentWithFallback({
             model,
             contents: prompt,
             config: { 
@@ -628,7 +830,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
           const { imageData, language } = input;
           const prompt = `Extract all text from the attached image accurately, assuming the text is in ${language}.
           Format it cleanly. Make no other comments.`;
-          const response = await geminiAi.models.generateContent({
+          const response = await generateContentWithFallback({
             model,
             contents: [
               { role: 'user', parts: [
@@ -648,7 +850,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
           2. Grade each question according to the rubric.
           3. Provide constructive feedback for the student.
           4. Summarize the total score.`;
-          const response = await geminiAi.models.generateContent({
+          const response = await generateContentWithFallback({
             model,
             contents: [
               { role: 'user', parts: [
@@ -675,7 +877,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
         case "chat": {
           const { messages } = input;
-          const response = await geminiAi.models.generateContent({
+          const response = await generateContentWithFallback({
             model,
             contents: messages,
             config: {
@@ -759,14 +961,27 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
         Make sure your recommendations are encouraging and specifically reference their low/high subjects. Align suggestions with South African CAPS-standards (e.g. SBA, formative tests). Do not format the response with markdown formatting (no backticks, no text like 'json' or explanations), only output a parseable JSON block.
       `;
-      const response = await geminiAi.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          temperature: 0.7,
-        }
-      });
+      let response;
+      try {
+        response = await geminiAi.models.generateContent({
+          model: "gemini-3.5-flash",
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            temperature: 0.7,
+          }
+        });
+      } catch (err) {
+        console.warn("Gemini model 'gemini-3.5-flash' failed/not found in ILDP route. Falling back to 'gemini-1.5-flash'...");
+        response = await geminiAi.models.generateContent({
+          model: "gemini-1.5-flash",
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            temperature: 0.7,
+          }
+        });
+      }
       const text = response.text || "";
       const trimmed = text.trim();
       const cleanJson = trimmed.startsWith("```") ? trimmed.replace(/^```json\s*/i, "").replace(/```$/, "").trim() : trimmed;

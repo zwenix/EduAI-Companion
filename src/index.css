@@ -127,11 +127,13 @@
     color: black !important;
   }
   
-  body *, html * {
+  /* Only apply block hide/visibility settings if .printable-doc is present on the page */
+  body:has(.printable-doc) *, html:has(.printable-doc) * {
     visibility: hidden;
   }
 
-  .printable-doc, .printable-doc * {
+  body:has(.printable-doc) .printable-doc, 
+  body:has(.printable-doc) .printable-doc * {
     visibility: visible;
   }
 

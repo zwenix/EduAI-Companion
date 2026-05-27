@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Search, Library, History, ExternalLink, Loader2, Trash2, Eye, Edit3, FileDown, Send, Check, X } from 'lucide-react';
+import { Box, Search, Library, History, ExternalLink, Loader2, Trash2, Eye, Edit3, FileDown, Send, Check, X, FileText, FileJson } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
 import { printContent, downloadAsHTML } from '../lib/printUtils';
@@ -24,6 +24,61 @@ const getCategoryColor = (type: string) => {
   if (t.includes('notice') || t.includes('admin')) return 'bg-orange-100 text-orange-700 border border-orange-200';
   if (t.includes('worksheet') || t.includes('activity')) return 'bg-blue-100 text-blue-700 border border-blue-200';
   return 'bg-brand-yellow/30 text-slate-800 border border-brand-yellow/50';
+};
+
+const htmlToMarkdown = (html: string): string => {
+  if (!html) return "";
+  let md = html;
+
+  // Replace block elements headings
+  md = md.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '\n# $1\n');
+  md = md.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '\n## $1\n');
+  md = md.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, '\n### $1\n');
+  md = md.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, '\n#### $1\n');
+
+  // Replace paragraph and block-level separators
+  md = md.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, '\n$1\n');
+  md = md.replace(/<br\s*\/?>/gi, '\n');
+
+  // Replace list items
+  md = md.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, '\n- $1');
+  
+  // Replace strong / em
+  md = md.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '**$1**');
+  md = md.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, '**$1**');
+  md = md.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, '*$1*');
+  md = md.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, '*$1*');
+
+  // Replace links
+  md = md.replace(/<a[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi, '[$2]($1)');
+
+  // Remove other HTML tags (while keeping their content)
+  md = md.replace(/<[^>]*>/g, '');
+
+  // Clean up excessive newlines
+  md = md.replace(/\n\s*\n\s*\n/gi, '\n\n');
+
+  // Decode basic HTML entities
+  md = md.replace(/&nbsp;/g, ' ');
+  md = md.replace(/&amp;/g, '&');
+  md = md.replace(/&lt;/g, '<');
+  md = md.replace(/&gt;/g, '>');
+  md = md.replace(/&quot;/g, '"');
+  md = md.replace(/&#39;/g, "'");
+
+  return md.trim();
+};
+
+const downloadBlobFile = (content: string, filename: string, contentType: string) => {
+  const blob = new Blob([content], { type: contentType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 };
 
 export default function ContentArchive() {
@@ -294,7 +349,7 @@ export default function ContentArchive() {
               
               {/* Footer Actions */}
               <div className="p-4 lg:p-6 bg-white border-t border-slate-100 flex flex-col gap-4 shrink-0">
-                <div className="flex flex-col sm:flex-row gap-2 lg:gap-4">
+                <div className="flex flex-col sm:flex-row gap-2 lg:gap-4 flex-wrap">
                   <button className="flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 lg:px-6 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl font-bold transition-all text-xs lg:text-base flex-1 sm:flex-none">
                     <Edit3 size={16} /> Tweak in Creator
                   </button>
@@ -305,6 +360,36 @@ export default function ContentArchive() {
                   >
                     {isDownloading ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />} 
                     {isDownloading ? 'Saving...' : 'Print / Save PDF'}
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const mdContent = htmlToMarkdown(selectedItem?.content || '');
+                      const filename = `${(selectedItem?.title || 'Archive-Item').replace(/\s+/g, '_')}.md`;
+                      downloadBlobFile(mdContent, filename, 'text/markdown;charset=utf-8');
+                    }}
+                    className="flex items-center justify-center gap-2 border border-purple-500 text-purple-600 hover:bg-purple-50 px-4 lg:px-6 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl font-bold transition-all text-xs lg:text-base flex-1 sm:flex-none"
+                  >
+                    <FileText size={16} /> Export Markdown
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const jsonContent = JSON.stringify({
+                        title: selectedItem?.title,
+                        subject: selectedItem?.subject,
+                        grade: selectedItem?.grade,
+                        contentType: selectedItem?.contentType,
+                        content: selectedItem?.content || "",
+                        memo: selectedItem?.memo || null,
+                        rubric: selectedItem?.rubric || null,
+                        imagePrompt: selectedItem?.imagePrompt || null,
+                        exportedAt: new Date().toISOString()
+                      }, null, 2);
+                      const filename = `${(selectedItem?.title || 'Archive-Item').replace(/\s+/g, '_')}.json`;
+                      downloadBlobFile(jsonContent, filename, 'application/json;charset=utf-8');
+                    }}
+                    className="flex items-center justify-center gap-2 border border-blue-500 text-blue-600 hover:bg-blue-50 px-4 lg:px-6 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl font-bold transition-all text-xs lg:text-base flex-1 sm:flex-none"
+                  >
+                    <FileJson size={16} /> Export JSON
                   </button>
                 </div>
                 

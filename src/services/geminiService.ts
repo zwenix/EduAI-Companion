@@ -202,11 +202,26 @@ const executeClientGeminiAction = async (action: string, input: any) => {
   const geminiAi = getClientGenAI();
   const model = "gemini-3.5-flash";
 
+  const generateContentWithFallback = async (options: { model: string, contents: any, config?: any }) => {
+    try {
+      return await geminiAi.models.generateContent(options);
+    } catch (err: any) {
+      if (options.model === "gemini-3.5-flash") {
+        console.warn(`Gemini model '${options.model}' failed/not found in client mode. Falling back to 'gemini-1.5-flash'...`);
+        return await geminiAi.models.generateContent({
+          ...options,
+          model: "gemini-1.5-flash"
+        });
+      }
+      throw err;
+    }
+  };
+
   switch (action) {
     case "generate-educational": {
       const { type, details } = input;
       const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN.`;
-      const response = await geminiAi.models.generateContent({
+      const response = await generateContentWithFallback({
         model,
         contents: `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design).`,
         config: {
@@ -249,7 +264,7 @@ const executeClientGeminiAction = async (action: string, input: any) => {
         
         GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}
       `;
-      const response = await geminiAi.models.generateContent({
+      const response = await generateContentWithFallback({
         model,
         contents: prompt,
         config: {
@@ -302,7 +317,7 @@ const executeClientGeminiAction = async (action: string, input: any) => {
         Additional Info: ${IMAGE_PROMPT_GOLDEN_RULE}
       `;
 
-      const response = await geminiAi.models.generateContent({
+      const response = await generateContentWithFallback({
         model,
         contents: prompt,
         config: { 
@@ -334,7 +349,7 @@ const executeClientGeminiAction = async (action: string, input: any) => {
         Include Reply Slip: ${input.includeReplySlip}
         Language: ${input.language}
       `;
-      const response = await geminiAi.models.generateContent({
+      const response = await generateContentWithFallback({
         model,
         contents: prompt,
         config: { 
@@ -359,7 +374,7 @@ const executeClientGeminiAction = async (action: string, input: any) => {
       const { imageData, language } = input;
       const prompt = `Extract all text from the attached image accurately, assuming the text is in ${language}.
       Format it cleanly. Make no other comments.`;
-      const response = await geminiAi.models.generateContent({
+      const response = await generateContentWithFallback({
         model,
         contents: [
           { role: 'user', parts: [
@@ -379,7 +394,7 @@ const executeClientGeminiAction = async (action: string, input: any) => {
       2. Grade each question according to the rubric.
       3. Provide constructive feedback for the student.
       4. Summarize the total score.`;
-      const response = await geminiAi.models.generateContent({
+      const response = await generateContentWithFallback({
         model,
         contents: [
           { role: 'user', parts: [
@@ -406,7 +421,7 @@ const executeClientGeminiAction = async (action: string, input: any) => {
 
     case "chat": {
       const { messages } = input;
-      const response = await geminiAi.models.generateContent({
+      const response = await generateContentWithFallback({
         model,
         contents: messages,
         config: {

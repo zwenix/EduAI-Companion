@@ -932,7 +932,7 @@ export default function App() {
                 title="Text-to-Speech Engine"
               >
                 <option value="browser">TTS: Browser Core</option>
-                <option value="elevenlabs">TTS: ElevenLabs HD</option>
+                <option value="groq-whisper">TTS: Groq Whisper</option>
                 <option value="huggingface">TTS: HuggingFace MMS</option>
                 <option value="google-tts">TTS: Google TTS</option>
               </select>
@@ -948,9 +948,10 @@ export default function App() {
               }`}
               title="Primary Text Model"
             >
-              <option value="llama-primary">Llama 3.3 70B (Primary)</option>
-              <option value="alibaba-qwen">Alibaba qwen3.7-max (Reasoning)</option>
-              <option value="gemini">Gemini 3 Flash (Fallback)</option>
+              <option value="llama-primary">Llama 4 Scout (Primary)</option>
+              <option value="llama-secondary">Llama 3.3 70B (Secondary)</option>
+              <option value="alibaba-qwen">Alibaba qwen3.7-max</option>
+              <option value="gemini">Gemini (Fallback)</option>
             </select>
             <button 
               onClick={() => setIsDarkMode(!isDarkMode)}

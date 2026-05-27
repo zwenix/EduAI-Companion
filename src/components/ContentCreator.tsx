@@ -4,7 +4,7 @@ import {
   FlaskConical, Palette, FileText, Eye, BookOpen, GraduationCap,
   ChevronDown, ChevronUp, Zap, ClipboardList, ImageIcon, Settings2, RefreshCw,
   Check, X, Plus, Users, Layout, Video, FileCode, HelpCircle, Archive, UserCircle, Image, AlertCircle,
-  Edit2, History, Share2, Copy, Link, Mail
+  Edit2, History, Share2, Copy, Link, Mail, FileJson
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
@@ -274,9 +274,9 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
   if (useIframe) {
       if (isFullHtmlDoc && !finalIframeContent.includes('tailwindcss')) {
           if (finalIframeContent.includes('<head>')) {
-              finalIframeContent = finalIframeContent.replace('<head>', `<head>\n${getParentStyles()}`);
+              finalIframeContent = finalIframeContent.replace('<head>', `<head>\n${getParentStyles()}\n<script src="https://cdn.tailwindcss.com?plugins=typography"></script>`);
           } else if (finalIframeContent.includes('<html')) {
-              finalIframeContent = finalIframeContent.replace(/<html[^>]*>/i, `$&<head>\n${getParentStyles()}</head>`);
+              finalIframeContent = finalIframeContent.replace(/<html[^>]*>/i, `$&<head>\n${getParentStyles()}\n<script src="https://cdn.tailwindcss.com?plugins=typography"></script></head>`);
           }
       } else if (isHtmlFragment) {
           // Wrap fragment with Tailwind CSS
@@ -284,6 +284,7 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
 <html>
 <head>
     ${getParentStyles()}
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <style>body { margin: 0; padding: 1rem; }</style>
 </head>
 <body class="bg-white text-slate-900">
@@ -308,6 +309,7 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
             <head>
                 <title>${label}</title>
                 ${getParentStyles()}
+                <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
                 <style>
                     @media print {
                         @page { margin: 15mm; }
@@ -398,6 +400,61 @@ function AdvancedSection({ children, label, isDarkMode }: { children: React.Reac
   );
 }
 
+const htmlToMarkdown = (html: string): string => {
+  if (!html) return "";
+  let md = html;
+
+  // Replace block elements headings
+  md = md.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '\n# $1\n');
+  md = md.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '\n## $1\n');
+  md = md.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, '\n### $1\n');
+  md = md.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, '\n#### $1\n');
+
+  // Replace paragraph and block-level separators
+  md = md.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, '\n$1\n');
+  md = md.replace(/<br\s*\/?>/gi, '\n');
+
+  // Replace list items
+  md = md.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, '\n- $1');
+  
+  // Replace strong / em
+  md = md.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '**$1**');
+  md = md.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, '**$1**');
+  md = md.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, '*$1*');
+  md = md.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, '*$1*');
+
+  // Replace links
+  md = md.replace(/<a[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi, '[$2]($1)');
+
+  // Remove other HTML tags (while keeping their content)
+  md = md.replace(/<[^>]*>/g, '');
+
+  // Clean up excessive newlines
+  md = md.replace(/\n\s*\n\s*\n/gi, '\n\n');
+
+  // Decode basic HTML entities
+  md = md.replace(/&nbsp;/g, ' ');
+  md = md.replace(/&amp;/g, '&');
+  md = md.replace(/&lt;/g, '<');
+  md = md.replace(/&gt;/g, '>');
+  md = md.replace(/&quot;/g, '"');
+  md = md.replace(/&#39;/g, "'");
+
+  return md.trim();
+};
+
+const downloadBlobFile = (content: string, filename: string, contentType: string) => {
+  const blob = new Blob([content], { type: contentType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching', isDarkMode = true }: { isOpen: boolean, onClose: () => void, initialTab?: string, isDarkMode?: boolean }) {
@@ -425,7 +482,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
-  const [shareType, setShareType] = useState<'text' | 'html' | 'link' | 'email'>('link');
+  const [shareType, setShareType] = useState<'text' | 'html' | 'link' | 'email' | 'markdown' | 'json'>('link');
   
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -1985,11 +2042,13 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
               </div>
 
               {/* Selector Mode for Share Type */}
-              <div className="grid grid-cols-4 gap-2 text-center text-[10px] font-black uppercase tracking-wider">
+              <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-black uppercase tracking-wider">
                 {[
                   { id: 'link', label: 'Link', icon: Link },
                   { id: 'text', label: 'Plain Text', icon: FileText },
                   { id: 'html', label: 'HTML', icon: FileCode },
+                  { id: 'markdown', label: 'Markdown', icon: FileText },
+                  { id: 'json', label: 'JSON', icon: FileJson },
                   { id: 'email', label: 'Email', icon: Mail }
                 ].map((t) => (
                   <button
@@ -2070,6 +2129,56 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                     >
                       {shareSuccess ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
                       {shareSuccess ? 'HTML Markup Copied!' : 'Copy HTML Code'}
+                    </button>
+                  </div>
+                )}
+
+                {shareType === 'markdown' && (
+                  <div className="space-y-3 text-left">
+                    <p className="text-xs text-slate-400">Save educational material as structured Markdown (.md) locally.</p>
+                    <button 
+                      onClick={() => {
+                        const rawHtml = (activeTab === 'teaching' || activeTab === 'grade1') ? teachingResult?.content : activeTab === 'visual' ? visualResult?.content : adminResult?.content;
+                        const markdown = htmlToMarkdown(rawHtml || '');
+                        const filename = `${(activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : 'Administrative_Doc') || 'Generation'}.md`;
+                        downloadBlobFile(markdown, filename, 'text/markdown;charset=utf-8');
+                        setShareSuccess(true);
+                        setTimeout(() => setShareSuccess(false), 2000);
+                      }}
+                      className="w-full bg-brand-cyan hover:bg-cyan-500 text-navy-dark font-black uppercase tracking-widest p-3 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {shareSuccess ? <Check size={14} /> : <Download size={14} />}
+                      {shareSuccess ? 'Markdown File Saved!' : 'Download Markdown (.md)'}
+                    </button>
+                  </div>
+                )}
+
+                {shareType === 'json' && (
+                  <div className="space-y-3 text-left">
+                    <p className="text-xs text-slate-400">Export lesson plans & study notes in structured raw JSON layout.</p>
+                    <button 
+                      onClick={() => {
+                        const result = (activeTab === 'teaching' || activeTab === 'grade1') ? teachingResult : activeTab === 'visual' ? visualResult : adminResult;
+                        const filename = `${(activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : 'Administrative_Doc') || 'Generation'}.json`;
+                        const jsonContent = JSON.stringify({
+                          title: (activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation',
+                          subject: (activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : 'Administration') || 'General',
+                          grade: (activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : 'All') || 'N/A',
+                          contentType: (activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : 'Notice') || 'Document',
+                          content: result?.content || "",
+                          memo: result?.memo || null,
+                          rubric: result?.rubric || null,
+                          imagePrompt: result?.imagePrompt || null,
+                          exportedAt: new Date().toISOString()
+                        }, null, 2);
+                        downloadBlobFile(jsonContent, filename, 'application/json;charset=utf-8');
+                        setShareSuccess(true);
+                        setTimeout(() => setShareSuccess(false), 2000);
+                      }}
+                      className="w-full bg-slate-800 hover:bg-slate-700 text-white font-black uppercase tracking-widest p-3 rounded-xl text-xs flex items-center justify-center gap-2 border border-white/10 cursor-pointer"
+                    >
+                      {shareSuccess ? <Check size={14} className="text-emerald-500" /> : <Download size={14} />}
+                      {shareSuccess ? 'JSON File Saved!' : 'Download raw JSON'}
                     </button>
                   </div>
                 )}

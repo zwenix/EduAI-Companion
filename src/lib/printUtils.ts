@@ -16,6 +16,7 @@ export const printContent = (contentRef: React.RefObject<HTMLDivElement | null>,
                 <head>
                     <title>${title}</title>
                     ${getParentStyles()}
+                    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
                     <style>
                         @media print {
                             @page { margin: 15mm; }

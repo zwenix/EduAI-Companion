@@ -1,17 +1,18 @@
 import axios from 'axios';
 
-export type AIProvider = 'llama-primary' | 'alibaba-qwen' | 'groq-vision';
+export type AIProvider = 'llama-primary' | 'llama-secondary' | 'alibaba-qwen' | 'groq-vision';
 
 const executeClientMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
   let url = "";
   let apiKey = "";
   let selectedModel = model;
 
-  if (provider === 'llama-primary' || provider === 'groq-vision') {
+  if (provider === 'llama-primary' || provider === 'llama-secondary' || provider === 'groq-vision') {
     url = "https://api.groq.com/openai/v1/chat/completions";
     apiKey = (process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "";
     if (!selectedModel) {
-      selectedModel = provider === 'llama-primary' ? "llama-3.3-70b-versatile" :
+      selectedModel = provider === 'llama-primary' ? "meta-llama/llama-4-scout-17b-16e-instruct" :
+                      provider === 'llama-secondary' ? "llama-3.3-70b-versatile" :
                       "llama-3.2-11b-vision-instant";
     }
   } else if (provider === 'alibaba-qwen') {

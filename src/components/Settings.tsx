@@ -338,9 +338,10 @@ export default function Settings({
                       onChange={(e) => setProvider(e.target.value as any)}
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
-                      <option value="llama-primary">Llama 3.3 70B Versatile (Primary)</option>
+                      <option value="llama-primary">Llama 4 Scout (Groq's meta-llama/llama-4-scout-17b-16e-instruct)</option>
+                      <option value="llama-secondary">Llama 3.3 70B (Secondary Model)</option>
                       <option value="alibaba-qwen">Alibaba qwen3.7-max (CAPS Reasoning)</option>
-                      <option value="gemini">Gemini 3 Flash (Fallback)</option>
+                      <option value="gemini">Gemini (Fallback Model)</option>
                     </select>
                   </div>
 
@@ -381,7 +382,7 @@ export default function Settings({
                     >
                       <option value="browser">Browser Core HD (Free)</option>
                       <option value="google-tts">Google TTS (Free)</option>
-                      <option value="elevenlabs">ElevenLabs Pro (Key Required)</option>
+                      <option value="groq-whisper">Groq Whisper (whisper-large-v3-turbo)</option>
                       <option value="huggingface">HuggingFace MMS (Free)</option>
                     </select>
                   </div>
