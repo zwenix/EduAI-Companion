@@ -188,8 +188,7 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
         model: selectedModel,
         messages: enhancedMessages,
         temperature: 0.7, // Consistently set temperature to 0.7 for creative layout structuring
-        max_tokens: 8192, // Universal kompatibility parameter for Groq outputs
-        max_completion_tokens: 8192,
+        max_tokens: 8192, // Universal compatibility parameter for Groq outputs
       };
 
       if (isJsonPreferred && (provider === "llama-primary" || provider === "llama-secondary" || provider === "alibaba-qwen")) {
@@ -210,7 +209,6 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
               messages: enhancedMessages,
               temperature: 0.7,
               max_tokens: 8192,
-              max_completion_tokens: 8192,
             };
             if (isJsonPreferred) {
               fallbackParams.response_format = { type: "json_object" };
