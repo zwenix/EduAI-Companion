@@ -856,6 +856,64 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [vid_prompt, setVid_Prompt] = useState<string>('');
   const [vid_model, setVid_Model] = useState<string>('replicate-minimax');
   
+  useEffect(() => {
+    const handleTriggerEditContent = (e: any) => {
+      const { item, tab } = e.detail || {};
+      if (!item || !tab) return;
+
+      // Close editing mode
+      setIsEditing(false);
+
+      // Set document reference
+      setCurrentDocId(item.id);
+      setActiveTab(tab);
+
+      // Clean up previous other results to avoid distraction
+      setTeachingResult(null);
+      setVisualResult(null);
+      setAdminResult(null);
+
+      // Set proper results based on target tab
+      if (tab === 'teaching' || tab === 'grade1') {
+         const res = {
+           content: item.content || '',
+           memo: item.memo || undefined,
+           rubric: item.rubric || undefined,
+           title: item.title || '',
+           imagePrompt: item.imagePrompt || undefined
+         };
+         setTeachingResult(res);
+         setT_Topic(item.title || '');
+         setT_Type(item.contentType || '');
+         setT_Subject(item.subject || '');
+         setT_Grade(item.grade || '');
+      } else if (tab === 'visual') {
+         const res = {
+           content: item.content || '',
+           title: item.title || '',
+           imagePrompt: item.imagePrompt || undefined
+         };
+         setVisualResult(res);
+         setV_Topic(item.title || '');
+         setV_Type(item.contentType || '');
+         setV_Subject(item.subject || '');
+         setV_Grade(item.grade || '');
+      } else if (tab === 'admin') {
+         const res = {
+           content: item.content || '',
+           title: item.title || ''
+         };
+         setAdminResult(res);
+         setA_Type(item.contentType || '');
+         setA_Subject(item.subject || '');
+         setA_Grade(item.grade || '');
+      }
+    };
+
+    window.addEventListener('trigger-edit-content', handleTriggerEditContent);
+    return () => window.removeEventListener('trigger-edit-content', handleTriggerEditContent);
+  }, []);
+
   const handleGenerateVideo = async () => {
     setIsLoading(true);
     setGenerationProgress(0);
@@ -954,7 +1012,13 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     try {
       const compiledInstructions = 
         (t_extraInstructions ? t_extraInstructions + '\n' : '') +
-        (t_dependencies ? `TASK DEPENDENCIES / PRE-REQUISITES:\n${t_dependencies}\n` : '');
+        (t_dependencies ? `TASK DEPENDENCIES / PRE-REQUISITES:\n${t_dependencies}\n` : '') +
+        (t_difficulty ? `Difficulty Level: ${t_difficulty}\n` : '') +
+        (t_duration ? `Expected Duration: ${t_duration}\n` : '') +
+        (t_items ? `Number of questions/items: ${t_items}\n` : '') +
+        (t_differentiation ? `Learner Study Profile Differentiation Strategy: ${t_differentiation}\n` : '') +
+        `Include Memorandum/Answer Sheet: ${t_memo ? 'Yes' : 'No'}\n` +
+        `Include Custom Grading Rubric Checklist: ${t_rubric ? 'Yes' : 'No'}\n`;
 
       const result = await generateCAPSContent({
         category: t_category, contentType: t_type, grade: t_grade, subject: finalSubject,
@@ -1652,7 +1716,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
 
         {/* Right Preview Panel */}
         <div id="preview-panel" className="w-full lg:flex-1 bg-navy-dark/40 lg:overflow-y-auto p-4 sm:p-8 lg:p-12 scrollbar-hide relative lg:h-full">
-           <AnimatePresence>
+          <AnimatePresence>
             {error && (
               <motion.div 
                 initial={{ opacity: 0, y: -20 }}
@@ -1672,7 +1736,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                 </button>
               </motion.div>
             )}
-           </AnimatePresence>
+          </AnimatePresence>
 
            {isLoading ? (
              <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-center space-y-8">
@@ -1689,11 +1753,33 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
              <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto space-y-8 lg:space-y-12 pb-12">
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white/5 p-4 lg:p-6 rounded-2xl lg:rounded-[32px] border border-white/5 gap-4">
                   <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
-                    {(activeTab === 'teaching' || activeTab === 'grade1') && (
-                      <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 scrollbar-hide text-[10px] font-black uppercase text-brand-cyan tracking-widest px-4 py-2 bg-white/5 rounded-xl border border-white/10 items-center justify-center">
-                        All Inclusive Package Generated
-                      </div>
-                    )}
+                    <div className="flex flex-wrap gap-2 items-center text-xs">
+                      {(activeTab === 'teaching' || activeTab === 'grade1') && (
+                        <div className="text-[10px] font-black uppercase text-brand-cyan tracking-widest px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center">
+                          All Inclusive Package
+                        </div>
+                      )}
+                      {activeTab === 'visual' && (
+                        <div className="text-[10px] font-black uppercase text-purple-400 tracking-widest px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center">
+                          Visual Asset Ready
+                        </div>
+                      )}
+                      {activeTab === 'admin' && (
+                        <div className="text-[10px] font-black uppercase text-amber-500 tracking-widest px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center">
+                          Official Admin Draft
+                        </div>
+                      )}
+                      {currentDocId ? (
+                        <div className="text-[10px] font-black uppercase text-emerald-400 tracking-widest px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/25 rounded-xl flex items-center justify-center gap-1.5 animate-pulse">
+                          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block" />
+                          Synced to Cloud DB
+                        </div>
+                      ) : (
+                        <div className="text-[10px] font-black uppercase text-amber-400 tracking-widest px-3 py-1.5 bg-amber-500/10 border border-amber-500/25 rounded-xl flex items-center justify-center gap-1.5">
+                          Saving Draft...
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
                     <button onClick={handlePrint} className="bg-white/10 hover:bg-white/20 p-2.5 lg:p-3 rounded-xl lg:rounded-2xl text-white transition-all tooltip shrink-0" title="Print Content">

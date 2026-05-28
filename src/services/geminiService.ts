@@ -207,11 +207,19 @@ const executeClientGeminiAction = async (action: string, input: any) => {
       return await geminiAi.models.generateContent(options);
     } catch (err: any) {
       if (options.model === "gemini-3.5-flash") {
-        console.warn(`Gemini model '${options.model}' failed/not found in client mode. Falling back to 'gemini-1.5-flash'...`);
-        return await geminiAi.models.generateContent({
-          ...options,
-          model: "gemini-1.5-flash"
-        });
+        console.warn(`Gemini model '${options.model}' failed in client mode. Falling back to 'gemini-flash-latest'...`);
+        try {
+          return await geminiAi.models.generateContent({
+            ...options,
+            model: "gemini-flash-latest"
+          });
+        } catch (fallbackErr: any) {
+          console.warn(`Gemini model 'gemini-flash-latest' failed in client mode. Falling back to 'gemini-3.1-flash-lite'...`);
+          return await geminiAi.models.generateContent({
+            ...options,
+            model: "gemini-3.1-flash-lite"
+          });
+        }
       }
       throw err;
     }

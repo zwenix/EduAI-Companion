@@ -177,6 +177,29 @@ export default function ContentArchive() {
     printContent(printableRef, "EduAI-Archive-Item");
   };
 
+  const handleTweak = (item: any) => {
+    let targetCreatorTab = 'teaching';
+    const type = (item.contentType || '').toLowerCase();
+    const grade = (item.grade || '').toLowerCase();
+    
+    if (grade.includes('1') || grade.includes('2') || grade.includes('3')) {
+      targetCreatorTab = 'grade1';
+    } else if (type.includes('poster') || type.includes('visual') || type.includes('card') || type.includes('diagram') || type.includes('map') || type.includes('label')) {
+      targetCreatorTab = 'visual';
+    } else if (type.includes('notice') || type.includes('letter') || type.includes('slip') || type.includes('invitation') || type.includes('calendar') || type.includes('timetable') || type.includes('register')) {
+      targetCreatorTab = 'admin';
+    }
+    
+    // Close preview modal if opened
+    setSelectedItem(null);
+    
+    // Dispatch the trigger custom event
+    const event = new CustomEvent('trigger-edit-content', {
+      detail: { item, tab: targetCreatorTab }
+    });
+    window.dispatchEvent(event);
+  };
+
   const handleAssign = () => {
     setIsAssigning(true);
     setTimeout(() => {
@@ -284,7 +307,7 @@ export default function ContentArchive() {
               <button onClick={() => setSelectedItem(item)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-colors">
                 <Eye size={14} /> View
               </button>
-              <button className="flex-1 bg-white border border-brand-cyan text-brand-cyan hover:bg-cyan-50 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-colors">
+              <button onClick={() => handleTweak(item)} className="flex-1 bg-white border border-brand-cyan text-brand-cyan hover:bg-cyan-50 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-colors">
                 <Edit3 size={14} /> Tweak
               </button>
             </div>
@@ -350,7 +373,7 @@ export default function ContentArchive() {
               {/* Footer Actions */}
               <div className="p-4 lg:p-6 bg-white border-t border-slate-100 flex flex-col gap-4 shrink-0">
                 <div className="flex flex-col sm:flex-row gap-2 lg:gap-4 flex-wrap">
-                  <button className="flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 lg:px-6 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl font-bold transition-all text-xs lg:text-base flex-1 sm:flex-none">
+                  <button onClick={() => handleTweak(selectedItem)} className="flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 lg:px-6 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl font-bold transition-all text-xs lg:text-base flex-1 sm:flex-none">
                     <Edit3 size={16} /> Tweak in Creator
                   </button>
                   <button 

@@ -65,24 +65,60 @@ const alibaba = new OpenAI({
       }
       const gAi = new GoogleGenAI({ apiKey: geminiApiKey });
       
-      const geminiContents = msgs.map((m: any) => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content || "" }]
-      }));
+      const systemMessageTexts = msgs
+        .filter((m: any) => m.role === 'system')
+        .map((m: any) => m.content)
+        .join("\n\n");
+        
+      const remainingMsgs = msgs.filter((m: any) => m.role !== 'system');
+      const mergedContents: any[] = [];
+      remainingMsgs.forEach((m: any) => {
+        const mappedRole = m.role === 'assistant' ? 'model' : 'user';
+        const txt = m.content || "";
+        
+        if (mergedContents.length > 0 && mergedContents[mergedContents.length - 1].role === mappedRole) {
+          mergedContents[mergedContents.length - 1].parts[0].text += "\n" + txt;
+        } else {
+          mergedContents.push({
+            role: mappedRole,
+            parts: [{ text: txt }]
+          });
+        }
+      });
+      
+      if (mergedContents.length === 0) {
+        mergedContents.push({ role: 'user', parts: [{ text: "Hello" }] });
+      }
+
+      const options: any = {
+        model: "gemini-3.5-flash",
+        contents: mergedContents,
+      };
+
+      if (systemMessageTexts) {
+        options.config = {
+          systemInstruction: systemMessageTexts
+        };
+      }
 
       let geminiResponse;
       try {
         console.info("Trying final Gemini 3.5 Flash fallback...");
-        geminiResponse = await gAi.models.generateContent({
-          model: "gemini-3.5-flash",
-          contents: geminiContents,
-        });
+        geminiResponse = await gAi.models.generateContent(options);
       } catch (gErr) {
-        console.warn("Gemini 3.5 Flash fallback failed or not found, trying 'gemini-1.5-flash'...", gErr);
-        geminiResponse = await gAi.models.generateContent({
-          model: "gemini-1.5-flash",
-          contents: geminiContents,
-        });
+        console.warn("Gemini 3.5 Flash fallback failed or not found, trying 'gemini-flash-latest'...", gErr);
+        try {
+          geminiResponse = await gAi.models.generateContent({
+            ...options,
+            model: "gemini-flash-latest"
+          });
+        } catch (liteErr) {
+          console.warn("Gemini-flash-latest failed, trying 'gemini-3.1-flash-lite'...");
+          geminiResponse = await gAi.models.generateContent({
+            ...options,
+            model: "gemini-3.1-flash-lite"
+          });
+        }
       }
 
       const textContent = geminiResponse.text || "";
@@ -601,11 +637,19 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
           return await geminiAi.models.generateContent(options);
         } catch (err: any) {
           if (options.model === "gemini-3.5-flash" || options.model === "gemini-3.1-flash-image-preview") {
-            console.warn(`Gemini model '${options.model}' failed/not found. Falling back to 'gemini-1.5-flash'...`);
-            return await geminiAi.models.generateContent({
-              ...options,
-              model: "gemini-1.5-flash"
-            });
+            console.warn(`Gemini model '${options.model}' failed. Falling back to 'gemini-flash-latest'...`);
+            try {
+              return await geminiAi.models.generateContent({
+                ...options,
+                model: "gemini-flash-latest"
+              });
+            } catch (fallbackErr: any) {
+              console.warn(`Gemini model 'gemini-flash-latest' failed. Falling back to 'gemini-3.1-flash-lite'...`);
+              return await geminiAi.models.generateContent({
+                ...options,
+                model: "gemini-3.1-flash-lite"
+              });
+            }
           }
           throw err;
         }

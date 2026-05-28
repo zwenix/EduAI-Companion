@@ -338,6 +338,17 @@ export default function App() {
     }
   }, [isOfflineViewerOpen]);
 
+  useEffect(() => {
+    const onTriggerEdit = (e: any) => {
+      const { tab } = e.detail || {};
+      if (tab) {
+        setActiveCreatorTab(tab);
+      }
+    };
+    window.addEventListener('trigger-edit-content', onTriggerEdit);
+    return () => window.removeEventListener('trigger-edit-content', onTriggerEdit);
+  }, []);
+
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isAppInstallable, setIsAppInstallable] = useState(false);
   const [isAlreadyInstalled, setIsAlreadyInstalled] = useState(false);

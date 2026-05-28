@@ -6,6 +6,7 @@ import { collection, query, where, onSnapshot, updateDoc, doc, setDoc } from 'fi
 import confetti from 'canvas-confetti';
 import { StudentDoc, MilestoneTask, IdpModel, Subject } from '../types';
 import { logStudentActivity } from '../lib/activityLogger';
+import LoadingMascot from './LoadingMascot';
 
 
 export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }) {
@@ -281,10 +282,10 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className={`${isDarkMode ? 'text-slate-400' : 'text-slate-600'} font-hand text-xl`}>Opening your classroom portal...</p>
-      </div>
+      <LoadingMascot 
+        message="Opening your classroom portal..." 
+        subtitle="Unfolding custom curriculum, maps, and active badges" 
+      />
     );
   }
 

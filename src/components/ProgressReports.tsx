@@ -19,6 +19,7 @@ import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 
 import { StudentDoc, Subject, Assessment, MilestoneTask, IdpModel } from '../types';
 import { MOCK_STUDENTS, PRELOADED_PLANS } from '../data/mockStudents';
+import LoadingMascot from './LoadingMascot';
 
 export default function ProgressReports() {
   const [activeTab, setActiveTab] = useState<'overview' | 'idp'>('overview');
@@ -574,28 +575,10 @@ export default function ProgressReports() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 min-h-[400px]">
-        <motion.div
-          animate={{ 
-            rotate: [0, 10, -10, 0],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ repeat: Infinity, duration: 2 }}
-          className="text-7xl mb-4"
-        >
-          🤖
-        </motion.div>
-        <p className="text-2xl font-hand font-bold text-brand-cyan animate-pulse">
-          Retrieving academic achievements...
-        </p>
-        <div className="w-56 h-3 bg-white/10 rounded-full mt-4 overflow-hidden border border-white/5">
-          <motion.div
-            animate={{ x: ['-100%', '100%'] }}
-            transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-            className="h-full w-full bg-gradient-to-r from-brand-cyan via-brand-yellow to-brand-pink"
-          />
-        </div>
-      </div>
+      <LoadingMascot 
+        message="Retrieving academic achievements..." 
+        subtitle="Analyzing grade metrics and student logs" 
+      />
     );
   }
 
