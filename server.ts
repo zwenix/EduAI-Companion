@@ -498,6 +498,48 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
   app.post("/api/images/generate", async (req, res) => {
     const { prompt, provider } = req.body;
+
+    if (provider === "wan2.1-t2i-plus" || provider === "qwen-image-2.0-pro") {
+      const apiKey = process.env.ALIBABA_API_KEY || process.env.VITE_ALIBABA_API_KEY;
+      if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
+        console.warn("ALIBABA_API_KEY missing for image generation, falling back to Pollinations Flux");
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        return res.json({ url });
+      }
+
+      try {
+        const response = await fetch("https://dashscope-intl.aliyuncs.com/compatible-mode/v1/images/generations", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: provider,
+            prompt: prompt,
+            n: 1,
+            size: "1024x1024"
+          })
+        });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`Alibaba API returned ${response.status}: ${errText}`);
+        }
+
+        const data: any = await response.json();
+        if (data.data && data.data[0] && data.data[0].url) {
+          return res.json({ url: data.data[0].url });
+        } else if (data.output && data.output.results && data.output.results[0] && data.output.results[0].url) {
+          return res.json({ url: data.output.results[0].url });
+        }
+        throw new Error("No image URL returned from Dashscope");
+      } catch (error: any) {
+        console.warn("Alibaba Image generation failed, falling back to Pollinations...", error.message || error);
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        return res.json({ url });
+      }
+    }
     
     if (provider === "gemini-imagen") {
       const apiKey = process.env.GEMINI_API_KEY;

@@ -50,7 +50,9 @@ import {
   Wifi,
   Check,
   Smartphone,
-  Download
+  Download,
+  Accessibility,
+  Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
@@ -75,7 +77,7 @@ import AdminDashboard from './components/AdminDashboard';
 import SettingsPage from './components/Settings';
 import Helpdesk from './components/Helpdesk';
 import { auth, db } from './lib/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 
 const SidebarItem = ({ icon: Icon, label, active, onClick, collapsed, isDarkMode }: { icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean, isDarkMode?: boolean }) => (
@@ -314,6 +316,20 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(false);
   
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
+  const [dyslexiaEnabled, setDyslexiaEnabled] = useState(() => localStorage.getItem('eduai_dyslexia') === 'true');
+  const [magnifyEnabled, setMagnifyEnabled] = useState(() => localStorage.getItem('eduai_magnify') === 'true');
+  const [highContrastEnabled, setHighContrastEnabled] = useState(() => localStorage.getItem('eduai_high_contrast') === 'true');
+
+  const speakText = (text: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      if (!text) return;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
 
   // Dialog States
   const [activeCreatorTab, setActiveCreatorTab] = useState<string | null>(null);
@@ -559,6 +575,20 @@ export default function App() {
       } else {
         document.body.classList.remove('dyslexia-font-active');
       }
+
+      const mActive = localStorage.getItem('eduai_magnify') === 'true';
+      if (mActive) {
+        document.body.classList.add('magnify-text-active');
+      } else {
+        document.body.classList.remove('magnify-text-active');
+      }
+
+      const hActive = localStorage.getItem('eduai_high_contrast') === 'true';
+      if (hActive) {
+        document.body.classList.add('high-contrast-active');
+      } else {
+        document.body.classList.remove('high-contrast-active');
+      }
     };
     syncAccessibility();
     window.addEventListener('eduai_accessibility_change', syncAccessibility);
@@ -578,11 +608,43 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Artificial splash delay
+    // Check if user has an active authenticated session
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        try {
+          const docRef = doc(db, 'users', user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setUserRole(data.role || 'teacher');
+            setShowDashboard(true);
+            setShowLogin(false);
+          } else {
+            // Logged in but needs role setup
+            setNeedsRoleSetup(true);
+            setShowDashboard(true);
+            setShowLogin(false);
+          }
+        } catch (err) {
+          console.error("Error fetching user role on startup:", err);
+          // If Firestore is offline or setup is failing, fall back to showing dashboard
+          setShowDashboard(true);
+        }
+      } else {
+        // Not logged in or logged out
+        setShowDashboard(false);
+        setUserRole(null);
+      }
+    });
+
     const timer = setTimeout(() => {
       setIsRefreshing(false);
-    }, 2500);
-    return () => clearTimeout(timer);
+    }, 2000);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timer);
+    };
   }, []);
 
   if (isRefreshing) {
@@ -598,11 +660,30 @@ export default function App() {
   if (showLogin) {
     return <LoginPage 
       onSuccess={() => {
-        setShowLogin(false);
-        setNeedsRoleSetup(true);
-        setShowDashboard(true);
+        const user = auth.currentUser;
+        if (user) {
+          // If they successfully logged in and have a role, the onAuthStateChanged will route them.
+          // Otherwise, we trigger role selection.
+          getDoc(doc(db, 'users', user.uid)).then((docSnap) => {
+            if (docSnap.exists()) {
+              setUserRole(docSnap.data().role || 'teacher');
+              setNeedsRoleSetup(false);
+              setShowDashboard(true);
+              setShowLogin(false);
+            } else {
+              setNeedsRoleSetup(true);
+              setShowDashboard(true);
+              setShowLogin(false);
+            }
+          }).catch(() => {
+            setNeedsRoleSetup(true);
+            setShowDashboard(true);
+            setShowLogin(false);
+          });
+        }
       }}
       onSignUpClick={() => {
+        // Successful signup, trigger role setup
         setShowLogin(false);
         setNeedsRoleSetup(true);
         setShowDashboard(true);
@@ -1026,6 +1107,8 @@ export default function App() {
                 title="Image Generation Engine"
               >
                 <option value="gemini-imagen">IMG: Gemini 2.5 Flash Image</option>
+                <option value="wan2.1-t2i-plus">IMG: Alibaba wan2.1-t2i-plus</option>
+                <option value="qwen-image-2.0-pro">IMG: Alibaba qwen-image-2.0-pro</option>
                 <option value="huggingface">IMG: HF FLUX.1</option>
                 <option value="pollinations-schnell">IMG: Flux Schnell</option>
                 <option value="pollinations-turbo">IMG: Z-Image Turbo</option>
@@ -1059,8 +1142,8 @@ export default function App() {
               }`}
               title="Primary Text Model"
             >
-              <option value="llama-primary">Llama 4 Scout (Primary)</option>
-              <option value="llama-secondary">Llama 3.3 70B (Secondary)</option>
+              <option value="llama-primary">Alibaba qwen3.6-plus (Primary)</option>
+              <option value="llama-secondary">Alibaba qwen3.7-max (Secondary)</option>
               <option value="alibaba-qwen">Alibaba qwen3.7-max</option>
               <option value="gemini">Gemini (Fallback)</option>
             </select>
@@ -1070,6 +1153,104 @@ export default function App() {
             >
               {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
+
+            {/* Accessibility Helper Dropdown */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsAccessibilityOpen(!isAccessibilityOpen)}
+                className={`p-2 rounded-full ${isDarkMode ? 'bg-white/5 text-brand-cyan hover:bg-white/10' : 'bg-slate-100 text-[#00a8cc] hover:bg-slate-200'} transition-all`}
+                title="Accessibility Center"
+              >
+                <Accessibility size={18} />
+              </button>
+
+              <AnimatePresence>
+                {isAccessibilityOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className={`absolute right-0 mt-3 w-72 rounded-2xl shadow-2xl border overflow-hidden p-4 ${isDarkMode ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-800'} z-50`}
+                  >
+                    <div className="flex items-center gap-2 pb-3 mb-3 border-b border-dashed border-slate-500/20">
+                      <Accessibility className="w-5 h-5 text-brand-cyan animate-pulse" />
+                      <h3 className="font-display font-black text-base">Accessibility helpers</h3>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Dyslexia Mode Toggle */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col text-left">
+                          <span className="font-bold text-sm">📖 Dyslexia-Friendly</span>
+                          <span className="text-[10px] opacity-60">Easier fonts & line height</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = !dyslexiaEnabled;
+                            setDyslexiaEnabled(val);
+                            localStorage.setItem('eduai_dyslexia', String(val));
+                            window.dispatchEvent(new Event('eduai_accessibility_change'));
+                          }}
+                          className={`w-12 h-6 rounded-full p-1 transition-colors ${dyslexiaEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
+                        >
+                          <div className={`w-4 h-4 bg-white rounded-full transition-transform ${dyslexiaEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                        </button>
+                      </div>
+
+                      {/* Text Magnifier Toggle */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col text-left">
+                          <span className="font-bold text-sm">🔍 Magnify Text</span>
+                          <span className="text-[10px] opacity-60">Bigger fonts for low sight</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = !magnifyEnabled;
+                            setMagnifyEnabled(val);
+                            localStorage.setItem('eduai_magnify', String(val));
+                            window.dispatchEvent(new Event('eduai_accessibility_change'));
+                          }}
+                          className={`w-12 h-6 rounded-full p-1 transition-colors ${magnifyEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
+                        >
+                          <div className={`w-4 h-4 bg-white rounded-full transition-transform ${magnifyEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                        </button>
+                      </div>
+
+                      {/* High Contrast Mode Toggle */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col text-left">
+                          <span className="font-bold text-sm">🌓 High Contrast</span>
+                          <span className="text-[10px] opacity-60">Black & yellow text theme</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = !highContrastEnabled;
+                            setHighContrastEnabled(val);
+                            localStorage.setItem('eduai_high_contrast', String(val));
+                            window.dispatchEvent(new Event('eduai_accessibility_change'));
+                          }}
+                          className={`w-12 h-6 rounded-full p-1 transition-colors ${highContrastEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
+                        >
+                          <div className={`w-4 h-4 bg-white rounded-full transition-transform ${highContrastEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                        </button>
+                      </div>
+
+                      {/* TTS Core Narration Button */}
+                      <button
+                        type="button"
+                        onClick={() => speakText("Accessibility helpers center is active. You can choose to enable dyslexia friendly mode, text magnification, or high contrast layout settings. Select your preference by sliding the toggle controls shown.")}
+                        className="w-full py-2.5 px-3 rounded-xl bg-brand-cyan/10 hover:bg-brand-cyan/20 text-brand-cyan font-bold text-xs flex items-center justify-center gap-2 transition-all border border-brand-cyan/20"
+                      >
+                        🔊 Hear Description
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <NotificationsDropdown isDarkMode={isDarkMode} />
             
             {/* Profile Dropdown */}

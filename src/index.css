@@ -167,3 +167,21 @@ body.dyslexia-font-active * {
   word-spacing: 0.12em !important;
   line-height: 1.75 !important;
 }
+
+/* Accessibility Magnify Mode */
+body.magnify-text-active,
+body.magnify-text-active * {
+  font-size: 1.08rem !important;
+}
+
+/* Accessibility High Contrast Mode */
+body.high-contrast-active {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+body.high-contrast-active button,
+body.high-contrast-active a {
+  background-color: #111111 !important;
+  color: #ffff00 !important;
+  border: 2px solid #ffffff !important;
+}
