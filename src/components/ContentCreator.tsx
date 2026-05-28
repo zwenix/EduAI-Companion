@@ -4,7 +4,7 @@ import {
   FlaskConical, Palette, FileText, Eye, BookOpen, GraduationCap,
   ChevronDown, ChevronUp, Zap, ClipboardList, ImageIcon, Settings2, RefreshCw,
   Check, X, Plus, Users, Layout, Video, FileCode, HelpCircle, Archive, UserCircle, Image, AlertCircle,
-  Edit2, History, Share2, Copy, Link, Mail, FileJson
+  Edit2, History, Share2, Copy, Link, Mail, FileJson, Maximize2, Minimize2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
@@ -17,7 +17,7 @@ import html2pdf from 'html2pdf.js';
 import { printContent, downloadAsHTML } from '../lib/printUtils';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 import { db, auth } from '../lib/firebase';
-import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
 
 // ─── Utility ───────────────────────────────────────────────────────────────
@@ -356,7 +356,7 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
         {useIframe ? (
           <iframe 
             srcDoc={finalIframeContent} 
-            className="w-full h-[600px] border-0 bg-white rounded-xl"
+            className="w-full h-[850px] border-0 bg-white rounded-xl"
             title="Content Preview"
             sandbox="allow-scripts"
           />
@@ -465,6 +465,40 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [activePreviewTab, setActivePreviewTab] = useState<'content' | 'memo' | 'rubric' | 'assessment'>('content');
   const [archiveSuccess, setArchiveSuccess] = useState(false);
   const [assignSuccess, setAssignSuccess] = useState(false);
+  
+  const [isFullscreenPreview, setIsFullscreenPreview] = useState(false);
+  const [dbClasses, setDbClasses] = useState<any[]>([]);
+  const [dbStudyGroups, setDbStudyGroups] = useState<any[]>([]);
+  const [dbStudents, setDbStudents] = useState<any[]>([]);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    // Listen to classes
+    const qClasses = query(collection(db, 'classes'), where('teacherId', '==', user.uid));
+    const unsubClasses = onSnapshot(qClasses, (snapshot) => {
+      setDbClasses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => console.log("Creator classes sub error:", err));
+
+    // Listen to study groups
+    const qGroups = query(collection(db, 'study_groups'), where('teacherId', '==', user.uid));
+    const unsubGroups = onSnapshot(qGroups, (snapshot) => {
+      setDbStudyGroups(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => console.log("Creator groups sub error:", err));
+
+    // Listen to students
+    const qStudents = query(collection(db, 'students'), where('teacherId', '==', user.uid));
+    const unsubStudents = onSnapshot(qStudents, (snapshot) => {
+      setDbStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => console.log("Creator students sub error:", err));
+
+    return () => {
+      unsubClasses();
+      unsubGroups();
+      unsubStudents();
+    };
+  }, []);
 
   // Results state
   const [teachingResult, setTeachingResult] = useState<any>(null);
@@ -707,7 +741,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   };
 
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [assignTargetType, setAssignTargetType] = useState<'class' | 'group'>('class');
+  const [assignTargetType, setAssignTargetType] = useState<'class' | 'group' | 'student'>('class');
   const [assignTargetName, setAssignTargetName] = useState('');
 
   const handleAssign = () => {
@@ -723,7 +757,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
       if (user) {
         await setDoc(doc(db, 'notifications', Date.now().toString()), {
           title: 'Content Assigned',
-          message: `You assigned new content to ${assignTargetType === 'class' ? 'Class' : 'Study Group'}: ${assignTargetName}.`,
+          message: `You assigned new content to ${assignTargetType === 'class' ? 'Class' : assignTargetType === 'group' ? 'Study Group' : 'Student'}: ${assignTargetName}.`,
           read: false,
           userId: user.uid,
           createdAt: serverTimestamp(),
@@ -1212,7 +1246,12 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
 
       <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
         {/* Left Form Panel */}
-        <div className="w-full lg:w-[480px] bg-[#0B1122] lg:border-r border-white/5 lg:overflow-y-auto p-4 lg:p-10 space-y-6 lg:space-y-8 scrollbar-hide shrink-0 h-max lg:h-full">
+        <div className={cn(
+          "bg-[#0B1122] lg:border-r border-white/5 lg:overflow-y-auto space-y-6 lg:space-y-8 scrollbar-hide shrink-0 h-max lg:h-full transition-all duration-300",
+          isFullscreenPreview 
+            ? "w-0 p-0 overflow-hidden opacity-0 hidden lg:hidden" 
+            : "w-full lg:w-[420px] p-4 lg:p-8 opacity-100 block"
+        )}>
           <AnimatePresence mode="wait">
             {activeTab === 'teaching' && (
               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
@@ -1782,6 +1821,18 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                     </div>
                   </div>
                   <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
+                    <button 
+                      onClick={() => setIsFullscreenPreview(prev => !prev)} 
+                      className={cn(
+                        "p-2.5 lg:p-3 rounded-xl lg:rounded-2xl transition-all tooltip shrink-0 border",
+                        isFullscreenPreview 
+                          ? "bg-brand-cyan border-brand-cyan/20 text-navy-dark" 
+                          : "bg-white/10 border-white/5 hover:bg-white/20 text-white"
+                      )} 
+                      title={isFullscreenPreview ? "Show Form Panel" : "Expand Preview to Full Screen"}
+                    >
+                      {isFullscreenPreview ? <Minimize2 size={16} className="lg:w-[18px] lg:h-[18px]" /> : <Maximize2 size={16} className="lg:w-[18px] lg:h-[18px]" />}
+                    </button>
                     <button onClick={handlePrint} className="bg-white/10 hover:bg-white/20 p-2.5 lg:p-3 rounded-xl lg:rounded-2xl text-white transition-all tooltip shrink-0" title="Print Content">
                       <Printer size={16} className="lg:w-[18px] lg:h-[18px]" />
                     </button>
@@ -2065,43 +2116,109 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
       {/* Assign Modal */}
       {showAssignModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[32px] p-6 lg:p-8 w-full max-w-md shadow-2xl relative">
+          <div className="bg-white rounded-[32px] p-6 lg:p-8 w-full max-w-sm shadow-2xl relative">
             <button onClick={() => setShowAssignModal(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600">
               <X size={20} />
             </button>
             <h3 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
-              <Users className="text-brand-cyan" />
+              <Users className="text-brand-cyan" size={24} />
               Assign Content
             </h3>
             <form onSubmit={confirmAssign} className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">Assign To</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
-                    <input type="radio" value="class" checked={assignTargetType === 'class'} onChange={() => setAssignTargetType('class')} className="text-brand-cyan focus:ring-brand-cyan" />
-                    Class
+                <label className="block text-xs font-black uppercase text-slate-500 tracking-wider mb-2">Assign To</label>
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer font-medium">
+                    <input type="radio" value="class" checked={assignTargetType === 'class'} onChange={() => { setAssignTargetType('class'); setAssignTargetName(''); }} className="text-brand-cyan focus:ring-brand-cyan" />
+                    Their Classes
                   </label>
-                  <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
-                    <input type="radio" value="group" checked={assignTargetType === 'group'} onChange={() => setAssignTargetType('group')} className="text-brand-cyan focus:ring-brand-cyan" />
-                    Study Group
+                  <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer font-medium">
+                    <input type="radio" value="group" checked={assignTargetType === 'group'} onChange={() => { setAssignTargetType('group'); setAssignTargetName(''); }} className="text-brand-cyan focus:ring-brand-cyan" />
+                    Study Groups
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer font-medium">
+                    <input type="radio" value="student" checked={assignTargetType === 'student'} onChange={() => { setAssignTargetType('student'); setAssignTargetName(''); }} className="text-brand-cyan focus:ring-brand-cyan" />
+                    Individual Students
                   </label>
                 </div>
               </div>
               
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">Target Name</label>
-                <input 
-                  type="text" 
-                  value={assignTargetName} 
-                  onChange={e => setAssignTargetName(e.target.value)} 
-                  placeholder={assignTargetType === 'class' ? "e.g. Grade 10A" : "e.g. Math Olympiad Prep"}
-                  className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan"
-                  required
-                />
+                <label className="block text-xs font-black uppercase text-slate-500 tracking-wider mb-2">Select Recipient</label>
+                {assignTargetType === 'class' ? (
+                  dbClasses.length > 0 ? (
+                    <select 
+                      value={assignTargetName} 
+                      onChange={e => setAssignTargetName(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan text-sm text-slate-800 font-medium"
+                      required
+                    >
+                      <option value="">-- Select Class --</option>
+                      {dbClasses.map(cls => (
+                        <option key={cls.id} value={cls.name || cls.id}>{cls.name || `Grade ${cls.id}`}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input 
+                      type="text" 
+                      value={assignTargetName} 
+                      onChange={e => setAssignTargetName(e.target.value)} 
+                      placeholder="e.g. Grade 10A (Class)"
+                      className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan text-sm text-slate-800"
+                      required
+                    />
+                  )
+                ) : assignTargetType === 'group' ? (
+                  dbStudyGroups.length > 0 ? (
+                    <select 
+                      value={assignTargetName} 
+                      onChange={e => setAssignTargetName(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan text-sm text-slate-800 font-medium"
+                      required
+                    >
+                      <option value="">-- Select Study Group --</option>
+                      {dbStudyGroups.map(grp => (
+                        <option key={grp.id} value={grp.name || grp.id}>{grp.name || grp.id}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input 
+                      type="text" 
+                      value={assignTargetName} 
+                      onChange={e => setAssignTargetName(e.target.value)} 
+                      placeholder="e.g. Science Olympiad (Group)"
+                      className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan text-sm text-slate-800"
+                      required
+                    />
+                  )
+                ) : (
+                  dbStudents.length > 0 ? (
+                    <select 
+                      value={assignTargetName} 
+                      onChange={e => setAssignTargetName(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan text-sm text-slate-800 font-medium"
+                      required
+                    >
+                      <option value="">-- Select Student --</option>
+                      {dbStudents.map(st => (
+                        <option key={st.id} value={st.name || st.id}>{st.name} ({st.grade || 'N/A'})</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input 
+                      type="text" 
+                      value={assignTargetName} 
+                      onChange={e => setAssignTargetName(e.target.value)} 
+                      placeholder="e.g. Sibusiso Dube"
+                      className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan text-sm text-slate-800"
+                      required
+                    />
+                  )
+                )}
               </div>
 
-              <button type="submit" className="w-full bg-brand-cyan hover:bg-cyan-500 text-navy-dark font-black uppercase tracking-widest text-xs py-4 rounded-xl mt-4 transition-all">
-                Create Assignment
+              <button type="submit" className="w-full bg-brand-cyan hover:bg-cyan-500 text-navy-dark font-black uppercase tracking-widest text-[10px] py-4 rounded-xl mt-4 transition-all shadow-md shadow-brand-cyan/20">
+                Confirm Assignment
               </button>
             </form>
           </div>

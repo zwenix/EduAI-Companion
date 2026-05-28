@@ -20,6 +20,7 @@ interface UserProfile {
   email: string;
   photoUrl?: string;
   isOnline?: boolean;
+  role?: string;
 }
 
 export default function Messenger() {
@@ -136,10 +137,22 @@ export default function Messenger() {
               <div className="shrink-0 w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-xs text-white font-black border border-white/5 overflow-hidden">
                 {user.photoUrl ? <img src={user.photoUrl} alt="" className="w-full h-full object-cover" /> : getInitials(user.name)}
               </div>
-              <div className="flex-1 min-w-0">
-                <span className={`text-sm font-bold truncate block ${activeChat === user.id ? 'text-brand-cyan' : 'text-white'}`}>
-                  {user.name}
-                </span>
+              <div className="flex-1 min-w-0 space-y-0.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`text-sm font-bold truncate block ${activeChat === user.id ? 'text-brand-cyan' : 'text-white'}`}>
+                    {user.name}
+                  </span>
+                  {user.role && (
+                    <span className={`shrink-0 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md ${
+                      user.role === 'teacher' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
+                      user.role === 'parent' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                      user.role === 'admin' ? 'bg-slate-500/20 text-slate-300 border border-slate-500/30' : 
+                      'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                    }`}>
+                      {user.role}
+                    </span>
+                  )}
+                </div>
                 <span className="text-[10px] text-slate-500 truncate block">{user.email}</span>
               </div>
             </button>

@@ -42,6 +42,9 @@ service cloud.firestore {
         && (!('createdAt' in data) || data.createdAt == null || data.createdAt is timestamp)
         && (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp)
         && (!('parentId' in data) || data.parentId == null || (data.parentId is string && data.parentId.size() <= 128))
+        && (!('parentName' in data) || data.parentName == null || (data.parentName is string && data.parentName.size() <= 100))
+        && (!('parentEmail' in data) || data.parentEmail == null || (data.parentEmail is string && data.parentEmail.size() <= 150))
+        && (!('parentPhone' in data) || data.parentPhone == null || (data.parentPhone is string && data.parentPhone.size() <= 30))
         && (!('streak' in data) || data.streak is int)
         && (!('lastActiveDate' in data) || data.lastActiveDate is string)
         && (!('subjects' in data) || data.subjects is list)
@@ -50,11 +53,13 @@ service cloud.firestore {
     match /students/{studentId} {
       allow get: if isSignedIn() && isValidId(studentId) && (
         existing().teacherId == request.auth.uid || 
-        existing().email == request.auth.token.email
+        existing().email == request.auth.token.email ||
+        ('parentEmail' in existing() && existing().parentEmail == request.auth.token.email)
       );
       allow list: if isSignedIn() && (
         resource.data.teacherId == request.auth.uid || 
-        resource.data.email == request.auth.token.email
+        resource.data.email == request.auth.token.email ||
+        ('parentEmail' in resource.data && resource.data.parentEmail == request.auth.token.email)
       );
       allow create: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming()) && (
         incoming().teacherId == request.auth.uid || 
@@ -63,7 +68,7 @@ service cloud.firestore {
       allow update: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming()) && (
         // Case 1: The teacher is updating
         (existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId &&
-         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'grade', 'email', 'status', 'updatedAt', 'parentId', 'subjects', 'idp', 'lastActiveDate', 'streak'])) ||
+         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'grade', 'email', 'status', 'updatedAt', 'parentId', 'subjects', 'idp', 'lastActiveDate', 'streak', 'parentName', 'parentEmail', 'parentPhone'])) ||
         // Case 2: The student is self-updating progress, streak, or IDPs
         (existing().email == request.auth.token.email &&
          incoming().diff(existing()).affectedKeys().hasOnly(['lastActiveDate', 'streak', 'idp', 'updatedAt', 'subjects']))

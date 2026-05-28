@@ -74,11 +74,17 @@ export default function ProgressReports() {
   const [newStudentName, setNewStudentName] = useState('');
   const [newStudentEmail, setNewStudentEmail] = useState('');
   const [newStudentGrade, setNewStudentGrade] = useState('Grade 10A');
+  const [newParentName, setNewParentName] = useState('');
+  const [newParentEmail, setNewParentEmail] = useState('');
+  const [newParentPhone, setNewParentPhone] = useState('');
 
   const [editStudentName, setEditStudentName] = useState('');
   const [editStudentEmail, setEditStudentEmail] = useState('');
   const [editStudentGrade, setEditStudentGrade] = useState('');
   const [editStudentStatus, setEditStudentStatus] = useState('Active');
+  const [editParentName, setEditParentName] = useState('');
+  const [editParentEmail, setEditParentEmail] = useState('');
+  const [editParentPhone, setEditParentPhone] = useState('');
 
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,6 +109,9 @@ export default function ProgressReports() {
         email: email,
         status: 'Active',
         teacherId: user.uid,
+        parentName: newParentName.trim(),
+        parentEmail: newParentEmail.trim(),
+        parentPhone: newParentPhone.trim(),
         createdAt: serverTimestamp(),
         subjects: [
           { name: 'Mathematics', mark: mathScore, termHistory: [mathScore - 9, mathScore - 4, mathScore - 2, mathScore], assessments: [ { title: 'Algebra Portfolio', score: mathScore + 4, type: 'SBA' }, { title: 'Diagnostic Test', score: mathScore - 5, type: 'Test' } ] },
@@ -113,6 +122,9 @@ export default function ProgressReports() {
       setShowAddStudentModal(false);
       setNewStudentName('');
       setNewStudentEmail('');
+      setNewParentName('');
+      setNewParentEmail('');
+      setNewParentPhone('');
       setSelectedStudentId(docId);
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'students/' + docId);
@@ -135,7 +147,10 @@ export default function ProgressReports() {
         name: editStudentName.trim(),
         email: editStudentEmail.trim(),
         grade: editStudentGrade,
-        status: editStudentStatus
+        status: editStudentStatus,
+        parentName: editParentName.trim(),
+        parentEmail: editParentEmail.trim(),
+        parentPhone: editParentPhone.trim()
       });
       setShowEditStudentModal(false);
     } catch (err) {
@@ -223,6 +238,9 @@ export default function ProgressReports() {
         email: student.email || `${student.name.replace(/\s+/g, '.').toLowerCase()}@school.za`,
         status: student.status || 'Active',
         idp: student.idp || null,
+        parentName: student.parentName || '',
+        parentEmail: student.parentEmail || '',
+        parentPhone: student.parentPhone || '',
         subjects: student.subjects || [
           { name: 'Mathematics', mark: mathScore, termHistory: [mathScore - 9, mathScore - 4, mathScore - 2, mathScore], assessments: [ { title: 'Algebra Portfolio', score: mathScore + 4, type: 'SBA' }, { title: 'Diagnostic Test', score: mathScore - 5, type: 'Test' } ] },
           { name: 'Physical Sciences', mark: scienceScore, termHistory: [scienceScore - 11, scienceScore - 6, scienceScore - 1, scienceScore], assessments: [ { title: 'Stoichiometry SBA', score: scienceScore - 3, type: 'SBA' }, { title: 'Mechanics Practical', score: scienceScore + 5, type: 'Practical' } ] },
@@ -961,6 +979,9 @@ export default function ProgressReports() {
                           setEditStudentEmail(currentStudent.email);
                           setEditStudentGrade(currentStudent.grade);
                           setEditStudentStatus(currentStudent.status || 'Active');
+                          setEditParentName(currentStudent.parentName || '');
+                          setEditParentEmail(currentStudent.parentEmail || '');
+                          setEditParentPhone(currentStudent.parentPhone || '');
                           setShowEditStudentModal(true);
                         }}
                         className="p-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl transition-all cursor-pointer"
@@ -1015,6 +1036,36 @@ export default function ProgressReports() {
                         )}
                       </button>
                     </div>
+                  </div>
+
+                  {/* Connected Parent & Guardian Profile */}
+                  <div className="glass bg-[#1E293B]/20 p-6 rounded-[32px] border border-white/5 space-y-4">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                      <h4 className="text-xs font-black uppercase text-brand-cyan tracking-widest flex items-center gap-2">
+                        <span>👨‍👩‍👦 Connected Parent & Guardian details</span>
+                      </h4>
+                      <span className="text-[10px] text-slate-500 font-mono uppercase bg-white/5 px-2.5 py-1 rounded-md">Linked Profile</span>
+                    </div>
+                    {currentStudent.parentName ? (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-slate-300">
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-slate-500 tracking-wider mb-1">Parent Name</span>
+                          <span className="text-white text-sm font-semibold">{currentStudent.parentName}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-slate-500 tracking-wider mb-1">Email Address</span>
+                          <span className="text-white text-sm font-semibold">{currentStudent.parentEmail}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-slate-500 tracking-wider mb-1">Contact Number</span>
+                          <span className="text-white text-sm font-semibold">{currentStudent.parentPhone || 'Not Provided'}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500 italic py-1">
+                        No parent details have been registered for this student yet. Click the Edit (pencil) button above inside the Student Banner to link parent contact information.
+                      </p>
+                    )}
                   </div>
 
                   {/* DOUBLE SCOPE GRAPH: Overall Progression + Subject Specific */}
@@ -1408,6 +1459,39 @@ export default function ProgressReports() {
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5 col-span-2">
+                  <label className="text-[10px] uppercase font-black tracking-widest text-[#22d3ee]">Parent Name (Guardian)</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Thabo Nkosi"
+                    value={newParentName}
+                    onChange={e => setNewParentName(e.target.value)}
+                    className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-black tracking-widest text-[#22d3ee]">Parent Email</label>
+                  <input 
+                    type="email" 
+                    placeholder="thabo@gmail.com"
+                    value={newParentEmail}
+                    onChange={e => setNewParentEmail(e.target.value)}
+                    className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-black tracking-widest text-[#22d3ee]">Parent Phone</label>
+                  <input 
+                    type="tel" 
+                    placeholder="082 123 4567"
+                    value={newParentPhone}
+                    onChange={e => setNewParentPhone(e.target.value)}
+                    className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-1.5">
                 <label className="text-[10px] uppercase font-black tracking-widest text-slate-400">Class Grade</label>
                 <select 
@@ -1481,6 +1565,39 @@ export default function ProgressReports() {
                   onChange={e => setEditStudentEmail(e.target.value)}
                   className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-white/5">
+                <div className="col-span-2 space-y-1.5">
+                  <label className="text-[10px] uppercase font-black tracking-widest text-[#22d3ee]">Parent Name (Guardian)</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Thabo Nkosi"
+                    value={editParentName}
+                    onChange={e => setEditParentName(e.target.value)}
+                    className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-black tracking-widest text-[#22d3ee]">Parent Email</label>
+                  <input 
+                    type="email" 
+                    placeholder="thabo@gmail.com"
+                    value={editParentEmail}
+                    onChange={e => setEditParentEmail(e.target.value)}
+                    className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-black tracking-widest text-[#22d3ee]">Parent Phone</label>
+                  <input 
+                    type="tel" 
+                    placeholder="082 123 4567"
+                    value={editParentPhone}
+                    onChange={e => setEditParentPhone(e.target.value)}
+                    className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">

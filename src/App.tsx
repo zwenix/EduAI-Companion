@@ -75,6 +75,7 @@ import AdminDashboard from './components/AdminDashboard';
 import SettingsPage from './components/Settings';
 import Helpdesk from './components/Helpdesk';
 import { auth, db } from './lib/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 
 const SidebarItem = ({ icon: Icon, label, active, onClick, collapsed, isDarkMode }: { icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean, isDarkMode?: boolean }) => (
@@ -611,9 +612,22 @@ export default function App() {
 
   if (needsRoleSetup) {
     return <RoleSelection 
-      onComplete={(role) => {
+      onComplete={async (role) => {
         setUserRole(role);
         setNeedsRoleSetup(false);
+        const user = auth.currentUser;
+        if (user) {
+          try {
+            await setDoc(doc(db, 'users', user.uid), {
+              role: role,
+              name: user.displayName || user.email?.split('@')[0] || 'User',
+              email: user.email,
+              updatedAt: serverTimestamp()
+            }, { merge: true });
+          } catch (err) {
+            console.error("Error updating role in users collection:", err);
+          }
+        }
       }}
       onBack={() => {
         setShowDashboard(false);
@@ -700,6 +714,7 @@ export default function App() {
                   items: [
                     { icon: BookOpen, label: 'Study & Revision', id: 'student-notes' },
                     { icon: TrendingUp, label: 'My Progress', id: 'reports' },
+                    { icon: Settings, label: 'My Settings', id: 'settings' },
                   ]
                 }
               );
@@ -712,6 +727,7 @@ export default function App() {
                     { icon: TrendingUp, label: "Child's Progress", id: 'reports' },
                     { icon: MessageSquare, label: 'Teacher Communicator', id: 'messenger' },
                     { icon: FileText, label: 'Assignments & Info', id: 'portfolios' },
+                    { icon: Settings, label: 'My Settings', id: 'settings' },
                   ]
                 }
               );
@@ -1240,7 +1256,11 @@ export default function App() {
                 ) : activeTab === 'messenger' ? (
                   <Messenger />
                 ) : activeTab === 'reports' ? (
-                  <ProgressReports />
+                  userRole === 'parent' ? (
+                    <ParentDashboard isDarkMode={isDarkMode} />
+                  ) : (
+                    <ProgressReports />
+                  )
                 ) : activeTab === 'class-management' ? (
                   <ClassManagement />
                 ) : activeTab === 'ocr' ? (
@@ -1273,6 +1293,7 @@ export default function App() {
                     isAppInstallable={isAppInstallable}
                     installPWAApp={installPWAApp}
                     isAlreadyInstalled={isAlreadyInstalled}
+                    userRole={userRole || 'teacher'}
                   />
                 ) : activeTab === 'helpdesk' ? (
                   <Helpdesk isDarkMode={isDarkMode} />

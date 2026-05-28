@@ -21,6 +21,7 @@ interface SettingsProps {
   isAppInstallable?: boolean;
   installPWAApp?: () => void;
   isAlreadyInstalled?: boolean;
+  userRole?: string;
 }
 
 export default function Settings({ 
@@ -31,7 +32,8 @@ export default function Settings({
   onSwitchUser,
   isAppInstallable = false,
   installPWAApp,
-  isAlreadyInstalled = false 
+  isAlreadyInstalled = false,
+  userRole
 }: SettingsProps) {
   const { provider, ocrProvider, ttsProvider, imageProvider, setProvider, setOcrProvider, setTtsProvider, setImageProvider } = useAi();
   const [notifications, setNotifications] = useState(true);
@@ -233,7 +235,9 @@ export default function Settings({
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Institution</label>
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">
+                    {userRole === 'student' ? 'School Name' : userRole === 'parent' ? "Children's School" : 'Institution'}
+                  </label>
                   <input 
                     type="text" 
                     value={school}
@@ -242,7 +246,9 @@ export default function Settings({
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Job Title</label>
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">
+                    {userRole === 'student' ? 'Grade & Class' : userRole === 'parent' ? 'Occupation / Relationship' : 'Job Title'}
+                  </label>
                   <div className="relative">
                     <input 
                       type="text" 

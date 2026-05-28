@@ -37,6 +37,9 @@ export interface StudentDoc {
   streak?: number;
   subjects?: Subject[];
   idp?: IdpModel;
+  parentName?: string;
+  parentEmail?: string;
+  parentPhone?: string;
   createdAt?: any;
 }
 

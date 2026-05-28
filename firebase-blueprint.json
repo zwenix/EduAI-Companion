@@ -27,6 +27,9 @@
         "email": { "type": "string" },
         "status": { "type": "string", "enum": ["Active", "Inactive"] },
         "teacherId": { "type": "string" },
+        "parentName": { "type": "string" },
+        "parentEmail": { "type": "string" },
+        "parentPhone": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
