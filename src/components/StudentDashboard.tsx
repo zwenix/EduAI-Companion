@@ -3,36 +3,10 @@ import { Target, BookOpen, CheckCircle, Flame, Star, Brain, Play, Check } from '
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, updateDoc, doc, setDoc } from 'firebase/firestore';
+import confetti from 'canvas-confetti';
+import { StudentDoc, MilestoneTask, IdpModel, Subject } from '../types';
+import { logStudentActivity } from '../lib/activityLogger';
 
-interface MilestoneTask {
-  task: string;
-  milestone: string;
-  status: 'Pending' | 'In Progress' | 'Completed';
-}
-
-interface IdpModel {
-  strengths?: string[];
-  weaknesses?: string[];
-  recommendations?: string[];
-  actionPlan: MilestoneTask[];
-}
-
-interface StudentSubject {
-  name: string;
-  mark: number;
-}
-
-interface StudentDoc {
-  id: string;
-  name: string;
-  grade: string;
-  email: string;
-  status: string;
-  lastActiveDate?: string;
-  streak?: number;
-  subjects?: StudentSubject[];
-  idp?: IdpModel;
-}
 
 export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }) {
   const [student, setStudent] = useState<StudentDoc | null>(null);
@@ -130,11 +104,11 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
           email: fallbackEmail,
           status: 'Active',
           lastActiveDate: new Date().toISOString().split('T')[0],
-          streak: 7,
+          streak: 1,
           subjects: [
-            { name: 'Mathematics', mark: 84 },
-            { name: 'Physical Sciences', mark: 79 },
-            { name: 'English First Additional Language', mark: 89 }
+            { name: 'Mathematics', mark: 84, termHistory: [74, 78, 80, 84], assessments: [] },
+            { name: 'Physical Sciences', mark: 79, termHistory: [70, 72, 75, 79], assessments: [] },
+            { name: 'English First Additional Language', mark: 89, termHistory: [82, 85, 87, 89], assessments: [] }
           ],
           idp: defaultIdp
         };
@@ -157,44 +131,117 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
     return () => unsubscribe();
   }, []);
 
+  const [liveStreak, setLiveStreak] = useState(1);
+
+  // Record login activity once resolved
+  useEffect(() => {
+    if (student?.id) {
+      logStudentActivity(student.id, 'login', 'Logged in to classroom portal');
+    }
+  }, [student?.id]);
+
+  // Subscribe dynamically to activity logs to calculate streak in real time
+  useEffect(() => {
+    if (!student?.id) return;
+
+    const q = query(
+      collection(db, 'activity_logs'),
+      where('studentId', '==', student.id)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const uniqueDates = new Set<string>();
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.timestamp) {
+          uniqueDates.add(data.timestamp);
+        }
+      });
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+      let streakCount = 0;
+      const todayHasActivity = uniqueDates.has(todayStr);
+      const yesterdayHasActivity = uniqueDates.has(yesterdayStr);
+
+      if (todayHasActivity || yesterdayHasActivity) {
+        let dateToCheck = todayHasActivity ? new Date() : yesterday;
+        while (true) {
+          const checkStr = dateToCheck.toISOString().split('T')[0];
+          if (uniqueDates.has(checkStr)) {
+            streakCount++;
+            dateToCheck.setDate(dateToCheck.getDate() - 1);
+          } else {
+            break;
+          }
+        }
+      } else {
+        streakCount = 1;
+      }
+
+      const finalStreak = Math.max(1, streakCount);
+      setLiveStreak(finalStreak);
+
+      // Back-sync computed streak to the student doc if differs
+      if (student.streak !== finalStreak) {
+        updateDoc(doc(db, 'students', student.id), { streak: finalStreak }).catch(console.warn);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [student?.id, student?.streak]);
+
   // Compute dynamic stats from DB
   const stats = useMemo(() => {
     if (!student) {
       return {
-        masteryScore: '84%',
-        modulesComplete: '12',
-        streak: '7',
-        level: 12,
-        xp: 65,
+        masteryScore: '0%',
+        modulesComplete: '0',
+        streak: '1',
+        level: 1,
+        xp: 0,
         missions: [] as MilestoneTask[]
       };
     }
 
-    // Average mark corresponding to subjects
+    // Average mark corresponding to subjects and assessments
     const subjects = student.subjects || [];
-    const avg = subjects.length > 0 
-      ? Math.round(subjects.reduce((sum, s) => sum + s.mark, 0) / subjects.length)
+    let totalMarksSum = 0;
+    let totalSubjectsCount = 0;
+
+    subjects.forEach(sub => {
+      const assessmentsList = sub.assessments || [];
+      const subMark = assessmentsList.length > 0
+        ? Math.round(assessmentsList.reduce((sum, a) => sum + a.score, 0) / assessmentsList.length)
+        : sub.mark;
+      totalMarksSum += subMark;
+      totalSubjectsCount++;
+    });
+
+    const avgMastery = totalSubjectsCount > 0 
+      ? Math.round(totalMarksSum / totalSubjectsCount)
       : 84;
 
     const actionPlan = student.idp?.actionPlan || [];
     const completedCount = actionPlan.filter(task => task.status === 'Completed').length;
-    const modulesWithFallbacks = completedCount + 10; // offset benchmark
-    const streak = student.streak || 7;
-
+    
     // Derived level and progress based on streak + completed projects
-    const totalWeight = (streak * 10) + (completedCount * 30);
-    const level = Math.max(1, Math.floor(totalWeight / 40) + 8);
+    const totalWeight = (liveStreak * 10) + (completedCount * 30);
+    const level = Math.max(1, Math.floor(totalWeight / 40) + 1);
     const xp = totalWeight % 100;
 
     return {
-      masteryScore: `${avg}%`,
-      modulesComplete: `${modulesWithFallbacks}`,
-      streak: `${streak}`,
+      masteryScore: `${avgMastery}%`,
+      modulesComplete: `${completedCount}`,
+      streak: `${liveStreak}`,
       level,
       xp,
       missions: actionPlan
     };
-  }, [student]);
+  }, [student, liveStreak]);
 
   // Click handler to toggle status of mission
   const handleToggleMission = async (index: number) => {
@@ -210,7 +257,16 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
 
       if (nextStatus === 'Completed') {
         setCelebrateTaskId(index);
+        confetti({
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.6 },
+          colors: ['#06b6d4', '#eab308', '#ec4899', '#a855f7', '#10b981']
+        });
         setTimeout(() => setCelebrateTaskId(null), 2500);
+        logStudentActivity(student.id, 'task_completed', `Completed mission task: ${task.task}`);
+      } else {
+        logStudentActivity(student.id, 'task_completed', `Reopened mission task: ${task.task}`);
       }
 
       try {

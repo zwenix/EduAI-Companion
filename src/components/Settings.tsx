@@ -3,7 +3,7 @@ import {
   Settings as SettingsIcon, Bell, Shield, Key, Moon, Sun, 
   Monitor, Save, AlertCircle, User, CreditCard, 
   Database, Activity, Lock, Mail, Phone, Globe,
-  LogOut, Trash2, Plus, Smartphone, Download
+  LogOut, Trash2, Plus, Smartphone, Download, Palette
 } from 'lucide-react';
 import { useAi } from '../contexts/AiContext';
 import { auth, db } from '../lib/firebase';
@@ -43,6 +43,11 @@ export default function Settings({
   const [jobTitle, setJobTitle] = useState(() => localStorage.getItem('eduai_user_job') || 'Professional Educator');
   const [photoUrl, setPhotoUrl] = useState(() => localStorage.getItem('eduai_user_photo') || '');
   const [profileEmail, setProfileEmail] = useState('');
+  
+  // Children accessibility preferences controls
+  const [dyslexiaTheme, setDyslexiaTheme] = useState(() => localStorage.getItem('eduai_dyslexia') === 'true');
+  const [readSpeed, setReadSpeed] = useState(() => Number(localStorage.getItem('eduai_read_speed') || '1.0'));
+  const [dyscalculiaHelp, setDyscalculiaHelp] = useState(() => localStorage.getItem('eduai_dyscalculia') === 'true');
   
   const [activeSubTab, setActiveSubTab] = useState('personal');
   const [isLoading, setIsLoading] = useState(true);
@@ -134,6 +139,7 @@ export default function Settings({
 
   const subTabs = [
     { id: 'personal', label: 'Personal', icon: User },
+    { id: 'accessibility', label: 'Accessibility', icon: Palette },
     { id: 'security', label: 'Security', icon: Lock },
     { id: 'ai', label: 'AI Configuration', icon: Activity },
     { id: 'pwa', label: 'App Install (PWA)', icon: Smartphone },
@@ -519,6 +525,108 @@ export default function Settings({
                     <li><strong className={isDarkMode ? "text-white/80" : "text-slate-700"}>iOS iPhone & iPad (Safari)</strong>: Tap the share utility box (square icon with up-arrow) at the screen bottom, scroll, and select <strong>"Add to Home Screen"</strong>.</li>
                     <li><strong className={isDarkMode ? "text-white/80" : "text-slate-700"}>macOS & Windows (Edge / Chrome)</strong>: Press the computer icon with down-arrow popping up right in your URL address bar, or open native browser menus to select <strong>"Install EduAI Companion"</strong>.</li>
                   </ul>
+                </div>
+             </div>
+          )}
+
+          {activeSubTab === 'accessibility' && (
+             <div className={cn("rounded-[48px] p-8 lg:p-12 space-y-8", isDarkMode ? "glass" : "bg-white border border-slate-200 shadow-sm")}>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="p-3 bg-cyan-500/10 rounded-2xl text-brand-cyan animate-pulse">
+                    <Palette size={24} />
+                  </div>
+                  <div>
+                    <h2 className={cn("text-2xl font-bold font-hand", isDarkMode ? "text-white" : "text-slate-900")}>Child Accessibility Settings</h2>
+                    <p className="text-sm text-slate-500">Enable features to enhance reading, focus, and interaction comfort.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Dyslexia-Friendly Mode */}
+                  <div className={cn("p-6 rounded-3xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-transform", isDarkMode ? "bg-white/5 border-white/5" : "bg-slate-50 border-slate-200")}>
+                    <div className="space-y-1">
+                      <p className={cn("font-bold text-base", isDarkMode ? "text-white" : "text-slate-900")}>📖 Dyslexia-Friendly Font & Spacing</p>
+                      <p className="text-xs text-slate-500 max-w-lg">
+                        Converts all system typography into high-contrast sans-serif format with enlarged character tracking and loose word gaps. Perfect for developing readers.
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        const newVal = !dyslexiaTheme;
+                        setDyslexiaTheme(newVal);
+                        localStorage.setItem('eduai_dyslexia', String(newVal));
+                        window.dispatchEvent(new Event('eduai_accessibility_change'));
+                      }}
+                      className={cn(
+                        "px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-widest cursor-pointer border transition-all active:scale-95 duration-200",
+                        dyslexiaTheme 
+                          ? "bg-brand-cyan text-slate-950 border-brand-cyan shadow-lg shadow-cyan-500/20" 
+                          : (isDarkMode ? "border-white/10 text-slate-400 hover:text-white hover:bg-white/5" : "border-slate-200 text-slate-600 hover:bg-slate-100")
+                      )}
+                    >
+                      {dyslexiaTheme ? "ACTIVE" : "DISABLED"}
+                    </button>
+                  </div>
+
+                  {/* Dyscalculia Assist */}
+                  <div className={cn("p-6 rounded-3xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-transform", isDarkMode ? "bg-white/5 border-white/5" : "bg-slate-50 border-slate-200")}>
+                    <div className="space-y-1">
+                      <p className={cn("font-bold text-base", isDarkMode ? "text-white" : "text-slate-900")}>🔢 Dyscalculia Multi-Colored Numbers</p>
+                      <p className="text-xs text-slate-500 max-w-lg">
+                        Wraps critical numbers and math outputs into rainbow color tags to suppress numerical anxiety and improve segment calculations.
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        const newVal = !dyscalculiaHelp;
+                        setDyscalculiaHelp(newVal);
+                        localStorage.setItem('eduai_dyscalculia', String(newVal));
+                        window.dispatchEvent(new Event('eduai_accessibility_change'));
+                      }}
+                      className={cn(
+                        "px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-widest cursor-pointer border transition-all active:scale-95 duration-200",
+                        dyscalculiaHelp 
+                          ? "bg-brand-cyan text-slate-950 border-brand-cyan shadow-lg shadow-cyan-500/20" 
+                          : (isDarkMode ? "border-white/10 text-slate-400 hover:text-white hover:bg-white/5" : "border-slate-200 text-slate-600 hover:bg-slate-100")
+                      )}
+                    >
+                      {dyscalculiaHelp ? "ACTIVE" : "DISABLED"}
+                    </button>
+                  </div>
+
+                  {/* Speech Reading Velocity */}
+                  <div className={cn("p-6 rounded-3xl border space-y-4", isDarkMode ? "bg-white/5 border-white/5" : "bg-slate-50 border-slate-200")}>
+                    <div className="flex justify-between items-center">
+                      <div className="space-y-1">
+                        <p className={cn("font-bold text-base", isDarkMode ? "text-white" : "text-slate-900")}>🗣️ TTS Voice Read-Aloud Speed</p>
+                        <p className="text-xs text-slate-500">
+                          Controls the pronunciation reading speed of the live AI TTS tutor voice for simpler comprehension.
+                        </p>
+                      </div>
+                      <span className="font-mono text-xs font-black text-brand-cyan bg-brand-cyan/10 px-3 py-1.5 rounded-xl border border-brand-cyan/25">
+                        {readSpeed.toFixed(1)}x Velocity
+                      </span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0.5" 
+                      max="1.8" 
+                      step="0.1" 
+                      value={readSpeed}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setReadSpeed(val);
+                        localStorage.setItem('eduai_read_speed', String(val));
+                        window.dispatchEvent(new Event('eduai_accessibility_change'));
+                      }}
+                      className="w-full accent-brand-cyan cursor-pointer"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                      <span>🐢 Super Slow (0.5x)</span>
+                      <span>Ordinary (1.0x)</span>
+                      <span>🐆 Fast (1.8x)</span>
+                    </div>
+                  </div>
                 </div>
              </div>
           )}

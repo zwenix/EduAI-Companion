@@ -158,3 +158,12 @@
     box-shadow: none !important;
   }
 }
+
+/* Dyslexia Reader Accessibility Override Style */
+body.dyslexia-font-active, 
+body.dyslexia-font-active * {
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif !important;
+  letter-spacing: 0.05em !important;
+  word-spacing: 0.12em !important;
+  line-height: 1.75 !important;
+}

@@ -538,6 +538,21 @@ export default function App() {
     };
   }, []);
 
+  // Synchronize accessibility options across the app viewport
+  useEffect(() => {
+    const syncAccessibility = () => {
+      const dActive = localStorage.getItem('eduai_dyslexia') === 'true';
+      if (dActive) {
+        document.body.classList.add('dyslexia-font-active');
+      } else {
+        document.body.classList.remove('dyslexia-font-active');
+      }
+    };
+    syncAccessibility();
+    window.addEventListener('eduai_accessibility_change', syncAccessibility);
+    return () => window.removeEventListener('eduai_accessibility_change', syncAccessibility);
+  }, []);
+
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 1024;
@@ -646,70 +661,139 @@ export default function App() {
 
         <nav className="flex-1 min-h-0 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
           {(function() {
+            interface NavigationGroup {
+              category: string;
+              items: { icon: any; label: string; id: string }[];
+            }
+            const groups: NavigationGroup[] = [];
+
             if (userRole === 'student') {
-              return [
-                { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
-                { icon: Brain, label: 'AI Tutor', id: 'ai-tutor' },
-                { icon: ClipboardCheck, label: 'Practice & Exercises', id: 'student-practice' },
-                { icon: BookOpen, label: 'Study Notes & Revision', id: 'student-notes' },
-                { icon: TrendingUp, label: 'My Progress', id: 'reports' },
-                { icon: UserCircle, label: 'My Portfolio', id: 'portfolios' },
-                { icon: MessageSquare, label: 'Chat', id: 'messenger' },
-              ];
-            }
-            if (userRole === 'parent') {
-              return [
-                { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
-                { icon: TrendingUp, label: "Child's Progress", id: 'reports' },
-                { icon: MessageSquare, label: 'Teacher Communicator', id: 'messenger' },
-                { icon: FileText, label: 'Assignments & Timetable', id: 'portfolios' },
-              ];
-            }
-            if (userRole === 'admin') {
-              return [
-                { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
-                { icon: School, label: 'School Management', id: 'class-management' },
-                { icon: FileText, label: 'Official Correspondence', id: 'teaching' },
-                { icon: Archive, label: 'Content Archive', id: 'archive' },
-                { icon: TrendingUp, label: 'Reports & Analytics', id: 'reports' },
-              ];
-            }
-            // default teacher
-            return [
-              { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
-              { icon: FlaskConical, label: 'Content Creator Studio', id: 'teaching' },
-              { icon: Archive, label: 'Content Archive', id: 'archive' },
-              { icon: Brain, label: 'AI Tutor', id: 'ai-tutor' },
-              { icon: Scan, label: 'Scan & Autograde', id: 'ocr' },
-              { icon: TrendingUp, label: 'Progress Reports', id: 'reports' },
-              { icon: MessageSquare, label: 'Communicator & Messenger', id: 'messenger' },
-              { icon: UserCircle, label: 'Portfolios', id: 'portfolios' },
-              { icon: Users, label: 'Class & Student Management', id: 'class-management' },
-              { icon: Settings, label: 'Settings', id: 'settings' },
-              { icon: HelpCircle, label: 'Helpdesk & Technical Support', id: 'helpdesk' },
-            ];
-          })().map((item) => (
-            <SidebarItem 
-              key={item.id}
-              icon={item.icon} 
-              label={item.label} 
-              active={
-                activeCreatorTab !== null 
-                ? item.id === 'teaching' 
-                : activeTab === item.id
-              } 
-              isDarkMode={isDarkMode}
-              onClick={() => {
-                if (['teaching'].includes(item.id)) {
-                  setActiveCreatorTab(item.id);
-                } else {
-                  changeTab(item.id);
+              groups.push(
+                {
+                  category: "🎮 My Missions",
+                  items: [
+                    { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
+                    { icon: ClipboardCheck, label: 'Practice Zone', id: 'student-practice' },
+                    { icon: UserCircle, label: 'My Portfolio', id: 'portfolios' },
+                  ]
+                },
+                {
+                  category: "🤖 AI Helpers",
+                  items: [
+                    { icon: Brain, label: 'AI Tutor', id: 'ai-tutor' },
+                    { icon: MessageSquare, label: 'Chat & Friends', id: 'messenger' },
+                  ]
+                },
+                {
+                  category: "📚 Learning Stuff",
+                  items: [
+                    { icon: BookOpen, label: 'Study & Revision', id: 'student-notes' },
+                    { icon: TrendingUp, label: 'My Progress', id: 'reports' },
+                  ]
                 }
-                if (isMobile) setMobileSidebarOpen(false);
-              }} 
-              collapsed={!isSidebarOpen && !isMobile}
-            />
-          ))}
+              );
+            } else if (userRole === 'parent') {
+              groups.push(
+                {
+                  category: "🏡 Family Hub",
+                  items: [
+                    { icon: LayoutDashboard, label: 'Parent Dashboard', id: 'dashboard' },
+                    { icon: TrendingUp, label: "Child's Progress", id: 'reports' },
+                    { icon: MessageSquare, label: 'Teacher Communicator', id: 'messenger' },
+                    { icon: FileText, label: 'Assignments & Info', id: 'portfolios' },
+                  ]
+                }
+              );
+            } else if (userRole === 'admin') {
+              groups.push(
+                {
+                  category: "🏛️ Administration",
+                  items: [
+                    { icon: LayoutDashboard, label: 'Admin Dashboard', id: 'dashboard' },
+                    { icon: School, label: 'School Management', id: 'class-management' },
+                    { icon: FileText, label: 'Official Correspondence', id: 'teaching' },
+                    { icon: Archive, label: 'Content Archive', id: 'archive' },
+                    { icon: TrendingUp, label: 'Reports & Analytics', id: 'reports' },
+                  ]
+                }
+              );
+            } else {
+              // Default: Teacher
+              groups.push(
+                {
+                  category: "📚 Lesson Planning",
+                  items: [
+                    { icon: LayoutDashboard, label: 'Teacher Dashboard', id: 'dashboard' },
+                    { icon: FlaskConical, label: 'Content Creator', id: 'teaching' },
+                    { icon: Archive, label: 'Content Archive', id: 'archive' },
+                  ]
+                },
+                {
+                  category: "🤖 Intelligence AI",
+                  items: [
+                    { icon: Brain, label: 'AI Tutor Support', id: 'ai-tutor' },
+                    { icon: Scan, label: 'Scan & Autograde', id: 'ocr' },
+                  ]
+                },
+                {
+                  category: "🏫 Class Analytics",
+                  items: [
+                    { icon: TrendingUp, label: 'Progress Reports', id: 'reports' },
+                    { icon: Users, label: 'Class Management', id: 'class-management' },
+                    { icon: UserCircle, label: 'Learner Portfolios', id: 'portfolios' },
+                    { icon: MessageSquare, label: 'Communicator Hub', id: 'messenger' },
+                  ]
+                },
+                {
+                  category: "⚙️ System Support",
+                  items: [
+                    { icon: Settings, label: 'Settings', id: 'settings' },
+                    { icon: HelpCircle, label: 'Helpdesk Support', id: 'helpdesk' },
+                  ]
+                }
+              );
+            }
+
+            const collapsed = !isSidebarOpen && !isMobile;
+
+            return groups.map((group, gIdx) => (
+              <div key={gIdx} className={`mb-5 ${collapsed ? "space-y-2" : "space-y-1"}`}>
+                {!collapsed ? (
+                  <h3 className={`text-[10px] sm:text-[11px] font-black uppercase tracking-widest mb-2 px-3 ${
+                    isDarkMode ? 'text-slate-500' : 'text-slate-400'
+                  }`}>
+                    {group.category}
+                  </h3>
+                ) : (
+                  <div className={`h-px my-3 mx-2 ${isDarkMode ? 'bg-white/5' : 'bg-slate-100'}`} />
+                )}
+                <div className="space-y-1">
+                  {group.items.map((item) => (
+                    <SidebarItem 
+                      key={item.id}
+                      icon={item.icon} 
+                      label={item.label} 
+                      active={
+                        activeCreatorTab !== null 
+                        ? item.id === 'teaching' 
+                        : activeTab === item.id
+                      } 
+                      isDarkMode={isDarkMode}
+                      onClick={() => {
+                        if (['teaching'].includes(item.id)) {
+                          setActiveCreatorTab(item.id);
+                        } else {
+                          changeTab(item.id);
+                        }
+                        if (isMobile) setMobileSidebarOpen(false);
+                      }} 
+                      collapsed={collapsed}
+                    />
+                  ))}
+                </div>
+              </div>
+            ));
+          })()}
         </nav>
 
         {/* PWA Install Promo */}

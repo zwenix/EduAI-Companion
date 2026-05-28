@@ -17,138 +17,8 @@ import { collection, query, where, onSnapshot, updateDoc, doc, setDoc, deleteDoc
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 
-// --- Static Mock Data with comprehensive subject-by-subject histories and assessments ---
-const MOCK_STUDENTS = [
-  {
-    id: 'mock-1',
-    name: 'Sibusiso Dube',
-    grade: 'Grade 10A',
-    email: 'sibu.dube@school.za',
-    status: 'Active',
-    subjects: [
-      { name: 'Mathematics', mark: 82, termHistory: [70, 75, 80, 82], assessments: [ { title: 'Algebra Portfolio', score: 85, type: 'SBA' }, { title: 'Geometry Test', score: 78, type: 'Test' }, { title: 'Class Project', score: 83, type: 'Project' } ] },
-      { name: 'Physical Sciences', mark: 59, termHistory: [50, 52, 55, 59], assessments: [ { title: 'Vector lab practical', score: 60, type: 'Practical' }, { title: 'Stoichiometry SBA', score: 54, type: 'SBA' }, { title: 'Energy Quiz', score: 63, type: 'Quiz' } ] },
-      { name: 'Life Sciences', mark: 88, termHistory: [80, 82, 85, 88], assessments: [ { title: 'Cellular anatomy', score: 90, type: 'Test' }, { title: 'Genetics SBA', score: 86, type: 'SBA' } ] },
-      { name: 'History', mark: 76, termHistory: [72, 73, 75, 76], assessments: [ { title: 'Cold War research', score: 80, type: 'Project' }, { title: 'Source-based test', score: 72, type: 'SBA' } ] }
-    ]
-  },
-  {
-    id: 'mock-2',
-    name: 'Amara Patel',
-    grade: 'Grade 10B',
-    email: 'amara.patel@educate.za',
-    status: 'Active',
-    subjects: [
-      { name: 'Mathematics', mark: 64, termHistory: [55, 58, 60, 64], assessments: [ { title: 'Linear functions SBA', score: 68, type: 'SBA' }, { title: 'Trigonometry exam', score: 60, type: 'Test' } ] },
-      { name: 'Physical Sciences', mark: 72, termHistory: [68, 70, 71, 72], assessments: [ { title: 'Electromagnetism Lab', score: 75, type: 'Practical' }, { title: 'Chemistry quiz', score: 69, type: 'Quiz' } ] },
-      { name: 'Life Sciences', mark: 61, termHistory: [58, 62, 59, 61], assessments: [ { title: 'Plant reproduction SBA', score: 64, type: 'SBA' }, { title: 'Tissue structure test', score: 58, type: 'Test' } ] },
-      { name: 'Geography', mark: 85, termHistory: [80, 82, 84, 85], assessments: [ { title: 'Climatology essay', score: 88, type: 'Project' }, { title: 'Mapwork calculations', score: 82, type: 'SBA' } ] }
-    ]
-  },
-  {
-    id: 'mock-3',
-    name: 'Thabo Naidoo',
-    grade: 'Grade 11C',
-    email: 'thabo.naidoo@school.org',
-    status: 'Active',
-    subjects: [
-      { name: 'Mathematics', mark: 94, termHistory: [88, 90, 92, 94], assessments: [ { title: 'Calculus SBA', score: 96, type: 'SBA' }, { title: 'Analytical geometry', score: 92, type: 'Test' } ] },
-      { name: 'Physical Sciences', mark: 91, termHistory: [85, 88, 89, 91], assessments: [ { title: 'Organic Chemistry Lab', score: 93, type: 'Practical' }, { title: 'Wave properties', score: 89, type: 'Test' } ] },
-      { name: 'Geography', mark: 78, termHistory: [74, 75, 77, 78], assessments: [ { title: 'Geomorphology project', score: 80, type: 'Project' }, { title: 'GIS map revision', score: 76, type: 'SBA' } ] }
-    ]
-  },
-  {
-    id: 'mock-4',
-    name: 'Isabella Meyer',
-    grade: 'Grade 9A',
-    email: 'isabella.m@academy.za',
-    status: 'Active',
-    subjects: [
-      { name: 'Mathematics', mark: 52, termHistory: [44, 46, 48, 52], assessments: [ { title: 'Fraction algebra', score: 55, type: 'Test' }, { title: 'Geometric basics', score: 49, type: 'SBA' } ] },
-      { name: 'History', mark: 68, termHistory: [60, 62, 65, 68], assessments: [ { title: 'Apartheid SBA research', score: 70, type: 'Project' }, { title: 'Map work reading', score: 66, type: 'Test' } ] },
-      { name: 'Natural Sciences', mark: 45, termHistory: [40, 42, 44, 45], assessments: [ { title: 'Photosynthesis lab', score: 48, type: 'Practical' }, { title: 'Periodic table test', score: 42, type: 'SBA' } ] }
-    ]
-  },
-  {
-    id: 'mock-5',
-    name: 'Emily Johnson',
-    grade: 'Grade 10A',
-    email: 'emily.j@outlook.com',
-    status: 'Active',
-    subjects: [
-      { name: 'Mathematics', mark: 78, termHistory: [72, 74, 76, 78], assessments: [ { title: 'Algebra Equations', score: 81, type: 'SBA' }, { title: 'Euclidean geometry', score: 75, type: 'Test' } ] },
-      { name: 'Life Sciences', mark: 80, termHistory: [75, 78, 79, 80], assessments: [ { title: 'DNA structure SBA', score: 83, type: 'SBA' }, { title: 'Plant reproduction lab', score: 77, type: 'Practical' } ] }
-    ]
-  }
-];
-
-const PRELOADED_PLANS: Record<string, any> = {
-  'mock-1': {
-    strengths: [
-      "Outstanding logical reasoning and high marks in Life Sciences (88%) and Mathematics (82%).",
-      "Stellar practical experimentation conceptualization and recall.",
-      "Clear upward trajectory in overall term performance."
-    ],
-    weaknesses: [
-      "Subject of concern: Physical Sciences (59%), particularly vector analyses and chemistry stoichiometry chemical formulas.",
-      "Vulnerable under intensive pressure on timed chemical question papers."
-    ],
-    recommendations: [
-      "Dedicate a targeted 20 minutes daily for science stoichiometry calculation practice worksheets available in Content Studio.",
-      "Consult the AI Tutor to do a detailed, 1-on-1 walkthrough of force vectors using visual diagram aids.",
-      "Collaborate with classmates inside Study Groups to review chemistry lab rubrics."
-    ],
-    actionPlan: [
-      { task: "Master Physical Sciences force vectors rules", milestone: "Next 2 weeks", status: "In Progress" },
-      { task: "Complete 3 Chemistry quiz practice sheets on AI Tutor", milestone: "Next Month", status: "Pending" },
-      { task: "Achieve a minimum of 65% in next Science SBA submission", milestone: "Before major exam", status: "Pending" }
-    ]
-  },
-  'mock-2': {
-    strengths: [
-      "Superb long-form article writing and history sources criticism in Geography (85%).",
-      "Consistent experimental accuracy in Physical Sciences practicals (72%)."
-    ],
-    weaknesses: [
-      "Underperforming in Mathematics (64%) due to foundational gaps in quadratic formula application.",
-      "Struggling in Life Sciences cell structure (61%) terminology memory structure."
-    ],
-    recommendations: [
-      "Engage on interactive linear algebraic functions inside Content Studio.",
-      "Generate 12 Life Sciences animal/plant cell anatomy flashcards using Visual Aid builder.",
-      "Utilize geographical scale calculators to improve Mapwork processing speeds."
-    ],
-    actionPlan: [
-      { task: "Review quadratic equations and double bracket factorization rules", milestone: "Next 10 days", status: "Completed" },
-      { task: "Establish cellular structures dictionary guide", milestone: "Within 3 weeks", status: "In Progress" }
-    ]
-  },
-  'mock-3': {
-    strengths: [
-      "Excellent logical flow and perfect calculations capacity across Mathematics (94%) and Physical Sciences (91%).",
-      "Incredible homework precision, detailed graphs, and zero late-tasks record."
-    ],
-    weaknesses: [
-      "Needs slight speed acceleration in Geography Mapwork GIS calculations (78%)."
-    ],
-    recommendations: [
-      "Provide high-level calculus extension exercises from Content Studio to cultivate talents.",
-      "Assign Mapwork navigation exercises using scale conversion formulas.",
-      "Lead small peer Math circles in Study Groups to reinforce top concepts."
-    ],
-    actionPlan: [
-      { task: "Begin advanced trigonometric and algebraic extensions", milestone: "Ongoing", status: "In Progress" },
-      { task: "Complete 2 Geography SBA Mapwork papers", milestone: "Within 2 weeks", status: "In Progress" }
-    ]
-  }
-};
-
-const CLASS_AGGREGATE_DATA = [
-  { name: 'Term 1', math: 65, sci: 70, eng: 80, geo: 74 },
-  { name: 'Term 2', math: 72, sci: 75, eng: 82, geo: 75 },
-  { name: 'Term 3', math: 80, sci: 85, eng: 88, geo: 77 },
-  { name: 'Term 4', math: 85, sci: 92, eng: 90, geo: 81 },
-];
+import { StudentDoc, Subject, Assessment, MilestoneTask, IdpModel } from '../types';
+import { MOCK_STUDENTS, PRELOADED_PLANS } from '../data/mockStudents';
 
 export default function ProgressReports() {
   const [activeTab, setActiveTab] = useState<'overview' | 'idp'>('overview');
@@ -197,6 +67,7 @@ export default function ProgressReports() {
   const reportRef = useRef<HTMLDivElement>(null);
 
   // CRUD Learner States
+  const [loading, setLoading] = useState(true);
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [showEditStudentModal, setShowEditStudentModal] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
@@ -274,7 +145,10 @@ export default function ProgressReports() {
   // Listen to Firestore classes and students
   useEffect(() => {
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     // Classes
     const qClasses = query(collection(db, 'classes'), where('teacherId', '==', user.uid));
@@ -287,24 +161,30 @@ export default function ProgressReports() {
     const unsubStudents = onSnapshot(qStudents, async (snapshot) => {
       if (snapshot.empty) {
         console.log("Seeding student documents to Firestore for new teacher...");
+        const seededList: any[] = [];
         for (const mock of MOCK_STUDENTS) {
           const docId = `${mock.id}_${user.uid}`;
+          const seededData = {
+            ...mock,
+            id: docId,
+            teacherId: user.uid,
+            createdAt: new Date().toISOString(), // Static readable date fallback
+          };
           try {
-            await setDoc(doc(db, 'students', docId), {
-              ...mock,
-              id: docId,
-              teacherId: user.uid,
-              createdAt: serverTimestamp(),
-            });
+            await setDoc(doc(db, 'students', docId), seededData);
           } catch (e) {
             console.error("Failed to seed student doc", e);
           }
+          seededList.push(seededData);
         }
+        setFirebaseStudents(seededList);
       } else {
         setFirebaseStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       }
+      setLoading(false);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'students');
+      console.error("Students loading snapshot error:", error);
+      setLoading(false);
     });
 
     return () => { unsubClasses(); unsubStudents(); };
@@ -328,7 +208,7 @@ export default function ProgressReports() {
 
   // Merge mock students with Firebase students so that any custom-added learner dynamically functions!
   const allStudents = useMemo(() => {
-    const parsedFirebase = firebaseStudents.map(student => {
+    return firebaseStudents.map(student => {
       // Create a deterministic seed from student name to create realistic scores
       const seed = student.name.charCodeAt(0) || 72;
       const mathScore = Math.min(95, Math.max(42, (seed % 40) + 50));
@@ -348,9 +228,51 @@ export default function ProgressReports() {
           { name: 'English First Additional Language', mark: englishScore, termHistory: [englishScore - 5, englishScore - 2, englishScore - 1, englishScore], assessments: [ { title: 'Summary SBA', score: englishScore + 2, type: 'SBA' }, { title: 'Grammar review', score: englishScore - 4, type: 'Quiz' } ] }
         ]
       };
-    });
-    return parsedFirebase.length > 0 ? parsedFirebase : MOCK_STUDENTS;
+    }) as StudentDoc[];
   }, [firebaseStudents]);
+
+  // Dynamic class aggregate Term progress computed dynamically from all student's subjects
+  const classAggregateData = useMemo(() => {
+    const defaultData = [
+      { name: 'Term 1', math: 65, sci: 70, eng: 80, geo: 74 },
+      { name: 'Term 2', math: 72, sci: 75, eng: 82, geo: 75 },
+      { name: 'Term 3', math: 80, sci: 85, eng: 88, geo: 77 },
+      { name: 'Term 4', math: 85, sci: 92, eng: 90, geo: 81 },
+    ];
+    if (allStudents.length === 0) return defaultData;
+
+    const terms = ['Term 1', 'Term 2', 'Term 3', 'Term 4'];
+    return terms.map((term, termIdx) => {
+      let mathSum = 0, mathCount = 0;
+      let sciSum = 0, sciCount = 0;
+      let engSum = 0, engCount = 0;
+
+      allStudents.forEach(student => {
+        if (!student.subjects) return;
+        student.subjects.forEach(sub => {
+          const val = sub.termHistory?.[termIdx] || sub.mark;
+          const name = sub.name.toLowerCase();
+          if (name.includes('math')) {
+            mathSum += val;
+            mathCount++;
+          } else if (name.includes('science') || name.includes('phys')) {
+            sciSum += val;
+            sciCount++;
+          } else if (name.includes('english') || name.includes('lang')) {
+            engSum += val;
+            engCount++;
+          }
+        });
+      });
+
+      return {
+        name: term,
+        math: mathCount > 0 ? Math.round(mathSum / mathCount) : defaultData[termIdx].math,
+        sci: sciCount > 0 ? Math.round(sciSum / sciCount) : defaultData[termIdx].sci,
+        eng: engCount > 0 ? Math.round(engSum / engCount) : defaultData[termIdx].eng
+      };
+    });
+  }, [allStudents]);
 
   // Handle defaults when selecting student
   const currentStudent = useMemo(() => {
@@ -416,8 +338,9 @@ export default function ProgressReports() {
       return customPlans[selectedStudentId];
     }
     // Else check preloaded mock analyses
-    if (PRELOADED_PLANS[selectedStudentId]) {
-      return PRELOADED_PLANS[selectedStudentId];
+    const cleanId = selectedStudentId.split('_')[0];
+    if (PRELOADED_PLANS[cleanId]) {
+      return PRELOADED_PLANS[cleanId];
     }
     // Final default fallback structure
     return {
@@ -649,6 +572,33 @@ export default function ProgressReports() {
     ];
   }, [currentStudent, selectedSubjectName, currentSubjectObj]);
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 min-h-[400px]">
+        <motion.div
+          animate={{ 
+            rotate: [0, 10, -10, 0],
+            scale: [1, 1.1, 1]
+          }}
+          transition={{ repeat: Infinity, duration: 2 }}
+          className="text-7xl mb-4"
+        >
+          🤖
+        </motion.div>
+        <p className="text-2xl font-hand font-bold text-brand-cyan animate-pulse">
+          Retrieving academic achievements...
+        </p>
+        <div className="w-56 h-3 bg-white/10 rounded-full mt-4 overflow-hidden border border-white/5">
+          <motion.div
+            animate={{ x: ['-100%', '100%'] }}
+            transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+            className="h-full w-full bg-gradient-to-r from-brand-cyan via-brand-yellow to-brand-pink"
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 pb-20 custom-scrollbar font-sans text-slate-100">
       {/* Dynamic Notifications Banner */}
@@ -728,7 +678,7 @@ export default function ProgressReports() {
               </div>
               <div className="flex-1 min-h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={CLASS_AGGREGATE_DATA}>
+                  <AreaChart data={classAggregateData}>
                     <defs>
                       <linearGradient id="colorMath" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.4}/>
