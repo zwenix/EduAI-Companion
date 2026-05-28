@@ -508,32 +508,56 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       }
 
       try {
-        const response = await fetch("https://dashscope-intl.aliyuncs.com/compatible-mode/v1/images/generations", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`
-          },
-          body: JSON.stringify({
-            model: provider,
-            prompt: prompt,
-            n: 1,
-            size: "1024x1024"
-          })
-        });
+        const endpoints = [
+          "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/images/generations",
+          "https://dashscope.aliyuncs.com/compatible-mode/v1/images/generations",
+          "https://dashscope-intl.aliyuncs.com/v1/images/generations",
+          "https://dashscope.aliyuncs.com/v1/images/generations"
+        ];
 
-        if (!response.ok) {
-          const errText = await response.text();
-          throw new Error(`Alibaba API returned ${response.status}: ${errText}`);
+        let successUrl = null;
+        let lastError = null;
+
+        for (const endpoint of endpoints) {
+          try {
+            const response = await fetch(endpoint, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${apiKey}`
+              },
+              body: JSON.stringify({
+                model: provider,
+                prompt: prompt,
+                n: 1,
+                size: "1024x1024"
+              })
+            });
+
+            if (!response.ok) {
+              const errText = await response.text();
+              throw new Error(`Status ${response.status}: ${errText}`);
+            }
+
+            const data: any = await response.json();
+            if (data.data && data.data[0] && data.data[0].url) {
+              successUrl = data.data[0].url;
+              break;
+            } else if (data.output && data.output.results && data.output.results[0] && data.output.results[0].url) {
+              successUrl = data.output.results[0].url;
+              break;
+            }
+          } catch (err: any) {
+            lastError = err;
+            console.warn(`Alibaba Image generation endpoint failed (${endpoint}):`, err.message || err);
+          }
         }
 
-        const data: any = await response.json();
-        if (data.data && data.data[0] && data.data[0].url) {
-          return res.json({ url: data.data[0].url });
-        } else if (data.output && data.output.results && data.output.results[0] && data.output.results[0].url) {
-          return res.json({ url: data.output.results[0].url });
+        if (successUrl) {
+          return res.json({ url: successUrl });
         }
-        throw new Error("No image URL returned from Dashscope");
+
+        throw lastError || new Error("Failed all available Alibaba image generation endpoints");
       } catch (error: any) {
         console.warn("Alibaba Image generation failed, falling back to Pollinations...", error.message || error);
         const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;

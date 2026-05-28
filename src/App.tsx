@@ -52,7 +52,8 @@ import {
   Smartphone,
   Download,
   Accessibility,
-  Eye
+  Eye,
+  Contrast
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
@@ -1152,6 +1153,24 @@ export default function App() {
               className={`p-2 rounded-full ${isDarkMode ? 'bg-white/5 text-brand-yellow hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'} transition-all`}
             >
               {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+
+            {/* Global accessibility settings toggle for High-Contrast Mode */}
+            <button 
+              onClick={() => {
+                const val = !highContrastEnabled;
+                setHighContrastEnabled(val);
+                localStorage.setItem('eduai_high_contrast', String(val));
+                window.dispatchEvent(new Event('eduai_accessibility_change'));
+              }}
+              className={`p-2 rounded-full transition-all ${
+                highContrastEnabled 
+                  ? 'bg-yellow-400 text-slate-950 ring-4 ring-yellow-400/30' 
+                  : (isDarkMode ? 'bg-white/5 text-brand-pink hover:bg-white/10' : 'bg-slate-100 text-[#ea4335] hover:bg-slate-200')
+              }`}
+              title="Quick Toggle High-Contrast Mode"
+            >
+              <Contrast size={18} />
             </button>
 
             {/* Accessibility Helper Dropdown */}

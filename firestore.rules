@@ -9,12 +9,12 @@ service cloud.firestore {
     function isSignedIn() { return request.auth != null; }
 
     function isValidUser(data) {
-      return data.keys().size() >= 4
-        && data.keys().size() <= 9
+      return data.keys().size() >= 3
+        && data.keys().size() <= 10
         && data.name is string && data.name.size() <= 100
         && data.email is string && data.email.size() <= 150
-        && data.role is string && data.role in ['teacher', 'learner', 'parent']
-        && data.createdAt is timestamp
+        && data.role is string && data.role in ['teacher', 'student', 'learner', 'parent', 'admin']
+        && (!('createdAt' in data) || data.createdAt is timestamp)
         && (!('school' in data) || data.school == null || (data.school is string && data.school.size() <= 150))
         && (!('jobTitle' in data) || data.jobTitle == null || (data.jobTitle is string && data.jobTitle.size() <= 100))
         && (!('phone' in data) || data.phone == null || (data.phone is string && data.phone.size() <= 20))
@@ -24,12 +24,13 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().createdAt == request.time;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming())
+                     && (!('createdAt' in incoming()) || incoming().createdAt == request.time);
       allow update: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming())
-                     && incoming().createdAt == existing().createdAt
-                     && incoming().updatedAt == request.time
+                     && (!('createdAt' in incoming()) || !('createdAt' in existing()) || incoming().createdAt == existing().createdAt)
+                     && (!('updatedAt' in incoming()) || incoming().updatedAt == request.time)
                      && (
-                        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'school', 'jobTitle', 'phone', 'photoUrl', 'updatedAt'])
+                        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'school', 'jobTitle', 'phone', 'photoUrl', 'role', 'updatedAt'])
                      );
     }
 
