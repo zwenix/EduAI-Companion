@@ -48,13 +48,13 @@ const alibaba = new OpenAI({
     switch (provider) {
       case "llama-primary":
       case "llama-secondary":
-      case "groq-vision":
-        client = groq;
-        apiKey = process.env.GROQ_API_KEY || "";
-        break;
       case "alibaba-qwen":
         client = alibaba;
         apiKey = process.env.ALIBABA_API_KEY || "";
+        break;
+      case "groq-vision":
+        client = groq;
+        apiKey = process.env.GROQ_API_KEY || "";
         break;
     }
 
@@ -138,7 +138,7 @@ const alibaba = new OpenAI({
 
     if (!apiKey || apiKey === "dummy" || apiKey === 'undefined') {
       if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "dummy" && process.env.GEMINI_API_KEY !== "undefined") {
-        console.warn(`No Groq API provider key configured. Falling back directly to Gemini 3.5 Flash...`);
+        console.warn(`Provider API key not configured. Falling back directly to Gemini 3.5 Flash...`);
         try {
           const responseData = await callGeminiFallback(messages);
           return res.json(responseData);
@@ -151,8 +151,8 @@ const alibaba = new OpenAI({
 
     try {
       let selectedModel = model || (
-        provider === "llama-primary" ? "meta-llama/llama-4-scout-17b-16e-instruct" : 
-        provider === "llama-secondary" ? "llama-3.3-70b-versatile" :
+        provider === "llama-primary" ? "qwen3.6-plus" : 
+        provider === "llama-secondary" ? "qwen3.7-max" :
         provider === "alibaba-qwen" ? "qwen3.7-max" :
         provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
         ""
@@ -238,10 +238,10 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
         console.warn(`Attempt with ${selectedModel} failed: ${err.message || err}`);
         
         if (provider === "llama-primary") {
-          console.warn(`llama-primary failed. Falling back to llama-secondary (llama-3.3-70b-versatile)...`);
+          console.warn(`llama-primary failed. Falling back to llama-secondary (qwen3.7-max)...`);
           try {
             const fallbackParams: any = {
-              model: "llama-3.3-70b-versatile",
+              model: "qwen3.7-max",
               messages: enhancedMessages,
               temperature: 0.7,
               max_tokens: 8192,
