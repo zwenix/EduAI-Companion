@@ -313,6 +313,15 @@ export default function App() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [previousTabs, setPreviousTabs] = useState<string[]>([]);
+  const [activeCategory, setActiveCategory] = useState('lesson-planning');
+  const [categoryActiveSubTab, setCategoryActiveSubTab] = useState<Record<string, string>>({
+    'lesson-planning': 'dashboard',
+    'intelligence-ai': 'ai-tutor',
+    'class-analytics': 'reports',
+    'class-management': 'class-management',
+    'student-class-management': 'portfolios',
+    'system-support': 'settings'
+  });
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -527,6 +536,175 @@ export default function App() {
       setActiveTab('dashboard');
     }
   };
+
+  const sidebarCategories = [
+    { id: 'lesson-planning', label: 'Lesson planning', icon: BookOpen },
+    { id: 'intelligence-ai', label: 'Intelligence AI', icon: Brain },
+    { id: 'class-analytics', label: 'Class analytics', icon: TrendingUp },
+    { id: 'class-management', label: 'Class management', icon: School },
+    { id: 'student-class-management', label: 'Student & class management', icon: GraduationCap },
+    { id: 'system-support', label: 'System support', icon: Settings },
+  ];
+
+  const getSubTabsForCategory = (catId: string, role: string | null) => {
+    const r = role || 'teacher';
+    if (r === 'student') {
+      switch (catId) {
+        case 'lesson-planning':
+          return [
+            { id: 'dashboard', label: 'Student Dashboard', icon: LayoutDashboard },
+            { id: 'student-notes', label: 'Study & Revision Notes', icon: BookOpen }
+          ];
+        case 'intelligence-ai':
+          return [
+            { id: 'ai-tutor', label: 'AI Tutor Helpers', icon: Brain }
+          ];
+        case 'class-analytics':
+          return [
+            { id: 'reports', label: 'My Progress Analytics', icon: TrendingUp }
+          ];
+        case 'class-management':
+          return [
+            { id: 'dashboard', label: 'Class Overview', icon: Users }
+          ];
+        case 'student-class-management':
+          return [
+            { id: 'student-practice', label: 'Practice Zone', icon: ClipboardCheck },
+            { id: 'portfolios', label: 'My Portfolio', icon: UserCircle },
+            { id: 'messenger', label: 'Chat & Friends', icon: MessageSquare }
+          ];
+        case 'system-support':
+          return [
+            { id: 'settings', label: 'Settings', icon: Settings },
+            { id: 'helpdesk', label: 'Help', icon: HelpCircle },
+            { id: 'faq', label: 'Support', icon: Accessibility }
+          ];
+        default:
+          return [];
+      }
+    } else if (r === 'parent') {
+      switch (catId) {
+        case 'lesson-planning':
+          return [
+            { id: 'dashboard', label: 'Parent Dashboard Hub', icon: LayoutDashboard }
+          ];
+        case 'intelligence-ai':
+          return [
+            { id: 'dashboard', label: 'AI Classroom Updates', icon: Brain }
+          ];
+        case 'class-analytics':
+          return [
+            { id: 'reports', label: "My Child's Progress", icon: TrendingUp }
+          ];
+        case 'class-management':
+          return [
+            { id: 'dashboard', label: 'Class Overview', icon: Users }
+          ];
+        case 'student-class-management':
+          return [
+            { id: 'portfolios', label: 'Assignments & Portfolios', icon: FileText },
+            { id: 'messenger', label: 'Teacher Chat & Contacts', icon: MessageSquare }
+          ];
+        case 'system-support':
+          return [
+            { id: 'settings', label: 'Settings', icon: Settings },
+            { id: 'helpdesk', label: 'Help', icon: HelpCircle },
+            { id: 'faq', label: 'Support', icon: Accessibility }
+          ];
+        default:
+          return [];
+      }
+    } else if (r === 'admin') {
+      switch (catId) {
+        case 'lesson-planning':
+          return [
+            { id: 'dashboard', label: 'Admin Dashboard Hub', icon: LayoutDashboard },
+            { id: 'archive', label: 'Database Content Archive', icon: Archive }
+          ];
+        case 'intelligence-ai':
+          return [
+            { id: 'ai-tutor', label: 'AI System Controls', icon: Brain },
+            { id: 'ocr', label: 'OCR Grading Logs', icon: Scan }
+          ];
+        case 'class-analytics':
+          return [
+            { id: 'reports', label: 'School Analytics & Stats', icon: TrendingUp }
+          ];
+        case 'class-management':
+          return [
+            { id: 'class-management', label: 'Classrooms Manager', icon: School }
+          ];
+        case 'student-class-management':
+          return [
+            { id: 'dashboard', label: 'Students Overview', icon: UserCircle }
+          ];
+        case 'system-support':
+          return [
+            { id: 'settings', label: 'Settings', icon: Settings },
+            { id: 'helpdesk', label: 'Help', icon: HelpCircle },
+            { id: 'faq', label: 'Support', icon: Accessibility }
+          ];
+        default:
+          return [];
+      }
+    } else {
+      // Default: Teacher
+      switch (catId) {
+        case 'lesson-planning':
+          return [
+            { id: 'dashboard', label: 'Teacher Dashboard', icon: LayoutDashboard },
+            { id: 'teaching', label: 'Content Creator Studio', icon: FlaskConical },
+            { id: 'archive', label: 'Content Archive Storage', icon: Archive }
+          ];
+        case 'intelligence-ai':
+          return [
+            { id: 'ai-tutor', label: 'AI Tutor Support', icon: Brain },
+            { id: 'ocr', label: 'Scan & Autograde', icon: Scan }
+          ];
+        case 'class-analytics':
+          return [
+            { id: 'reports', label: 'Progress Reports', icon: TrendingUp }
+          ];
+        case 'class-management':
+          return [
+            { id: 'class-management', label: 'Class Management', icon: School }
+          ];
+        case 'student-class-management':
+          return [
+            { id: 'portfolios', label: 'Learner Personal Portfolios', icon: UserCircle },
+            { id: 'messenger', label: 'Communicator Hub Chat', icon: MessageSquare }
+          ];
+        case 'system-support':
+          return [
+            { id: 'settings', label: 'Settings', icon: Settings },
+            { id: 'helpdesk', label: 'Help', icon: HelpCircle },
+            { id: 'faq', label: 'Support', icon: Accessibility }
+          ];
+        default:
+          return [];
+      }
+    }
+  };
+
+  const getCategoryForTab = (tabId: string, role: string | null) => {
+    const list = ['lesson-planning', 'intelligence-ai', 'class-analytics', 'class-management', 'student-class-management', 'system-support'];
+    for (const cat of list) {
+      const tabs = getSubTabsForCategory(cat, role);
+      if (tabs.some(t => t.id === tabId)) {
+        return cat;
+      }
+    }
+    return 'lesson-planning';
+  };
+
+  useEffect(() => {
+    const cat = getCategoryForTab(activeTab, userRole);
+    setActiveCategory(cat);
+    setCategoryActiveSubTab(prev => ({
+      ...prev,
+      [cat]: activeTab
+    }));
+  }, [activeTab, userRole]);
 
   const handleLogout = async () => {
     try {
@@ -772,142 +950,36 @@ export default function App() {
         </div>
 
         <nav className="flex-1 min-h-0 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
-          {(function() {
-            interface NavigationGroup {
-              category: string;
-              items: { icon: any; label: string; id: string }[];
-            }
-            const groups: NavigationGroup[] = [];
-
-            if (userRole === 'student') {
-              groups.push(
-                {
-                  category: "🎮 My Missions",
-                  items: [
-                    { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
-                    { icon: ClipboardCheck, label: 'Practice Zone', id: 'student-practice' },
-                    { icon: UserCircle, label: 'My Portfolio', id: 'portfolios' },
-                  ]
-                },
-                {
-                  category: "🤖 AI Helpers",
-                  items: [
-                    { icon: Brain, label: 'AI Tutor', id: 'ai-tutor' },
-                    { icon: MessageSquare, label: 'Chat & Friends', id: 'messenger' },
-                  ]
-                },
-                {
-                  category: "📚 Learning Stuff",
-                  items: [
-                    { icon: BookOpen, label: 'Study & Revision', id: 'student-notes' },
-                    { icon: TrendingUp, label: 'My Progress', id: 'reports' },
-                    { icon: Settings, label: 'My Settings', id: 'settings' },
-                  ]
-                }
-              );
-            } else if (userRole === 'parent') {
-              groups.push(
-                {
-                  category: "🏡 Family Hub",
-                  items: [
-                    { icon: LayoutDashboard, label: 'Parent Dashboard', id: 'dashboard' },
-                    { icon: TrendingUp, label: "Child's Progress", id: 'reports' },
-                    { icon: MessageSquare, label: 'Teacher Communicator', id: 'messenger' },
-                    { icon: FileText, label: 'Assignments & Info', id: 'portfolios' },
-                    { icon: Settings, label: 'My Settings', id: 'settings' },
-                  ]
-                }
-              );
-            } else if (userRole === 'admin') {
-              groups.push(
-                {
-                  category: "🏛️ Administration",
-                  items: [
-                    { icon: LayoutDashboard, label: 'Admin Dashboard', id: 'dashboard' },
-                    { icon: School, label: 'School Management', id: 'class-management' },
-                    { icon: FileText, label: 'Official Correspondence', id: 'teaching' },
-                    { icon: Archive, label: 'Content Archive', id: 'archive' },
-                    { icon: TrendingUp, label: 'Reports & Analytics', id: 'reports' },
-                  ]
-                }
-              );
-            } else {
-              // Default: Teacher
-              groups.push(
-                {
-                  category: "📚 Lesson Planning",
-                  items: [
-                    { icon: LayoutDashboard, label: 'Teacher Dashboard', id: 'dashboard' },
-                    { icon: FlaskConical, label: 'Content Creator', id: 'teaching' },
-                    { icon: Archive, label: 'Content Archive', id: 'archive' },
-                  ]
-                },
-                {
-                  category: "🤖 Intelligence AI",
-                  items: [
-                    { icon: Brain, label: 'AI Tutor Support', id: 'ai-tutor' },
-                    { icon: Scan, label: 'Scan & Autograde', id: 'ocr' },
-                  ]
-                },
-                {
-                  category: "🏫 Class Analytics",
-                  items: [
-                    { icon: TrendingUp, label: 'Progress Reports', id: 'reports' },
-                    { icon: Users, label: 'Class Management', id: 'class-management' },
-                    { icon: UserCircle, label: 'Learner Portfolios', id: 'portfolios' },
-                    { icon: MessageSquare, label: 'Communicator Hub', id: 'messenger' },
-                  ]
-                },
-                {
-                  category: "⚙️ System Support",
-                  items: [
-                    { icon: Settings, label: 'Settings', id: 'settings' },
-                    { icon: HelpCircle, label: 'Helpdesk Support', id: 'helpdesk' },
-                  ]
-                }
-              );
-            }
-
+          {sidebarCategories.map((cat) => {
             const collapsed = !isSidebarOpen && !isMobile;
+            const active = activeCategory === cat.id;
 
-            return groups.map((group, gIdx) => (
-              <div key={gIdx} className={`mb-5 ${collapsed ? "space-y-2" : "space-y-1"}`}>
-                {!collapsed ? (
-                  <h3 className={`text-[10px] sm:text-[11px] font-black uppercase tracking-widest mb-2 px-3 ${
-                    isDarkMode ? 'text-slate-500' : 'text-slate-400'
-                  }`}>
-                    {group.category}
-                  </h3>
-                ) : (
-                  <div className={`h-px my-3 mx-2 ${isDarkMode ? 'bg-white/5' : 'bg-slate-100'}`} />
-                )}
-                <div className="space-y-1">
-                  {group.items.map((item) => (
-                    <SidebarItem 
-                      key={item.id}
-                      icon={item.icon} 
-                      label={item.label} 
-                      active={
-                        activeCreatorTab !== null 
-                        ? item.id === 'teaching' 
-                        : activeTab === item.id
-                      } 
-                      isDarkMode={isDarkMode}
-                      onClick={() => {
-                        if (['teaching'].includes(item.id)) {
-                          setActiveCreatorTab(item.id);
-                        } else {
-                          changeTab(item.id);
-                        }
-                        if (isMobile) setMobileSidebarOpen(false);
-                      }} 
-                      collapsed={collapsed}
-                    />
-                  ))}
-                </div>
-              </div>
-            ));
-          })()}
+            return (
+              <SidebarItem 
+                key={cat.id}
+                icon={cat.icon} 
+                label={cat.label} 
+                active={active} 
+                isDarkMode={isDarkMode}
+                onClick={() => {
+                  const tabs = getSubTabsForCategory(cat.id, userRole);
+                  if (tabs.length > 0) {
+                    const preferredSubTab = categoryActiveSubTab[cat.id] || '';
+                    const hasPreferred = tabs.some(t => t.id === preferredSubTab);
+                    const targetSubTab = hasPreferred ? preferredSubTab : tabs[0].id;
+
+                    if (targetSubTab === 'teaching') {
+                      setActiveCreatorTab('teaching');
+                    } else {
+                      changeTab(targetSubTab);
+                    }
+                  }
+                  if (isMobile) setMobileSidebarOpen(false);
+                }} 
+                collapsed={collapsed}
+              />
+            );
+          })}
         </nav>
 
         {/* PWA Install Promo */}
@@ -1394,6 +1466,40 @@ export default function App() {
               className="absolute inset-0 overflow-y-auto p-4 lg:p-8 custom-scrollbar"
             >
               <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8 pb-12">
+              {/* Category Sub-navigation Pills */}
+              {(function() {
+                const currentSubTabs = getSubTabsForCategory(activeCategory, userRole);
+                if (currentSubTabs.length <= 1) return null;
+                return (
+                  <div className={`p-1.5 rounded-[24px] flex flex-wrap gap-2 ${
+                    isDarkMode ? 'bg-slate-950/40 border border-white/5' : 'bg-slate-100 border border-slate-200/60'
+                  } mb-2 max-w-fit`}>
+                    {currentSubTabs.map((item) => {
+                      const isActive = activeTab === item.id || (item.id === 'teaching' && activeCreatorTab === 'teaching');
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            if (item.id === 'teaching') {
+                              setActiveCreatorTab('teaching');
+                            } else {
+                              changeTab(item.id);
+                            }
+                          }}
+                          className={`flex items-center gap-2 px-5 py-2.5 rounded-[18px] text-[11px] font-black font-display uppercase tracking-wider transition-all cursor-pointer border-0 outline-none ${
+                            isActive
+                              ? 'bg-brand-cyan text-[#0F172A] shadow-md shadow-cyan-500/25 scale-[1.02]'
+                              : `${isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-600 hover:text-slate-900 hover:bg-white shadow-sm'}`
+                          }`}
+                        >
+                          <item.icon size={14} className={isActive ? 'animate-pulse' : ''} />
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             {activeTab === 'dashboard' ? (
               userRole === 'student' ? (
                 <StudentDashboard isDarkMode={isDarkMode} />
@@ -1540,6 +1646,29 @@ export default function App() {
                   />
                 ) : activeTab === 'helpdesk' ? (
                   <Helpdesk isDarkMode={isDarkMode} />
+                ) : activeTab === 'faq' ? (
+                  <div className={`p-8 rounded-[40px] ${isDarkMode ? 'bg-slate-900/60 border border-white/5' : 'bg-white border border-slate-200 shadow-xl'}`}>
+                    <h2 className="text-3xl font-display font-black mb-2 flex items-center gap-3">
+                      <span>🤝 Support & Knowledge Base</span>
+                    </h2>
+                    <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'} mb-8 font-medium`}>
+                      Find answers to common questions about South African CAPS curriculum coverage and EduAI Companion platform features.
+                    </p>
+                    
+                    <div className="space-y-4">
+                      {[
+                        { q: "📚 Is the curriculum aligned with South African CAPS standards?", a: "Yes, 100%! All content created, lessons compiled, and rubrics generated map directly with the Department of Basic Education (DBE) South African National Curriculum Assessment Policy Statements (CAPS) requirements across Grades 1 to 12." },
+                        { q: "🤖 Which AI model powers the tutoring system?", a: "EduAI is powered by advanced multi-model intelligence, featuring state-of-the-art models like Google Gemini and Qwen. These models offer ultra-fast localized explanations, using rands (R), local currencies, and South African historical/geographic contexts." },
+                        { q: "📶 Can I use this application offline?", a: "Absolutely! Simply click on the 'INSTALL OFFLINE APP' button in the sidebar to download our Progressive Web App (PWA). Your downloaded study guides, textbook revisions, and completed portfolio tasks are cached on your local device for instant access without a stable internet connection." },
+                        { q: "🛡️ How is my data protected?", a: "We adhere to strict POPIA (Protection of Personal Information Act) regulation compliance. Student assessments or raw photos are processed securely and never shared with third-party advertising engines." }
+                      ].map((item, idx) => (
+                        <div key={idx} className={`p-6 rounded-[24px] ${isDarkMode ? 'bg-white/5 hover:bg-white/[0.08]' : 'bg-slate-50 hover:bg-slate-100'} transition-all`}>
+                          <h4 className={`text-base font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'} mb-2`}>{item.q}</h4>
+                          <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'} leading-relaxed font-semibold`}>{item.a}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 ) : ( 
                   <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200 shadow-sm'} p-12 rounded-[48px] text-center min-h-[500px] flex flex-col items-center justify-center`}>
                     <Logo className="w-40 h-40 mb-8" />
