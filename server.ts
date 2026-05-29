@@ -151,12 +151,15 @@ const alibaba = new OpenAI({
 
     try {
       let selectedModel = model || (
-        provider === "llama-primary" ? "qwen3.6-plus" : 
-        provider === "llama-secondary" ? "qwen3.7-max" :
-        provider === "alibaba-qwen" ? "qwen3.7-max" :
+        provider === "llama-primary" ? "qwen-plus" : 
+        provider === "llama-secondary" ? "qwen-max" :
+        provider === "alibaba-qwen" ? "qwen-max" :
         provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
         ""
       );
+
+      if (selectedModel === "qwen3.6-plus") selectedModel = "qwen-plus";
+      if (selectedModel === "qwen3.7-max") selectedModel = "qwen-max";
 
       const enhancedMessages = [...messages];
       if (provider === "llama-primary" || provider === "llama-secondary") {
@@ -238,10 +241,10 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
         console.warn(`Attempt with ${selectedModel} failed: ${err.message || err}`);
         
         if (provider === "llama-primary") {
-          console.warn(`llama-primary failed. Falling back to llama-secondary (qwen3.7-max)...`);
+          console.warn(`llama-primary failed. Falling back to llama-secondary (qwen-max)...`);
           try {
             const fallbackParams: any = {
-              model: "qwen3.7-max",
+              model: "qwen-max",
               messages: enhancedMessages,
               temperature: 0.7,
               max_tokens: 8192,

@@ -9,6 +9,10 @@ let audioQueue: string[] = [];
 export const speakText = async (text: string, provider: TTSProvider, language: string = 'en', voice: string = '21m00Tcm4TlvDq8ikWAM'): Promise<void> => {
   stopSpeaking(); // Stop any currently playing audio
 
+  if (localStorage.getItem('eduai_sound_muted') === 'true') {
+    return;
+  }
+
   if (provider === 'groq-whisper') {
     try {
       console.info("Groq's whisper-large-v3-turbo selected. (Whisper is an ASR transcription model; utilizing high-quality Google TTS/Browser Core fallback for vocal synthesis output).");

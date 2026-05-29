@@ -12,6 +12,18 @@ export default function LoadingMascot({
   subtitle = "Preparing your interactive space",
   isFullHeight = true
 }: LoadingMascotProps) {
+  const [isMuted, setIsMuted] = React.useState(() => localStorage.getItem('eduai_sound_muted') === 'true');
+
+  React.useEffect(() => {
+    const handleAccessibilityChange = () => {
+      setIsMuted(localStorage.getItem('eduai_sound_muted') === 'true');
+    };
+    window.addEventListener('eduai_accessibility_change', handleAccessibilityChange);
+    return () => {
+      window.removeEventListener('eduai_accessibility_change', handleAccessibilityChange);
+    };
+  }, []);
+
   return (
     <div className={`flex flex-col items-center justify-center text-center p-8 ${isFullHeight ? 'min-h-[450px] w-full' : 'py-12'}`}>
       
@@ -19,11 +31,11 @@ export default function LoadingMascot({
       <div className="relative mb-6">
         
         {/* Glow behind the mascot */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-36 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-full blur-2xl animate-pulse pointer-events-none" />
+        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-36 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-full blur-2xl ${isMuted ? 'opacity-30' : 'animate-pulse'} pointer-events-none`} />
 
         {/* Float & Bob Animation Wrapper */}
         <motion.div
-          animate={{
+          animate={isMuted ? {} : {
             y: [0, -12, 0],
             rotate: [0, 2, -2, 0]
           }}
@@ -41,10 +53,10 @@ export default function LoadingMascot({
             <path d="M 90,52 Q 100,40 102,30" stroke="url(#mascotGradient)" strokeWidth="4" strokeLinecap="round" fill="none" />
             
             {/* Soft pulse circles on ends of antenna */}
-            <circle cx="18" cy="30" r="5" fill="#eab308" className="animate-ping origin-center" style={{ transformOrigin: '18px 30px' }} />
+            <circle cx="18" cy="30" r="5" fill="#eab308" className={isMuted ? '' : 'animate-ping origin-center'} style={{ transformOrigin: '18px 30px' }} />
             <circle cx="18" cy="30" r="5" fill="#eab308" />
             
-            <circle cx="102" cy="30" r="5" fill="#ec4899" className="animate-ping origin-center" style={{ transformOrigin: '102px 30px' }} />
+            <circle cx="102" cy="30" r="5" fill="#ec4899" className={isMuted ? '' : 'animate-ping origin-center'} style={{ transformOrigin: '102px 30px' }} />
             <circle cx="102" cy="30" r="5" fill="#ec4899" />
 
             {/* Main Robot Head */}
@@ -59,7 +71,7 @@ export default function LoadingMascot({
               <ellipse cx="48" cy="68" rx="6" ry="7" fill="#06b6d4" />
               <circle cx="46" cy="65" r="2" fill="white" />
               {/* Eye blinking overlay with keyframe anim */}
-              <ellipse cx="48" cy="68" rx="6" ry="1" fill="#1e293b" className="animate-[bounce_3s_infinite]" />
+              <ellipse cx="48" cy="68" rx="6" ry="1" fill="#1e293b" className={isMuted ? '' : 'animate-[bounce_3s_infinite]'} />
             </g>
 
             {/* Right Eye */}
@@ -67,7 +79,7 @@ export default function LoadingMascot({
               <ellipse cx="72" cy="68" rx="6" ry="7" fill="#06b6d4" />
               <circle cx="70" cy="65" r="2" fill="white" />
               {/* Eye blinking overlay with keyframe anim */}
-              <ellipse cx="72" cy="68" rx="6" ry="1" fill="#1e293b" className="animate-[bounce_3s_infinite]" />
+              <ellipse cx="72" cy="68" rx="6" ry="1" fill="#1e293b" className={isMuted ? '' : 'animate-[bounce_3s_infinite]'} />
             </g>
 
             {/* Cute Cheek Blushes */}
@@ -88,12 +100,16 @@ export default function LoadingMascot({
           </svg>
 
           {/* Sparkles rotating around head */}
-          <div className="absolute top-2 left-2 text-yellow-400 text-xs animate-spin" style={{ animationDuration: '8s' }}>✨</div>
-          <div className="absolute bottom-2 right-2 text-pink-400 text-xs animate-spin" style={{ animationDuration: '5s' }}>🌟</div>
+          {!isMuted && (
+            <>
+              <div className="absolute top-2 left-2 text-yellow-400 text-xs animate-spin" style={{ animationDuration: '8s' }}>✨</div>
+              <div className="absolute bottom-2 right-2 text-pink-400 text-xs animate-spin" style={{ animationDuration: '5s' }}>🌟</div>
+            </>
+          )}
         </motion.div>
 
         {/* Shadow that grows/shrinks matching bobbing */}
-        <div className="w-16 h-2 bg-black/30 rounded-full mx-auto blur-md animate-[pulse_2s_infinite] mt-1" />
+        <div className={`w-16 h-2 bg-black/30 rounded-full mx-auto blur-md mt-1 ${isMuted ? '' : 'animate-[pulse_2s_infinite]'}`} />
       </div>
 
       {/* Main Messages */}
@@ -110,17 +126,21 @@ export default function LoadingMascot({
 
       {/* Modern fluid wave-bar indicator */}
       <div className="w-48 h-1.5 bg-slate-800/80 rounded-full mt-6 overflow-hidden border border-white/5 relative">
-        <motion.div
-          animate={{
-            left: ["-100%", "100%"]
-          }}
-          transition={{
-            repeat: Infinity,
-            duration: 1.8,
-            ease: "easeInOut"
-          }}
-          className="absolute h-full w-24 bg-gradient-to-r from-transparent via-brand-cyan to-transparent rounded-full"
-        />
+        {!isMuted ? (
+          <motion.div
+            animate={{
+              left: ["-100%", "100%"]
+            }}
+            transition={{
+              repeat: Infinity,
+              duration: 1.8,
+              ease: "easeInOut"
+            }}
+            className="absolute h-full w-24 bg-gradient-to-r from-transparent via-brand-cyan to-transparent rounded-full"
+          />
+        ) : (
+          <div className="absolute h-full w-full bg-brand-cyan/40" />
+        )}
       </div>
 
       {/* Ambient tip generator below the visual block */}

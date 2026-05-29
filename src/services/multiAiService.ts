@@ -11,7 +11,7 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
     url = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
     apiKey = (process.env as any).ALIBABA_API_KEY || (import.meta as any).env?.VITE_ALIBABA_API_KEY || (process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "";
     if (!selectedModel) {
-      selectedModel = provider === 'llama-primary' ? "qwen3.6-plus" : "qwen3.7-max";
+      selectedModel = provider === 'llama-primary' ? "qwen-plus" : "qwen-max";
     }
   } else if (provider === 'groq-vision') {
     url = "https://api.groq.com/openai/v1/chat/completions";
@@ -23,8 +23,14 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
     url = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
     apiKey = (process.env as any).ALIBABA_API_KEY || (import.meta as any).env?.VITE_ALIBABA_API_KEY || "";
     if (!selectedModel) {
-      selectedModel = "qwen3.7-max";
+      selectedModel = "qwen-max";
     }
+  }
+
+  if (selectedModel === "qwen3.6-plus") {
+    selectedModel = "qwen-plus";
+  } else if (selectedModel === "qwen3.7-max") {
+    selectedModel = "qwen-max";
   }
 
   if (!apiKey) {

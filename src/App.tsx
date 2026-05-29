@@ -53,9 +53,11 @@ import {
   Download,
   Accessibility,
   Eye,
-  Contrast
+  Contrast,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, MotionConfig } from 'motion/react';
 import { marked } from 'marked';
 import ContentCreator from './components/ContentCreator';
 import Messenger from './components/Messenger';
@@ -321,8 +323,10 @@ export default function App() {
   const [dyslexiaEnabled, setDyslexiaEnabled] = useState(() => localStorage.getItem('eduai_dyslexia') === 'true');
   const [magnifyEnabled, setMagnifyEnabled] = useState(() => localStorage.getItem('eduai_magnify') === 'true');
   const [highContrastEnabled, setHighContrastEnabled] = useState(() => localStorage.getItem('eduai_high_contrast') === 'true');
+  const [soundMuted, setSoundMuted] = useState(() => localStorage.getItem('eduai_sound_muted') === 'true');
 
   const speakText = (text: string) => {
+    if (localStorage.getItem('eduai_sound_muted') === 'true') return;
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       if (!text) return;
@@ -719,7 +723,8 @@ export default function App() {
   }
 
   return (
-    <div className={`flex h-screen ${isDarkMode ? 'bg-[#0F172A]' : 'bg-slate-50'} font-sans selection:bg-brand-cyan/30 overflow-hidden transition-colors duration-500`}>
+    <MotionConfig reducedMotion={soundMuted ? "always" : "user"}>
+      <div className={`flex h-screen ${isDarkMode ? 'bg-[#0F172A]' : 'bg-slate-50'} font-sans selection:bg-brand-cyan/30 overflow-hidden transition-colors duration-500`}>
       {/* Sidebar Overlay for Mobile */}
       <AnimatePresence>
         {isMobile && isMobileSidebarOpen && (
@@ -1155,6 +1160,24 @@ export default function App() {
               {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
+            {/* Global Sound & Animations Toggle Button for Accessibility */}
+            <button 
+              onClick={() => {
+                const val = !soundMuted;
+                setSoundMuted(val);
+                localStorage.setItem('eduai_sound_muted', String(val));
+                window.dispatchEvent(new Event('eduai_accessibility_change'));
+              }}
+              className={`p-2 rounded-full transition-all ${
+                soundMuted 
+                  ? 'bg-red-500/20 text-red-500 border border-red-500/30 ring-4 ring-red-500/20' 
+                  : (isDarkMode ? 'bg-white/5 text-emerald-400 hover:bg-white/10' : 'bg-slate-100 text-[#10b981] hover:bg-slate-200')
+              }`}
+              title={soundMuted ? "Unmute sounds & enable animations" : "Mute all sounds & disable animations"}
+            >
+              {soundMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            </button>
+
             {/* Global accessibility settings toggle for High-Contrast Mode */}
             <button 
               onClick={() => {
@@ -1254,6 +1277,26 @@ export default function App() {
                           className={`w-12 h-6 rounded-full p-1 transition-colors ${highContrastEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
                         >
                           <div className={`w-4 h-4 bg-white rounded-full transition-transform ${highContrastEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                        </button>
+                      </div>
+
+                      {/* Global Sound & Animations Mute Toggle */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col text-left">
+                          <span className="font-bold text-sm">🔇 Mute Sounds & Motion</span>
+                          <span className="text-[10px] opacity-60 font-sans">Stop voice & animations</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = !soundMuted;
+                            setSoundMuted(val);
+                            localStorage.setItem('eduai_sound_muted', String(val));
+                            window.dispatchEvent(new Event('eduai_accessibility_change'));
+                          }}
+                          className={`w-12 h-6 rounded-full p-1 transition-colors ${soundMuted ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
+                        >
+                          <div className={`w-4 h-4 bg-white rounded-full transition-transform ${soundMuted ? 'translate-x-6' : 'translate-x-0'}`} />
                         </button>
                       </div>
 
@@ -1811,5 +1854,6 @@ export default function App() {
         )}
       </AnimatePresence>
     </div>
+    </MotionConfig>
   );
 }
