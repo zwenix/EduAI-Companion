@@ -184,7 +184,7 @@ export default function ProgressReports() {
             ...mock,
             id: docId,
             teacherId: user.uid,
-            createdAt: new Date().toISOString(), // Static readable date fallback
+            createdAt: serverTimestamp(),
           };
           try {
             await setDoc(doc(db, 'students', docId), seededData);

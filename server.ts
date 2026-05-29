@@ -509,10 +509,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
       try {
         const endpoints = [
-          "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/images/generations",
-          "https://dashscope.aliyuncs.com/compatible-mode/v1/images/generations",
-          "https://dashscope-intl.aliyuncs.com/v1/images/generations",
-          "https://dashscope.aliyuncs.com/v1/images/generations"
+          "https://dashscope-intl.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis",
+          "https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis"
         ];
 
         let successUrl = null;
@@ -520,33 +518,97 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
         for (const endpoint of endpoints) {
           try {
+            const requestModel = "wanx-v1";
+            console.log(`Connecting to Alibaba Image generation endpoint (${endpoint}) for model: ${requestModel} (originally requested: ${provider})`);
             const response = await fetch(endpoint, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${apiKey}`
+                "Authorization": `Bearer ${apiKey}`,
+                "X-DashScope-Async": "enable"
               },
               body: JSON.stringify({
-                model: provider,
-                prompt: prompt,
-                n: 1,
-                size: "1024x1024"
+                model: requestModel,
+                input: {
+                  prompt: prompt
+                },
+                parameters: {
+                  size: "1024*1024",
+                  n: 1
+                }
               })
             });
 
             if (!response.ok) {
               const errText = await response.text();
-              throw new Error(`Status ${response.status}: ${errText}`);
+              throw new Error(`Failed to create task. Status ${response.status}: ${errText}`);
             }
 
             const data: any = await response.json();
-            if (data.data && data.data[0] && data.data[0].url) {
-              successUrl = data.data[0].url;
-              break;
-            } else if (data.output && data.output.results && data.output.results[0] && data.output.results[0].url) {
-              successUrl = data.output.results[0].url;
-              break;
+            const taskId = data.output?.task_id;
+            if (!taskId) {
+              throw new Error(`No task_id returned from creation response: ${JSON.stringify(data)}`);
             }
+
+            console.log(`Successfully created Alibaba Image generation task: ${taskId}. Starting status polling...`);
+            const domain = endpoint.includes("-intl") ? "https://dashscope-intl.aliyuncs.com" : "https://dashscope.aliyuncs.com";
+            const taskUrl = `${domain}/api/v1/tasks/${taskId}`;
+
+            let taskStatus = "PENDING";
+            let attempts = 0;
+            const maxAttempts = 25; // wait up to ~37.5 seconds
+            let pollData: any = null;
+
+            while (attempts < maxAttempts) {
+              await new Promise(resolve => setTimeout(resolve, 1500));
+              attempts++;
+
+              try {
+                const pollResponse = await fetch(taskUrl, {
+                  method: "GET",
+                  headers: {
+                    "Authorization": `Bearer ${apiKey}`
+                  }
+                });
+
+                if (!pollResponse.ok) {
+                  console.warn(`Polling attempt ${attempts} failed with status ${pollResponse.status}`);
+                  continue;
+                }
+
+                pollData = await pollResponse.json();
+                taskStatus = pollData.output?.task_status || "PENDING";
+                console.log(`Task ${taskId} status polling attempt ${attempts}: ${taskStatus}`);
+
+                if (taskStatus === "SUCCEEDED") {
+                  break;
+                } else if (taskStatus === "FAILED" || taskStatus === "SUSPENDED" || taskStatus === "UNKNOWN") {
+                  throw new Error(`Task failed with status: ${taskStatus}. Details: ${JSON.stringify(pollData)}`);
+                }
+              } catch (pollErr: any) {
+                console.warn(`Polling warning:`, pollErr.message || pollErr);
+              }
+            }
+
+            if (taskStatus === "SUCCEEDED" && pollData?.output) {
+              const results = pollData.output.results;
+              if (results && results[0]) {
+                if (typeof results[0] === "string") {
+                  successUrl = results[0];
+                } else {
+                  successUrl = results[0].url || results[0].png || results[0].jpg || results[0].jpeg;
+                }
+              } else if (pollData.output.url) {
+                successUrl = pollData.output.url;
+              }
+
+              if (successUrl) {
+                console.log(`Successfully obtained generated image URL from DashScope task ${taskId}: ${successUrl}`);
+                break;
+              }
+            }
+
+            throw new Error(`Failing endpoint ${endpoint} because polling did not result in a valid image URL`);
           } catch (err: any) {
             lastError = err;
             console.warn(`Alibaba Image generation endpoint failed (${endpoint}):`, err.message || err);

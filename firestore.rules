@@ -3,7 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /{document=**} { allow read, write: if false; }
 
-    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_-]+$'); }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
     function isSignedIn() { return request.auth != null; }
@@ -30,7 +30,7 @@ service cloud.firestore {
                      && (!('createdAt' in incoming()) || !('createdAt' in existing()) || incoming().createdAt == existing().createdAt)
                      && (!('updatedAt' in incoming()) || incoming().updatedAt == request.time)
                      && (
-                        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'school', 'jobTitle', 'phone', 'photoUrl', 'role', 'updatedAt'])
+                        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'school', 'jobTitle', 'phone', 'photoUrl', 'role', 'email', 'updatedAt'])
                      );
     }
 
@@ -54,24 +54,24 @@ service cloud.firestore {
     match /students/{studentId} {
       allow get: if isSignedIn() && isValidId(studentId) && (
         existing().teacherId == request.auth.uid || 
-        existing().email == request.auth.token.email ||
-        ('parentEmail' in existing() && existing().parentEmail == request.auth.token.email)
+        ('email' in request.auth.token && existing().email == request.auth.token.email) ||
+        ('email' in request.auth.token && 'parentEmail' in existing() && existing().parentEmail == request.auth.token.email)
       );
       allow list: if isSignedIn() && (
         resource.data.teacherId == request.auth.uid || 
-        resource.data.email == request.auth.token.email ||
-        ('parentEmail' in resource.data && resource.data.parentEmail == request.auth.token.email)
+        ('email' in request.auth.token && resource.data.email == request.auth.token.email) ||
+        ('email' in request.auth.token && 'parentEmail' in resource.data && resource.data.parentEmail == request.auth.token.email)
       );
       allow create: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming()) && (
         incoming().teacherId == request.auth.uid || 
-        incoming().email == request.auth.token.email
+        ('email' in request.auth.token && incoming().email == request.auth.token.email)
       );
       allow update: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming()) && (
         // Case 1: The teacher is updating
         (existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId &&
          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'grade', 'email', 'status', 'updatedAt', 'parentId', 'subjects', 'idp', 'lastActiveDate', 'streak', 'parentName', 'parentEmail', 'parentPhone'])) ||
         // Case 2: The student is self-updating progress, streak, or IDPs
-        (existing().email == request.auth.token.email &&
+        ('email' in request.auth.token && existing().email == request.auth.token.email &&
          incoming().diff(existing()).affectedKeys().hasOnly(['lastActiveDate', 'streak', 'idp', 'updatedAt', 'subjects']))
       );
       allow delete: if isSignedIn() && isValidId(studentId) && existing().teacherId == request.auth.uid;
