@@ -1,17 +1,17 @@
 import axios from 'axios';
 
-export type AIProvider = 'llama-primary' | 'llama-secondary' | 'alibaba-qwen' | 'groq-vision';
+export type AIProvider = 'qwen-primary' | 'qwen-secondary' | 'alibaba-qwen' | 'groq-vision';
 
 const executeClientMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
   let url = "";
   let apiKey = "";
   let selectedModel = model;
 
-  if (provider === 'llama-primary' || provider === 'llama-secondary') {
+  if (provider === 'qwen-primary' || provider === 'qwen-secondary') {
     url = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
     apiKey = (process.env as any).ALIBABA_API_KEY || (import.meta as any).env?.VITE_ALIBABA_API_KEY || (process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "";
     if (!selectedModel) {
-      selectedModel = provider === 'llama-primary' ? "qwen-plus" : "qwen-max";
+      selectedModel = provider === 'qwen-primary' ? "qwen-plus" : "qwen-max";
     }
   } else if (provider === 'groq-vision') {
     url = "https://api.groq.com/openai/v1/chat/completions";

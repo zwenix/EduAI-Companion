@@ -46,8 +46,8 @@ const alibaba = new OpenAI({
     let apiKey = "";
 
     switch (provider) {
-      case "llama-primary":
-      case "llama-secondary":
+      case "qwen-primary":
+      case "qwen-secondary":
       case "alibaba-qwen":
         client = alibaba;
         apiKey = process.env.ALIBABA_API_KEY || "";
@@ -91,7 +91,7 @@ const alibaba = new OpenAI({
       }
 
       const options: any = {
-        model: "gemini-3.5-flash",
+        model: "gemini-flash-latest",
         contents: mergedContents,
       };
 
@@ -103,20 +103,20 @@ const alibaba = new OpenAI({
 
       let geminiResponse;
       try {
-        console.info("Trying final Gemini 3.5 Flash fallback...");
+        console.info("Trying final Gemini Flash fallback...");
         geminiResponse = await gAi.models.generateContent(options);
       } catch (gErr) {
-        console.warn("Gemini 3.5 Flash fallback failed or not found, trying 'gemini-flash-latest'...", gErr);
+        console.warn("Gemini Flash fallback failed or not found, trying 'gemini-3.1-flash-lite'...", gErr);
         try {
           geminiResponse = await gAi.models.generateContent({
             ...options,
-            model: "gemini-flash-latest"
+            model: "gemini-3.1-flash-lite"
           });
         } catch (liteErr) {
-          console.warn("Gemini-flash-latest failed, trying 'gemini-3.1-flash-lite'...");
+          console.warn("Gemini-3.1-flash-lite failed, trying 'gemini-3.5-flash'...");
           geminiResponse = await gAi.models.generateContent({
             ...options,
-            model: "gemini-3.1-flash-lite"
+            model: "gemini-3.5-flash"
           });
         }
       }
@@ -138,7 +138,7 @@ const alibaba = new OpenAI({
 
     if (!apiKey || apiKey === "dummy" || apiKey === 'undefined') {
       if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "dummy" && process.env.GEMINI_API_KEY !== "undefined") {
-        console.warn(`Provider API key not configured. Falling back directly to Gemini 3.5 Flash...`);
+        console.warn(`Provider API key not configured. Falling back directly to Gemini Flash...`);
         try {
           const responseData = await callGeminiFallback(messages);
           return res.json(responseData);
@@ -151,8 +151,8 @@ const alibaba = new OpenAI({
 
     try {
       let selectedModel = model || (
-        provider === "llama-primary" ? "qwen-plus" : 
-        provider === "llama-secondary" ? "qwen-max" :
+        provider === "qwen-primary" ? "qwen-plus" : 
+        provider === "qwen-secondary" ? "qwen-max" :
         provider === "alibaba-qwen" ? "qwen-max" :
         provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
         ""
@@ -162,10 +162,10 @@ const alibaba = new OpenAI({
       if (selectedModel === "qwen3.7-max") selectedModel = "qwen-max";
 
       const enhancedMessages = [...messages];
-      if (provider === "llama-primary" || provider === "llama-secondary") {
+      if (provider === "qwen-primary" || provider === "qwen-secondary") {
         const systemMessageIndex = enhancedMessages.findIndex(m => m.role === 'system');
         const coreInstruction = `
-[STRICT CORE VISUAL STYLE, PRESENTATION AND LAYOUT OBJECTIVE - FOR ALL LLAMA MODELS]:
+[STRICT CORE VISUAL STYLE, PRESENTATION AND LAYOUT OBJECTIVE - FOR ALL QWEN MODELS]:
 - You represent the premium South African CAPS-aligned educational platform (EduAI Companion).
 - You MUST generate extremely high-quality, fully detailed educational materials of premium visual layout complexity, matching or exceeding Qwen 3.7 Max and Gemini models!
 - ALWAYS render output directly in elegant, multi-layered HTML templates using standard Tailwind CSS utility classes inside style/class fields. DO NOT generate basic plain text or simple lines.
@@ -230,7 +230,7 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
         max_tokens: 8192, // Universal compatibility parameter for Groq outputs
       };
 
-      if (isJsonPreferred && (provider === "llama-primary" || provider === "llama-secondary" || provider === "alibaba-qwen")) {
+      if (isJsonPreferred && (provider === "qwen-primary" || provider === "qwen-secondary" || provider === "alibaba-qwen")) {
         completionParams.response_format = { type: "json_object" };
       }
 
@@ -240,8 +240,8 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
       } catch (err: any) {
         console.warn(`Attempt with ${selectedModel} failed: ${err.message || err}`);
         
-        if (provider === "llama-primary") {
-          console.warn(`llama-primary failed. Falling back to llama-secondary (qwen-max)...`);
+        if (provider === "qwen-primary") {
+          console.warn(`qwen-primary failed. Falling back to qwen-secondary (qwen-max)...`);
           try {
             const fallbackParams: any = {
               model: "qwen-max",
@@ -255,22 +255,22 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
             const fallbackResponse = await client.chat.completions.create(fallbackParams);
             return res.json(fallbackResponse);
           } catch (secondaryErr: any) {
-            console.warn(`llama-secondary failed as well: ${secondaryErr.message || secondaryErr}. Falling back to final Gemini 3.5 Flash...`);
+            console.warn(`qwen-secondary failed as well: ${secondaryErr.message || secondaryErr}. Falling back to final Gemini...`);
             try {
               const geminiResponse = await callGeminiFallback(enhancedMessages);
               return res.json(geminiResponse);
             } catch (geminiErr: any) {
-              console.error("All fallback models exhausted for llama-primary!");
+              console.error("All fallback models exhausted for qwen-primary!");
               throw geminiErr;
             }
           }
-        } else if (provider === "llama-secondary") {
-          console.warn(`llama-secondary failed. Falling back to final Gemini 3.5 Flash...`);
+        } else if (provider === "qwen-secondary") {
+          console.warn(`qwen-secondary failed. Falling back to final Gemini...`);
           try {
             const geminiResponse = await callGeminiFallback(enhancedMessages);
             return res.json(geminiResponse);
           } catch (geminiErr: any) {
-            console.error("All fallback models exhausted for llama-secondary!");
+            console.error("All fallback models exhausted for qwen-secondary!");
             throw geminiErr;
           }
         } else {
@@ -1137,7 +1137,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       let response;
       try {
         response = await geminiAi.models.generateContent({
-          model: "gemini-3.5-flash",
+          model: "gemini-flash-latest",
           contents: prompt,
           config: {
             responseMimeType: "application/json",
@@ -1145,15 +1145,27 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
           }
         });
       } catch (err) {
-        console.warn("Gemini model 'gemini-3.5-flash' failed/not found in ILDP route. Falling back to 'gemini-1.5-flash'...");
-        response = await geminiAi.models.generateContent({
-          model: "gemini-1.5-flash",
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json",
-            temperature: 0.7,
-          }
-        });
+        console.warn("Gemini model 'gemini-flash-latest' failed/not found in ILDP route. Falling back to 'gemini-3.1-flash-lite'...");
+        try {
+          response = await geminiAi.models.generateContent({
+            model: "gemini-3.1-flash-lite",
+            contents: prompt,
+            config: {
+              responseMimeType: "application/json",
+              temperature: 0.7,
+            }
+          });
+        } catch (liteErr) {
+          console.warn("Gemini model 'gemini-3.1-flash-lite' failed, falling back to 'gemini-3.5-flash'...");
+          response = await geminiAi.models.generateContent({
+            model: "gemini-3.5-flash",
+            contents: prompt,
+            config: {
+              responseMimeType: "application/json",
+              temperature: 0.7,
+            }
+          });
+        }
       }
       const text = response.text || "";
       const trimmed = text.trim();

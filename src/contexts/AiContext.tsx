@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type AIProvider = 'gemini' | 'llama-primary' | 'llama-secondary' | 'alibaba-qwen' | 'groq-vision';
+export type AIProvider = 'gemini' | 'qwen-primary' | 'qwen-secondary' | 'alibaba-qwen' | 'groq-vision';
 export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
 export type OCRProvider = 'gemini' | 'ocrspace' | 'groq-vision';
 export type ImageProvider = 'gemini-imagen' | 'huggingface' | 'pollinations-schnell' | 'pollinations-turbo' | 'pollinations-klein' | 'wan2.1-t2i-plus' | 'qwen-image-2.0-pro';
@@ -18,7 +18,7 @@ interface AiContextType {
 
 const AiContext = createContext<AiContextType | undefined>(undefined);
 
-const VALID_PROVIDERS: AIProvider[] = ['gemini', 'llama-primary', 'llama-secondary', 'alibaba-qwen', 'groq-vision'];
+const VALID_PROVIDERS: AIProvider[] = ['gemini', 'qwen-primary', 'qwen-secondary', 'alibaba-qwen', 'groq-vision'];
 const VALID_TTS: TTSProvider[] = ['browser', 'groq-whisper', 'huggingface', 'google-tts'];
 const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace', 'groq-vision'];
 const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'huggingface', 'pollinations-schnell', 'pollinations-turbo', 'pollinations-klein', 'wan2.1-t2i-plus', 'qwen-image-2.0-pro'];
@@ -27,12 +27,15 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_provider') as AIProvider;
+      // Map old deprecated llama-primary to qwen-primary
+      if (saved === 'llama-primary' as any) return 'qwen-primary';
+      if (saved === 'llama-secondary' as any) return 'qwen-secondary';
       if (saved && VALID_PROVIDERS.includes(saved)) {
         return saved;
       }
       return 'gemini';
     } catch (e) {
-      return 'llama-primary';
+      return 'qwen-primary';
     }
   });
 

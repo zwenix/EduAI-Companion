@@ -200,25 +200,30 @@ const getClientGenAI = () => {
 
 const executeClientGeminiAction = async (action: string, input: any) => {
   const geminiAi = getClientGenAI();
-  const model = "gemini-3.5-flash";
+  const model = "gemini-flash-latest";
 
   const generateContentWithFallback = async (options: { model: string, contents: any, config?: any }) => {
     try {
       return await geminiAi.models.generateContent(options);
     } catch (err: any) {
-      if (options.model === "gemini-3.5-flash") {
-        console.warn(`Gemini model '${options.model}' failed in client mode. Falling back to 'gemini-flash-latest'...`);
+      if (options.model === "gemini-flash-latest") {
+        console.warn(`Gemini model '${options.model}' failed in client mode. Falling back to 'gemini-3.1-flash-lite'...`);
         try {
-          return await geminiAi.models.generateContent({
-            ...options,
-            model: "gemini-flash-latest"
-          });
-        } catch (fallbackErr: any) {
-          console.warn(`Gemini model 'gemini-flash-latest' failed in client mode. Falling back to 'gemini-3.1-flash-lite'...`);
           return await geminiAi.models.generateContent({
             ...options,
             model: "gemini-3.1-flash-lite"
           });
+        } catch (fallbackErr: any) {
+          console.warn(`Gemini model 'gemini-3.1-flash-lite' failed in client mode. Falling back to 'gemini-3.5-flash'...`);
+          try {
+            return await geminiAi.models.generateContent({
+              ...options,
+              model: "gemini-3.5-flash"
+            });
+          } catch (lastErr: any) {
+            console.error("All client-side fallback models exhausted!");
+            throw lastErr;
+          }
         }
       }
       throw err;
