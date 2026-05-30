@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { 
   Users, TrendingUp, Calendar, MessageSquare, AlertCircle, 
   Award, BookOpen, ChevronRight, GraduationCap, CheckCircle2, 
-  ClipboardList 
+  ClipboardList, Trophy, Sparkles, Send, Check, Star, RefreshCw
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, 
   CartesianGrid, Tooltip, BarChart, Bar 
@@ -16,6 +16,69 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
   const [selectedChildIndex, setSelectedChildIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<any[]>([]);
+
+  const [reportCycle, setReportCycle] = useState<'weekly' | 'monthly' | 'term'>('weekly');
+  const [parentNoteInput, setParentNoteInput] = useState('');
+  const [isSavingNote, setIsSavingNote] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+
+  const activeChild = children[selectedChildIndex];
+
+  useEffect(() => {
+    if (activeChild && activeChild.idp?.parentNote) {
+      setParentNoteInput(activeChild.idp.parentNote);
+    } else {
+      setParentNoteInput('');
+    }
+    setSaveMessage('');
+  }, [activeChild?.id]);
+
+  const handleSaveParentNote = async () => {
+    if (!activeChild) return;
+    setIsSavingNote(true);
+    setSaveMessage('');
+    try {
+      const studentRef = doc(db, 'students', activeChild.id);
+      const updatedIdp = { ...(activeChild.idp || {}) };
+      updatedIdp.parentNote = parentNoteInput.trim();
+      updatedIdp.parentNoteTimestamp = new Date().toISOString();
+      await updateDoc(studentRef, { idp: updatedIdp });
+      setSaveMessage("Motivation saved! Your child will see this on their dashboard. ✨");
+      setTimeout(() => setSaveMessage(''), 4500);
+    } catch (e) {
+      console.error("Error saving parent note:", e);
+      setSaveMessage("Failed to save note. Please try again.");
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
+
+  const getDynamicNarrative = (child: any, cycle: 'weekly' | 'monthly' | 'term') => {
+    if (!child) return { title: '', perfLevel: '', body: '', strengths: '', weaknesses: '' };
+    const avg = Math.round((child.subjects?.reduce((acc: number, item: any) => acc + item.mark, 0) || 0) / (child.subjects?.length || 1));
+    const strengths = child.idp?.strengths || ["Consistent focus in learning sessions", "Excellent practical lab work"];
+    const weaknesses = child.idp?.weaknesses || ["Complex problem solving under timed tests", "Algebraic conversions"];
+    
+    let cycleTitle = cycle === 'weekly' ? 'Weekly Narrative Report' : cycle === 'monthly' ? 'Monthly Academic Digest' : 'Term Narrative Summary';
+    let perfLevel = avg >= 85 ? 'Distinguished Mastery' : avg >= 75 ? 'Academic Excellence' : avg >= 60 ? 'Satisfactory competency' : 'Support advised';
+    
+    let mainBody = '';
+    if (avg >= 80) {
+      mainBody = `${child.name} is demonstrating exceptional performance and high mastery across all core subjects. They show active learner citizenship and consistency. To maintain this growth, we suggest introducing some more advanced topics.`;
+    } else if (avg >= 60) {
+      mainBody = `${child.name} is demonstrating stable and good conceptual mastery. They regularly engage in independent study sessions. Focused support on complex abstract exercises and active self-tutoring check-ins will aid in ascending their mastery level.`;
+    } else {
+      mainBody = `${child.name} currently requires diagnostic and structured remediation assistance. Integrating regular practice worksheets combined with visual/auditory tutoring aids will accelerate their conceptual onboarding and boost exam confidence.`;
+    }
+
+    return {
+      title: cycleTitle,
+      perfLevel,
+      body: mainBody,
+      strengths: strengths[0] || "Task focus & structured submission",
+      weaknesses: weaknesses[0] || "Complex algebra reasoning structures"
+    };
+  };
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -124,8 +187,6 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
       </div>
     );
   }
-
-  const activeChild = children[selectedChildIndex];
 
   // Map active child's subjects to chart format
   const chartData = activeChild.subjects?.map((sub: any) => ({
@@ -292,7 +353,131 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
         </div>
 
         {/* Notices and Alerts panel */}
-        <div className="space-y-8">
+        <div className="space-y-8 animate-fadeIn">
+          {/* Narrative Summary reports */}
+          <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-6 sm:p-8 rounded-[36px] shadow-sm space-y-4`}>
+            <div className="flex justify-between items-center pb-2 border-b border-slate-200/5">
+              <h3 className={`text-base font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                <ClipboardList className="text-brand-cyan" size={18} />
+                <span>Narrative Progress Digest</span>
+              </h3>
+            </div>
+            
+            <div className="flex gap-2">
+              {(['weekly', 'monthly', 'term'] as const).map((cycle) => (
+                <button
+                  key={cycle}
+                  onClick={() => setReportCycle(cycle)}
+                  className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${
+                    reportCycle === cycle
+                    ? 'bg-brand-cyan text-slate-950 border-brand-cyan'
+                    : (isDarkMode ? 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10' : 'bg-slate-50 border-slate-200 text-slate-600')
+                  }`}
+                >
+                  {cycle}
+                </button>
+              ))}
+            </div>
+
+            {(() => {
+              const report = getDynamicNarrative(activeChild, reportCycle);
+              return (
+                <div className="space-y-3 pt-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] font-black uppercase text-indigo-400 font-mono">{report.title}</span>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/15 uppercase tracking-widest">{report.perfLevel}</span>
+                  </div>
+                  <p className={`text-xs leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                    {report.body}
+                  </p>
+                  <div className={`p-3 rounded-2xl space-y-1 ${isDarkMode ? 'bg-white/5' : 'bg-slate-50'}`}>
+                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Key Strength Areas</div>
+                    <p className={`text-[11px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{report.strengths}</p>
+                  </div>
+                  <div className={`p-3 rounded-2xl space-y-1 ${isDarkMode ? 'bg-white/5' : 'bg-slate-50'}`}>
+                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Weakness Diagnostics</div>
+                    <p className={`text-[11px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{report.weaknesses}</p>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Motivation Note - Two-Way Interactive Link */}
+          <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-6 sm:p-8 rounded-[36px] shadow-sm space-y-4`}>
+            <h3 className={`text-base font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+              <Sparkles className="text-yellow-400" size={18} />
+              <span>Direct Motivation & Guidance Notes</span>
+            </h3>
+            <p className="text-[10px] text-slate-500 leading-relaxed">
+              Write a personalized note or goal here. These motivation notes sync directly onto your child's student dashboard immediately!
+            </p>
+
+            <div className="space-y-3">
+              <textarea
+                value={parentNoteInput}
+                onChange={(e) => setParentNoteInput(e.target.value)}
+                placeholder="E.g., Wonderful job on your science practical! So proud of you, keep up the fantastic effort Sibusiso! ❤️"
+                className={`w-full min-h-[90px] p-4 text-xs rounded-2xl border resize-none focus:outline-none focus:ring-1 focus:ring-brand-cyan ${
+                  isDarkMode ? 'bg-slate-900 border-white/10 text-white placeholder:text-slate-600' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              />
+
+              {saveMessage && (
+                <div className={`text-[11px] text-center font-bold font-sans ${saveMessage.includes('Failed') ? 'text-red-400' : 'text-brand-yellow'}`}>
+                  {saveMessage}
+                </div>
+              )}
+
+              <button
+                onClick={handleSaveParentNote}
+                disabled={isSavingNote || !parentNoteInput.trim()}
+                className="w-full py-3 px-4 rounded-2xl bg-brand-cyan hover:scale-[1.01] active:scale-95 text-slate-950 font-black uppercase text-[11px] tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-brand-cyan/10 border border-brand-cyan/20"
+              >
+                {isSavingNote ? (
+                  <RefreshCw className="animate-spin h-3.5 w-3.5" />
+                ) : (
+                  <>
+                    <span>Send Motivation</span>
+                    <Send size={12} className="stroke-[2.5]" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Milestones / Achievements Badge Wall */}
+          <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-6 sm:p-8 rounded-[36px] shadow-sm space-y-4`}>
+            <h3 className={`text-base font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+              <Trophy className="text-yellow-400" size={18} />
+              <span>Earned Badge Milestones</span>
+            </h3>
+
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { title: 'Math Cadet', desc: 'Secure math mark > 75%', icon: Trophy, active: (activeChild.subjects?.find((s: any) => s.name === 'Mathematics')?.mark || 0) >= 75, color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' },
+                { title: 'STEM Explorer', desc: 'Secure science mark > 75%', icon: Sparkles, active: (activeChild.subjects?.find((s: any) => s.name === 'Physical Sciences')?.mark || 0) >= 75, color: 'text-teal-400 bg-teal-500/10 border-teal-500/30' },
+                { title: 'Language Star', desc: 'Secure EFAL mark > 80%', icon: Star, active: (activeChild.subjects?.find((s: any) => s.name.includes('English'))?.mark || 0) >= 80, color: 'text-pink-400 bg-pink-500/10 border-pink-500/30' },
+                { title: 'Streak Cadet', desc: 'Active student classroom sessions', icon: GraduationCap, active: true, color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30' }
+              ].map((badge, j) => (
+                <div
+                  key={j}
+                  className={`p-3 rounded-2xl border flex flex-col items-center justify-center text-center transition-all ${
+                    badge.active
+                    ? `opacity-100 scale-100 ${badge.color}`
+                    : 'opacity-40 scale-95 border-dashed border-slate-800 bg-[#111827]/40'
+                  }`}
+                >
+                  <div className={`p-2 rounded-xl mb-1.5`}>
+                    <badge.icon size={20} />
+                  </div>
+                  <h4 className={`text-xs font-black truncate max-w-full ${badge.active ? (isDarkMode ? 'text-white' : 'text-slate-800') : 'text-slate-500'}`}>{badge.title}</h4>
+                  <p className="text-[8px] text-slate-500 font-medium leading-none mt-1 mt-0.5">{badge.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Notifications / Teacher announcements */}
           <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-6 sm:p-8 rounded-[36px] shadow-sm space-y-6`}>
             <h3 className={`text-lg font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>

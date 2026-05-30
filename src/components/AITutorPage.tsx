@@ -8,7 +8,7 @@ import { speakText, stopSpeaking, pauseSpeaking, resumeSpeaking } from '../servi
 import Logo from './Logo';
 import AiImage from './AiImage';
 import { auth, db } from '../lib/firebase';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
 
 type ChatMessage = {
@@ -63,6 +63,7 @@ export default function AITutorPage() {
   const [studentGrade, setStudentGrade] = useState('Grade 10');
   const [studentStyle, setStudentStyle] = useState('Visual');
   const [userRole, setUserRole] = useState('learner');
+  const [studentData, setStudentData] = useState<any>(null);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -80,6 +81,15 @@ export default function AITutorPage() {
             if (uData.role) setUserRole(uData.role);
             if (uData.gradeLevel) setStudentGrade(uData.gradeLevel);
             if (uData.learningPreference) setStudentStyle(uData.learningPreference);
+          }
+
+          const email = auth.currentUser.email || '';
+          if (email) {
+            const q = query(collection(db, 'students'), where('email', '==', email));
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+              setStudentData(snap.docs[0].data());
+            }
           }
         } catch (e) {
           console.error("Failed to load user adaptive parameters:", e);
@@ -221,7 +231,19 @@ export default function AITutorPage() {
         return { role: m.role, parts };
       });
       
-      const adaptiveInstruction = `[Adaptive Delivery Config: GradeLevel=${studentGrade} StylePreference=${studentStyle}. Adapt text terminology, cognitive load, layout styling, and check-in exercises precisely to this profile.] `;
+      let dynamicDiagnosticContext = '';
+      if (studentData) {
+        const averageMark = studentData.subjects ? Math.round(studentData.subjects.reduce((sum: number, s: any) => sum + s.mark, 0) / studentData.subjects.length) : 75;
+        const scaleDifficulty = averageMark > 78 ? 'Challenge Tier (stretch cognitive load, pose advanced conceptual quizzes)' : averageMark < 60 ? 'Remedial Scaffolding Tier (simplify notation, present analogies, check concepts step by step)' : 'Core CAPS Standard Tier';
+        
+        const weaknesses = studentData.idp?.weaknesses?.join(', ') || '';
+        const strengths = studentData.idp?.strengths || '';
+        const recommendations = studentData.idp?.recommendations?.join(', ') || '';
+
+        dynamicDiagnosticContext = `[Student Profile diagnostics: AvgPerformance=${averageMark}%, DynamicDifficulty=${scaleDifficulty}, Strengths="${strengths}", Core Identified Knowledge Gaps/Weaknesses="${weaknesses}", Targeted Remediation Recommendations="${recommendations}". Scaffold responses appropriately to gently remediate designated weaknesses, prompt them with active check-in questions, and match cognitive load precisely to current performance tier.] `;
+      }
+
+      const adaptiveInstruction = `[Adaptive Delivery Config: GradeLevel=${studentGrade} StylePreference=${studentStyle}. Adapt text terminology, layout styling, and exercises precisely to this profile.] ${dynamicDiagnosticContext}`;
       const promptText = `[Instruct: Reply exclusively in ${language}] ${adaptiveInstruction}` + (priorityTopic !== 'General' 
         ? `[Priority Topic: ${priorityTopic}] ${userText}`
         : userText);

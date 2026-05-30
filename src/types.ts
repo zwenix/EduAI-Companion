@@ -24,6 +24,8 @@ export interface IdpModel {
   weaknesses?: string[];
   recommendations?: string[];
   actionPlan: MilestoneTask[];
+  parentNote?: string;
+  parentNoteTimestamp?: string;
 }
 
 export interface StudentDoc {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Target, BookOpen, CheckCircle, Flame, Star, Brain, Play, Check } from 'lucide-react';
+import { Target, BookOpen, CheckCircle, Flame, Star, Brain, Play, Check, Heart, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, updateDoc, doc, setDoc } from 'firebase/firestore';
@@ -337,6 +337,43 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
            </div>
          ))}
       </div>
+
+      {/* Parent Motivation Note Card (If Provided) */}
+      {student?.idp?.parentNote && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={`p-6 rounded-[28px] border-2 bg-gradient-to-tr ${
+            isDarkMode 
+              ? 'from-[#3B0764]/40 via-[#1E1B4B]/30 to-[#030712]/50 border-purple-500/20 shadow-purple-950/20' 
+              : 'from-pink-50 via-purple-50 to-indigo-50 border-purple-200/55 shadow-purple-100/50'
+          } border-solid shadow-xl flex flex-col sm:flex-row items-start sm:items-center gap-4 relative overflow-hidden`}
+        >
+          <div className="absolute top-0 right-0 p-8 opacity-5 text-purple-400">
+            <Heart size={140} className="fill-current" />
+          </div>
+          <div className={`p-4 bg-purple-500/10 rounded-2xl border border-purple-500/20 shrink-0 flex items-center justify-center`}>
+            <Heart size={26} className="fill-current animate-pulse text-red-500" />
+          </div>
+          <div className="space-y-1.5 z-10">
+            <h4 className={`text-xs font-black uppercase tracking-widest ${
+              isDarkMode ? 'text-purple-300' : 'text-purple-500'
+            }`}>
+              Message from Parent/Guardian
+            </h4>
+            <p className={`text-base sm:text-lg font-hand leading-relaxed italic ${
+              isDarkMode ? 'text-slate-100' : 'text-slate-800'
+            }`}>
+              "{student.idp.parentNote}"
+            </p>
+            {student.idp.parentNoteTimestamp && (
+              <p className="text-[9px] font-mono font-bold text-slate-500 mr-auto">
+                Received: {new Date(student.idp.parentNoteTimestamp).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
+          </div>
+        </motion.div>
+      )}
 
       {/* Upcoming Missions (Interactive Tasks) */}
       <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
