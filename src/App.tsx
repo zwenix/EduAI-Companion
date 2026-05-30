@@ -79,6 +79,7 @@ import ParentDashboard from './components/ParentDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import SettingsPage from './components/Settings';
 import Helpdesk from './components/Helpdesk';
+import CategoryOverview from './components/CategoryOverview';
 import { auth, db } from './lib/firebase';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
@@ -313,13 +314,15 @@ export default function App() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [previousTabs, setPreviousTabs] = useState<string[]>([]);
-  const [activeCategory, setActiveCategory] = useState('lesson-planning');
+  const [activeCategory, setActiveCategory] = useState('teacher-dashboard-menu');
+  const [categoryOverviewActive, setCategoryOverviewActive] = useState<string | null>(null);
   const [categoryActiveSubTab, setCategoryActiveSubTab] = useState<Record<string, string>>({
-    'lesson-planning': 'dashboard',
+    'teacher-dashboard-menu': 'dashboard',
+    'lesson-planning': 'teaching',
     'intelligence-ai': 'ai-tutor',
     'class-analytics': 'reports',
     'class-management': 'class-management',
-    'student-class-management': 'portfolios',
+    'student-class-management': 'messenger',
     'system-support': 'settings'
   });
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -523,10 +526,12 @@ export default function App() {
     setPreviousTabs(prev => [...prev, activeTab]);
     setActiveTab(newTab);
     setActiveCreatorTab(null);
+    setCategoryOverviewActive(null);
   };
 
   const goBack = () => {
     setActiveCreatorTab(null);
+    setCategoryOverviewActive(null);
     if (previousTabs.length > 0) {
       const newHistory = [...previousTabs];
       const prev = newHistory.pop();
@@ -537,22 +542,36 @@ export default function App() {
     }
   };
 
-  const sidebarCategories = [
-    { id: 'lesson-planning', label: 'Lesson planning', icon: BookOpen },
-    { id: 'intelligence-ai', label: 'Intelligence AI', icon: Brain },
-    { id: 'class-analytics', label: 'Class analytics', icon: TrendingUp },
-    { id: 'class-management', label: 'Class management', icon: School },
-    { id: 'student-class-management', label: 'Student & class management', icon: GraduationCap },
-    { id: 'system-support', label: 'System support', icon: Settings },
-  ];
+  const getSidebarCategories = (role: string | null) => {
+    const r = role || 'teacher';
+    let firstLabel = 'Teacher Dashboard';
+    if (r === 'student') firstLabel = 'Student Dashboard';
+    else if (r === 'parent') firstLabel = 'Parent Dashboard';
+    else if (r === 'admin') firstLabel = 'Admin Dashboard';
+    
+    return [
+      { id: 'teacher-dashboard-menu', label: firstLabel, icon: LayoutDashboard },
+      { id: 'lesson-planning', label: 'Lesson planning', icon: BookOpen },
+      { id: 'intelligence-ai', label: 'Intelligence AI', icon: Brain },
+      { id: 'class-analytics', label: 'Analytics & Reports', icon: TrendingUp },
+      { id: 'class-management', label: 'Class management', icon: School },
+      { id: 'student-class-management', label: 'Chat & Messenger', icon: MessageSquare },
+      { id: 'system-support', label: 'System support', icon: Settings },
+    ];
+  };
+
+  const sidebarCategories = getSidebarCategories(userRole);
 
   const getSubTabsForCategory = (catId: string, role: string | null) => {
     const r = role || 'teacher';
     if (r === 'student') {
       switch (catId) {
+        case 'teacher-dashboard-menu':
+          return [
+            { id: 'dashboard', label: 'Student Dashboard', icon: LayoutDashboard }
+          ];
         case 'lesson-planning':
           return [
-            { id: 'dashboard', label: 'Student Dashboard', icon: LayoutDashboard },
             { id: 'student-notes', label: 'Study & Revision Notes', icon: BookOpen }
           ];
         case 'intelligence-ai':
@@ -561,7 +580,8 @@ export default function App() {
           ];
         case 'class-analytics':
           return [
-            { id: 'reports', label: 'My Progress Analytics', icon: TrendingUp }
+            { id: 'reports', label: 'My Progress Analytics', icon: TrendingUp },
+            { id: 'portfolios', label: 'My Portfolio', icon: UserCircle }
           ];
         case 'class-management':
           return [
@@ -570,7 +590,6 @@ export default function App() {
         case 'student-class-management':
           return [
             { id: 'student-practice', label: 'Practice Zone', icon: ClipboardCheck },
-            { id: 'portfolios', label: 'My Portfolio', icon: UserCircle },
             { id: 'messenger', label: 'Chat & Friends', icon: MessageSquare }
           ];
         case 'system-support':
@@ -584,17 +603,20 @@ export default function App() {
       }
     } else if (r === 'parent') {
       switch (catId) {
-        case 'lesson-planning':
+        case 'teacher-dashboard-menu':
           return [
             { id: 'dashboard', label: 'Parent Dashboard Hub', icon: LayoutDashboard }
           ];
+        case 'lesson-planning':
+          return [];
         case 'intelligence-ai':
           return [
             { id: 'dashboard', label: 'AI Classroom Updates', icon: Brain }
           ];
         case 'class-analytics':
           return [
-            { id: 'reports', label: "My Child's Progress", icon: TrendingUp }
+            { id: 'reports', label: "My Child's Progress", icon: TrendingUp },
+            { id: 'portfolios', label: 'Assignments & Portfolios', icon: FileText }
           ];
         case 'class-management':
           return [
@@ -602,7 +624,6 @@ export default function App() {
           ];
         case 'student-class-management':
           return [
-            { id: 'portfolios', label: 'Assignments & Portfolios', icon: FileText },
             { id: 'messenger', label: 'Teacher Chat & Contacts', icon: MessageSquare }
           ];
         case 'system-support':
@@ -616,9 +637,12 @@ export default function App() {
       }
     } else if (r === 'admin') {
       switch (catId) {
+        case 'teacher-dashboard-menu':
+          return [
+            { id: 'dashboard', label: 'Admin Dashboard Hub', icon: LayoutDashboard }
+          ];
         case 'lesson-planning':
           return [
-            { id: 'dashboard', label: 'Admin Dashboard Hub', icon: LayoutDashboard },
             { id: 'archive', label: 'Database Content Archive', icon: Archive }
           ];
         case 'intelligence-ai':
@@ -650,9 +674,12 @@ export default function App() {
     } else {
       // Default: Teacher
       switch (catId) {
+        case 'teacher-dashboard-menu':
+          return [
+            { id: 'dashboard', label: 'Teacher Dashboard', icon: LayoutDashboard }
+          ];
         case 'lesson-planning':
           return [
-            { id: 'dashboard', label: 'Teacher Dashboard', icon: LayoutDashboard },
             { id: 'teaching', label: 'Content Creator Studio', icon: FlaskConical },
             { id: 'archive', label: 'Content Archive Storage', icon: Archive }
           ];
@@ -663,7 +690,8 @@ export default function App() {
           ];
         case 'class-analytics':
           return [
-            { id: 'reports', label: 'Progress Reports', icon: TrendingUp }
+            { id: 'reports', label: 'Progress Reports', icon: TrendingUp },
+            { id: 'portfolios', label: 'Learner Personal Portfolios', icon: UserCircle }
           ];
         case 'class-management':
           return [
@@ -671,7 +699,6 @@ export default function App() {
           ];
         case 'student-class-management':
           return [
-            { id: 'portfolios', label: 'Learner Personal Portfolios', icon: UserCircle },
             { id: 'messenger', label: 'Communicator Hub Chat', icon: MessageSquare }
           ];
         case 'system-support':
@@ -687,14 +714,22 @@ export default function App() {
   };
 
   const getCategoryForTab = (tabId: string, role: string | null) => {
-    const list = ['lesson-planning', 'intelligence-ai', 'class-analytics', 'class-management', 'student-class-management', 'system-support'];
+    const list = [
+      'teacher-dashboard-menu',
+      'lesson-planning',
+      'intelligence-ai',
+      'class-analytics',
+      'class-management',
+      'student-class-management',
+      'system-support'
+    ];
     for (const cat of list) {
       const tabs = getSubTabsForCategory(cat, role);
       if (tabs.some(t => t.id === tabId)) {
         return cat;
       }
     }
-    return 'lesson-planning';
+    return 'teacher-dashboard-menu';
   };
 
   useEffect(() => {
@@ -962,17 +997,21 @@ export default function App() {
                 active={active} 
                 isDarkMode={isDarkMode}
                 onClick={() => {
-                  const tabs = getSubTabsForCategory(cat.id, userRole);
-                  if (tabs.length > 0) {
-                    const preferredSubTab = categoryActiveSubTab[cat.id] || '';
-                    const hasPreferred = tabs.some(t => t.id === preferredSubTab);
-                    const targetSubTab = hasPreferred ? preferredSubTab : tabs[0].id;
-
-                    if (targetSubTab === 'teaching') {
-                      setActiveCreatorTab('teaching');
-                    } else {
-                      changeTab(targetSubTab);
+                  setActiveCategory(cat.id);
+                  const subTabs = getSubTabsForCategory(cat.id, userRole);
+                  if (subTabs.length <= 1 || cat.id === 'teacher-dashboard-menu') {
+                    setCategoryOverviewActive(null);
+                    if (subTabs.length > 0) {
+                      const targetSubTab = subTabs[0].id;
+                      if (targetSubTab === 'teaching') {
+                        setActiveCreatorTab('teaching');
+                        setActiveTab('teaching');
+                      } else {
+                        changeTab(targetSubTab);
+                      }
                     }
+                  } else {
+                    setCategoryOverviewActive(cat.id);
                   }
                   if (isMobile) setMobileSidebarOpen(false);
                 }} 
@@ -1222,7 +1261,6 @@ export default function App() {
             >
               <option value="llama-primary">Alibaba qwen3.6-plus (Primary)</option>
               <option value="llama-secondary">Alibaba qwen3.7-max (Secondary)</option>
-              <option value="alibaba-qwen">Alibaba qwen3.7-max</option>
               <option value="gemini">Gemini (Fallback)</option>
             </select>
             <button 
@@ -1466,41 +1504,46 @@ export default function App() {
               className="absolute inset-0 overflow-y-auto p-4 lg:p-8 custom-scrollbar"
             >
               <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8 pb-12">
-              {/* Category Sub-navigation Pills */}
-              {(function() {
-                const currentSubTabs = getSubTabsForCategory(activeCategory, userRole);
-                if (currentSubTabs.length <= 1) return null;
-                return (
-                  <div className={`p-1.5 rounded-[24px] flex flex-wrap gap-2 ${
-                    isDarkMode ? 'bg-slate-950/40 border border-white/5' : 'bg-slate-100 border border-slate-200/60'
-                  } mb-2 max-w-fit`}>
-                    {currentSubTabs.map((item) => {
-                      const isActive = activeTab === item.id || (item.id === 'teaching' && activeCreatorTab === 'teaching');
-                      return (
+              {categoryOverviewActive ? (
+                <CategoryOverview
+                  categoryLabel={sidebarCategories.find(c => c.id === categoryOverviewActive)?.label || ''}
+                  categoryIcon={sidebarCategories.find(c => c.id === categoryOverviewActive)?.icon}
+                  subTabs={getSubTabsForCategory(categoryOverviewActive, userRole)}
+                  isDarkMode={isDarkMode}
+                  onSelect={(tabId) => {
+                    setCategoryOverviewActive(null);
+                    if (tabId === 'teaching') {
+                      setActiveCreatorTab('teaching');
+                      setActiveTab('teaching');
+                    } else {
+                      changeTab(tabId);
+                    }
+                  }}
+                />
+              ) : (
+                <>
+                  {(function() {
+                    const currentSubTabs = getSubTabsForCategory(activeCategory, userRole);
+                    if (currentSubTabs.length <= 1 || activeCategory === 'teacher-dashboard-menu') return null;
+                    const catLabel = sidebarCategories.find(c => c.id === activeCategory)?.label || '';
+                    return (
+                      <div className="flex justify-between items-center mb-6">
                         <button
-                          key={item.id}
-                          onClick={() => {
-                            if (item.id === 'teaching') {
-                              setActiveCreatorTab('teaching');
-                            } else {
-                              changeTab(item.id);
-                            }
-                          }}
-                          className={`flex items-center gap-2 px-5 py-2.5 rounded-[18px] text-[11px] font-black font-display uppercase tracking-wider transition-all cursor-pointer border-0 outline-none ${
-                            isActive
-                              ? 'bg-brand-cyan text-[#0F172A] shadow-md shadow-cyan-500/25 scale-[1.02]'
-                              : `${isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-600 hover:text-slate-900 hover:bg-white shadow-sm'}`
+                          onClick={() => setCategoryOverviewActive(activeCategory)}
+                          className={`flex items-center gap-2 px-5 py-2.5 rounded-[22px] text-xs font-bold transition-all border outline-none cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${
+                            isDarkMode 
+                              ? 'bg-slate-950/40 border-white/5 text-slate-300 hover:text-white hover:bg-[#00d2ff]/10 hover:border-[#00d2ff]/20' 
+                              : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:shadow-sm hover:bg-slate-50'
                           }`}
                         >
-                          <item.icon size={14} className={isActive ? 'animate-pulse' : ''} />
-                          <span>{item.label}</span>
+                          <ArrowLeft size={14} strokeWidth={2.5} />
+                          <span>Back to {catLabel} Hub</span>
                         </button>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-            {activeTab === 'dashboard' ? (
+                      </div>
+                    );
+                  })()}
+
+                  {activeTab === 'dashboard' ? (
               userRole === 'student' ? (
                 <StudentDashboard isDarkMode={isDarkMode} />
               ) : userRole === 'parent' ? (
@@ -1644,6 +1687,22 @@ export default function App() {
                     isAlreadyInstalled={isAlreadyInstalled}
                     userRole={userRole || 'teacher'}
                   />
+                ) : activeTab === 'teaching' ? (
+                  <div className={`p-8 rounded-[40px] text-center ${isDarkMode ? 'bg-[#0B1122] border border-white/5 animate-fade-in' : 'bg-white border border-slate-200 shadow-xl'} flex flex-col items-center justify-center min-h-[440px] space-y-6`}>
+                    <div className="w-20 h-20 rounded-[28px] bg-brand-cyan/20 text-[#00d2ff] flex items-center justify-center animate-bounce">
+                      <FlaskConical size={40} />
+                    </div>
+                    <h3 className={`text-2xl font-black font-display ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Content Creator Studio</h3>
+                    <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} max-w-sm leading-relaxed font-semibold`}>
+                      The CAPS-aligned AI curriculum content editor is open in a workspace hub overlay. Rubrics, worksheets, and exams are active inside the studio.
+                    </p>
+                    <button
+                      onClick={() => setActiveCreatorTab('teaching')}
+                      className="bg-[#00d2ff] hover:bg-[#00d2ff]/90 text-[#0F172A] font-extrabold px-8 py-3.5 rounded-full shadow-lg hover:shadow-cyan-500/20 shadow-cyan-500/10 transition-all font-display hover:scale-105 active:scale-95 border-none outline-none cursor-pointer"
+                    >
+                      Re-open Creator Studio Overlay
+                    </button>
+                  </div>
                 ) : activeTab === 'helpdesk' ? (
                   <Helpdesk isDarkMode={isDarkMode} />
                 ) : activeTab === 'faq' ? (
@@ -1694,6 +1753,8 @@ export default function App() {
                     </div>
                   </div>
                 )}
+                </>
+              )}
               </div>
             </motion.div>
           </AnimatePresence>

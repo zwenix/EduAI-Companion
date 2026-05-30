@@ -93,19 +93,28 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
           <div className="space-y-2">
             <h3 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>How to Link Your Child's Profile</h3>
             <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-              To keep your child's records secure, they must be linked by their classroom teacher.
+              Link your child's profile instantly via self-service configuration, or have their classroom teacher complete the mapping.
             </p>
           </div>
 
           <div className={`p-5 rounded-2xl text-left border space-y-3 ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
             <p className="text-xs font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-brand-cyan rounded-full"></span> Follow these steps:
+              <span className="w-1.5 h-1.5 bg-brand-cyan rounded-full"></span> Link Instantly via Settings (Recommended)
             </p>
             <ol className="text-xs text-slate-400 list-decimal pl-5 space-y-1.5">
-              <li>Give your registered email address (<span className="text-brand-cyan font-black">{currentEmail}</span>) to your child's class teacher.</li>
-              <li>The teacher will navigate to <strong>Progress Reports &rarr; Edit Learner Profile</strong> and link your email.</li>
-              <li>Once linked, their term grades, syllabi progress, and teacher announcements will propagate instantly to this dashboard.</li>
+              <li>Click on <strong>Settings</strong> in the left sidebar menu.</li>
+              <li>Go to the <strong>Personal Link Child</strong> section.</li>
+              <li>Type your child's email address and press <strong>Link Profile</strong>. Your dashboards will sync instantly!</li>
             </ol>
+          </div>
+
+          <div className={`p-5 rounded-2xl text-left border space-y-3 ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+            <p className="text-xs font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span> Method 2: Link via Educator
+            </p>
+            <p className="text-xs text-slate-400 pl-4">
+              Provide your parent email address (<span className="text-brand-cyan font-black">{currentEmail}</span>) to your child's class teacher. They can add it to your child's student record under their Analytics & Reports dashboard.
+            </p>
           </div>
 
           <div className="text-xs text-slate-400 font-medium pt-2">
@@ -210,7 +219,7 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
               <div className="space-y-2">
                 <p className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">Course Comparison</p>
                 <div className="h-[200px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#ffffff03" />
                       <XAxis dataKey="name" stroke="#64748b" fontSize={8} tickFormatter={(v: string) => v.split(' ')[0]} />
@@ -225,7 +234,7 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
               <div className="space-y-2">
                 <p className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">Historical GPA Growth</p>
                 <div className="h-[200px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height={200}>
                     <AreaChart data={historyData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#ffffff03" />
                       <XAxis dataKey="name" stroke="#64748b" fontSize={8} />

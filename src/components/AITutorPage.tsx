@@ -59,10 +59,35 @@ export default function AITutorPage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [generationProgress, setGenerationProgress] = useState(0);
 
+  // Adaptive Learning Context States
+  const [studentGrade, setStudentGrade] = useState('Grade 10');
+  const [studentStyle, setStudentStyle] = useState('Visual');
+  const [userRole, setUserRole] = useState('learner');
+
   const audioRef = useRef<HTMLAudioElement>(null);
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const fetchAdaptiveConfig = async () => {
+      if (auth.currentUser) {
+        try {
+          const uRef = doc(db, 'users', auth.currentUser.uid);
+          const uSnap = await getDoc(uRef);
+          if (uSnap.exists()) {
+            const uData = uSnap.data();
+            if (uData.role) setUserRole(uData.role);
+            if (uData.gradeLevel) setStudentGrade(uData.gradeLevel);
+            if (uData.learningPreference) setStudentStyle(uData.learningPreference);
+          }
+        } catch (e) {
+          console.error("Failed to load user adaptive parameters:", e);
+        }
+      }
+    };
+    fetchAdaptiveConfig();
+  }, []);
 
   useEffect(() => {
     const savedHistory = localStorage.getItem(STORAGE_KEY);
@@ -196,7 +221,8 @@ export default function AITutorPage() {
         return { role: m.role, parts };
       });
       
-      const promptText = `[Instruct: Reply exclusively in ${language}] ` + (priorityTopic !== 'General' 
+      const adaptiveInstruction = `[Adaptive Delivery Config: GradeLevel=${studentGrade} StylePreference=${studentStyle}. Adapt text terminology, cognitive load, layout styling, and check-in exercises precisely to this profile.] `;
+      const promptText = `[Instruct: Reply exclusively in ${language}] ${adaptiveInstruction}` + (priorityTopic !== 'General' 
         ? `[Priority Topic: ${priorityTopic}] ${userText}`
         : userText);
       
@@ -306,8 +332,11 @@ export default function AITutorPage() {
             <div className="mr-2 lg:mr-4"><Logo className="w-6 h-6 lg:w-8 lg:h-8" /></div>
             AI Tutor
           </h1>
-          <p className="hidden sm:flex text-xs text-slate-400 font-bold uppercase tracking-widest mt-2 items-center">
+          <p className="hidden sm:flex text-xs text-slate-400 font-bold uppercase tracking-widest mt-2 items-center flex-wrap gap-2">
             <HistoryIcon className="h-3 w-3 mr-1 text-brand-cyan" /> Chats saved locally
+            <span className="ml-2 px-2.5 py-0.5 bg-brand-cyan/20 text-brand-cyan rounded-full text-[9px] border border-brand-cyan/10">
+              🤖 Adaptive: {studentGrade} • {studentStyle} Mode
+            </span>
           </p>
         </div>
         <div className="flex flex-wrap gap-2 lg:gap-4 mt-2 sm:mt-0 justify-end">

@@ -3,11 +3,11 @@ import {
   Settings as SettingsIcon, Bell, Shield, Key, Moon, Sun, 
   Monitor, Save, AlertCircle, User, CreditCard, 
   Database, Activity, Lock, Mail, Phone, Globe,
-  LogOut, Trash2, Plus, Smartphone, Download, Palette
+  LogOut, Trash2, Plus, Smartphone, Download, Palette, Link as LinkIcon
 } from 'lucide-react';
 import { useAi } from '../contexts/AiContext';
 import { auth, db } from '../lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
@@ -46,6 +46,16 @@ export default function Settings({
   const [photoUrl, setPhotoUrl] = useState(() => localStorage.getItem('eduai_user_photo') || '');
   const [profileEmail, setProfileEmail] = useState('');
   
+  // Adaptive Learning & Grade Settings
+  const [gradeLevel, setGradeLevel] = useState('Grade 10');
+  const [learningPreference, setLearningPreference] = useState('Visual');
+
+  // Parents Link child forms
+  const [childEmailToLink, setChildEmailToLink] = useState('');
+  const [linkMessage, setLinkMessage] = useState('');
+  const [isLinking, setIsLinking] = useState(false);
+  const [linkedChildrenList, setLinkedChildrenList] = useState<any[]>([]);
+  
   // Children accessibility preferences controls
   const [dyslexiaTheme, setDyslexiaTheme] = useState(() => localStorage.getItem('eduai_dyslexia') === 'true');
   const [readSpeed, setReadSpeed] = useState(() => Number(localStorage.getItem('eduai_read_speed') || '1.0'));
@@ -71,6 +81,33 @@ export default function Settings({
             if (data.phone) setPhone(data.phone);
             if (data.jobTitle) setJobTitle(data.jobTitle);
             if (data.photoUrl) currentPhoto = data.photoUrl;
+            if (data.gradeLevel) setGradeLevel(data.gradeLevel);
+            if (data.learningPreference) setLearningPreference(data.learningPreference);
+            
+            // Sync accessibility from DB if keys present
+            if (data.dyslexiaTheme !== undefined) {
+              setDyslexiaTheme(data.dyslexiaTheme);
+              localStorage.setItem('eduai_dyslexia', String(data.dyslexiaTheme));
+            }
+            if (data.readSpeed !== undefined) {
+              setReadSpeed(data.readSpeed);
+              localStorage.setItem('eduai_read_speed', String(data.readSpeed));
+            }
+            if (data.dyscalculiaHelp !== undefined) {
+              setDyscalculiaHelp(data.dyscalculiaHelp);
+              localStorage.setItem('eduai_dyscalculia', String(data.dyscalculiaHelp));
+            }
+          }
+
+          // If current role is parent, let's load linked children
+          if (userRole === 'parent' || userRole === 'Parent') {
+            const childrenQuery = query(
+              collection(db, 'students'), 
+              where('parentEmail', '==', auth.currentUser.email?.toLowerCase().trim())
+            );
+            const childrenSnap = await getDocs(childrenQuery);
+            const list = childrenSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setLinkedChildrenList(list);
           }
         } catch (error) {
           console.error("Error fetching profile", error);
@@ -86,7 +123,7 @@ export default function Settings({
       setIsLoading(false);
     }
     fetchProfile();
-  }, []);
+  }, [userRole]);
 
   const handleSavePersonal = async () => {
     if (!auth.currentUser) return;
@@ -101,37 +138,105 @@ export default function Settings({
     try {
       const docRef = doc(db, 'users', auth.currentUser.uid);
       const docSnap = await getDoc(docRef);
+      const userPayload = {
+        name: fullName,
+        email: profileEmail || auth.currentUser.email || '',
+        school: school,
+        jobTitle: jobTitle,
+        phone: phone,
+        photoUrl: photoUrl,
+        gradeLevel: gradeLevel,
+        learningPreference: learningPreference,
+        dyslexiaTheme: dyslexiaTheme,
+        readSpeed: readSpeed,
+        dyscalculiaHelp: dyscalculiaHelp,
+        updatedAt: serverTimestamp()
+      };
+
       if (docSnap.exists()) {
-        await updateDoc(docRef, {
-          name: fullName,
-          email: profileEmail,
-          school: school,
-          jobTitle: jobTitle,
-          phone: phone,
-          photoUrl: photoUrl,
-          updatedAt: serverTimestamp()
-        });
+        await updateDoc(docRef, userPayload);
       } else {
         await setDoc(docRef, {
-          name: fullName,
-          email: profileEmail || auth.currentUser.email || '',
-          role: 'teacher', // fallback role
-          school: school,
-          jobTitle: jobTitle,
-          phone: phone,
-          photoUrl: photoUrl,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
+          ...userPayload,
+          role: userRole || 'teacher', // fallback role
+          createdAt: serverTimestamp()
         });
       }
-      alert('Personal details saved successfully to Firebase.');
+
+      // If user is a student/learner, search for their record in 'students' and align it too
+      if (userRole === 'student' || userRole === 'learner') {
+        const sQuery = query(collection(db, 'students'), where('email', '==', auth.currentUser.email?.toLowerCase().trim()));
+        const sSnap = await getDocs(sQuery);
+        if (!sSnap.empty) {
+          const studentDocId = sSnap.docs[0].id;
+          await updateDoc(doc(db, 'students', studentDocId), {
+            name: fullName,
+            grade: gradeLevel
+          });
+        }
+      }
+
+      alert('Personal and Adaptive Profile details saved successfully to Firebase.');
     } catch (error) {
        console.error("Firebase update failed", error);
        alert('Personal details failed to save to Firebase.');
        handleFirestoreError(error, OperationType.WRITE, 'users/' + auth.currentUser.uid);
     }
   };
-  
+
+  const handleLinkChild = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!childEmailToLink.trim() || !auth.currentUser?.email) return;
+    setIsLinking(true);
+    setLinkMessage('');
+    try {
+      const emailSearch = childEmailToLink.trim().toLowerCase();
+      const q = query(collection(db, 'students'), where('email', '==', emailSearch));
+      const sSnap = await getDocs(q);
+      
+      if (sSnap.empty) {
+        // Create an empty template student record linked to key parent so it activates
+        const docId = `student_${Date.now()}`;
+        await setDoc(doc(db, 'students', docId), {
+          id: docId,
+          name: childEmailToLink.split('@')[0],
+          grade: 'Grade 10',
+          email: emailSearch,
+          status: 'Active',
+          teacherId: 'unassigned',
+          parentName: fullName,
+          parentEmail: auth.currentUser.email.toLowerCase().trim(),
+          parentPhone: phone,
+          createdAt: serverTimestamp(),
+          subjects: [
+            { name: 'Mathematics', mark: 65, termHistory: [55, 60, 65], assessments: [] },
+            { name: 'Physical Sciences', mark: 70, termHistory: [60, 65, 70], assessments: [] },
+            { name: 'English First Additional Language', mark: 72, termHistory: [68, 70, 72], assessments: [] }
+          ]
+        });
+        setLinkMessage(`A new profile template was created and linked to your parent account for: ${emailSearch}`);
+      } else {
+        const studentDocId = sSnap.docs[0].id;
+        await updateDoc(doc(db, 'students', studentDocId), {
+          parentEmail: auth.currentUser.email.toLowerCase().trim(),
+          parentName: fullName,
+          parentPhone: phone
+        });
+        setLinkMessage(`Successfully linked student profile for: ${emailSearch}!`);
+      }
+      setChildEmailToLink('');
+      // Update list
+      const q2 = query(collection(db, 'students'), where('parentEmail', '==', auth.currentUser.email.toLowerCase().trim()));
+      const cSnap = await getDocs(q2);
+      setLinkedChildrenList(cSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err: any) {
+      console.error("Linking failed", err);
+      setLinkMessage(`Failed to link: ${err.message || String(err)}`);
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
   const triggerImageUpload = () => {
     const url = prompt('Enter image URL for profile picture (or leave blank for initials):', photoUrl);
     if (url !== null) {
@@ -284,13 +389,106 @@ export default function Settings({
                     />
                   </div>
                 </div>
+
+                {/* Adaptive Profile Fields (Student Mode) */}
+                {(userRole === 'student' || userRole === 'learner') && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Academic Grade Level Selector</label>
+                      <select 
+                        value={gradeLevel}
+                        onChange={(e) => setGradeLevel(e.target.value)}
+                        className={cn("w-full px-5 py-4 rounded-2xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-slate-800 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
+                      >
+                        {['Grade R', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'].map(g => (
+                          <option key={g} value={g}>{g}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Adaptive Learning style Preference</label>
+                      <select 
+                        value={learningPreference}
+                        onChange={(e) => setLearningPreference(e.target.value)}
+                        className={cn("w-full px-5 py-4 rounded-2xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-slate-800 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
+                      >
+                        <option value="Visual">🎨 Visual Mode (Images & Graphic Bento Charts)</option>
+                        <option value="Auditory">🗣️ Auditory Mode (Active Reads & TTS Synthesizer)</option>
+                        <option value="Kinesthetic">🧠 Kinesthetic Mode (Active Multiple Choice Workbook Challenges)</option>
+                      </select>
+                    </div>
+                  </>
+                )}
               </div>
               
               <div className="flex justify-end pt-4">
                 <button onClick={handleSavePersonal} className="flex items-center gap-2 bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-cyan-500/25 transition-all">
-                  <Save size={16} /> Save Changes
+                  <Save size={16} /> Save Changes & Personal profile
                 </button>
               </div>
+
+              {/* Linking Child form (Parent Mode) */}
+              {(userRole === 'parent' || userRole === 'Parent') && (
+                <div className={cn("mt-8 pt-8 border-t border-dashed", isDarkMode ? "border-white/10" : "border-slate-200")}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-brand-cyan/10 rounded-xl text-brand-cyan">
+                      <LinkIcon size={20} />
+                    </div>
+                    <div>
+                      <h4 className={cn("text-base font-bold", isDarkMode ? "text-white" : "text-slate-800")}>Link Children Dashboard Profiles</h4>
+                      <p className="text-xs text-slate-500">Add child accounts to monitor performance and view dynamic CAPS reports.</p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleLinkChild} className="flex flex-col sm:flex-row gap-3">
+                    <input 
+                      type="email" 
+                      value={childEmailToLink}
+                      onChange={(e) => setChildEmailToLink(e.target.value)}
+                      placeholder="sibu.dube@school.za"
+                      className={cn("flex-grow px-5 py-4 rounded-2xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
+                    />
+                    <button 
+                      type="submit" 
+                      disabled={isLinking}
+                      className="px-6 py-4 bg-brand-cyan hover:bg-cyan-500 text-navy-dark rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-md transition-all flex items-center justify-center gap-2"
+                    >
+                      {isLinking ? "Searching..." : "Link Profile"}
+                    </button>
+                  </form>
+                  {linkMessage && (
+                    <p className={cn("text-xs font-bold mt-2", linkMessage.startsWith("Error") ? "text-rose-400" : "text-brand-cyan")}>
+                      {linkMessage}
+                    </p>
+                  )}
+
+                  {/* List of currently linked children */}
+                  <div className="mt-6 space-y-3">
+                    <h5 className={cn("text-[10px] font-black uppercase tracking-wider", isDarkMode ? "text-slate-500" : "text-slate-600")}>Linked Children Logs ({linkedChildrenList.length})</h5>
+                    {linkedChildrenList.length === 0 ? (
+                      <p className="text-xs text-slate-500 italic">No children profiles are currently linked. Enter their school emails above to begin.</p>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {linkedChildrenList.map(child => (
+                          <div 
+                            key={child.id}
+                            className={cn("p-4 rounded-2xl border flex justify-between items-center", isDarkMode ? "bg-white/5 border-white/5" : "bg-slate-50 border-slate-100")}
+                          >
+                            <div>
+                              <p className={cn("font-bold text-sm", isDarkMode ? "text-white" : "text-slate-800")}>{child.name}</p>
+                              <p className="text-[10px] text-slate-500">{child.email} • {child.grade}</p>
+                            </div>
+                            <span className="bg-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border border-emerald-500/10">
+                              Linked
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="pt-6 border-t border-white/5 space-y-6">
                 <h3 className={cn("text-xs font-black uppercase tracking-widest", isDarkMode ? "text-slate-400" : "text-slate-500")}>Interface Personalization</h3>
@@ -352,7 +550,6 @@ export default function Settings({
                     >
                       <option value="llama-primary">Alibaba qwen3.6-plus (Primary)</option>
                       <option value="llama-secondary">Alibaba qwen3.7-max (Secondary)</option>
-                      <option value="alibaba-qwen">Alibaba qwen3.7-max (CAPS Reasoning)</option>
                       <option value="gemini">Gemini (Fallback Model)</option>
                     </select>
                   </div>

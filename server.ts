@@ -517,104 +517,118 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         ];
 
         let successUrl = null;
-        let lastError = null;
+        let lastError: any = null;
+           const candidateModels = [
+          "wan-2.1-t2i-32b",
+          "wan-2.1-t2i-14b",
+          "wanx-v1",
+          "wanx-v2",
+          "wanx2.1-t2i-plus"
+        ];
+        if (provider && !candidateModels.includes(provider)) {
+          candidateModels.unshift(provider);
+        }
 
         for (const endpoint of endpoints) {
-          try {
-            const requestModel = "wanx-v1";
-            console.log(`Connecting to Alibaba Image generation endpoint (${endpoint}) for model: ${requestModel} (originally requested: ${provider})`);
-            const response = await fetch(endpoint, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${apiKey}`,
-                "X-DashScope-Async": "enable"
-              },
-              body: JSON.stringify({
-                model: requestModel,
-                input: {
-                  prompt: prompt
+          for (const requestModel of candidateModels) {
+            try {
+              console.log(`Connecting to Alibaba Image generation endpoint (${endpoint}) for model: ${requestModel} (originally requested: ${provider})`);
+              const response = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${apiKey}`,
+                  "X-DashScope-Async": "enable"
                 },
-                parameters: {
-                  size: "1024*1024",
-                  n: 1
-                }
-              })
-            });
-
-            if (!response.ok) {
-              const errText = await response.text();
-              throw new Error(`Failed to create task. Status ${response.status}: ${errText}`);
-            }
-
-            const data: any = await response.json();
-            const taskId = data.output?.task_id;
-            if (!taskId) {
-              throw new Error(`No task_id returned from creation response: ${JSON.stringify(data)}`);
-            }
-
-            console.log(`Successfully created Alibaba Image generation task: ${taskId}. Starting status polling...`);
-            const domain = endpoint.includes("-intl") ? "https://dashscope-intl.aliyuncs.com" : "https://dashscope.aliyuncs.com";
-            const taskUrl = `${domain}/api/v1/tasks/${taskId}`;
-
-            let taskStatus = "PENDING";
-            let attempts = 0;
-            const maxAttempts = 25; // wait up to ~37.5 seconds
-            let pollData: any = null;
-
-            while (attempts < maxAttempts) {
-              await new Promise(resolve => setTimeout(resolve, 1500));
-              attempts++;
-
-              try {
-                const pollResponse = await fetch(taskUrl, {
-                  method: "GET",
-                  headers: {
-                    "Authorization": `Bearer ${apiKey}`
+                body: JSON.stringify({
+                  model: requestModel,
+                  input: {
+                    prompt: prompt
+                  },
+                  parameters: {
+                    size: "1024*1024",
+                    n: 1
                   }
-                });
+                })
+              });
 
-                if (!pollResponse.ok) {
-                  console.warn(`Polling attempt ${attempts} failed with status ${pollResponse.status}`);
-                  continue;
+              if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`Failed to create task with model ${requestModel} on ${endpoint}. Status ${response.status}: ${errText}`);
+              }
+
+              const data: any = await response.json();
+              const taskId = data.output?.task_id;
+              if (!taskId) {
+                throw new Error(`No task_id returned from creation response for ${requestModel}: ${JSON.stringify(data)}`);
+              }
+
+              console.log(`Successfully created Alibaba Image generation task (model: ${requestModel}): ${taskId}. Starting status polling...`);
+              const domain = endpoint.includes("-intl") ? "https://dashscope-intl.aliyuncs.com" : "https://dashscope.aliyuncs.com";
+              const taskUrl = `${domain}/api/v1/tasks/${taskId}`;
+
+              let taskStatus = "PENDING";
+              let attempts = 0;
+              const maxAttempts = 25; // wait up to ~37.5 seconds
+              let pollData: any = null;
+
+              while (attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                attempts++;
+
+                try {
+                  const pollResponse = await fetch(taskUrl, {
+                    method: "GET",
+                    headers: {
+                      "Authorization": `Bearer ${apiKey}`
+                    }
+                  });
+
+                  if (!pollResponse.ok) {
+                    console.warn(`Polling attempt ${attempts} failed with status ${pollResponse.status}`);
+                    continue;
+                  }
+
+                  pollData = await pollResponse.json();
+                  taskStatus = pollData.output?.task_status || "PENDING";
+                  console.log(`Task ${taskId} status polling attempt ${attempts}: ${taskStatus}`);
+
+                  if (taskStatus === "SUCCEEDED") {
+                    break;
+                  } else if (taskStatus === "FAILED" || taskStatus === "SUSPENDED" || taskStatus === "UNKNOWN") {
+                    throw new Error(`Task failed with status: ${taskStatus}. Details: ${JSON.stringify(pollData)}`);
+                  }
+                } catch (pollErr: any) {
+                  console.warn(`Polling warning:`, pollErr.message || pollErr);
+                }
+              }
+
+              if (taskStatus === "SUCCEEDED" && pollData?.output) {
+                const results = pollData.output.results;
+                if (results && results[0]) {
+                  if (typeof results[0] === "string") {
+                    successUrl = results[0];
+                  } else {
+                    successUrl = results[0].url || results[0].png || results[0].jpg || results[0].jpeg;
+                  }
+                } else if (pollData.output.url) {
+                  successUrl = pollData.output.url;
                 }
 
-                pollData = await pollResponse.json();
-                taskStatus = pollData.output?.task_status || "PENDING";
-                console.log(`Task ${taskId} status polling attempt ${attempts}: ${taskStatus}`);
-
-                if (taskStatus === "SUCCEEDED") {
+                if (successUrl) {
+                  console.log(`Successfully obtained generated image URL from DashScope task ${taskId}: ${successUrl}`);
                   break;
-                } else if (taskStatus === "FAILED" || taskStatus === "SUSPENDED" || taskStatus === "UNKNOWN") {
-                  throw new Error(`Task failed with status: ${taskStatus}. Details: ${JSON.stringify(pollData)}`);
                 }
-              } catch (pollErr: any) {
-                console.warn(`Polling warning:`, pollErr.message || pollErr);
               }
+
+              throw new Error(`Failing model ${requestModel} because polling did not result in a valid image URL`);
+            } catch (err: any) {
+              lastError = err;
+              console.warn(`Alibaba Image generation failed for model ${requestModel} on (${endpoint}):`, err.message || err);
             }
-
-            if (taskStatus === "SUCCEEDED" && pollData?.output) {
-              const results = pollData.output.results;
-              if (results && results[0]) {
-                if (typeof results[0] === "string") {
-                  successUrl = results[0];
-                } else {
-                  successUrl = results[0].url || results[0].png || results[0].jpg || results[0].jpeg;
-                }
-              } else if (pollData.output.url) {
-                successUrl = pollData.output.url;
-              }
-
-              if (successUrl) {
-                console.log(`Successfully obtained generated image URL from DashScope task ${taskId}: ${successUrl}`);
-                break;
-              }
-            }
-
-            throw new Error(`Failing endpoint ${endpoint} because polling did not result in a valid image URL`);
-          } catch (err: any) {
-            lastError = err;
-            console.warn(`Alibaba Image generation endpoint failed (${endpoint}):`, err.message || err);
+          }
+          if (successUrl) {
+            break;
           }
         }
 
@@ -633,7 +647,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     if (provider === "gemini-imagen") {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-        console.warn("GEMINI_API_KEY missing for images, falling back to Pollinations Flux");
+        console.warn("GEMINI_API_KEY missing for image generation, falling back to Pollinations Flux");
         const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
@@ -647,43 +661,22 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
             }
           }
         });
-        let response;
-        try {
-          response = await geminiAi.models.generateContent({
-            model: 'gemini-2.5-flash-image',
-            contents: {
-              parts: [
-                {
-                  text: prompt,
-                },
-              ],
-            },
-            config: {
-              imageConfig: {
-                aspectRatio: "1:1",
-                imageSize: "1K"
-              }
+        const response = await geminiAi.models.generateContent({
+          model: 'gemini-2.5-flash-image',
+          contents: {
+            parts: [
+              {
+                text: prompt,
+              },
+            ],
+          },
+          config: {
+            imageConfig: {
+              aspectRatio: "1:1",
+              imageSize: "1K"
             }
-          });
-        } catch (err) {
-          console.warn("Imagen model 'gemini-2.5-flash-image' failed/not found, trying 'imagen-3.0-generate-002'...", err);
-          response = await geminiAi.models.generateContent({
-            model: 'imagen-3.0-generate-002',
-            contents: {
-              parts: [
-                {
-                  text: prompt,
-                },
-              ],
-            },
-            config: {
-              imageConfig: {
-                aspectRatio: "1:1",
-                imageSize: "1K"
-              }
-            }
-          });
-        }
+          }
+        });
         
         let base64 = "";
         const parts = response.candidates?.[0]?.content?.parts;
@@ -701,7 +694,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         }
         throw new Error("Failed to extract image from Gemini response");
       } catch (error: any) {
-        console.warn("Gemini Imagen failed, automatically falling back to Pollinations Flux...", error.message || error);
+        console.warn("Gemini 2.5 Flash Image failed, automatically falling back to Pollinations Flux...", error.message || error);
         const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
