@@ -13,9 +13,22 @@ const app = express();
 const PORT = 3000;
 
 app.use((req, res, next) => {
-  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
+  if (req.body) {
+    if (typeof req.body === 'string') {
+      try {
+        req.body = JSON.parse(req.body);
+      } catch (e) {
+        // Not a JSON string
+      }
+    }
     return next();
   }
+
+  if (process.env.VERCEL) {
+    req.body = {};
+    return next();
+  }
+
   express.json({ limit: '10mb' })(req, res, next);
 });
 
@@ -39,8 +52,10 @@ const alibaba = new OpenAI({
 
   // Generic content generation proxy for OpenAI-compatible APIs
   app.post("/api/ai/:provider", async (req, res) => {
-    const { provider } = req.params;
-    const { messages, model, temperature = 0.7 } = req.body;
+    let { provider } = req.params;
+    if (provider === "llama-primary") provider = "qwen-primary";
+    if (provider === "llama-secondary") provider = "qwen-secondary";
+    const { messages, model, temperature = 0.7 } = req.body || {};
 
     let client: OpenAI | null = null;
     let apiKey = "";
@@ -294,7 +309,7 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
   });
 
   app.post("/api/ocr", async (req, res) => {
-    const { image, language = "eng" } = req.body;
+    const { image, language = "eng" } = req.body || {};
     const apiKey = process.env.OCR_SPACE_API_KEY;
 
     if (!apiKey) {
@@ -318,7 +333,7 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
   });
 
   app.post("/api/tts/google", async (req, res) => {
-    const { text, lang } = req.body;
+    const { text, lang } = req.body || {};
     try {
       const googleTTS = await import("google-tts-api");
       const urls = googleTTS.getAllAudioUrls(text, { lang, slow: false, splitPunct: ',.?!' });
@@ -355,7 +370,7 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
   });
 
   app.post("/api/tts/hf", async (req, res) => {
-    const { text, model } = req.body;
+    const { text, model } = req.body || {};
     const apiKey = process.env.HUGGINGFACE_API_KEY;
     try {
       if (!fetch) {
@@ -382,7 +397,7 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
   });
 
   app.post("/api/video/generate", async (req, res) => {
-    const { prompt, model } = req.body;
+    const { prompt, model } = req.body || {};
     const apiKey = process.env.REPLICATE_API_TOKEN;
     if (!apiKey) {
       return res.status(400).json({ error: "REPLICATE_API_TOKEN is required. Please set it in Settings -> Secrets." });
@@ -500,9 +515,11 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 `;
 
   app.post("/api/images/generate", async (req, res) => {
-    const { prompt, provider } = req.body;
+    try {
+      const { prompt: rawPrompt, provider } = req.body || {};
+      const prompt = rawPrompt || "vibrant educational illustration";
 
-    if (provider === "wan2.1-t2i-plus" || provider === "qwen-image-2.0-pro") {
+      if (provider === "wan2.1-t2i-plus" || provider === "qwen-image-2.0-pro") {
       const apiKey = process.env.ALIBABA_API_KEY || process.env.VITE_ALIBABA_API_KEY;
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
         console.warn("ALIBABA_API_KEY missing for image generation, falling back to Pollinations Flux");
@@ -735,11 +752,17 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     // Any other provider
     const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
     return res.json({ url });
+    } catch (e: any) {
+      console.warn("Exception in /api/images/generate:", e.message || e);
+      const fallbackPrompt = req.body?.prompt || "vibrant educational illustration";
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+      return res.json({ url });
+    }
   });
 
   // --- Secure Server-Side Gemini Action Agent Router ---
   app.post("/api/gemini/action", async (req, res) => {
-    const { action, input } = req.body;
+    const { action, input } = req.body || {};
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
       return res.status(400).json({ error: "GEMINI_API_KEY is not configured in settings." });
@@ -1096,7 +1119,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
   }
 
   app.post("/api/reports/ildp", async (req, res) => {
-    const { studentName, grade, subjects } = req.body;
+    const { studentName, grade, subjects } = req.body || {};
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
       return res.json(generateLocalFallbackILDP(studentName, grade, subjects));

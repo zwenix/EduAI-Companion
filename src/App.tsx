@@ -1263,8 +1263,8 @@ export default function App() {
               }`}
               title="Primary Text Model"
             >
-              <option value="llama-primary">Alibaba qwen3.6-plus (Primary)</option>
-              <option value="llama-secondary">Alibaba qwen3.7-max (Secondary)</option>
+              <option value="qwen-primary">Alibaba qwen3.6-plus (Primary)</option>
+              <option value="qwen-secondary">Alibaba qwen3.7-max (Secondary)</option>
               <option value="gemini">Gemini (Fallback)</option>
             </select>
             <button 
