@@ -16,7 +16,6 @@ export const printContent = (contentRef: React.RefObject<HTMLDivElement | null>,
                 <head>
                     <title>${title}</title>
                     ${getParentStyles()}
-                    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
                     <style>
                         @media print {
                             @page { margin: 15mm; }
@@ -54,7 +53,6 @@ export const downloadAsHTML = (contentRef: React.RefObject<HTMLDivElement | null
             <html>
             <head>
                 <title>${filename}</title>
-                <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
             </head>
             <body class="p-8 prose max-w-none text-slate-800 bg-white">
                 ${html}

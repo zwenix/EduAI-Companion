@@ -271,12 +271,15 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
   };
   
   let finalIframeContent = processedHtml;
+  // Always strip AI-generated tailwind CDN
+  finalIframeContent = finalIframeContent.replace(/<script[^>]*src=["']https:\/\/cdn\.tailwindcss\.com[^>]*><\/script>/gi, '');
+  
   if (useIframe) {
-      if (isFullHtmlDoc && !finalIframeContent.includes('tailwindcss')) {
+      if (isFullHtmlDoc) {
           if (finalIframeContent.includes('<head>')) {
-              finalIframeContent = finalIframeContent.replace('<head>', `<head>\n${getParentStyles()}\n<script src="https://cdn.tailwindcss.com?plugins=typography"></script>`);
+              finalIframeContent = finalIframeContent.replace('<head>', `<head>\n${getParentStyles()}`);
           } else if (finalIframeContent.includes('<html')) {
-              finalIframeContent = finalIframeContent.replace(/<html[^>]*>/i, `$&<head>\n${getParentStyles()}\n<script src="https://cdn.tailwindcss.com?plugins=typography"></script></head>`);
+              finalIframeContent = finalIframeContent.replace(/<html[^>]*>/i, `$&<head>\n${getParentStyles()}</head>`);
           }
       } else if (isHtmlFragment) {
           // Wrap fragment with Tailwind CSS
@@ -284,7 +287,6 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
 <html>
 <head>
     ${getParentStyles()}
-    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <style>body { margin: 0; padding: 1rem; }</style>
 </head>
 <body class="bg-white text-slate-900">
@@ -309,7 +311,6 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
             <head>
                 <title>${label}</title>
                 ${getParentStyles()}
-                <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
                 <style>
                     @media print {
                         @page { margin: 15mm; }

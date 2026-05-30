@@ -67,7 +67,7 @@ const alibaba = new OpenAI({
     const { messages, model, temperature = 0.7 } = req.body || {};
 
     const callGeminiFallback = async (msgs: any[] = []): Promise<any> => {
-      const geminiApiKey = process.env.GEMINI_API_KEY;
+      const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
       if (!geminiApiKey || geminiApiKey === "dummy" || geminiApiKey === "undefined") {
         throw new Error("GEMINI_API_KEY is not configured for fallback.");
       }
@@ -171,8 +171,9 @@ const alibaba = new OpenAI({
         break;
     }
 
+    const anyGeminiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
     if (!apiKey || apiKey === "dummy" || apiKey === 'undefined') {
-      if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "dummy" && process.env.GEMINI_API_KEY !== "undefined") {
+      if (anyGeminiKey && anyGeminiKey !== "dummy" && anyGeminiKey !== "undefined") {
         console.warn(`Provider API key not configured. Falling back directly to Gemini Flash...`);
         try {
           const responseData = await callGeminiFallback(messages);
@@ -204,6 +205,7 @@ const alibaba = new OpenAI({
 - You represent the premium South African CAPS-aligned educational platform (EduAI Companion).
 - You MUST generate extremely high-quality, fully detailed educational materials of premium visual layout complexity, matching or exceeding Qwen 3.7 Max and Gemini models!
 - ALWAYS render output directly in elegant, multi-layered HTML templates using standard Tailwind CSS utility classes inside style/class fields. DO NOT generate basic plain text or simple lines.
+- NEVER INJECT <script src="https://cdn.tailwindcss.com"></script>. The application already ships with Tailwind CSS compiled. DO NOT include it.
 - NEVER truncate, minimize, abbreviate, mock, or summarize any part of the text or questions. Give complete, fully-fleshed out sentences and rich paragraphs.
 
 EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
@@ -682,7 +684,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     }
     
     if (provider === "gemini-imagen") {
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
         console.warn("GEMINI_API_KEY missing for image generation, falling back to Pollinations Flux");
         const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
@@ -783,7 +785,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
   // --- Secure Server-Side Gemini Action Agent Router ---
   app.post("/api/gemini/action", async (req, res) => {
     const { action, input } = req.body || {};
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
     if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
       return res.status(400).json({ error: "GEMINI_API_KEY is not configured in settings." });
     }
@@ -825,10 +827,10 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       switch (action) {
         case "generate-educational": {
           const { type, details } = input;
-          const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN.`;
+          const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN. NEVER INJECT <script src="https://cdn.tailwindcss.com"></script>. The app already has Tailwind.`;
           const response = await generateContentWithFallback({
             model,
-            contents: `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design).`,
+            contents: `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design). Do NOT add Tailwind CDN scripts.`,
             config: {
               systemInstruction,
               temperature: 0.7,
@@ -839,7 +841,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
         case "generate-caps": {
           const isStudyGuide = input.contentType === 'Study Guide / Learning Notes';
-          const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.`;
+          const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown. NEVER INJECT <script src="https://cdn.tailwindcss.com"></script> inside the HTML fields.`;
           
           let studyGuideRequirements = "";
           if (isStudyGuide) {
@@ -1140,7 +1142,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
   app.post("/api/reports/ildp", async (req, res) => {
     const { studentName, grade, subjects } = req.body || {};
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
     if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
       return res.json(generateLocalFallbackILDP(studentName, grade, subjects));
     }
