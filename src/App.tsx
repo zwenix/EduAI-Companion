@@ -29,6 +29,7 @@ import {
   Library,
   Video,
   FileCode,
+  Compass,
   HelpCircle,
   Archive,
   UserCircle,
@@ -75,6 +76,7 @@ import StudentPractice from './components/StudentPractice';
 import StudentNotes from './components/StudentNotes';
 import StudentDashboard from './components/StudentDashboard';
 import StudentPortfolio from './components/StudentPortfolio';
+import CurriculumSuite from './components/CurriculumSuite';
 import ParentDashboard from './components/ParentDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import SettingsPage from './components/Settings';
@@ -581,7 +583,8 @@ export default function App() {
         case 'class-analytics':
           return [
             { id: 'reports', label: 'My Progress Analytics', icon: TrendingUp },
-            { id: 'portfolios', label: 'My Portfolio', icon: UserCircle }
+            { id: 'portfolios', label: 'My Portfolio', icon: UserCircle },
+            { id: 'curriculum', label: 'CAPS & Gamification Hub', icon: Compass }
           ];
         case 'class-management':
           return [
@@ -691,7 +694,8 @@ export default function App() {
         case 'class-analytics':
           return [
             { id: 'reports', label: 'Progress Reports', icon: TrendingUp },
-            { id: 'portfolios', label: 'Learner Personal Portfolios', icon: UserCircle }
+            { id: 'portfolios', label: 'Learner Personal Portfolios', icon: UserCircle },
+            { id: 'curriculum', label: 'CAPS & Gamification Hub', icon: Compass }
           ];
         case 'class-management':
           return [
@@ -1667,6 +1671,8 @@ export default function App() {
                   <StudentNotes isDarkMode={isDarkMode} />
                 ) : activeTab === 'portfolios' ? (
                   <StudentPortfolio isDarkMode={isDarkMode} />
+                ) : activeTab === 'curriculum' ? (
+                  <CurriculumSuite isDarkMode={isDarkMode} userRole={userRole} />
                 ) : activeTab === 'settings' ? (
                   <SettingsPage 
                     isDarkMode={isDarkMode} 
