@@ -4,8 +4,8 @@ import dotenv from "dotenv";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import axios from "axios";
-import { GoogleGenAI, Type } from "@google/genai";
 import { HfInference } from "@huggingface/inference";
+import { GoogleGenAI, Type } from "@google/genai";
 
 dotenv.config();
 
@@ -65,22 +65,6 @@ const alibaba = new OpenAI({
   app.post("/api/ai/:provider", async (req, res) => {
     let { provider } = req.params;
     const { messages, model, temperature = 0.7 } = req.body || {};
-
-    let client: OpenAI | null = null;
-    let apiKey = "";
-
-    switch (provider) {
-      case "qwen-primary":
-      case "qwen-secondary":
-      case "alibaba-qwen":
-        client = alibaba;
-        apiKey = process.env.ALIBABA_API_KEY || "";
-        break;
-      case "groq-vision":
-        client = groq;
-        apiKey = process.env.GROQ_API_KEY || "";
-        break;
-    }
 
     const callGeminiFallback = async (msgs: any[] = []): Promise<any> => {
       const geminiApiKey = process.env.GEMINI_API_KEY;
@@ -160,6 +144,32 @@ const alibaba = new OpenAI({
         ]
       };
     };
+
+    if (provider === "groq-vision" || provider === "llama") {
+      console.warn("groq-vision/llama requested. Redirecting request directly to Gemini Flash fallback.");
+      try {
+        const responseData = await callGeminiFallback(messages);
+        return res.json(responseData);
+      } catch (geminiErr: any) {
+        return res.status(500).json({ error: { message: `Gemini Flash fallback failed: ${geminiErr.message}` }});
+      }
+    }
+
+    let client: OpenAI | null = null;
+    let apiKey = "";
+
+    switch (provider) {
+      case "qwen-primary":
+      case "qwen-secondary":
+      case "alibaba-qwen":
+        client = alibaba;
+        apiKey = process.env.ALIBABA_API_KEY || "";
+        break;
+      case "groq-vision":
+        client = groq;
+        apiKey = process.env.GROQ_API_KEY || "";
+        break;
+    }
 
     if (!apiKey || apiKey === "dummy" || apiKey === 'undefined') {
       if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "dummy" && process.env.GEMINI_API_KEY !== "undefined") {

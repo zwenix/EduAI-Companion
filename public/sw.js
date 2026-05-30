@@ -40,11 +40,14 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // Skip web sockets or dev server refresh packages or browser extensions
+  // Skip web sockets or dev server refresh packages or browser extensions, and Firebase!
   if (
     url.pathname.includes('ws') || 
     url.pathname.includes('chrome-extension') || 
-    url.hostname.includes('localhost') && url.port === '3001'
+    (url.hostname.includes('localhost') && url.port === '3001') ||
+    url.hostname.includes('googleapis.com') ||
+    url.hostname.includes('gstatic.com') ||
+    url.hostname.includes('firebase')
   ) {
     return;
   }

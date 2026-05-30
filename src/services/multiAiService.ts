@@ -14,10 +14,10 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
       selectedModel = provider === 'qwen-primary' ? "qwen-plus" : "qwen-max";
     }
   } else if (provider === 'groq-vision') {
-    url = "https://api.groq.com/openai/v1/chat/completions";
-    apiKey = (process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "";
+    url = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
+    apiKey = (process.env as any).ALIBABA_API_KEY || (import.meta as any).env?.VITE_ALIBABA_API_KEY || "";
     if (!selectedModel) {
-      selectedModel = "llama-3.2-11b-vision-instant";
+      selectedModel = "qwen-max";
     }
   } else if (provider === 'alibaba-qwen') {
     url = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
