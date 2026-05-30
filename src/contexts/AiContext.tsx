@@ -27,9 +27,6 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_provider') as AIProvider;
-      // Map old deprecated llama-primary to qwen-primary
-      if (saved === 'llama-primary' as any) return 'qwen-primary';
-      if (saved === 'llama-secondary' as any) return 'qwen-secondary';
       if (saved && VALID_PROVIDERS.includes(saved)) {
         return saved;
       }

@@ -14,21 +14,18 @@ const PORT = 3000;
 
 app.use((req, res, next) => {
   if (req.body) {
+    if (typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
+      return next();
+    }
     if (typeof req.body === 'string') {
       try {
         req.body = JSON.parse(req.body);
+        return next();
       } catch (e) {
-        // Not a JSON string
+        // Not JSON
       }
     }
-    return next();
   }
-
-  if (process.env.VERCEL) {
-    req.body = {};
-    return next();
-  }
-
   express.json({ limit: '10mb' })(req, res, next);
 });
 
@@ -50,11 +47,23 @@ const alibaba = new OpenAI({
     res.json({ status: "ok" });
   });
 
+  // Dynamic lightweight SVG placeholder endpoint to support generated teaching templates
+  app.get("/api/placeholder/:width/:height", (req, res) => {
+    const width = parseInt(req.params.width) || 300;
+    const height = parseInt(req.params.height) || 200;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+      <rect width="100%" height="100%" fill="#f1f5f9"/>
+      <text x="50%" y="50%" font-family="system-ui, sans-serif" font-size="20" font-weight="bold" fill="#94a3b8" dominant-baseline="middle" text-anchor="middle">
+        ${width} x ${height}
+      </text>
+    </svg>`;
+    res.setHeader("Content-Type", "image/svg+xml");
+    res.status(200).send(svg);
+  });
+
   // Generic content generation proxy for OpenAI-compatible APIs
   app.post("/api/ai/:provider", async (req, res) => {
     let { provider } = req.params;
-    if (provider === "llama-primary") provider = "qwen-primary";
-    if (provider === "llama-secondary") provider = "qwen-secondary";
     const { messages, model, temperature = 0.7 } = req.body || {};
 
     let client: OpenAI | null = null;
@@ -73,19 +82,20 @@ const alibaba = new OpenAI({
         break;
     }
 
-    const callGeminiFallback = async (msgs: any[]): Promise<any> => {
+    const callGeminiFallback = async (msgs: any[] = []): Promise<any> => {
       const geminiApiKey = process.env.GEMINI_API_KEY;
       if (!geminiApiKey || geminiApiKey === "dummy" || geminiApiKey === "undefined") {
         throw new Error("GEMINI_API_KEY is not configured for fallback.");
       }
       const gAi = new GoogleGenAI({ apiKey: geminiApiKey });
       
-      const systemMessageTexts = msgs
+      const safeMsgs = Array.isArray(msgs) ? msgs : [];
+      const systemMessageTexts = safeMsgs
         .filter((m: any) => m.role === 'system')
         .map((m: any) => m.content)
         .join("\n\n");
         
-      const remainingMsgs = msgs.filter((m: any) => m.role !== 'system');
+      const remainingMsgs = safeMsgs.filter((m: any) => m.role !== 'system');
       const mergedContents: any[] = [];
       remainingMsgs.forEach((m: any) => {
         const mappedRole = m.role === 'assistant' ? 'model' : 'user';
@@ -176,7 +186,7 @@ const alibaba = new OpenAI({
       if (selectedModel === "qwen3.6-plus") selectedModel = "qwen-plus";
       if (selectedModel === "qwen3.7-max") selectedModel = "qwen-max";
 
-      const enhancedMessages = [...messages];
+      const enhancedMessages = [...(Array.isArray(messages) ? messages : [])];
       if (provider === "qwen-primary" || provider === "qwen-secondary") {
         const systemMessageIndex = enhancedMessages.findIndex(m => m.role === 'system');
         const coreInstruction = `
