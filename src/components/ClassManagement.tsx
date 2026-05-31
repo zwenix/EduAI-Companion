@@ -39,6 +39,62 @@ export default function ClassManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGrade, setSelectedGrade] = useState('All');
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedClass, setSelectedClass] = useState<ClassModel | null>(null);
+  const [isEditingClass, setIsEditingClass] = useState(false);
+  const [editClassForm, setEditClassForm] = useState({ name: '', subject: '' });
+
+  const handleTabChange = (tab: 'learners' | 'classes' | 'study_groups') => {
+    setActiveTab(tab);
+    setSelectedClass(null);
+  };
+
+  const handleUpdateClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedClass) return;
+    const oldName = selectedClass.name;
+    const newName = editClassForm.name.trim();
+    if (!newName || !editClassForm.subject.trim()) return alert("Please fill in class name and subject");
+
+    try {
+      await updateDoc(doc(db, 'classes', selectedClass.id), {
+        name: newName,
+        subject: editClassForm.subject.trim(),
+        updatedAt: serverTimestamp()
+      });
+
+      // Update enrolled students grade string as they are linked by name
+      if (oldName !== newName) {
+        const enrolledStudents = students.filter(s => s.grade === oldName);
+        for (const s of enrolledStudents) {
+          await updateDoc(doc(db, 'students', s.id), {
+            grade: newName,
+            updatedAt: serverTimestamp()
+          });
+        }
+      }
+
+      // Update current state
+      setSelectedClass({
+        ...selectedClass,
+        name: newName,
+        subject: editClassForm.subject.trim()
+      });
+
+      setIsEditingClass(false);
+      
+      // Notify
+      await setDoc(doc(db, 'notifications', Date.now().toString()), {
+        title: 'Class Updated',
+        message: `Class details for ${newName} updated successfully.`,
+        read: false,
+        userId: auth.currentUser?.uid,
+        createdAt: serverTimestamp(),
+      });
+    } catch (err: any) {
+      alert("Error updating class: " + err.message);
+    }
+  };
+
 
   // Modals
   const [isAddingLearner, setIsAddingLearner] = useState(false);
@@ -331,7 +387,9 @@ export default function ClassManagement() {
   };
 
   const filteredStudents = students.filter(s => {
-    const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const name = s.name || '';
+    const email = s.email || '';
+    const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) || email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesGrade = selectedGrade === 'All' || s.grade === selectedGrade;
     return matchesSearch && matchesGrade;
   });
@@ -352,7 +410,7 @@ export default function ClassManagement() {
         {['learners', 'classes', 'study_groups'].map(tab => (
           <button 
             key={tab}
-            onClick={() => setActiveTab(tab as any)}
+            onClick={() => handleTabChange(tab as any)}
             className={`pb-3 px-6 text-sm font-semibold transition-colors border-b-2 whitespace-nowrap ${
               activeTab === tab ? 'border-brand-cyan text-brand-cyan' : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
@@ -411,9 +469,9 @@ export default function ClassManagement() {
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">
-                            {student.name.charAt(0)}
+                            {(student.name || '').charAt(0) || '?'}
                           </div>
-                          <span className="font-semibold text-slate-800">{student.name}</span>
+                          <span className="font-semibold text-slate-800">{student.name || 'Unnamed Learner'}</span>
                         </div>
                       </td>
                       <td className="py-4 px-6 text-sm text-slate-600">{student.grade}</td>
@@ -449,10 +507,10 @@ export default function ClassManagement() {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-brand-cyan/15 text-brand-cyan flex items-center justify-center text-xs font-bold shrink-0">
-                        {student.name.charAt(0)}
+                        {(student.name || '').charAt(0) || '?'}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-bold text-slate-800 text-sm truncate">{student.name}</p>
+                        <p className="font-bold text-slate-800 text-sm truncate">{student.name || 'Unnamed Learner'}</p>
                         <p className="text-xs text-slate-500 truncate">{student.email}</p>
                       </div>
                     </div>
@@ -495,7 +553,7 @@ export default function ClassManagement() {
         </div>
       )}
 
-      {activeTab === 'classes' && (
+      {activeTab === 'classes' && !selectedClass && (
         <div className="space-y-6 animate-fadeInZoom">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-bold text-slate-800">My Classes</h3>
@@ -507,20 +565,35 @@ export default function ClassManagement() {
             {classes.map((cls) => {
               const enrolled = students.filter(s => s.grade === cls.name).length;
               return (
-                <div key={cls.id} className="bg-white rounded-[24px] p-6 shadow-sm border border-slate-200">
+                <div 
+                  key={cls.id} 
+                  onClick={() => setSelectedClass(cls)}
+                  className="bg-white rounded-[24px] p-6 shadow-sm border border-slate-200 hover:border-brand-cyan/60 hover:shadow-md transition-all cursor-pointer group text-left"
+                >
                   <div className="flex justify-between items-start mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-brand-cyan/10 text-brand-cyan flex justify-center items-center">
+                    <div className="w-12 h-12 rounded-xl bg-brand-cyan/10 text-brand-cyan flex justify-center items-center group-hover:bg-brand-cyan group-hover:text-slate-900 transition-all">
                       <GraduationCap size={24} />
                     </div>
-                    <button onClick={() => handleDeleteClass(cls.id, cls.name)} className="p-2 text-slate-400 hover:text-rose-500">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClass(cls.id, cls.name);
+                      }} 
+                      className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
+                    >
                       <Trash2 size={16} />
                     </button>
                   </div>
-                  <h4 className="font-bold text-slate-800 text-lg mb-1">{cls.name}</h4>
+                  <h4 className="font-bold text-slate-800 text-lg mb-1 group-hover:text-brand-cyan transition-colors">{cls.name}</h4>
                   <p className="text-slate-500 text-sm mb-4">{cls.subject}</p>
-                  <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
-                    <Users size={16} className="text-slate-400" />
-                    <span>{enrolled} Enrolled</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
+                      <Users size={16} className="text-slate-400" />
+                      <span>{enrolled} Enrolled</span>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-400 group-hover:text-brand-cyan transition-colors flex items-center gap-1">
+                      Manage →
+                    </span>
                   </div>
                 </div>
               );
@@ -528,6 +601,102 @@ export default function ClassManagement() {
             {classes.length === 0 && (
               <p className="text-slate-500 col-span-3">No classes created yet. Create one to get started.</p>
             )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'classes' && selectedClass && (
+        <div className="space-y-6 animate-fadeInZoom text-left">
+          {/* Header with Back button and actions */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-[24px] shadow-sm border border-slate-200">
+            <div>
+              <button 
+                onClick={() => setSelectedClass(null)} 
+                className="flex items-center gap-2 text-sm text-slate-600 hover:text-brand-cyan mb-2 cursor-pointer transition-all font-semibold"
+              >
+                ← Back to Classes
+              </button>
+              <h3 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                {selectedClass.name}
+              </h3>
+              <p className="text-slate-500 text-sm mt-1">Subject: <span className="font-semibold text-slate-700">{selectedClass.subject}</span></p>
+            </div>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => {
+                  setEditClassForm({ name: selectedClass.name, subject: selectedClass.subject });
+                  setIsEditingClass(true);
+                }} 
+                className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2.5 rounded-xl font-semibold transition-all flex items-center gap-2 shadow-sm text-sm cursor-pointer"
+              >
+                <Edit2 size={16} /> Edit Details
+              </button>
+              <button 
+                onClick={() => {
+                  setLearnerForm({ name: '', grade: selectedClass.name, email: '', status: 'Active' });
+                  setIsAddingLearner(true);
+                }} 
+                className="bg-brand-cyan hover:bg-cyan-500 text-slate-900 px-4 py-2.5 rounded-xl font-semibold transition-all flex items-center gap-2 shadow-sm text-sm cursor-pointer"
+              >
+                <Plus size={16} /> Add Learner
+              </button>
+            </div>
+          </div>
+
+          {/* Enrolled Learners List */}
+          <div className="space-y-4">
+            <h4 className="text-lg font-bold text-slate-800">Enrolled Learners</h4>
+            <div className="bg-white rounded-[24px] shadow-sm border border-slate-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100">
+                      <th className="py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-widest">Learner Name</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-widest">Email</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-widest">Status</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-widest text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {students.filter(s => s.grade === selectedClass.name).map(student => (
+                      <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">
+                              {(student.name || '').charAt(0) || '?'}
+                            </div>
+                            <span className="font-semibold text-slate-800">{student.name || 'Unnamed Learner'}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-sm text-slate-600">{student.email}</td>
+                        <td className="py-4 px-6">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${student.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                            {student.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => handleEditLearner(student)} className="p-2 text-slate-400 hover:text-brand-cyan hover:bg-cyan-50 rounded-lg transition-colors cursor-pointer" title="Edit Profile">
+                              <Edit2 size={16} />
+                            </button>
+                            <button onClick={() => handleDeleteStudent(student.id, student.name)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer" title="Remove">
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {students.filter(s => s.grade === selectedClass.name).length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="py-8 text-center text-slate-500 text-sm">
+                          No learners currently enrolled in this class. Click "Add Learner" to get started!
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -755,6 +924,40 @@ export default function ClassManagement() {
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
                 </select>
+              </div>
+              <button type="submit" className="w-full bg-brand-cyan text-slate-900 font-bold py-3 rounded-xl mt-4 cursor-pointer hover:bg-opacity-95 transition-all">
+                Save Changes
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isEditingClass && selectedClass && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md animate-fadeInZoom">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold">Edit Class Details</h3>
+              <button type="button" onClick={() => setIsEditingClass(false)}><X className="text-slate-400" /></button>
+            </div>
+            <form onSubmit={handleUpdateClass} className="space-y-4">
+              <div className="text-left">
+                <label className="block text-sm font-semibold mb-1 text-slate-700">Class Name</label>
+                <input 
+                  required 
+                  className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-brand-cyan" 
+                  value={editClassForm.name} 
+                  onChange={e => setEditClassForm({...editClassForm, name: e.target.value})} 
+                />
+              </div>
+              <div className="text-left">
+                <label className="block text-sm font-semibold mb-1 text-slate-700">Subject</label>
+                <input 
+                  required 
+                  className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-brand-cyan" 
+                  value={editClassForm.subject} 
+                  onChange={e => setEditClassForm({...editClassForm, subject: e.target.value})} 
+                />
               </div>
               <button type="submit" className="w-full bg-brand-cyan text-slate-900 font-bold py-3 rounded-xl mt-4 cursor-pointer hover:bg-opacity-95 transition-all">
                 Save Changes

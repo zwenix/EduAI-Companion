@@ -162,12 +162,18 @@ const alibaba = new OpenAI({
       case "qwen-primary":
       case "qwen-secondary":
       case "alibaba-qwen":
-        client = alibaba;
         apiKey = process.env.ALIBABA_API_KEY || "";
+        client = new OpenAI({
+          apiKey: apiKey,
+          baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+        });
         break;
       case "groq-vision":
-        client = groq;
         apiKey = process.env.GROQ_API_KEY || "";
+        client = new OpenAI({
+          apiKey: apiKey,
+          baseURL: "https://api.groq.com/openai/v1",
+        });
         break;
     }
 
@@ -198,7 +204,7 @@ const alibaba = new OpenAI({
       if (selectedModel === "qwen3.7-max") selectedModel = "qwen-max";
 
       const enhancedMessages = [...(Array.isArray(messages) ? messages : [])];
-      if (provider === "qwen-primary" || provider === "qwen-secondary") {
+      if (provider === "qwen-primary" || provider === "qwen-secondary" || provider === "alibaba-qwen") {
         const systemMessageIndex = enhancedMessages.findIndex(m => m.role === 'system');
         const coreInstruction = `
 [STRICT CORE VISUAL STYLE, PRESENTATION AND LAYOUT OBJECTIVE - FOR ALL QWEN MODELS]:

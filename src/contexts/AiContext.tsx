@@ -32,7 +32,7 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
       }
       return 'gemini';
     } catch (e) {
-      return 'qwen-primary';
+      return 'gemini';
     }
   });
 
@@ -57,10 +57,10 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [imageProvider, setImageProvider] = useState<ImageProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_image_provider') as any;
-      if (saved === 'zhipu' || saved === 'glm-image' || saved === 'pollinations') return 'pollinations-schnell';
-      return saved && VALID_IMAGE.includes(saved) ? saved : 'pollinations-schnell';
+      if (saved === 'zhipu' || saved === 'glm-image' || saved === 'pollinations') return 'gemini-imagen';
+      return saved && VALID_IMAGE.includes(saved) ? saved : 'gemini-imagen';
     } catch {
-      return 'pollinations-schnell';
+      return 'gemini-imagen';
     }
   });
 
