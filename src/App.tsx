@@ -553,7 +553,7 @@ export default function App() {
     
     return [
       { id: 'teacher-dashboard-menu', label: firstLabel, icon: LayoutDashboard },
-      { id: 'lesson-planning', label: 'Lesson planning', icon: BookOpen },
+      { id: 'lesson-planning', label: 'Teaching Tools', icon: BookOpen },
       { id: 'intelligence-ai', label: 'Intelligence AI', icon: Brain },
       { id: 'class-analytics', label: 'Analytics & Reports', icon: TrendingUp },
       { id: 'class-management', label: 'Class management', icon: School },
