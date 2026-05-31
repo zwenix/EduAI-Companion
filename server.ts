@@ -31,15 +31,8 @@ app.use((req, res, next) => {
 
 // --- AI Provider Clients ---
 
-const groq = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY || "dummy",
-  baseURL: "https://api.groq.com/openai/v1",
-});
+// Note: All clients are initialized dynamically inside handlers to prevent initialization and cold start issues.
 
-const alibaba = new OpenAI({
-  apiKey: process.env.ALIBABA_API_KEY || "dummy",
-  baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-});
 
   // --- API Routes ---
 
@@ -162,7 +155,7 @@ const alibaba = new OpenAI({
       case "qwen-primary":
       case "qwen-secondary":
       case "alibaba-qwen":
-        apiKey = (process.env.ALIBABA_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+        apiKey = (process.env.QWEN_API_KEY || process.env.ALIBABA_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
         if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
           client = new OpenAI({
             apiKey: apiKey,
@@ -631,7 +624,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       const prompt = rawPrompt || "vibrant educational illustration";
 
       if (provider === "wan2.1-t2i-plus" || provider === "qwen-image-2.0-pro" || provider === "wanx-v1") {
-      let apiKey = process.env.ALIBABA_API_KEY || process.env.VITE_ALIBABA_API_KEY;
+      let apiKey = process.env.QWEN_API_KEY || process.env.ALIBABA_API_KEY || process.env.VITE_ALIBABA_API_KEY;
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
         console.warn("ALIBABA_API_KEY missing for image generation, falling back to Pollinations Flux");
         const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
