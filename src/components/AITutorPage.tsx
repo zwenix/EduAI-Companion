@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Sparkles, User, Mic, Loader2, Play, Square, History as HistoryIcon, GraduationCap, Pause, Image as ImageIcon } from 'lucide-react';
+import { Sparkles, User, Mic, Loader2, Play, Square, History as HistoryIcon, GraduationCap, Pause, Image as ImageIcon, Clock, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { chatWithTutor } from '../services/unifiedAiService';
 import { marked } from 'marked';
@@ -8,7 +8,7 @@ import { speakText, stopSpeaking, pauseSpeaking, resumeSpeaking } from '../servi
 import Logo from './Logo';
 import AiImage from './AiImage';
 import { auth, db } from '../lib/firebase';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
 
 type ChatMessage = {
@@ -65,12 +65,51 @@ export default function AITutorPage() {
   const [userRole, setUserRole] = useState('learner');
   const [studentData, setStudentData] = useState<any>(null);
 
+  // Daily Study Duration Timer
+  const todayStr = new Date().toISOString().split('T')[0];
+  const storageTimeKey = `eduai_active_secs_${todayStr}`;
+  const [elapsedSecondsToday, setElapsedSecondsToday] = useState(() => {
+    const saved = localStorage.getItem(storageTimeKey);
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setElapsedSecondsToday(prev => {
+        const nextVal = prev + 1;
+        localStorage.setItem(storageTimeKey, nextVal.toString());
+        return nextVal;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [storageTimeKey]);
+
+  const isTopicRestricted = useCallback(() => {
+    if (!studentData?.parentControls) return false;
+    const restricted = studentData.parentControls.restrictedSubjects || [];
+    return restricted.some((sub: string) => sub.toLowerCase().trim() === priorityTopic.toLowerCase().trim());
+  }, [studentData, priorityTopic]);
+
+  const isCustomChatRestricted = useCallback(() => {
+    if (!studentData?.parentControls) return false;
+    const customChatDisabled = studentData.parentControls.customChatDisabled ?? false;
+    return customChatDisabled && priorityTopic.toLowerCase().trim() === 'general';
+  }, [studentData, priorityTopic]);
+
+  const isTimeLimitReached = useCallback(() => {
+    if (!studentData?.parentControls?.timeLimitMinutes) return false;
+    const limitSecs = studentData.parentControls.timeLimitMinutes * 60;
+    return elapsedSecondsToday >= limitSecs;
+  }, [studentData, elapsedSecondsToday]);
+
   const audioRef = useRef<HTMLAudioElement>(null);
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    let unsubscribeStudent: (() => void) | undefined;
+
     const fetchAdaptiveConfig = async () => {
       if (auth.currentUser) {
         try {
@@ -86,10 +125,13 @@ export default function AITutorPage() {
           const email = auth.currentUser.email || '';
           if (email) {
             const q = query(collection(db, 'students'), where('email', '==', email));
-            const snap = await getDocs(q);
-            if (!snap.empty) {
-              setStudentData(snap.docs[0].data());
-            }
+            unsubscribeStudent = onSnapshot(q, (snap) => {
+              if (!snap.empty) {
+                setStudentData(snap.docs[0].data());
+              }
+            }, (error) => {
+              console.error("Error subscribing to student controls in real-time:", error);
+            });
           }
         } catch (e) {
           console.error("Failed to load user adaptive parameters:", e);
@@ -97,6 +139,9 @@ export default function AITutorPage() {
       }
     };
     fetchAdaptiveConfig();
+    return () => {
+      if (unsubscribeStudent) unsubscribeStudent();
+    };
   }, []);
 
   useEffect(() => {
@@ -205,6 +250,19 @@ export default function AITutorPage() {
   }, [isAudioPlaying, isAudioPaused, ttsProvider, language]);
 
   const handleSend = useCallback(async (overrideText?: string) => {
+    if (isTimeLimitReached()) {
+      alert("⏳ Study Limit reached! You've used your daily learning time set by your parent.");
+      return;
+    }
+    if (isTopicRestricted()) {
+      alert(`🔒 Access Restricted: The subject "${priorityTopic}" has been restricted by your parents.`);
+      return;
+    }
+    if (isCustomChatRestricted()) {
+      alert("🔒 Strict Syllabus Active: General custom chat is currently locked. Please select an allowed curriculum topic.");
+      return;
+    }
+
     const textToProcess = overrideText || input.trim();
     if (!textToProcess && !selectedImage) return;
 
@@ -272,7 +330,7 @@ export default function AITutorPage() {
       alert('Failed to get response. Please try again.');
       setIsLoading(false);
     }
-  }, [input, messages, provider, priorityTopic, language, selectedImage]);
+  }, [input, messages, provider, priorityTopic, language, selectedImage, studentData, isTimeLimitReached, isTopicRestricted, isCustomChatRestricted]);
 
   const handleMicClick = useCallback(() => {
     if (isRecording) {
@@ -347,6 +405,22 @@ export default function AITutorPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] lg:h-[calc(100vh-140px)] w-full max-w-5xl mx-auto rounded-[2rem] lg:rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl bg-[#0F172A] relative">
+      {isTimeLimitReached() && (
+        <div className="absolute inset-0 bg-[#0F172A]/95 backdrop-blur-md z-55 flex flex-col items-center justify-center text-center p-8 space-y-6">
+          <div className="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-455">
+            <Clock size={32} className="animate-pulse" />
+          </div>
+          <div className="space-y-2 max-w-md">
+            <h2 className="text-2xl font-bold font-hand text-white">⏳ Study Time Is Complete!</h2>
+            <p className="text-sm text-slate-300 leading-relaxed font-sans">
+              You've reached your daily AI Tutoring limit of <span className="text-indigo-400 font-bold font-sans">{studentData?.parentControls?.timeLimitMinutes} minutes</span> set by your parent.
+            </p>
+            <p className="text-xs text-slate-400 leading-relaxed font-sans">
+              Awesome work completing your studies today! Rest your eyes, go enjoy some offline playtime, and return tomorrow to continue learning together!
+            </p>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 lg:p-6 bg-[#0B1122]/90 border-b border-white/15 shrink-0 backdrop-blur-md">
         <div className="flex items-center justify-between sm:block">
@@ -534,68 +608,82 @@ export default function AITutorPage() {
 
       {/* Input Bar */}
       <div className="p-4 lg:p-6 bg-[#0B1122]/95 border-t border-white/15 shrink-0 flex flex-col gap-2">
-        {selectedImage && (
-          <div className="relative inline-block self-start ml-2 lg:ml-4">
-            <img src={selectedImage} alt="Preview" className="h-16 lg:h-20 rounded-lg object-contain border border-white/10 shadow-sm" />
-            <button 
-              onClick={() => setSelectedImage(null)}
-              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 scale-75"
-            >
-              <Pause className="w-4 h-4 rotate-45" />
-            </button>
+        {isTopicRestricted() ? (
+          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-center text-red-400 text-xs font-semibold max-w-xl mx-auto w-full flex items-center justify-center gap-2 font-sans py-5 h-14">
+            <AlertCircle size={14} className="shrink-0" />
+            <span>🔒 Access Restricted: <span className="font-bold underline">{priorityTopic}</span> has been locked by your parents.</span>
           </div>
+        ) : isCustomChatRestricted() ? (
+          <div className="p-4 rounded-xl bg-slate-800/25 border border-slate-700/50 text-center text-indigo-400 text-xs font-semibold max-w-xl mx-auto w-full flex items-center justify-center gap-2 font-sans py-5 h-14">
+            <GraduationCap size={14} className="shrink-0 text-brand-cyan" />
+            <span>🔒 Syllabus Focus Active: General conversation is restricted by parents. Choose a subject above.</span>
+          </div>
+        ) : (
+          <>
+            {selectedImage && (
+              <div className="relative inline-block self-start ml-2 lg:ml-4">
+                <img src={selectedImage} alt="Preview" className="h-16 lg:h-20 rounded-lg object-contain border border-white/10 shadow-sm" />
+                <button 
+                  onClick={() => setSelectedImage(null)}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 scale-75 cursor-pointer"
+                >
+                  <Pause className="w-4 h-4 rotate-45" />
+                </button>
+              </div>
+            )}
+            <div className="relative flex items-center gap-2 lg:gap-3 max-w-4xl mx-auto w-full">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImageUpload} 
+                accept="image/*" 
+                className="hidden" 
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-white/5 text-slate-300 border border-white/10 flex items-center justify-center hover:bg-white/15 hover:text-white transition-all shrink-0 cursor-pointer"
+                title="Upload Image"
+              >
+                <ImageIcon className="w-4 h-4 lg:w-5 lg:h-5" />
+              </button>
+              <div className="relative flex-1 group">
+                <input
+                  type="text"
+                  placeholder={isRecording ? "Listening..." : "Type your question, or upload a picture... 🖼️"}
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && !isLoading && (input.trim() || selectedImage) && handleSend()}
+                  className="w-full pl-5 lg:pl-6 pr-12 lg:pr-14 h-12 lg:h-14 rounded-full border-2 border-white/10 focus:border-brand-cyan focus:outline-none bg-white/5 transition-all font-medium text-white text-sm lg:text-base placeholder:text-slate-500"
+                  disabled={isLoading}
+                />
+                <button
+                  className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                    isRecording ? 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/30' : 'text-slate-400 hover:bg-white/10 hover:text-slate-200'
+                  }`}
+                  onClick={handleMicClick}
+                  disabled={isLoading}
+                >
+                  <Mic className="w-4 h-4 lg:w-5 lg:h-5" />
+                </button>
+              </div>
+              <button 
+                onClick={() => handleSend()} 
+                disabled={isLoading || (!input.trim() && !selectedImage)} 
+                className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-brand-cyan text-slate-950 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 disabled:opacity-50 transition-all shrink-0 font-black cursor-pointer shadow-brand-cyan/20"
+              >
+                <Sparkles className="w-4 h-4 lg:w-5 lg:h-5" />
+              </button>
+              {isAudioPlaying !== null && (
+                <button 
+                  onClick={handleStopAudio} 
+                  className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all shrink-0 cursor-pointer shadow-red-500/20"
+                >
+                  <Square className="w-4 h-4 lg:w-5 lg:h-5" />
+                </button>
+              )}
+            </div>
+          </>
         )}
-        <div className="relative flex items-center gap-2 lg:gap-3 max-w-4xl mx-auto w-full">
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleImageUpload} 
-            accept="image/*" 
-            className="hidden" 
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-white/5 text-slate-300 border border-white/10 flex items-center justify-center hover:bg-white/15 hover:text-white transition-all shrink-0"
-            title="Upload Image"
-          >
-            <ImageIcon className="w-4 h-4 lg:w-5 lg:h-5" />
-          </button>
-          <div className="relative flex-1 group">
-            <input
-              type="text"
-              placeholder={isRecording ? "Listening..." : "Type your question, or upload a picture... 🖼️"}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !isLoading && (input.trim() || selectedImage) && handleSend()}
-              className="w-full pl-5 lg:pl-6 pr-12 lg:pr-14 h-12 lg:h-14 rounded-full border-2 border-white/10 focus:border-brand-cyan focus:outline-none bg-white/5 transition-all font-medium text-white text-sm lg:text-base placeholder:text-slate-500"
-              disabled={isLoading}
-            />
-            <button
-              className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-                isRecording ? 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/30' : 'text-slate-400 hover:bg-white/10 hover:text-slate-200'
-              }`}
-              onClick={handleMicClick}
-              disabled={isLoading}
-            >
-              <Mic className="w-4 h-4 lg:w-5 lg:h-5" />
-            </button>
-          </div>
-          <button 
-            onClick={() => handleSend()} 
-            disabled={isLoading || (!input.trim() && !selectedImage)} 
-            className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-brand-cyan text-slate-950 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 disabled:opacity-50 transition-all shrink-0 font-black cursor-pointer shadow-brand-cyan/20"
-          >
-            <Sparkles className="w-4 h-4 lg:w-5 lg:h-5" />
-          </button>
-          {isAudioPlaying !== null && (
-            <button 
-               onClick={handleStopAudio} 
-               className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all shrink-0 cursor-pointer shadow-red-500/20"
-            >
-              <Square className="w-4 h-4 lg:w-5 lg:h-5" />
-            </button>
-          )}
-        </div>
       </div>
       <audio ref={audioRef} className="hidden" />
     </div>

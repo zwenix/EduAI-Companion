@@ -6,7 +6,7 @@ import {
   Map, Award, Flame, Star, ShieldAlert, Check, HelpCircle, Download, FilePlus
 } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
-import { collection, query, where, getDocs, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, setDoc, addDoc, deleteDoc } from 'firebase/firestore';
 import { educationalData, getSubjects, getTopics } from '../lib/educational-data';
 import confetti from 'canvas-confetti';
 
@@ -120,6 +120,42 @@ export default function CurriculumSuite({ isDarkMode, userRole }: { isDarkMode: 
     notes: '',
     resources: 'Revision Guide v1'
   });
+
+  // Load lessons dynamically from Firestore / localStorage
+  useEffect(() => {
+    const fetchLessons = async () => {
+      try {
+        const email = auth.currentUser?.email?.toLowerCase().trim();
+        if (email) {
+          const q = query(collection(db, 'lessons'), where('userEmail', '==', email));
+          const snap = await getDocs(q);
+          const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          setLessons(list);
+        } else {
+          const local = localStorage.getItem('eduai_lessons');
+          if (local) {
+            setLessons(JSON.parse(local));
+          } else {
+            setLessons([
+              {
+                id: 'sample_1',
+                title: 'Introduction to Fractions',
+                topic: 'Fractions & Percentages',
+                date: new Date().toISOString().split('T')[0],
+                notes: 'Focus on understanding numerator and denominator concepts.',
+                resources: 'Interactive Workbook v1.pdf',
+                phase: 'Intermediate Phase',
+                subject: 'Mathematics'
+              }
+            ]);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading lessons from Firestore", err);
+      }
+    };
+    fetchLessons();
+  }, []);
 
   // Assessment Builder state
   const [selectedQuestions, setSelectedQuestions] = useState<QuestionItem[]>([]);
@@ -270,19 +306,40 @@ export default function CurriculumSuite({ isDarkMode, userRole }: { isDarkMode: 
   const matchedResources = VETTED_RESOURCES.filter(r => r.subject === selectedSubject || selectedSubject === 'All');
 
   // Save lesson planner handler
-  const handleAddLesson = () => {
+  const handleAddLesson = async () => {
     if (!newLesson.title || !newLesson.topic) return;
+    const email = auth.currentUser?.email?.toLowerCase().trim() || 'guest';
     const item = {
-      id: `lesson_${Date.now()}`,
       title: newLesson.title,
       topic: newLesson.topic,
       date: newLesson.date,
       notes: newLesson.notes,
       resources: newLesson.resources,
       phase: selectedPhase,
-      subject: selectedSubject
+      subject: selectedSubject,
+      userEmail: email,
+      createdAt: new Date().toISOString()
     };
-    setLessons([item, ...lessons]);
+
+    try {
+      if (auth.currentUser) {
+        const docRef = await addDoc(collection(db, 'lessons'), item);
+        const savedItem = { id: docRef.id, ...item };
+        setLessons(prev => [savedItem, ...prev]);
+      } else {
+        const savedItem = { id: `lesson_${Date.now()}`, ...item };
+        const nextLessons = [savedItem, ...lessons];
+        setLessons(nextLessons);
+        localStorage.setItem('eduai_lessons', JSON.stringify(nextLessons));
+      }
+    } catch (err) {
+      console.error("Error saving lesson:", err);
+      const savedItem = { id: `lesson_${Date.now()}`, ...item };
+      const nextLessons = [savedItem, ...lessons];
+      setLessons(nextLessons);
+      localStorage.setItem('eduai_lessons', JSON.stringify(nextLessons));
+    }
+
     setNewLesson({
       title: '',
       topic: '',
@@ -294,6 +351,19 @@ export default function CurriculumSuite({ isDarkMode, userRole }: { isDarkMode: 
       particleCount: 40,
       spread: 50
     });
+  };
+
+  const handleDeleteLesson = async (lessonId: string) => {
+    try {
+      if (auth.currentUser && !lessonId.toString().startsWith('sample_') && !lessonId.toString().startsWith('lesson_')) {
+        await deleteDoc(doc(db, 'lessons', lessonId));
+      }
+    } catch (err) {
+      console.warn("Could not delete lesson from cloud, updating local view", err);
+    }
+    const nextLessons = lessons.filter(l => l.id !== lessonId);
+    setLessons(nextLessons);
+    localStorage.setItem('eduai_lessons', JSON.stringify(nextLessons));
   };
 
   // Assessment question list
@@ -617,7 +687,7 @@ export default function CurriculumSuite({ isDarkMode, userRole }: { isDarkMode: 
                         {lesson.notes && <p className="text-xs text-slate-500 mt-2 leading-relaxed italic">"{lesson.notes}"</p>}
                       </div>
                       <button 
-                        onClick={() => setLessons(lessons.filter(l => l.id !== lesson.id))}
+                        onClick={() => handleDeleteLesson(lesson.id)}
                         className="text-slate-500 hover:text-red-500 transition-colors p-1"
                       >
                         <ShieldAlert size={14} />
