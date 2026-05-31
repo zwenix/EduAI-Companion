@@ -272,7 +272,7 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
   
   let finalIframeContent = processedHtml;
   // Always strip AI-generated tailwind CDN
-  finalIframeContent = finalIframeContent.replace(/<script[^>]*src=["']https:\/\/cdn\.tailwindcss\.com[^>]*><\/script>/gi, '');
+  finalIframeContent = finalIframeContent.replace(/<script[^>]*src=["'][^>]*cdn\.tailwindcss\.com[^>]*>[\s\S]*?<\/script>/gi, '');
   
   if (useIframe) {
       if (isFullHtmlDoc) {

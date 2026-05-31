@@ -315,17 +315,24 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
         }
       }
     } catch (error: any) {
-      const status = error.status || 500;
-      if (status !== 500) {
-        console.warn(`${provider} API returned status ${status}: ${error.message || 'Error'}`);
-      } else {
-        console.error(`${provider} error:`, error.message || error);
+      let status = error.status || error.response?.status || 500;
+      let errMsg = error.message || error.response?.data?.error?.message || error.toString();
+      
+      if (errMsg.toLowerCase().includes('permissions') || errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('auth') || errMsg.toLowerCase().includes('unauthorized') || errMsg.toLowerCase().includes('dummy')) {
+        status = 401;
       }
-      res.status(status).json({ 
-        error: error.message,
+
+      const isDev = process.env.NODE_ENV !== 'production';
+      if (status >= 500) {
+        console.error(`${provider} API Error:`, error);
+      } else {
+        console.warn(`${provider} API returned status ${status}:`, errMsg);
+      }
+      
+      return res.status(status).json({ 
+        error: errMsg,
         provider,
-        code: error.code,
-        type: error.type 
+        code: error.code || 'API_ERROR',
       });
     }
   });
@@ -1102,8 +1109,13 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
           return res.status(400).json({ error: "Unsupported action" });
       }
     } catch (error: any) {
-      console.error(`Gemini server error for action '${action}':`, error.message || error);
-      return res.status(500).json({ error: error.message || "Failed to execute server-side action." });
+      const errMsg = error.message || error.toString();
+      let status = error.status || 500;
+      if (errMsg.toLowerCase().includes('permissions') || errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('auth') || errMsg.toLowerCase().includes('dummy')) {
+         status = 401;
+      }
+      console.error(`Gemini server error for action '${action}':`, errMsg);
+      return res.status(status).json({ error: errMsg || "Failed to execute server-side action." });
     }
   });
 
