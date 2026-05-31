@@ -163,17 +163,21 @@ const alibaba = new OpenAI({
       case "qwen-secondary":
       case "alibaba-qwen":
         apiKey = (process.env.ALIBABA_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
-        client = new OpenAI({
-          apiKey: apiKey,
-          baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-        });
+        if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
+          client = new OpenAI({
+            apiKey: apiKey,
+            baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+          });
+        }
         break;
       case "groq-vision":
         apiKey = (process.env.GROQ_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
-        client = new OpenAI({
-          apiKey: apiKey,
-          baseURL: "https://api.groq.com/openai/v1",
-        });
+        if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
+          client = new OpenAI({
+            apiKey: apiKey,
+            baseURL: "https://api.groq.com/openai/v1",
+          });
+        }
         break;
     }
 
