@@ -12,7 +12,8 @@ import { educationalData } from '../lib/educational-data';
 import { generateCAPSContent, generateVisualAid, generateAdminDoc } from '../services/unifiedAiService';
 import { useAi } from '../contexts/AiContext';
 import AiImage from './AiImage';
-import { PrintHeader, PrintHeaderData, getPrintHeaderHtml, getPrintHeaderElement } from './PrintHeader';
+import EduVideoPlayer from './EduVideoPlayer';
+// PrintHeader removed as per user request
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 import { printContent, downloadAsHTML } from '../lib/printUtils';
@@ -211,61 +212,6 @@ const Switch = ({ checked, onCheckedChange, id, isDarkMode }: any) => (
 
 function ContentPreview({ html, label, isDarkMode }: { html: string | object; label: string, isDarkMode?: boolean }) {
   const contentRef = useRef<HTMLDivElement>(null);
-  const todayStr = new Date().toISOString().split('T')[0];
-
-  // Scans the HTML/markdown string for any marks indicators
-  const detectedMarks = useMemo(() => {
-    const htmlStr = typeof html === 'object' ? '' : String(html);
-    const matches = [
-      /Total\s+Marks?\s*:\s*(\d+)/i.exec(htmlStr),
-      /Total\s*:\s*(\d+)\s*Marks/i.exec(htmlStr),
-      /\[(\d+)\s*Marks?\]/i.exec(htmlStr),
-      /(\d+)\s*Marks?/i.exec(htmlStr)
-    ];
-    for (const match of matches) {
-      if (match && match[1]) {
-        return match[1];
-      }
-    }
-    return '';
-  }, [html]);
-
-  const [headerData, setHeaderData] = useState<PrintHeaderData>(() => {
-    try {
-      const saved = localStorage.getItem('eduai_print_header');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return {
-          ...parsed,
-          totalMarks: parsed.totalMarks || detectedMarks,
-          date: parsed.date || todayStr
-        };
-      }
-    } catch (e) {}
-    return {
-      studentName: '',
-      grade: '',
-      date: todayStr,
-      totalMarks: detectedMarks,
-      isEnabled: false
-    };
-  });
-
-  // Keep total marks and isEnabled state in sync when html loads/updates
-  useEffect(() => {
-    setHeaderData(prev => {
-      const updated = {
-        ...prev,
-        totalMarks: prev.totalMarks || detectedMarks,
-        isEnabled: prev.isEnabled || !!(label.toLowerCase().includes('worksheet') || label.toLowerCase().includes('material') || label.toLowerCase().includes('assessment') || label.toLowerCase().includes('test') || label.toLowerCase().includes('exam'))
-      };
-      // Keep in localStorage
-      try {
-        localStorage.setItem('eduai_print_header', JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
-    });
-  }, [detectedMarks, label]);
 
   if (!html) return null;
   
@@ -358,16 +304,6 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
       }
   }
 
-  // Consistent injection of print header if enabled
-  if (headerData.isEnabled && useIframe) {
-    const headerHtml = getPrintHeaderHtml(headerData);
-    if (finalIframeContent.includes('<body')) {
-      finalIframeContent = finalIframeContent.replace(/(<body[^>]*>)/i, `$1\n${headerHtml}`);
-    } else {
-      finalIframeContent = headerHtml + finalIframeContent;
-    }
-  }
-
   const rawMarkup = useIframe ? processedHtml : marked.parse(processedHtml) as string;
 
   const handlePrint = () => {
@@ -391,7 +327,6 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
                 </style>
             </head>
             <body class="p-8 prose max-w-none text-slate-800 bg-white">
-                ${getPrintHeaderHtml(headerData)}
                 ${rawMarkup}
             </body>
             </html>
@@ -427,21 +362,6 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
         </button>
       </div>
 
-      {/* Print Header configurable panel */}
-      {(label.toLowerCase().includes('worksheet') || label.toLowerCase().includes('material') || label.toLowerCase().includes('assessment') || label.toLowerCase().includes('test') || label.toLowerCase().includes('exam')) && (
-        <PrintHeader 
-          data={headerData} 
-          onChange={(updates) => setHeaderData(prev => {
-            const updated = { ...prev, ...updates };
-            try {
-              localStorage.setItem('eduai_print_header', JSON.stringify(updated));
-            } catch (e) {}
-            return updated;
-          })} 
-          isDarkMode={isDarkMode} 
-        />
-      )}
-
       <div className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} border rounded-[32px] overflow-hidden p-4 lg:p-8 shadow-2xl relative min-h-[400px]`}>
         {useIframe ? (
           <iframe 
@@ -452,7 +372,6 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
           />
         ) : (
           <div ref={contentRef} className="space-y-6">
-            {headerData.isEnabled && getPrintHeaderElement(headerData)}
             <div 
               className={cn("prose prose-sm max-w-none markdown-body", isDarkMode ? "prose-invert" : "")}
               dangerouslySetInnerHTML={{ __html: processedHtml.trim().startsWith('<') ? processedHtml : rawMarkup }} 
@@ -977,8 +896,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [f_language, setF_Language] = useState('English HL');
 
   const [videoResult, setVideoResult] = useState<any>(null);
-  const [isVideoLoading, setIsVideoLoading] = useState(false);
-  const [isVideoError, setIsVideoError] = useState(false);
   const [vid_prompt, setVid_Prompt] = useState<string>('');
   const [vid_model, setVid_Model] = useState<string>('omnihuman-1');
   const [vid_seed, setVid_Seed] = useState<number>(-1);
@@ -1070,8 +987,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     setGenerationProgress(0);
     setError(null);
     setVideoResult(null);
-    setIsVideoError(false);
-    setIsVideoLoading(true);
     try {
       const res = await fetch("/api/video/generate", {
         method: "POST",
@@ -1136,9 +1051,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
       setIsLoading(false);
     } catch (err: any) {
       setError(err.message || "Failed to generate video.");
-      setIsVideoError(true);
       setIsLoading(false);
-      setIsVideoLoading(false);
     }
   };
 
@@ -2197,42 +2110,13 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                     </div>
                   )}
                   {activeTab === 'video' && (
-                    <div className="space-y-8 flex flex-col items-center">
+                    <div className="space-y-8 flex flex-col items-center w-full">
                       {videoResult ? (
-                        <div className="w-full max-w-3xl border border-indigo-500/20 rounded-3xl overflow-hidden shadow-2xl bg-black relative min-h-[300px] flex items-center justify-center">
-                          {isVideoLoading && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-20">
-                              <Loader2 className="w-8 h-8 text-white animate-spin" />
-                            </div>
-                          )}
-                          {!isVideoError ? (
-                            <video 
-                              src={videoResult.url} 
-                              controls 
-                              autoPlay 
-                              loop 
-                              className="w-full aspect-video outline-none" 
-                              onLoadStart={() => setIsVideoLoading(true)}
-                              onLoadedData={() => setIsVideoLoading(false)}
-                              onError={(e) => {
-                                console.error('Video error occurred while trying to load the video.');
-                                setIsVideoError(true);
-                                setIsVideoLoading(false);
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full aspect-video flex flex-col items-center justify-center text-slate-400 bg-slate-900 border border-slate-800 rounded-2xl">
-                              <Video size={48} className="mb-4 opacity-50" />
-                              <p className="px-4 text-center">Video playback unavailable or format not supported.</p>
-                              <a href={videoResult.url} target="_blank" rel="noreferrer" className="mt-4 text-brand-cyan hover:underline text-sm font-bold tracking-widest uppercase">Open Video Direct Link</a>
-                            </div>
-                          )}
-                          <div className={cn("p-4 border-t text-center absolute bottom-0 left-0 right-0 z-10", isDarkMode ? "border-white/10 bg-slate-900/80 backdrop-blur-md" : "border-slate-200 bg-white/80 backdrop-blur-md")}>
-                            <p className={cn("font-medium text-sm", isDarkMode ? "text-slate-300" : "text-slate-700")}>
-                              {videoResult.prompt}
-                            </p>
-                          </div>
-                        </div>
+                        <EduVideoPlayer 
+                          src={videoResult.url} 
+                          prompt={videoResult.prompt || videoResult.enhanced || "AI Educational Video Frame Animation Loop"} 
+                          isDarkMode={isDarkMode} 
+                        />
                       ) : (
                         <div className="text-center py-20 opacity-50">
                           <Video size={48} className="mx-auto mb-4" />

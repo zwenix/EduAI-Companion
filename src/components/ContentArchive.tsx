@@ -3,7 +3,7 @@ import { Box, Search, Library, History, ExternalLink, Loader2, Trash2, Eye, Edit
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
 import { printContent, downloadAsHTML } from '../lib/printUtils';
-import { PrintHeader, PrintHeaderData, getPrintHeaderHtml, getPrintHeaderElement } from './PrintHeader';
+// PrintHeader import removed as per user request
 import { auth, db } from '../lib/firebase';
 import { collection, query, where, getDocs, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
@@ -109,47 +109,6 @@ export default function ContentArchive() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const printableRef = useRef<HTMLDivElement>(null);
-
-  const [headerData, setHeaderData] = useState<PrintHeaderData>({
-    studentName: '',
-    grade: '',
-    date: new Date().toISOString().split('T')[0],
-    totalMarks: '',
-    isEnabled: false
-  });
-
-  useEffect(() => {
-    if (selectedItem) {
-      const type = (selectedItem.contentType || '').toLowerCase();
-      const title = (selectedItem.title || '').toLowerCase();
-      const isWorksheet = type.includes('worksheet') || type.includes('test') || type.includes('exam') || type.includes('assessment') || type.includes('activity') || title.includes('worksheet') || title.includes('test') || title.includes('exam') || title.includes('assessment') || title.includes('activity');
-      
-      // Attempt to find total marks from content
-      let detectedMarks = '';
-      if (selectedItem.content) {
-        const matches = [
-          /Total\s+Marks?\s*:\s*(\d+)/i.exec(selectedItem.content),
-          /Total\s*:\s*(\d+)\s*Marks/i.exec(selectedItem.content),
-          /\[(\d+)\s*Marks?\]/i.exec(selectedItem.content),
-          /(\d+)\s*Marks?/i.exec(selectedItem.content)
-        ];
-        for (const match of matches) {
-          if (match && match[1]) {
-            detectedMarks = match[1];
-            break;
-          }
-        }
-      }
-
-      setHeaderData({
-        studentName: '',
-        grade: selectedItem.grade && selectedItem.grade !== 'All' ? `Grade ${selectedItem.grade}` : '',
-        date: new Date().toISOString().split('T')[0],
-        totalMarks: detectedMarks,
-        isEnabled: isWorksheet
-      });
-    }
-  }, [selectedItem]);
 
   useEffect(() => {
     let unsubscribe: any;
@@ -424,31 +383,7 @@ export default function ContentArchive() {
               
               {/* Content Area */}
               <div className="flex-1 overflow-y-auto p-4 lg:p-8 bg-slate-50 text-left">
-                {/* Print Header controls */}
-                {(selectedItem.contentType?.toLowerCase().includes('worksheet') || 
-                  selectedItem.contentType?.toLowerCase().includes('test') || 
-                  selectedItem.contentType?.toLowerCase().includes('exam') || 
-                  selectedItem.contentType?.toLowerCase().includes('assessment') || 
-                  selectedItem.contentType?.toLowerCase().includes('activity') || 
-                  selectedItem.title?.toLowerCase().includes('worksheet') || 
-                  selectedItem.title?.toLowerCase().includes('test') || 
-                  selectedItem.title?.toLowerCase().includes('exam') || 
-                  selectedItem.title?.toLowerCase().includes('assessment')) && (
-                  <div className="mb-6 max-w-4xl mx-auto">
-                    <PrintHeader 
-                      data={headerData} 
-                      onChange={(updates) => setHeaderData(prev => ({ ...prev, ...updates }))} 
-                      isDarkMode={false} 
-                    />
-                  </div>
-                )}
-
                 <div className="bg-white p-6 lg:p-10 rounded-2xl lg:rounded-[2rem] shadow-sm border border-slate-100 min-h-[300px] lg:min-h-[400px] printable-doc animate-fade-in" ref={printableRef}>
-                  {headerData.isEnabled && (
-                    <div className="mb-6">
-                      {getPrintHeaderElement(headerData)}
-                    </div>
-                  )}
                   <h1 className="text-xl lg:text-3xl font-bold mb-4 lg:mb-6 text-slate-800 border-b border-slate-200 pb-4">{selectedItem.title}</h1>
                   <div className="space-y-6 text-slate-700 text-sm lg:text-base">
                     <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4 mb-4">

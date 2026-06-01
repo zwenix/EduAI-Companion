@@ -76,14 +76,27 @@ app.use((req, res, next) => {
       const safeMsgs = Array.isArray(msgs) ? msgs : [];
       const systemMessageTexts = safeMsgs
         .filter((m: any) => m.role === 'system')
-        .map((m: any) => m.content)
+        .map((m: any) => {
+          if (typeof m.content === 'string') return m.content;
+          if (Array.isArray(m.content)) {
+            return m.content.map((sh: any) => typeof sh === 'string' ? sh : (sh.text || '')).join('\n');
+          }
+          return typeof m.content === 'object' && m.content ? JSON.stringify(m.content) : String(m.content || '');
+        })
         .join("\n\n");
         
       const remainingMsgs = safeMsgs.filter((m: any) => m.role !== 'system');
       const mergedContents: any[] = [];
       remainingMsgs.forEach((m: any) => {
         const mappedRole = m.role === 'assistant' ? 'model' : 'user';
-        const txt = m.content || "";
+        let txt = "";
+        if (typeof m.content === 'string') {
+          txt = m.content;
+        } else if (Array.isArray(m.content)) {
+          txt = m.content.map((sh: any) => typeof sh === 'string' ? sh : (sh.text || '')).join('\n');
+        } else if (m.content) {
+          txt = JSON.stringify(m.content);
+        }
         
         if (mergedContents.length > 0 && mergedContents[mergedContents.length - 1].role === mappedRole) {
           mergedContents[mergedContents.length - 1].parts[0].text += "\n" + txt;
@@ -117,24 +130,33 @@ app.use((req, res, next) => {
         options.config.responseMimeType = "application/json";
       }
 
+      const modelsToTry = [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-3.5-flash",
+        "gemini-3.1-flash-lite",
+        "gemini-flash-latest"
+      ];
       let geminiResponse;
-      try {
-        console.info(`Trying final Gemini-3.5-flash fallback (isJsonPreferred: ${isJsonPreferred})...`);
-        geminiResponse = await gAi.models.generateContent(options);
-      } catch (gErr) {
-        console.warn("Gemini-3.5-flash fallback failed or not found, trying 'gemini-3.1-flash-lite'...", gErr);
+      let lastErrMessage = "";
+      for (const modelToTry of modelsToTry) {
         try {
+          console.info(`Trying Gemini fallback model ${modelToTry} (isJsonPreferred: ${isJsonPreferred})...`);
           geminiResponse = await gAi.models.generateContent({
             ...options,
-            model: "gemini-3.1-flash-lite"
+            model: modelToTry
           });
-        } catch (liteErr) {
-          console.warn("Gemini-3.1-flash-lite failed, trying 'gemini-flash-latest'...");
-          geminiResponse = await gAi.models.generateContent({
-            ...options,
-            model: "gemini-flash-latest"
-          });
+          if (geminiResponse) {
+            break;
+          }
+        } catch (mErr: any) {
+          lastErrMessage = mErr.message || String(mErr);
+          console.warn(`Gemini fallback model ${modelToTry} failed: ${lastErrMessage}`);
         }
+      }
+      if (!geminiResponse) {
+        throw new Error(`All fallback Gemini models failed to execute. Last model error: ${lastErrMessage}`);
       }
 
       const textContent = geminiResponse.text || "";
@@ -547,6 +569,38 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
       }
       res.status(500).json({ error: e.message });
     }
+  });
+
+  app.get("/file=*", async (req, res) => {
+    const rawPath = req.params[0] || "";
+    let cleanPath = rawPath;
+    if (cleanPath.startsWith("/")) {
+      cleanPath = cleanPath.substring(1);
+    }
+    
+    // Construct the absolute path inside /tmp sandbox
+    const absolutePath = path.resolve("/" + cleanPath);
+    console.log(`[File Proxy] Intercepted file request for path: ${rawPath}. Absolute resolved path: ${absolutePath}`);
+
+    if (absolutePath.startsWith("/tmp/")) {
+      try {
+        const fs = await import("fs");
+        if (fs.existsSync(absolutePath)) {
+          console.info(`[File Proxy] Serving file locally from container disk: ${absolutePath}`);
+          return res.sendFile(absolutePath);
+        } else {
+          console.warn(`[File Proxy] File does not exist locally: ${absolutePath}. Redirecting query to remote Hugging Face space...`);
+        }
+      } catch (fsErr) {
+        console.error(`[File Proxy] Error reading disk:`, fsErr);
+      }
+    } else {
+      console.warn(`[File Proxy] Requested path ${absolutePath} is outside the /tmp/ environment. Redirecting query to HF.`);
+    }
+
+    const hfUrl = `https://multimodalart-self-forcing.hf.space/file=/${cleanPath}`;
+    console.info(`[File Proxy] Final redirect target: ${hfUrl}`);
+    return res.redirect(hfUrl);
   });
 
   app.get("/api/video/status/:id", async (req, res) => {
