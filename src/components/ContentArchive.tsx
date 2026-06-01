@@ -195,7 +195,17 @@ export default function ContentArchive() {
   };
 
   const handleDownloadPDF = async () => {
-    printContent(printableRef, "EduAI-Archive-Item");
+    if (selectedItem) {
+      printContent(printableRef, selectedItem.title || "EduAI-Document", {
+        subject: selectedItem.subject,
+        grade: selectedItem.grade,
+        contentType: selectedItem.contentType,
+        date: selectedItem.createdAt ? new Date(selectedItem.createdAt).toLocaleDateString() : undefined,
+        title: selectedItem.title
+      });
+    } else {
+      printContent(printableRef, "EduAI-Archive-Item");
+    }
   };
 
   const handleTweak = (item: any) => {
@@ -384,9 +394,9 @@ export default function ContentArchive() {
               {/* Content Area */}
               <div className="flex-1 overflow-y-auto p-4 lg:p-8 bg-slate-50 text-left">
                 <div className="bg-white p-6 lg:p-10 rounded-2xl lg:rounded-[2rem] shadow-sm border border-slate-100 min-h-[300px] lg:min-h-[400px] printable-doc animate-fade-in" ref={printableRef}>
-                  <h1 className="text-xl lg:text-3xl font-bold mb-4 lg:mb-6 text-slate-800 border-b border-slate-200 pb-4">{selectedItem.title}</h1>
+                  <h1 className="text-xl lg:text-3xl font-bold mb-4 lg:mb-6 text-slate-800 border-b border-slate-200 pb-4 print:hidden">{selectedItem.title}</h1>
                   <div className="space-y-6 text-slate-700 text-sm lg:text-base">
-                    <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4 mb-4">
+                    <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4 mb-4 print:hidden">
                       <p><strong>Subject:</strong> {selectedItem.subject}</p>
                       <p><strong>Grade:</strong> {selectedItem.grade}</p>
                       <p><strong>Type:</strong> {selectedItem.contentType}</p>

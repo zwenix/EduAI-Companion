@@ -124,7 +124,7 @@
 @media print {
   @page {
     size: A4;
-    margin: 15mm 15mm 15mm 15mm !important;
+    margin: 20mm !important;
   }
 
   body {
@@ -154,12 +154,9 @@
   }
 
   .printable-doc {
-    position: relative !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: calc(210mm - 30mm) !important;
-    aspect-ratio: 210 / 297 !important;
-    margin: 15mm !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
     padding: 0 !important;
     background-color: white !important;
     color: black !important;
@@ -168,6 +165,18 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     color-adjust: exact !important;
+  }
+
+  /* Page break optimization rules */
+  .page-break, .page-break-avoid {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Selectors for generic worksheet and test question patterns */
+  .question-block, .question-item, .problem-card, .caps-question, fieldset, blockquote, .challenge-corner {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }
 
