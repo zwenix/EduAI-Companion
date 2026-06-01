@@ -18,6 +18,7 @@ import EduVideoPlayer from './EduVideoPlayer';
 import html2pdf from 'html2pdf.js';
 import { printContent, downloadAsHTML } from '../lib/printUtils';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
+import PrintPreviewModal from './PrintPreviewModal';
 import { db, auth } from '../lib/firebase';
 import { doc, setDoc, updateDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
@@ -515,6 +516,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [teachingResult, setTeachingResult] = useState<any>(null);
   const [visualResult, setVisualResult] = useState<any>(null);
   const [adminResult, setAdminResult] = useState<any>(null);
+  const [showPrintPreviewModal, setShowPrintPreviewModal] = useState(false);
 
   // Content Editing, Versioning, and Export/Sharing states
   const [currentDocId, setCurrentDocId] = useState<string | null>(null);
@@ -707,7 +709,17 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   };
 
   const handlePrint = () => {
-    printContent(contentRef, "EduAI-Output");
+    const itemTitle = (activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation';
+    const itemSubject = (activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : 'Administration') || 'General';
+    const itemGrade = (activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : 'All') || 'N/A';
+    const itemContentType = (activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : 'Notice') || 'Document';
+
+    printContent(contentRef, itemTitle, {
+      subject: itemSubject,
+      grade: itemGrade,
+      contentType: itemContentType,
+      title: itemTitle
+    });
   };
 
   const handleArchive = async () => {
@@ -1266,6 +1278,20 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                 </button>
               ))}
             </div>
+
+            {/* A4 Print Simulation Button */}
+            {hasResult && (
+              <button
+                type="button"
+                onClick={() => setShowPrintPreviewModal(true)}
+                className="flex items-center gap-2 px-4 py-2.5 lg:py-3 bg-brand-yellow hover:bg-yellow-400 text-navy-dark rounded-xl lg:rounded-2xl font-sans font-black uppercase tracking-widest text-[10px] shrink-0 hover:scale-105 active:scale-95 shadow-lg shadow-brand-yellow/20 cursor-pointer"
+                title="A4 Print Simulation"
+              >
+                <Printer size={15} strokeWidth={2.5} />
+                <span>Print Preview</span>
+              </button>
+            )}
+
             {/* Highly visible unified close button on Desktop */}
             <button 
               type="button" 
@@ -2462,6 +2488,33 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
           </div>
         )}
       </AnimatePresence>
+
+      {/* Interactive A4 Print Preview Modal */}
+      <PrintPreviewModal
+        isOpen={showPrintPreviewModal}
+        onClose={() => setShowPrintPreviewModal(false)}
+        title={
+          (activeTab === 'teaching' || activeTab === 'grade1')
+            ? (t_topic || t_type || 'Lesson Material')
+            : activeTab === 'visual'
+            ? (v_topic || v_type || 'Visual Concept')
+            : 'Administrative Doc'
+        }
+        content={
+          (activeTab === 'teaching' || activeTab === 'grade1') ? (teachingResult?.content || '') : 
+          activeTab === 'visual' ? (visualResult?.content || '') : 
+          (adminResult?.content || '')
+        }
+        memo={(activeTab === 'teaching' || activeTab === 'grade1') ? teachingResult?.memo : undefined}
+        rubric={(activeTab === 'teaching' || activeTab === 'grade1') ? teachingResult?.rubric : undefined}
+        options={{
+          subject: (activeTab === 'teaching' || activeTab === 'grade1' ? t_subject : activeTab === 'visual' ? v_subject : 'Administration') || 'General',
+          grade: (activeTab === 'teaching' || activeTab === 'grade1' ? t_grade : activeTab === 'visual' ? v_grade : 'All') || 'N/A',
+          contentType: (activeTab === 'teaching' || activeTab === 'grade1' ? t_type : activeTab === 'visual' ? v_type : 'Notice') || 'Document',
+          title: (activeTab === 'teaching' || activeTab === 'grade1' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation'
+        }}
+        isDarkMode={isDarkMode}
+      />
     </motion.div>
   </>
 );
