@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Search, Library, History, ExternalLink, Loader2, Trash2, Eye, Edit3, FileDown, Send, Check, X, FileText, FileJson } from 'lucide-react';
+import { Box, Search, Library, History, ExternalLink, Loader2, Trash2, Eye, Edit3, FileDown, Send, Check, X, FileText, FileJson, Bookmark } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
 import { printContent, downloadAsHTML } from '../lib/printUtils';
@@ -85,8 +85,27 @@ const downloadBlobFile = (content: string, filename: string, contentType: string
 export default function ContentArchive() {
   const [searchTerm, setSearchTerm] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('All');
+  const [bookmarkedIds, setBookmarkedIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('eduai_bookmarks') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
   const [items, setItems] = useState<any[]>(INITIAL_ARCHIVE);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+
+  useEffect(() => {
+    localStorage.setItem('eduai_bookmarks', JSON.stringify(bookmarkedIds));
+  }, [bookmarkedIds]);
+
+  const toggleBookmark = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setBookmarkedIds(prev => 
+      prev.includes(id) ? prev.filter(bId => bId !== id) : [...prev, id]
+    );
+  };
   const [isDownloading, setIsDownloading] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const printableRef = useRef<HTMLDivElement>(null);
@@ -185,8 +204,9 @@ export default function ContentArchive() {
       item.grade?.toString().toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesSubject = subjectFilter === 'All' || item.subject === subjectFilter;
+    const matchesBookmark = !showBookmarksOnly || bookmarkedIds.includes(item.id);
     
-    return matchesSearch && matchesSubject;
+    return matchesSearch && matchesSubject && matchesBookmark;
   });
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
@@ -318,12 +338,23 @@ export default function ContentArchive() {
             </svg>
           </div>
         </div>
+        <button
+          onClick={() => setShowBookmarksOnly(prev => !prev)}
+          className={`px-5 py-3 lg:py-4 rounded-full flex items-center justify-center gap-2 font-hand text-lg transition-all border shrink-0 ${
+            showBookmarksOnly 
+              ? 'bg-amber-500 border-amber-600 text-white shadow-md hover:bg-amber-600' 
+              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          <Bookmark className={`h-5 w-5 ${showBookmarksOnly ? 'fill-current text-white' : 'text-slate-400'}`} />
+          {showBookmarksOnly ? 'Favorites Active' : 'Bookmarked Only'}
+        </button>
       </div>
 
       {/* Archive Grid */}
       <div className="grid gap-4 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {filteredItems.map((item) => (
-          <div key={item.id} className="bg-white border border-slate-200 rounded-[2rem] lg:rounded-[2.5rem] p-5 lg:p-6 hover:shadow-xl transition-all relative group flex flex-col h-full">
+          <div key={item.id} id="archive-list-item" className="bg-white border border-slate-200 rounded-[2rem] lg:rounded-[2.5rem] p-5 lg:p-6 hover:shadow-xl transition-all relative group flex flex-col h-full">
             <div className="flex justify-between items-start mb-3 lg:mb-4">
               <div className="flex gap-2 flex-wrap items-center">
                 <span className={`px-2.5 lg:px-3 py-1 rounded-full text-[9px] lg:text-[10px] font-black tracking-widest uppercase ${item.isSystem ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
@@ -335,11 +366,24 @@ export default function ContentArchive() {
                   </span>
                 )}
               </div>
-              {!item.isSystem && (
-                <button onClick={(e) => handleDelete(item.id, e)} className="text-slate-400 hover:text-red-500 transition-colors p-1 bg-slate-50 hover:bg-red-50 rounded-full shrink-0">
-                  <Trash2 size={16} />
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button 
+                  onClick={(e) => toggleBookmark(item.id, e)} 
+                  title={bookmarkedIds.includes(item.id) ? "Remove Favorite" : "Bookmark Material"}
+                  className={`p-1.5 rounded-full transition-all border ${
+                    bookmarkedIds.includes(item.id) 
+                      ? 'bg-amber-50 border-amber-200 text-amber-500 hover:bg-amber-100' 
+                      : 'bg-slate-50 border-slate-100 text-slate-400 hover:text-amber-500 hover:bg-amber-50'
+                  }`}
+                >
+                  <Bookmark size={15} className={bookmarkedIds.includes(item.id) ? 'fill-amber-500' : ''} />
                 </button>
-              )}
+                {!item.isSystem && (
+                  <button onClick={(e) => handleDelete(item.id, e)} className="text-slate-400 hover:text-red-500 transition-colors p-1.5 bg-slate-50 border border-slate-100 hover:bg-red-50 rounded-full shrink-0">
+                    <Trash2 size={15} />
+                  </button>
+                )}
+              </div>
             </div>
             
             <h3 className="font-hand text-2xl text-slate-800 mb-1">{item.title}</h3>

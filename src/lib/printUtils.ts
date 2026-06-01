@@ -54,7 +54,13 @@ export const printContent = (contentRef: React.RefObject<HTMLDivElement | null>,
 
         const getParentStyles = () => {
             return Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-                .map(el => el.outerHTML)
+                .map(el => {
+                    if (el.tagName.toLowerCase() === 'link') {
+                        const href = (el as HTMLLinkElement).href;
+                        return `<link rel="stylesheet" href="${href}">`;
+                    }
+                    return el.outerHTML;
+                })
                 .join('\n');
         };
         const printWindow = window.open('', '_blank');

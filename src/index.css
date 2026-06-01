@@ -122,9 +122,17 @@
 }
 
 @media print {
+  @page {
+    size: A4;
+    margin: 15mm 15mm 15mm 15mm !important;
+  }
+
   body {
     background: white !important;
     color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
   
   /* Only apply block hide/visibility settings if .printable-doc is present on the page */
@@ -156,6 +164,9 @@
     color: black !important;
     border: none !important;
     box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 }
 

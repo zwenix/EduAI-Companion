@@ -64,7 +64,14 @@ app.use((req, res, next) => {
       if (!geminiApiKey || geminiApiKey === "dummy" || geminiApiKey === "undefined") {
         throw new Error("GEMINI_API_KEY is not configured for fallback.");
       }
-      const gAi = new GoogleGenAI({ apiKey: geminiApiKey });
+      const gAi = new GoogleGenAI({ 
+        apiKey: geminiApiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build'
+          }
+        }
+      });
       
       const safeMsgs = Array.isArray(msgs) ? msgs : [];
       const systemMessageTexts = safeMsgs
@@ -93,7 +100,7 @@ app.use((req, res, next) => {
       }
 
       const options: any = {
-        model: "gemini-flash-latest",
+        model: "gemini-3.5-flash",
         contents: mergedContents,
       };
 
@@ -105,20 +112,20 @@ app.use((req, res, next) => {
 
       let geminiResponse;
       try {
-        console.info("Trying final Gemini Flash fallback...");
+        console.info("Trying final Gemini-3.5-flash fallback...");
         geminiResponse = await gAi.models.generateContent(options);
       } catch (gErr) {
-        console.warn("Gemini Flash fallback failed or not found, trying 'gemini-3.1-flash-lite'...", gErr);
+        console.warn("Gemini-3.5-flash fallback failed or not found, trying 'gemini-3.1-flash-lite'...", gErr);
         try {
           geminiResponse = await gAi.models.generateContent({
             ...options,
             model: "gemini-3.1-flash-lite"
           });
         } catch (liteErr) {
-          console.warn("Gemini-3.1-flash-lite failed, trying 'gemini-3.5-flash'...");
+          console.warn("Gemini-3.1-flash-lite failed, trying 'gemini-flash-latest'...");
           geminiResponse = await gAi.models.generateContent({
             ...options,
-            model: "gemini-3.5-flash"
+            model: "gemini-flash-latest"
           });
         }
       }
@@ -274,48 +281,68 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
         completionParams.response_format = { type: "json_object" };
       }
 
-      try {
-        const response = await client.chat.completions.create(completionParams);
-        return res.json(response);
-      } catch (err: any) {
-        console.warn(`Attempt with ${selectedModel} failed: ${err.message || err}`);
-        
-        if (provider === "qwen-primary") {
-          console.warn(`qwen-primary failed. Falling back to qwen-secondary (qwen-max)...`);
+      if (provider === "qwen-primary" || provider === "qwen-secondary" || provider === "alibaba-qwen") {
+        let isSuccess = false;
+        let responseJson: any = null;
+        let lastError: any = null;
+
+        // Attempt 1: Standard/Domestic Compatible Endpoint
+        try {
+          console.info(`Attempting standard Qwen endpoint (dashscope.aliyuncs.com) for ${selectedModel}...`);
+          const clientStd = new OpenAI({
+            apiKey: apiKey,
+            baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+          });
+          responseJson = await clientStd.chat.completions.create(completionParams, { timeout: 4500 });
+          isSuccess = true;
+          console.info("Standard Qwen endpoint call succeeded!");
+        } catch (err: any) {
+          lastError = err;
+          console.warn(`Standard Qwen endpoint failed: ${err.message || err}`);
+        }
+
+        // Attempt 2: International Compatible Endpoint
+        if (!isSuccess) {
           try {
-            const fallbackParams: any = {
-              model: "qwen-max",
-              messages: enhancedMessages,
-              temperature: 0.7,
-              max_tokens: 8192,
-            };
-            if (isJsonPreferred) {
-              fallbackParams.response_format = { type: "json_object" };
-            }
-            const fallbackResponse = await client.chat.completions.create(fallbackParams);
-            return res.json(fallbackResponse);
-          } catch (secondaryErr: any) {
-            console.warn(`qwen-secondary failed as well: ${secondaryErr.message || secondaryErr}. Falling back to final Gemini...`);
-            try {
-              const geminiResponse = await callGeminiFallback(enhancedMessages);
-              return res.json(geminiResponse);
-            } catch (geminiErr: any) {
-              console.error("All fallback models exhausted for qwen-primary!");
-              throw geminiErr;
-            }
+            console.info(`Attempting international Qwen endpoint (dashscope-intl.aliyuncs.com) for ${selectedModel}...`);
+            const clientIntl = new OpenAI({
+              apiKey: apiKey,
+              baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+            });
+            responseJson = await clientIntl.chat.completions.create(completionParams, { timeout: 4500 });
+            isSuccess = true;
+            console.info("International Qwen endpoint call succeeded!");
+          } catch (err: any) {
+            lastError = err;
+            console.warn(`International Qwen endpoint failed: ${err.message || err}`);
           }
-        } else if (provider === "qwen-secondary") {
-          console.warn(`qwen-secondary failed. Falling back to final Gemini...`);
+        }
+
+        // Attempt 3: Final Gemini Fallback
+        if (!isSuccess) {
+          console.warn(`Both Qwen endpoints failed. Falling back directly to final Gemini fallback to prevent Vercel execution timeout...`);
           try {
             const geminiResponse = await callGeminiFallback(enhancedMessages);
             return res.json(geminiResponse);
           } catch (geminiErr: any) {
-            console.error("All fallback models exhausted for qwen-secondary!");
-            throw geminiErr;
+            console.error("All fallback models exhausted for Qwen!");
+            throw lastError || geminiErr;
           }
-        } else {
-          throw err;
         }
+
+        return res.json(responseJson);
+      }
+
+      // Non-Qwen fallback logic (e.g. Groq if ever utilized)
+      try {
+        if (!client) {
+          throw new Error(`Client for ${provider} was not initialized.`);
+        }
+        const response = await client.chat.completions.create(completionParams);
+        return res.json(response);
+      } catch (err: any) {
+        console.warn(`Attempt with ${selectedModel} failed: ${err.message || err}`);
+        throw err;
       }
     } catch (error: any) {
       let status = error.status || error.response?.status || 500;
