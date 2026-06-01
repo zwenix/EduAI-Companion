@@ -571,7 +571,7 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
     }
   });
 
-  app.get("/file=*", async (req, res) => {
+  const handleFileProxy = async (req: any, res: any) => {
     const rawPath = req.params[0] || "";
     let cleanPath = rawPath;
     if (cleanPath.startsWith("/")) {
@@ -580,7 +580,7 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
     
     // Construct the absolute path inside /tmp sandbox
     const absolutePath = path.resolve("/" + cleanPath);
-    console.log(`[File Proxy] Intercepted file request for path: ${rawPath}. Absolute resolved path: ${absolutePath}`);
+    console.log(`[File Proxy] Intercepted file proxy request for path: ${rawPath}. Absolute resolved path: ${absolutePath}`);
 
     if (absolutePath.startsWith("/tmp/")) {
       try {
@@ -601,7 +601,10 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
     const hfUrl = `https://multimodalart-self-forcing.hf.space/file=/${cleanPath}`;
     console.info(`[File Proxy] Final redirect target: ${hfUrl}`);
     return res.redirect(hfUrl);
-  });
+  };
+
+  app.get(/^\/file=(.*)/, handleFileProxy);
+  app.get("/file=*", handleFileProxy);
 
   app.get("/api/video/status/:id", async (req, res) => {
     const id = req.params.id;
