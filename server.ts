@@ -99,20 +99,27 @@ app.use((req, res, next) => {
         mergedContents.push({ role: 'user', parts: [{ text: "Hello" }] });
       }
 
+      const isJsonPreferred = safeMsgs.some((m: any) => 
+        (typeof m.content === 'string' && m.content.toLowerCase().includes('json')) ||
+        (Array.isArray(m.content) && m.content.some((sub: any) => sub.text && sub.text.toLowerCase().includes('json')))
+      );
+
       const options: any = {
         model: "gemini-3.5-flash",
         contents: mergedContents,
       };
 
+      options.config = {};
       if (systemMessageTexts) {
-        options.config = {
-          systemInstruction: systemMessageTexts
-        };
+        options.config.systemInstruction = systemMessageTexts;
+      }
+      if (isJsonPreferred) {
+        options.config.responseMimeType = "application/json";
       }
 
       let geminiResponse;
       try {
-        console.info("Trying final Gemini-3.5-flash fallback...");
+        console.info(`Trying final Gemini-3.5-flash fallback (isJsonPreferred: ${isJsonPreferred})...`);
         geminiResponse = await gAi.models.generateContent(options);
       } catch (gErr) {
         console.warn("Gemini-3.5-flash fallback failed or not found, trying 'gemini-3.1-flash-lite'...", gErr);
@@ -293,7 +300,7 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
             apiKey: apiKey,
             baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
           });
-          responseJson = await clientStd.chat.completions.create(completionParams, { timeout: 4500 });
+          responseJson = await clientStd.chat.completions.create(completionParams, { timeout: 35000 });
           isSuccess = true;
           console.info("Standard Qwen endpoint call succeeded!");
         } catch (err: any) {
@@ -309,7 +316,7 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
               apiKey: apiKey,
               baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
             });
-            responseJson = await clientIntl.chat.completions.create(completionParams, { timeout: 4500 });
+            responseJson = await clientIntl.chat.completions.create(completionParams, { timeout: 35000 });
             isSuccess = true;
             console.info("International Qwen endpoint call succeeded!");
           } catch (err: any) {
@@ -455,8 +462,67 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
     }
   });
 
+  const activeGenerations = new Map<string, { status: string; url?: string; error?: string }>();
+
+  app.post("/api/video/enhance-prompt", async (req, res) => {
+    const { prompt } = req.body || {};
+    try {
+      const { Client } = await import("@gradio/client");
+      const client = await Client.connect("multimodalart/self-forcing");
+      const result = await client.predict("/enhance_prompt", { prompt: prompt || "" });
+      const enhanced = Array.isArray(result.data) ? result.data[0] : result.data;
+      res.json({ enhanced: enhanced || prompt });
+    } catch (err: any) {
+      console.warn("Gradio prompt enhancement failed, returning original prompt:", err);
+      res.json({ enhanced: prompt });
+    }
+  });
+
   app.post("/api/video/generate", async (req, res) => {
-    const { prompt, model } = req.body || {};
+    const { prompt, model, seed, fps } = req.body || {};
+    
+    if (model === "omnihuman-1") {
+      const genId = `omni-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      activeGenerations.set(genId, { status: "processing" });
+      
+      // Execute Gradio connection and prediction in the background
+      (async () => {
+        try {
+          console.log(`Starting Gradio self-forcing prediction for ${genId}...`);
+          const { Client } = await import("@gradio/client");
+          const client = await Client.connect("multimodalart/self-forcing");
+          
+          const finalSeed = Number(seed) !== -1 ? Number(seed) : Math.floor(Math.random() * 1000000);
+          const finalFps = Number(fps) || 15;
+          
+          const result = await client.predict("/video_generation_handler_streaming", { 		
+             prompt: prompt || "", 		
+             seed: finalSeed, 		
+             fps: finalFps, 
+          });
+          
+          const outputData = result.data;
+          console.log(`Gradio prediction output for ${genId}:`, outputData);
+          const videoInfo = Array.isArray(outputData) ? outputData[0] : null;
+          
+          const finalUrl = videoInfo?.url || videoInfo?.path || videoInfo;
+          if (finalUrl) {
+            console.log(`Gradio self-forcing prediction succeeded for ${genId}: ${finalUrl}`);
+            activeGenerations.set(genId, { status: "succeeded", url: finalUrl });
+          } else {
+            console.error(`Gradio prediction succeeded but no URL discovered in response data for ${genId}:`, outputData);
+            activeGenerations.set(genId, { status: "failed", error: "Could not resolve stable video file link from Gradio client output." });
+          }
+        } catch (gradioErr: any) {
+          console.error(`Gradio self-forcing prediction failed for ${genId}:`, gradioErr);
+          activeGenerations.set(genId, { status: "failed", error: gradioErr.message || "Failed during Gradio Space self-forcing prediction." });
+        }
+      })();
+      
+      return res.json({ id: genId, status: "processing" });
+    }
+
+    // Default Replicate fallback generator
     const apiKey = process.env.REPLICATE_API_TOKEN;
     if (!apiKey) {
       return res.status(400).json({ error: "REPLICATE_API_TOKEN is required. Please set it in Settings -> Secrets." });
@@ -484,12 +550,27 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
   });
 
   app.get("/api/video/status/:id", async (req, res) => {
-    if (req.params.id === "mock-video-id") {
+    const id = req.params.id;
+    if (id === "mock-video-id") {
       // Simulate processing delay, then return a sample nature/educational video
       return res.json({ 
         status: "succeeded", 
         url: "https://www.w3schools.com/html/mov_bbb.mp4" 
       });
+    }
+
+    if (id.startsWith("omni-")) {
+      const state = activeGenerations.get(id);
+      if (!state) {
+        return res.status(404).json({ error: "Gradio prediction job not found." });
+      }
+      if (state.status === "succeeded") {
+        return res.json({ status: "succeeded", url: state.url });
+      } else if (state.status === "failed") {
+        return res.status(500).json({ error: state.error || "Omnihuman video generation operation aborted." });
+      } else {
+        return res.json({ status: "processing" });
+      }
     }
 
     const apiKey = process.env.REPLICATE_API_TOKEN;
@@ -500,7 +581,7 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
       const Replicate = (await import("replicate")).default;
       const replicate = new Replicate({ auth: apiKey });
       
-      const prediction = await replicate.predictions.get(req.params.id);
+      const prediction = await replicate.predictions.get(id);
       
       if (prediction.status === "succeeded") {
          const url = Array.isArray(prediction.output) ? prediction.output[0] : (prediction.output as any)?.url || prediction.output;

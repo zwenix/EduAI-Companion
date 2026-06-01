@@ -980,7 +980,10 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [isVideoError, setIsVideoError] = useState(false);
   const [vid_prompt, setVid_Prompt] = useState<string>('');
-  const [vid_model, setVid_Model] = useState<string>('replicate-minimax');
+  const [vid_model, setVid_Model] = useState<string>('omnihuman-1');
+  const [vid_seed, setVid_Seed] = useState<number>(-1);
+  const [vid_fps, setVid_Fps] = useState<number>(15);
+  const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
   
   useEffect(() => {
     const handleTriggerEditContent = (e: any) => {
@@ -1040,6 +1043,28 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     return () => window.removeEventListener('trigger-edit-content', handleTriggerEditContent);
   }, []);
 
+  const handleEnhancePrompt = async () => {
+    if (!vid_prompt) return;
+    setIsEnhancingPrompt(true);
+    try {
+      const res = await fetch("/api/video/enhance-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: vid_prompt })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.enhanced) {
+          setVid_Prompt(data.enhanced);
+        }
+      }
+    } catch (err) {
+      console.warn("Error enhancing prompt:", err);
+    } finally {
+      setIsEnhancingPrompt(false);
+    }
+  };
+
   const handleGenerateVideo = async () => {
     setIsLoading(true);
     setGenerationProgress(0);
@@ -1051,7 +1076,12 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
       const res = await fetch("/api/video/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: vid_prompt, model: vid_model })
+        body: JSON.stringify({ 
+          prompt: vid_prompt, 
+          model: vid_model,
+          seed: vid_seed,
+          fps: vid_fps
+        })
       });
       
       let data;
@@ -1072,11 +1102,11 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
       const progressInterval = setInterval(() => {
         progress = Math.min(progress + Math.floor(Math.random() * 3), 90);
         setGenerationProgress(progress);
-      }, 2000);
+      }, 1500);
 
       // Poll until succeeded or failed
       while (true) {
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 4000));
         const statusRes = await fetch(`/api/video/status/${predictionId}`);
         
         let statusData;
@@ -1733,6 +1763,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                     <Select value={vid_model} onValueChange={setVid_Model} placeholder="Video Model" isDarkMode={isDarkMode}>
                       {(close: any) => (
                         <>
+                          <SelectItem onClick={() => { setVid_Model('omnihuman-1'); close(); }} active={vid_model === 'omnihuman-1'} isDarkMode={isDarkMode}>Omnihuman-1 (Gradio Streaming)</SelectItem>
                           <SelectItem onClick={() => { setVid_Model('replicate-minimax'); close(); }} active={vid_model === 'replicate-minimax'} isDarkMode={isDarkMode}>Minimax Video</SelectItem>
                           <SelectItem onClick={() => { setVid_Model('replicate-luma'); close(); }} active={vid_model === 'replicate-luma'} isDarkMode={isDarkMode}>Luma Ray</SelectItem>
                         </>
@@ -1740,7 +1771,17 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                     </Select>
                   </div>
                   <div>
-                    <label className={cn("text-[10px] font-black uppercase tracking-widest ml-1 mb-1 block", isDarkMode ? "text-slate-400" : "text-slate-500")}>Video Prompt</label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className={cn("text-[10px] font-black uppercase tracking-widest ml-1 block", isDarkMode ? "text-slate-400" : "text-slate-500")}>Video Prompt</label>
+                      <button 
+                        type="button"
+                        onClick={handleEnhancePrompt} 
+                        disabled={isEnhancingPrompt || !vid_prompt} 
+                        className="text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-600 disabled:opacity-50 transition-all flex items-center gap-1"
+                      >
+                        {isEnhancingPrompt ? <Loader2 size={10} className="animate-spin" /> : "🌟"} Enhance Prompt
+                      </button>
+                    </div>
                     <textarea 
                       placeholder="E.g., A cinematic shot of a lion roaring in the African savanna..." 
                       value={vid_prompt} 
@@ -1748,6 +1789,31 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                       className={cn("w-full px-4 py-3 rounded-2xl text-sm min-h-[120px] outline-none transition-all", isDarkMode ? "bg-white/5 border border-white/10 text-white focus:border-indigo-500" : "bg-white border border-slate-200 text-slate-900 focus:border-indigo-500")}
                     />
                   </div>
+
+                  {vid_model === 'omnihuman-1' && (
+                    <div className="grid grid-cols-2 gap-4 p-4 rounded-2xl border bg-indigo-500/[0.02] border-indigo-500/10 transition-all">
+                      <div>
+                        <label className={cn("text-[10px] font-black uppercase tracking-widest mb-1.5 block", isDarkMode ? "text-slate-400" : "text-slate-500")}>Seed (-1 for random)</label>
+                        <input 
+                          type="number" 
+                          value={vid_seed} 
+                          onChange={(e: any) => setVid_Seed(Number(e.target.value))} 
+                          className={cn("w-full px-4 py-2 text-xs rounded-xl outline-none transition-all", isDarkMode ? "bg-white/5 border border-white/10 text-white focus:border-indigo-500" : "bg-white border border-slate-200 text-slate-900 focus:border-indigo-500")}
+                        />
+                      </div>
+                      <div>
+                        <label className={cn("text-[10px] font-black uppercase tracking-widest mb-1.5 block", isDarkMode ? "text-slate-400" : "text-slate-500")}>Playback FPS ({vid_fps})</label>
+                        <input 
+                          type="range" 
+                          min="1" 
+                          max="30" 
+                          value={vid_fps} 
+                          onChange={(e: any) => setVid_Fps(Number(e.target.value))} 
+                          className="w-full accent-indigo-500 py-1"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>
