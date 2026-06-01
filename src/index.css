@@ -154,13 +154,14 @@
   }
 
   .printable-doc {
-    position: absolute !important;
+    position: relative !important;
     left: 0 !important;
     top: 0 !important;
-    width: 100% !important;
-    margin: 0 !important;
+    width: calc(210mm - 30mm) !important;
+    aspect-ratio: 210 / 297 !important;
+    margin: 15mm !important;
     padding: 0 !important;
-    background: white !important;
+    background-color: white !important;
     color: black !important;
     border: none !important;
     box-shadow: none !important;
