@@ -214,7 +214,23 @@ app.use((req, res, next) => {
 
     switch (provider) {
       case "qwen-primary":
+        apiKey = (process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_TOKEN || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+        if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
+          client = new OpenAI({
+            apiKey: apiKey,
+            baseURL: "https://api-inference.huggingface.co/v1",
+          });
+        }
+        break;
       case "qwen-secondary":
+        apiKey = (process.env.GROQ_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+        if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
+          client = new OpenAI({
+            apiKey: apiKey,
+            baseURL: "https://api.groq.com/openai/v1",
+          });
+        }
+        break;
       case "alibaba-qwen":
         apiKey = (process.env.QWEN_API_KEY || process.env.ALIBABA_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
         if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
@@ -246,26 +262,30 @@ app.use((req, res, next) => {
           return res.status(400).json({ error: { message: `Provider ${provider} is not configured and final Gemini fallback failed: ${geminiErr.message}` }});
         }
       }
-      return res.status(400).json({ error: { message: `Provider ${provider} is not configured. Please add the ${provider === 'alibaba-qwen' ? 'ALIBABA_API_KEY' : 'API_KEY'} in the application settings.` }});
+      const requiredKeyLabel = 
+        provider === 'qwen-primary' ? 'HUGGINGFACE_API_KEY' : 
+        provider === 'qwen-secondary' ? 'GROQ_API_KEY' : 
+        provider === 'alibaba-qwen' ? 'ALIBABA_API_KEY' : 'API_KEY';
+      return res.status(400).json({ error: { message: `Provider ${provider} is not configured. Please add the ${requiredKeyLabel} in the application settings.` }});
     }
 
     try {
       let selectedModel = model || (
-        provider === "qwen-primary" ? "qwen-plus" : 
-        provider === "qwen-secondary" ? "qwen-max" :
+        provider === "qwen-primary" ? "Qwen/Qwen3.5-397B-A17B" : 
+        provider === "qwen-secondary" ? "Llama-4-Scout-17B-16E-Instruct" :
         provider === "alibaba-qwen" ? "qwen-max" :
         provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
         ""
       );
 
-      if (selectedModel === "qwen3.6-plus") selectedModel = "qwen-plus";
-      if (selectedModel === "qwen3.7-max") selectedModel = "qwen-max";
+      if (selectedModel === "qwen3.6-plus") selectedModel = "Qwen/Qwen3.5-397B-A17B";
+      if (selectedModel === "qwen3.7-max") selectedModel = "Llama-4-Scout-17B-16E-Instruct";
 
       const enhancedMessages = [...(Array.isArray(messages) ? messages : [])];
       if (provider === "qwen-primary" || provider === "qwen-secondary" || provider === "alibaba-qwen") {
         const systemMessageIndex = enhancedMessages.findIndex(m => m.role === 'system');
         const coreInstruction = `
-[STRICT CORE VISUAL STYLE, PRESENTATION AND LAYOUT OBJECTIVE - FOR ALL QWEN MODELS]:
+[STRICT CORE VISUAL STYLE, PRESENTATION AND LAYOUT OBJECTIVE - FOR ALL HIGH INTENSITY MODELS]:
 - You represent the premium South African CAPS-aligned educational platform (EduAI Companion).
 - You MUST generate extremely high-quality, fully detailed educational materials of premium visual layout complexity, matching or exceeding Qwen 3.7 Max and Gemini models!
 - ALWAYS render output directly in elegant, multi-layered HTML templates using standard Tailwind CSS utility classes inside style/class fields. DO NOT generate basic plain text or simple lines.
@@ -335,7 +355,7 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
         completionParams.response_format = { type: "json_object" };
       }
 
-      if (provider === "qwen-primary" || provider === "qwen-secondary" || provider === "alibaba-qwen") {
+      if (provider === "alibaba-qwen") {
         let isSuccess = false;
         let responseJson: any = null;
         let lastError: any = null;
@@ -395,16 +415,23 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
         return res.json(responseJson);
       }
 
-      // Non-Qwen fallback logic (e.g. Groq if ever utilized)
+      // Query standard OpenAPI compatibility clients (such as Hugging Face and Groq) directly
       try {
         if (!client) {
           throw new Error(`Client for ${provider} was not initialized.`);
         }
+        console.info(`Executing direct completion for ${provider} with model ${selectedModel}...`);
         const response = await client.chat.completions.create(completionParams);
         return res.json(response);
       } catch (err: any) {
-        console.warn(`Attempt with ${selectedModel} failed: ${err.message || err}`);
-        throw err;
+        console.warn(`Attempt with ${provider} (${selectedModel}) failed: ${err.message || err}. Falling back to Gemini...`);
+        try {
+          const geminiResponse = await callGeminiFallback(enhancedMessages);
+          return res.json(geminiResponse);
+        } catch (geminiErr: any) {
+          console.error(`Both ${provider} and Gemini fallback failed!`, geminiErr);
+          throw err || geminiErr;
+        }
       }
     } catch (error: any) {
       let status = error.status || error.response?.status || 500;
@@ -958,6 +985,43 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         throw lastError || new Error("Standby fallback route triggered");
       } catch (error: any) {
         console.log("[Image Service] Redirecting to alternative creation channel.");
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        return res.json({ url });
+      }
+    }
+
+    if (provider === "qwen-image-2512") {
+      let apiKey = process.env.NVIDIA_API_KEY || process.env.NVIDIA_API_TOKEN || "";
+      if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
+        console.warn("NVIDIA_API_KEY missing for image generation, falling back to Pollinations Flux");
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        return res.json({ url });
+      }
+
+      apiKey = apiKey.trim().replace(/^['"\s]+|['"\s]+$/g, "");
+
+      try {
+        const client = new OpenAI({
+          apiKey: apiKey,
+          baseURL: "https://integrate.api.nvidia.com/v1",
+        });
+
+        console.info("Sending NVIDIA NIM text2image request to qwen-image-2512...");
+        const response = await client.images.generate({
+          model: "qwen-image-2512",
+          prompt: prompt,
+          n: 1,
+          size: "1024x1024",
+        } as any);
+
+        const imageUrl = response.data?.[0]?.url;
+        if (imageUrl) {
+          console.info("NVIDIA NIM qwen-image-2512 image generated successfully!");
+          return res.json({ url: imageUrl });
+        }
+        throw new Error("Empty image URL returned from NVIDIA NIM");
+      } catch (err: any) {
+        console.warn(`NVIDIA NIM qwen-image-2512 failed: ${err.message || err}. Falling back to Pollinations Flux...`);
         const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }

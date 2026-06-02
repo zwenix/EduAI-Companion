@@ -1359,6 +1359,7 @@ export default function App() {
                 <option value="gemini-imagen">IMG: Gemini 2.5 Flash Image</option>
                 <option value="wan2.1-t2i-plus">IMG: Alibaba wan2.1-t2i-plus</option>
                 <option value="qwen-image-2.0-pro">IMG: Alibaba qwen-image-2.0-pro</option>
+                <option value="qwen-image-2512">IMG: NVIDIA qwen-image-2512</option>
                 <option value="huggingface">IMG: HF FLUX.1</option>
                 <option value="pollinations-schnell">IMG: Flux Schnell</option>
                 <option value="pollinations-turbo">IMG: Z-Image Turbo</option>
@@ -1392,8 +1393,8 @@ export default function App() {
               }`}
               title="Primary Text Model"
             >
-              <option value="qwen-primary">Alibaba qwen3.6-plus (Primary)</option>
-              <option value="qwen-secondary">Alibaba qwen3.7-max (Secondary)</option>
+              <option value="qwen-primary">Hugging Face Qwen3.5-397B-A17B (Primary)</option>
+              <option value="qwen-secondary">Groq Llama-4-Scout-17B (Secondary)</option>
               <option value="gemini">Gemini (Fallback)</option>
             </select>
             <button 

@@ -7,11 +7,17 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
   let apiKey = "";
   let selectedModel = model;
 
-  if (provider === 'qwen-primary' || provider === 'qwen-secondary') {
-    url = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
-    apiKey = (process.env as any).ALIBABA_API_KEY || (import.meta as any).env?.VITE_ALIBABA_API_KEY || (process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "";
+  if (provider === 'qwen-primary') {
+    url = "https://api-inference.huggingface.co/v1/chat/completions";
+    apiKey = (process.env as any).HUGGINGFACE_API_KEY || (import.meta as any).env?.VITE_HUGGINGFACE_API_KEY || (process.env as any).HUGGINGFACE_TOKEN || (import.meta as any).env?.VITE_HUGGINGFACE_TOKEN || "";
     if (!selectedModel) {
-      selectedModel = provider === 'qwen-primary' ? "qwen-plus" : "qwen-max";
+      selectedModel = "Qwen/Qwen3.5-397B-A17B";
+    }
+  } else if (provider === 'qwen-secondary') {
+    url = "https://api.groq.com/openai/v1/chat/completions";
+    apiKey = (process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "";
+    if (!selectedModel) {
+      selectedModel = "Llama-4-Scout-17B-16E-Instruct";
     }
   } else if (provider === 'groq-vision') {
     url = "https://api.groq.com/openai/v1/chat/completions";
@@ -25,12 +31,6 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
     if (!selectedModel) {
       selectedModel = "qwen-max";
     }
-  }
-
-  if (selectedModel === "qwen3.6-plus") {
-    selectedModel = "qwen-plus";
-  } else if (selectedModel === "qwen3.7-max") {
-    selectedModel = "qwen-max";
   }
 
   if (!apiKey) {

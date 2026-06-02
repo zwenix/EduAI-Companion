@@ -548,8 +548,8 @@ export default function Settings({
                       onChange={(e) => setProvider(e.target.value as any)}
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
-                      <option value="qwen-primary">Alibaba qwen3.6-plus (Primary)</option>
-                      <option value="qwen-secondary">Alibaba qwen3.7-max (Secondary)</option>
+                      <option value="qwen-primary">Hugging Face Qwen3.5-397B-A17B (Primary)</option>
+                      <option value="qwen-secondary">Groq Llama-4-Scout-17B (Secondary)</option>
                       <option value="gemini">Gemini (Fallback Model)</option>
                     </select>
                   </div>
@@ -564,6 +564,7 @@ export default function Settings({
                       <option value="gemini-imagen">Gemini 2.5 Flash Image (Primary)</option>
                       <option value="wan2.1-t2i-plus">Alibaba wan2.1-t2i-plus (High Quality)</option>
                       <option value="qwen-image-2.0-pro">Alibaba qwen-image-2.0-pro</option>
+                      <option value="qwen-image-2512">NVIDIA qwen-image-2512</option>
                       <option value="huggingface">HuggingFace FLUX.1 (Key Req)</option>
                       <option value="pollinations-schnell">Flux Schnell (Pollinations)</option>
                       <option value="pollinations-turbo">Z-Image Turbo (Pollinations)</option>
