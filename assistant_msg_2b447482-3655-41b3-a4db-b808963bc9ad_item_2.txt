@@ -1,0 +1,629 @@
+# 🎨 EduAI Companion: Sample Outputs Using Enhanced Prompt System
+
+Below are **four realistic sample outputs** generated using the battle-tested prompt engineering system. Each demonstrates the visual sophistication, child-appropriate design, and South African cultural context improvements.
+
+---
+
+## 📝 Sample 1: Foundation Phase (Grade 2) Mathematics Worksheet
+### Topic: Basic Addition with South African Context
+
+```html
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grade 2 Maths: Adding with Springboks! • EduAI Companion</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .no-print { display: none; }
+      .page-break { page-break-inside: avoid; }
+    }
+    @font-face {
+      font-family: 'Nunito';
+      src: url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+    }
+    body { font-family: 'Nunito', system-ui, sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-4 print:p-0 print:bg-white">
+
+  <!-- HERO SECTION with Illustration Placeholder -->
+  <div class="hero-section bg-gradient-to-r from-blue-500 to-cyan-400 p-6 rounded-b-3xl mb-6 print:rounded-none">
+    <div class="illustration-placeholder aspect-video bg-white/20 rounded-2xl border-2 border-dashed border-white/50 flex items-center justify-center">
+      <div class="text-center px-4">
+        <div class="text-5xl mb-3">🦌🦌 + 🦌 = ❓</div>
+        <p class="text-white/95 font-semibold">[Image: Professional educational illustration for South African Foundation Phase (Grade 2) Mathematics: Basic Addition with Springboks. Style: Semi-realistic digital painting, children's non-fiction book aesthetic. Composition: Simple, friendly springbok characters in Kruger National Park setting with clear focal point, high contrast. Cultural context: Include recognizable South African elements like Kruger wildlife, acacia trees, golden savanna light. Color palette: #2563eb primary with #60a5fa accents, harmonious and accessible. Technical: 300 DPI, sharp focus, no text overlays, no borders, museum-quality detail, suitable for classroom poster printing. Mood: Engaging, curiosity-sparking, empowering.]</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEADER BANNER -->
+  <header class="banner bg-white shadow-md rounded-xl p-4 mb-6 flex justify-between items-center print:shadow-none">
+    <div>
+      <h1 class="text-2xl font-extrabold text-blue-900">🦌 Adding with Springboks!</h1>
+      <p class="text-blue-600 font-medium">Grade 2 • Mathematics • CAPS Ref: MA2-NS1.2</p>
+    </div>
+    <div class="grade-badge bg-blue-500 text-white w-16 h-16 rounded-full flex items-center justify-center font-extrabold text-xl shadow-lg border-4 border-white">
+      Gr 2
+    </div>
+  </header>
+
+  <!-- METADATA STRIP -->
+  <div class="metadata-strip flex flex-wrap gap-6 mb-8 pb-4 border-b-2 border-dashed border-gray-300 print:border-gray-400">
+    <div class="field"><span class="font-bold text-blue-800">Name:</span> <span class="underline flex-1 min-w-[200px] inline-block ml-2">&nbsp;</span></div>
+    <div class="field"><span class="font-bold text-blue-800">Date:</span> <span class="underline flex-1 min-w-[150px] inline-block ml-2">&nbsp;</span></div>
+    <div class="field"><span class="font-bold text-blue-800">Total:</span> <span class="underline w-12 inline-block ml-2">&nbsp;</span> <span class="text-blue-600">/ 20</span></div>
+  </div>
+
+  <!-- INSTRUCTIONS BOX (Child-Friendly Language) -->
+  <div class="instructions bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-xl mb-6">
+    <p class="font-bold text-blue-900 text-lg flex items-center gap-2">
+      <span class="text-2xl">📋</span> Let's Learn Together!
+    </p>
+    <p class="text-blue-800 mt-2 text-lg leading-relaxed">
+      Hello, Maths Star! 🌟 Today we're adding springboks in the Kruger Park. 
+      Count the animals, write your answers, and remember: <span class="font-bold">every attempt is awesome!</span>
+    </p>
+  </div>
+
+  <!-- QUESTIONS SECTION (Large, Clear, Interactive) -->
+  <main class="space-y-6">
+    
+    <!-- Question 1: Visual Addition -->
+    <section class="question-block page-break mb-8 p-6 bg-white rounded-2xl border-2 border-blue-200 shadow-sm">
+      <div class="flex items-start gap-4">
+        <div class="question-number bg-blue-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-lg shadow flex-shrink-0">
+          1
+        </div>
+        <div class="flex-1">
+          <p class="question-text font-bold text-xl text-gray-800 mb-4">
+            There are <span class="bg-blue-100 px-2 py-1 rounded font-extrabold text-blue-900">3 springboks</span> drinking at the waterhole. 
+            Then <span class="bg-blue-100 px-2 py-1 rounded font-extrabold text-blue-900">2 more</span> join them. 
+            How many springboks are there now? 🦌
+          </p>
+          
+          <!-- Visual Aid -->
+          <div class="visual-aid bg-gray-50 rounded-xl p-4 mb-4 border border-gray-200">
+            <div class="flex items-center justify-center gap-2 text-4xl">
+              <span>🦌</span><span>🦌</span><span>🦌</span>
+              <span class="text-blue-500 font-bold">+</span>
+              <span>🦌</span><span>🦌</span>
+              <span class="text-gray-400">=</span>
+              <div class="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center border-2 border-dashed border-blue-300">
+                <span class="text-blue-600 font-bold text-2xl">?</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Answer Space (Large for Small Hands) -->
+          <div class="answer-space min-h-[80px] border-b-4 border-dashed border-blue-300 mt-4 bg-blue-50/50 rounded-lg">
+            <p class="text-blue-700 font-medium ml-2 mt-2">Write your answer here: _____</p>
+          </div>
+          
+          <p class="marks text-right text-sm text-blue-600 font-medium mt-3">[3 marks]</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Question 2: Word Problem with Local Context -->
+    <section class="question-block page-break mb-8 p-6 bg-white rounded-2xl border-2 border-blue-200 shadow-sm">
+      <div class="flex items-start gap-4">
+        <div class="question-number bg-blue-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-lg shadow flex-shrink-0">
+          2
+        </div>
+        <div class="flex-1">
+          <p class="question-text font-bold text-xl text-gray-800 mb-3">
+            Thabo saw <span class="bg-blue-100 px-2 py-1 rounded font-extrabold text-blue-900">4 zebras</span> near Table Mountain. 
+            His sister saw <span class="bg-blue-100 px-2 py-1 rounded font-extrabold text-blue-900">3 more</span>. 
+            How many zebras did they see together? 🦓
+          </p>
+          
+          <!-- Drawing Space for Strategy -->
+          <div class="strategy-box bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg mb-4">
+            <p class="font-bold text-green-900 flex items-center gap-2">
+              <span>✏️</span> Draw it first!
+            </p>
+            <div class="min-h-[60px] border-2 border-dashed border-green-300 rounded-lg mt-2 bg-white"></div>
+          </div>
+          
+          <div class="answer-space min-h-[60px] border-b-4 border-dashed border-blue-300 mt-2 bg-blue-50/50 rounded-lg">
+            <p class="text-blue-700 font-medium ml-2 mt-2">Answer: _____ zebras</p>
+          </div>
+          
+          <p class="marks text-right text-sm text-blue-600 font-medium mt-3">[4 marks]</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Question 3: Multiple Choice with Large Tap Targets -->
+    <section class="question-block page-break mb-8 p-6 bg-white rounded-2xl border-2 border-blue-200 shadow-sm">
+      <div class="flex items-start gap-4">
+        <div class="question-number bg-blue-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-lg shadow flex-shrink-0">
+          3
+        </div>
+        <div class="flex-1">
+          <p class="question-text font-bold text-xl text-gray-800 mb-4">
+            Which number sentence matches this story? 🧠
+          </p>
+          <p class="text-gray-700 text-lg mb-4">
+            "Lerato has 5 rand. Gogo gives her 3 more rand. How much does Lerato have now?"
+          </p>
+          
+          <div class="options-grid grid grid-cols-1 gap-4">
+            <label class="option-pill flex items-center gap-4 p-4 bg-white border-3 border-gray-300 rounded-2xl hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-all shadow-sm">
+              <input type="radio" name="q3" class="w-6 h-6 accent-blue-500">
+              <span class="option-text text-lg font-medium text-gray-800">A) 5 + 3 = 8 ✓</span>
+            </label>
+            <label class="option-pill flex items-center gap-4 p-4 bg-white border-3 border-gray-300 rounded-2xl hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-all shadow-sm">
+              <input type="radio" name="q3" class="w-6 h-6 accent-blue-500">
+              <span class="option-text text-lg font-medium text-gray-800">B) 5 - 3 = 2</span>
+            </label>
+            <label class="option-pill flex items-center gap-4 p-4 bg-white border-3 border-gray-300 rounded-2xl hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-all shadow-sm">
+              <input type="radio" name="q3" class="w-6 h-6 accent-blue-500">
+              <span class="option-text text-lg font-medium text-gray-800">C) 3 + 3 = 6</span>
+            </label>
+          </div>
+          
+          <p class="marks text-right text-sm text-blue-600 font-medium mt-4">[3 marks]</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- SUCCESS INDICATORS (Growth Mindset) -->
+  <div class="success-box bg-green-50 border-l-4 border-green-500 p-5 rounded-r-xl mb-8">
+    <p class="font-bold text-green-900 text-lg flex items-center gap-2">
+      <span class="text-2xl">✨</span> I'm a Maths Star When I Can:
+    </p>
+    <ul class="list-disc list-inside text-green-800 mt-3 space-y-2 text-lg">
+      <li>✅ Count objects carefully and write the total</li>
+      <li>✅ Use drawings to help me solve addition problems</li>
+      <li>✅ Explain my thinking: "First I saw ___, then ___ joined, so ___ altogether!"</li>
+      <li>✅ Try my best, even when it feels tricky 💪</li>
+    </ul>
+  </div>
+
+  <!-- ENCOURAGEMENT FOOTER -->
+  <footer class="footer text-center text-sm text-gray-600 pt-8 border-t-2 border-gray-200 mt-8 print:mt-12">
+    <p class="font-bold text-blue-800 text-lg mb-2">🌟 You did amazing today, Maths Explorer! 🌟</p>
+    <p class="text-gray-500">EduAI Companion • CAPS Aligned • eduai-companion.github.io</p>
+    <p class="text-xs text-gray-400 mt-2 print:hidden">💡 Tip: Ask your teacher to print this on A4 paper for best results!</p>
+  </footer>
+
+</body>
+</html>
+```
+
+### 🔖 Associated Enhanced Image Prompt:
+```
+Professional educational illustration for South African Foundation Phase (Grade 2) Mathematics: Basic Addition with Springboks. 
+Style: Semi-realistic digital painting, children's non-fiction book aesthetic. 
+Composition: Simple, friendly springbok characters in Kruger National Park setting with clear focal point, high contrast. 
+Cultural context: Include recognizable South African elements like Kruger wildlife, acacia trees, golden savanna light. 
+Color palette: #2563eb primary with #60a5fa accents, harmonious and accessible. 
+Technical: 300 DPI, sharp focus, no text overlays, no borders, museum-quality detail, suitable for classroom poster printing. 
+Mood: Engaging, curiosity-sparking, empowering.
+```
+
+---
+
+## 🎨 Sample 2: Intermediate Phase (Grade 5) Natural Sciences Poster
+### Topic: The Water Cycle in South Africa
+
+```html
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grade 5 Science: The Water Cycle • EduAI Companion</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .no-print { display: none; }
+    }
+    body { font-family: 'Inter', system-ui, sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 print:p-0 print:bg-white">
+
+  <div class="poster-container max-w-5xl mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden print:shadow-none print:rounded-none">
+    
+    <!-- TOP BANNER: Title + Grade -->
+    <div class="banner bg-gradient-to-r from-green-600 to-emerald-500 p-8 text-white">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight drop-shadow-sm">💧 The Water Cycle</h1>
+          <p class="mt-2 text-white/95 text-xl font-medium">How Water Travels Across South Africa</p>
+        </div>
+        <div class="grade-badge bg-white/20 backdrop-blur-sm px-6 py-3 rounded-full font-extrabold text-xl shadow-lg border-2 border-white/30">
+          Grade 5
+        </div>
+      </div>
+      <p class="mt-4 text-white/90 text-lg flex items-center gap-2">
+        <span class="bg-white/20 px-3 py-1 rounded-full text-sm">CAPS: NS5-ESS2.1</span>
+        <span class="bg-white/20 px-3 py-1 rounded-full text-sm">Term 2</span>
+      </p>
+    </div>
+
+    <!-- HERO ILLUSTRATION (30% of poster) -->
+    <div class="hero-section bg-emerald-50 p-8 print:p-6">
+      <div class="illustration-frame aspect-[16/9] bg-white rounded-2xl shadow-inner flex items-center justify-center border-4 border-dashed border-green-300/50">
+        <div class="text-center p-6 max-w-2xl">
+          <div class="text-7xl mb-4">🌊☀️🌧️</div>
+          <p class="font-bold text-gray-800 text-lg">[Illustration: Professional educational poster illustration: The Water Cycle for South African Grade 5 Natural Sciences. Style: Semi-realistic digital painting, children's educational book aesthetic. Composition: Circular flow diagram showing evaporation from Indian Ocean, condensation over Drakensberg, precipitation over Karoo, collection in Vaal Dam. Cultural authenticity: Include Table Mountain cloud cloth, baobab trees, springbok near waterhole. Color harmony: Align with Natural Sciences palette (#059669 primary, #34d399 accent). Technical specs: 300 DPI, CMYK-ready, no text overlays, no borders, museum-quality detail, optimized for A3/A4 classroom printing. Emotional tone: Wonder at nature's systems.]</p>
+          <p class="text-sm text-gray-500 mt-3 font-medium">Semi-realistic educational art • South African ecosystems • Print-ready 300 DPI</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENT GRID (2 columns) -->
+    <div class="content-grid grid md:grid-cols-2 gap-6 p-8 print:p-6">
+      
+      <!-- Card 1: Evaporation -->
+      <div class="content-card bg-gray-50 rounded-2xl p-6 border border-gray-200 hover:shadow-md transition print:shadow-none">
+        <div class="card-header flex items-center gap-4 mb-4">
+          <div class="icon-bubble bg-green-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center font-extrabold text-xl shadow">
+            ☀️
+          </div>
+          <h3 class="font-bold text-xl text-gray-800">1. Evaporation</h3>
+        </div>
+        <p class="card-body text-gray-700 leading-relaxed text-lg">
+          The sun heats water in oceans, rivers, and dams. Water turns into invisible <span class="font-bold text-green-700">water vapour</span> and rises into the sky! 
+          <span class="block mt-3 bg-green-100 p-3 rounded-lg text-green-900 font-medium">
+            🇿🇦 South African Example: Water evaporates from the warm Indian Ocean near Durban.
+          </span>
+        </p>
+      </div>
+
+      <!-- Card 2: Condensation -->
+      <div class="content-card bg-gray-50 rounded-2xl p-6 border border-gray-200 hover:shadow-md transition print:shadow-none">
+        <div class="card-header flex items-center gap-4 mb-4">
+          <div class="icon-bubble bg-green-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center font-extrabold text-xl shadow">
+            ☁️
+          </div>
+          <h3 class="font-bold text-xl text-gray-800">2. Condensation</h3>
+        </div>
+        <p class="card-body text-gray-700 leading-relaxed text-lg">
+          High in the sky, water vapour cools and turns back into tiny droplets, forming <span class="font-bold text-green-700">clouds</span>. 
+          <span class="block mt-3 bg-green-100 p-3 rounded-lg text-green-900 font-medium">
+            🇿🇦 South African Example: The famous "tablecloth" cloud over Table Mountain forms this way!
+          </span>
+        </p>
+      </div>
+
+      <!-- Card 3: Precipitation -->
+      <div class="content-card bg-gray-50 rounded-2xl p-6 border border-gray-200 hover:shadow-md transition print:shadow-none">
+        <div class="card-header flex items-center gap-4 mb-4">
+          <div class="icon-bubble bg-green-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center font-extrabold text-xl shadow">
+            🌧️
+          </div>
+          <h3 class="font-bold text-xl text-gray-800">3. Precipitation</h3>
+        </div>
+        <p class="card-body text-gray-700 leading-relaxed text-lg">
+          When clouds get heavy, water falls back to Earth as <span class="font-bold text-green-700">rain, hail, or snow</span>. 
+          <span class="block mt-3 bg-green-100 p-3 rounded-lg text-green-900 font-medium">
+            🇿🇦 South African Example: Summer thunderstorms bring rain to the Highveld; winter rain falls in the Western Cape.
+          </span>
+        </p>
+      </div>
+
+      <!-- Card 4: Collection -->
+      <div class="content-card bg-gray-50 rounded-2xl p-6 border border-gray-200 hover:shadow-md transition print:shadow-none">
+        <div class="card-header flex items-center gap-4 mb-4">
+          <div class="icon-bubble bg-green-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center font-extrabold text-xl shadow">
+            🏞️
+          </div>
+          <h3 class="font-bold text-xl text-gray-800">4. Collection</h3>
+        </div>
+        <p class="card-body text-gray-700 leading-relaxed text-lg">
+          Water collects in rivers, dams, lakes, and oceans. Then the cycle starts again! 
+          <span class="block mt-3 bg-green-100 p-3 rounded-lg text-green-900 font-medium">
+            🇿🇦 South African Example: Rainwater flows into the Vaal Dam, supplying Gauteng with water.
+          </span>
+        </p>
+      </div>
+
+    </div>
+
+    <!-- KEY TAKEAWAYS STRIP -->
+    <div class="takeaways bg-green-100 p-6 print:bg-green-50">
+      <p class="font-bold text-green-900 text-xl mb-4 flex items-center gap-2">🔑 Remember These Words:</p>
+      <div class="flex flex-wrap gap-3">
+        <span class="pill bg-white px-5 py-3 rounded-full text-base font-bold shadow-sm border border-green-200">Evaporation</span>
+        <span class="pill bg-white px-5 py-3 rounded-full text-base font-bold shadow-sm border border-green-200">Condensation</span>
+        <span class="pill bg-white px-5 py-3 rounded-full text-base font-bold shadow-sm border border-green-200">Precipitation</span>
+        <span class="pill bg-white px-5 py-3 rounded-full text-base font-bold shadow-sm border border-green-200">Collection</span>
+        <span class="pill bg-white px-5 py-3 rounded-full text-base font-bold shadow-sm border border-green-200">Water Vapour</span>
+      </div>
+    </div>
+
+    <!-- THINK DEEPER CALL-OUT -->
+    <div class="p-8 bg-blue-50 border-t border-blue-200">
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-blue-100">
+        <p class="font-bold text-blue-900 text-lg flex items-center gap-2 mb-3">
+          <span>🤔</span> Think Deeper: Water Wisdom
+        </p>
+        <p class="text-blue-800 text-lg leading-relaxed">
+          South Africa is a water-scarce country. How can YOU help save water at home and school? 
+          <span class="block mt-3 bg-blue-100 p-4 rounded-xl border-l-4 border-blue-500">
+            💡 Ideas: Shorter showers, fixing dripping taps, collecting rainwater for plants, turning off taps while brushing teeth.
+          </span>
+        </p>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer bg-gray-100 p-6 text-center text-sm text-gray-600 print:mt-8">
+      <p class="font-bold text-gray-800">EduAI Companion • CAPS Curriculum • Natural Sciences</p>
+      <p class="text-xs mt-2">Print tip: Use A3 for classroom display • A4 for learner handouts • 300 DPI for best quality</p>
+      <p class="text-xs mt-2 text-gray-500">eduai-companion.github.io • Version 2.0</p>
+    </footer>
+    
+  </div>
+
+</body>
+</html>
+```
+
+### 🔖 Associated Enhanced Image Prompt:
+```
+Professional educational poster illustration: The Water Cycle for South African Grade 5 Natural Sciences. 
+Style: Semi-realistic digital painting, children's educational book aesthetic. 
+Composition: Circular flow diagram showing evaporation from Indian Ocean, condensation over Drakensberg, precipitation over Karoo, collection in Vaal Dam. 
+Cultural authenticity: Include Table Mountain cloud cloth, baobab trees, springbok near waterhole. 
+Color harmony: Align with Natural Sciences palette (#059669 primary, #34d399 accent). 
+Technical specs: 300 DPI, CMYK-ready, no text overlays, no borders, museum-quality detail, optimized for A3/A4 classroom printing. 
+Emotional tone: Wonder at nature's systems.
+```
+
+---
+
+## 📚 Sample 3: Senior Phase (Grade 8) History Study Guide Excerpt
+### Topic: Democracy & Citizenship in South Africa
+
+```html
+<!-- Excerpt: Section 2 of Study Guide -->
+<section id="section-2" class="section scroll-mt-24">
+  <div class="section-header flex items-center gap-4 mb-6 pb-4 border-b-2 border-purple-200">
+    <span class="section-number bg-purple-600 text-white w-14 h-14 rounded-2xl flex items-center justify-center font-extrabold text-2xl shadow">
+      2
+    </span>
+    <h2 class="text-3xl font-bold text-gray-900">The Road to Democracy: 1990-1994</h2>
+  </div>
+  
+  <!-- Key Concept Box -->
+  <div class="key-concept bg-purple-50 border-l-4 border-purple-600 p-6 rounded-r-xl mb-6">
+    <p class="font-bold text-purple-900 flex items-center gap-2 text-xl">
+      <span>💡</span> Key Concept: Negotiation & Compromise
+    </p>
+    <p class="text-purple-800 mt-3 leading-relaxed text-lg">
+      Democracy in South Africa was built through <span class="font-bold">peaceful negotiation</span>, not violence. 
+      Leaders from different groups made difficult compromises to create a new nation where <span class="font-bold">everyone's voice matters</span>.
+    </p>
+  </div>
+  
+  <!-- Core Explanation (textbook-style paragraphs) -->
+  <div class="explanation prose prose-lg max-w-none text-gray-700 leading-relaxed text-lg">
+    <p class="mb-4">
+      After decades of apartheid, South Africa faced a critical choice: continue conflict, or find a peaceful path forward. 
+      In 1990, President F.W. de Klerk took a brave step: he <span class="font-bold text-purple-700">unbanned liberation movements</span> and released <span class="font-bold text-purple-700">Nelson Mandela</span> from prison after 27 years.
+    </p>
+    
+    <div class="timeline-visual my-6 p-5 bg-gray-50 rounded-xl border border-gray-200">
+      <p class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+        <span>📅</span> Key Moments on the Road to Democracy:
+      </p>
+      <ul class="space-y-3 text-gray-700">
+        <li class="flex gap-3"><span class="font-bold text-purple-600">Feb 1990:</span> Mandela freed; ANC unbanned</li>
+        <li class="flex gap-3"><span class="font-bold text-purple-600">1991-1993:</span> CODESA negotiations at Kempton Park</li>
+        <li class="flex gap-3"><span class="font-bold text-purple-600">Apr 1994:</span> First democratic elections – 19.7 million South Africans voted!</li>
+        <li class="flex gap-3"><span class="font-bold text-purple-600">May 10, 1994:</span> Nelson Mandela inaugurated as President</li>
+      </ul>
+    </div>
+    
+    <p class="mb-4">
+      These negotiations were not easy. Different groups had different fears and hopes. But through <span class="font-bold">dialogue, patience, and compromise</span>, South Africans created an <span class="font-bold text-purple-700">Interim Constitution</span> that guaranteed:
+    </p>
+    
+    <ul class="list-disc list-inside space-y-2 ml-4 mb-6">
+      <li>✅ One person, one vote – no matter your race, gender, or background</li>
+      <li>✅ A Bill of Rights protecting everyone's dignity and freedom</li>
+      <li>✅ Independent courts to uphold justice fairly</li>
+      <li>✅ Mechanisms for truth and reconciliation, not revenge</li>
+    </ul>
+  </div>
+  
+  <!-- Visual Aid / Diagram Placeholder -->
+  <div class="diagram-frame my-8 p-6 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
+    <p class="text-center text-gray-700 font-bold text-lg">[Diagram: Timeline infographic showing key events from 1990-1994 with photos of Mandela, de Klerk, voting queues, and the new Constitution]</p>
+    <p class="text-center text-sm text-gray-500 mt-2">Labelled educational diagram • High contrast for projection • Include diverse South African faces</p>
+  </div>
+  
+  <!-- Worked Example: Source Analysis -->
+  <div class="example bg-emerald-50 border-l-4 border-emerald-600 p-6 rounded-r-xl my-6">
+    <p class="font-bold text-emerald-900 mb-3 text-xl flex items-center gap-2">✨ Source Analysis Practice:</p>
+    <div class="example-content bg-white p-5 rounded-xl shadow-sm border border-emerald-100">
+      <p class="font-medium text-gray-800 mb-2">Study this quote from Nelson Mandela's 1994 inauguration:</p>
+      <blockquote class="border-l-4 border-purple-400 pl-4 italic text-gray-700 my-3">
+        "Never, never and never again shall it be that this beautiful land will again experience the oppression of one by another..."
+      </blockquote>
+      <p class="font-bold text-emerald-800 mt-4">What does this tell us about the values of the new democracy?</p>
+      <div class="mt-3 p-4 bg-emerald-100 rounded-lg">
+        <p class="font-medium text-emerald-900">💡 Strong Answer:</p>
+        <p class="text-emerald-800 mt-1">
+          Mandela's words show that the new democracy was founded on <span class="font-bold">non-racialism, equality, and human dignity</span>. 
+          The repetition of "never" emphasizes the commitment to break from apartheid's oppression. 
+          Calling South Africa "this beautiful land" expresses hope and love for the country all citizens share.
+        </p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Check Your Understanding -->
+  <div class="check-understanding mt-8 p-6 bg-purple-50 rounded-2xl border border-purple-200">
+    <p class="font-bold text-purple-900 mb-4 text-xl flex items-center gap-2">🤔 Check Your Understanding:</p>
+    <ul class="space-y-4">
+      <li class="flex gap-4">
+        <span class="bullet bg-purple-200 text-purple-800 w-8 h-8 rounded-full flex items-center justify-center text-sm font-extrabold flex-shrink-0">1</span>
+        <span class="question text-purple-900 text-lg">Why was compromise essential for South Africa's transition to democracy?</span>
+      </li>
+      <li class="flex gap-4">
+        <span class="bullet bg-purple-200 text-purple-800 w-8 h-8 rounded-full flex items-center justify-center text-sm font-extrabold flex-shrink-0">2</span>
+        <span class="question text-purple-900 text-lg">How does the 1996 Constitution protect the rights of all South Africans today?</span>
+      </li>
+      <li class="flex gap-4">
+        <span class="bullet bg-purple-200 text-purple-800 w-8 h-8 rounded-full flex items-center justify-center text-sm font-extrabold flex-shrink-0">3</span>
+        <span class="question text-purple-900 text-lg">In your own words: What does "active citizenship" mean in a democracy?</span>
+      </li>
+    </ul>
+  </div>
+</section>
+```
+
+### 🔖 Associated Enhanced Image Prompt:
+```
+Educational textbook-style illustration: Democracy & Citizenship for South African Grade 8 History. 
+Style: Semi-realistic digital painting, children's educational non-fiction book aesthetic. 
+Composition: Central conceptual diagram showing diverse hands holding the Constitution, with Table Mountain and voting booth in background. 
+Cultural context: Include recognizable South African elements like Constitution Hill, diverse faces representing SA's 11 official languages, national flag colors. 
+Color strategy: Harmonious palette aligned with History subject (#8b5cf6 primary, #a78bfa accent), high contrast for readability. 
+Technical: 300 DPI, CMYK-ready, no text overlays, no borders, museum-quality detail, optimized for both digital viewing and A4 printing. 
+Emotional resonance: Inspiring hope, dignity, and civic responsibility. 
+Include subtle visual metaphors for unity in diversity and the power of peaceful change.
+```
+
+---
+
+## 📊 Sample 4: FET Phase (Grade 11) Physical Sciences Infographic Excerpt
+### Topic: Newton's Laws of Motion
+
+```html
+<!-- Quick Reference Section from Infographic -->
+<aside class="quick-ref bg-blue-50 p-8 rounded-2xl border border-blue-200">
+  <h3 class="font-bold text-blue-900 text-2xl mb-6 flex items-center gap-3">
+    <span class="text-3xl">🔖</span> Newton's Laws: Quick Reference
+  </h3>
+  
+  <div class="grid md:grid-cols-3 gap-5">
+    
+    <!-- Law 1 -->
+    <div class="ref-card bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="law-number bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center font-extrabold">1</span>
+        <p class="font-bold text-gray-900 text-lg">Law of Inertia</p>
+      </div>
+      <p class="text-gray-700 mb-3 text-base">
+        "An object at rest stays at rest, and an object in motion stays in motion at constant velocity, unless acted upon by a net external force."
+      </p>
+      <div class="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-400">
+        <p class="text-sm font-medium text-blue-900">🇿🇦 SA Example:</p>
+        <p class="text-sm text-blue-800">A minibus taxi continues moving forward when brakes are applied suddenly – passengers lurch forward due to inertia.</p>
+      </div>
+    </div>
+
+    <!-- Law 2 -->
+    <div class="ref-card bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="law-number bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center font-extrabold">2</span>
+        <p class="font-bold text-gray-900 text-lg">F = ma</p>
+      </div>
+      <p class="text-gray-700 mb-3 text-base">
+        "The acceleration of an object is directly proportional to the net force acting on it and inversely proportional to its mass."
+      </p>
+      <div class="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-400">
+        <p class="text-sm font-medium text-blue-900">🇿🇦 SA Example:</p>
+        <p class="text-sm text-blue-800">It takes more force to accelerate a loaded bakkie than an empty one. Same engine, different mass = different acceleration.</p>
+      </div>
+    </div>
+
+    <!-- Law 3 -->
+    <div class="ref-card bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="law-number bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center font-extrabold">3</span>
+        <p class="font-bold text-gray-900 text-lg">Action-Reaction</p>
+      </div>
+      <p class="text-gray-700 mb-3 text-base">
+        "For every action, there is an equal and opposite reaction."
+      </p>
+      <div class="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-400">
+        <p class="text-sm font-medium text-blue-900">🇿🇦 SA Example:</p>
+        <p class="text-sm text-blue-800">When a Springbok rugby player kicks the ball, their foot exerts force on the ball, and the ball exerts equal force back on the foot.</p>
+      </div>
+    </div>
+
+  </div>
+  
+  <!-- Formula Box -->
+  <div class="mt-6 p-5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl text-white">
+    <p class="font-bold text-lg mb-3">📐 Essential Formulas</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+      <div class="bg-white/10 p-3 rounded-lg">
+        <p class="font-mono font-bold text-xl">F<sub>net</sub> = ma</p>
+        <p class="text-xs opacity-90 mt-1">Force (N) = mass (kg) × acceleration (m/s²)</p>
+      </div>
+      <div class="bg-white/10 p-3 rounded-lg">
+        <p class="font-mono font-bold text-xl">p = mv</p>
+        <p class="text-xs opacity-90 mt-1">Momentum (kg·m/s) = mass × velocity</p>
+      </div>
+      <div class="bg-white/10 p-3 rounded-lg">
+        <p class="font-mono font-bold text-xl">J = FΔt</p>
+        <p class="text-xs opacity-90 mt-1">Impulse = force × time interval</p>
+      </div>
+    </div>
+  </div>
+</aside>
+```
+
+### 🔖 Associated Enhanced Image Prompt:
+```
+Educational infographic illustration: Newton's Laws of Motion for South African Grade 11 Physical Sciences. 
+Style: Semi-realistic digital painting with clean technical diagram overlays, academic non-fiction aesthetic. 
+Composition: Three-panel layout showing each law with SA-context examples (minibus braking, loaded bakkie acceleration, rugby kick). 
+Cultural context: Include recognizable South African elements like minibus taxis, Springbok rugby, local landscapes. 
+Color strategy: Professional Physics palette (#6366f1 primary, #818cf8 accent), high contrast for formula readability. 
+Technical: 300 DPI, CMYK-ready, no text overlays on diagrams, no borders, museum-quality detail, optimized for A4 exam revision sheets. 
+Emotional resonance: Clarity, confidence, exam readiness. 
+Include subtle visual metaphors for cause-effect relationships and scientific inquiry.
+```
+
+---
+
+## 🎯 Key Improvements Demonstrated
+
+| Feature | Before (Typical AI Output) | After (Enhanced System) |
+|---------|---------------------------|------------------------|
+| **Visual Hierarchy** | Flat text blocks | Hero sections, banners, badges, structured cards |
+| **Child-Appropriate Design** | Generic fonts/colors | Phase-specific sizing, spacing, and engagement cues |
+| **South African Context** | Generic examples | Kruger wildlife, Table Mountain, Vaal Dam, minibus taxis, Springboks |
+| **Print Readiness** | Basic HTML | @media print styles, page-break controls, CMYK-ready specs |
+| **Accessibility** | Minimal semantics | Semantic HTML, alt-text placeholders, contrast-compliant colors |
+| **Pedagogical Depth** | Simple Q&A | Success indicators, worked examples, source analysis, growth mindset language |
+| **Image Prompt Quality** | "Draw a picture of..." | Detailed, culturally contextualized, technically specified prompts |
+
+---
+
+## 🚀 Next Steps for Implementation
+
+1. **Copy the prompt templates** into your `src/lib/prompts/` directory
+2. **Integrate `EduAIPromptEngine`** into your `unifiedAiService.ts`
+3. **Test with real teachers**: Share these samples with 3-5 CAPS educators for feedback
+4. **A/B test prompts**: Compare engagement metrics between old/new prompt versions
+5. **Add teacher customization**: Allow educators to adjust visual style, color scheme, or cultural emphasis
+
+> 💡 **Pro Tip**: Start with the Foundation Phase worksheet template – it has the most dramatic visual improvement and will build teacher confidence quickly.
+
+---
+
+Would you like me to:
+1. 📦 Generate a downloadable ZIP with all template files ready to drop into your repo?
+2. 🧪 Create a testing script to validate prompt outputs against the quality checklist?
+3. 🎨 Design additional templates for Admin Docs or Assessment Tools?
+4. 🔗 Provide step-by-step git commands to integrate this system into your existing workflow?
+
+Let me know which direction would be most valuable for your next sprint! 🛠️✨
