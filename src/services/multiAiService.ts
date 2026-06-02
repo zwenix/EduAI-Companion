@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { checkAndReportApiError } from '../lib/apiErrorHelper';
 
 export type AIProvider = 'qwen-primary' | 'qwen-secondary' | 'alibaba-qwen' | 'groq-vision';
 
@@ -8,10 +9,17 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
   let selectedModel = model;
 
   if (provider === 'qwen-primary') {
-    url = "https://api-inference.huggingface.co/v1/chat/completions";
-    apiKey = (process.env as any).HUGGINGFACE_API_KEY || (import.meta as any).env?.VITE_HUGGINGFACE_API_KEY || (process.env as any).HUGGINGFACE_TOKEN || (import.meta as any).env?.VITE_HUGGINGFACE_TOKEN || "";
-    if (!selectedModel) {
-      selectedModel = "Qwen/Qwen3.5-397B-A17B";
+    const aliKey = (process.env as any).ALIBABA_API_KEY || (import.meta as any).env?.VITE_ALIBABA_API_KEY || "";
+    if (aliKey && aliKey !== "dummy" && aliKey !== "undefined") {
+      url = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
+      apiKey = aliKey;
+      selectedModel = "qwen-max";
+    } else {
+      url = "https://api-inference.huggingface.co/v1/chat/completions";
+      apiKey = (process.env as any).HUGGINGFACE_API_KEY || (import.meta as any).env?.VITE_HUGGINGFACE_API_KEY || (process.env as any).HUGGINGFACE_TOKEN || (import.meta as any).env?.VITE_HUGGINGFACE_TOKEN || "";
+      if (!selectedModel) {
+        selectedModel = "Qwen/Qwen3.5-397B-A17B";
+      }
     }
   } else if (provider === 'qwen-secondary') {
     url = "https://api.groq.com/openai/v1/chat/completions";
@@ -78,8 +86,13 @@ export const callMultiAi = async (provider: AIProvider, messages: any[], model?:
   } catch (error: any) {
     const status = error.response?.status;
     if (status === 404 || !error.response) {
-      console.warn(`Express backend /api/ai/${provider} returned 404. Running direct browser fallback...`);
-      return await executeClientMultiAi(provider, messages, model);
+      console.warn(`Express backend /api/ai/${provider} returned 404 or network issue. Running direct browser fallback...`);
+      try {
+        return await executeClientMultiAi(provider, messages, model);
+      } catch (clientErr: any) {
+        checkAndReportApiError(clientErr, provider);
+        throw clientErr;
+      }
     }
 
     const backendError = error.response?.data?.error || {};
@@ -100,6 +113,11 @@ export const callMultiAi = async (provider: AIProvider, messages: any[], model?:
       throw new Error(`Unauthorized (401): Your ${provider} API key is invalid or has expired. Please check your AI Studio settings and ensure the key has no trailing spaces.`);
     }
 
+    // Report potential network issues on other backend status failures as well
+    if (!error.response || status >= 500) {
+      checkAndReportApiError(error, provider);
+    }
+
     throw new Error(errorMsg || (typeof backendError === 'string' ? backendError : JSON.stringify(backendError)) || `Failed to call ${provider} (Status: ${status || 'Unknown'})`);
   }
 };
@@ -114,10 +132,16 @@ export const performOCR = async (base64Image: string, language: string = 'eng') 
   } catch (error: any) {
     const status = error.response?.status;
     if (status === 404 || !error.response) {
-      console.warn(`Express backend /api/ocr returned 404. Running direct browser fallback...`);
-      return await executeClientOCR(base64Image, language);
+      console.warn(`Express backend /api/ocr returned 404 or network issue. Running direct browser fallback...`);
+      try {
+        return await executeClientOCR(base64Image, language);
+      } catch (clientErr: any) {
+        checkAndReportApiError(clientErr, 'OCR Space');
+        throw clientErr;
+      }
     }
     console.error("OCR error:", error);
+    checkAndReportApiError(error, 'OCR Space');
     throw new Error("OCR failed");
   }
 };

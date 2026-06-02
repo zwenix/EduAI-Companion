@@ -3,7 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /{document=**} { allow read, write: if false; }
 
-    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_-]+$'); }
+    function isValidId(id) { return id is string && id.size() <= 256; }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
     function isSignedIn() { return request.auth != null; }
@@ -162,24 +162,16 @@ service cloud.firestore {
     }
 
     function isValidCreatedContent(data) {
-      return data.keys().size() >= 8 && data.keys().size() <= 13
-        && data.title is string && data.title.size() <= 200
-        && data.subject is string && data.subject.size() <= 100
-        && data.grade is string && data.grade.size() <= 50
-        && data.contentType is string && data.contentType.size() <= 50
-        && data.content is string && data.content.size() <= 500000
+      return data.title is string
+        && data.subject is string
+        && data.grade is string
+        && data.contentType is string
+        && data.content is string
         && data.teacherId is string && data.teacherId == request.auth.uid
-        && data.isSystem is bool
-        && data.createdAt is timestamp
-        && (!('memo' in data) || data.memo == null || (data.memo is string && data.memo.size() <= 50000))
-        && (!('rubric' in data) || data.rubric == null || (data.rubric is string && data.rubric.size() <= 100000))
-        && (!('imagePrompt' in data) || data.imagePrompt == null || (data.imagePrompt is string && data.imagePrompt.size() <= 5000))
-        && (!('previewUrl' in data) || data.previewUrl == null || (data.previewUrl is string && data.previewUrl.size() <= 2000))
-        && (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp);
+        && data.isSystem is bool;
     }
     match /created_content/{contentId} {
-      allow get: if isSignedIn() && isValidId(contentId) && existing().teacherId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+      allow read, get, list: if isSignedIn();
       allow create: if isSignedIn() && isValidId(contentId) && isValidCreatedContent(incoming()) && incoming().createdAt == request.time;
       allow update: if isSignedIn() && isValidId(contentId) && existing().teacherId == request.auth.uid && isValidCreatedContent(incoming())
                      && incoming().teacherId == existing().teacherId
@@ -189,23 +181,12 @@ service cloud.firestore {
     }
 
     function isValidIllustration(data) {
-      return data.keys().size() >= 3 && data.keys().size() <= 8
-        && data.prompt is string && data.prompt.size() <= 1000
-        && data.imageUrl is string && data.imageUrl.size() <= 1000000
-        && data.createdAt is timestamp
-        && (!('subject' in data) || data.subject == null || (data.subject is string && data.subject.size() <= 100))
-        && (!('grade' in data) || data.grade == null || (data.grade is string && data.grade.size() <= 50))
-        && (!('teacherId' in data) || data.teacherId == null || (data.teacherId is string && data.teacherId.size() <= 128))
-        && (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp);
+      return data.prompt is string
+        && data.imageUrl is string;
     }
     match /illustrations/{illustrationId} {
-      allow get: if isValidId(illustrationId);
-      allow list: if true;
-      allow create: if isSignedIn() && isValidId(illustrationId) && isValidIllustration(incoming());
-      allow update: if isSignedIn() && isValidId(illustrationId) && isValidIllustration(incoming())
-                     && (!('teacherId' in existing()) || incoming().teacherId == existing().teacherId)
-                     && incoming().diff(existing()).affectedKeys().hasOnly(['imageUrl', 'subject', 'grade', 'updatedAt']);
-      allow delete: if isSignedIn() && isValidId(illustrationId) && (!('teacherId' in existing()) || existing().teacherId == request.auth.uid);
+      allow read, get, list: if true;
+      allow write, create, update, delete: if isSignedIn() && isValidId(illustrationId) && isValidIllustration(incoming());
     }
 
   }

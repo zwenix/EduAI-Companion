@@ -1,4 +1,5 @@
 import axios from "axios";
+import { checkAndReportApiError } from "../lib/apiErrorHelper";
 
 // ─── Prompt Engineering Constants ────────────
 export const MASTER_SYSTEM_PROMPT = `
@@ -135,6 +136,7 @@ export const generateEducationalContent = async (type: string, details: string) 
     return response.data.text;
   } catch (error: any) {
     console.error("Express /api/gemini/action failed:", error.message || error);
+    checkAndReportApiError(error, "Gemini");
     throw error;
   }
 };
@@ -148,6 +150,7 @@ export const generateCAPSContent = async (input: any) => {
     return response.data;
   } catch (error: any) {
     console.error("Express /api/gemini/action failed:", error.message || error);
+    checkAndReportApiError(error, "Gemini");
     throw error;
   }
 };
@@ -161,6 +164,7 @@ export const generateVisualAid = async (input: any) => {
     return response.data;
   } catch (error: any) {
     console.error("Express /api/gemini/action failed:", error.message || error);
+    checkAndReportApiError(error, "Gemini");
     throw error;
   }
 };
@@ -174,6 +178,7 @@ export const generateAdminDoc = async (input: any) => {
     return response.data;
   } catch (error: any) {
     console.error("Express /api/gemini/action failed:", error.message || error);
+    checkAndReportApiError(error, "Gemini");
     throw error;
   }
 };
@@ -187,6 +192,7 @@ export const runOCRScan = async (imageData: string, language: string = 'English'
     return response.data;
   } catch (error: any) {
     console.error("Express /api/gemini/action failed:", error.message || error);
+    checkAndReportApiError(error, "Gemini");
     throw error;
   }
 };
@@ -200,6 +206,7 @@ export const runOCRAndGrade = async (imageData: string, rubric: string, language
     return response.data;
   } catch (error: any) {
     console.error("Express /api/gemini/action failed:", error.message || error);
+    checkAndReportApiError(error, "Gemini");
     throw error;
   }
 };
@@ -213,6 +220,7 @@ export const chatWithTutor = async (messages: any[]) => {
     return response.data.text;
   } catch (error: any) {
     console.error("Express /api/gemini/action failed:", error.message || error);
+    checkAndReportApiError(error, "Gemini");
     throw error;
   }
 };

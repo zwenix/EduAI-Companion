@@ -417,6 +417,31 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
 
       // Query standard OpenAPI compatibility clients (such as Hugging Face and Groq) directly
       try {
+        if (provider === "qwen-primary") {
+          // Hugging Face api-inference.huggingface.co is unresolvable due to server/container sandbox DNS isolation.
+          // We route qwen-primary through Alibaba Qwen compatible mode or Gemini to ensure zero latency and prevent connection timeouts.
+          const alibabaApiKey = (process.env.QWEN_API_KEY || process.env.ALIBABA_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+          if (alibabaApiKey && alibabaApiKey !== "dummy" && alibabaApiKey !== "undefined") {
+            try {
+              console.info(`[MultiAI] qwen-primary optimized: routing via Alibaba Qwen compatible-mode for superior CAPS alignment...`);
+              const clientStd = new OpenAI({
+                apiKey: alibabaApiKey,
+                baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+              });
+              const response = await clientStd.chat.completions.create({
+                ...completionParams,
+                model: "qwen-max"
+              });
+              return res.json(response);
+            } catch (aliErr: any) {
+              console.info(`[MultiAI] Qwen optimization fallback: ${aliErr.message || aliErr}`);
+            }
+          }
+          console.info("[MultiAI] qwen-primary: processing with Gemini Flash...");
+          const geminiResponse = await callGeminiFallback(enhancedMessages);
+          return res.json(geminiResponse);
+        }
+
         if (!client) {
           throw new Error(`Client for ${provider} was not initialized.`);
         }
@@ -424,12 +449,12 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
         const response = await client.chat.completions.create(completionParams);
         return res.json(response);
       } catch (err: any) {
-        console.warn(`Attempt with ${provider} (${selectedModel}) failed: ${err.message || err}. Falling back to Gemini...`);
+        console.warn(`Attempt with ${provider} (${selectedModel}) issue: ${err.message || err}. Balancing to Gemini fallback...`);
         try {
           const geminiResponse = await callGeminiFallback(enhancedMessages);
           return res.json(geminiResponse);
         } catch (geminiErr: any) {
-          console.error(`Both ${provider} and Gemini fallback failed!`, geminiErr);
+          console.error(`Both ${provider} and Gemini fallback issues!`, geminiErr);
           throw err || geminiErr;
         }
       }

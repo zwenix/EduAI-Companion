@@ -39,6 +39,7 @@ import {
   Sparkles,
   Menu,
   X,
+  AlertTriangle,
   Zap,
   School,
   Home,
@@ -515,6 +516,23 @@ export default function App() {
     return localStorage.getItem('eduai_pwa_banner_dismissed') === 'true';
   });
   const [syncToast, setSyncToast] = useState<{ show: boolean; message: string; type: 'success' | 'info' | 'error' }>({ show: false, message: '', type: 'info' });
+  const [apiBlockedAlert, setApiBlockedAlert] = useState<{
+    provider: string;
+    url?: string;
+    isBlockedByClient: boolean;
+    message: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const onApiError = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent && customEvent.detail) {
+        setApiBlockedAlert(customEvent.detail);
+      }
+    };
+    window.addEventListener('api-blocked-or-unreachable', onApiError);
+    return () => window.removeEventListener('api-blocked-or-unreachable', onApiError);
+  }, []);
 
   const installPWAApp = async () => {
     if (!deferredPrompt) {
@@ -2083,6 +2101,59 @@ export default function App() {
               </div>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Cloud & AI API Blockage Alert Warning */}
+      <AnimatePresence>
+        {apiBlockedAlert && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className={`w-full max-w-md rounded-[28px] p-6 shadow-2xl border ${
+                isDarkMode ? 'bg-[#1e293b] border-rose-500/30' : 'bg-white border-rose-200'
+              }`}
+            >
+              <div className="flex flex-col gap-4">
+                <div className="flex items-start gap-3 text-rose-500">
+                  <div className="p-3 bg-rose-500/10 rounded-2xl shrink-0">
+                    <AlertTriangle size={24} />
+                  </div>
+                  <div>
+                    <h3 className={`text-lg font-black font-display tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                      {apiBlockedAlert.isBlockedByClient ? 'API Request Blocked' : 'API Unreachable'}
+                    </h3>
+                    <p className="text-xs font-black uppercase tracking-wider text-rose-500 font-display">
+                      Provider: {apiBlockedAlert.provider}
+                    </p>
+                  </div>
+                </div>
+
+                <div className={`p-4 rounded-2xl text-sm leading-relaxed ${isDarkMode ? 'bg-slate-800/80 text-slate-300' : 'bg-rose-50/50 text-slate-600 border border-rose-100'}`}>
+                  {apiBlockedAlert.message}
+                </div>
+
+                <div className="flex flex-col gap-2 text-xs">
+                  <span className={`font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Recommended Solutions:</span>
+                  <ul className={`list-disc list-inside space-y-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <li><b>Disable Ad-Blockers</b> (e.g., uBlock Origin, AdBlock Plus) for this site.</li>
+                    <li>If on <b>Brave Browser</b>, lower shields or whitelist the API domains.</li>
+                    <li>Verify your local firewall or network DNS filter policies doesn't block out external AI APIs.</li>
+                  </ul>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setApiBlockedAlert(null)}
+                  className="w-full mt-2 py-3 bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-bold rounded-2xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer"
+                >
+                  Understood & Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
