@@ -191,7 +191,7 @@ service cloud.firestore {
     function isValidIllustration(data) {
       return data.keys().size() >= 3 && data.keys().size() <= 8
         && data.prompt is string && data.prompt.size() <= 1000
-        && data.imageUrl is string && data.imageUrl.size() <= 2000
+        && data.imageUrl is string && data.imageUrl.size() <= 1000000
         && data.createdAt is timestamp
         && (!('subject' in data) || data.subject == null || (data.subject is string && data.subject.size() <= 100))
         && (!('grade' in data) || data.grade == null || (data.grade is string && data.grade.size() <= 50))

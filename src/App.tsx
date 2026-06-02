@@ -1713,8 +1713,8 @@ export default function App() {
 
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch pt-4">
                       {/* Left: Dynamic Stats Panel */}
-                      <div className="lg:col-span-4 h-full flex flex-col justify-between">
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-2 gap-4 lg:gap-6 h-full">
+                      <div className="lg:col-span-4 h-full">
+                        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-1 gap-4 lg:gap-6 h-full">
                           {[
                             { label: 'Learners', value: '1,248', change: '+12%', icon: Users, color: 'text-brand-cyan', bg: 'bg-cyan-500/10', glow: 'shadow-cyan-500/20', displayColor: isDarkMode ? 'text-cyan-400' : 'text-cyan-600' },
                             { label: 'Graded', value: '432', change: '+5%', icon: ClipboardCheck, color: 'text-brand-purple', bg: 'bg-purple-500/10', glow: 'shadow-purple-500/20', displayColor: isDarkMode ? 'text-purple-400' : 'text-purple-600'  },
@@ -1723,19 +1723,23 @@ export default function App() {
                           ].map((stat, i) => (
                             <div 
                               key={`stat-${i}`} 
-                              className={`${isDarkMode ? 'glass border-white/5' : 'bg-white border-2 border-slate-100'} p-5 lg:p-6 rounded-[32px] kid-shadow hover:-translate-y-1 transition-transform h-full flex flex-col justify-between`}
+                              className={`${isDarkMode ? 'glass border-white/5' : 'bg-white border-2 border-slate-100'} p-4 lg:p-5 rounded-[24px] kid-shadow hover:-translate-y-1 transition-all duration-300 h-full flex items-center gap-3.5`}
                             >
-                              <div className="flex justify-between items-start mb-2">
-                                <div className={`${stat.color} p-2.5 rounded-[16px] ${stat.bg} ${stat.glow} shadow-md`}>
-                                  <stat.icon size={20} strokeWidth={2.5} />
-                                </div>
-                                <span className="text-brand-green text-[10px] font-black uppercase tracking-widest bg-brand-green/10 px-1.5 py-0.5 rounded-md">
-                                  {stat.change}
-                                </span>
+                              <div className={`${stat.color} p-3 rounded-[18px] ${stat.bg} ${stat.glow} shadow-md shrink-0`}>
+                                <stat.icon size={22} strokeWidth={2.5} />
                               </div>
-                              <div className="mt-2.5">
-                                <p className={`text-[10px] uppercase font-bold tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{stat.label}</p>
-                                <h3 className={`text-2xl lg:text-3xl font-display font-black mt-1 ${stat.displayColor}`}>{stat.value}</h3>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <p className={`text-[10px] uppercase font-black tracking-[0.15em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} truncate`}>
+                                    {stat.label}
+                                  </p>
+                                  <span className="text-[9px] font-black uppercase text-brand-green bg-brand-green/10 px-1.5 py-0.5 rounded-md shrink-0">
+                                    {stat.change}
+                                  </span>
+                                </div>
+                                <h3 className={`text-2xl lg:text-3xl font-display font-black mt-0.5 tracking-tight ${stat.displayColor}`}>
+                                  {stat.value}
+                                </h3>
                               </div>
                             </div>
                           ))}
