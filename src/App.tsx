@@ -1711,33 +1711,39 @@ export default function App() {
                   </div>
                 </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-                      {[
-                        { label: 'Learners', value: '1,248', change: '+12%', icon: Users, color: 'text-brand-cyan', bg: 'bg-cyan-500/10', glow: 'shadow-cyan-500/20', displayColor: isDarkMode ? 'text-cyan-400' : 'text-cyan-600' },
-                        { label: 'Graded', value: '432', change: '+5%', icon: ClipboardCheck, color: 'text-brand-purple', bg: 'bg-purple-500/10', glow: 'shadow-purple-500/20', displayColor: isDarkMode ? 'text-purple-400' : 'text-purple-600'  },
-                        { label: 'Generated', value: '86', change: '+24%', icon: FileText, color: 'text-brand-yellow', bg: 'bg-yellow-500/10', glow: 'shadow-yellow-500/20', displayColor: isDarkMode ? 'text-yellow-400' : 'text-yellow-600' },
-                        { label: 'Sessions', value: '15.4k', change: '+18%', icon: MessageSquare, color: 'text-brand-green', bg: 'bg-green-500/10', glow: 'shadow-green-500/20', displayColor: isDarkMode ? 'text-green-400' : 'text-green-600' }
-                      ].map((stat, i) => (
-                        <div 
-                          key={`stat-${i}`} 
-                          className={`${isDarkMode ? 'glass border-white/5' : 'bg-white border-2 border-slate-100'} p-6 lg:p-8 rounded-[36px] kid-shadow hover:-translate-y-1 transition-transform`}
-                        >
-                          <div className="flex justify-between items-start mb-4">
-                            <div className={`${stat.color} p-3 rounded-[20px] ${stat.bg} ${stat.glow} shadow-xl`}>
-                              <stat.icon size={24} strokeWidth={2.5} />
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch pt-4">
+                      {/* Left: Dynamic Stats Panel */}
+                      <div className="lg:col-span-4 h-full flex flex-col justify-between">
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-2 gap-4 lg:gap-6 h-full">
+                          {[
+                            { label: 'Learners', value: '1,248', change: '+12%', icon: Users, color: 'text-brand-cyan', bg: 'bg-cyan-500/10', glow: 'shadow-cyan-500/20', displayColor: isDarkMode ? 'text-cyan-400' : 'text-cyan-600' },
+                            { label: 'Graded', value: '432', change: '+5%', icon: ClipboardCheck, color: 'text-brand-purple', bg: 'bg-purple-500/10', glow: 'shadow-purple-500/20', displayColor: isDarkMode ? 'text-purple-400' : 'text-purple-600'  },
+                            { label: 'Generated', value: '86', change: '+24%', icon: FileText, color: 'text-brand-yellow', bg: 'bg-yellow-500/10', glow: 'shadow-yellow-500/20', displayColor: isDarkMode ? 'text-yellow-400' : 'text-yellow-600' },
+                            { label: 'Sessions', value: '15.4k', change: '+18%', icon: MessageSquare, color: 'text-brand-green', bg: 'bg-green-500/10', glow: 'shadow-green-500/20', displayColor: isDarkMode ? 'text-green-400' : 'text-green-600' }
+                          ].map((stat, i) => (
+                            <div 
+                              key={`stat-${i}`} 
+                              className={`${isDarkMode ? 'glass border-white/5' : 'bg-white border-2 border-slate-100'} p-5 lg:p-6 rounded-[32px] kid-shadow hover:-translate-y-1 transition-transform h-full flex flex-col justify-between`}
+                            >
+                              <div className="flex justify-between items-start mb-2">
+                                <div className={`${stat.color} p-2.5 rounded-[16px] ${stat.bg} ${stat.glow} shadow-md`}>
+                                  <stat.icon size={20} strokeWidth={2.5} />
+                                </div>
+                                <span className="text-brand-green text-[10px] font-black uppercase tracking-widest bg-brand-green/10 px-1.5 py-0.5 rounded-md">
+                                  {stat.change}
+                                </span>
+                              </div>
+                              <div className="mt-2.5">
+                                <p className={`text-[10px] uppercase font-bold tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{stat.label}</p>
+                                <h3 className={`text-2xl lg:text-3xl font-display font-black mt-1 ${stat.displayColor}`}>{stat.value}</h3>
+                              </div>
                             </div>
-                            <span className="text-brand-green text-[12px] font-black uppercase tracking-widest bg-brand-green/10 px-2 py-1 rounded-lg">
-                              {stat.change}
-                            </span>
-                          </div>
-                          <p className={`text-[11px] uppercase font-bold tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{stat.label}</p>
-                          <h3 className={`text-3xl lg:text-4xl font-display font-black mt-2 ${stat.displayColor}`}>{stat.value}</h3>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </div>
 
-                    {/* Live Recharts Classroom progress tracker */}
-                    <div className={`${isDarkMode ? 'glass border-white/5' : 'bg-white border-2 border-slate-100'} p-6 lg:p-8 rounded-[36px] kid-shadow`}>
+                      {/* Right: Live Recharts Classroom progress tracker */}
+                      <div className={`${isDarkMode ? 'glass border-white/5' : 'bg-white border-2 border-slate-100'} p-6 lg:p-8 rounded-[36px] kid-shadow lg:col-span-8 h-full flex flex-col justify-between`}>
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                         <div>
                           <span className={`text-[10px] uppercase font-black tracking-widest px-2.5 py-1 rounded-lg ${isDarkMode ? 'bg-[#00d2ff]/10 text-[#00d2ff]' : 'bg-cyan-100 text-cyan-700'}`}>
@@ -1854,6 +1860,7 @@ export default function App() {
                         </div>
                       </div>
                     </div>
+                  </div>
 
                     {/* Feature Cards Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
