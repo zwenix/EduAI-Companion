@@ -81,8 +81,6 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
         return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25';
       case 'qwen-secondary':
         return 'bg-amber-500/10 text-amber-400 border-amber-500/25';
-      case 'alibaba-qwen':
-        return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/25';
       default:
         return 'bg-slate-500/10 text-slate-400 border-slate-500/25';
     }
@@ -326,7 +324,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
 
           {/* Filtering Tab Pills */}
           <div className="flex flex-wrap gap-2 pb-2">
-            {['all', 'gemini', 'qwen-primary', 'alibaba-qwen', 'qwen-secondary'].map((prov) => {
+            {['all', 'gemini', 'qwen-primary', 'qwen-secondary'].map((prov) => {
               const count = prov === 'all' 
                 ? errors.length 
                 : errors.filter(e => e.provider === prov).length;

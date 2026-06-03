@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type AIProvider = 'gemini' | 'qwen-primary' | 'qwen-secondary' | 'alibaba-qwen' | 'groq-vision';
+export type AIProvider = 'gemini' | 'qwen-primary' | 'qwen-secondary' | 'groq-vision';
 export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
 export type OCRProvider = 'gemini' | 'ocrspace' | 'groq-vision';
-export type ImageProvider = 'gemini-imagen' | 'huggingface' | 'pollinations-schnell' | 'pollinations-turbo' | 'pollinations-klein' | 'wan2.1-t2i-plus' | 'qwen-image-2.0-pro' | 'qwen-image-2512';
+export type ImageProvider = 'gemini-imagen' | 'huggingface' | 'pollinations-schnell' | 'pollinations-turbo' | 'pollinations-klein' | 'qwen-image-2512';
 
 interface AiContextType {
   provider: AIProvider;
@@ -18,10 +18,10 @@ interface AiContextType {
 
 const AiContext = createContext<AiContextType | undefined>(undefined);
 
-const VALID_PROVIDERS: AIProvider[] = ['gemini', 'qwen-primary', 'qwen-secondary', 'alibaba-qwen', 'groq-vision'];
+const VALID_PROVIDERS: AIProvider[] = ['gemini', 'qwen-primary', 'qwen-secondary', 'groq-vision'];
 const VALID_TTS: TTSProvider[] = ['browser', 'groq-whisper', 'huggingface', 'google-tts'];
 const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace', 'groq-vision'];
-const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'huggingface', 'pollinations-schnell', 'pollinations-turbo', 'pollinations-klein', 'wan2.1-t2i-plus', 'qwen-image-2.0-pro', 'qwen-image-2512'];
+const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'huggingface', 'pollinations-schnell', 'pollinations-turbo', 'pollinations-klein', 'qwen-image-2512'];
 
 export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {

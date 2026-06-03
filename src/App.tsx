@@ -1380,8 +1380,6 @@ export default function App() {
                 title="Image Generation Engine"
               >
                 <option value="gemini-imagen">IMG: Gemini 2.5 Flash Image</option>
-                <option value="wan2.1-t2i-plus">IMG: Alibaba wan2.1-t2i-plus</option>
-                <option value="qwen-image-2.0-pro">IMG: Alibaba qwen-image-2.0-pro</option>
                 <option value="qwen-image-2512">IMG: NVIDIA qwen-image-2512</option>
                 <option value="huggingface">IMG: HF FLUX.1</option>
                 <option value="pollinations-schnell">IMG: Flux Schnell</option>

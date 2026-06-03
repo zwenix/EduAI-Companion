@@ -254,15 +254,6 @@ app.use((req, res, next) => {
           });
         }
         break;
-      case "alibaba-qwen":
-        apiKey = (process.env.QWEN_API_KEY || process.env.ALIBABA_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
-        if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
-          client = new OpenAI({
-            apiKey: apiKey,
-            baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-          });
-        }
-        break;
       case "groq-vision":
         apiKey = (process.env.GROQ_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
         if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
@@ -287,8 +278,7 @@ app.use((req, res, next) => {
       }
       const requiredKeyLabel = 
         provider === 'qwen-primary' ? 'HUGGINGFACE_API_KEY' : 
-        provider === 'qwen-secondary' ? 'GROQ_API_KEY' : 
-        provider === 'alibaba-qwen' ? 'ALIBABA_API_KEY' : 'API_KEY';
+        provider === 'qwen-secondary' ? 'GROQ_API_KEY' : 'API_KEY';
       return res.status(400).json({ error: { message: `Provider ${provider} is not configured. Please add the ${requiredKeyLabel} in the application settings.` }});
     }
 
@@ -296,7 +286,6 @@ app.use((req, res, next) => {
       let selectedModel = model || (
         provider === "qwen-primary" ? "Qwen/Qwen3.5-397B-A17B" : 
         provider === "qwen-secondary" ? "Llama-4-Scout-17B-16E-Instruct" :
-        provider === "alibaba-qwen" ? "qwen-max" :
         provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
         ""
       );
@@ -305,7 +294,7 @@ app.use((req, res, next) => {
       if (selectedModel === "qwen3.7-max") selectedModel = "Llama-4-Scout-17B-16E-Instruct";
 
       const enhancedMessages = [...(Array.isArray(messages) ? messages : [])];
-      if (provider === "qwen-primary" || provider === "qwen-secondary" || provider === "alibaba-qwen") {
+      if (provider === "qwen-primary" || provider === "qwen-secondary") {
         const systemMessageIndex = enhancedMessages.findIndex(m => m.role === 'system');
         const coreInstruction = `
 [STRICT CORE VISUAL STYLE, PRESENTATION AND LAYOUT OBJECTIVE - FOR ALL HIGH INTENSITY MODELS]:
@@ -374,93 +363,23 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
         max_tokens: 8192, // Universal compatibility parameter for Groq outputs
       };
 
-      if (isJsonPreferred && (provider === "qwen-primary" || provider === "qwen-secondary" || provider === "alibaba-qwen")) {
+      if (isJsonPreferred && (provider === "qwen-primary" || provider === "qwen-secondary")) {
         completionParams.response_format = { type: "json_object" };
-      }
-
-      if (provider === "alibaba-qwen") {
-        let isSuccess = false;
-        let responseJson: any = null;
-        let lastError: any = null;
-        let isAuthError = false;
-
-        // Attempt 1: Standard/Domestic Compatible Endpoint
-        try {
-          console.info(`Attempting standard Qwen endpoint (dashscope.aliyuncs.com) for ${selectedModel}...`);
-          const clientStd = new OpenAI({
-            apiKey: apiKey,
-            baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-          });
-          responseJson = await clientStd.chat.completions.create(completionParams, { timeout: 12000 });
-          isSuccess = true;
-          console.info("Standard Qwen endpoint call succeeded!");
-        } catch (err: any) {
-          lastError = err;
-          const errMsg = err.message || String(err);
-          const errStatus = err.status || err.statusCode || 0;
-          console.warn(`Standard Qwen endpoint failed: ${errMsg}`);
-          
-          if (errStatus === 401 || errMsg.includes("401") || errMsg.toLowerCase().includes("incorrect api key") || errMsg.toLowerCase().includes("unauthorized") || errMsg.toLowerCase().includes("apikey-error")) {
-            console.warn("Detected invalid/unauthorized Qwen API Key. Short-circuiting directly to Gemini fallback to prevent further latency...");
-            isAuthError = true;
-          }
-        }
-
-        // Attempt 2: International Compatible Endpoint (skip if API key is invalid/unauthorized)
-        if (!isSuccess && !isAuthError) {
-          try {
-            console.info(`Attempting international Qwen endpoint (dashscope-intl.aliyuncs.com) for ${selectedModel}...`);
-            const clientIntl = new OpenAI({
-              apiKey: apiKey,
-              baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-            });
-            responseJson = await clientIntl.chat.completions.create(completionParams, { timeout: 12000 });
-            isSuccess = true;
-            console.info("International Qwen endpoint call succeeded!");
-          } catch (err: any) {
-            lastError = err;
-            console.warn(`International Qwen endpoint failed: ${err.message || err}`);
-          }
-        }
-
-        // Attempt 3: Final Gemini Fallback
-        if (!isSuccess) {
-          console.warn(`Both Qwen endpoints failed or bypassed. Falling back directly to final Gemini fallback to prevent Vercel execution timeout...`);
-          try {
-            const geminiResponse = await callGeminiFallback(enhancedMessages);
-            return res.json(geminiResponse);
-          } catch (geminiErr: any) {
-            console.error("All fallback models exhausted for Qwen! Gemini fallback error:", geminiErr);
-            throw geminiErr || lastError;
-          }
-        }
-
-        return res.json(responseJson);
       }
 
       // Query standard OpenAPI compatibility clients (such as Hugging Face and Groq) directly
       try {
         if (provider === "qwen-primary") {
-          // Hugging Face api-inference.huggingface.co is unresolvable due to server/container sandbox DNS isolation.
-          // We route qwen-primary through Alibaba Qwen compatible mode or Gemini to ensure zero latency and prevent connection timeouts.
-          const alibabaApiKey = (process.env.QWEN_API_KEY || process.env.ALIBABA_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
-          if (alibabaApiKey && alibabaApiKey !== "dummy" && alibabaApiKey !== "undefined") {
+          if (client) {
             try {
-              console.info(`[MultiAI] qwen-primary optimized: routing via Alibaba Qwen compatible-mode for superior CAPS alignment...`);
-              const clientStd = new OpenAI({
-                apiKey: alibabaApiKey,
-                baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-              });
-              const response = await clientStd.chat.completions.create({
-                ...completionParams,
-                model: "qwen-max"
-              });
+              console.info(`[MultiAI] qwen-primary: executing direct completion on Hugging Face model ${selectedModel}...`);
+              const response = await client.chat.completions.create(completionParams);
               return res.json(response);
-            } catch (aliErr: any) {
-              console.info(`[MultiAI] Qwen optimization fallback: ${aliErr.message || aliErr}`);
+            } catch (hfErr: any) {
+              console.warn(`[MultiAI] Hugging Face direct call failed: ${hfErr.message || hfErr}. Falling back directly to Gemini Flash...`);
             }
           }
-          console.info("[MultiAI] qwen-primary: processing with Gemini Flash...");
+          console.info("[MultiAI] qwen-primary: fallback or no client, processing with Gemini Flash...");
           const geminiResponse = await callGeminiFallback(enhancedMessages);
           return res.json(geminiResponse);
         }
