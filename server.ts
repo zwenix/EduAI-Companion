@@ -86,8 +86,8 @@ app.use((req, res, next) => {
     const { messages, model, temperature = 0.7 } = req.body || {};
 
     const callGeminiFallback = async (msgs: any[] = []): Promise<any> => {
-      const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-      if (!geminiApiKey || geminiApiKey === "dummy" || geminiApiKey === "undefined") {
+      const geminiApiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+      if (!geminiApiKey || geminiApiKey === "" || geminiApiKey === "dummy" || geminiApiKey === "undefined") {
         throw new Error("GEMINI_API_KEY is not configured for fallback.");
       }
       const gAi = new GoogleGenAI({ 
@@ -401,7 +401,11 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
         }
       }
     } catch (error: any) {
-      let status = error.status || error.response?.status || 500;
+      let status = 500;
+      const rawStatus = error.status || error.response?.status;
+      if (typeof rawStatus === 'number' && Number.isInteger(rawStatus) && rawStatus >= 100 && rawStatus < 600) {
+        status = rawStatus;
+      }
       let errMsg = error.message || error.response?.data?.error?.message || error.toString();
       
       if (errMsg.toLowerCase().includes('permissions') || errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('auth') || errMsg.toLowerCase().includes('unauthorized') || errMsg.toLowerCase().includes('dummy')) {
@@ -1153,8 +1157,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
   // --- Secure Server-Side Gemini Action Agent Router ---
   app.post("/api/gemini/action", async (req, res) => {
     const { action, input } = req.body || {};
-    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-    if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
+    const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+    if (!apiKey || apiKey === "" || apiKey === "dummy" || apiKey === "undefined") {
       return res.status(400).json({ error: "GEMINI_API_KEY is not configured in settings." });
     }
 
@@ -1517,7 +1521,11 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       }
     } catch (error: any) {
       const errMsg = error.message || error.toString();
-      let status = error.status || 500;
+      let status = 500;
+      const rawStatus = error.status || error.response?.status;
+      if (typeof rawStatus === 'number' && Number.isInteger(rawStatus) && rawStatus >= 100 && rawStatus < 600) {
+        status = rawStatus;
+      }
       if (errMsg.toLowerCase().includes('permissions') || errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('auth') || errMsg.toLowerCase().includes('dummy')) {
          status = 401;
       }
