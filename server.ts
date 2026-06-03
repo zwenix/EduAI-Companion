@@ -13,6 +13,19 @@ dotenv.config();
 // Cache the last verified working Gemini model to eliminate fallback latency and unnecessary fallback warnings.
 let cachedWorkingModel: string | null = null;
 
+interface FailedRequest {
+  id: string;
+  timestamp: string;
+  provider: string;
+  endpoint: string;
+  model?: string;
+  error: string;
+  rawResponse?: any;
+  requestPayload?: any;
+}
+
+const failedRequestsLog: FailedRequest[] = [];
+
 const app = express();
 const PORT = 3000;
 
@@ -42,6 +55,15 @@ app.use((req, res, next) => {
 
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+
+  app.get("/api/admin/debug-errors", (req, res) => {
+    res.json({ errors: failedRequestsLog });
+  });
+
+  app.post("/api/admin/debug-errors/clear", (req, res) => {
+    failedRequestsLog.length = 0;
+    res.json({ success: true, message: "Logs cleared successfully." });
   });
 
   // Dynamic lightweight SVG placeholder endpoint to support generated teaching templates
@@ -465,6 +487,25 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
       
       if (errMsg.toLowerCase().includes('permissions') || errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('auth') || errMsg.toLowerCase().includes('unauthorized') || errMsg.toLowerCase().includes('dummy')) {
         status = 401;
+      }
+
+      // Capture failure for Admin Debug Console
+      failedRequestsLog.unshift({
+        id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        timestamp: new Date().toISOString(),
+        provider: provider || 'unknown',
+        endpoint: `/api/ai/${provider}`,
+        model: req.body?.model || 'default',
+        error: errMsg,
+        rawResponse: error.response?.data || error.stack || error.message || String(error),
+        requestPayload: {
+          messagesCount: req.body?.messages?.length || 0,
+          temperature: req.body?.temperature,
+          model: req.body?.model
+        }
+      });
+      if (failedRequestsLog.length > 50) {
+        failedRequestsLog.pop();
       }
 
       const isDev = process.env.NODE_ENV !== 'production';
@@ -1545,6 +1586,25 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       if (errMsg.toLowerCase().includes('permissions') || errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('auth') || errMsg.toLowerCase().includes('dummy')) {
          status = 401;
       }
+
+      // Capture failure for Admin Debug Console
+      failedRequestsLog.unshift({
+        id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        timestamp: new Date().toISOString(),
+        provider: 'gemini',
+        endpoint: `/api/gemini/action`,
+        model: 'gemini-3.5-flash',
+        error: errMsg,
+        rawResponse: error.response?.data || error.stack || error.message || String(error),
+        requestPayload: {
+          action,
+          input: input ? { ...input, imageData: input.imageData ? '[Muted Image Data]' : undefined } : undefined
+        }
+      });
+      if (failedRequestsLog.length > 50) {
+        failedRequestsLog.pop();
+      }
+
       console.error(`Gemini server error for action '${action}':`, errMsg);
       return res.status(status).json({ error: errMsg || "Failed to execute server-side action." });
     }
