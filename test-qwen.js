@@ -3,26 +3,20 @@ import fs from 'fs';
 
 async function run() {
   try {
-    const url = 'https://chat.qwen.ai/s/0145dd4b-aaa1-41e9-9bc7-c20105a84964?fev=0.2.60';
+    const url = 'https://chat.qwen.ai/s/t_7d825e28-eb57-48ad-a712-a27b4739e641?fev=0.2.62';
+    console.log('Fetching', url);
     const { data } = await axios.get(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml'
       }
     });
 
-    const startPos = data.indexOf('EduAI Companion: Battle-Tested Prompt Engineering System');
-    if (startPos === -1) {
-      console.log('Not found');
-      return;
-    }
-    console.log('Found start pos:', startPos);
-    
-    // Let's print out 30k characters around this pos
-    const sub = data.substring(startPos, startPos + 40000);
-    fs.writeFileSync('extracted_qwen_text.txt', sub);
-    console.log('Saved to extracted_qwen_text.txt');
+    console.log('Successfully fetched main HTML page. Size:', data.length);
+    fs.writeFileSync('raw-qwen-page.html', data);
+    console.log('Wrote raw-qwen-page.html');
   } catch (err) {
-    console.error(err);
+    console.error('Error fetching HTML:', err);
   }
 }
 

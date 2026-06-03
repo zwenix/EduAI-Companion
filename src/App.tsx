@@ -576,11 +576,15 @@ export default function App() {
     }, 150);
 
     try {
-      const { collection, getDocs, query, limit } = await import('firebase/firestore');
+      const { collection, getDocs, query, limit, where } = await import('firebase/firestore');
       
       let fetchedItems: any[] = [];
       try {
-        const q = query(collection(db, 'created_content'), limit(15));
+        const q = query(
+          collection(db, 'created_content'), 
+          where('teacherId', '==', auth.currentUser?.uid || ''), 
+          limit(15)
+        );
         const snapshot = await getDocs(q);
         fetchedItems = snapshot.docs.map(doc => ({
           id: doc.id,
@@ -1342,9 +1346,7 @@ export default function App() {
               <Home size={18} />
             </button>
 
-            <h2 className={`text-lg lg:text-xl font-hand tracking-wide ml-2 ${isDarkMode ? 'text-white' : 'text-slate-900'} truncate hidden sm:block`}>
-              CAPS Project: <span className="text-brand-cyan underline decoration-brand-cyan/20">All Subjects</span>
-            </h2>
+
           </div>
           
           <div className="flex items-center gap-2 lg:gap-5">

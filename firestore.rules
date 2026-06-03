@@ -171,7 +171,8 @@ service cloud.firestore {
         && data.isSystem is bool;
     }
     match /created_content/{contentId} {
-      allow read, get, list: if isSignedIn();
+      allow get: if isSignedIn() && isValidId(contentId) && existing().teacherId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
       allow create: if isSignedIn() && isValidId(contentId) && isValidCreatedContent(incoming()) && incoming().createdAt == request.time;
       allow update: if isSignedIn() && isValidId(contentId) && existing().teacherId == request.auth.uid && isValidCreatedContent(incoming())
                      && incoming().teacherId == existing().teacherId

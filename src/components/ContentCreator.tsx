@@ -4,7 +4,8 @@ import {
   FlaskConical, Palette, FileText, Eye, BookOpen, GraduationCap,
   ChevronDown, ChevronUp, Zap, ClipboardList, ImageIcon, Settings2, RefreshCw,
   Check, X, Plus, Users, Layout, Video, FileCode, HelpCircle, Archive, UserCircle, Image, AlertCircle,
-  Edit2, History, Share2, Copy, Link, Mail, FileJson, Maximize2, Minimize2
+  Edit2, History, Share2, Copy, Link, Mail, FileJson, Maximize2, Minimize2,
+  Timer, Volume2, VolumeX, Bell
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
@@ -525,6 +526,93 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [adminResult, setAdminResult] = useState<any>(null);
   const [showPrintPreviewModal, setShowPrintPreviewModal] = useState(false);
 
+  // ─── Exam Mode Timer States ──────────────────────
+  const [examTimerDuration, setExamTimerDuration] = useState<number>(45); // general default 45 minutes
+  const [examWarningMinutes, setExamWarningMinutes] = useState<number>(5); // alert at 5 mins left
+  const [examTimeRemaining, setExamTimeRemaining] = useState<number>(0); // in seconds
+  const [isExamRunning, setIsExamRunning] = useState<boolean>(false);
+  const [isExamPaused, setIsExamPaused] = useState<boolean>(false);
+  const [examTimerAlertTriggered, setExamTimerAlertTriggered] = useState<boolean>(false);
+  const [examCompleted, setExamCompleted] = useState<boolean>(false);
+  const [showExamAlertOverlay, setShowExamAlertOverlay] = useState<boolean>(false);
+  const [examAlertMessage, setExamAlertMessage] = useState<string>('');
+  const [examSubjectName, setExamSubjectName] = useState<string>('');
+  const [examPaperTitle, setExamPaperTitle] = useState<string>('');
+  const [examSoundEnabled, setExamSoundEnabled] = useState<boolean>(true);
+  const [examTimerExpanded, setExamTimerExpanded] = useState<boolean>(false);
+
+  // Countdown timer logic
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    if (isExamRunning && !isExamPaused && examTimeRemaining > 0) {
+      timer = setInterval(() => {
+        setExamTimeRemaining(prev => {
+          const nextSec = prev - 1;
+          
+          // Warning threshold trigger
+          const warningSeconds = examWarningMinutes * 60;
+          if (nextSec === warningSeconds && warningSeconds > 0) {
+            setExamTimerAlertTriggered(true);
+            setExamAlertMessage(`⚠️ Visual Warning Alert: Only ${examWarningMinutes} minutes remaining in the exam! Double-check your spelling.`);
+            setShowExamAlertOverlay(true);
+            
+            // Web Audio Synthesis for alert chime (non-blocking)
+            if (examSoundEnabled && typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
+              try {
+                const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+                const ctx = new AudioContextClass();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+                osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.2); // E5
+                osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.4); // G5 
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.8);
+              } catch (_) {}
+            }
+          }
+          
+          if (nextSec <= 0) {
+            setIsExamRunning(false);
+            setExamCompleted(true);
+            setExamAlertMessage("🏁 TIME IS UP! Lay down your pens and hand in your papers immediately.");
+            setShowExamAlertOverlay(true);
+            
+            // Triple Beep for completion
+            if (examSoundEnabled && typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
+              try {
+                const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+                const ctx = new AudioContextClass();
+                [523.25, 523.25, 523.25].forEach((freq, idx) => {
+                  const osc = ctx.createOscillator();
+                  const gain = ctx.createGain();
+                  osc.type = 'triangle';
+                  osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.3);
+                  gain.gain.setValueAtTime(0.15, ctx.currentTime + idx * 0.3);
+                  gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + idx * 0.3 + 0.25);
+                  osc.connect(gain);
+                  gain.connect(ctx.destination);
+                  osc.start(ctx.currentTime + idx * 0.3);
+                  osc.stop(ctx.currentTime + idx * 0.3 + 0.25);
+                });
+              } catch (_) {}
+            }
+            return 0;
+          }
+          return nextSec;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isExamRunning, isExamPaused, examWarningMinutes, examSoundEnabled]);
+
   // Content Editing, Versioning, and Export/Sharing states
   const [currentDocId, setCurrentDocId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -842,6 +930,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [t_differentiation, setT_Differentiation] = useState('');
   const [t_memo, setT_Memo] = useState(true);
   const [t_rubric, setT_Rubric] = useState(true);
+  const [t_includeWorksheet, setT_IncludeWorksheet] = useState(true);
   const [t_dependencies, setT_Dependencies] = useState('');
   const [t_extraInstructions, setT_ExtraInstructions] = useState('');
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -1105,13 +1194,15 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
         (t_duration ? `Expected Duration: ${t_duration}\n` : '') +
         (t_items ? `Number of questions/items: ${t_items}\n` : '') +
         (t_differentiation ? `Learner Study Profile Differentiation Strategy: ${t_differentiation}\n` : '') +
+        (t_type === 'Lesson Plan' ? `Generate Student Exercise / Worksheet At End: ${t_includeWorksheet ? 'Yes' : 'No'}\n` : '') +
         `Include Memorandum/Answer Sheet: ${t_memo ? 'Yes' : 'No'}\n` +
         `Include Custom Grading Rubric Checklist: ${t_rubric ? 'Yes' : 'No'}\n`;
 
       const result = await generateCAPSContent({
         category: t_category, contentType: t_type, grade: t_grade, subject: finalSubject,
         topic: finalTopic, term: t_term, language: t_language, objective: t_objective,
-        learnerProfile: t_profile, additionalInstructions: compiledInstructions
+        learnerProfile: t_profile, additionalInstructions: compiledInstructions,
+        includeWorksheet: t_type === 'Lesson Plan' ? t_includeWorksheet : undefined
       }, provider);
       
       clearInterval(progressInterval);
@@ -1438,6 +1529,23 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   </div>
                 )}
 
+                {t_type === 'Lesson Plan' && (
+                  <div className={cn(
+                    "p-4 rounded-[20px] border space-y-2 transition-all",
+                    isDarkMode ? "bg-white/5 border-white/5" : "bg-slate-50 border-slate-200"
+                  )}>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="space-y-0.5">
+                        <Label className="font-black text-[11px] uppercase tracking-wider text-brand-cyan">Generate Student Worksheet</Label>
+                        <p className={cn("text-[11px] leading-normal", isDarkMode ? "text-slate-400" : "text-slate-500")}>
+                          Attach an interactive task / exercise sheet at the end of the lesson plan.
+                        </p>
+                      </div>
+                      <Switch checked={t_includeWorksheet} onCheckedChange={setT_IncludeWorksheet} id="t-include-worksheet" isDarkMode={isDarkMode} />
+                    </div>
+                  </div>
+                )}
+
                 <AdvancedSection label="Advanced Neural Configuration" isDarkMode={isDarkMode}>
                   <div className="space-y-4">
                     <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Learning Objective</Label>
@@ -1468,6 +1576,225 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                          />
                        </div>
                     </div>
+                  )}
+                </div>
+
+                {/* Exam Mode Timer Control Card */}
+                <div className={cn("border-t pt-6 mt-6", isDarkMode ? "border-white/5" : "border-slate-200")}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExamTimerExpanded(!examTimerExpanded);
+                      // Pre-populate if empty
+                      if (!examPaperTitle) {
+                        setExamPaperTitle(t_topic || t_type || "Classroom Examination Paper");
+                      }
+                      if (!examSubjectName) {
+                        setExamSubjectName(t_subject || "General Study");
+                      }
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between text-xs font-black uppercase tracking-widest transition-colors",
+                      isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Timer size={14} className="text-brand-cyan" />
+                      Exam Mode Countdown
+                      {isExamRunning && (
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping inline-block ml-1" />
+                      )}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      {isExamRunning && (
+                        <span className="text-[10px] font-mono text-emerald-400 px-1.5 py-0.5 bg-emerald-400/10 rounded">
+                          {Math.floor(examTimeRemaining / 60)}m left
+                        </span>
+                      )}
+                      {examTimerExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </span>
+                  </button>
+
+                  {examTimerExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="space-y-4 pt-4 text-left"
+                    >
+                      <div className="space-y-2">
+                        <Label>Exam/Test Title</Label>
+                        <Input 
+                          placeholder="e.g. Term 2 Mathematics Controlled Test" 
+                          value={examPaperTitle} 
+                          onChange={(e: any) => setExamPaperTitle(e.target.value)} 
+                          isDarkMode={isDarkMode} 
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Duration (Minutes)</Label>
+                          <Input 
+                            type="number" 
+                            min="1" 
+                            max="300"
+                            value={examTimerDuration} 
+                            onChange={(e: any) => setExamTimerDuration(Math.max(1, parseInt(e.target.value) || 1))} 
+                            isDarkMode={isDarkMode} 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Warning At (Minutes Left)</Label>
+                          <Input 
+                            type="number" 
+                            min="1" 
+                            max={examTimerDuration - 1}
+                            value={examWarningMinutes} 
+                            onChange={(e: any) => setExamWarningMinutes(Math.max(1, Math.min(examTimerDuration - 1, parseInt(e.target.value) || 1)))} 
+                            isDarkMode={isDarkMode} 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between py-1">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setExamSoundEnabled(!examSoundEnabled)}
+                            className={cn(
+                              "p-2 rounded-xl border transition-all",
+                              isDarkMode 
+                                ? (examSoundEnabled ? "bg-white/5 border-brand-cyan/30 text-brand-cyan" : "bg-white/5 border-white/5 text-slate-500") 
+                                : (examSoundEnabled ? "bg-cyan-50 border-cyan-200 text-cyan-600" : "bg-slate-50 border-slate-200 text-slate-400")
+                            )}
+                          >
+                            {examSoundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                          </button>
+                          <span className={`text-[11px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                            Sound Chimes {examSoundEnabled ? "Enabled" : "Muted"}
+                          </span>
+                        </div>
+                        
+                        {isExamRunning && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setExamTimerAlertTriggered(true);
+                              setExamAlertMessage("🔊 Visual Alert: This is a manual teacher alert chime test. Please keep silent.");
+                              setShowExamAlertOverlay(true);
+                              
+                              if (examSoundEnabled && typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
+                                try {
+                                  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+                                  const ctx = new AudioContextClass();
+                                  const osc = ctx.createOscillator();
+                                  const gain = ctx.createGain();
+                                  osc.type = 'sine';
+                                  osc.frequency.setValueAtTime(880, ctx.currentTime);
+                                  gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                                  gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                                  osc.connect(gain);
+                                  gain.connect(ctx.destination);
+                                  osc.start();
+                                  osc.stop(ctx.currentTime + 0.5);
+                                } catch (_) {}
+                              }
+                            }}
+                            className="text-[10px] uppercase font-black tracking-widest text-brand-cyan hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <Bell size={10} /> Test Chime
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
+                        {!isExamRunning && !examCompleted ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setExamTimeRemaining(examTimerDuration * 60);
+                              setIsExamRunning(true);
+                              setIsExamPaused(false);
+                              setExamTimerAlertTriggered(false);
+                              setExamCompleted(false);
+                              setExamAlertMessage(`⏰ The Exam (${examPaperTitle}) has started! Total duration: ${examTimerDuration} minutes.`);
+                              setShowExamAlertOverlay(true);
+                              // Trigger an initial start bell context (Play beautiful chime)
+                              if (examSoundEnabled) {
+                                try {
+                                  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+                                  const ctx = new AudioContextClass();
+                                  const osc = ctx.createOscillator();
+                                  const gain = ctx.createGain();
+                                  osc.type = 'triangle';
+                                  osc.frequency.setValueAtTime(440, ctx.currentTime);
+                                  osc.frequency.setValueAtTime(554.37, ctx.currentTime + 0.15);
+                                  osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.3);
+                                  gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                                  gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+                                  osc.connect(gain);
+                                  gain.connect(ctx.destination);
+                                  osc.start();
+                                  osc.stop(ctx.currentTime + 0.6);
+                                } catch (_) {}
+                              }
+                            }}
+                            className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <Timer size={14} /> Start Countdown
+                          </button>
+                        ) : (
+                          <div className="w-full space-y-2">
+                            {/* Running HUD status bar inside setting panel */}
+                            <div className={`p-3 rounded-xl border flex items-center justify-between ${
+                              isDarkMode ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200"
+                            }`}>
+                              <span className="text-[11px] font-bold flex items-center gap-1.5">
+                                <span className={cn(
+                                  "w-2 h-2 rounded-full",
+                                  isExamPaused ? "bg-amber-500" : examCompleted ? "bg-rose-500" : "bg-emerald-500 animate-pulse"
+                                )} />
+                                {isExamPaused ? "Paused" : examCompleted ? "Time Over" : "Exam Running..."}
+                              </span>
+                              <span className="text-sm font-mono font-black text-brand-cyan">
+                                {Math.floor(examTimeRemaining / 60).toString().padStart(2, '0')}:
+                                {(examTimeRemaining % 60).toString().padStart(2, '0')}
+                              </span>
+                            </div>
+
+                            <div className="flex gap-2">
+                              {!examCompleted && (
+                                <button
+                                  type="button"
+                                  onClick={() => setIsExamPaused(!isExamPaused)}
+                                  className={cn(
+                                    "flex-1 py-1 px-2 rounded-xl font-bold text-[10px] uppercase tracking-wider text-white transition-all cursor-pointer",
+                                    isExamPaused 
+                                      ? "bg-emerald-500 hover:bg-emerald-600" 
+                                      : "bg-amber-500 hover:bg-amber-600"
+                                  )}
+                                >
+                                  {isExamPaused ? "Resume" : "Pause"}
+                                </button>
+                              )}
+                              
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsExamRunning(false);
+                                  setIsExamPaused(false);
+                                  setExamTimeRemaining(0);
+                                  setExamCompleted(false);
+                                }}
+                                className="flex-1 py-1 px-2 bg-rose-500 hover:bg-rose-600 font-bold text-[10px] uppercase tracking-wider text-white rounded-xl transition-all cursor-pointer"
+                              >
+                                Stop / Reset
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
                   )}
                 </div>
               </motion.div>
@@ -1877,6 +2204,168 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                 <button onClick={() => setError(null)} className="p-2 hover:bg-white/5 rounded-xl transition-all">
                   <X size={20} />
                 </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Exam Mode Classroom HUD Banner */}
+          {(isExamRunning || examCompleted) && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              className={cn(
+                "mb-8 p-6 border rounded-[24px] lg:rounded-[32px] shadow-2xl relative overflow-hidden",
+                examCompleted
+                  ? "bg-rose-500/10 border-rose-500/30 text-rose-200"
+                  : examTimeRemaining <= examWarningMinutes * 60
+                    ? "bg-amber-500/10 border-amber-500/30 text-amber-200 animate-pulse"
+                    : "bg-cyan-500/10 border-cyan-500/30 text-cyan-100"
+              )}
+            >
+              <div className="absolute top-0 right-0 p-3 opacity-15">
+                <Timer size={100} />
+              </div>
+              
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                <div className="text-left space-y-1">
+                  <span className={cn(
+                    "inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full",
+                    examCompleted 
+                      ? "bg-rose-500/25 text-rose-300" 
+                      : isExamPaused 
+                        ? "bg-amber-500/25 text-amber-300" 
+                        : "bg-emerald-500/25 text-emerald-300"
+                  )}>
+                    <span className={cn("w-1.5 h-1.5 rounded-full", examCompleted ? "bg-rose-400" : isExamPaused ? "bg-amber-400" : "bg-emerald-400 animate-ping")} />
+                    {examCompleted ? "🏁 Exam Terminated" : isExamPaused ? "⏸️ Test Paused" : "📝 Active Exam Block"}
+                  </span>
+                  <h3 className="text-xl md:text-2xl font-hand font-black text-white leading-tight">
+                    {examPaperTitle || "Term Assessment Examination"}
+                  </h3>
+                  <p className="text-xs text-slate-400 flex items-center gap-1 font-medium font-sans">
+                    <span className="text-brand-cyan">{examSubjectName || t_subject || "General Subject"}</span>
+                    <span>•</span>
+                    <span>CAPS Registered Standard</span>
+                  </p>
+                </div>
+
+                <div className="flex flex-col items-center md:items-end gap-2 shrink-0">
+                  <div className="text-4xl md:text-5xl font-mono font-black text-white tracking-widest bg-black/40 px-6 py-3 rounded-2xl border border-white/5 shadow-inner">
+                    {Math.floor(examTimeRemaining / 3600) > 0 && (
+                      <span className="text-brand-cyan">
+                        {Math.floor(examTimeRemaining / 3600).toString().padStart(2, '0')}:
+                      </span>
+                    )}
+                    <span className="text-white">
+                      {Math.floor((examTimeRemaining % 3600) / 60).toString().padStart(2, '0')}
+                    </span>
+                    <span className="text-brand-cyan animate-pulse">:</span>
+                    <span className="text-white">
+                      {(examTimeRemaining % 60).toString().padStart(2, '0')}
+                    </span>
+                  </div>
+                  <div className="text-[10px] uppercase font-black tracking-widest text-slate-400">
+                    {examCompleted ? "Time Elapsed" : "Time Remaining Countdown"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div className="mt-6 space-y-1.5 font-sans">
+                <div className="flex justify-between text-[10px] uppercase tracking-widest font-black">
+                  <span>Progress Ratio</span>
+                  <span>
+                    {examCompleted 
+                      ? "100%" 
+                      : `${Math.round(((examTimerDuration * 60 - examTimeRemaining) / (examTimerDuration * 60)) * 100)}% Elapsed`}
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden border border-white/10 p-[1px]">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ 
+                      width: examCompleted 
+                        ? "100%" 
+                        : `${((examTimerDuration * 60 - examTimeRemaining) / (examTimerDuration * 60)) * 100}%` 
+                    }}
+                    transition={{ ease: "easeOut" }}
+                    className={cn(
+                      "h-full rounded-full",
+                      examCompleted 
+                        ? "bg-rose-500" 
+                        : examTimeRemaining <= examWarningMinutes * 60 
+                          ? "bg-gradient-to-r from-amber-500 to-rose-500 animate-pulse" 
+                          : "bg-gradient-to-r from-teal-400 to-brand-cyan"
+                    )}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Visual Alert Overlay (Teacher Classroom Alarm Chime Modal) */}
+          <AnimatePresence>
+            {showExamAlertOverlay && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[110] bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4"
+              >
+                <motion.div
+                  initial={{ scale: 0.9, y: 30 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.9, y: 30 }}
+                  className={cn(
+                    "w-full max-w-lg rounded-[32px] border p-8 text-center shadow-2xl relative overflow-hidden",
+                    examCompleted 
+                      ? "bg-slate-900 border-rose-500/40 shadow-rose-500/10" 
+                      : "bg-slate-900 border-amber-500/40 shadow-amber-500/10"
+                  )}
+                >
+                  <div className="absolute -top-12 -left-12 w-48 h-48 bg-brand-cyan/5 blur-3xl rounded-full" />
+                  
+                  <div className="relative z-10 space-y-6">
+                    <div className="mx-auto w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                      {examCompleted ? (
+                        <Bell className="text-rose-500 animate-bounce" size={32} />
+                      ) : (
+                        <Timer className="text-amber-500 animate-pulse" size={32} />
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <span className={cn(
+                        "text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full",
+                        examCompleted ? "bg-rose-500/20 text-rose-400" : "bg-amber-500/20 text-amber-400"
+                      )}>
+                        {examCompleted ? "🏁 Assessment Concluded" : "⚠️ Time Warning Alert"}
+                      </span>
+                      <h4 className="text-2xl font-hand font-black text-white leading-snug">
+                        {examPaperTitle || "Term Assessment Examination"}
+                      </h4>
+                    </div>
+
+                    <p className="text-sm text-slate-300 font-medium leading-relaxed bg-white/5 border border-white/5 p-4 rounded-2xl font-sans">
+                      {examAlertMessage}
+                    </p>
+
+                    <div className="flex justify-center pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowExamAlertOverlay(false)}
+                        className={cn(
+                          "px-8 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 shadow-md hover:shadow-lg cursor-pointer",
+                          examCompleted 
+                            ? "bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/20" 
+                            : "bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20"
+                        )}
+                      >
+                        Acknowledge Alert
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>

@@ -3,7 +3,7 @@ import fs from 'fs';
 
 async function run() {
   try {
-    const url = 'https://chat.qwen.ai/api/v2/chats/share/0145dd4b-aaa1-41e9-9bc7-c20105a84964';
+    const url = 'https://chat.qwen.ai/api/v2/chats/share/t_7d825e28-eb57-48ad-a712-a27b4739e641';
     console.log('Fetching full Qwen share content from:', url);
     const { data } = await axios.get(url, {
       headers: {

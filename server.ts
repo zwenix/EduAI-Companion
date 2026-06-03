@@ -6,6 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import axios from "axios";
 import { HfInference } from "@huggingface/inference";
 import { GoogleGenAI, Type } from "@google/genai";
+import { CAPS_LESSON_PLAN_SYSTEM_PROMPT } from "./src/lib/prompts/caps-lesson-plan-prompt.ts";
 
 dotenv.config();
 
@@ -1031,22 +1032,44 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
           baseURL: "https://integrate.api.nvidia.com/v1",
         });
 
-        console.info("Sending NVIDIA NIM text2image request to qwen-image-2512...");
-        const response = await client.images.generate({
-          model: "qwen-image-2512",
-          prompt: prompt,
-          n: 1,
-          size: "1024x1024",
-        } as any);
+        const candidateModels = [
+          "stabilityai/stable-diffusion-xl",
+          "playgroundai/playground-v2.5",
+          "nvidia/sana"
+        ];
 
-        const imageUrl = response.data?.[0]?.url;
-        if (imageUrl) {
-          console.info("NVIDIA NIM qwen-image-2512 image generated successfully!");
-          return res.json({ url: imageUrl });
+        let successUrl = null;
+        let lastError: any = null;
+
+        for (const modelToTry of candidateModels) {
+          try {
+            console.log(`[Image Service] Checking candidate pipeline with '${modelToTry}'...`);
+            const response = await client.images.generate({
+              model: modelToTry,
+              prompt: prompt,
+              n: 1,
+              size: "1024x1024",
+            } as any);
+
+            const imageUrl = response.data?.[0]?.url;
+            if (imageUrl) {
+              console.log(`[Image Service] Creation completed successfully utilizing '${modelToTry}'!`);
+              successUrl = imageUrl;
+              break;
+            }
+          } catch (err: any) {
+            lastError = err;
+            console.log(`[Image Service] Transitioning away from '${modelToTry}' due to status variance.`);
+          }
         }
-        throw new Error("Empty image URL returned from NVIDIA NIM");
+
+        if (successUrl) {
+          return res.json({ url: successUrl });
+        }
+
+        throw lastError || new Error("Standby fallback route triggered");
       } catch (err: any) {
-        console.warn(`NVIDIA NIM qwen-image-2512 failed: ${err.message || err}. Falling back to Pollinations Flux...`);
+        console.log(`[Image Service] Switched to secure media backup channel.`);
         const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
@@ -1208,51 +1231,98 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         }
 
         case "generate-caps": {
+          const isLessonPlan = input.contentType === 'Lesson Plan';
           const isStudyGuide = input.contentType === 'Study Guide / Learning Notes';
-          const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown. NEVER INJECT <script src="https://cdn.tailwindcss.com"></script> inside the HTML fields.`;
           
-          let studyGuideRequirements = "";
-          if (isStudyGuide) {
-            studyGuideRequirements = `
-            CRITICAL STUDY GUIDE REQUIREMENTS:
-            - This is a Study Guide/Learning Notes document. The primary content MUST be comprehensive, article-like, or textbook chapter-like notes.
-            - Break down the concepts logically into paragraphs, using rich explanations that a learner can actually study from.
-            - Include illustrations or visual aids (describe or embed them using CSS/HTML shapes, or leave marked spaces for the hero illustration).
-            - You can include a few exercises, examples, or a worksheet section at the end, but the MAJORITY of the document must be the detailed educational reading material and notes.
+          let systemInstruction = "";
+          let prompt = "";
+          
+          if (isLessonPlan) {
+            const generateWorksheet = input.includeWorksheet ?? true;
+            systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\n${CAPS_LESSON_PLAN_SYSTEM_PROMPT}\n\nCRITICAL OUTPUT REQUIREMENT:\nYou MUST return a JSON object. All returned text under 'content', 'memo', and 'rubric' fields MUST be formatted as valid, standalone, extremely beautiful HTML using clean, professional Tailwind CSS classes for high-contrast margins, badges, grids, tables, and typography hierarchy. DO NOT USE MARKDOWN INSIDE THE HTML FIELDS. Do not inject Tailwind CDN script tags. Ensure the year inside copyright, dates, and footers is 2026.`;
+            
+            prompt = `
+              Generate a comprehensive South African CAPS-compliant LESSON PLAN.
+              
+              SUBJECT: ${input.subject}
+              GRADE: ${input.grade}
+              TERM: ${input.term || 1}
+              WEEK: ${input.week || 1}
+              TOPIC: ${input.topic}
+              DURATION: ${input.duration || '2 hours'}
+              CLASS SIZE: 35 learners
+              AVAILABLE RESOURCES: Textbook, educational charts, whiteboard
+              SPECIAL CONSIDERATIONS: Inclusive education and diverse learner needs
+              
+              ADDITIONAL USER SPECIFIC REQUIREMENTS:
+              ${input.additionalInstructions || ''}
+
+              WORKSHEET INTEGRATION OPTION:
+              - Include Learner Exercise/Worksheet alongside Lesson Plan: ${generateWorksheet ? 'YES' : 'NO'}
+
+              INSTRUCTIONS FOR TEACHER LESSON PLAN STRUCTURE:
+              - Provide a highly structured layout for the teacher, detailing items needed, teacher roles, exact time/minutes spent on each topic phase, pre-requisite knowledge, formal checks, and reflection questions.
+              ${generateWorksheet 
+                ? `- You MUST append a gorgeous, print-ready "LEARNER PRACTICE WORKSHEET / EXERCISES" section at the very end of the teacher lesson plan (inside the "content" JSON key). Include 3-5 structured questions/problems with spacing for learner answers.` 
+                : `- Strictly do NOT append any learner worksheets, student activities, or student-facing questions inside the teacher lesson plan content block. Focus exclusively on teacher instructions, scaffolding, procedural durations, and content breakdowns.`
+              }
+
+              Please place:
+              - The complete, fully comprehensive teacher lesson plan (and the optional learner worksheet appended at the end *only* if option is YES) inside the "content" JSON key as a gorgeous HTML document.
+              - Standard CAPS assessment memos/questions (and worksheet answers *only* if option is YES) inside the "memo" HTML JSON key.
+              - Appropriate grading rubrics/matrix inside the "rubric" HTML JSON key.
+              - 3-5 visual check success indicators inside the "successIndicators" array.
+              - A detailed illustration prompt depicting a relevant classroom or field scene inside the "imagePrompt" key.
+              
+              GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}
+            `;
+          } else {
+            systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown. NEVER INJECT <script src="https://cdn.tailwindcss.com"></script> inside the HTML fields.`;
+            
+            let studyGuideRequirements = "";
+            if (isStudyGuide) {
+              studyGuideRequirements = `
+              CRITICAL STUDY GUIDE REQUIREMENTS:
+              - This is a Study Guide/Learning Notes document. The primary content MUST be comprehensive, article-like, or textbook chapter-like notes.
+              - Break down the concepts logically into paragraphs, using rich explanations that a learner can actually study from.
+              - Include illustrations or visual aids (describe or embed them using CSS/HTML shapes, or leave marked spaces for the hero illustration).
+              - You can include a few exercises, examples, or a worksheet section at the end, but the MAJORITY of the document must be the detailed educational reading material and notes.
+              `;
+            }
+
+            prompt = `
+              Type: ${input.contentType}
+              Grade: ${input.grade}
+              Subject: ${input.subject}
+              Topic: ${input.topic}
+              Language: ${input.language}
+              Objective: ${input.objective}
+              Learner Profile: ${input.learnerProfile}
+              Additional Info: ${input.additionalInstructions}
+
+              SPECIFIC VISUAL ENHANCEMENT:
+              For every worksheet/document, create ONE stunning hero illustration at the top that occupies 25–30% of the page. 
+              The illustration must be:
+              - Directly related to the specific CAPS topic
+              - Set in a recognizable South African context
+              - Semi-realistic digital painting style (like children’s non-fiction books)
+              - Emotionally engaging and curiosity-sparking
+              - High detail, rich colors, perfect composition
+
+              REQUIREMENTS FOR HTML DESIGN:
+              - Include full-width colored banners (e.g. orange for Life Skills, teal/blue for Math, purple/pink for Languages).
+              - Add a large circular badge in the top right for the Grade (e.g., "Grade 4").
+              - "Name: ____ Date: _____ Total __ / 30" layout below header (if applicable).
+              - Question text styles: Make them bold with distinct numbered bullets (e.g. circles with white text).
+              - Options/Answers: Enclose multiple choices or matching lists inside pill-shaped boxes with a colored border or background.
+              - Footer: "EduAI Companion | CAPS Aligned | eduai-companion.github.io".
+              - DO NOT USE MARKDOWN. Write raw HTML inside the JSON content values using tailwind CSS classes.
+              ${studyGuideRequirements}
+              
+              GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}
             `;
           }
 
-          const prompt = `
-            Type: ${input.contentType}
-            Grade: ${input.grade}
-            Subject: ${input.subject}
-            Topic: ${input.topic}
-            Language: ${input.language}
-            Objective: ${input.objective}
-            Learner Profile: ${input.learnerProfile}
-            Additional Info: ${input.additionalInstructions}
-
-            SPECIFIC VISUAL ENHANCEMENT:
-            For every worksheet/document, create ONE stunning hero illustration at the top that occupies 25–30% of the page. 
-            The illustration must be:
-            - Directly related to the specific CAPS topic
-            - Set in a recognizable South African context
-            - Semi-realistic digital painting style (like children’s non-fiction books)
-            - Emotionally engaging and curiosity-sparking
-            - High detail, rich colors, perfect composition
-
-            REQUIREMENTS FOR HTML DESIGN:
-            - Include full-width colored banners (e.g. orange for Life Skills, teal/blue for Math, purple/pink for Languages).
-            - Add a large circular badge in the top right for the Grade (e.g., "Grade 4").
-            - "Name: ____ Date: _____ Total __ / 30" layout below header (if applicable).
-            - Question text styles: Make them bold with distinct numbered bullets (e.g. circles with white text).
-            - Options/Answers: Enclose multiple choices or matching lists inside pill-shaped boxes with a colored border or background.
-            - Footer: "EduAI Companion | CAPS Aligned | eduai-companion.github.io".
-            - DO NOT USE MARKDOWN. Write raw HTML inside the JSON content values using tailwind CSS classes.
-            ${studyGuideRequirements}
-            
-            GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}
-          `;
           const response = await generateContentWithFallback({
             model,
             contents: prompt,
