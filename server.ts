@@ -1167,6 +1167,22 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         throw new Error("Failed to extract image from Gemini response");
       } catch (error: any) {
         console.warn("Gemini 2.5 Flash Image failed, automatically falling back to Pollinations Flux...", error.message || error);
+        
+        // Capture failure for Admin Debug Console
+        failedRequestsLog.unshift({
+          id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+          timestamp: new Date().toISOString(),
+          provider: 'gemini',
+          endpoint: `/api/images/generate`,
+          model: 'gemini-2.5-flash-image',
+          error: error.message || String(error),
+          rawResponse: error.response?.data || error.stack || error.message || String(error),
+          requestPayload: { prompt }
+        });
+        if (failedRequestsLog.length > 50) {
+          failedRequestsLog.pop();
+        }
+
         const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
@@ -1710,6 +1726,22 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       res.json(data);
     } catch (err: any) {
       console.warn("Gemini ILDP Generation failed, using local builder:", err.message);
+      
+      // Capture failure for Admin Debug Console
+      failedRequestsLog.unshift({
+        id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        timestamp: new Date().toISOString(),
+        provider: 'gemini',
+        endpoint: `/api/reports/ildp`,
+        model: 'gemini-3.5-flash',
+        error: err.message || String(err),
+        rawResponse: err.response?.data || err.stack || err.message || String(err),
+        requestPayload: { studentName, grade, subjectsCount: subjects?.length || 0 }
+      });
+      if (failedRequestsLog.length > 50) {
+        failedRequestsLog.pop();
+      }
+
       res.json(generateLocalFallbackILDP(studentName, grade, subjects));
     }
   });

@@ -521,6 +521,9 @@ export default function App() {
     url?: string;
     isBlockedByClient: boolean;
     message: string;
+    isServerError?: boolean;
+    statusCode?: number;
+    serverErrorDetails?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -2125,7 +2128,11 @@ export default function App() {
                   </div>
                   <div>
                     <h3 className={`text-lg font-black font-display tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                      {apiBlockedAlert.isBlockedByClient ? 'API Request Blocked' : 'API Unreachable'}
+                      {apiBlockedAlert.isBlockedByClient 
+                        ? 'API Request Blocked' 
+                        : (apiBlockedAlert.isServerError 
+                            ? `Server Error (${apiBlockedAlert.statusCode || 500})` 
+                            : 'API Unreachable')}
                     </h3>
                     <p className="text-xs font-black uppercase tracking-wider text-rose-500 font-display">
                       Provider: {apiBlockedAlert.provider}
@@ -2137,13 +2144,30 @@ export default function App() {
                   {apiBlockedAlert.message}
                 </div>
 
+                {apiBlockedAlert.isServerError && apiBlockedAlert.serverErrorDetails && (
+                  <div className="flex flex-col gap-1.5">
+                    <span className={`text-[10px] uppercase font-black tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Server Response Detail</span>
+                    <pre className="p-3 bg-red-950/20 border border-red-500/20 text-red-400 text-xs font-mono rounded-xl max-h-[140px] overflow-y-auto whitespace-pre-wrap break-all">
+                      {apiBlockedAlert.serverErrorDetails}
+                    </pre>
+                  </div>
+                )}
+
                 <div className="flex flex-col gap-2 text-xs">
                   <span className={`font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Recommended Solutions:</span>
-                  <ul className={`list-disc list-inside space-y-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    <li><b>Disable Ad-Blockers</b> (e.g., uBlock Origin, AdBlock Plus) for this site.</li>
-                    <li>If on <b>Brave Browser</b>, lower shields or whitelist the API domains.</li>
-                    <li>Verify your local firewall or network DNS filter policies doesn't block out external AI APIs.</li>
-                  </ul>
+                  {apiBlockedAlert.isServerError ? (
+                    <ul className={`list-disc list-inside space-y-1.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      <li>Verify your <b>GEMINI_API_KEY</b> or <b>QWEN_API_KEY</b> is correctly declared in settings or server config.</li>
+                      <li>Consult the <b>Debug Console</b> in the Admin Dashboard to review real-time network request payloads.</li>
+                      <li>Confirm that the server is not throttled, and that the specified AI model is supported.</li>
+                    </ul>
+                  ) : (
+                    <ul className={`list-disc list-inside space-y-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      <li><b>Disable Ad-Blockers</b> (e.g., uBlock Origin, AdBlock Plus) for this site.</li>
+                      <li>If on <b>Brave Browser</b>, lower shields or whitelist the API domains.</li>
+                      <li>Verify your local firewall or network DNS filter policies doesn't block out external AI APIs.</li>
+                    </ul>
+                  )}
                 </div>
 
                 <button

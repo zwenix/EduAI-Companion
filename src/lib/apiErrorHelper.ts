@@ -8,6 +8,9 @@ export interface ApiBlockedEventDetail {
   url?: string;
   isBlockedByClient: boolean;
   message: string;
+  isServerError?: boolean;
+  statusCode?: number;
+  serverErrorDetails?: string;
 }
 
 export function isClientSideBlock(error: any): boolean {
@@ -41,10 +44,20 @@ export function isClientSideBlock(error: any): boolean {
 
 export function checkAndReportApiError(error: any, provider: string, targetUrl?: string) {
   const isBlocked = isClientSideBlock(error);
+  const response = error.response;
   
   let friendlyMsg = "";
+  let isServerError = false;
+  let statusCode = response?.status;
+  let serverErrorDetails = "";
+
   if (isBlocked) {
     friendlyMsg = `Network request to the ${provider} API was blocked or failed at the client level. This is commonly caused by an active Ad Blocker (like uBlock Origin or Brave Shield) or restrictive network filters. Please try disabling your Ad Blocker or allow connections to ${targetUrl || 'the API domain'}.`;
+  } else if (response) {
+    isServerError = true;
+    const rawError = response.data?.error || response.data?.message || response.data || "";
+    serverErrorDetails = typeof rawError === 'object' ? JSON.stringify(rawError, null, 2) : String(rawError);
+    friendlyMsg = `The server returned a status ${statusCode} error when attempting to coordinate the ${provider} API. This indicates a server-side exception, missing credentials, or resource rate limiting.`;
   } else {
     friendlyMsg = `The ${provider} API is currently unreachable or returned a network error. Please try again later or check your internet connection.`;
   }
@@ -58,6 +71,9 @@ export function checkAndReportApiError(error: any, provider: string, targetUrl?:
       url: targetUrl,
       isBlockedByClient: isBlocked,
       message: friendlyMsg,
+      isServerError,
+      statusCode,
+      serverErrorDetails,
     } as ApiBlockedEventDetail,
   });
   window.dispatchEvent(event);
