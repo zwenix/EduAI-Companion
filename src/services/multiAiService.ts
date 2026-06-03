@@ -1,20 +1,20 @@
 import axios from 'axios';
 import { checkAndReportApiError } from '../lib/apiErrorHelper';
 
-export type AIProvider = 'qwen-primary' | 'qwen-secondary' | 'groq-vision';
+export type AIProvider = 'hf-qwen' | 'groq-llama' | 'groq-vision';
 
 const executeClientMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
   let url = "";
   let apiKey = "";
   let selectedModel = model;
 
-  if (provider === 'qwen-primary') {
+  if (provider === 'hf-qwen') {
     url = "https://api-inference.huggingface.co/v1/chat/completions";
     apiKey = (process.env as any).HUGGINGFACE_API_KEY || (import.meta as any).env?.VITE_HUGGINGFACE_API_KEY || (process.env as any).HUGGINGFACE_TOKEN || (import.meta as any).env?.VITE_HUGGINGFACE_TOKEN || "";
     if (!selectedModel) {
       selectedModel = "Qwen/Qwen3.5-397B-A17B";
     }
-  } else if (provider === 'qwen-secondary') {
+  } else if (provider === 'groq-llama') {
     url = "https://api.groq.com/openai/v1/chat/completions";
     apiKey = (process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "";
     if (!selectedModel) {

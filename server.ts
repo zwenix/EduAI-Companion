@@ -236,7 +236,7 @@ app.use((req, res, next) => {
     let apiKey = "";
 
     switch (provider) {
-      case "qwen-primary":
+      case "hf-qwen":
         apiKey = (process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_TOKEN || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
         if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
           client = new OpenAI({
@@ -245,7 +245,7 @@ app.use((req, res, next) => {
           });
         }
         break;
-      case "qwen-secondary":
+      case "groq-llama":
         apiKey = (process.env.GROQ_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
         if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
           client = new OpenAI({
@@ -277,15 +277,15 @@ app.use((req, res, next) => {
         }
       }
       const requiredKeyLabel = 
-        provider === 'qwen-primary' ? 'HUGGINGFACE_API_KEY' : 
-        provider === 'qwen-secondary' ? 'GROQ_API_KEY' : 'API_KEY';
+        provider === 'hf-qwen' ? 'HUGGINGFACE_API_KEY' : 
+        provider === 'groq-llama' ? 'GROQ_API_KEY' : 'API_KEY';
       return res.status(400).json({ error: { message: `Provider ${provider} is not configured. Please add the ${requiredKeyLabel} in the application settings.` }});
     }
 
     try {
       let selectedModel = model || (
-        provider === "qwen-primary" ? "Qwen/Qwen3.5-397B-A17B" : 
-        provider === "qwen-secondary" ? "Llama-4-Scout-17B-16E-Instruct" :
+        provider === "hf-qwen" ? "Qwen/Qwen3.5-397B-A17B" : 
+        provider === "groq-llama" ? "Llama-4-Scout-17B-16E-Instruct" :
         provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
         ""
       );
@@ -294,7 +294,7 @@ app.use((req, res, next) => {
       if (selectedModel === "qwen3.7-max") selectedModel = "Llama-4-Scout-17B-16E-Instruct";
 
       const enhancedMessages = [...(Array.isArray(messages) ? messages : [])];
-      if (provider === "qwen-primary" || provider === "qwen-secondary") {
+      if (provider === "hf-qwen" || provider === "groq-llama") {
         const systemMessageIndex = enhancedMessages.findIndex(m => m.role === 'system');
         const coreInstruction = `
 [STRICT CORE VISUAL STYLE, PRESENTATION AND LAYOUT OBJECTIVE - FOR ALL HIGH INTENSITY MODELS]:
@@ -363,23 +363,23 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
         max_tokens: 8192, // Universal compatibility parameter for Groq outputs
       };
 
-      if (isJsonPreferred && (provider === "qwen-primary" || provider === "qwen-secondary")) {
+      if (isJsonPreferred && (provider === "hf-qwen" || provider === "groq-llama")) {
         completionParams.response_format = { type: "json_object" };
       }
 
       // Query standard OpenAPI compatibility clients (such as Hugging Face and Groq) directly
       try {
-        if (provider === "qwen-primary") {
+        if (provider === "hf-qwen") {
           if (client) {
             try {
-              console.info(`[MultiAI] qwen-primary: executing direct completion on Hugging Face model ${selectedModel}...`);
+              console.info(`[MultiAI] hf-qwen: executing direct completion on Hugging Face model ${selectedModel}...`);
               const response = await client.chat.completions.create(completionParams);
               return res.json(response);
             } catch (hfErr: any) {
               console.warn(`[MultiAI] Hugging Face direct call failed: ${hfErr.message || hfErr}. Falling back directly to Gemini Flash...`);
             }
           }
-          console.info("[MultiAI] qwen-primary: fallback or no client, processing with Gemini Flash...");
+          console.info("[MultiAI] hf-qwen: fallback or no client, processing with Gemini Flash...");
           const geminiResponse = await callGeminiFallback(enhancedMessages);
           return res.json(geminiResponse);
         }
@@ -850,7 +850,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       const prompt = rawPrompt || "vibrant educational illustration";
 
       if (provider === "wan2.1-t2i-plus" || provider === "qwen-image-2.0-pro" || provider === "wanx-v1") {
-      let apiKey = process.env.QWEN_API_KEY || process.env.ALIBABA_API_KEY || process.env.VITE_ALIBABA_API_KEY;
+      let apiKey = process.env.HUGGINGFACE_API_KEY || process.env.ALIBABA_API_KEY || process.env.VITE_ALIBABA_API_KEY;
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
         console.warn("ALIBABA_API_KEY missing for image generation, falling back to Pollinations Flux");
         const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
@@ -980,7 +980,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       }
     }
 
-    if (provider === "qwen-image-2512") {
+    if (provider === "nvidia-sana") {
       let apiKey = process.env.NVIDIA_API_KEY || process.env.NVIDIA_API_TOKEN || "";
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
         console.warn("NVIDIA_API_KEY missing for image generation, falling back to Pollinations Flux");
