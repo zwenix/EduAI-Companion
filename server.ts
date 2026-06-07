@@ -285,14 +285,14 @@ app.use((req, res, next) => {
 
     try {
       let selectedModel = model || (
-        provider === "hf-qwen" ? "Qwen/Qwen3.5-397B-A17B" : 
-        provider === "groq-llama" ? "Llama-4-Scout-17B-16E-Instruct" :
+        provider === "hf-qwen" ? "Qwen/Qwen2.5-72B-Instruct" : 
+        provider === "groq-llama" ? "llama-3.3-70b-versatile" :
         provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
         ""
       );
 
-      if (selectedModel === "qwen3.6-plus") selectedModel = "Qwen/Qwen3.5-397B-A17B";
-      if (selectedModel === "qwen3.7-max") selectedModel = "Llama-4-Scout-17B-16E-Instruct";
+      if (selectedModel === "qwen3.6-plus") selectedModel = "Qwen/Qwen2.5-72B-Instruct";
+      if (selectedModel === "qwen3.7-max") selectedModel = "llama-3.3-70b-versatile";
 
       const enhancedMessages = [...(Array.isArray(messages) ? messages : [])];
       if (provider === "hf-qwen" || provider === "groq-llama") {
@@ -853,8 +853,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       if (provider === "wan2.1-t2i-plus" || provider === "qwen-image-2.0-pro" || provider === "wanx-v1") {
       let apiKey = process.env.HUGGINGFACE_API_KEY || process.env.ALIBABA_API_KEY || process.env.VITE_ALIBABA_API_KEY;
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-        console.warn("ALIBABA_API_KEY missing for image generation, falling back to Pollinations Flux");
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        console.warn("ALIBABA_API_KEY missing for image generation, falling back to Pollinations Turbo");
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
       
@@ -976,7 +976,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         throw lastError || new Error("Standby fallback route triggered");
       } catch (error: any) {
         console.log("[Image Service] Redirecting to alternative creation channel.");
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
     }
@@ -984,8 +984,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     if (provider === "nvidia-sana") {
       let apiKey = process.env.NVIDIA_API_KEY || process.env.NVIDIA_API_TOKEN || "";
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-        console.warn("NVIDIA_API_KEY missing for image generation, falling back to Pollinations Flux");
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        console.warn("NVIDIA_API_KEY missing for image generation, falling back to Pollinations Turbo");
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
 
@@ -1035,7 +1035,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         throw lastError || new Error("Standby fallback route triggered");
       } catch (err: any) {
         console.log(`[Image Service] Switched to secure media backup channel.`);
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
     }
@@ -1043,8 +1043,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     if (provider === "gemini-imagen") {
       const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-        console.warn("GEMINI_API_KEY missing for image generation, falling back to Pollinations Flux");
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        console.warn("GEMINI_API_KEY missing for image generation, falling back to Pollinations Turbo");
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
 
@@ -1057,40 +1057,24 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
             }
           }
         });
-        const response = await geminiAi.models.generateContent({
-          model: 'gemini-2.5-flash-image',
-          contents: {
-            parts: [
-              {
-                text: prompt,
-              },
-            ],
-          },
+        const response = await geminiAi.models.generateImages({
+          model: 'imagen-3.0-generate-002',
+          prompt: prompt,
           config: {
-            imageConfig: {
-              aspectRatio: "1:1",
-              imageSize: "1K"
-            }
+            numberOfImages: 1,
+            outputMimeType: 'image/jpeg',
+            aspectRatio: '1:1',
           }
         });
         
-        let base64 = "";
-        const parts = response.candidates?.[0]?.content?.parts;
-        if (parts && parts.length > 0) {
-          for (const part of parts) {
-            if (part.inlineData && part.inlineData.data) {
-              base64 = part.inlineData.data;
-              break;
-            }
-          }
-        }
+        const base64 = response.generatedImages?.[0]?.image?.imageBytes;
 
         if (base64) {
           return res.json({ url: `data:image/jpeg;base64,${base64}` });
         }
-        throw new Error("Failed to extract image from Gemini response");
+        throw new Error("Failed to extract image from Gemini generateImages response");
       } catch (error: any) {
-        console.warn("Gemini 2.5 Flash Image failed, automatically falling back to Pollinations Flux...", error.message || error);
+        console.warn("Gemini Imagen 3 generation failed, automatically falling back to Pollinations Turbo...", error.message || error);
         
         // Capture failure for Admin Debug Console
         failedRequestsLog.unshift({
@@ -1098,7 +1082,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
           timestamp: new Date().toISOString(),
           provider: 'gemini',
           endpoint: `/api/images/generate`,
-          model: 'gemini-2.5-flash-image',
+          model: 'imagen-3.0-generate-002',
           error: error.message || String(error),
           rawResponse: error.response?.data || error.stack || error.message || String(error),
           requestPayload: { prompt }
@@ -1107,7 +1091,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
           failedRequestsLog.pop();
         }
 
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
     }
@@ -1116,7 +1100,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       const apiKey = process.env.HUGGINGFACE_API_KEY;
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
         console.warn("HUGGINGFACE_API_KEY missing, utilizing Pollinations fallback");
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
       
@@ -1139,18 +1123,18 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         return res.json({ url: `data:image/jpeg;base64,${base64}` });
       } catch (error: any) {
         console.warn("HuggingFace image failed, falling back to Pollinations...", error.message);
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
     }
     
     // Any other provider
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
     return res.json({ url });
     } catch (e: any) {
       console.warn("Exception in /api/images/generate:", e.message || e);
       const fallbackPrompt = req.body?.prompt || "vibrant educational illustration";
-      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
       return res.json({ url });
     }
   });
@@ -1408,9 +1392,10 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
           const prompt = `You are an AI Grader. Analyze the attached image of a student's assessment in ${language}.
           Reference this rubric: ${rubric}.
           1. Extract the text from the image (OCR).
-          2. Grade each question according to the rubric.
-          3. Provide constructive feedback for the student.
-          4. Summarize the total score.`;
+          2. Try to locate the student's or learner's name written on the sheet (usually starts with "Name: ", "Learner: ", "Student: ", or is located at the top of the worksheet page). Extract and return it in "studentName". If no name is clearly visible, return empty string "".
+          3. Grade each question according to the rubric.
+          4. Provide constructive feedback for the student.
+          5. Summarize the total score.`;
           const response = await generateContentWithFallback({
             model,
             contents: [
@@ -1427,9 +1412,10 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
                   extractedText: { type: Type.STRING },
                   marksPerQuestion: { type: Type.ARRAY, items: { type: Type.STRING } },
                   feedback: { type: Type.STRING },
-                  totalScore: { type: Type.STRING }
+                  totalScore: { type: Type.STRING },
+                  studentName: { type: Type.STRING }
                 },
-                required: ["extractedText", "marksPerQuestion", "feedback", "totalScore"]
+                required: ["extractedText", "marksPerQuestion", "feedback", "totalScore", "studentName"]
               }
             }
           });

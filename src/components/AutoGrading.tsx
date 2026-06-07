@@ -6,6 +6,8 @@ import { runOCRAndGrade, runOCRScan } from '../services/unifiedAiService';
 import { useAi } from '../contexts/AiContext';
 
 import { printContent, downloadAsHTML } from '../lib/printUtils';
+import { db, auth } from '../lib/firebase';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
@@ -40,6 +42,52 @@ export default function AutoGrading() {
   const [archiveSuccess, setArchiveSuccess] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
 
+  // Firestore student mapping state for assignment flow
+  const [students, setStudents] = useState<any[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+  const [matchedStudentDetails, setMatchedStudentDetails] = useState<any>(null);
+  const [matchingStatus, setMatchingStatus] = useState<'idle' | 'matched' | 'failed' | 'overridden'>('idle');
+
+  // Worksheet submission state properties
+  const [submissionTitle, setSubmissionTitle] = useState('Worksheet continuous assessment');
+  const [submissionSubject, setSubmissionSubject] = useState('Mathematics');
+  const [submissionType, setSubmissionType] = useState<'project' | 'assignment' | 'assessment'>('assessment');
+  const [submissionCaps, setSubmissionCaps] = useState('Term 1: Continuous Assessment');
+
+  // Load classroom roster
+  React.useEffect(() => {
+    const fetchStudentsForGrading = async () => {
+      try {
+        let q;
+        if (auth.currentUser) {
+          q = query(collection(db, 'students'), where('teacherId', '==', auth.currentUser.uid));
+        } else {
+          q = collection(db, 'students');
+        }
+        const snap = await getDocs(q);
+        const list = snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+        if (list.length > 0) {
+          setStudents(list);
+        } else {
+          // fallback static list
+          setStudents([
+            { id: 'sibu-dube-id', name: 'Sibusiso Dube', email: 'sibu.dube@school.za', grade: 'Grade 10A' },
+            { id: 'lungile-ndlovu-id', name: 'Lungile Ndlovu', email: 'lungile.ndlovu@school.za', grade: 'Grade 10B' },
+            { id: 'thandeka-khumalo-id', name: 'Thandeka Khumalo', email: 'thandeka.khumalo@school.za', grade: 'Grade 10A' }
+          ]);
+        }
+      } catch (err) {
+        console.error("Error setting up students matching queue:", err);
+        setStudents([
+          { id: 'sibu-dube-id', name: 'Sibusiso Dube', email: 'sibu.dube@school.za', grade: 'Grade 10A' },
+          { id: 'lungile-ndlovu-id', name: 'Lungile Ndlovu', email: 'lungile.ndlovu@school.za', grade: 'Grade 10B' },
+          { id: 'thandeka-khumalo-id', name: 'Thandeka Khumalo', email: 'thandeka.khumalo@school.za', grade: 'Grade 10A' }
+        ]);
+      }
+    };
+    fetchStudentsForGrading();
+  }, []);
+
   React.useEffect(() => {
     if (isCameraActive && stream && videoRef.current) {
       videoRef.current.srcObject = stream;
@@ -66,29 +114,64 @@ export default function AutoGrading() {
     const data = mode === 'grade' ? result : extractResult;
     if (!data) return;
 
-    const newItem = {
-      id: Date.now().toString(),
-      title: mode === 'grade' ? 'Grading Report' : 'Text Extraction',
-      subject: 'Assessment',
-      grade: 'N/A',
-      contentType: mode === 'grade' ? 'Grading' : 'OCR Scan',
-      isSystem: false,
-      createdAt: new Date().toISOString(),
-      content: mode === 'extract' ? `<p class="font-mono whitespace-pre-wrap">${data.extractedText}</p>` : `
-        <h3>Overall Score: ${data.totalScore}</h3>
-        <p><strong>Feedback:</strong> ${data.feedback}</p>
-        <h4>Question Breakdown:</h4>
-        <ul>${data.marksPerQuestion?.map((m: string) => `<li>${m}</li>`).join('')}</ul>
-      `
-    };
+    if (mode === 'grade') {
+      if (!selectedStudentId) {
+        alert("Please select or confirm a student to link this graded worksheet to!");
+        return;
+      }
 
-    try {
-      const { saveStudyNote } = await import('../lib/offlineDB');
-      await saveStudyNote(newItem);
-      setArchiveSuccess(true);
-      setTimeout(() => setArchiveSuccess(false), 2000);
-    } catch (e) {
-      console.error('Archive error:', e);
+      const lStudent = students.find(s => s.id === selectedStudentId);
+      if (!lStudent) {
+        alert("Selected student not found in roster!");
+        return;
+      }
+
+      const newSubmission = {
+        studentId: lStudent.id,
+        studentName: lStudent.name,
+        studentEmail: lStudent.email?.toLowerCase().trim() || '',
+        title: submissionTitle.trim() || 'Worksheet assignment',
+        type: submissionType,
+        subject: submissionSubject,
+        capsAlignment: submissionCaps.trim() || 'Term Topic Continuous Assessment',
+        date: new Date().toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }),
+        grade: data.totalScore || 'N/A',
+        feedback: data.feedback || '',
+        marksPerQuestion: data.marksPerQuestion || [],
+        extractedText: data.extractedText || '',
+        rubricUsed: rubric || 'Standard academic rubric',
+        teacherId: auth.currentUser?.uid || 'guest-teacher',
+        createdAt: new Date().toISOString()
+      };
+
+      try {
+        await addDoc(collection(db, 'student_submissions'), newSubmission);
+        setArchiveSuccess(true);
+        setTimeout(() => setArchiveSuccess(false), 2000);
+      } catch (e: any) {
+        console.error('Error saving submission to Firestore:', e);
+        alert("Could not save to student portfolio: " + e.message);
+      }
+    } else {
+      const newItem = {
+        id: Date.now().toString(),
+        title: 'Text Extraction',
+        subject: 'Assessment',
+        grade: 'N/A',
+        contentType: 'OCR Scan',
+        isSystem: false,
+        createdAt: new Date().toISOString(),
+        content: `<p class="font-mono whitespace-pre-wrap">${data.extractedText}</p>`
+      };
+
+      try {
+        const { saveStudyNote } = await import('../lib/offlineDB');
+        await saveStudyNote(newItem);
+        setArchiveSuccess(true);
+        setTimeout(() => setArchiveSuccess(false), 2000);
+      } catch (e) {
+        console.error('Archive error:', e);
+      }
     }
   };
 
@@ -157,6 +240,11 @@ export default function AutoGrading() {
     setExtractResult(null);
     setMode('grade');
     
+    // Reset matching states for a new run
+    setSelectedStudentId('');
+    setMatchedStudentDetails(null);
+    setMatchingStatus('idle');
+
     const progressInterval = setInterval(() => {
       setGenerationProgress(prev => Math.min(prev + Math.floor(Math.random() * 8) + 2, 95));
     }, 400);
@@ -165,8 +253,30 @@ export default function AutoGrading() {
       const gradingResult = await runOCRAndGrade(img, rubric || "Grade accurately based on standard academic quality, checking for correctness, clarity, and completeness.", provider, ocrProvider, ocrLanguage);
       clearInterval(progressInterval);
       setGenerationProgress(100);
+
+      const detectedName = gradingResult.studentName || '';
+      let matchedStudent = null;
+      let status: 'idle' | 'matched' | 'failed' | 'overridden' = 'failed';
+      let studentIdToSelect = '';
+
+      if (detectedName && detectedName.trim() !== '') {
+        const lowerDetected = detectedName.toLowerCase().trim();
+        matchedStudent = students.find(s => {
+          const sName = s.name.toLowerCase().trim();
+          return sName.includes(lowerDetected) || lowerDetected.includes(sName);
+        });
+
+        if (matchedStudent) {
+          status = 'matched';
+          studentIdToSelect = matchedStudent.id;
+        }
+      }
+
       setTimeout(() => {
         setResult(gradingResult);
+        setMatchedStudentDetails(matchedStudent);
+        setMatchingStatus(status);
+        setSelectedStudentId(studentIdToSelect);
         setIsProcessing(false);
       }, 400);
     } catch (error: any) {
@@ -420,6 +530,144 @@ export default function AutoGrading() {
                      {archiveSuccess ? <Check size={16} /> : <Save size={16} />}
                      {archiveSuccess ? 'Stored' : 'Save Grading'}
                   </button>
+                </div>
+
+                {/* Real-time Student Profile Linker Widget */}
+                <div id="student-profile-linker" className="glass p-8 rounded-[36px] border border-white/10 space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-brand-cyan/20 rounded-2xl text-brand-cyan">
+                      <Users size={20} />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-hand text-white leading-none">Student Profile Linker</h4>
+                      <p className="text-[10px] text-slate-400 mt-1.5 uppercase tracking-wider font-bold">Assign assessment to student roster</p>
+                    </div>
+                  </div>
+
+                  {/* AI Match Information */}
+                  {matchingStatus === 'matched' && matchedStudentDetails && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/30 p-5 rounded-2xl flex items-start gap-4">
+                      <CheckCircle className="text-emerald-400 shrink-0 mt-0.5" size={20} />
+                      <div className="flex-1">
+                        <span className="bg-emerald-500/20 text-emerald-300 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-emerald-500/30">AI Auto-Matched</span>
+                        <h5 className="text-white text-sm font-semibold mt-1.5">{matchedStudentDetails.name}</h5>
+                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">{matchedStudentDetails.email} • {matchedStudentDetails.grade || 'Grade 10'}</p>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          setMatchingStatus('failed');
+                        }}
+                        className="text-xs text-brand-cyan hover:underline uppercase font-black tracking-wider"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  )}
+
+                  {matchingStatus === 'failed' && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 p-5 rounded-2xl flex items-start gap-4">
+                      <AlertCircle className="text-amber-400 shrink-0 mt-0.5" size={20} />
+                      <div className="flex-1">
+                        <span className="bg-amber-500/20 text-amber-300 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-amber-500/30">Select Student Profile</span>
+                        <p className="text-slate-300 text-xs leading-relaxed mt-1.5">
+                          We couldn't detect the student's name from the sheet. Which student is this worksheet for?
+                        </p>
+                        
+                        <select
+                          value={selectedStudentId}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setSelectedStudentId(val);
+                            const found = students.find(s => s.id === val);
+                            if (found) {
+                              setMatchedStudentDetails(found);
+                              setMatchingStatus('overridden');
+                            }
+                          }}
+                          className="mt-3 w-full bg-navy-dark border border-white/10 text-xs font-semibold py-2.5 px-4 rounded-xl text-slate-350 focus:border-brand-cyan outline-none"
+                        >
+                          <option value="">-- Choose Student --</option>
+                          {students.map(s => (
+                            <option key={s.id} value={s.id}>{s.name} ({s.grade || s.gradeLevel || 'N/A'})</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {matchingStatus === 'overridden' && matchedStudentDetails && (
+                    <div className="bg-brand-cyan/10 border border-brand-cyan/20 p-5 rounded-2xl flex items-start gap-4">
+                      <UserCircle className="text-brand-cyan shrink-0 mt-0.5" size={20} />
+                      <div className="flex-1">
+                        <span className="bg-brand-cyan/20 text-brand-cyan text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-brand-cyan/30">Manually Assigned</span>
+                        <h5 className="text-white text-sm font-semibold mt-1.5">{matchedStudentDetails.name}</h5>
+                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">{matchedStudentDetails.email} • {matchedStudentDetails.grade || 'Grade 10'}</p>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          setSelectedStudentId('');
+                          setMatchedStudentDetails(null);
+                          setMatchingStatus('failed');
+                        }}
+                        className="text-xs text-brand-cyan hover:underline uppercase font-black tracking-wider"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Submission Specific Details */}
+                  {selectedStudentId && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                      <div>
+                        <label className="text-[9px] uppercase font-black text-slate-400 mb-1.5 tracking-wider block">Assessment Title</label>
+                        <input 
+                          type="text" 
+                          value={submissionTitle}
+                          onChange={e => setSubmissionTitle(e.target.value)}
+                          className="w-full bg-navy-dark border border-white/10 text-xs px-4 py-2.5 rounded-xl text-slate-305 focus:border-brand-cyan outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] uppercase font-black text-slate-400 mb-1.5 tracking-wider block">Subject</label>
+                        <select 
+                          value={submissionSubject}
+                          onChange={e => setSubmissionSubject(e.target.value)}
+                          className="w-full bg-navy-dark border border-white/10 text-xs px-4 py-2.5 rounded-xl text-slate-305 focus:border-brand-cyan outline-none"
+                        >
+                          <option value="Mathematics">Mathematics</option>
+                          <option value="Natural Sciences">Natural Sciences</option>
+                          <option value="Physical Sciences">Physical Sciences</option>
+                          <option value="English Home Language">English Home Language</option>
+                          <option value="Life Skills">Life Skills</option>
+                          <option value="Social Sciences">Social Sciences</option>
+                          <option value="Economic Management Sciences">Economic & Management Sciences</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[9px] uppercase font-black text-slate-400 mb-1.5 tracking-wider block">Evaluation Type</label>
+                        <select 
+                          value={submissionType}
+                          onChange={e => setSubmissionType(e.target.value as any)}
+                          className="w-full bg-navy-dark border border-white/10 text-xs px-4 py-2.5 rounded-xl text-slate-305 focus:border-brand-cyan outline-none"
+                        >
+                          <option value="assessment">Formal Assessment / Test</option>
+                          <option value="assignment">Assignment / Completed Worksheet</option>
+                          <option value="project">Project Portfolio</option>
+                          <option value="achievement">Special Achievement Milestones</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[9px] uppercase font-black text-slate-400 mb-1.5 tracking-wider block">CAPS Standards Unit</label>
+                        <input 
+                          type="text" 
+                          value={submissionCaps}
+                          onChange={e => setSubmissionCaps(e.target.value)}
+                          className="w-full bg-navy-dark border border-white/10 text-xs px-4 py-2.5 rounded-xl text-slate-305 focus:border-brand-cyan outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pb-20 bg-white print:bg-white rounded-[32px] p-6 text-slate-900 printable-doc" ref={contentRef}>

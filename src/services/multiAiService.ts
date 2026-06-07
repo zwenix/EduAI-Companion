@@ -12,13 +12,13 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
     url = "https://api-inference.huggingface.co/v1/chat/completions";
     apiKey = (process.env as any).HUGGINGFACE_API_KEY || (import.meta as any).env?.VITE_HUGGINGFACE_API_KEY || (process.env as any).HUGGINGFACE_TOKEN || (import.meta as any).env?.VITE_HUGGINGFACE_TOKEN || "";
     if (!selectedModel) {
-      selectedModel = "Qwen/Qwen3.5-397B-A17B";
+      selectedModel = "Qwen/Qwen2.5-72B-Instruct";
     }
   } else if (provider === 'groq-llama') {
     url = "https://api.groq.com/openai/v1/chat/completions";
     apiKey = (process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "";
     if (!selectedModel) {
-      selectedModel = "Llama-4-Scout-17B-16E-Instruct";
+      selectedModel = "llama-3.3-70b-versatile";
     }
   } else if (provider === 'groq-vision') {
     url = "https://api.groq.com/openai/v1/chat/completions";

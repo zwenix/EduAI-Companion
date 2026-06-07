@@ -114,7 +114,7 @@ export function replaceImagePlaceholders(html: string): string {
 
     // Fallback/First-generation flow
     const enhancedPrompt = `${cleanPrompt}, professional children's educational book illustration style, pencil sketch and clean watercolor painting blend, rich vibrant colors, high detail, no text overlays, South African classroom display, 300 DPI`;
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=600&nologo=true&model=flux&seed=${seedCounter}`;
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=600&nologo=true&model=turbo&seed=${seedCounter}`;
 
     // Async save to firestore in background (non-blocking)
     IllustrationCache.save(cleanPrompt, imageUrl);

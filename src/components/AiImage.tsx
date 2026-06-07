@@ -25,10 +25,10 @@ export default function AiImage({ prompt, className = '', aspectRatio = 'square'
       setError(false);
       
       if (imageProvider.startsWith('pollinations')) {
-        let model = 'flux';
-        if (imageProvider === 'pollinations-schnell') model = 'flux';
+        let model = 'turbo';
+        if (imageProvider === 'pollinations-schnell') model = 'turbo';
         if (imageProvider === 'pollinations-turbo') model = 'turbo';
-        if (imageProvider === 'pollinations-klein') model = 'flux-pro'; // or whatever the closest is
+        if (imageProvider === 'pollinations-klein') model = 'sana'; 
         const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&model=${model}&seed=${retryCount}`;
         if (active) setImageUrl(url);
       } else {
@@ -61,7 +61,7 @@ export default function AiImage({ prompt, className = '', aspectRatio = 'square'
           
           if (active) {
             console.warn("Falling back to Pollinations...");
-            const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&model=flux&seed=${retryCount + 1}`;
+            const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&model=turbo&seed=${retryCount + 1}`;
             setImageUrl(url);
           }
         }

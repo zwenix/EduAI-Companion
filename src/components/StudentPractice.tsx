@@ -5,7 +5,7 @@ import OCRScanner from './OCRScanner';
 import { marked } from 'marked';
 import { educationalData } from '../lib/educational-data';
 import { db, auth } from '../lib/firebase';
-import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp, addDoc, getDocs } from 'firebase/firestore';
 
 export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean }) {
   const [activeTab, setActiveTab] = useState<'create'|'autograde'|'custom'>('create');
@@ -128,6 +128,42 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
       const rubricSource = result?.memo || customQuestions.map((q, i) => `Q${i+1}: ${q.question}\nMemo: ${q.memo}`).join('\n\n');
       const graded = await runOCRAndGrade(imageData, rubricSource);
       setOcrResult(graded);
+
+      // Persist student self-submitted worksheet continuously to their portfolio registry
+      const user = auth.currentUser;
+      if (user) {
+        let studentName = user.displayName || 'Learner';
+        try {
+          const qSec = query(collection(db, 'students'), where('email', '==', user.email?.toLowerCase().trim() || ''));
+          const snapSec = await getDocs(qSec);
+          if (!snapSec.empty) {
+            studentName = snapSec.docs[0].data().name || studentName;
+          }
+
+          const submissionPayload = {
+            studentId: user.uid,
+            studentName: studentName,
+            studentEmail: user.email?.toLowerCase().trim() || '',
+            title: `Practice Worksheet: ${topic || 'Custom Topic'}`,
+            type: 'assessment',
+            subject: subject || 'Mathematics',
+            capsAlignment: `Grade ${grade} Practice Topic`,
+            date: new Date().toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }),
+            grade: graded.totalScore || 'N/A',
+            feedback: graded.feedback || '',
+            marksPerQuestion: graded.marksPerQuestion || [],
+            extractedText: graded.extractedText || '',
+            rubricUsed: rubricSource,
+            teacherId: 'student-self-submitted',
+            createdAt: new Date().toISOString()
+          };
+
+          await addDoc(collection(db, 'student_submissions'), submissionPayload);
+          console.log("Automatically logged student graded practice into portfolio collection.");
+        } catch (dbErr) {
+          console.error("Failed to automatically archive student practice attempt into portfolios folder:", dbErr);
+        }
+      }
     } catch (error) {
       console.error(error);
       alert("Autograding failed.");
