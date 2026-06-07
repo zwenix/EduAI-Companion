@@ -535,6 +535,36 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
     }
   });
 
+  app.post("/api/video/hf", async (req, res) => {
+    const { prompt, model } = req.body || {};
+    const apiKey = process.env.HUGGINGFACE_API_KEY;
+    try {
+      const selectedModel = model || "damo-vilab/text-to-video-ms-1.7b";
+      console.log(`[HF Video] Querying model ${selectedModel} with prompt: "${prompt}"...`);
+
+      const fetchResponse = await fetch(`https://api-inference.huggingface.co/models/${selectedModel}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": apiKey ? `Bearer ${apiKey}` : ""
+        },
+        body: JSON.stringify({ inputs: prompt })
+      });
+
+      if (!fetchResponse.ok) {
+        throw new Error(`HF returned ${fetchResponse.status}: ${fetchResponse.statusText}`);
+      }
+
+      const buffer = await fetchResponse.arrayBuffer();
+      const base64 = Buffer.from(buffer).toString("base64");
+      const mimeType = fetchResponse.headers.get("content-type") || "video/mp4";
+      res.json({ video: `data:${mimeType};base64,${base64}` });
+    } catch (e: any) {
+      console.warn("HF Video Error:", e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   const activeGenerations = new Map<string, { status: string; url?: string; error?: string }>();
 
   app.post("/api/video/enhance-prompt", async (req, res) => {

@@ -67,6 +67,7 @@ import ProgressReports from './components/ProgressReports';
 import AutoGrading from './components/AutoGrading';
 import ContentArchive from './components/ContentArchive';
 import AITutorPage from './components/AITutorPage';
+import HFPlayground from './components/HFPlayground';
 import ClassManagement from './components/ClassManagement';
 import { SplashScreen } from './components/SplashScreen';
 import RoleSelection from './components/RoleSelection';
@@ -726,7 +727,8 @@ export default function App() {
           ];
         case 'intelligence-ai':
           return [
-            { id: 'ai-tutor', label: 'AI Tutor Helpers', icon: Brain }
+            { id: 'ai-tutor', label: 'AI Tutor Helpers', icon: Brain },
+            { id: 'hf-playground', label: 'Hugging Face Playground', icon: Sparkles }
           ];
         case 'class-analytics':
           return [
@@ -799,7 +801,8 @@ export default function App() {
         case 'intelligence-ai':
           return [
             { id: 'ai-tutor', label: 'AI System Controls', icon: Brain },
-            { id: 'ocr', label: 'OCR Grading Logs', icon: Scan }
+            { id: 'ocr', label: 'OCR Grading Logs', icon: Scan },
+            { id: 'hf-playground', label: 'Hugging Face Playground', icon: Sparkles }
           ];
         case 'class-analytics':
           return [
@@ -838,7 +841,8 @@ export default function App() {
         case 'intelligence-ai':
           return [
             { id: 'ai-tutor', label: 'AI Tutor Support', icon: Brain },
-            { id: 'ocr', label: 'Scan & Autograde', icon: Scan }
+            { id: 'ocr', label: 'Scan & Autograde', icon: Scan },
+            { id: 'hf-playground', label: 'Hugging Face Playground', icon: Sparkles }
           ];
         case 'class-analytics':
           return [
@@ -1949,6 +1953,8 @@ export default function App() {
                   <IllustrationLibrary isDarkMode={isDarkMode} />
                 ) : activeTab === 'ai-tutor' ? (
                   <AITutorPage />
+                ) : activeTab === 'hf-playground' ? (
+                  <HFPlayground />
                 ) : activeTab === 'student-practice' ? (
                   <StudentPractice isDarkMode={isDarkMode} />
                 ) : activeTab === 'student-notes' ? (
