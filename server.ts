@@ -883,6 +883,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
   app.post("/api/images/generate", async (req, res) => {
     try {
       const { prompt: rawPrompt, provider } = req.body || {};
+      console.log(`[Image API] POST /api/images/generate triggered. Requested provider: "${provider || 'default'}". Raw prompt length: ${rawPrompt ? rawPrompt.length : 0}`);
       let prompt = rawPrompt || "vibrant educational illustration";
 
       // Universally clean up bracket placeholders or prefix wrappers if present in the prompt (e.g. "[Illustration: A zebra]")
@@ -1098,24 +1099,74 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
             }
           }
         });
-        const response = await geminiAi.models.generateImages({
-          model: 'imagen-3.0-generate-002',
-          prompt: prompt,
-          config: {
-            numberOfImages: 1,
-            outputMimeType: 'image/jpeg',
-            aspectRatio: '1:1'
+
+        const candidates = [
+          { type: "generateImages", model: "imagen-3.0-generate-002" },
+          { type: "generateImages", model: "imagen-4.0-generate-001" },
+          { type: "generateContent", model: "gemini-2.5-flash-image" },
+          { type: "generateContent", model: "gemini-3.1-flash-image" }
+        ];
+
+        let base64 = "";
+        let successfulModel = "";
+        let lastError: any = null;
+
+        for (const candidate of candidates) {
+          try {
+            console.log(`[Image Service] Attempting Gemini model: ${candidate.model} via ${candidate.type}...`);
+            if (candidate.type === "generateImages") {
+              const resp = await geminiAi.models.generateImages({
+                model: candidate.model,
+                prompt: prompt,
+                config: {
+                  numberOfImages: 1,
+                  outputMimeType: 'image/jpeg',
+                  aspectRatio: '1:1'
+                }
+              });
+              base64 = resp.generatedImages?.[0]?.image?.imageBytes || "";
+            } else {
+              const resp = await geminiAi.models.generateContent({
+                model: candidate.model,
+                contents: {
+                  parts: [
+                    { text: prompt }
+                  ]
+                },
+                config: {
+                  imageConfig: {
+                    aspectRatio: "1:1"
+                  }
+                }
+              });
+              const parts = resp.candidates?.[0]?.content?.parts;
+              if (parts && parts.length > 0) {
+                for (const part of parts) {
+                  if (part.inlineData && part.inlineData.data) {
+                    base64 = part.inlineData.data;
+                    break;
+                  }
+                }
+              }
+            }
+
+            if (base64) {
+              successfulModel = candidate.model;
+              console.log(`[Image Service] Successfully generated image using Gemini model: ${candidate.model}`);
+              break;
+            }
+          } catch (err: any) {
+            lastError = err;
+            console.log(`[Image Service] Gemini model ${candidate.model} attempt failed: ${err.message || err}`);
           }
-        });
-        
-        const base64 = response.generatedImages?.[0]?.image?.imageBytes;
+        }
 
         if (base64) {
-          return res.json({ url: `data:image/jpeg;base64,${base64}` });
+          return res.json({ url: `data:image/jpeg;base64,${base64}`, model: successfulModel });
         }
-        throw new Error("Failed to extract image from Gemini response");
+        throw lastError || new Error("Failed to extract image from any Gemini candidate");
       } catch (error: any) {
-        console.log(`[Image Service] Gemini Imagen-3 is rate-limited or key lacks access, falling back to Pollinations Flux. Error: ${error.message || error}`);
+        console.log(`[Image Service] All Gemini Image candidate models failed. Last Error: ${error.message || error}. Falling back to Pollinations Flux.`);
         const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }

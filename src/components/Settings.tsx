@@ -562,6 +562,7 @@ export default function Settings({
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
                       <option value="gemini-imagen">Gemini 2.5 Flash Image (Primary)</option>
+                      <option value="pollinations-flux">FLUX General (Pollinations - No Key)</option>
                       <option value="wan2.1-t2i-plus">Alibaba wan2.1-t2i-plus (High Quality)</option>
                       <option value="qwen-image-2.0-pro">Alibaba qwen-image-2.0-pro</option>
                       <option value="qwen-image-2512">NVIDIA qwen-image-2512</option>
