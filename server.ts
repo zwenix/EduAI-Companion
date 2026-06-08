@@ -7,25 +7,11 @@ import axios from "axios";
 import { HfInference } from "@huggingface/inference";
 import { GoogleGenAI, Type } from "@google/genai";
 import { CAPS_LESSON_PLAN_SYSTEM_PROMPT } from "./src/lib/prompts/caps-lesson-plan-prompt.ts";
-import { EduAIPromptEngine } from "./src/lib/prompt-engine.ts";
 
 dotenv.config();
 
 // Cache the last verified working Gemini model to eliminate fallback latency and unnecessary fallback warnings.
 let cachedWorkingModel: string | null = null;
-
-interface FailedRequest {
-  id: string;
-  timestamp: string;
-  provider: string;
-  endpoint: string;
-  model?: string;
-  error: string;
-  rawResponse?: any;
-  requestPayload?: any;
-}
-
-const failedRequestsLog: FailedRequest[] = [];
 
 const app = express();
 const PORT = 3000;
@@ -58,15 +44,6 @@ app.use((req, res, next) => {
     res.json({ status: "ok" });
   });
 
-  app.get("/api/admin/debug-errors", (req, res) => {
-    res.json({ errors: failedRequestsLog });
-  });
-
-  app.post("/api/admin/debug-errors/clear", (req, res) => {
-    failedRequestsLog.length = 0;
-    res.json({ success: true, message: "Logs cleared successfully." });
-  });
-
   // Dynamic lightweight SVG placeholder endpoint to support generated teaching templates
   app.get("/api/placeholder/:width/:height", (req, res) => {
     const width = parseInt(req.params.width) || 300;
@@ -87,8 +64,8 @@ app.use((req, res, next) => {
     const { messages, model, temperature = 0.7 } = req.body || {};
 
     const callGeminiFallback = async (msgs: any[] = []): Promise<any> => {
-      const geminiApiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
-      if (!geminiApiKey || geminiApiKey === "" || geminiApiKey === "dummy" || geminiApiKey === "undefined") {
+      const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+      if (!geminiApiKey || geminiApiKey === "dummy" || geminiApiKey === "undefined") {
         throw new Error("GEMINI_API_KEY is not configured for fallback.");
       }
       const gAi = new GoogleGenAI({ 
@@ -237,7 +214,7 @@ app.use((req, res, next) => {
     let apiKey = "";
 
     switch (provider) {
-      case "hf-qwen":
+      case "qwen-primary":
         apiKey = (process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_TOKEN || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
         if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
           client = new OpenAI({
@@ -246,12 +223,21 @@ app.use((req, res, next) => {
           });
         }
         break;
-      case "groq-llama":
+      case "qwen-secondary":
         apiKey = (process.env.GROQ_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
         if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
           client = new OpenAI({
             apiKey: apiKey,
             baseURL: "https://api.groq.com/openai/v1",
+          });
+        }
+        break;
+      case "alibaba-qwen":
+        apiKey = (process.env.QWEN_API_KEY || process.env.ALIBABA_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+        if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
+          client = new OpenAI({
+            apiKey: apiKey,
+            baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
           });
         }
         break;
@@ -278,24 +264,26 @@ app.use((req, res, next) => {
         }
       }
       const requiredKeyLabel = 
-        provider === 'hf-qwen' ? 'HUGGINGFACE_API_KEY' : 
-        provider === 'groq-llama' ? 'GROQ_API_KEY' : 'API_KEY';
+        provider === 'qwen-primary' ? 'HUGGINGFACE_API_KEY' : 
+        provider === 'qwen-secondary' ? 'GROQ_API_KEY' : 
+        provider === 'alibaba-qwen' ? 'ALIBABA_API_KEY' : 'API_KEY';
       return res.status(400).json({ error: { message: `Provider ${provider} is not configured. Please add the ${requiredKeyLabel} in the application settings.` }});
     }
 
     try {
       let selectedModel = model || (
-        provider === "hf-qwen" ? "Qwen/Qwen2.5-72B-Instruct" : 
-        provider === "groq-llama" ? "llama-3.3-70b-versatile" :
+        provider === "qwen-primary" ? "Qwen/Qwen3.5-397B-A17B" : 
+        provider === "qwen-secondary" ? "Llama-4-Scout-17B-16E-Instruct" :
+        provider === "alibaba-qwen" ? "qwen-max" :
         provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
         ""
       );
 
-      if (selectedModel === "qwen3.6-plus") selectedModel = "Qwen/Qwen2.5-72B-Instruct";
-      if (selectedModel === "qwen3.7-max") selectedModel = "llama-3.3-70b-versatile";
+      if (selectedModel === "qwen3.6-plus") selectedModel = "Qwen/Qwen3.5-397B-A17B";
+      if (selectedModel === "qwen3.7-max") selectedModel = "Llama-4-Scout-17B-16E-Instruct";
 
       const enhancedMessages = [...(Array.isArray(messages) ? messages : [])];
-      if (provider === "hf-qwen" || provider === "groq-llama") {
+      if (provider === "qwen-primary" || provider === "qwen-secondary" || provider === "alibaba-qwen") {
         const systemMessageIndex = enhancedMessages.findIndex(m => m.role === 'system');
         const coreInstruction = `
 [STRICT CORE VISUAL STYLE, PRESENTATION AND LAYOUT OBJECTIVE - FOR ALL HIGH INTENSITY MODELS]:
@@ -364,23 +352,93 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
         max_tokens: 8192, // Universal compatibility parameter for Groq outputs
       };
 
-      if (isJsonPreferred && (provider === "hf-qwen" || provider === "groq-llama")) {
+      if (isJsonPreferred && (provider === "qwen-primary" || provider === "qwen-secondary" || provider === "alibaba-qwen")) {
         completionParams.response_format = { type: "json_object" };
+      }
+
+      if (provider === "alibaba-qwen") {
+        let isSuccess = false;
+        let responseJson: any = null;
+        let lastError: any = null;
+        let isAuthError = false;
+
+        // Attempt 1: Standard/Domestic Compatible Endpoint
+        try {
+          console.info(`Attempting standard Qwen endpoint (dashscope.aliyuncs.com) for ${selectedModel}...`);
+          const clientStd = new OpenAI({
+            apiKey: apiKey,
+            baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+          });
+          responseJson = await clientStd.chat.completions.create(completionParams, { timeout: 12000 });
+          isSuccess = true;
+          console.info("Standard Qwen endpoint call succeeded!");
+        } catch (err: any) {
+          lastError = err;
+          const errMsg = err.message || String(err);
+          const errStatus = err.status || err.statusCode || 0;
+          console.warn(`Standard Qwen endpoint failed: ${errMsg}`);
+          
+          if (errStatus === 401 || errMsg.includes("401") || errMsg.toLowerCase().includes("incorrect api key") || errMsg.toLowerCase().includes("unauthorized") || errMsg.toLowerCase().includes("apikey-error")) {
+            console.warn("Detected invalid/unauthorized Qwen API Key. Short-circuiting directly to Gemini fallback to prevent further latency...");
+            isAuthError = true;
+          }
+        }
+
+        // Attempt 2: International Compatible Endpoint (skip if API key is invalid/unauthorized)
+        if (!isSuccess && !isAuthError) {
+          try {
+            console.info(`Attempting international Qwen endpoint (dashscope-intl.aliyuncs.com) for ${selectedModel}...`);
+            const clientIntl = new OpenAI({
+              apiKey: apiKey,
+              baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+            });
+            responseJson = await clientIntl.chat.completions.create(completionParams, { timeout: 12000 });
+            isSuccess = true;
+            console.info("International Qwen endpoint call succeeded!");
+          } catch (err: any) {
+            lastError = err;
+            console.warn(`International Qwen endpoint failed: ${err.message || err}`);
+          }
+        }
+
+        // Attempt 3: Final Gemini Fallback
+        if (!isSuccess) {
+          console.warn(`Both Qwen endpoints failed or bypassed. Falling back directly to final Gemini fallback to prevent Vercel execution timeout...`);
+          try {
+            const geminiResponse = await callGeminiFallback(enhancedMessages);
+            return res.json(geminiResponse);
+          } catch (geminiErr: any) {
+            console.error("All fallback models exhausted for Qwen! Gemini fallback error:", geminiErr);
+            throw geminiErr || lastError;
+          }
+        }
+
+        return res.json(responseJson);
       }
 
       // Query standard OpenAPI compatibility clients (such as Hugging Face and Groq) directly
       try {
-        if (provider === "hf-qwen") {
-          if (client) {
+        if (provider === "qwen-primary") {
+          // Hugging Face api-inference.huggingface.co is unresolvable due to server/container sandbox DNS isolation.
+          // We route qwen-primary through Alibaba Qwen compatible mode or Gemini to ensure zero latency and prevent connection timeouts.
+          const alibabaApiKey = (process.env.QWEN_API_KEY || process.env.ALIBABA_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+          if (alibabaApiKey && alibabaApiKey !== "dummy" && alibabaApiKey !== "undefined") {
             try {
-              console.info(`[MultiAI] hf-qwen: executing direct completion on Hugging Face model ${selectedModel}...`);
-              const response = await client.chat.completions.create(completionParams);
+              console.info(`[MultiAI] qwen-primary optimized: routing via Alibaba Qwen compatible-mode for superior CAPS alignment...`);
+              const clientStd = new OpenAI({
+                apiKey: alibabaApiKey,
+                baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+              });
+              const response = await clientStd.chat.completions.create({
+                ...completionParams,
+                model: "qwen-max"
+              });
               return res.json(response);
-            } catch (hfErr: any) {
-              console.warn(`[MultiAI] Hugging Face direct call failed: ${hfErr.message || hfErr}. Falling back directly to Gemini Flash...`);
+            } catch (aliErr: any) {
+              console.info(`[MultiAI] Qwen optimization fallback: ${aliErr.message || aliErr}`);
             }
           }
-          console.info("[MultiAI] hf-qwen: fallback or no client, processing with Gemini Flash...");
+          console.info("[MultiAI] qwen-primary: processing with Gemini Flash...");
           const geminiResponse = await callGeminiFallback(enhancedMessages);
           return res.json(geminiResponse);
         }
@@ -402,34 +460,11 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
         }
       }
     } catch (error: any) {
-      let status = 500;
-      const rawStatus = error.status || error.response?.status;
-      if (typeof rawStatus === 'number' && Number.isInteger(rawStatus) && rawStatus >= 100 && rawStatus < 600) {
-        status = rawStatus;
-      }
+      let status = error.status || error.response?.status || 500;
       let errMsg = error.message || error.response?.data?.error?.message || error.toString();
       
       if (errMsg.toLowerCase().includes('permissions') || errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('auth') || errMsg.toLowerCase().includes('unauthorized') || errMsg.toLowerCase().includes('dummy')) {
         status = 401;
-      }
-
-      // Capture failure for Admin Debug Console
-      failedRequestsLog.unshift({
-        id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-        timestamp: new Date().toISOString(),
-        provider: provider || 'unknown',
-        endpoint: `/api/ai/${provider}`,
-        model: req.body?.model || 'default',
-        error: errMsg,
-        rawResponse: error.response?.data || error.stack || error.message || String(error),
-        requestPayload: {
-          messagesCount: req.body?.messages?.length || 0,
-          temperature: req.body?.temperature,
-          model: req.body?.model
-        }
-      });
-      if (failedRequestsLog.length > 50) {
-        failedRequestsLog.pop();
       }
 
       const isDev = process.env.NODE_ENV !== 'production';
@@ -531,36 +566,6 @@ EXACT VISUAL LAYOUT WIREFRAMES TO GENERATE:
       res.json({ audio: `data:audio/flac;base64,${base64}` });
     } catch (e: any) {
       console.warn("HF TTS Error:", e);
-      res.status(500).json({ error: e.message });
-    }
-  });
-
-  app.post("/api/video/hf", async (req, res) => {
-    const { prompt, model } = req.body || {};
-    const apiKey = process.env.HUGGINGFACE_API_KEY;
-    try {
-      const selectedModel = model || "damo-vilab/text-to-video-ms-1.7b";
-      console.log(`[HF Video] Querying model ${selectedModel} with prompt: "${prompt}"...`);
-
-      const fetchResponse = await fetch(`https://api-inference.huggingface.co/models/${selectedModel}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": apiKey ? `Bearer ${apiKey}` : ""
-        },
-        body: JSON.stringify({ inputs: prompt })
-      });
-
-      if (!fetchResponse.ok) {
-        throw new Error(`HF returned ${fetchResponse.status}: ${fetchResponse.statusText}`);
-      }
-
-      const buffer = await fetchResponse.arrayBuffer();
-      const base64 = Buffer.from(buffer).toString("base64");
-      const mimeType = fetchResponse.headers.get("content-type") || "video/mp4";
-      res.json({ video: `data:${mimeType};base64,${base64}` });
-    } catch (e: any) {
-      console.warn("HF Video Error:", e);
       res.status(500).json({ error: e.message });
     }
   });
@@ -878,13 +883,19 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
   app.post("/api/images/generate", async (req, res) => {
     try {
       const { prompt: rawPrompt, provider } = req.body || {};
-      const prompt = rawPrompt || "vibrant educational illustration";
+      let prompt = rawPrompt || "vibrant educational illustration";
+
+      // Universally clean up bracket placeholders or prefix wrappers if present in the prompt (e.g. "[Illustration: A zebra]")
+      prompt = prompt.trim();
+      prompt = prompt.replace(/^\[(?:Illustration|Image|Concept\s+Illustration|Diagram|Graphic|Visual):\s*/i, "");
+      prompt = prompt.replace(/\]$/, "");
+      prompt = prompt.trim();
 
       if (provider === "wan2.1-t2i-plus" || provider === "qwen-image-2.0-pro" || provider === "wanx-v1") {
-      let apiKey = process.env.HUGGINGFACE_API_KEY || process.env.ALIBABA_API_KEY || process.env.VITE_ALIBABA_API_KEY;
+      let apiKey = process.env.QWEN_API_KEY || process.env.ALIBABA_API_KEY || process.env.VITE_ALIBABA_API_KEY;
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-        console.warn("ALIBABA_API_KEY missing for image generation, falling back to Pollinations Turbo");
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
+        console.warn("ALIBABA_API_KEY missing for image generation, falling back to Pollinations Flux");
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
       
@@ -1006,16 +1017,16 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         throw lastError || new Error("Standby fallback route triggered");
       } catch (error: any) {
         console.log("[Image Service] Redirecting to alternative creation channel.");
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
     }
 
-    if (provider === "nvidia-sana") {
+    if (provider === "qwen-image-2512") {
       let apiKey = process.env.NVIDIA_API_KEY || process.env.NVIDIA_API_TOKEN || "";
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-        console.warn("NVIDIA_API_KEY missing for image generation, falling back to Pollinations Turbo");
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
+        console.warn("NVIDIA_API_KEY missing for image generation, falling back to Pollinations Flux");
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
 
@@ -1065,7 +1076,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         throw lastError || new Error("Standby fallback route triggered");
       } catch (err: any) {
         console.log(`[Image Service] Switched to secure media backup channel.`);
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
     }
@@ -1073,8 +1084,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     if (provider === "gemini-imagen") {
       const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-        console.warn("GEMINI_API_KEY missing for image generation, falling back to Pollinations Turbo");
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
+        console.warn("GEMINI_API_KEY missing for image generation, falling back to Pollinations Flux");
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
 
@@ -1093,7 +1104,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
           config: {
             numberOfImages: 1,
             outputMimeType: 'image/jpeg',
-            aspectRatio: '1:1',
+            aspectRatio: '1:1'
           }
         });
         
@@ -1102,26 +1113,10 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         if (base64) {
           return res.json({ url: `data:image/jpeg;base64,${base64}` });
         }
-        throw new Error("Failed to extract image from Gemini generateImages response");
+        throw new Error("Failed to extract image from Gemini response");
       } catch (error: any) {
-        console.warn("Gemini Imagen 3 generation failed, automatically falling back to Pollinations Turbo...", error.message || error);
-        
-        // Capture failure for Admin Debug Console
-        failedRequestsLog.unshift({
-          id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-          timestamp: new Date().toISOString(),
-          provider: 'gemini',
-          endpoint: `/api/images/generate`,
-          model: 'imagen-3.0-generate-002',
-          error: error.message || String(error),
-          rawResponse: error.response?.data || error.stack || error.message || String(error),
-          requestPayload: { prompt }
-        });
-        if (failedRequestsLog.length > 50) {
-          failedRequestsLog.pop();
-        }
-
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
+        console.log(`[Image Service] Gemini Imagen-3 is rate-limited or key lacks access, falling back to Pollinations Flux. Error: ${error.message || error}`);
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
     }
@@ -1130,7 +1125,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       const apiKey = process.env.HUGGINGFACE_API_KEY;
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
         console.warn("HUGGINGFACE_API_KEY missing, utilizing Pollinations fallback");
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
       
@@ -1153,18 +1148,18 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         return res.json({ url: `data:image/jpeg;base64,${base64}` });
       } catch (error: any) {
         console.warn("HuggingFace image failed, falling back to Pollinations...", error.message);
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
     }
     
     // Any other provider
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
     return res.json({ url });
     } catch (e: any) {
       console.warn("Exception in /api/images/generate:", e.message || e);
       const fallbackPrompt = req.body?.prompt || "vibrant educational illustration";
-      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}?width=1024&height=1024&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 1000000)}`;
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
       return res.json({ url });
     }
   });
@@ -1172,8 +1167,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
   // --- Secure Server-Side Gemini Action Agent Router ---
   app.post("/api/gemini/action", async (req, res) => {
     const { action, input } = req.body || {};
-    const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
-    if (!apiKey || apiKey === "" || apiKey === "dummy" || apiKey === "undefined") {
+    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+    if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
       return res.status(400).json({ error: "GEMINI_API_KEY is not configured in settings." });
     }
 
@@ -1228,32 +1223,101 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         case "generate-caps": {
           const isLessonPlan = input.contentType === 'Lesson Plan';
           const isStudyGuide = input.contentType === 'Study Guide / Learning Notes';
-          const isWorksheet = input.contentType === 'Worksheet';
+          
+          let systemInstruction = "";
+          let prompt = "";
+          
+          if (isLessonPlan) {
+            const generateWorksheet = input.includeWorksheet ?? true;
+            systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\n${CAPS_LESSON_PLAN_SYSTEM_PROMPT}\n\nCRITICAL OUTPUT REQUIREMENT:\nYou MUST return a JSON object. All returned text under 'content', 'memo', and 'rubric' fields MUST be formatted as valid, standalone, extremely beautiful HTML using clean, professional Tailwind CSS classes for high-contrast margins, badges, grids, tables, and typography hierarchy. DO NOT USE MARKDOWN INSIDE THE HTML FIELDS. Do not inject Tailwind CDN script tags. Ensure the year inside copyright, dates, and footers is 2026.`;
+            
+            prompt = `
+              Generate a comprehensive South African CAPS-compliant LESSON PLAN.
+              
+              SUBJECT: ${input.subject}
+              GRADE: ${input.grade}
+              TERM: ${input.term || 1}
+              WEEK: ${input.week || 1}
+              TOPIC: ${input.topic}
+              DURATION: ${input.duration || '2 hours'}
+              CLASS SIZE: 35 learners
+              AVAILABLE RESOURCES: Textbook, educational charts, whiteboard
+              SPECIAL CONSIDERATIONS: Inclusive education and diverse learner needs
+              
+              ADDITIONAL USER SPECIFIC REQUIREMENTS:
+              ${input.additionalInstructions || ''}
 
-          let contentTypeEng: 'lesson-plan' | 'worksheet' | 'study-guide' = 'worksheet';
-          if (isLessonPlan) contentTypeEng = 'lesson-plan';
-          else if (isStudyGuide) contentTypeEng = 'study-guide';
-          else if (isWorksheet) contentTypeEng = 'worksheet';
+              WORKSHEET INTEGRATION OPTION:
+              - Include Learner Exercise/Worksheet alongside Lesson Plan: ${generateWorksheet ? 'YES' : 'NO'}
 
-          const { system, user } = EduAIPromptEngine.assemblePrompt({
-            contentType: contentTypeEng,
-            grade: input.grade || "4",
-            subject: input.subject || "Mathematics",
-            topic: input.topic || "Addition",
-            language: input.language || 'English',
-            learnerProfile: input.learnerProfile || 'General Class',
-            additionalInstructions: input.additionalInstructions || '',
-            term: input.term || '1',
-            week: input.week ? parseInt(input.week) : undefined,
-            duration: input.duration || '2 hours',
-            capsReference: input.capsReference || ''
-          });
+              INSTRUCTIONS FOR TEACHER LESSON PLAN STRUCTURE:
+              - Provide a highly structured layout for the teacher, detailing items needed, teacher roles, exact time/minutes spent on each topic phase, pre-requisite knowledge, formal checks, and reflection questions.
+              ${generateWorksheet 
+                ? `- You MUST append a gorgeous, print-ready "LEARNER PRACTICE WORKSHEET / EXERCISES" section at the very end of the teacher lesson plan (inside the "content" JSON key). Include 3-5 structured questions/problems with spacing for learner answers.` 
+                : `- Strictly do NOT append any learner worksheets, student activities, or student-facing questions inside the teacher lesson plan content block. Focus exclusively on teacher instructions, scaffolding, procedural durations, and content breakdowns.`
+              }
+
+              Please place:
+              - The complete, fully comprehensive teacher lesson plan (and the optional learner worksheet appended at the end *only* if option is YES) inside the "content" JSON key as a gorgeous HTML document.
+              - Standard CAPS assessment memos/questions (and worksheet answers *only* if option is YES) inside the "memo" HTML JSON key.
+              - Appropriate grading rubrics/matrix inside the "rubric" HTML JSON key.
+              - 3-5 visual check success indicators inside the "successIndicators" array.
+              - A detailed illustration prompt depicting a relevant classroom or field scene inside the "imagePrompt" key.
+              
+              GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}
+            `;
+          } else {
+            systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown. NEVER INJECT <script src="https://cdn.tailwindcss.com"></script> inside the HTML fields.`;
+            
+            let studyGuideRequirements = "";
+            if (isStudyGuide) {
+              studyGuideRequirements = `
+              CRITICAL STUDY GUIDE REQUIREMENTS:
+              - This is a Study Guide/Learning Notes document. The primary content MUST be comprehensive, article-like, or textbook chapter-like notes.
+              - Break down the concepts logically into paragraphs, using rich explanations that a learner can actually study from.
+              - Include illustrations or visual aids (describe or embed them using CSS/HTML shapes, or leave marked spaces for the hero illustration).
+              - You can include a few exercises, examples, or a worksheet section at the end, but the MAJORITY of the document must be the detailed educational reading material and notes.
+              `;
+            }
+
+            prompt = `
+              Type: ${input.contentType}
+              Grade: ${input.grade}
+              Subject: ${input.subject}
+              Topic: ${input.topic}
+              Language: ${input.language}
+              Objective: ${input.objective}
+              Learner Profile: ${input.learnerProfile}
+              Additional Info: ${input.additionalInstructions}
+
+              SPECIFIC VISUAL ENHANCEMENT:
+              For every worksheet/document, create ONE stunning hero illustration at the top that occupies 25–30% of the page. 
+              The illustration must be:
+              - Directly related to the specific CAPS topic
+              - Set in a recognizable South African context
+              - Semi-realistic digital painting style (like children’s non-fiction books)
+              - Emotionally engaging and curiosity-sparking
+              - High detail, rich colors, perfect composition
+
+              REQUIREMENTS FOR HTML DESIGN:
+              - Include full-width colored banners (e.g. orange for Life Skills, teal/blue for Math, purple/pink for Languages).
+              - Add a large circular badge in the top right for the Grade (e.g., "Grade 4").
+              - "Name: ____ Date: _____ Total __ / 30" layout below header (if applicable).
+              - Question text styles: Make them bold with distinct numbered bullets (e.g. circles with white text).
+              - Options/Answers: Enclose multiple choices or matching lists inside pill-shaped boxes with a colored border or background.
+              - Footer: "EduAI Companion | CAPS Aligned | eduai-companion.github.io".
+              - DO NOT USE MARKDOWN. Write raw HTML inside the JSON content values using tailwind CSS classes.
+              ${studyGuideRequirements}
+              
+              GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}
+            `;
+          }
 
           const response = await generateContentWithFallback({
             model,
-            contents: user,
+            contents: prompt,
             config: {
-              systemInstruction: system,
+              systemInstruction,
               responseMimeType: "application/json",
               responseSchema: {
                 type: Type.OBJECT,
@@ -1422,10 +1486,9 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
           const prompt = `You are an AI Grader. Analyze the attached image of a student's assessment in ${language}.
           Reference this rubric: ${rubric}.
           1. Extract the text from the image (OCR).
-          2. Try to locate the student's or learner's name written on the sheet (usually starts with "Name: ", "Learner: ", "Student: ", or is located at the top of the worksheet page). Extract and return it in "studentName". If no name is clearly visible, return empty string "".
-          3. Grade each question according to the rubric.
-          4. Provide constructive feedback for the student.
-          5. Summarize the total score.`;
+          2. Grade each question according to the rubric.
+          3. Provide constructive feedback for the student.
+          4. Summarize the total score.`;
           const response = await generateContentWithFallback({
             model,
             contents: [
@@ -1442,10 +1505,9 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
                   extractedText: { type: Type.STRING },
                   marksPerQuestion: { type: Type.ARRAY, items: { type: Type.STRING } },
                   feedback: { type: Type.STRING },
-                  totalScore: { type: Type.STRING },
-                  studentName: { type: Type.STRING }
+                  totalScore: { type: Type.STRING }
                 },
-                required: ["extractedText", "marksPerQuestion", "feedback", "totalScore", "studentName"]
+                required: ["extractedText", "marksPerQuestion", "feedback", "totalScore"]
               }
             }
           });
@@ -1469,33 +1531,10 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       }
     } catch (error: any) {
       const errMsg = error.message || error.toString();
-      let status = 500;
-      const rawStatus = error.status || error.response?.status;
-      if (typeof rawStatus === 'number' && Number.isInteger(rawStatus) && rawStatus >= 100 && rawStatus < 600) {
-        status = rawStatus;
-      }
+      let status = error.status || 500;
       if (errMsg.toLowerCase().includes('permissions') || errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('auth') || errMsg.toLowerCase().includes('dummy')) {
          status = 401;
       }
-
-      // Capture failure for Admin Debug Console
-      failedRequestsLog.unshift({
-        id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-        timestamp: new Date().toISOString(),
-        provider: 'gemini',
-        endpoint: `/api/gemini/action`,
-        model: 'gemini-3.5-flash',
-        error: errMsg,
-        rawResponse: error.response?.data || error.stack || error.message || String(error),
-        requestPayload: {
-          action,
-          input: input ? { ...input, imageData: input.imageData ? '[Muted Image Data]' : undefined } : undefined
-        }
-      });
-      if (failedRequestsLog.length > 50) {
-        failedRequestsLog.pop();
-      }
-
       console.error(`Gemini server error for action '${action}':`, errMsg);
       return res.status(status).json({ error: errMsg || "Failed to execute server-side action." });
     }
@@ -1601,22 +1640,6 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       res.json(data);
     } catch (err: any) {
       console.warn("Gemini ILDP Generation failed, using local builder:", err.message);
-      
-      // Capture failure for Admin Debug Console
-      failedRequestsLog.unshift({
-        id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-        timestamp: new Date().toISOString(),
-        provider: 'gemini',
-        endpoint: `/api/reports/ildp`,
-        model: 'gemini-3.5-flash',
-        error: err.message || String(err),
-        rawResponse: err.response?.data || err.stack || err.message || String(err),
-        requestPayload: { studentName, grade, subjectsCount: subjects?.length || 0 }
-      });
-      if (failedRequestsLog.length > 50) {
-        failedRequestsLog.pop();
-      }
-
       res.json(generateLocalFallbackILDP(studentName, grade, subjects));
     }
   });

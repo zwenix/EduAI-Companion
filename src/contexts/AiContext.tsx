@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type AIProvider = 'gemini' | 'hf-qwen' | 'groq-llama' | 'groq-vision';
+export type AIProvider = 'gemini' | 'qwen-primary' | 'qwen-secondary' | 'alibaba-qwen' | 'groq-vision';
 export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
 export type OCRProvider = 'gemini' | 'ocrspace' | 'groq-vision';
-export type ImageProvider = 'gemini-imagen' | 'huggingface' | 'pollinations-schnell' | 'pollinations-turbo' | 'pollinations-klein' | 'nvidia-sana';
+export type ImageProvider = 'gemini-imagen' | 'huggingface' | 'pollinations-schnell' | 'pollinations-turbo' | 'pollinations-klein' | 'wan2.1-t2i-plus' | 'qwen-image-2.0-pro' | 'qwen-image-2512';
 
 interface AiContextType {
   provider: AIProvider;
@@ -18,10 +18,10 @@ interface AiContextType {
 
 const AiContext = createContext<AiContextType | undefined>(undefined);
 
-const VALID_PROVIDERS: AIProvider[] = ['gemini', 'hf-qwen', 'groq-llama', 'groq-vision'];
+const VALID_PROVIDERS: AIProvider[] = ['gemini', 'qwen-primary', 'qwen-secondary', 'alibaba-qwen', 'groq-vision'];
 const VALID_TTS: TTSProvider[] = ['browser', 'groq-whisper', 'huggingface', 'google-tts'];
 const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace', 'groq-vision'];
-const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'huggingface', 'pollinations-schnell', 'pollinations-turbo', 'pollinations-klein', 'nvidia-sana'];
+const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'huggingface', 'pollinations-schnell', 'pollinations-turbo', 'pollinations-klein', 'wan2.1-t2i-plus', 'qwen-image-2.0-pro', 'qwen-image-2512'];
 
 export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {
@@ -57,10 +57,10 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [imageProvider, setImageProvider] = useState<ImageProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_image_provider') as any;
-      if (saved === 'zhipu' || saved === 'glm-image' || saved === 'pollinations') return 'gemini-imagen';
-      return saved && VALID_IMAGE.includes(saved) ? saved : 'gemini-imagen';
+      if (saved === 'zhipu' || saved === 'glm-image' || saved === 'pollinations' || saved === 'gemini-imagen') return 'pollinations-schnell';
+      return saved && VALID_IMAGE.includes(saved) ? saved : 'pollinations-schnell';
     } catch {
-      return 'gemini-imagen';
+      return 'pollinations-schnell';
     }
   });
 

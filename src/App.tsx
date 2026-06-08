@@ -67,7 +67,6 @@ import ProgressReports from './components/ProgressReports';
 import AutoGrading from './components/AutoGrading';
 import ContentArchive from './components/ContentArchive';
 import AITutorPage from './components/AITutorPage';
-import HFPlayground from './components/HFPlayground';
 import ClassManagement from './components/ClassManagement';
 import { SplashScreen } from './components/SplashScreen';
 import RoleSelection from './components/RoleSelection';
@@ -522,9 +521,6 @@ export default function App() {
     url?: string;
     isBlockedByClient: boolean;
     message: string;
-    isServerError?: boolean;
-    statusCode?: number;
-    serverErrorDetails?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -727,8 +723,7 @@ export default function App() {
           ];
         case 'intelligence-ai':
           return [
-            { id: 'ai-tutor', label: 'AI Tutor Helpers', icon: Brain },
-            { id: 'hf-playground', label: 'Hugging Face Playground', icon: Sparkles }
+            { id: 'ai-tutor', label: 'AI Tutor Helpers', icon: Brain }
           ];
         case 'class-analytics':
           return [
@@ -801,8 +796,7 @@ export default function App() {
         case 'intelligence-ai':
           return [
             { id: 'ai-tutor', label: 'AI System Controls', icon: Brain },
-            { id: 'ocr', label: 'OCR Grading Logs', icon: Scan },
-            { id: 'hf-playground', label: 'Hugging Face Playground', icon: Sparkles }
+            { id: 'ocr', label: 'OCR Grading Logs', icon: Scan }
           ];
         case 'class-analytics':
           return [
@@ -841,8 +835,7 @@ export default function App() {
         case 'intelligence-ai':
           return [
             { id: 'ai-tutor', label: 'AI Tutor Support', icon: Brain },
-            { id: 'ocr', label: 'Scan & Autograde', icon: Scan },
-            { id: 'hf-playground', label: 'Hugging Face Playground', icon: Sparkles }
+            { id: 'ocr', label: 'Scan & Autograde', icon: Scan }
           ];
         case 'class-analytics':
           return [
@@ -1384,7 +1377,9 @@ export default function App() {
                 title="Image Generation Engine"
               >
                 <option value="gemini-imagen">IMG: Gemini 2.5 Flash Image</option>
-                <option value="nvidia-sana">IMG: NVIDIA Sana / SDXL</option>
+                <option value="wan2.1-t2i-plus">IMG: Alibaba wan2.1-t2i-plus</option>
+                <option value="qwen-image-2.0-pro">IMG: Alibaba qwen-image-2.0-pro</option>
+                <option value="qwen-image-2512">IMG: NVIDIA qwen-image-2512</option>
                 <option value="huggingface">IMG: HF FLUX.1</option>
                 <option value="pollinations-schnell">IMG: Flux Schnell</option>
                 <option value="pollinations-turbo">IMG: Z-Image Turbo</option>
@@ -1418,8 +1413,8 @@ export default function App() {
               }`}
               title="Primary Text Model"
             >
-              <option value="hf-qwen">Hugging Face Qwen 3.5 (Primary)</option>
-              <option value="groq-llama">Groq Llama 4 Scout (Secondary)</option>
+              <option value="qwen-primary">Hugging Face Qwen3.5-397B-A17B (Primary)</option>
+              <option value="qwen-secondary">Groq Llama-4-Scout-17B (Secondary)</option>
               <option value="gemini">Gemini (Fallback)</option>
             </select>
             <button 
@@ -1953,8 +1948,6 @@ export default function App() {
                   <IllustrationLibrary isDarkMode={isDarkMode} />
                 ) : activeTab === 'ai-tutor' ? (
                   <AITutorPage />
-                ) : activeTab === 'hf-playground' ? (
-                  <HFPlayground />
                 ) : activeTab === 'student-practice' ? (
                   <StudentPractice isDarkMode={isDarkMode} />
                 ) : activeTab === 'student-notes' ? (
@@ -2013,7 +2006,7 @@ export default function App() {
                     <div className="space-y-4">
                       {[
                         { q: "📚 Is the curriculum aligned with South African CAPS standards?", a: "Yes, 100%! All content created, lessons compiled, and rubrics generated map directly with the Department of Basic Education (DBE) South African National Curriculum Assessment Policy Statements (CAPS) requirements across Grades 1 to 12." },
-                        { q: "🤖 Which AI model powers the tutoring system?", a: "EduAI is powered by advanced multi-model intelligence, featuring state-of-the-art models like Google Gemini, Hugging Face Qwen 3.5, and Groq Llama 4 Scout. These models offer ultra-fast localized explanations, using rands (R), local currencies, and South African historical/geographic contexts." },
+                        { q: "🤖 Which AI model powers the tutoring system?", a: "EduAI is powered by advanced multi-model intelligence, featuring state-of-the-art models like Google Gemini and Qwen. These models offer ultra-fast localized explanations, using rands (R), local currencies, and South African historical/geographic contexts." },
                         { q: "📶 Can I use this application offline?", a: "Absolutely! Simply click on the 'INSTALL OFFLINE APP' button in the sidebar to download our Progressive Web App (PWA). Your downloaded study guides, textbook revisions, and completed portfolio tasks are cached on your local device for instant access without a stable internet connection." },
                         { q: "🛡️ How is my data protected?", a: "We adhere to strict POPIA (Protection of Personal Information Act) regulation compliance. Student assessments or raw photos are processed securely and never shared with third-party advertising engines." }
                       ].map((item, idx) => (
@@ -2132,11 +2125,7 @@ export default function App() {
                   </div>
                   <div>
                     <h3 className={`text-lg font-black font-display tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                      {apiBlockedAlert.isBlockedByClient 
-                        ? 'API Request Blocked' 
-                        : (apiBlockedAlert.isServerError 
-                            ? `Server Error (${apiBlockedAlert.statusCode || 500})` 
-                            : 'API Unreachable')}
+                      {apiBlockedAlert.isBlockedByClient ? 'API Request Blocked' : 'API Unreachable'}
                     </h3>
                     <p className="text-xs font-black uppercase tracking-wider text-rose-500 font-display">
                       Provider: {apiBlockedAlert.provider}
@@ -2148,30 +2137,13 @@ export default function App() {
                   {apiBlockedAlert.message}
                 </div>
 
-                {apiBlockedAlert.isServerError && apiBlockedAlert.serverErrorDetails && (
-                  <div className="flex flex-col gap-1.5">
-                    <span className={`text-[10px] uppercase font-black tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Server Response Detail</span>
-                    <pre className="p-3 bg-red-950/20 border border-red-500/20 text-red-400 text-xs font-mono rounded-xl max-h-[140px] overflow-y-auto whitespace-pre-wrap break-all">
-                      {apiBlockedAlert.serverErrorDetails}
-                    </pre>
-                  </div>
-                )}
-
                 <div className="flex flex-col gap-2 text-xs">
                   <span className={`font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Recommended Solutions:</span>
-                  {apiBlockedAlert.isServerError ? (
-                    <ul className={`list-disc list-inside space-y-1.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      <li>Verify your <b>GEMINI_API_KEY</b>, <b>HUGGINGFACE_API_KEY</b>, or <b>GROQ_API_KEY</b> is correctly declared in settings or server config.</li>
-                      <li>Consult the <b>Debug Console</b> in the Admin Dashboard to review real-time network request payloads.</li>
-                      <li>Confirm that the server is not throttled, and that the specified AI model is supported.</li>
-                    </ul>
-                  ) : (
-                    <ul className={`list-disc list-inside space-y-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      <li><b>Disable Ad-Blockers</b> (e.g., uBlock Origin, AdBlock Plus) for this site.</li>
-                      <li>If on <b>Brave Browser</b>, lower shields or whitelist the API domains.</li>
-                      <li>Verify your local firewall or network DNS filter policies doesn't block out external AI APIs.</li>
-                    </ul>
-                  )}
+                  <ul className={`list-disc list-inside space-y-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <li><b>Disable Ad-Blockers</b> (e.g., uBlock Origin, AdBlock Plus) for this site.</li>
+                    <li>If on <b>Brave Browser</b>, lower shields or whitelist the API domains.</li>
+                    <li>Verify your local firewall or network DNS filter policies doesn't block out external AI APIs.</li>
+                  </ul>
                 </div>
 
                 <button

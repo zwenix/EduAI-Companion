@@ -23,8 +23,8 @@ export const generateEducationalContent = async (type: string, details: string, 
       return await geminiGenerateContent(type, details);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to hf-qwen...");
-        provider = 'hf-qwen';
+        console.warn("Gemini limit hit, auto-falling back to qwen-primary...");
+        provider = 'qwen-primary';
       } else {
         throw err;
       }
@@ -58,8 +58,8 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
       return await geminiGenerateCAPS(input);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to hf-qwen...");
-        provider = 'hf-qwen';
+        console.warn("Gemini limit hit, auto-falling back to qwen-primary...");
+        provider = 'qwen-primary';
       } else {
         throw err;
       }
@@ -147,8 +147,8 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini')
       return await geminiGenerateVisual(input);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to hf-qwen...");
-        provider = 'hf-qwen';
+        console.warn("Gemini limit hit, auto-falling back to qwen-primary...");
+        provider = 'qwen-primary';
       } else {
         throw err;
       }
@@ -264,8 +264,8 @@ export const generateAdminDoc = async (input: any, provider: string = 'gemini') 
       return await geminiGenerateAdmin(input);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to hf-qwen...");
-        provider = 'hf-qwen';
+        console.warn("Gemini limit hit, auto-falling back to qwen-primary...");
+        provider = 'qwen-primary';
       } else {
         throw err;
       }
@@ -369,8 +369,8 @@ export const runOCRAndGrade = async (imageData: string, rubric: string, provider
       return await geminiOCR(imageData, rubric, language);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to hf-qwen for OCR grading...");
-        provider = 'hf-qwen';
+        console.warn("Gemini limit hit, auto-falling back to qwen-primary for OCR grading...");
+        provider = 'qwen-primary';
         ocrProvider = 'groq-vision';
       } else {
         throw err;
@@ -392,7 +392,7 @@ export const runOCRAndGrade = async (imageData: string, rubric: string, provider
       return await geminiOCR(imageData, rubric, language);
     } catch(err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        provider = 'hf-qwen';
+        provider = 'qwen-primary';
       } else {
         throw err;
       }
@@ -400,7 +400,7 @@ export const runOCRAndGrade = async (imageData: string, rubric: string, provider
   }
 
   try {
-    let model = provider === 'hf-qwen' ? 'Qwen/Qwen2.5-72B-Instruct' : 'llama-3.3-70b-versatile';
+    let model = provider === 'qwen-primary' ? 'Qwen/Qwen3.5-397B-A17B' : (provider === 'qwen-secondary' ? 'Llama-4-Scout-17B-16E-Instruct' : 'qwen-max');
     
     const grading = await callMultiAi(provider as AIProvider, messages, model);
     
@@ -434,7 +434,7 @@ export const chatWithTutor = async (messages: any[], provider: string = 'gemini'
          if (hasImage) {
            throw new Error("Cannot fallback, Image context requires Gemini API, but quota is exceeded.");
          }
-         provider = 'hf-qwen';
+         provider = 'qwen-primary';
        } else {
          throw err;
        }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Award, Star, BookOpen, Clock, FileText, Video, Trophy, Filter, X, Zap, Target, Loader2 } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
@@ -95,85 +95,48 @@ export default function StudentPortfolio({ isDarkMode }: { isDarkMode: boolean }
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isGeneratingHtmlPdf, setIsGeneratingHtmlPdf] = useState(false);
   
-  const subjects = useMemo(() => {
-    const list = ['All', 'Mathematics', 'Natural Sciences', 'English Home Language', 'General'];
-    items.forEach(item => {
-      if (item.subject && !list.includes(item.subject)) {
-        list.push(item.subject);
-      }
-    });
-    return list;
-  }, [items]);
+  const subjects = ['All', 'Mathematics', 'Natural Sciences', 'English Home Language', 'General'];
 
   const filteredItems = items.filter(item => filter === 'All' || item.subject === filter);
   const featuredItems = items.filter(item => item.featured);
 
   useEffect(() => {
-    const fetchStudentProfileAndSubmissions = async () => {
-      let email = 'sibu.dube@school.za';
+    const fetchStudentProfile = async () => {
       if (auth.currentUser) {
-        email = auth.currentUser.email?.toLowerCase().trim() || '';
-      }
-
-      try {
-        const qProfile = query(collection(db, 'students'), where('email', '==', email));
-        const snap = await getDocs(qProfile);
-        
-        let name = auth.currentUser?.displayName || 'Sibusiso Dube';
-        let grade = 'Grade 10';
-        let school = 'EduAI Showcase Academy';
-
-        if (!snap.empty) {
-          const sData = snap.docs[0].data();
-          name = sData.name || name;
-          grade = sData.grade || sData.gradeLevel || grade;
-          school = sData.school || school;
+        try {
+          const email = auth.currentUser.email?.toLowerCase().trim() || '';
+          const q = query(collection(db, 'students'), where('email', '==', email));
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            const sData = snap.docs[0].data();
+            setStudentProfile({
+              name: sData.name || auth.currentUser.displayName || 'Learner',
+              email: sData.email || email,
+              grade: sData.gradeLevel || 'Grade 10',
+              school: sData.school || 'EduAI Showcase Academy'
+            });
+          } else {
+            setStudentProfile({
+              name: auth.currentUser.displayName || 'Learner',
+              email: email,
+              grade: 'Grade 10',
+              school: 'EduAI Showcase Academy'
+            });
+          }
+        } catch (error) {
+          console.error("Error loading student profile for portfolio PDF:", error);
         }
-
-        const profileObj = { name, email, grade, school };
-        setStudentProfile(profileObj);
-
-        // Fetch submissions for this student from Firestore
-        const qSubmissions = query(collection(db, 'student_submissions'), where('studentEmail', '==', email));
-        const snapSub = await getDocs(qSubmissions);
-        const fetchedItems: PortfolioItem[] = [];
-
-        snapSub.forEach((docSnap) => {
-          const subData = docSnap.data();
-          fetchedItems.push({
-            id: docSnap.id,
-            title: subData.title || 'Grading Report',
-            type: (subData.type || 'assessment') as any,
-            subject: subData.subject || 'Mathematics',
-            capsAlignment: subData.capsAlignment || 'Term Topic Continuous Assessment',
-            date: subData.date || new Date().toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }),
-            grade: subData.grade || 'N/A',
-            feedback: subData.feedback || '',
-            icon: subData.type === 'achievement' ? Trophy : subData.type === 'project' ? Star : FileText,
-            color: subData.type === 'achievement' ? 'from-yellow-300 to-yellow-500' : subData.type === 'project' ? 'from-amber-400 to-orange-500' : 'from-emerald-400 to-teal-500',
-            featured: subData.featured || false
-          });
-        });
-
-        if (fetchedItems.length > 0) {
-          // Sort fetched items (newest first) and merge with DEFAULT_ITEMS
-          const sortedFetched = fetchedItems.sort((a,b) => b.id.localeCompare(a.id));
-          setItems([...sortedFetched, ...DEFAULT_ITEMS]);
-        } else {
-          setItems(DEFAULT_ITEMS);
-        }
-      } catch (error) {
-        console.error("Error loading student profile/submissions:", error);
+      } else {
         setStudentProfile({
-          name: auth.currentUser?.displayName || 'Sibusiso Dube',
-          email: email,
+          name: 'Sibusiso Dube',
+          email: 'sibu.dube@school.za',
           grade: 'Grade 10',
           school: 'EduAI Showcase Academy'
         });
       }
     };
 
-    fetchStudentProfileAndSubmissions();
+    fetchStudentProfile();
   }, []);
 
   const generateParentReportPDF = async () => {

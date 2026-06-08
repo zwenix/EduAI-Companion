@@ -19,7 +19,7 @@ async function main() {
   try {
     console.log("Attempting call...");
     const response = await client.chat.completions.create({
-      model: "Qwen/Qwen2.5-72B-Instruct",
+      model: "Qwen/Qwen3.5-397B-A17B",
       messages: [{ role: "user", content: "Hello" }],
       max_tokens: 10,
     });

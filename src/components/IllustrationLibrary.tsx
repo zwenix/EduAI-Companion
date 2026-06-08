@@ -103,7 +103,7 @@ export default function IllustrationLibrary({ isDarkMode }: { isDarkMode: boolea
 
       // Generate enhanced educational visual style compliant with SA palette
       const enhancedPrompt = `${cleanPrompt}, professional children's educational book illustration style, pencil sketch and clean watercolor painting blend, rich vibrant colors, high detail, no text overlays, South African classroom display, 300 DPI`;
-      const generatedUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=600&nologo=true&model=turbo&seed=${seed}`;
+      const generatedUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=600&nologo=true&model=flux&seed=${seed}`;
 
       const docRef = doc(db, 'illustrations', cleanId);
       const user = auth.currentUser;

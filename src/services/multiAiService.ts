@@ -1,30 +1,43 @@
 import axios from 'axios';
 import { checkAndReportApiError } from '../lib/apiErrorHelper';
 
-export type AIProvider = 'hf-qwen' | 'groq-llama' | 'groq-vision';
+export type AIProvider = 'qwen-primary' | 'qwen-secondary' | 'alibaba-qwen' | 'groq-vision';
 
 const executeClientMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
   let url = "";
   let apiKey = "";
   let selectedModel = model;
 
-  if (provider === 'hf-qwen') {
-    url = "https://api-inference.huggingface.co/v1/chat/completions";
-    apiKey = (process.env as any).HUGGINGFACE_API_KEY || (import.meta as any).env?.VITE_HUGGINGFACE_API_KEY || (process.env as any).HUGGINGFACE_TOKEN || (import.meta as any).env?.VITE_HUGGINGFACE_TOKEN || "";
-    if (!selectedModel) {
-      selectedModel = "Qwen/Qwen2.5-72B-Instruct";
+  if (provider === 'qwen-primary') {
+    const aliKey = (process.env as any).ALIBABA_API_KEY || (import.meta as any).env?.VITE_ALIBABA_API_KEY || "";
+    if (aliKey && aliKey !== "dummy" && aliKey !== "undefined") {
+      url = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
+      apiKey = aliKey;
+      selectedModel = "qwen-max";
+    } else {
+      url = "https://api-inference.huggingface.co/v1/chat/completions";
+      apiKey = (process.env as any).HUGGINGFACE_API_KEY || (import.meta as any).env?.VITE_HUGGINGFACE_API_KEY || (process.env as any).HUGGINGFACE_TOKEN || (import.meta as any).env?.VITE_HUGGINGFACE_TOKEN || "";
+      if (!selectedModel) {
+        selectedModel = "Qwen/Qwen3.5-397B-A17B";
+      }
     }
-  } else if (provider === 'groq-llama') {
+  } else if (provider === 'qwen-secondary') {
     url = "https://api.groq.com/openai/v1/chat/completions";
     apiKey = (process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "";
     if (!selectedModel) {
-      selectedModel = "llama-3.3-70b-versatile";
+      selectedModel = "Llama-4-Scout-17B-16E-Instruct";
     }
   } else if (provider === 'groq-vision') {
     url = "https://api.groq.com/openai/v1/chat/completions";
     apiKey = (process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "";
     if (!selectedModel) {
       selectedModel = "llama-3.2-11b-vision-instant";
+    }
+  } else if (provider === 'alibaba-qwen') {
+    url = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
+    apiKey = (process.env as any).ALIBABA_API_KEY || (import.meta as any).env?.VITE_ALIBABA_API_KEY || "";
+    if (!selectedModel) {
+      selectedModel = "qwen-max";
     }
   }
 
