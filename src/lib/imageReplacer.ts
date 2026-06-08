@@ -81,12 +81,18 @@ export function replaceImagePlaceholders(html: string): string {
   if (!html) return '';
 
   // Matches various placeholder formats like [Illustration: ...], [Image: ...], [Diagram: ...]
-  const regex = /\[(?:Illustration|Image|Concept\s+Illustration|Diagram|Graphic):\s*([^\]]+)\]/gi;
+  // Supports: escaped brackets like \[Illustration: ...\], spaces inside/around brackets, colons/dashes/equal signs, and alternative prefixes
+  const regex = /\\?\[\s*(?:Illustration|Image|Concept\s+Illustration|Diagram|Graphic|Visual|Picture|Sketch|Photo|Drawing|Chart|Infographic|Map)\s*[:=-]\s*([^\]\\]+)\\?\]/gi;
 
   let seedCounter = Math.floor(Math.random() * 100000);
 
   return html.replace(regex, (match, p1) => {
-    const cleanPrompt = p1.trim();
+    let cleanPrompt = p1.trim();
+    // Safely strip any leading/trailing quote, backslash or space relics
+    cleanPrompt = cleanPrompt.replace(/^['"\s\\]+|['"\s\\]+$/g, '').trim();
+    
+    if (!cleanPrompt) return '';
+    
     seedCounter += 1;
 
     // Direct AI-generation flow (completely bypassing cached library as requested)

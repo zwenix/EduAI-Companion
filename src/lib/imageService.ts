@@ -37,7 +37,7 @@ async function executeGeneration(
     if (provider === 'pollinations-turbo') {
       pollModel = 'turbo';
     } else if (provider === 'pollinations-schnell') {
-      pollModel = 'FLUX.1-schnell';
+      pollModel = 'flux'; // 'flux' is extremely robust and has maximum up-time
     } else if (provider === 'pollinations-klein') {
       pollModel = 'flux-pro';
     }

@@ -1,17 +1,20 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { parsePosterHtml } from '../lib/posterParser';
+import { replaceImagePlaceholders } from '../lib/imageReplacer';
 
 interface PosterPreviewProps {
   html: string;
 }
 
 export function PosterPreview({ html }: PosterPreviewProps) {
-  const parsed = React.useMemo(() => parsePosterHtml(html), [html]);
+  // Pre-process raw html to replace any bracket image placeholders with image tags
+  const processedHtml = React.useMemo(() => replaceImagePlaceholders(html || ''), [html]);
+  const parsed = React.useMemo(() => parsePosterHtml(processedHtml), [processedHtml]);
 
   if (!parsed.isPoster) {
     // If it is not parsed as a poster layout, fallback to simple rendering
-    return <div dangerouslySetInnerHTML={{ __html: html }} />;
+    return <div dangerouslySetInnerHTML={{ __html: processedHtml }} />;
   }
 
   // Framer Motion layout configurations
