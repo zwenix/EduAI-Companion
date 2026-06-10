@@ -12,6 +12,22 @@ import {
 } from './geminiService';
 
 import { callMultiAi, performOCR, AIProvider } from './multiAiService';
+import EduAIPromptEngine from '../lib/prompt-engine';
+
+const mapContentType = (typeStr: string): 'worksheet' | 'poster' | 'study-guide' | 'infographic' | 'lesson-plan' | 'report-comment' | 'curriculum-map' | 'rubric' | 'test' | 'progress-tracker' => {
+  const s = (typeStr || '').toLowerCase();
+  if (s.includes('worksheet') || s.includes('exercise')) return 'worksheet';
+  if (s.includes('poster')) return 'poster';
+  if (s.includes('study-guide') || s.includes('learning notes') || s.includes('notes')) return 'study-guide';
+  if (s.includes('lesson-plan') || s.includes('lesson plan')) return 'lesson-plan';
+  if (s.includes('report-comment') || s.includes('report comment')) return 'report-comment';
+  if (s.includes('curriculum-map') || s.includes('curriculum map')) return 'curriculum-map';
+  if (s.includes('rubric') || s.includes('matrix')) return 'rubric';
+  if (s.includes('test') || s.includes('exam') || s.includes('quiz')) return 'test';
+  if (s.includes('progress-tracker') || s.includes('progress tracker')) return 'progress-tracker';
+  if (s.includes('infographic') || s.includes('mind map')) return 'infographic';
+  return 'worksheet';
+};
 
 const isProviderFailure = (error: any) => {
   return true; // Always fallback if the primary provider fails!
@@ -66,60 +82,31 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
     }
   }
   
-  const isStudyGuide = input.contentType === 'Study Guide / Learning Notes';
-  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.`;
-  
-  let studyGuideRequirements = "";
-  if (isStudyGuide) {
-    studyGuideRequirements = `
-    CRITICAL STUDY GUIDE REQUIREMENTS:
-    - This is a Study Guide/Learning Notes document. The primary content MUST be comprehensive, article-like, or textbook chapter-like notes.
-    - Break down the concepts logically into paragraphs, using rich explanations that a learner can actually study from.
-    - Include illustrations or visual aids (describe or embed them using CSS/HTML shapes, or leave marked spaces for the hero illustration).
-    - You can include a few exercises, examples, or a worksheet section at the end, but the MAJORITY of the document must be the detailed educational reading material and notes.
-    `;
-  }
+  const promptContext = {
+    contentType: mapContentType(input.contentType),
+    grade: input.grade || '1',
+    subject: input.subject || 'Mathematics',
+    topic: input.topic || 'General Topic',
+    language: input.language || 'English',
+    learnerProfile: input.learnerProfile || '',
+    additionalInstructions: input.additionalInstructions || input.objective || '',
+    visualStyle: input.visualStyle || 'modern',
+    colorScheme: input.colorScheme || '',
+    capsReference: input.capsReference || ''
+  };
 
-  const prompt = `
-    Type: ${input.contentType}
-    Grade: ${input.grade}
-    Subject: ${input.subject}
-    Topic: ${input.topic}
-    Language: ${input.language}
-    Objective: ${input.objective}
-    Learner Profile: ${input.learnerProfile}
-    Additional Info: ${input.additionalInstructions}
+  const assembled = EduAIPromptEngine.assemblePrompt(promptContext);
+  const systemInstruction = assembled.system;
+  let prompt = assembled.user;
 
-    SPECIFIC VISUAL ENHANCEMENT:
-    For every worksheet/document, create ONE stunning hero illustration at the top that occupies 25–30% of the page. 
-    The illustration must be:
-    - Directly related to the specific CAPS topic
-    - Set in a recognizable South African context
-    - Semi-realistic digital painting style (like children’s non-fiction books)
-    - Emotionally engaging and curiosity-sparking
-    - High detail, rich colors, perfect composition
-
-    REQUIREMENTS FOR HTML DESIGN:
-    - Include full-width colored banners (e.g. orange for Life Skills, teal/blue for Math, purple/pink for Languages).
-    - Add a large circular badge in the top right for the Grade (e.g., "Grade 4").
-    - "Name: ____ Date: _____ Total __ / 30" layout below header (if applicable).
-    - Question text styles: Make them bold with distinct numbered bullets (e.g. circles with white text).
-    - Options/Answers: Enclose multiple choices or matching lists inside pill-shaped boxes with a colored border or background.
-    - Footer: "EduAI Companion | CAPS Aligned | eduai-companion.github.io".
-    - DO NOT USE MARKDOWN. Write raw HTML inside the JSON content values using tailwind CSS classes.
-    ${studyGuideRequirements}
-
-    Return the result as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
-    {
-      "content": "<HTML CODE FOR THE MAIN DOCUMENT HERE>",
-      "memo": "<HTML CODE FOR THE ANSWER MEMO HERE>",
-      "rubric": "<HTML CODE FOR THE GRADING RUBRIC HERE>",
-      "successIndicators": ["string", "string"],
-      "imagePrompt": "Detailed prompt matching IMAGE GUIDE..."
-    }
-    
-    GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}
-  `;
+  prompt += `\n\nReturn the result as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
+  {
+    "content": "<HTML CODE FOR THE MAIN DOCUMENT HERE>",
+    "memo": "<HTML CODE FOR THE ANSWER MEMO HERE>",
+    "rubric": "<HTML CODE FOR THE GRADING RUBRIC HERE>",
+    "successIndicators": ["string", "string"],
+    "imagePrompt": "Detailed prompt matching IMAGE GUIDE..."
+  }`;
 
   const messages = [
     { role: 'system', content: systemInstruction },
@@ -155,88 +142,29 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini')
     }
   }
   
-  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nThe 'content' field in your JSON response MUST be stunningly designed HTML with Tailwind CSS. DO NOT use generic Markdown.`;
-  const isPoster = input.visualType?.toLowerCase().includes('poster');
-  const isInfographic = input.visualType?.toLowerCase().includes('infographic') || input.visualType?.toLowerCase().includes('mind map');
-  const isDiagram = input.visualType?.toLowerCase().includes('diagram');
-  const isFlashcard = input.visualType?.toLowerCase().includes('flashcard') || input.visualType?.toLowerCase().includes('learning card');
+  const promptContext = {
+    contentType: mapContentType(input.visualType || 'poster'),
+    grade: input.grade || '1',
+    subject: input.subject || 'Mathematics',
+    topic: input.topic || 'General Topic',
+    language: input.language || 'English',
+    learnerProfile: input.learnerProfile || '',
+    additionalInstructions: input.specificContent || input.additionalInstructions || '',
+    visualStyle: input.style || 'modern',
+    colorScheme: input.colorScheme || ''
+  };
 
-  let visualPrompt = "";
-  if (isPoster) {
-    visualPrompt = `
-      Create a stunning, print-ready educational poster for South African Grade ${input.grade} ${input.subject} learners on the CAPS topic: "${input.topic}"
+  const assembled = EduAIPromptEngine.assemblePrompt(promptContext);
+  const systemInstruction = assembled.system;
+  let prompt = assembled.user;
 
-      DESIGN REQUIREMENTS (Based on EduAI Companion Templates):
-      - HTML/Tailwind ONLY. Do not use markdown.
-      - Layout: A massive central Hero Image (illustration) taking up the middle 50% of the poster.
-      - Top Banner: Large, playful, multi-colored bubble-letter style title (using text-shadows, varied colors per word) centered at the top.
-      - Floating Fact Boxes: 4-6 small floating fact boxes positioned around the central image. Each box should have a thick colored outline (e.g., solid 4px red, green, blue border), white background, small playful SVG icon/emoji, and short, legible text.
-      - Title Style: Give each letter or word a different vibrant color.
-      - Visual hierarchy: Make it look like an adventure map or a colorful infographic.
-      - Footer Layout: Include 3-4 neat little text boxes in a row at the very bottom containing extra info or activities. Include EduAI or CAPS branding.
-      - Typography: Use bold, playful sans-serif fonts.
-      - Colors: Sky blue background, primary color accents (bright yellow, striking red, vibrant green).
-      
-      Make it vibrant, instantly engaging, and child-friendly.
-    `;
-  } else if (isFlashcard) {
-    visualPrompt = `
-      Design a set of professional, double-sided educational flashcards for Grade ${input.grade} ${input.subject} on "${input.topic}".
-      
-      DESIGN REQUIREMENTS:
-      - Show multiple cards in a grid (2 or 3 per row).
-      - Each card should have:
-        - Front side: Large title, high-quality icon/emoji, and a very short hint.
-        - Back side: Explanation, a South African contextual example, and a small "Did you know?" fact.
-      - Card style: rounded-3xl corners, thick colored borders (2px), subtle shadow.
-      - Use vibrant colors that change per card.
-      - Ensure text is large and legible (text-xl for titles).
-    `;
-  } else if (isInfographic) {
-    visualPrompt = `
-      Design a visually spectacular CAPS-aligned infographic/mind map on ${input.topic} for Grade ${input.grade}.
-
-      Requirements:
-      - Central concept in the middle with radiating branches
-      - Each branch has a beautifully illustrated icon (custom drawn, not generic)
-      - South African contextual examples throughout
-      - Color-coded sections with perfect visual hierarchy
-      - Style: Modern flat design with subtle textures and depth
-      - Include real South African case studies or examples where possible
-    `;
-  } else if (isDiagram) {
-    visualPrompt = `
-      Create a crystal-clear, beautifully illustrated scientific diagram of ${input.topic} specifically adapted for South African Grade ${input.grade} learners.
-
-      Show the process occurring in a real South African landscape:
-      - Water cycle: Include Table Mountain, Drakensberg, or Karoo
-      - Food chain: Use indigenous animals (lion, impala, acacia tree, vulture, etc.)
-      - Rock cycle: Feature South African geological formations
-      - Plant structure: Use protea, aloe, or fynbos species
-
-      Style: Clean, labeled, semi-realistic illustration with arrows, soft shadows, and depth. National Geographic kids magazine quality.
-    `;
-  } else {
-    visualPrompt = `Create a highly visual ${input.visualType} for Grade ${input.grade} ${input.subject} on topic ${input.topic}.`;
-  }
-
-  const prompt = `
-    ${visualPrompt}
-    Language: ${input.language}
-    Style: ${input.style}
-    Color: ${input.colorScheme}
-    Content Details: ${input.specificContent}
-    Quantity: ${input.quantity}
-    Additional Info: ${IMAGE_PROMPT_GOLDEN_RULE}
-
-    Return as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
-    {
-      "content": "<HTML STRING WITH TAILWIND DESIGN HERE>",
-      "description": "string",
-      "printInstructions": "string",
-      "imagePrompt": "Detailed prompt..."
-    }
-  `;
+  prompt += `\n\nReturn as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
+  {
+    "content": "<HTML STRING WITH TAILWIND DESIGN HERE>",
+    "description": "string",
+    "printInstructions": "string",
+    "imagePrompt": "Detailed prompt..."
+  }`;
 
   const messages = [
     { role: 'system', content: systemInstruction },
@@ -272,24 +200,28 @@ export const generateAdminDoc = async (input: any, provider: string = 'gemini') 
     }
   }
   
-  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate a formal ${input.documentType} for ${input.schoolName}.
-  The tone should be ${input.tone}.
-  IMPORTANT: The 'content' field MUST be formatted as visually pleasing HTML string styled with Tailwind CSS classes. DO NOT use generic Markdown.`;
-  const prompt = `
-    Type: ${input.documentType}
-    Purpose: ${input.purpose}
-    Key Points: ${input.keyPoints}
-    Include Reply Slip: ${input.includeReplySlip}
-    Language: ${input.language}
+  const promptContext = {
+    contentType: mapContentType(input.documentType || 'lesson-plan'),
+    grade: input.grade || '1',
+    subject: input.subject || 'Mathematics',
+    topic: input.purpose || 'General Plan',
+    language: input.language || 'English',
+    learnerProfile: '',
+    additionalInstructions: `SchoolName: ${input.schoolName}. Tone: ${input.tone}. ReplySlip: ${input.includeReplySlip ? 'Yes' : 'No'}. KeyPoints: ${input.keyPoints || ''}`,
+    visualStyle: 'professional' as const
+  };
 
-    Return as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
-    {
-      "content": "<HTML STRING WITH TAILWIND DESIGN HERE>",
-      "notes": "string",
-      "documentType": "${input.documentType}",
-      "imagePrompt": "prompt for custom seal or emblem if applicable"
-    }
-  `;
+  const assembled = EduAIPromptEngine.assemblePrompt(promptContext);
+  const systemInstruction = assembled.system;
+  let prompt = assembled.user;
+
+  prompt += `\n\nReturn as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
+  {
+    "content": "<HTML STRING WITH TAILWIND DESIGN HERE>",
+    "notes": "string",
+    "documentType": "${input.documentType}",
+    "imagePrompt": "prompt for custom seal or emblem if applicable"
+  }`;
 
   const messages = [
     { role: 'system', content: systemInstruction },

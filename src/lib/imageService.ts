@@ -1,4 +1,5 @@
 import { ImageProvider } from '../contexts/AiContext';
+import { getProxiedImageUrl } from './imageReplacer';
 
 export interface ImageGenerationOptions {
   width?: number;
@@ -42,7 +43,8 @@ async function executeGeneration(
       pollModel = 'flux-pro';
     }
     
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=${width}&height=${height}&nologo=true&model=${pollModel}&seed=${seed}`;
+    const rawUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=${width}&height=${height}&nologo=true&model=${pollModel}&seed=${seed}`;
+    const url = getProxiedImageUrl(rawUrl);
     const duration = Date.now() - startTime;
     
     console.log(

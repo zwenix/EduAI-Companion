@@ -161,8 +161,8 @@ app.use((req, res, next) => {
       }
 
       const modelsToTry = cachedWorkingModel 
-        ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
-        : ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+        ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite", "gemini-flash-latest"]
+        : ["gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite", "gemini-flash-latest"];
       let geminiResponse;
       let lastErrMessage = "";
       for (const modelToTry of modelsToTry) {
@@ -1103,8 +1103,10 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         const candidates = [
           { type: "generateImages", model: "imagen-3.0-generate-002" },
           { type: "generateImages", model: "imagen-4.0-generate-001" },
-          { type: "generateContent", model: "gemini-2.5-flash-image" },
-          { type: "generateContent", model: "gemini-3.1-flash-image" }
+          { type: "generateContent", model: "gemini-3.5-flash" },
+          { type: "generateContent", model: "gemini-3.1-pro-preview" },
+          { type: "generateContent", model: "gemini-3.1-flash-lite" },
+          { type: "generateContent", model: "gemini-flash-latest" }
         ];
 
         let base64 = "";
@@ -1236,8 +1238,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
       const generateContentWithFallback = async (options: { model: string, contents: any, config?: any }) => {
         const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
-          : ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite", "gemini-flash-latest"]
+          : ["gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite", "gemini-flash-latest"];
         
         let lastError: any = null;
         for (const candidate of modelsToTry) {
@@ -1658,8 +1660,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       `;
       let response;
       const ildpModels = cachedWorkingModel 
-        ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
-        : ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+        ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite", "gemini-flash-latest"]
+        : ["gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite", "gemini-flash-latest"];
       
       let lastIldpErr: any = null;
       for (const modelToTry of ildpModels) {

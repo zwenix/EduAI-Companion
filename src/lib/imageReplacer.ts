@@ -2,6 +2,17 @@ import { collection, onSnapshot, query, setDoc, doc, Timestamp } from 'firebase/
 import { db, auth } from './firebase';
 
 /**
+ * Helper to wrap any direct Pollinations URL inside our secure server-side proxy
+ */
+export function getProxiedImageUrl(url: string): string {
+  if (!url) return '';
+  if (url.startsWith('https://image.pollinations.ai') || url.startsWith('http://image.pollinations.ai') || url.startsWith('//image.pollinations.ai')) {
+    return `/api/images/proxy?url=${encodeURIComponent(url)}`;
+  }
+  return url;
+}
+
+/**
  * EduAI Companion - Custom Image Placeholder Replacer & Firestore Cache
  * Synchronizes with Firestore in real-time to replace raw text placeholders
  * with cached, approved, or customized images stored by South African teachers.
@@ -97,7 +108,8 @@ export function replaceImagePlaceholders(html: string): string {
 
     // Direct AI-generation flow (completely bypassing cached library as requested)
     const enhancedPrompt = `${cleanPrompt}, professional children's educational book illustration style, pencil sketch and clean watercolor painting blend, rich vibrant colors, high detail, no text overlays, South African classroom display, 300 DPI`;
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=600&nologo=true&model=flux&seed=${seedCounter}`;
+    const rawUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=600&nologo=true&model=flux&seed=${seedCounter}`;
+    const imageUrl = getProxiedImageUrl(rawUrl);
 
     return `
 <div class="my-6 overflow-hidden rounded-[2rem] border-2 border-solid border-indigo-400 p-2 bg-indigo-50/20 hover:bg-indigo-50/40 transition-all duration-300 max-w-full print:break-inside-avoid print:border-none print:p-0 print:m-0 print:shadow-none shadow-sm">
