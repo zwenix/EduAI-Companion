@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { ImageIcon, Loader2, RefreshCw, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAi } from '../contexts/AiContext';
-import { generateImage } from '../lib/imageService';
 
 interface AiImageProps {
   prompt: string;
@@ -25,28 +24,53 @@ export default function AiImage({ prompt, className = '', aspectRatio = 'square'
       setIsLoading(true);
       setError(false);
       
-      try {
-        const url = await generateImage(prompt, imageProvider, { seed: retryCount });
-        if (active) {
-          setImageUrl(prev => {
-            if (prev === url) {
-              setIsLoading(false);
-            }
-            return url;
+      if (imageProvider.startsWith('pollinations')) {
+        let model = 'flux';
+        if (imageProvider === 'pollinations-schnell') model = 'flux';
+        if (imageProvider === 'pollinations-turbo') model = 'turbo';
+        if (imageProvider === 'pollinations-klein') model = 'flux-pro'; // or whatever the closest is
+        const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&model=${model}&seed=${retryCount}`;
+        if (active) setImageUrl(url);
+      } else {
+        try {
+          const res = await fetch('/api/images/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, provider: imageProvider })
           });
-        }
-      } catch (err: any) {
-        console.warn(`AiImage Error with ${imageProvider}:`, err.message || err);
-        if (active) {
-          setError(true);
-          setIsLoading(false);
+          
+          if (!res.ok) {
+            throw new Error(`Server returned ${res.status}`);
+          }
+          
+          const text = await res.text();
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch (e) {
+            throw new Error('Invalid JSON response');
+          }
+          
+          if (data.url && active) {
+            setImageUrl(data.url);
+          } else if (active) {
+            throw new Error(data.error || 'Failed to generate image');
+          }
+        } catch (err: any) {
+          console.warn(`${imageProvider} Image Warn:`, err.message);
+          
+          if (active) {
+            console.warn("Falling back to Pollinations...");
+            const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&model=flux&seed=${retryCount + 1}`;
+            setImageUrl(url);
+          }
         }
       }
     };
     
     fetchImage();
     return () => { active = false; };
-  }, [prompt, imageProvider, retryCount]);
+  }, [prompt, encodedPrompt, imageProvider, retryCount]);
 
   const aspectClasses = {
     square: 'aspect-square',

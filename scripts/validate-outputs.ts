@@ -20,7 +20,7 @@ interface TestContext {
  * Validate all generated outputs in the outputs directory
  */
 function validateAllOutputs() {
-  const outputsDir = path.join(process.cwd(), 'outputs');
+  const outputsDir = path.join(__dirname, '../outputs');
   const testContexts: TestContext[] = [
     {
       contentType: 'worksheet',

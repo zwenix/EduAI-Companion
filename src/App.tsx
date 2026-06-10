@@ -1361,7 +1361,7 @@ export default function App() {
                 }`}
                 title="OCR Engine"
               >
-                <option value="gemini">OCR: Gemini 3.5 Flash</option>
+                <option value="gemini">OCR: Gemini 3 Flash</option>
                 <option value="groq-vision">OCR: Llama 3.2 Vision</option>
                 <option value="ocrspace">OCR: OCR.Space</option>
               </select>
@@ -1376,8 +1376,7 @@ export default function App() {
                 }`}
                 title="Image Generation Engine"
               >
-                <option value="gemini-imagen">IMG: Gemini 3.1 Flash Image</option>
-                <option value="pollinations-flux">IMG: FLUX General (No Key)</option>
+                <option value="gemini-imagen">IMG: Gemini 2.5 Flash Image</option>
                 <option value="wan2.1-t2i-plus">IMG: Alibaba wan2.1-t2i-plus</option>
                 <option value="qwen-image-2.0-pro">IMG: Alibaba qwen-image-2.0-pro</option>
                 <option value="qwen-image-2512">IMG: NVIDIA qwen-image-2512</option>

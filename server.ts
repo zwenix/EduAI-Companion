@@ -161,8 +161,8 @@ app.use((req, res, next) => {
       }
 
       const modelsToTry = cachedWorkingModel 
-        ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite", "gemini-flash-latest"]
-        : ["gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+        ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
+        : ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
       let geminiResponse;
       let lastErrMessage = "";
       for (const modelToTry of modelsToTry) {
@@ -883,14 +883,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
   app.post("/api/images/generate", async (req, res) => {
     try {
       const { prompt: rawPrompt, provider } = req.body || {};
-      console.log(`[Image API] POST /api/images/generate triggered. Requested provider: "${provider || 'default'}". Raw prompt length: ${rawPrompt ? rawPrompt.length : 0}`);
-      let prompt = rawPrompt || "vibrant educational illustration";
-
-      // Universally clean up bracket placeholders or prefix wrappers if present in the prompt (e.g. "[Illustration: A zebra]")
-      prompt = prompt.trim();
-      prompt = prompt.replace(/^\[(?:Illustration|Image|Concept\s+Illustration|Diagram|Graphic|Visual):\s*/i, "");
-      prompt = prompt.replace(/\]$/, "");
-      prompt = prompt.trim();
+      const prompt = rawPrompt || "vibrant educational illustration";
 
       if (provider === "wan2.1-t2i-plus" || provider === "qwen-image-2.0-pro" || provider === "wanx-v1") {
       let apiKey = process.env.QWEN_API_KEY || process.env.ALIBABA_API_KEY || process.env.VITE_ALIBABA_API_KEY;
@@ -1099,76 +1092,40 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
             }
           }
         });
-
-        const candidates = [
-          { type: "generateImages", model: "imagen-3.0-generate-002" },
-          { type: "generateImages", model: "imagen-4.0-generate-001" },
-          { type: "generateContent", model: "gemini-3.5-flash" },
-          { type: "generateContent", model: "gemini-3.1-pro-preview" },
-          { type: "generateContent", model: "gemini-3.1-flash-lite" },
-          { type: "generateContent", model: "gemini-flash-latest" }
-        ];
-
-        let base64 = "";
-        let successfulModel = "";
-        let lastError: any = null;
-
-        for (const candidate of candidates) {
-          try {
-            console.log(`[Image Service] Attempting Gemini model: ${candidate.model} via ${candidate.type}...`);
-            if (candidate.type === "generateImages") {
-              const resp = await geminiAi.models.generateImages({
-                model: candidate.model,
-                prompt: prompt,
-                config: {
-                  numberOfImages: 1,
-                  outputMimeType: 'image/jpeg',
-                  aspectRatio: '1:1'
-                }
-              });
-              base64 = resp.generatedImages?.[0]?.image?.imageBytes || "";
-            } else {
-              const resp = await geminiAi.models.generateContent({
-                model: candidate.model,
-                contents: {
-                  parts: [
-                    { text: prompt }
-                  ]
-                },
-                config: {
-                  imageConfig: {
-                    aspectRatio: "1:1"
-                  }
-                }
-              });
-              const parts = resp.candidates?.[0]?.content?.parts;
-              if (parts && parts.length > 0) {
-                for (const part of parts) {
-                  if (part.inlineData && part.inlineData.data) {
-                    base64 = part.inlineData.data;
-                    break;
-                  }
-                }
-              }
+        const response = await geminiAi.models.generateContent({
+          model: 'gemini-2.5-flash-image',
+          contents: {
+            parts: [
+              {
+                text: prompt,
+              },
+            ],
+          },
+          config: {
+            imageConfig: {
+              aspectRatio: "1:1",
+              imageSize: "1K"
             }
-
-            if (base64) {
-              successfulModel = candidate.model;
-              console.log(`[Image Service] Successfully generated image using Gemini model: ${candidate.model}`);
+          }
+        });
+        
+        let base64 = "";
+        const parts = response.candidates?.[0]?.content?.parts;
+        if (parts && parts.length > 0) {
+          for (const part of parts) {
+            if (part.inlineData && part.inlineData.data) {
+              base64 = part.inlineData.data;
               break;
             }
-          } catch (err: any) {
-            lastError = err;
-            console.log(`[Image Service] Gemini model ${candidate.model} attempt failed: ${err.message || err}`);
           }
         }
 
         if (base64) {
-          return res.json({ url: `data:image/jpeg;base64,${base64}`, model: successfulModel });
+          return res.json({ url: `data:image/jpeg;base64,${base64}` });
         }
-        throw lastError || new Error("Failed to extract image from any Gemini candidate");
+        throw new Error("Failed to extract image from Gemini response");
       } catch (error: any) {
-        console.log(`[Image Service] All Gemini Image candidate models failed. Last Error: ${error.message || error}. Falling back to Pollinations Flux.`);
+        console.warn("Gemini 2.5 Flash Image failed, automatically falling back to Pollinations Flux...", error.message || error);
         const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000000)}`;
         return res.json({ url });
       }
@@ -1238,8 +1195,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
       const generateContentWithFallback = async (options: { model: string, contents: any, config?: any }) => {
         const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite", "gemini-flash-latest"]
-          : ["gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
+          : ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
         
         let lastError: any = null;
         for (const candidate of modelsToTry) {
@@ -1660,8 +1617,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       `;
       let response;
       const ildpModels = cachedWorkingModel 
-        ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite", "gemini-flash-latest"]
-        : ["gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+        ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
+        : ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
       
       let lastIldpErr: any = null;
       for (const modelToTry of ildpModels) {

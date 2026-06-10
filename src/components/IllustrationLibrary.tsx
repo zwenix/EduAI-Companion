@@ -6,8 +6,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../lib/firebase';
-import { collection, query, onSnapshot, setDoc, doc, deleteDoc, Timestamp } from 'firebase/firestore';
-import { getProxiedImageUrl } from '../lib/imageReplacer';
+import { 
+  collection, query, onSnapshot, setDoc, doc, deleteDoc, Timestamp 
+} from 'firebase/firestore';
 
 interface Illustration {
   id: string;
@@ -577,7 +578,7 @@ export default function IllustrationLibrary({ isDarkMode }: { isDarkMode: boolea
                               {/* Image Frame */}
                               <div className="aspect-[4/3] rounded-[2rem] overflow-hidden bg-slate-100 relative group border border-slate-200/50">
                                 <img 
-                                  src={getProxiedImageUrl(item.imageUrl)} 
+                                  src={item.imageUrl} 
                                   alt={item.prompt} 
                                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                   referrerPolicy="no-referrer"
@@ -732,7 +733,7 @@ export default function IllustrationLibrary({ isDarkMode }: { isDarkMode: boolea
                       {/* Image Frame */}
                       <div className="aspect-[4/3] rounded-[2rem] overflow-hidden bg-slate-100 relative group border border-slate-200/50">
                         <img 
-                          src={getProxiedImageUrl(item.imageUrl)} 
+                          src={item.imageUrl} 
                           alt={item.prompt} 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           referrerPolicy="no-referrer"

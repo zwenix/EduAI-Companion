@@ -90,13 +90,13 @@ export default function PrintPreviewModal({
     }
   }, [options.subject]);
 
+  if (!isOpen) return null;
+
   // Read current display markup based on selection and replace text placeholders with images
   const activeHTML = useMemo(() => {
     const rawHTML = selectedSection === 'memo' ? (memo || '') : selectedSection === 'rubric' ? (rubric || '') : content;
     return replaceImagePlaceholders(rawHTML);
   }, [selectedSection, memo, rubric, content]);
-
-  if (!isOpen) return null;
 
   const handleTriggerPrint = () => {
     // Generate printed PDF with correct options

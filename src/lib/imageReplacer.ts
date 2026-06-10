@@ -2,17 +2,6 @@ import { collection, onSnapshot, query, setDoc, doc, Timestamp } from 'firebase/
 import { db, auth } from './firebase';
 
 /**
- * Helper to wrap any direct Pollinations URL inside our secure server-side proxy
- */
-export function getProxiedImageUrl(url: string): string {
-  if (!url) return '';
-  if (url.startsWith('https://image.pollinations.ai') || url.startsWith('http://image.pollinations.ai') || url.startsWith('//image.pollinations.ai')) {
-    return `/api/images/proxy?url=${encodeURIComponent(url)}`;
-  }
-  return url;
-}
-
-/**
  * EduAI Companion - Custom Image Placeholder Replacer & Firestore Cache
  * Synchronizes with Firestore in real-time to replace raw text placeholders
  * with cached, approved, or customized images stored by South African teachers.
@@ -92,35 +81,54 @@ export function replaceImagePlaceholders(html: string): string {
   if (!html) return '';
 
   // Matches various placeholder formats like [Illustration: ...], [Image: ...], [Diagram: ...]
-  // Supports: escaped brackets like \[Illustration: ...\], spaces inside/around brackets, colons/dashes/equal signs, and alternative prefixes
-  const regex = /\\?\[\s*(?:Illustration|Image|Concept\s+Illustration|Diagram|Graphic|Visual|Picture|Sketch|Photo|Drawing|Chart|Infographic|Map)\s*[:=-]\s*([^\]\\]+)\\?\]/gi;
+  const regex = /\[(?:Illustration|Image|Concept\s+Illustration|Diagram|Graphic):\s*([^\]]+)\]/gi;
 
   let seedCounter = Math.floor(Math.random() * 100000);
 
   return html.replace(regex, (match, p1) => {
-    let cleanPrompt = p1.trim();
-    // Safely strip any leading/trailing quote, backslash or space relics
-    cleanPrompt = cleanPrompt.replace(/^['"\s\\]+|['"\s\\]+$/g, '').trim();
-    
-    if (!cleanPrompt) return '';
-    
+    const cleanPrompt = p1.trim();
     seedCounter += 1;
 
-    // Direct AI-generation flow (completely bypassing cached library as requested)
+    // Check Firestore reactive cache
+    const cachedUrl = IllustrationCache.get(cleanPrompt);
+    
+    if (cachedUrl) {
+      return `
+<div class="my-6 overflow-hidden rounded-[2rem] border-2 border-solid border-slate-200 p-2 bg-white hover:bg-slate-50 transition-all duration-300 max-w-full print:break-inside-avoid print:border-none print:p-0 print:m-0 print:shadow-none shadow-sm">
+  <img src="${cachedUrl}" 
+       alt="${cleanPrompt}" 
+       class="w-full object-cover rounded-[1.8rem] aspect-[4/3] max-h-[360px] border border-slate-100 shadow-inner print:rounded-none print:shadow-none" 
+       referrerPolicy="no-referrer" />
+  <div class="px-4 py-2 border-t border-dashed border-slate-150 mt-2 bg-slate-50/55 rounded-b-[1.5rem] flex items-center justify-between print:hidden select-none">
+    <div class="flex items-center gap-2">
+      <span class="text-xs">💾</span>
+      <p class="text-[9px] uppercase tracking-widest font-black text-emerald-600 leading-none">
+        Cached Library Asset: ${cleanPrompt.slice(0, 45)}${cleanPrompt.length > 45 ? '...' : ''}
+      </p>
+    </div>
+    <span class="text-[8px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold select-none uppercase">Synced</span>
+  </div>
+</div>
+      `;
+    }
+
+    // Fallback/First-generation flow
     const enhancedPrompt = `${cleanPrompt}, professional children's educational book illustration style, pencil sketch and clean watercolor painting blend, rich vibrant colors, high detail, no text overlays, South African classroom display, 300 DPI`;
-    const rawUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=600&nologo=true&model=flux&seed=${seedCounter}`;
-    const imageUrl = getProxiedImageUrl(rawUrl);
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=600&nologo=true&model=flux&seed=${seedCounter}`;
+
+    // Async save to firestore in background (non-blocking)
+    IllustrationCache.save(cleanPrompt, imageUrl);
 
     return `
-<div class="my-6 overflow-hidden rounded-[2rem] border-2 border-solid border-indigo-400 p-2 bg-indigo-50/20 hover:bg-indigo-50/40 transition-all duration-300 max-w-full print:break-inside-avoid print:border-none print:p-0 print:m-0 print:shadow-none shadow-sm">
+<div class="my-6 overflow-hidden rounded-[2rem] border-2 border-dashed border-slate-300 p-2 bg-slate-50/50 hover:bg-slate-100 transition-all duration-300 max-w-full print:break-inside-avoid print:border-none print:p-0 print:m-0 print:shadow-none shadow-sm">
   <img src="${imageUrl}" 
        alt="${cleanPrompt}" 
-       class="w-full object-cover rounded-[1.8rem] aspect-[4/3] max-h-[360px] border border-indigo-100 shadow-inner print:rounded-none print:shadow-none" 
+       class="w-full object-cover rounded-[1.8rem] aspect-[4/3] max-h-[360px] border border-slate-100 shadow-inner print:rounded-none print:shadow-none" 
        referrerPolicy="no-referrer" />
-  <div class="px-4 py-2 border-t border-dashed border-indigo-200 mt-2 bg-white/80 rounded-b-[1.5rem] flex items-center gap-2 print:hidden select-none">
-    <span class="text-xs animate-pulse">✨</span>
-    <p class="text-[9px] uppercase tracking-widest font-black text-indigo-700 leading-none">
-      On-the-fly AI Visual: ${cleanPrompt.slice(0, 60)}${cleanPrompt.length > 60 ? '...' : ''}
+  <div class="px-4 py-2 border-t border-dashed border-slate-200 mt-2 bg-white/50 rounded-b-[1.5rem] flex items-center gap-2 print:hidden select-none">
+    <span class="text-xs">🎨</span>
+    <p class="text-[9px] uppercase tracking-widest font-black text-slate-500 leading-none">
+      CAPS Illustration: ${cleanPrompt.slice(0, 60)}${cleanPrompt.length > 60 ? '...' : ''}
     </p>
   </div>
 </div>
