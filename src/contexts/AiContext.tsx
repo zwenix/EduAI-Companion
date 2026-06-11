@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type AIProvider = 'gemini' | 'llama-primary' | 'llama-secondary' | 'alibaba-qwen' | 'alibaba-deepseek' | 'groq-vision';
-export type TTSProvider = 'browser' | 'elevenlabs' | 'huggingface' | 'google-tts';
+export type AIProvider = 'gemini' | 'hf-qwen' | 'groq-llama' | 'groq-vision';
+export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
 export type OCRProvider = 'gemini' | 'ocrspace' | 'groq-vision';
-export type ImageProvider = 'gemini-imagen' | 'huggingface' | 'pollinations-schnell' | 'pollinations-turbo' | 'pollinations-klein' | 'alibaba-qwen-image';
+export type ImageProvider = 'gemini-imagen' | 'huggingface' | 'pollinations-schnell' | 'pollinations-turbo' | 'pollinations-klein' | 'nvidia-sana';
 
 interface AiContextType {
   provider: AIProvider;
@@ -18,10 +18,10 @@ interface AiContextType {
 
 const AiContext = createContext<AiContextType | undefined>(undefined);
 
-const VALID_PROVIDERS: AIProvider[] = ['gemini', 'llama-primary', 'llama-secondary', 'alibaba-qwen', 'alibaba-deepseek', 'groq-vision'];
-const VALID_TTS: TTSProvider[] = ['browser', 'elevenlabs', 'huggingface', 'google-tts'];
+const VALID_PROVIDERS: AIProvider[] = ['gemini', 'hf-qwen', 'groq-llama', 'groq-vision'];
+const VALID_TTS: TTSProvider[] = ['browser', 'groq-whisper', 'huggingface', 'google-tts'];
 const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace', 'groq-vision'];
-const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'huggingface', 'pollinations-schnell', 'pollinations-turbo', 'pollinations-klein', 'alibaba-qwen-image'];
+const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'huggingface', 'pollinations-schnell', 'pollinations-turbo', 'pollinations-klein', 'nvidia-sana'];
 
 export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {
@@ -32,7 +32,7 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
       }
       return 'gemini';
     } catch (e) {
-      return 'llama-primary';
+      return 'gemini';
     }
   });
 
@@ -57,10 +57,10 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [imageProvider, setImageProvider] = useState<ImageProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_image_provider') as any;
-      if (saved === 'zhipu' || saved === 'glm-image' || saved === 'pollinations') return 'pollinations-schnell';
-      return saved && VALID_IMAGE.includes(saved) ? saved : 'pollinations-schnell';
+      if (saved === 'zhipu' || saved === 'glm-image' || saved === 'pollinations') return 'gemini-imagen';
+      return saved && VALID_IMAGE.includes(saved) ? saved : 'gemini-imagen';
     } catch {
-      return 'pollinations-schnell';
+      return 'gemini-imagen';
     }
   });
 

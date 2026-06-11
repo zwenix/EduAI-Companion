@@ -1,17 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Send, User, Search, MessageSquare, Plus, MoreVertical, Phone, Video, Smile, Paperclip } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
-import { collection, query, onSnapshot, doc, getDoc, setDoc, addDoc, orderBy, serverTimestamp, getDocs, updateDoc, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, getDoc, addDoc, orderBy, serverTimestamp } from 'firebase/firestore';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
 interface Msg {
   id: string;
   senderId: string;
+  senderName: string;
   text: string;
-  timestamp: any;
-  unread: boolean;
+  createdAt: any;
+  recipientId?: string;
+  timestamp?: any;
 }
 
 interface UserProfile {
@@ -20,20 +22,34 @@ interface UserProfile {
   email: string;
   photoUrl?: string;
   isOnline?: boolean;
+  role?: string;
 }
 
 export default function Messenger() {
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [users, setUsers] = useState<UserProfile[]>([]);
-  const [messages, setMessages] = useState<Msg[]>([]);
+  const [allMessages, setAllMessages] = useState<Msg[]>([]);
+  const [currentUserName, setCurrentUserName] = useState('Educator');
   const [searchQuery, setSearchQuery] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
   
   const currentUserId = auth.currentUser?.uid;
 
+  // Fetch own profile for senderName attribution
   useEffect(() => {
-    // Fetch users real-time or once
+    if (!currentUserId) return;
+    getDoc(doc(db, 'users', currentUserId)).then(snap => {
+      if (snap.exists() && snap.data().name) {
+        setCurrentUserName(snap.data().name);
+      } else if (auth.currentUser?.displayName) {
+        setCurrentUserName(auth.currentUser.displayName);
+      }
+    });
+  }, [currentUserId]);
+
+  // Fetch other registered users
+  useEffect(() => {
     const q = collection(db, 'users');
     const unsub = onSnapshot(q, (snapshot) => {
       const loadedUsers: UserProfile[] = [];
@@ -47,41 +63,61 @@ export default function Messenger() {
     return () => unsub();
   }, [currentUserId]);
 
+  // Fetch communicator messages involving the current user in real-time
   useEffect(() => {
-    if (!activeChat || !currentUserId) return;
-    
-    // chatId is alphabetically sorted uids
-    const chatId = [currentUserId, activeChat].sort().join('_');
+    if (!currentUserId) return;
+
     const q = query(
-      collection(db, 'chats', chatId, 'messages'),
-      orderBy('timestamp', 'asc')
+      collection(db, 'communicator_messages'),
+      orderBy('createdAt', 'asc')
     );
-    
+
     const unsub = onSnapshot(q, (snapshot) => {
       const loadedMsgs: Msg[] = [];
       snapshot.forEach(docSnap => {
-        loadedMsgs.push({ id: docSnap.id, ...docSnap.data() } as Msg);
+        const data = docSnap.data();
+        if (data.senderId === currentUserId || data.recipientId === currentUserId) {
+          loadedMsgs.push({ id: docSnap.id, ...data } as Msg);
+        }
       });
-      setMessages(loadedMsgs);
-      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      setAllMessages(loadedMsgs);
+    }, (error) => {
+      console.error("Error loading chat messages:", error);
     });
-    
+
     return () => unsub();
-  }, [activeChat, currentUserId]);
+  }, [currentUserId]);
+
+  // Get current active chat's message list
+  const activeChatMessages = useMemo(() => {
+    if (!activeChat || !currentUserId) return [];
+    return allMessages.filter(m => 
+      (m.senderId === currentUserId && m.recipientId === activeChat) ||
+      (m.senderId === activeChat && m.recipientId === currentUserId)
+    );
+  }, [allMessages, activeChat, currentUserId]);
+
+  // Scroll smoothly when active messages or chats change
+  useEffect(() => {
+    if (activeChatMessages.length > 0) {
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    }
+  }, [activeChatMessages.length, activeChat]);
 
   const handleSendMessage = async () => {
     if (!message.trim() || !activeChat || !currentUserId) return;
     const text = message;
     setMessage('');
     
-    const chatId = [currentUserId, activeChat].sort().join('_');
-    const msgRef = collection(db, 'chats', chatId, 'messages');
-    
-    await addDoc(msgRef, {
+    // Save new record to 'communicator_messages' collection
+    // Keys matched with security rule constraints:
+    // senderId, senderName, text, createdAt, and recipientId is our 5th key.
+    await addDoc(collection(db, 'communicator_messages'), {
       senderId: currentUserId,
+      senderName: currentUserName,
       text: text,
-      timestamp: serverTimestamp(),
-      unread: true
+      createdAt: serverTimestamp(),
+      recipientId: activeChat
     });
   };
 
@@ -95,6 +131,31 @@ export default function Messenger() {
   };
 
   const filteredUsers = users.filter(u => u.name && u.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  // Active chat calculation & sorting
+  const lastMessageForUser = (userId: string) => {
+    const userMsgs = allMessages.filter(m => 
+      (m.senderId === currentUserId && m.recipientId === userId) ||
+      (m.senderId === userId && m.recipientId === currentUserId)
+    );
+    if (userMsgs.length === 0) return null;
+    return userMsgs[userMsgs.length - 1];
+  };
+
+  const sortedUsers = useMemo(() => {
+    return [...filteredUsers].sort((a, b) => {
+      const lastA = lastMessageForUser(a.id);
+      const lastB = lastMessageForUser(b.id);
+      if (lastA && lastB) {
+        const timeA = lastA.createdAt?.seconds || lastA.timestamp?.seconds || 0;
+        const timeB = lastB.createdAt?.seconds || lastB.timestamp?.seconds || 0;
+        return timeB - timeA;
+      }
+      if (lastA) return -1;
+      if (lastB) return 1;
+      return 0;
+    });
+  }, [filteredUsers, allMessages, currentUserId]);
 
   return (
     <div className="h-full flex flex-col md:flex-row bg-[#0B1122] rounded-[2rem] lg:rounded-[48px] overflow-hidden border border-white/5 shadow-2xl relative">
@@ -120,10 +181,10 @@ export default function Messenger() {
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-          {filteredUsers.length === 0 && (
-             <div className="p-4 text-center text-xs text-slate-500">No users found.</div>
+          {sortedUsers.length === 0 && (
+             <div className="p-4 text-center text-xs text-slate-500">No connections yet.</div>
           )}
-          {filteredUsers.map((user) => (
+          {sortedUsers.map((user) => (
             <button
               key={user.id}
               onClick={() => setActiveChat(user.id)}
@@ -136,11 +197,42 @@ export default function Messenger() {
               <div className="shrink-0 w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-xs text-white font-black border border-white/5 overflow-hidden">
                 {user.photoUrl ? <img src={user.photoUrl} alt="" className="w-full h-full object-cover" /> : getInitials(user.name)}
               </div>
-              <div className="flex-1 min-w-0">
-                <span className={`text-sm font-bold truncate block ${activeChat === user.id ? 'text-brand-cyan' : 'text-white'}`}>
-                  {user.name}
-                </span>
-                <span className="text-[10px] text-slate-500 truncate block">{user.email}</span>
+              <div className="flex-1 min-w-0 space-y-0.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`text-sm font-bold truncate block ${activeChat === user.id ? 'text-brand-cyan' : 'text-white'}`}>
+                    {user.name}
+                  </span>
+                  {user.role && (
+                    <span className={`shrink-0 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md ${
+                      user.role === 'teacher' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
+                      user.role === 'parent' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                      user.role === 'admin' ? 'bg-slate-500/20 text-slate-300 border border-slate-500/30' : 
+                      'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                    }`}>
+                      {user.role}
+                    </span>
+                  )}
+                </div>
+                {(() => {
+                  const lastMsg = lastMessageForUser(user.id);
+                  if (lastMsg) {
+                    const isMe = lastMsg.senderId === currentUserId;
+                    return (
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] text-brand-cyan truncate block flex-1">
+                          {isMe ? 'You: ' : ''}{lastMsg.text}
+                        </span>
+                        <span className="shrink-0 text-[8px] text-slate-500 font-mono">
+                          {(() => {
+                            const dateObj = lastMsg.createdAt?.toDate?.() || lastMsg.timestamp?.toDate?.() || null;
+                            return dateObj ? dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                          })()}
+                        </span>
+                      </div>
+                    );
+                  }
+                  return <span className="text-[10px] text-slate-500 truncate block">{user.email}</span>;
+                })()}
               </div>
             </button>
           ))}
@@ -186,8 +278,9 @@ export default function Messenger() {
               </div>
               
               <AnimatePresence>
-                {messages.map((m, idx) => {
+                {activeChatMessages.map((m, idx) => {
                    const isMe = m.senderId === currentUserId;
+                   const msgTime = m.createdAt || m.timestamp;
                    return (
                      <motion.div 
                        key={m.id || `msg-${idx}`} 
@@ -202,10 +295,10 @@ export default function Messenger() {
                        )}
                        
                        <div className={`p-5 rounded-3xl text-sm leading-relaxed shadow-xl backdrop-blur-md ${isMe ? 'bg-brand-cyan text-navy-dark font-bold shadow-cyan-500/20 rounded-tr-none' : 'bg-white/5 border border-white/10 text-slate-300 rounded-tl-none'}`}>
-                          {!isMe && <p className="font-bold text-slate-400 text-[10px] uppercase mb-1">{getChatName(activeChat)}</p>}
+                          {!isMe && <p className="font-bold text-slate-400 text-[10px] uppercase mb-1">{m.senderName || getChatName(activeChat)}</p>}
                           {m.text}
                           <p className={`text-[9px] mt-2 opacity-50 ${isMe ? 'text-right' : 'text-left'}`}>
-                             {m.timestamp ? new Date(m.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '...'}
+                             {msgTime ? (typeof msgTime.toDate === 'function' ? msgTime.toDate() : new Date(msgTime.seconds * 1000 || msgTime)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '...'}
                           </p>
                        </div>
                      </motion.div>

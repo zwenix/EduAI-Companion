@@ -1,0 +1,328 @@
+  app.post("/api/gemini/action", async (req, res) => {
+    const { action, input } = req.body || {};
+    const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+    if (!apiKey || apiKey === "" || apiKey === "dummy" || apiKey === "undefined") {
+      return res.status(400).json({ error: "GEMINI_API_KEY is not configured in settings." });
+    }
+
+    try {
+      const geminiAi = new GoogleGenAI({ 
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          }
+        }
+      });
+      const model = "gemini-3.5-flash";
+
+      const generateContentWithFallback = async (options: { model: string, contents: any, config?: any }) => {
+        const modelsToTry = cachedWorkingModel 
+          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
+          : ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+        
+        let lastError: any = null;
+        for (const candidate of modelsToTry) {
+          try {
+            const actualOptions = { ...options, model: candidate };
+            const result = await geminiAi.models.generateContent(actualOptions);
+            if (result) {
+              cachedWorkingModel = candidate; // Cache successfully validated model
+              return result;
+            }
+          } catch (err: any) {
+            lastError = err;
+            console.info(`Gemini candidate model '${candidate}' is currently unavailable. trying alternative...`);
+          }
+        }
+        throw lastError || new Error("All candidate Gemini models were unavailable.");
+      };
+
+      switch (action) {
+        case "generate-educational": {
+          const { type, details } = input;
+          const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN. NEVER INJECT <script src="https://cdn.tailwindcss.com"></script>. The app already has Tailwind.`;
+          const response = await generateContentWithFallback({
+            model,
+            contents: `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design). Do NOT add Tailwind CDN scripts.`,
+            config: {
+              systemInstruction,
+              temperature: 0.7,
+            },
+          });
+          return res.json({ text: response.text });
+        }
+
+        case "generate-caps": {
+          const isLessonPlan = input.contentType === 'Lesson Plan';
+          const isStudyGuide = input.contentType === 'Study Guide / Learning Notes';
+          const isWorksheet = input.contentType === 'Worksheet';
+
+          let contentTypeEng: 'lesson-plan' | 'worksheet' | 'study-guide' = 'worksheet';
+          if (isLessonPlan) contentTypeEng = 'lesson-plan';
+          else if (isStudyGuide) contentTypeEng = 'study-guide';
+          else if (isWorksheet) contentTypeEng = 'worksheet';
+
+          const { system, user } = EduAIPromptEngine.assemblePrompt({
+            contentType: contentTypeEng,
+            grade: input.grade || "4",
+            subject: input.subject || "Mathematics",
+            topic: input.topic || "Addition",
+            language: input.language || 'English',
+            learnerProfile: input.learnerProfile || 'General Class',
+            additionalInstructions: input.additionalInstructions || '',
+            term: input.term || '1',
+            week: input.week ? parseInt(input.week) : undefined,
+            duration: input.duration || '2 hours',
+            capsReference: input.capsReference || ''
+          });
+
+          const response = await generateContentWithFallback({
+            model,
+            contents: user,
+            config: {
+              systemInstruction: system,
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  content: { type: Type.STRING },
+                  memo: { type: Type.STRING },
+                  rubric: { type: Type.STRING },
+                  assessmentCriteria: { type: Type.STRING },
+                  successIndicators: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  imagePrompt: { type: Type.STRING }
+                },
+                required: ["content", "imagePrompt"]
+              }
+            }
+          });
+          return res.json(safeJsonParse(response.text));
+        }
+
+        case "generate-visual": {
+          const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nThe 'content' field in your JSON response MUST be stunningly designed HTML with Tailwind CSS. DO NOT use generic Markdown.`;
+          const isPoster = input.visualType?.toLowerCase().includes('poster');
+          const isInfographic = input.visualType?.toLowerCase().includes('infographic') || input.visualType?.toLowerCase().includes('mind map');
+          const isDiagram = input.visualType?.toLowerCase().includes('diagram');
+          const isFlashcard = input.visualType?.toLowerCase().includes('flashcard') || input.visualType?.toLowerCase().includes('learning card');
+
+          let visualPrompt = "";
+          if (isPoster) {
+            visualPrompt = `
+              Create a stunning, print-ready educational poster for South African Grade ${input.grade} ${input.subject} learners on the CAPS topic: "${input.topic}"
+
+              DESIGN REQUIREMENTS (Based on EduAI Companion Templates):
+              - HTML/Tailwind ONLY. Do not use markdown.
+              - Layout: A massive central Hero Image (illustration) taking up the middle 50% of the poster.
+              - Top Banner: Large, playful, multi-colored bubble-letter style title (using text-shadows, varied colors per word) centered at the top.
+              - Floating Fact Boxes: 4-6 small floating fact boxes positioned around the central image. Each box should have a thick colored outline (e.g., solid 4px red, green, blue border), white background, small playful SVG icon/emoji, and short, legible text.
+              - Title Style: Give each letter or word a different vibrant color.
+              - Visual hierarchy: Make it look like an adventure map or a colorful infographic.
+              - Footer Layout: Include 3-4 neat little text boxes in a row at the very bottom containing extra info or activities. Include EduAI or CAPS branding.
+              - Typography: Use bold, playful sans-serif fonts.
+              - Colors: Sky blue background, primary color accents (bright yellow, striking red, vibrant green).
+              
+              Make it vibrant, instantly engaging, and child-friendly.
+            `;
+          } else if (isFlashcard) {
+            visualPrompt = `
+              Design a set of professional, double-sided educational flashcards for Grade ${input.grade} ${input.subject} on "${input.topic}".
+              
+              DESIGN REQUIREMENTS:
+              - Show multiple cards in a grid (2 or 3 per row).
+              - Each card should have:
+                - Front side: Large title, high-quality icon/emoji, and a very short hint.
+                - Back side: Explanation, a South African contextual example, and a small "Did you know?" fact.
+              - Card style: rounded-3xl corners, thick colored borders (2px), subtle shadow.
+              - Use vibrant colors that change per card.
+              - Ensure text is large and legible (text-xl for titles).
+            `;
+          } else if (isInfographic) {
+            visualPrompt = `
+              Design a visually spectacular CAPS-aligned infographic/mind map on ${input.topic} for Grade ${input.grade}.
+
+              Requirements:
+              - Central concept in the middle with radiating branches
+              - Each branch has a beautifully illustrated icon (custom drawn, not generic)
+              - South African contextual examples throughout
+              - Color-coded sections with perfect visual hierarchy
+              - Style: Modern flat design with subtle textures and depth
+              - Include real South African case studies or examples where possible
+            `;
+          } else if (isDiagram) {
+            visualPrompt = `
+              Create a crystal-clear, beautifully illustrated scientific diagram of ${input.topic} specifically adapted for South African Grade ${input.grade} learners.
+
+              Show the process occurring in a real South African landscape:
+              - Water cycle: Include Table Mountain, Drakensberg, or Karoo
+              - Food chain: Use indigenous animals (lion, impala, acacia tree, vulture, etc.)
+              - Rock cycle: Feature South African geological formations
+              - Plant structure: Use protea, aloe, or fynbos species
+
+              Style: Clean, labeled, semi-realistic illustration with arrows, soft shadows, and depth. National Geographic kids magazine quality.
+            `;
+          } else {
+            visualPrompt = `Create a highly visual ${input.visualType} for Grade ${input.grade} ${input.subject} on topic ${input.topic}.`;
+          }
+
+          const prompt = `
+            ${visualPrompt}
+            Language: ${input.language}
+            Style: ${input.style}
+            Color: ${input.colorScheme}
+            Content Details: ${input.specificContent}
+            Quantity: ${input.quantity}
+            Additional Info: ${IMAGE_PROMPT_GOLDEN_RULE}
+          `;
+
+          const response = await generateContentWithFallback({
+            model,
+            contents: prompt,
+            config: { 
+              systemInstruction, 
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  content: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  printInstructions: { type: Type.STRING },
+                  imagePrompt: { type: Type.STRING }
+                },
+                required: ["content", "description", "imagePrompt"]
+              }
+            }
+          });
+          return res.json(safeJsonParse(response.text));
+        }
+
+        case "generate-admin": {
+          const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate a formal ${input.documentType} for ${input.schoolName}.
+          The tone should be ${input.tone}.
+          IMPORTANT: The 'content' field MUST be formatted as visually pleasing HTML string styled with Tailwind CSS classes. DO NOT use generic Markdown.`;
+          const prompt = `
+            Type: ${input.documentType}
+            Purpose: ${input.purpose}
+            Key Points: ${input.keyPoints}
+            Include Reply Slip: ${input.includeReplySlip}
+            Language: ${input.language}
+          `;
+          const response = await generateContentWithFallback({
+            model,
+            contents: prompt,
+            config: { 
+              systemInstruction, 
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  content: { type: Type.STRING },
+                  notes: { type: Type.STRING },
+                  documentType: { type: Type.STRING },
+                  imagePrompt: { type: Type.STRING }
+                },
+                required: ["content", "documentType"]
+              }
+            }
+          });
+          return res.json(safeJsonParse(response.text));
+        }
+
+        case "ocr-scan": {
+          const { imageData, language } = input;
+          const prompt = `Extract all text from the attached image accurately, assuming the text is in ${language}.
+          Format it cleanly. Make no other comments.`;
+          const response = await generateContentWithFallback({
+            model,
+            contents: [
+              { role: 'user', parts: [
+                { text: prompt },
+                { inlineData: { mimeType: "image/jpeg", data: imageData.split(',')[1] } }
+              ]}
+            ]
+          });
+          return res.json({ extractedText: response.text });
+        }
+
+        case "ocr-grade": {
+          const { imageData, rubric, language } = input;
+          const prompt = `You are an AI Grader. Analyze the attached image of a student's assessment in ${language}.
+          Reference this rubric: ${rubric}.
+          1. Extract the text from the image (OCR).
+          2. Grade each question according to the rubric.
+          3. Provide constructive feedback for the student.
+          4. Summarize the total score.`;
+          const response = await generateContentWithFallback({
+            model,
+            contents: [
+              { role: 'user', parts: [
+                { text: prompt },
+                { inlineData: { mimeType: "image/jpeg", data: imageData.split(',')[1] } }
+              ]}
+            ],
+            config: {
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  extractedText: { type: Type.STRING },
+                  marksPerQuestion: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  feedback: { type: Type.STRING },
+                  totalScore: { type: Type.STRING }
+                },
+                required: ["extractedText", "marksPerQuestion", "feedback", "totalScore"]
+              }
+            }
+          });
+          return res.json(safeJsonParse(response.text));
+        }
+
+        case "chat": {
+          const { messages } = input;
+          const response = await generateContentWithFallback({
+            model,
+            contents: messages,
+            config: {
+              systemInstruction: "You are a friendly and encouraging South African school tutor for EduAI Companion. You help students understand complex CAPS curriculum concepts in simple terms. Use local South African examples (e.g. using Rands, referring to provinces) and be patient. Keep explanations concise.",
+            }
+          });
+          return res.json({ text: response.text });
+        }
+
+        default:
+          return res.status(400).json({ error: "Unsupported action" });
+      }
+    } catch (error: any) {
+      const errMsg = error.message || error.toString();
+      let status = 500;
+      const rawStatus = error.status || error.response?.status;
+      if (typeof rawStatus === 'number' && Number.isInteger(rawStatus) && rawStatus >= 100 && rawStatus < 600) {
+        status = rawStatus;
+      }
+      if (errMsg.toLowerCase().includes('permissions') || errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('auth') || errMsg.toLowerCase().includes('dummy')) {
+         status = 401;
+      }
+
+      // Capture failure for Admin Debug Console
+      failedRequestsLog.unshift({
+        id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        timestamp: new Date().toISOString(),
+        provider: 'gemini',
+        endpoint: `/api/gemini/action`,
+        model: 'gemini-3.5-flash',
+        error: errMsg,
+        rawResponse: error.response?.data || error.stack || error.message || String(error),
+        requestPayload: {
+          action,
+          input: input ? { ...input, imageData: input.imageData ? '[Muted Image Data]' : undefined } : undefined
+        }
+      });
+      if (failedRequestsLog.length > 50) {
+        failedRequestsLog.pop();
+      }
+
+      console.error(`Gemini server error for action '${action}':`, errMsg);
+      return res.status(status).json({ error: errMsg || "Failed to execute server-side action." });
+    }
+  });

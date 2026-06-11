@@ -122,16 +122,26 @@
 }
 
 @media print {
+  @page {
+    size: A4;
+    margin: 20mm !important;
+  }
+
   body {
     background: white !important;
     color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
   
-  body *, html * {
+  /* Only apply block hide/visibility settings if .printable-doc is present on the page */
+  body:has(.printable-doc) *, html:has(.printable-doc) * {
     visibility: hidden;
   }
 
-  .printable-doc, .printable-doc * {
+  body:has(.printable-doc) .printable-doc, 
+  body:has(.printable-doc) .printable-doc * {
     visibility: visible;
   }
 
@@ -144,15 +154,66 @@
   }
 
   .printable-doc {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+    position: static !important;
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: white !important;
+    background-color: white !important;
     color: black !important;
     border: none !important;
     box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
+
+  /* Page break optimization rules */
+  .page-break, .page-break-avoid {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Selectors for generic worksheet and test question patterns */
+  .question-block, .question-item, .problem-card, .caps-question, fieldset, blockquote, .challenge-corner {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+
+/* Dyslexia Reader Accessibility Override Style */
+body.dyslexia-font-active, 
+body.dyslexia-font-active * {
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif !important;
+  letter-spacing: 0.05em !important;
+  word-spacing: 0.12em !important;
+  line-height: 1.75 !important;
+}
+
+/* Accessibility Magnify Mode */
+body.magnify-text-active,
+body.magnify-text-active * {
+  font-size: 1.08rem !important;
+}
+
+/* Accessibility High Contrast Mode */
+body.high-contrast-active {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+body.high-contrast-active button,
+body.high-contrast-active a {
+  background-color: #111111 !important;
+  color: #ffff00 !important;
+  border: 2px solid #ffffff !important;
+}
+
+/* Tactile shadow and scale hover transition for cards matching .bg-white.rounded-2xl.p-6.shadow-sm.border.border-slate-200 */
+.bg-white.rounded-2xl.p-6.shadow-sm.border.border-slate-200 {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease !important;
+}
+
+.bg-white.rounded-2xl.p-6.shadow-sm.border.border-slate-200:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.12), 0 8px 16px -8px rgba(0, 0, 0, 0.08) !important;
+  border-color: rgba(0, 210, 255, 0.3) !important;
 }

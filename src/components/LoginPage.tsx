@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Loader2, ArrowRight } from 'lucide-react';
 import { auth } from '../lib/firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
 interface LoginPageProps {
   onSuccess: () => void;
@@ -11,6 +11,8 @@ interface LoginPageProps {
 export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogle, setIsGoogle] = useState(false);
   const [error, setError] = useState('');
@@ -20,11 +22,46 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
     setIsLoading(true);
     setError('');
 
-    // Mock traditional login for now, or you could add signInWithEmailAndPassword
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    setIsLoading(false);
-    onSuccess();
+    try {
+      if (isSignUp) {
+        if (!name.trim()) {
+          setError("Please enter your name.");
+          setIsLoading(false);
+          return;
+        }
+        const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        if (userCredential.user) {
+          await updateProfile(userCredential.user, {
+            displayName: name.trim()
+          });
+          localStorage.setItem('eduai_user_name', name.trim());
+          localStorage.setItem('eduai_user_email', email.trim());
+        }
+        setIsLoading(false);
+        onSignUpClick(); // Redirect to role setup
+      } else {
+        const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+        if (userCredential.user) {
+          localStorage.setItem('eduai_user_name', userCredential.user.displayName || '');
+          localStorage.setItem('eduai_user_email', userCredential.user.email || '');
+        }
+        setIsLoading(false);
+        onSuccess(); // Directly go to homepage/dashboard
+      }
+    } catch (err: any) {
+      console.error(err);
+      const errMsg = err?.message || String(err);
+      if (errMsg.includes('auth/invalid-credential') || errMsg.includes('auth/wrong-password') || errMsg.includes('auth/user-not-found')) {
+        setError("Invalid email or password. Please try again!");
+      } else if (errMsg.includes('auth/email-already-in-use')) {
+        setError("This email is already registered. Try logging in instead!");
+      } else if (errMsg.includes('auth/weak-password')) {
+        setError("Password should be at least 6 characters.");
+      } else {
+        setError(errMsg);
+      }
+      setIsLoading(false);
+    }
   };
 
   const handleGoogle = async () => {
@@ -45,7 +82,16 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
       onSuccess();
     } catch (err: any) {
       console.error(err);
-      setError(err instanceof Error ? err.message : String(err));
+      const errMsg = err?.message || String(err);
+      const errCode = err?.code || "";
+
+      if (errCode === 'auth/popup-closed-by-user' || errMsg.includes('popup-closed-by-user')) {
+        setError("The login window was closed. Please try again! (Tip: If you are using Google AI Studio, make sure you clicked \"Open in a new tab\" to allow the login popup to connect properly).");
+      } else if (errCode === 'auth/popup-blocked' || errMsg.includes('popup-blocked')) {
+        setError("The login popup was blocked by your browser. Please enable popups for this site or open the app in a new tab.");
+      } else {
+        setError(errMsg);
+      }
       setIsGoogle(false);
     }
   };
@@ -70,18 +116,36 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
                 className="w-full h-full object-contain scale-110 drop-shadow-md"
               />
             </div>
-            <h1 className="text-4xl font-black text-white tracking-tight mb-2 font-display drop-shadow-md">Welcome back! 👋</h1>
-            <p className="text-base text-blue-50 font-bold drop-shadow-sm">Log in to your magical adventure</p>
+            <h1 className="text-4xl font-black text-white tracking-tight mb-2 font-display drop-shadow-md">
+              {isSignUp ? "Join the Magic! ✨" : "Welcome back! 👋"}
+            </h1>
+            <p className="text-base text-blue-50 font-bold drop-shadow-sm">
+              {isSignUp ? "Create your account" : "Log in to your magical adventure"}
+            </p>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-white font-bold text-sm text-center">
+            <div className="mb-4 p-3 bg-red-400 text-slate-900 border border-red-500/50 rounded-xl font-bold text-sm text-center">
               {error}
             </div>
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-4">
+              {/* Name Input - Only for Sign Up */}
+              {isSignUp && (
+                <div className="relative group">
+                  <input 
+                    type="text" 
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="Your Full Name"
+                    className="w-full h-14 bg-white/20 border-2 border-white/50 rounded-2xl px-5 text-white placeholder-blue-100 focus:outline-none focus:ring-4 focus:ring-brand-yellow/50 focus:border-brand-yellow transition-all font-bold text-lg kid-shadow-hover"
+                    required
+                  />
+                </div>
+              )}
+
               {/* Email Input */}
               <div className="relative group">
                 <input 
@@ -117,7 +181,7 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
                 <Loader2 className="w-6 h-6 animate-spin text-slate-900" />
               ) : (
                 <>
-                  Let's Go!
+                  {isSignUp ? "Register & Start!" : "Let's Go!"}
                   <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" strokeWidth={3} />
                 </>
               )}
@@ -136,7 +200,7 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
               type="button"
               onClick={handleGoogle} 
               disabled={isLoading || isGoogle}
-              className="w-full h-14 bg-white border-4 border-white/80 hover:bg-slate-50 text-slate-800 rounded-[28px] font-display font-black text-lg flex items-center justify-center gap-3 transition-all duration-300 kid-shadow-hover"
+              className="w-full h-14 bg-white border-4 border-white/80 hover:bg-slate-50 text-slate-800 rounded-[28px] font-display font-black text-lg flex items-center justify-center gap-3 transition-all duration-300 kid-shadow-hover hover:scale-[1.01]"
             >
               {isGoogle ? (
                 <Loader2 className="w-6 h-6 text-slate-600 animate-spin" />
@@ -152,16 +216,19 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
             </button>
           </form>
 
-          {/* Footer */}
+          {/* Footer Toggle */}
           <div className="mt-8 text-center bg-white/10 rounded-2xl p-4">
             <p className="text-base text-white font-bold">
-              New here?{' '}
+              {isSignUp ? "Already have an account?" : "New here?"}{' '}
               <button 
                 type="button" 
-                onClick={onSignUpClick}
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setError('');
+                }}
                 className="text-brand-yellow hover:text-[#ffdf40] font-black transition-colors focus:outline-none focus:underline"
               >
-                Sign up!
+                {isSignUp ? "Log in!" : "Sign up!"}
               </button>
             </p>
           </div>

@@ -5,147 +5,21 @@ import html2canvas from 'html2canvas';
 import { 
   TrendingUp, Users, BookOpen, Award, CheckCircle, Clock, AlertCircle, 
   Search, Sparkles, Filter, Check, User, RefreshCw, Send, Download, 
-  ArrowLeft, Activity, ChevronRight, Plus, FileText, Brain, Percent, ClipboardList, CheckSquare
+  ArrowLeft, Activity, ChevronRight, Plus, FileText, Brain, Percent, ClipboardList, CheckSquare,
+  Edit2, Trash2, X
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   LineChart, Line, AreaChart, Area, Legend
 } from 'recharts';
 import { db, auth } from '../lib/firebase';
-import { collection, query, where, onSnapshot, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, updateDoc, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
+import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 
-// --- Static Mock Data with comprehensive subject-by-subject histories and assessments ---
-const MOCK_STUDENTS = [
-  {
-    id: 'mock-1',
-    name: 'Sibusiso Dube',
-    grade: 'Grade 10A',
-    email: 'sibu.dube@school.za',
-    status: 'Active',
-    subjects: [
-      { name: 'Mathematics', mark: 82, termHistory: [70, 75, 80, 82], assessments: [ { title: 'Algebra Portfolio', score: 85, type: 'SBA' }, { title: 'Geometry Test', score: 78, type: 'Test' }, { title: 'Class Project', score: 83, type: 'Project' } ] },
-      { name: 'Physical Sciences', mark: 59, termHistory: [50, 52, 55, 59], assessments: [ { title: 'Vector lab practical', score: 60, type: 'Practical' }, { title: 'Stoichiometry SBA', score: 54, type: 'SBA' }, { title: 'Energy Quiz', score: 63, type: 'Quiz' } ] },
-      { name: 'Life Sciences', mark: 88, termHistory: [80, 82, 85, 88], assessments: [ { title: 'Cellular anatomy', score: 90, type: 'Test' }, { title: 'Genetics SBA', score: 86, type: 'SBA' } ] },
-      { name: 'History', mark: 76, termHistory: [72, 73, 75, 76], assessments: [ { title: 'Cold War research', score: 80, type: 'Project' }, { title: 'Source-based test', score: 72, type: 'SBA' } ] }
-    ]
-  },
-  {
-    id: 'mock-2',
-    name: 'Amara Patel',
-    grade: 'Grade 10B',
-    email: 'amara.patel@educate.za',
-    status: 'Active',
-    subjects: [
-      { name: 'Mathematics', mark: 64, termHistory: [55, 58, 60, 64], assessments: [ { title: 'Linear functions SBA', score: 68, type: 'SBA' }, { title: 'Trigonometry exam', score: 60, type: 'Test' } ] },
-      { name: 'Physical Sciences', mark: 72, termHistory: [68, 70, 71, 72], assessments: [ { title: 'Electromagnetism Lab', score: 75, type: 'Practical' }, { title: 'Chemistry quiz', score: 69, type: 'Quiz' } ] },
-      { name: 'Life Sciences', mark: 61, termHistory: [58, 62, 59, 61], assessments: [ { title: 'Plant reproduction SBA', score: 64, type: 'SBA' }, { title: 'Tissue structure test', score: 58, type: 'Test' } ] },
-      { name: 'Geography', mark: 85, termHistory: [80, 82, 84, 85], assessments: [ { title: 'Climatology essay', score: 88, type: 'Project' }, { title: 'Mapwork calculations', score: 82, type: 'SBA' } ] }
-    ]
-  },
-  {
-    id: 'mock-3',
-    name: 'Thabo Naidoo',
-    grade: 'Grade 11C',
-    email: 'thabo.naidoo@school.org',
-    status: 'Active',
-    subjects: [
-      { name: 'Mathematics', mark: 94, termHistory: [88, 90, 92, 94], assessments: [ { title: 'Calculus SBA', score: 96, type: 'SBA' }, { title: 'Analytical geometry', score: 92, type: 'Test' } ] },
-      { name: 'Physical Sciences', mark: 91, termHistory: [85, 88, 89, 91], assessments: [ { title: 'Organic Chemistry Lab', score: 93, type: 'Practical' }, { title: 'Wave properties', score: 89, type: 'Test' } ] },
-      { name: 'Geography', mark: 78, termHistory: [74, 75, 77, 78], assessments: [ { title: 'Geomorphology project', score: 80, type: 'Project' }, { title: 'GIS map revision', score: 76, type: 'SBA' } ] }
-    ]
-  },
-  {
-    id: 'mock-4',
-    name: 'Isabella Meyer',
-    grade: 'Grade 9A',
-    email: 'isabella.m@academy.za',
-    status: 'Active',
-    subjects: [
-      { name: 'Mathematics', mark: 52, termHistory: [44, 46, 48, 52], assessments: [ { title: 'Fraction algebra', score: 55, type: 'Test' }, { title: 'Geometric basics', score: 49, type: 'SBA' } ] },
-      { name: 'History', mark: 68, termHistory: [60, 62, 65, 68], assessments: [ { title: 'Apartheid SBA research', score: 70, type: 'Project' }, { title: 'Map work reading', score: 66, type: 'Test' } ] },
-      { name: 'Natural Sciences', mark: 45, termHistory: [40, 42, 44, 45], assessments: [ { title: 'Photosynthesis lab', score: 48, type: 'Practical' }, { title: 'Periodic table test', score: 42, type: 'SBA' } ] }
-    ]
-  },
-  {
-    id: 'mock-5',
-    name: 'Emily Johnson',
-    grade: 'Grade 10A',
-    email: 'emily.j@outlook.com',
-    status: 'Active',
-    subjects: [
-      { name: 'Mathematics', mark: 78, termHistory: [72, 74, 76, 78], assessments: [ { title: 'Algebra Equations', score: 81, type: 'SBA' }, { title: 'Euclidean geometry', score: 75, type: 'Test' } ] },
-      { name: 'Life Sciences', mark: 80, termHistory: [75, 78, 79, 80], assessments: [ { title: 'DNA structure SBA', score: 83, type: 'SBA' }, { title: 'Plant reproduction lab', score: 77, type: 'Practical' } ] }
-    ]
-  }
-];
-
-const PRELOADED_PLANS: Record<string, any> = {
-  'mock-1': {
-    strengths: [
-      "Outstanding logical reasoning and high marks in Life Sciences (88%) and Mathematics (82%).",
-      "Stellar practical experimentation conceptualization and recall.",
-      "Clear upward trajectory in overall term performance."
-    ],
-    weaknesses: [
-      "Subject of concern: Physical Sciences (59%), particularly vector analyses and chemistry stoichiometry chemical formulas.",
-      "Vulnerable under intensive pressure on timed chemical question papers."
-    ],
-    recommendations: [
-      "Dedicate a targeted 20 minutes daily for science stoichiometry calculation practice worksheets available in Content Studio.",
-      "Consult the AI Tutor to do a detailed, 1-on-1 walkthrough of force vectors using visual diagram aids.",
-      "Collaborate with classmates inside Study Groups to review chemistry lab rubrics."
-    ],
-    actionPlan: [
-      { task: "Master Physical Sciences force vectors rules", milestone: "Next 2 weeks", status: "In Progress" },
-      { task: "Complete 3 Chemistry quiz practice sheets on AI Tutor", milestone: "Next Month", status: "Pending" },
-      { task: "Achieve a minimum of 65% in next Science SBA submission", milestone: "Before major exam", status: "Pending" }
-    ]
-  },
-  'mock-2': {
-    strengths: [
-      "Superb long-form article writing and history sources criticism in Geography (85%).",
-      "Consistent experimental accuracy in Physical Sciences practicals (72%)."
-    ],
-    weaknesses: [
-      "Underperforming in Mathematics (64%) due to foundational gaps in quadratic formula application.",
-      "Struggling in Life Sciences cell structure (61%) terminology memory structure."
-    ],
-    recommendations: [
-      "Engage on interactive linear algebraic functions inside Content Studio.",
-      "Generate 12 Life Sciences animal/plant cell anatomy flashcards using Visual Aid builder.",
-      "Utilize geographical scale calculators to improve Mapwork processing speeds."
-    ],
-    actionPlan: [
-      { task: "Review quadratic equations and double bracket factorization rules", milestone: "Next 10 days", status: "Completed" },
-      { task: "Establish cellular structures dictionary guide", milestone: "Within 3 weeks", status: "In Progress" }
-    ]
-  },
-  'mock-3': {
-    strengths: [
-      "Excellent logical flow and perfect calculations capacity across Mathematics (94%) and Physical Sciences (91%).",
-      "Incredible homework precision, detailed graphs, and zero late-tasks record."
-    ],
-    weaknesses: [
-      "Needs slight speed acceleration in Geography Mapwork GIS calculations (78%)."
-    ],
-    recommendations: [
-      "Provide high-level calculus extension exercises from Content Studio to cultivate talents.",
-      "Assign Mapwork navigation exercises using scale conversion formulas.",
-      "Lead small peer Math circles in Study Groups to reinforce top concepts."
-    ],
-    actionPlan: [
-      { task: "Begin advanced trigonometric and algebraic extensions", milestone: "Ongoing", status: "In Progress" },
-      { task: "Complete 2 Geography SBA Mapwork papers", milestone: "Within 2 weeks", status: "In Progress" }
-    ]
-  }
-};
-
-const CLASS_AGGREGATE_DATA = [
-  { name: 'Term 1', math: 65, sci: 70, eng: 80, geo: 74 },
-  { name: 'Term 2', math: 72, sci: 75, eng: 82, geo: 75 },
-  { name: 'Term 3', math: 80, sci: 85, eng: 88, geo: 77 },
-  { name: 'Term 4', math: 85, sci: 92, eng: 90, geo: 81 },
-];
+import { StudentDoc, Subject, Assessment, MilestoneTask, IdpModel } from '../types';
+import { MOCK_STUDENTS, PRELOADED_PLANS } from '../data/mockStudents';
+import LoadingMascot from './LoadingMascot';
 
 export default function ProgressReports() {
   const [activeTab, setActiveTab] = useState<'overview' | 'idp'>('overview');
@@ -193,10 +67,104 @@ export default function ProgressReports() {
   const [isDownloading, setIsDownloading] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
+  // CRUD Learner States
+  const [loading, setLoading] = useState(true);
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
+  const [showEditStudentModal, setShowEditStudentModal] = useState(false);
+  const [newStudentName, setNewStudentName] = useState('');
+  const [newStudentEmail, setNewStudentEmail] = useState('');
+  const [newStudentGrade, setNewStudentGrade] = useState('Grade 10A');
+  const [newParentName, setNewParentName] = useState('');
+  const [newParentEmail, setNewParentEmail] = useState('');
+  const [newParentPhone, setNewParentPhone] = useState('');
+
+  const [editStudentName, setEditStudentName] = useState('');
+  const [editStudentEmail, setEditStudentEmail] = useState('');
+  const [editStudentGrade, setEditStudentGrade] = useState('');
+  const [editStudentStatus, setEditStudentStatus] = useState('Active');
+  const [editParentName, setEditParentName] = useState('');
+  const [editParentEmail, setEditParentEmail] = useState('');
+  const [editParentPhone, setEditParentPhone] = useState('');
+
+  const handleCreateStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStudentName.trim()) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const docId = `student_${Date.now()}`;
+    const email = newStudentEmail.trim() || `${newStudentName.replace(/\s+/g, '.').toLowerCase()}@school.za`;
+    
+    // Deterministic seed for initial realistic scores
+    const seed = newStudentName.charCodeAt(0) || 72;
+    const mathScore = Math.min(95, Math.max(42, (seed % 40) + 50));
+    const scienceScore = Math.min(95, Math.max(40, ((seed + 5) % 40) + 45));
+    const englishScore = Math.min(93, Math.max(50, ((seed + 12) % 30) + 60));
+
+    try {
+      await setDoc(doc(db, 'students', docId), {
+        id: docId,
+        name: newStudentName.trim(),
+        grade: newStudentGrade,
+        email: email,
+        status: 'Active',
+        teacherId: user.uid,
+        parentName: newParentName.trim(),
+        parentEmail: newParentEmail.trim(),
+        parentPhone: newParentPhone.trim(),
+        createdAt: serverTimestamp(),
+        subjects: [
+          { name: 'Mathematics', mark: mathScore, termHistory: [mathScore - 9, mathScore - 4, mathScore - 2, mathScore], assessments: [ { title: 'Algebra Portfolio', score: mathScore + 4, type: 'SBA' }, { title: 'Diagnostic Test', score: mathScore - 5, type: 'Test' } ] },
+          { name: 'Physical Sciences', mark: scienceScore, termHistory: [scienceScore - 11, scienceScore - 6, scienceScore - 1, scienceScore], assessments: [ { title: 'Stoichiometry SBA', score: scienceScore - 3, type: 'SBA' }, { title: 'Mechanics Practical', score: scienceScore + 5, type: 'Practical' } ] },
+          { name: 'English First Additional Language', mark: englishScore, termHistory: [englishScore - 5, englishScore - 2, englishScore - 1, englishScore], assessments: [ { title: 'Summary SBA', score: englishScore + 2, type: 'SBA' }, { title: 'Grammar review', score: englishScore - 4, type: 'Quiz' } ] }
+        ]
+      });
+      setShowAddStudentModal(false);
+      setNewStudentName('');
+      setNewStudentEmail('');
+      setNewParentName('');
+      setNewParentEmail('');
+      setNewParentPhone('');
+      setSelectedStudentId(docId);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, 'students/' + docId);
+    }
+  };
+
+  const handleUpdateStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editStudentName.trim() || !currentStudent) return;
+    
+    // Prevent updating unseeded mock fallback record directly
+    if (currentStudent.id.startsWith('mock-') && !currentStudent.id.includes('_')) {
+      alert("This is a preview student. Please add a new student instead.");
+      setShowEditStudentModal(false);
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, 'students', currentStudent.id), {
+        name: editStudentName.trim(),
+        email: editStudentEmail.trim(),
+        grade: editStudentGrade,
+        status: editStudentStatus,
+        parentName: editParentName.trim(),
+        parentEmail: editParentEmail.trim(),
+        parentPhone: editParentPhone.trim()
+      });
+      setShowEditStudentModal(false);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, 'students/' + currentStudent.id);
+    }
+  };
+
   // Listen to Firestore classes and students
   useEffect(() => {
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     // Classes
     const qClasses = query(collection(db, 'classes'), where('teacherId', '==', user.uid));
@@ -206,9 +174,34 @@ export default function ProgressReports() {
 
     // Students
     const qStudents = query(collection(db, 'students'), where('teacherId', '==', user.uid));
-    const unsubStudents = onSnapshot(qStudents, (snapshot) => {
-      setFirebaseStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (error) => console.log("Students sub error:", error));
+    const unsubStudents = onSnapshot(qStudents, async (snapshot) => {
+      if (snapshot.empty) {
+        console.log("Seeding student documents to Firestore for new teacher...");
+        const seededList: any[] = [];
+        for (const mock of MOCK_STUDENTS) {
+          const docId = `${mock.id}_${user.uid}`;
+          const seededData = {
+            ...mock,
+            id: docId,
+            teacherId: user.uid,
+            createdAt: serverTimestamp(),
+          };
+          try {
+            await setDoc(doc(db, 'students', docId), seededData);
+          } catch (e) {
+            console.error("Failed to seed student doc", e);
+          }
+          seededList.push(seededData);
+        }
+        setFirebaseStudents(seededList);
+      } else {
+        setFirebaseStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      }
+      setLoading(false);
+    }, (error) => {
+      console.error("Students loading snapshot error:", error);
+      setLoading(false);
+    });
 
     return () => { unsubClasses(); unsubStudents(); };
   }, []);
@@ -231,7 +224,7 @@ export default function ProgressReports() {
 
   // Merge mock students with Firebase students so that any custom-added learner dynamically functions!
   const allStudents = useMemo(() => {
-    const parsedFirebase = firebaseStudents.map(student => {
+    return firebaseStudents.map(student => {
       // Create a deterministic seed from student name to create realistic scores
       const seed = student.name.charCodeAt(0) || 72;
       const mathScore = Math.min(95, Math.max(42, (seed % 40) + 50));
@@ -245,19 +238,73 @@ export default function ProgressReports() {
         email: student.email || `${student.name.replace(/\s+/g, '.').toLowerCase()}@school.za`,
         status: student.status || 'Active',
         idp: student.idp || null,
+        parentName: student.parentName || '',
+        parentEmail: student.parentEmail || '',
+        parentPhone: student.parentPhone || '',
         subjects: student.subjects || [
           { name: 'Mathematics', mark: mathScore, termHistory: [mathScore - 9, mathScore - 4, mathScore - 2, mathScore], assessments: [ { title: 'Algebra Portfolio', score: mathScore + 4, type: 'SBA' }, { title: 'Diagnostic Test', score: mathScore - 5, type: 'Test' } ] },
           { name: 'Physical Sciences', mark: scienceScore, termHistory: [scienceScore - 11, scienceScore - 6, scienceScore - 1, scienceScore], assessments: [ { title: 'Stoichiometry SBA', score: scienceScore - 3, type: 'SBA' }, { title: 'Mechanics Practical', score: scienceScore + 5, type: 'Practical' } ] },
           { name: 'English First Additional Language', mark: englishScore, termHistory: [englishScore - 5, englishScore - 2, englishScore - 1, englishScore], assessments: [ { title: 'Summary SBA', score: englishScore + 2, type: 'SBA' }, { title: 'Grammar review', score: englishScore - 4, type: 'Quiz' } ] }
         ]
       };
-    });
-    return [...MOCK_STUDENTS, ...parsedFirebase];
+    }) as StudentDoc[];
   }, [firebaseStudents]);
+
+  // Dynamic class aggregate Term progress computed dynamically from all student's subjects
+  const classAggregateData = useMemo(() => {
+    const defaultData = [
+      { name: 'Term 1', math: 65, sci: 70, eng: 80, geo: 74 },
+      { name: 'Term 2', math: 72, sci: 75, eng: 82, geo: 75 },
+      { name: 'Term 3', math: 80, sci: 85, eng: 88, geo: 77 },
+      { name: 'Term 4', math: 85, sci: 92, eng: 90, geo: 81 },
+    ];
+    if (allStudents.length === 0) return defaultData;
+
+    const terms = ['Term 1', 'Term 2', 'Term 3', 'Term 4'];
+    return terms.map((term, termIdx) => {
+      let mathSum = 0, mathCount = 0;
+      let sciSum = 0, sciCount = 0;
+      let engSum = 0, engCount = 0;
+
+      allStudents.forEach(student => {
+        if (!student.subjects) return;
+        student.subjects.forEach(sub => {
+          const val = sub.termHistory?.[termIdx] || sub.mark;
+          const name = sub.name.toLowerCase();
+          if (name.includes('math')) {
+            mathSum += val;
+            mathCount++;
+          } else if (name.includes('science') || name.includes('phys')) {
+            sciSum += val;
+            sciCount++;
+          } else if (name.includes('english') || name.includes('lang')) {
+            engSum += val;
+            engCount++;
+          }
+        });
+      });
+
+      return {
+        name: term,
+        math: mathCount > 0 ? Math.round(mathSum / mathCount) : defaultData[termIdx].math,
+        sci: sciCount > 0 ? Math.round(sciSum / sciCount) : defaultData[termIdx].sci,
+        eng: engCount > 0 ? Math.round(engSum / engCount) : defaultData[termIdx].eng
+      };
+    });
+  }, [allStudents]);
 
   // Handle defaults when selecting student
   const currentStudent = useMemo(() => {
     return allStudents.find(s => s.id === selectedStudentId) || allStudents[0];
+  }, [allStudents, selectedStudentId]);
+
+  // Keep selectedStudentId valid
+  useEffect(() => {
+    if (allStudents.length > 0) {
+      if (!allStudents.find(s => s.id === selectedStudentId)) {
+        setSelectedStudentId(allStudents[0].id);
+      }
+    }
   }, [allStudents, selectedStudentId]);
 
   // Set default subject when student changes
@@ -310,8 +357,9 @@ export default function ProgressReports() {
       return customPlans[selectedStudentId];
     }
     // Else check preloaded mock analyses
-    if (PRELOADED_PLANS[selectedStudentId]) {
-      return PRELOADED_PLANS[selectedStudentId];
+    const cleanId = selectedStudentId.split('_')[0];
+    if (PRELOADED_PLANS[cleanId]) {
+      return PRELOADED_PLANS[cleanId];
     }
     // Final default fallback structure
     return {
@@ -347,7 +395,7 @@ export default function ProgressReports() {
     localStorage.setItem('eduai_custom_plans', JSON.stringify(cached));
 
     // Firebase update if live student
-    if (!studentId.startsWith('mock-') && auth.currentUser) {
+    if (auth.currentUser && !(studentId.startsWith('mock-') && !studentId.includes('_'))) {
       try {
         await updateDoc(doc(db, 'students', studentId), {
           idp: updatedPlan
@@ -394,7 +442,7 @@ export default function ProgressReports() {
 
       const data = await response.json();
       setTimeout(() => {
-        savePlanToStorageAndFirestore(selectedStudentId, data);
+        savePlanToStorageAndFirestore(currentStudent.id, data);
         setGenerationProgress(100);
         setIsGenerating(false);
       }, 4200);
@@ -421,7 +469,7 @@ export default function ProgressReports() {
     };
     updatedPlan.actionPlan = [...updatedPlan.actionPlan, newTask];
 
-    savePlanToStorageAndFirestore(selectedStudentId, updatedPlan);
+    savePlanToStorageAndFirestore(currentStudent.id, updatedPlan);
 
     setNewMilestoneText('');
     setNewMilestoneLine('');
@@ -433,7 +481,7 @@ export default function ProgressReports() {
     const task = updatedPlan.actionPlan[index];
     if (task) {
       task.status = task.status === 'Completed' ? 'Pending' : 'Completed';
-      savePlanToStorageAndFirestore(selectedStudentId, updatedPlan);
+      savePlanToStorageAndFirestore(currentStudent.id, updatedPlan);
     }
   };
 
@@ -451,14 +499,23 @@ export default function ProgressReports() {
       // Add a small delay to ensure rendering triggers if needed
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Capture element with html2canvas (configured for crisp rendering, background color preservation)
-      const canvas = await html2canvas(element, {
-        scale: 2, // High resolution crisp text and graphics
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#0f172a', // Consistent theme background
-        logging: false,
-      });
+      // Intercept modern 'oklch' color styles before running html2canvas
+      const restoreGetComputedStyle = patchOklchForHtml2canvas();
+
+      let canvas;
+      try {
+        // Capture element with html2canvas (configured for crisp rendering, background color preservation)
+        canvas = await html2canvas(element, {
+          scale: 2, // High resolution crisp text and graphics
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#0f172a', // Consistent theme background
+          logging: false,
+        });
+      } finally {
+        // Restore standard getComputedStyle immediately
+        restoreGetComputedStyle();
+      }
 
       const imgData = canvas.toDataURL('image/png');
       
@@ -533,6 +590,15 @@ export default function ProgressReports() {
       { name: 'Term 4', 'Overall GPA': Math.round(averages[3] / count), [selectedSubjectName]: currentSubjectObj ? currentSubjectObj.termHistory[3] : 0 },
     ];
   }, [currentStudent, selectedSubjectName, currentSubjectObj]);
+
+  if (loading) {
+    return (
+      <LoadingMascot 
+        message="Retrieving academic achievements..." 
+        subtitle="Analyzing grade metrics and student logs" 
+      />
+    );
+  }
 
   return (
     <div className="space-y-8 pb-20 custom-scrollbar font-sans text-slate-100">
@@ -612,8 +678,8 @@ export default function ProgressReports() {
                 </h3>
               </div>
               <div className="flex-1 min-h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={CLASS_AGGREGATE_DATA}>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={classAggregateData}>
                     <defs>
                       <linearGradient id="colorMath" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.4}/>
@@ -740,10 +806,25 @@ export default function ProgressReports() {
           {/* LEFT INDEX FOR SEARCH AND ROSTER LISTING (cols-4) */}
           {(!isMobile || mobileActiveSubView === 'roster') && (
             <div className="lg:col-span-4 bg-[#0d1527]/40 border border-white/5 p-4 sm:p-6 lg:p-8 rounded-[28px] sm:rounded-[40px] space-y-6">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Search size={14} className="text-brand-cyan" />
-                Learner Index Search
-              </h3>
+              <div className="flex justify-between items-center sm:gap-4">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Search size={14} className="text-brand-cyan" />
+                  Learner Index Search
+                </h3>
+                <button 
+                  onClick={() => {
+                    setNewStudentName('');
+                    setNewStudentEmail('');
+                    setNewStudentGrade('Grade 10A');
+                    setShowAddStudentModal(true);
+                  }}
+                  className="flex items-center gap-1.5 bg-brand-cyan/25 hover:bg-brand-cyan/35 text-brand-cyan rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border border-brand-cyan/35 shadow-sm"
+                  title="Add new student"
+                >
+                  <Plus size={12} />
+                  <span>Add</span>
+                </button>
+              </div>
 
               {/* Direct Search Inputs */}
               <div className="space-y-4">
@@ -891,10 +972,46 @@ export default function ProgressReports() {
                       </div>
                     </div>
 
-                    <div className="flex gap-3 w-full md:w-auto shrink-0">
+                    <div className="flex flex-wrap gap-2 w-full md:w-auto shrink-0">
+                      <button 
+                        onClick={() => {
+                          setEditStudentName(currentStudent.name);
+                          setEditStudentEmail(currentStudent.email);
+                          setEditStudentGrade(currentStudent.grade);
+                          setEditStudentStatus(currentStudent.status || 'Active');
+                          setEditParentName(currentStudent.parentName || '');
+                          setEditParentEmail(currentStudent.parentEmail || '');
+                          setEditParentPhone(currentStudent.parentPhone || '');
+                          setShowEditStudentModal(true);
+                        }}
+                        className="p-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl transition-all cursor-pointer"
+                        title="Edit learner profile"
+                      >
+                        <Edit2 size={14} className="text-brand-cyan" />
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          if (currentStudent.id.startsWith('mock-') && !currentStudent.id.includes('_')) {
+                            alert("Cannot delete preview mock students.");
+                            return;
+                          }
+                          if (confirm(`Are you sure you want to completely delete learner record ${currentStudent.name}?`)) {
+                            try {
+                              await deleteDoc(doc(db, 'students', currentStudent.id));
+                              setSelectedStudentId('');
+                            } catch (e) {
+                              handleFirestoreError(e, OperationType.DELETE, 'students/' + currentStudent.id);
+                            }
+                          }
+                        }}
+                        className="p-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 rounded-2xl transition-all cursor-pointer"
+                        title="Delete learner record"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                       <button 
                         onClick={handleSyncToParents}
-                        className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl px-5 py-3 text-xs font-black uppercase tracking-widest transition-all"
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl px-5 py-3 text-xs font-black uppercase tracking-widest transition-all cursor-pointer"
                         title="Sync report with Parent Portal"
                       >
                         <Send size={14} />
@@ -921,6 +1038,36 @@ export default function ProgressReports() {
                     </div>
                   </div>
 
+                  {/* Connected Parent & Guardian Profile */}
+                  <div className="glass bg-[#1E293B]/20 p-6 rounded-[32px] border border-white/5 space-y-4">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                      <h4 className="text-xs font-black uppercase text-brand-cyan tracking-widest flex items-center gap-2">
+                        <span>👨‍👩‍👦 Connected Parent & Guardian details</span>
+                      </h4>
+                      <span className="text-[10px] text-slate-500 font-mono uppercase bg-white/5 px-2.5 py-1 rounded-md">Linked Profile</span>
+                    </div>
+                    {currentStudent.parentName ? (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-slate-300">
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-slate-500 tracking-wider mb-1">Parent Name</span>
+                          <span className="text-white text-sm font-semibold">{currentStudent.parentName}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-slate-500 tracking-wider mb-1">Email Address</span>
+                          <span className="text-white text-sm font-semibold">{currentStudent.parentEmail}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-slate-500 tracking-wider mb-1">Contact Number</span>
+                          <span className="text-white text-sm font-semibold">{currentStudent.parentPhone || 'Not Provided'}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500 italic py-1">
+                        No parent details have been registered for this student yet. Click the Edit (pencil) button above inside the Student Banner to link parent contact information.
+                      </p>
+                    )}
+                  </div>
+
                   {/* DOUBLE SCOPE GRAPH: Overall Progression + Subject Specific */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     
@@ -932,7 +1079,7 @@ export default function ProgressReports() {
                       </h4>
                       
                       <div className="h-[200px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={200}>
                           <AreaChart data={individualLineChartData}>
                             <defs>
                               <linearGradient id="colorGpa" x1="0" y1="0" x2="0" y2="1">
@@ -960,7 +1107,7 @@ export default function ProgressReports() {
                       
                       <div className="h-[200px] w-full">
                         {selectedSubjectName && (
-                          <ResponsiveContainer width="100%" height="100%">
+                          <ResponsiveContainer width="100%" height={200}>
                             <LineChart data={individualLineChartData}>
                               <CartesianGrid strokeDasharray="3 3" stroke="#ffffff03" />
                               <XAxis dataKey="name" stroke="#64748b" fontSize={9} />
@@ -1265,6 +1412,233 @@ export default function ProgressReports() {
           </div>
           )}
         </motion.div>
+      )}
+
+      {/* Enroll Student Modal */}
+      {showAddStudentModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-navy-dark/80 backdrop-blur-sm p-4">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-full max-w-md bg-slate-950 border border-white/10 rounded-[32px] p-6 sm:p-8 space-y-6 shadow-2xl relative"
+          >
+            <div className="flex justify-between items-center border-b border-white/5 pb-4">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Plus className="text-brand-cyan" size={20} />
+                Enroll New Learner
+              </h3>
+              <button 
+                onClick={() => setShowAddStudentModal(false)}
+                className="text-slate-400 hover:text-white p-1 hover:bg-white/10 rounded-full transition-all cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateStudent} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-black tracking-widest text-slate-400">FullName</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. Sipho Nkosi"
+                  value={newStudentName}
+                  onChange={e => setNewStudentName(e.target.value)}
+                  className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-black tracking-widest text-slate-400">Email Address (Optional)</label>
+                <input 
+                  type="email"
+                  placeholder="e.g. sipho@gmail.com"
+                  value={newStudentEmail}
+                  onChange={e => setNewStudentEmail(e.target.value)}
+                  className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5 col-span-2">
+                  <label className="text-[10px] uppercase font-black tracking-widest text-[#22d3ee]">Parent Name (Guardian)</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Thabo Nkosi"
+                    value={newParentName}
+                    onChange={e => setNewParentName(e.target.value)}
+                    className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-black tracking-widest text-[#22d3ee]">Parent Email</label>
+                  <input 
+                    type="email" 
+                    placeholder="thabo@gmail.com"
+                    value={newParentEmail}
+                    onChange={e => setNewParentEmail(e.target.value)}
+                    className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-black tracking-widest text-[#22d3ee]">Parent Phone</label>
+                  <input 
+                    type="tel" 
+                    placeholder="082 123 4567"
+                    value={newParentPhone}
+                    onChange={e => setNewParentPhone(e.target.value)}
+                    className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-black tracking-widest text-slate-400">Class Grade</label>
+                <select 
+                  value={newStudentGrade}
+                  onChange={e => setNewStudentGrade(e.target.value)}
+                  className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white uppercase font-bold focus:outline-none cursor-pointer"
+                >
+                  <option value="Grade 10A">Grade 10A</option>
+                  <option value="Grade 10B">Grade 10B</option>
+                  <option value="Grade 11C">Grade 11C</option>
+                  <option value="Grade 9A">Grade 9A</option>
+                  <option value="GrR">Grade R</option>
+                  <option value="Gr1">Grade 1</option>
+                  <option value="Gr2">Grade 2</option>
+                  <option value="Gr3">Grade 3</option>
+                </select>
+              </div>
+
+              <button 
+                type="submit"
+                className="w-full bg-brand-cyan hover:scale-105 active:scale-95 text-navy-dark font-black uppercase tracking-widest p-4 rounded-xl text-xs transition-colors mt-4 cursor-pointer shadow-lg shadow-cyan-500/10"
+              >
+                Complete Enrollment
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Edit Student Modal */}
+      {showEditStudentModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-navy-dark/80 backdrop-blur-sm p-4">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-full max-w-md bg-slate-950 border border-white/10 rounded-[32px] p-6 sm:p-8 space-y-6 shadow-2xl relative"
+          >
+            <div className="flex justify-between items-center border-b border-white/5 pb-4">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Edit2 className="text-brand-cyan" size={18} />
+                Edit Learner Profile
+              </h3>
+              <button 
+                onClick={() => setShowEditStudentModal(false)}
+                className="text-slate-400 hover:text-white p-1 hover:bg-white/10 rounded-full transition-all cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateStudent} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-black tracking-widest text-slate-400">FullName</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. Sipho Nkosi"
+                  value={editStudentName}
+                  onChange={e => setEditStudentName(e.target.value)}
+                  className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-black tracking-widest text-slate-400">Email Address</label>
+                <input 
+                  type="email"
+                  required
+                  placeholder="e.g. sipho@gmail.com"
+                  value={editStudentEmail}
+                  onChange={e => setEditStudentEmail(e.target.value)}
+                  className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-white/5">
+                <div className="col-span-2 space-y-1.5">
+                  <label className="text-[10px] uppercase font-black tracking-widest text-[#22d3ee]">Parent Name (Guardian)</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Thabo Nkosi"
+                    value={editParentName}
+                    onChange={e => setEditParentName(e.target.value)}
+                    className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-black tracking-widest text-[#22d3ee]">Parent Email</label>
+                  <input 
+                    type="email" 
+                    placeholder="thabo@gmail.com"
+                    value={editParentEmail}
+                    onChange={e => setEditParentEmail(e.target.value)}
+                    className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-black tracking-widest text-[#22d3ee]">Parent Phone</label>
+                  <input 
+                    type="tel" 
+                    placeholder="082 123 4567"
+                    value={editParentPhone}
+                    onChange={e => setEditParentPhone(e.target.value)}
+                    className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-cyan"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-black tracking-widest text-slate-400">Class Grade</label>
+                <select 
+                  value={editStudentGrade}
+                  onChange={e => setEditStudentGrade(e.target.value)}
+                  className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white uppercase font-bold focus:outline-none cursor-pointer"
+                >
+                  <option value="Grade 10A">Grade 10A</option>
+                  <option value="Grade 10B">Grade 10B</option>
+                  <option value="Grade 11C">Grade 11C</option>
+                  <option value="Grade 9A">Grade 9A</option>
+                  <option value="GrR">Grade R</option>
+                  <option value="Gr1">Grade 1</option>
+                  <option value="Gr2">Grade 2</option>
+                  <option value="Gr3">Grade 3</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-black tracking-widest text-slate-400">Status</label>
+                <select 
+                  value={editStudentStatus}
+                  onChange={e => setEditStudentStatus(e.target.value)}
+                  className="w-full bg-[#0d1527] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3 text-xs text-white uppercase font-bold focus:outline-none cursor-pointer"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+
+              <button 
+                type="submit"
+                className="w-full bg-brand-cyan hover:scale-105 active:scale-95 text-navy-dark font-black uppercase tracking-widest p-4 rounded-xl text-xs transition-colors mt-4 cursor-pointer shadow-lg shadow-cyan-500/10"
+              >
+                Save Changes
+              </button>
+            </form>
+          </motion.div>
+        </div>
       )}
     </div>
   );
