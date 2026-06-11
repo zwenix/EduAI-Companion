@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type AIProvider = 'gemini' | 'qwen-primary' | 'qwen-secondary' | 'alibaba-qwen' | 'groq-vision';
-export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
+export type AIProvider = 'gemini' | 'llama-primary' | 'llama-secondary' | 'alibaba-qwen' | 'alibaba-deepseek' | 'groq-vision';
+export type TTSProvider = 'browser' | 'elevenlabs' | 'huggingface' | 'google-tts';
 export type OCRProvider = 'gemini' | 'ocrspace' | 'groq-vision';
-export type ImageProvider = 'gemini-imagen' | 'huggingface' | 'pollinations-schnell' | 'pollinations-turbo' | 'pollinations-klein' | 'wan2.1-t2i-plus' | 'qwen-image-2.0-pro' | 'qwen-image-2512';
+export type ImageProvider = 'gemini-imagen' | 'huggingface' | 'pollinations-schnell' | 'pollinations-turbo' | 'pollinations-klein' | 'alibaba-qwen-image';
 
 interface AiContextType {
   provider: AIProvider;
@@ -18,10 +18,10 @@ interface AiContextType {
 
 const AiContext = createContext<AiContextType | undefined>(undefined);
 
-const VALID_PROVIDERS: AIProvider[] = ['gemini', 'qwen-primary', 'qwen-secondary', 'alibaba-qwen', 'groq-vision'];
-const VALID_TTS: TTSProvider[] = ['browser', 'groq-whisper', 'huggingface', 'google-tts'];
+const VALID_PROVIDERS: AIProvider[] = ['gemini', 'llama-primary', 'llama-secondary', 'alibaba-qwen', 'alibaba-deepseek', 'groq-vision'];
+const VALID_TTS: TTSProvider[] = ['browser', 'elevenlabs', 'huggingface', 'google-tts'];
 const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace', 'groq-vision'];
-const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'huggingface', 'pollinations-schnell', 'pollinations-turbo', 'pollinations-klein', 'wan2.1-t2i-plus', 'qwen-image-2.0-pro', 'qwen-image-2512'];
+const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'huggingface', 'pollinations-schnell', 'pollinations-turbo', 'pollinations-klein', 'alibaba-qwen-image'];
 
 export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {
@@ -32,7 +32,7 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
       }
       return 'gemini';
     } catch (e) {
-      return 'gemini';
+      return 'llama-primary';
     }
   });
 
@@ -57,10 +57,10 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [imageProvider, setImageProvider] = useState<ImageProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_image_provider') as any;
-      if (saved === 'zhipu' || saved === 'glm-image' || saved === 'pollinations') return 'gemini-imagen';
-      return saved && VALID_IMAGE.includes(saved) ? saved : 'gemini-imagen';
+      if (saved === 'zhipu' || saved === 'glm-image' || saved === 'pollinations') return 'pollinations-schnell';
+      return saved && VALID_IMAGE.includes(saved) ? saved : 'pollinations-schnell';
     } catch {
-      return 'gemini-imagen';
+      return 'pollinations-schnell';
     }
   });
 

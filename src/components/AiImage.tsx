@@ -31,26 +31,14 @@ export default function AiImage({ prompt, className = '', aspectRatio = 'square'
         if (imageProvider === 'pollinations-klein') model = 'flux-pro'; // or whatever the closest is
         const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&model=${model}&seed=${retryCount}`;
         if (active) setImageUrl(url);
-      } else {
+      } else if (imageProvider === 'huggingface' || imageProvider === 'alibaba-qwen-image' || imageProvider === 'gemini-imagen') {
         try {
           const res = await fetch('/api/images/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt, provider: imageProvider })
           });
-          
-          if (!res.ok) {
-            throw new Error(`Server returned ${res.status}`);
-          }
-          
-          const text = await res.text();
-          let data;
-          try {
-            data = JSON.parse(text);
-          } catch (e) {
-            throw new Error('Invalid JSON response');
-          }
-          
+          const data = await res.json();
           if (data.url && active) {
             setImageUrl(data.url);
           } else if (active) {

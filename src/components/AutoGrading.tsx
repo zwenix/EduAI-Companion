@@ -62,7 +62,7 @@ export default function AutoGrading() {
     downloadAsHTML(contentRef, "EduAI-AutoGrading.html");
   };
 
-  const handleArchive = async () => {
+  const handleArchive = () => {
     const data = mode === 'grade' ? result : extractResult;
     if (!data) return;
 
@@ -83,8 +83,8 @@ export default function AutoGrading() {
     };
 
     try {
-      const { saveStudyNote } = await import('../lib/offlineDB');
-      await saveStudyNote(newItem);
+      const existing = JSON.parse(localStorage.getItem('eduai_archive') || '[]');
+      localStorage.setItem('eduai_archive', JSON.stringify([newItem, ...existing]));
       setArchiveSuccess(true);
       setTimeout(() => setArchiveSuccess(false), 2000);
     } catch (e) {

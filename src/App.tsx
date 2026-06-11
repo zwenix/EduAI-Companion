@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   BookOpen, 
   FileText, 
@@ -29,7 +29,6 @@ import {
   Library,
   Video,
   FileCode,
-  Compass,
   HelpCircle,
   Archive,
   UserCircle,
@@ -39,28 +38,15 @@ import {
   Sparkles,
   Menu,
   X,
-  AlertTriangle,
   Zap,
   School,
   Home,
   ArrowLeft,
   LogOut,
   RefreshCcw,
-  UserCheck,
-  Cloud,
-  CloudDownload,
-  Wifi,
-  Check,
-  Smartphone,
-  Download,
-  Accessibility,
-  Eye,
-  Contrast,
-  Volume2,
-  VolumeX
+  UserCheck
 } from 'lucide-react';
-import { motion, AnimatePresence, MotionConfig } from 'motion/react';
-import { marked } from 'marked';
+import { motion, AnimatePresence } from 'motion/react';
 import ContentCreator from './components/ContentCreator';
 import Messenger from './components/Messenger';
 import ProgressReports from './components/ProgressReports';
@@ -77,23 +63,12 @@ import StudentPractice from './components/StudentPractice';
 import StudentNotes from './components/StudentNotes';
 import StudentDashboard from './components/StudentDashboard';
 import StudentPortfolio from './components/StudentPortfolio';
-import CurriculumSuite from './components/CurriculumSuite';
 import ParentDashboard from './components/ParentDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import SettingsPage from './components/Settings';
 import Helpdesk from './components/Helpdesk';
-import CategoryOverview from './components/CategoryOverview';
-import IllustrationLibrary from './components/IllustrationLibrary';
-import { auth, db } from './lib/firebase';
-import { doc, setDoc, serverTimestamp, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
+import { auth } from './lib/firebase';
 import { signOut } from 'firebase/auth';
-import { MOCK_STUDENTS } from './data/mockStudents';
-import { 
-  AreaChart, Area, 
-  LineChart, Line,
-  XAxis, YAxis, CartesianGrid, 
-  Tooltip, ResponsiveContainer, Legend 
-} from 'recharts';
 
 const SidebarItem = ({ icon: Icon, label, active, onClick, collapsed, isDarkMode }: { icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean, isDarkMode?: boolean }) => (
   <button
@@ -325,347 +300,15 @@ export default function App() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [previousTabs, setPreviousTabs] = useState<string[]>([]);
-  const [activeCategory, setActiveCategory] = useState('teacher-dashboard-menu');
-  const [categoryOverviewActive, setCategoryOverviewActive] = useState<string | null>(null);
-  const [categoryActiveSubTab, setCategoryActiveSubTab] = useState<Record<string, string>>({
-    'teacher-dashboard-menu': 'dashboard',
-    'lesson-planning': 'teaching',
-    'intelligence-ai': 'ai-tutor',
-    'class-analytics': 'reports',
-    'class-management': 'class-management',
-    'student-class-management': 'messenger',
-    'system-support': 'settings'
-  });
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
-
-  // Real-time Teacher Dashboard students & aggregates
-  const [dashboardStudents, setDashboardStudents] = useState<any[]>([]);
-
-  useEffect(() => {
-    const user = auth.currentUser;
-    if (!user || userRole !== 'teacher') return;
-
-    const qStudents = query(collection(db, 'students'), where('teacherId', '==', user.uid));
-    const unsubStudents = onSnapshot(qStudents, (snapshot) => {
-      if (!snapshot.empty) {
-        setDashboardStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      } else {
-        setDashboardStudents([]);
-      }
-    }, (error) => {
-      console.warn("Dashboard real-time students subscription issue:", error);
-    });
-
-    return () => unsubStudents();
-  }, [userRole]);
-
-  const computedStudents = useMemo(() => {
-    if (dashboardStudents.length === 0) {
-      return MOCK_STUDENTS;
-    }
-    return dashboardStudents.map(student => {
-      const seed = student.name.charCodeAt(0) || 72;
-      const mathScore = Math.min(95, Math.max(42, (seed % 40) + 50));
-      const scienceScore = Math.min(95, Math.max(40, ((seed + 5) % 40) + 45));
-      const englishScore = Math.min(93, Math.max(50, ((seed + 12) % 30) + 60));
-
-      return {
-        id: student.id,
-        name: student.name,
-        grade: student.grade || 'Grade 10A',
-        status: student.status || 'Active',
-        subjects: student.subjects || [
-          { name: 'Mathematics', mark: mathScore, termHistory: [mathScore - 9, mathScore - 4, mathScore - 2, mathScore], assessments: [ { title: 'Algebra Portfolio', score: mathScore + 4, type: 'SBA' }, { title: 'Diagnostic Test', score: mathScore - 5, type: 'Test' } ] },
-          { name: 'Physical Sciences', mark: scienceScore, termHistory: [scienceScore - 11, scienceScore - 6, scienceScore - 1, scienceScore], assessments: [ { title: 'Stoichiometry SBA', score: scienceScore - 3, type: 'SBA' }, { title: 'Mechanics Practical', score: scienceScore + 5, type: 'Practical' } ] },
-          { name: 'English First Additional Language', mark: englishScore, termHistory: [englishScore - 5, englishScore - 2, englishScore - 1, englishScore], assessments: [ { title: 'Summary SBA', score: englishScore + 2, type: 'SBA' }, { title: 'Grammar review', score: englishScore - 4, type: 'Quiz' } ] }
-        ]
-      };
-    });
-  }, [dashboardStudents]);
-
-  // Aggregate current term subject average
-  const dashboardSubjectAverages = useMemo(() => {
-    const subjectSums: Record<string, { sum: number; count: number }> = {};
-    computedStudents.forEach(student => {
-      if (student.subjects) {
-        student.subjects.forEach((sub: any) => {
-          let normalized = sub.name;
-          if (sub.name.includes('Math')) normalized = 'Mathematics';
-          else if (sub.name.includes('Science') || sub.name.includes('Phys')) normalized = 'Sciences';
-          else if (sub.name.includes('English') || sub.name.includes('Language') || sub.name.includes('Literacy')) normalized = 'Languages';
-          
-          if (!subjectSums[normalized]) {
-            subjectSums[normalized] = { sum: 0, count: 0 };
-          }
-          subjectSums[normalized].sum += sub.mark;
-          subjectSums[normalized].count += 1;
-        });
-      }
-    });
-
-    const keys = Object.keys(subjectSums);
-    if (keys.length === 0) {
-      return [
-        { name: 'Mathematics', average: 74 },
-        { name: 'Sciences', average: 69 },
-        { name: 'Languages', average: 77 }
-      ];
-    }
-
-    return keys.map(key => ({
-      name: key,
-      average: Math.round(subjectSums[key].sum / subjectSums[key].count)
-    }));
-  }, [computedStudents]);
-
-  // Historical progress trends for classroom
-  const dashboardTermProgress = useMemo(() => {
-    const terms = ['Term 1', 'Term 2', 'Term 3', 'Term 4'];
-    return terms.map((term, termIdx) => {
-      let mathSum = 0, mathCount = 0;
-      let sciSum = 0, sciCount = 0;
-      let langSum = 0, langCount = 0;
-
-      computedStudents.forEach(student => {
-        if (!student.subjects) return;
-        student.subjects.forEach((sub: any) => {
-          const val = sub.termHistory?.[termIdx] || sub.mark;
-          const name = sub.name.toLowerCase();
-          if (name.includes('math')) {
-            mathSum += val;
-            mathCount++;
-          } else if (name.includes('science') || name.includes('phys')) {
-            sciSum += val;
-            sciCount++;
-          } else {
-            langSum += val;
-            langCount++;
-          }
-        });
-      });
-
-      return {
-        name: term,
-        'Mathematics': mathCount > 0 ? Math.round(mathSum / mathCount) : 65 + (termIdx * 4),
-        'Sciences': sciCount > 0 ? Math.round(sciSum / sciCount) : 60 + (termIdx * 5),
-        'Languages': langCount > 0 ? Math.round(langSum / langCount) : 70 + (termIdx * 3),
-      };
-    });
-  }, [computedStudents]);
   
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
-  const [dyslexiaEnabled, setDyslexiaEnabled] = useState(() => localStorage.getItem('eduai_dyslexia') === 'true');
-  const [magnifyEnabled, setMagnifyEnabled] = useState(() => localStorage.getItem('eduai_magnify') === 'true');
-  const [highContrastEnabled, setHighContrastEnabled] = useState(() => localStorage.getItem('eduai_high_contrast') === 'true');
-  const [soundMuted, setSoundMuted] = useState(() => localStorage.getItem('eduai_sound_muted') === 'true');
-
-  const speakText = (text: string) => {
-    if (localStorage.getItem('eduai_sound_muted') === 'true') return;
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      if (!text) return;
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.0;
-      window.speechSynthesis.speak(utterance);
-    }
-  };
 
   // Dialog States
   const [activeCreatorTab, setActiveCreatorTab] = useState<string | null>(null);
-
-  // --- Offline Sync States for Student Materials & Notes ---
-  const [syncStatus, setSyncStatus] = useState<'synced' | 'pending' | 'syncing' | 'error'>(() => {
-    return (localStorage.getItem('eduai_sync_status') as any) || 'pending';
-  });
-  const [lastSyncedTime, setLastSyncedTime] = useState<string>(() => {
-    return localStorage.getItem('eduai_last_synced') || 'Never';
-  });
-  const [syncProgress, setSyncProgress] = useState(0);
-  const [isOfflineViewerOpen, setIsOfflineViewerOpen] = useState(false);
-  const [selectedOfflineMaterial, setSelectedOfflineMaterial] = useState<any>(null);
-  const [offlineSearchQuery, setOfflineSearchQuery] = useState('');
-  const [offlineMaterials, setOfflineMaterials] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (isOfflineViewerOpen) {
-      import('./lib/offlineDB').then(({ getStudyNotes }) => {
-        getStudyNotes().then(setOfflineMaterials).catch(console.error);
-      });
-    }
-  }, [isOfflineViewerOpen]);
-
-  useEffect(() => {
-    const onTriggerEdit = (e: any) => {
-      const { tab } = e.detail || {};
-      if (tab) {
-        setActiveCreatorTab(tab);
-      }
-    };
-    window.addEventListener('trigger-edit-content', onTriggerEdit);
-    return () => window.removeEventListener('trigger-edit-content', onTriggerEdit);
-  }, []);
-
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isAppInstallable, setIsAppInstallable] = useState(false);
-  const [isAlreadyInstalled, setIsAlreadyInstalled] = useState(false);
-  const [pwaBannerDismissed, setPwaBannerDismissed] = useState(() => {
-    return localStorage.getItem('eduai_pwa_banner_dismissed') === 'true';
-  });
-  const [syncToast, setSyncToast] = useState<{ show: boolean; message: string; type: 'success' | 'info' | 'error' }>({ show: false, message: '', type: 'info' });
-  const [apiBlockedAlert, setApiBlockedAlert] = useState<{
-    provider: string;
-    url?: string;
-    isBlockedByClient: boolean;
-    message: string;
-  } | null>(null);
-
-  useEffect(() => {
-    const onApiError = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      if (customEvent && customEvent.detail) {
-        setApiBlockedAlert(customEvent.detail);
-      }
-    };
-    window.addEventListener('api-blocked-or-unreachable', onApiError);
-    return () => window.removeEventListener('api-blocked-or-unreachable', onApiError);
-  }, []);
-
-  const installPWAApp = async () => {
-    if (!deferredPrompt) {
-      triggerToast("Install prompt is not ready yet. Try using your native browser menu to 'Install' or 'Add to Home Screen'.", "info");
-      return;
-    }
-    try {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      console.log(`User choice outcome: ${outcome}`);
-      if (outcome === 'accepted') {
-        setIsAppInstallable(false);
-      }
-      setDeferredPrompt(null);
-    } catch (err) {
-      console.error("Failed to prompt PWA installation: ", err);
-    }
-  };
-
-  const triggerToast = (message: string, type: 'success' | 'info' | 'error' = 'info') => {
-    setSyncToast({ show: true, message, type });
-    setTimeout(() => {
-      setSyncToast(prev => ({ ...prev, show: false }));
-    }, 4500);
-  };
-
-  const handleOfflineSync = async () => {
-    setSyncStatus('syncing');
-    setSyncProgress(10);
-    triggerToast("Initiating secure offline sync...", "info");
-    
-    // Smooth progress simulation
-    const interval = setInterval(() => {
-      setSyncProgress(prev => {
-        if (prev >= 90) {
-          clearInterval(interval);
-          return prev;
-        }
-        return prev + Math.floor(Math.random() * 15) + 8;
-      });
-    }, 150);
-
-    try {
-      const { collection, getDocs, query, limit, where } = await import('firebase/firestore');
-      
-      let fetchedItems: any[] = [];
-      try {
-        const q = query(
-          collection(db, 'created_content'), 
-          where('teacherId', '==', auth.currentUser?.uid || ''), 
-          limit(15)
-        );
-        const snapshot = await getDocs(q);
-        fetchedItems = snapshot.docs.map(doc => ({
-          id: doc.id,
-          title: doc.data().title || 'Untitled Lesson',
-          subject: doc.data().subject || 'General Study',
-          grade: doc.data().grade || '10',
-          contentType: doc.data().contentType || 'Lesson Plan',
-          content: doc.data().content || '',
-          createdAt: doc.data().createdAt?.toDate()?.toISOString() || new Date().toISOString()
-        }));
-      } catch (dbErr) {
-        console.warn("Could not retrieve classroom contents from FireStore, using secure local fallback", dbErr);
-      }
-
-      // Pre-designed high quality CAPS aligned curriculum materials to guarantee offline availability
-      const curriculumBackups = [
-        {
-          id: 'sys-1',
-          title: 'Caps Mastery: Core Algebra & Functions',
-          subject: 'Mathematics',
-          grade: '10',
-          contentType: 'Study Notes',
-          content: `# CAPS Mathematics - Grade 10: Algebraic Expressions\n\n## 1. Core Objectives\n- Understand operations on polynomials.\n- Learn key factorization schemes: Difference of Two Squares, Trinomials, Grouping.\n- Simplify algebraic fractions with binomial denominators.\n\n## 2. Factorization Guide\n### Difference of Two Squares\n$$a^2 - b^2 = (a-b)(a+b)$$\n\n### Trinomial Factorization\nTo factor $x^2 + bx + c$, locate two numbers that multiply to $c$ and sum to $b$.\n\n*Review exercises in Practice tab to consolidate!*`,
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 'sys-2',
-          title: 'Mechanics: Forces & Newton\'s Laws',
-          subject: 'Physical Sciences',
-          grade: '10',
-          contentType: 'Revision Guide',
-          content: `# CAPS Physical Sciences - Grade 10: Mechanics\n\n## 1. Newton's First Law (Inertia)\nAn object continues in a state of rest or uniform velocity unless acted upon by a non-zero net force.\n\n## 2. Draw Vector Forces\n- Gravity ($F_g$): Downward pull of the earth.\n- Normal Force ($F_N$): Upward support force perpendicular to surface.\n- Friction ($F_f$): Resistant force counteracting slide motion.`,
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 'sys-3',
-          title: 'Cell Biology: Organic Molecules',
-          subject: 'Life Sciences',
-          grade: '10',
-          contentType: 'Study Notes',
-          content: `# CAPS Life Sciences - Grade 10: Cells & Molecules\n\n## 1. Organic vs Inorganic Compounds\n- **Inorganic compounds:** Water, mineral salts (do not contain carbon bonded to hydrogen).\n- **Organic compounds:** Carbohydrates, Lipids, Proteins, Nucleic Acids (contain high energy C-H bonds).\n\n## 2. Importance of Water\n- Key universal solvent for metabolic chemical reactions.\n- Formulates medium for transport of digested nutrients.`,
-          createdAt: new Date().toISOString()
-        }
-      ];
-
-      const { saveStudyNote, clearStudyNotes } = await import('./lib/offlineDB');
-      await clearStudyNotes();
-      
-      const finalCache = [...fetchedItems, ...curriculumBackups];
-      for (const item of finalCache) {
-        await saveStudyNote(item);
-      }
-      localStorage.setItem('eduai_cached_materials_status', 'idb_migrated');
-
-      
-      clearInterval(interval);
-      setSyncProgress(100);
-      
-      const timeStamp = new Date().toLocaleString('en-ZA', { 
-        day: '2-digit', 
-        month: 'short', 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-      
-      setTimeout(() => {
-        setSyncStatus('synced');
-        setLastSyncedTime(timeStamp);
-        localStorage.setItem('eduai_sync_status', 'synced');
-        localStorage.setItem('eduai_last_synced', timeStamp);
-        triggerToast("Sync successful! Lessons cached for offline use.", "success");
-      }, 500);
-
-    } catch (err: any) {
-      console.error("Offline sync critical failure:", err);
-      clearInterval(interval);
-      setSyncStatus('error');
-      localStorage.setItem('eduai_sync_status', 'error');
-      triggerToast("Sync failed. Check connection & try again.", "error");
-    }
-  };
 
 
 
@@ -673,12 +316,10 @@ export default function App() {
     setPreviousTabs(prev => [...prev, activeTab]);
     setActiveTab(newTab);
     setActiveCreatorTab(null);
-    setCategoryOverviewActive(null);
   };
 
   const goBack = () => {
     setActiveCreatorTab(null);
-    setCategoryOverviewActive(null);
     if (previousTabs.length > 0) {
       const newHistory = [...previousTabs];
       const prev = newHistory.pop();
@@ -688,208 +329,6 @@ export default function App() {
       setActiveTab('dashboard');
     }
   };
-
-  const getSidebarCategories = (role: string | null) => {
-    const r = role || 'teacher';
-    let firstLabel = 'Teacher Dashboard';
-    if (r === 'student') firstLabel = 'Student Dashboard';
-    else if (r === 'parent') firstLabel = 'Parent Dashboard';
-    else if (r === 'admin') firstLabel = 'Admin Dashboard';
-    
-    return [
-      { id: 'teacher-dashboard-menu', label: firstLabel, icon: LayoutDashboard },
-      { id: 'lesson-planning', label: 'Teaching Tools', icon: BookOpen },
-      { id: 'intelligence-ai', label: 'Intelligence AI', icon: Brain },
-      { id: 'class-analytics', label: 'Analytics & Reports', icon: TrendingUp },
-      { id: 'class-management', label: 'Class management', icon: School },
-      { id: 'student-class-management', label: 'Chat & Messenger', icon: MessageSquare },
-      { id: 'system-support', label: 'System support', icon: Settings },
-    ];
-  };
-
-  const sidebarCategories = getSidebarCategories(userRole);
-
-  const getSubTabsForCategory = (catId: string, role: string | null) => {
-    const r = role || 'teacher';
-    if (r === 'student') {
-      switch (catId) {
-        case 'teacher-dashboard-menu':
-          return [
-            { id: 'dashboard', label: 'Student Dashboard', icon: LayoutDashboard }
-          ];
-        case 'lesson-planning':
-          return [
-            { id: 'student-notes', label: 'Study & Revision Notes', icon: BookOpen }
-          ];
-        case 'intelligence-ai':
-          return [
-            { id: 'ai-tutor', label: 'AI Tutor Helpers', icon: Brain }
-          ];
-        case 'class-analytics':
-          return [
-            { id: 'reports', label: 'My Progress Analytics', icon: TrendingUp },
-            { id: 'portfolios', label: 'My Portfolio', icon: UserCircle },
-            { id: 'curriculum', label: 'CAPS & Gamification Hub', icon: Compass }
-          ];
-        case 'class-management':
-          return [
-            { id: 'dashboard', label: 'Class Overview', icon: Users }
-          ];
-        case 'student-class-management':
-          return [
-            { id: 'student-practice', label: 'Practice Zone', icon: ClipboardCheck },
-            { id: 'messenger', label: 'Chat & Friends', icon: MessageSquare }
-          ];
-        case 'system-support':
-          return [
-            { id: 'settings', label: 'Settings', icon: Settings },
-            { id: 'helpdesk', label: 'Help', icon: HelpCircle },
-            { id: 'faq', label: 'Support', icon: Accessibility }
-          ];
-        default:
-          return [];
-      }
-    } else if (r === 'parent') {
-      switch (catId) {
-        case 'teacher-dashboard-menu':
-          return [
-            { id: 'dashboard', label: 'Parent Dashboard Hub', icon: LayoutDashboard }
-          ];
-        case 'lesson-planning':
-          return [];
-        case 'intelligence-ai':
-          return [
-            { id: 'dashboard', label: 'AI Classroom Updates', icon: Brain }
-          ];
-        case 'class-analytics':
-          return [
-            { id: 'reports', label: "My Child's Progress", icon: TrendingUp },
-            { id: 'portfolios', label: 'Assignments & Portfolios', icon: FileText }
-          ];
-        case 'class-management':
-          return [
-            { id: 'dashboard', label: 'Class Overview', icon: Users }
-          ];
-        case 'student-class-management':
-          return [
-            { id: 'messenger', label: 'Teacher Chat & Contacts', icon: MessageSquare }
-          ];
-        case 'system-support':
-          return [
-            { id: 'settings', label: 'Settings', icon: Settings },
-            { id: 'helpdesk', label: 'Help', icon: HelpCircle },
-            { id: 'faq', label: 'Support', icon: Accessibility }
-          ];
-        default:
-          return [];
-      }
-    } else if (r === 'admin') {
-      switch (catId) {
-        case 'teacher-dashboard-menu':
-          return [
-            { id: 'dashboard', label: 'Admin Dashboard Hub', icon: LayoutDashboard }
-          ];
-        case 'lesson-planning':
-          return [
-            { id: 'archive', label: 'Database Content Archive', icon: Archive }
-          ];
-        case 'intelligence-ai':
-          return [
-            { id: 'ai-tutor', label: 'AI System Controls', icon: Brain },
-            { id: 'ocr', label: 'OCR Grading Logs', icon: Scan }
-          ];
-        case 'class-analytics':
-          return [
-            { id: 'reports', label: 'School Analytics & Stats', icon: TrendingUp }
-          ];
-        case 'class-management':
-          return [
-            { id: 'class-management', label: 'Classrooms Manager', icon: School }
-          ];
-        case 'student-class-management':
-          return [
-            { id: 'dashboard', label: 'Students Overview', icon: UserCircle }
-          ];
-        case 'system-support':
-          return [
-            { id: 'settings', label: 'Settings', icon: Settings },
-            { id: 'helpdesk', label: 'Help', icon: HelpCircle },
-            { id: 'faq', label: 'Support', icon: Accessibility }
-          ];
-        default:
-          return [];
-      }
-    } else {
-      // Default: Teacher
-      switch (catId) {
-        case 'teacher-dashboard-menu':
-          return [
-            { id: 'dashboard', label: 'Teacher Dashboard', icon: LayoutDashboard }
-          ];
-        case 'lesson-planning':
-          return [
-            { id: 'teaching', label: 'Content Creator Studio', icon: FlaskConical },
-            { id: 'archive', label: 'Content Archive Storage', icon: Archive },
-            { id: 'illustrations', label: 'Illustration Library', icon: Image }
-          ];
-        case 'intelligence-ai':
-          return [
-            { id: 'ai-tutor', label: 'AI Tutor Support', icon: Brain },
-            { id: 'ocr', label: 'Scan & Autograde', icon: Scan }
-          ];
-        case 'class-analytics':
-          return [
-            { id: 'reports', label: 'Progress Reports', icon: TrendingUp },
-            { id: 'portfolios', label: 'Learner Personal Portfolios', icon: UserCircle },
-            { id: 'curriculum', label: 'CAPS & Gamification Hub', icon: Compass }
-          ];
-        case 'class-management':
-          return [
-            { id: 'class-management', label: 'Class Management', icon: School }
-          ];
-        case 'student-class-management':
-          return [
-            { id: 'messenger', label: 'Communicator Hub Chat', icon: MessageSquare }
-          ];
-        case 'system-support':
-          return [
-            { id: 'settings', label: 'Settings', icon: Settings },
-            { id: 'helpdesk', label: 'Help', icon: HelpCircle },
-            { id: 'faq', label: 'Support', icon: Accessibility }
-          ];
-        default:
-          return [];
-      }
-    }
-  };
-
-  const getCategoryForTab = (tabId: string, role: string | null) => {
-    const list = [
-      'teacher-dashboard-menu',
-      'lesson-planning',
-      'intelligence-ai',
-      'class-analytics',
-      'class-management',
-      'student-class-management',
-      'system-support'
-    ];
-    for (const cat of list) {
-      const tabs = getSubTabsForCategory(cat, role);
-      if (tabs.some(t => t.id === tabId)) {
-        return cat;
-      }
-    }
-    return 'teacher-dashboard-menu';
-  };
-
-  useEffect(() => {
-    const cat = getCategoryForTab(activeTab, userRole);
-    setActiveCategory(cat);
-    setCategoryActiveSubTab(prev => ({
-      ...prev,
-      [cat]: activeTab
-    }));
-  }, [activeTab, userRole]);
 
   const handleLogout = async () => {
     try {
@@ -901,67 +340,6 @@ export default function App() {
       console.error('Error logging out', error);
     }
   };
-
-  useEffect(() => {
-    // Check if running in standalone display mode
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
-      || (navigator as any).standalone 
-      || document.referrer.includes('android-app://');
-    
-    setIsAlreadyInstalled(!!isStandalone);
-
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setIsAppInstallable(true);
-      console.log('Beforeinstallprompt event triggered and captured');
-    };
-
-    const handleAppInstalled = () => {
-      setDeferredPrompt(null);
-      setIsAppInstallable(false);
-      setIsAlreadyInstalled(true);
-      console.log('PWA app was installed successfully');
-      triggerToast("EduAI Companion installed on your device successfully! 🎉", "success");
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-    };
-  }, []);
-
-  // Synchronize accessibility options across the app viewport
-  useEffect(() => {
-    const syncAccessibility = () => {
-      const dActive = localStorage.getItem('eduai_dyslexia') === 'true';
-      if (dActive) {
-        document.body.classList.add('dyslexia-font-active');
-      } else {
-        document.body.classList.remove('dyslexia-font-active');
-      }
-
-      const mActive = localStorage.getItem('eduai_magnify') === 'true';
-      if (mActive) {
-        document.body.classList.add('magnify-text-active');
-      } else {
-        document.body.classList.remove('magnify-text-active');
-      }
-
-      const hActive = localStorage.getItem('eduai_high_contrast') === 'true';
-      if (hActive) {
-        document.body.classList.add('high-contrast-active');
-      } else {
-        document.body.classList.remove('high-contrast-active');
-      }
-    };
-    syncAccessibility();
-    window.addEventListener('eduai_accessibility_change', syncAccessibility);
-    return () => window.removeEventListener('eduai_accessibility_change', syncAccessibility);
-  }, []);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -976,48 +354,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Check if user has an active authenticated session
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        try {
-          const docRef = doc(db, 'users', user.uid);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            const role = data.role || 'teacher';
-            localStorage.setItem(`userRole_${user.uid}`, role);
-            setUserRole(role);
-            setShowDashboard(true);
-            setShowLogin(false);
-          } else {
-            // Logged in but needs role setup
-            setNeedsRoleSetup(true);
-            setShowDashboard(true);
-            setShowLogin(false);
-          }
-        } catch (err) {
-          console.error("Error fetching user role on startup:", err);
-          // If Firestore is offline or setup is failing, fall back to last cached role or default
-          const cachedRole = localStorage.getItem(`userRole_${user.uid}`) || 'teacher';
-          setUserRole(cachedRole);
-          setShowDashboard(true);
-          setShowLogin(false);
-        }
-      } else {
-        // Not logged in or logged out
-        setShowDashboard(false);
-        setUserRole(null);
-      }
-    });
-
+    // Artificial splash delay
     const timer = setTimeout(() => {
       setIsRefreshing(false);
-    }, 2000);
-
-    return () => {
-      unsubscribe();
-      clearTimeout(timer);
-    };
+    }, 2500);
+    return () => clearTimeout(timer);
   }, []);
 
   if (isRefreshing) {
@@ -1033,30 +374,11 @@ export default function App() {
   if (showLogin) {
     return <LoginPage 
       onSuccess={() => {
-        const user = auth.currentUser;
-        if (user) {
-          // If they successfully logged in and have a role, the onAuthStateChanged will route them.
-          // Otherwise, we trigger role selection.
-          getDoc(doc(db, 'users', user.uid)).then((docSnap) => {
-            if (docSnap.exists()) {
-              setUserRole(docSnap.data().role || 'teacher');
-              setNeedsRoleSetup(false);
-              setShowDashboard(true);
-              setShowLogin(false);
-            } else {
-              setNeedsRoleSetup(true);
-              setShowDashboard(true);
-              setShowLogin(false);
-            }
-          }).catch(() => {
-            setNeedsRoleSetup(true);
-            setShowDashboard(true);
-            setShowLogin(false);
-          });
-        }
+        setShowLogin(false);
+        setNeedsRoleSetup(true);
+        setShowDashboard(true);
       }}
       onSignUpClick={() => {
-        // Successful signup, trigger role setup
         setShowLogin(false);
         setNeedsRoleSetup(true);
         setShowDashboard(true);
@@ -1066,22 +388,9 @@ export default function App() {
 
   if (needsRoleSetup) {
     return <RoleSelection 
-      onComplete={async (role) => {
+      onComplete={(role) => {
         setUserRole(role);
         setNeedsRoleSetup(false);
-        const user = auth.currentUser;
-        if (user) {
-          try {
-            await setDoc(doc(db, 'users', user.uid), {
-              role: role,
-              name: user.displayName || user.email?.split('@')[0] || 'User',
-              email: user.email,
-              updatedAt: serverTimestamp()
-            }, { merge: true });
-          } catch (err) {
-            console.error("Error updating role in users collection:", err);
-          }
-        }
       }}
       onBack={() => {
         setShowDashboard(false);
@@ -1091,8 +400,7 @@ export default function App() {
   }
 
   return (
-    <MotionConfig reducedMotion={soundMuted ? "always" : "user"}>
-      <div className={`flex h-screen ${isDarkMode ? 'bg-[#0F172A]' : 'bg-slate-50'} font-sans selection:bg-brand-cyan/30 overflow-hidden transition-colors duration-500`}>
+    <div className={`flex h-screen ${isDarkMode ? 'bg-[#0F172A]' : 'bg-slate-50'} font-sans selection:bg-brand-cyan/30 overflow-hidden transition-colors duration-500`}>
       {/* Sidebar Overlay for Mobile */}
       <AnimatePresence>
         {isMobile && isMobileSidebarOpen && (
@@ -1140,167 +448,72 @@ export default function App() {
         </div>
 
         <nav className="flex-1 min-h-0 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
-          {sidebarCategories.map((cat) => {
-            const collapsed = !isSidebarOpen && !isMobile;
-            const active = activeCategory === cat.id;
-
-            return (
-              <SidebarItem 
-                key={cat.id}
-                icon={cat.icon} 
-                label={cat.label} 
-                active={active} 
-                isDarkMode={isDarkMode}
-                onClick={() => {
-                  setActiveCategory(cat.id);
-                  const subTabs = getSubTabsForCategory(cat.id, userRole);
-                  if (subTabs.length <= 1 || cat.id === 'teacher-dashboard-menu') {
-                    setCategoryOverviewActive(null);
-                    if (subTabs.length > 0) {
-                      const targetSubTab = subTabs[0].id;
-                      if (targetSubTab === 'teaching') {
-                        setActiveCreatorTab('teaching');
-                        setActiveTab('teaching');
-                      } else {
-                        changeTab(targetSubTab);
-                      }
-                    }
-                  } else {
-                    setCategoryOverviewActive(cat.id);
-                  }
-                  if (isMobile) setMobileSidebarOpen(false);
-                }} 
-                collapsed={collapsed}
-              />
-            );
-          })}
+          {(function() {
+            if (userRole === 'student') {
+              return [
+                { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
+                { icon: Brain, label: 'AI Tutor', id: 'ai-tutor' },
+                { icon: ClipboardCheck, label: 'Practice & Exercises', id: 'student-practice' },
+                { icon: BookOpen, label: 'Study Notes & Revision', id: 'student-notes' },
+                { icon: TrendingUp, label: 'My Progress', id: 'reports' },
+                { icon: UserCircle, label: 'My Portfolio', id: 'portfolios' },
+                { icon: MessageSquare, label: 'Chat', id: 'messenger' },
+              ];
+            }
+            if (userRole === 'parent') {
+              return [
+                { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
+                { icon: TrendingUp, label: "Child's Progress", id: 'reports' },
+                { icon: MessageSquare, label: 'Teacher Communicator', id: 'messenger' },
+                { icon: FileText, label: 'Assignments & Timetable', id: 'portfolios' },
+              ];
+            }
+            if (userRole === 'admin') {
+              return [
+                { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
+                { icon: School, label: 'School Management', id: 'class-management' },
+                { icon: FileText, label: 'Official Correspondence', id: 'teaching' },
+                { icon: Archive, label: 'Content Archive', id: 'archive' },
+                { icon: TrendingUp, label: 'Reports & Analytics', id: 'reports' },
+              ];
+            }
+            // default teacher
+            return [
+              { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
+              { icon: FlaskConical, label: 'Content Creator Studio', id: 'teaching' },
+              { icon: Archive, label: 'Content Archive', id: 'archive' },
+              { icon: Brain, label: 'AI Tutor', id: 'ai-tutor' },
+              { icon: Scan, label: 'Scan & Autograde', id: 'ocr' },
+              { icon: TrendingUp, label: 'Progress Reports', id: 'reports' },
+              { icon: MessageSquare, label: 'Communicator & Messenger', id: 'messenger' },
+              { icon: UserCircle, label: 'Portfolios', id: 'portfolios' },
+              { icon: Users, label: 'Class & Student Management', id: 'class-management' },
+              { icon: Settings, label: 'Settings', id: 'settings' },
+              { icon: HelpCircle, label: 'Helpdesk & Technical Support', id: 'helpdesk' },
+            ];
+          })().map((item) => (
+            <SidebarItem 
+              key={item.id}
+              icon={item.icon} 
+              label={item.label} 
+              active={
+                activeCreatorTab !== null 
+                ? item.id === 'teaching' 
+                : activeTab === item.id
+              } 
+              isDarkMode={isDarkMode}
+              onClick={() => {
+                if (['teaching'].includes(item.id)) {
+                  setActiveCreatorTab(item.id);
+                } else {
+                  changeTab(item.id);
+                }
+                if (isMobile) setMobileSidebarOpen(false);
+              }} 
+              collapsed={!isSidebarOpen && !isMobile}
+            />
+          ))}
         </nav>
-
-        {/* PWA Install Promo */}
-        {isAppInstallable && (
-          <div className="px-3 py-2 shrink-0 flex justify-center">
-            {(!isSidebarOpen && !isMobile) ? (
-              <button
-                onClick={installPWAApp}
-                title="Install EduAI Companion Offline App"
-                className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-tr from-brand-cyan to-indigo-500 hover:scale-110 active:scale-90 shadow-md shadow-brand-cyan/20 transition-all cursor-pointer border-0 outline-none text-white"
-              >
-                <Smartphone size={16} className="animate-pulse" />
-              </button>
-            ) : (
-              <button
-                onClick={installPWAApp}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2.5xl font-display font-black text-[10px] tracking-wider shadow-md shadow-brand-cyan/15 transform hover:scale-[1.02] active:scale-[0.98] transition-all bg-gradient-to-r from-brand-cyan to-indigo-500 hover:to-indigo-600 text-white cursor-pointer border-0 outline-none"
-              >
-                <Smartphone size={14} className="animate-bounce shrink-0" />
-                <span>INSTALL OFFLINE APP</span>
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Sync Status Section (Only for Students) */}
-        {userRole === 'student' && (
-          <div className="my-4 px-1 shrink-0">
-            {isSidebarOpen || isMobile ? (
-              <div className={`p-4 rounded-[24px] border transition-all duration-300 ${
-                isDarkMode 
-                  ? 'bg-slate-900/60 border-white/5 text-slate-300' 
-                  : 'bg-slate-50 border-slate-200 text-slate-700 shadow-sm'
-              }`}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex h-2.5 w-2.5">
-                      {syncStatus === 'syncing' ? (
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                      ) : syncStatus === 'synced' ? (
-                        <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      ) : (
-                        <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400/55 opacity-75 animate-ping"></span>
-                      )}
-                      <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                        syncStatus === 'syncing' ? 'bg-amber-500' : syncStatus === 'synced' ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'
-                      }`}></span>
-                    </div>
-                    <span className="text-xs font-black tracking-tight uppercase">
-                      {syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'synced' ? 'Offline Ready' : 'Sync Needed'}
-                    </span>
-                  </div>
-                  <span className="text-[10px] opacity-70 font-mono font-bold">Last: {lastSyncedTime}</span>
-                </div>
-
-                {syncStatus === 'syncing' ? (
-                  <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden mb-3 border border-transparent/5">
-                    <motion.div 
-                      className="bg-brand-cyan h-full rounded-full" 
-                      initial={{ width: '0%' }}
-                      animate={{ width: `${syncProgress}%` }}
-                      transition={{ duration: 0.1 }}
-                    />
-                  </div>
-                ) : (
-                  <div className={`text-[11px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mb-3 leading-snug`}>
-                    Assigned lessons & notes cached securely.
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <button
-                    disabled={syncStatus === 'syncing'}
-                    onClick={handleOfflineSync}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-brand-cyan hover:bg-cyan-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    <RefreshCcw size={13} className={`shrink-0 ${syncStatus === 'syncing' && 'animate-spin'}`} />
-                    Sync
-                  </button>
-
-                  <button
-                    onClick={() => setIsOfflineViewerOpen(true)}
-                    className={`flex items-center justify-center gap-1.5 px-3 py-2.5 font-bold text-xs rounded-xl cursor-pointer transition-all active:scale-95 ${
-                      isDarkMode 
-                        ? 'bg-slate-800 hover:bg-slate-700 text-brand-cyan border border-brand-cyan/25' 
-                        : 'bg-white hover:bg-slate-100 text-brand-cyan border border-brand-cyan/35 shadow-sm'
-                    }`}
-                  >
-                    <BookOpen size={13} className="shrink-0" />
-                    Vault
-                  </button>
-                </div>
-              </div>
-            ) : (
-              // Collapsed Sidebar Compact view
-              <div className="flex flex-col items-center gap-4 py-4 rounded-2xl">
-                <button
-                  onClick={handleOfflineSync}
-                  title={`Offline Access Sync (${syncStatus === 'synced' ? 'Ready' : 'Needs Sync'})`}
-                  disabled={syncStatus === 'syncing'}
-                  className={`p-3 rounded-xl transition-all relative group cursor-pointer ${
-                    syncStatus === 'syncing' 
-                      ? 'bg-amber-500/10 text-amber-500' 
-                      : syncStatus === 'synced' 
-                        ? 'bg-emerald-500/10 text-emerald-500 hover:scale-105 hover:bg-emerald-500/20' 
-                        : 'bg-rose-500/10 text-rose-500 hover:scale-105 hover:bg-rose-500/20'
-                  }`}
-                >
-                  <RefreshCcw size={18} className={syncStatus === 'syncing' ? 'animate-spin' : ''} />
-                  <span className={`absolute top-0 right-0 h-2.5 w-2.5 rounded-full ${
-                    syncStatus === 'syncing' ? 'bg-amber-400' : syncStatus === 'synced' ? 'bg-emerald-400' : 'bg-rose-500'
-                  }`} />
-                </button>
-
-                <button
-                  onClick={() => setIsOfflineViewerOpen(true)}
-                  title="Offline Lesson Vault"
-                  className={`p-3 rounded-xl transition-all cursor-pointer ${
-                    isDarkMode ? 'bg-white/5 text-brand-cyan hover:bg-white/10' : 'bg-slate-150 text-brand-cyan hover:bg-slate-200 shadow-sm border border-slate-200'
-                  }`}
-                >
-                  <BookOpen size={18} />
-                </button>
-              </div>
-            )}
-          </div>
-        )}
 
         <div className={`mt-auto pt-4 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-100'} space-y-2 overflow-hidden flex justify-center`}>
           {!isMobile && (
@@ -1346,7 +559,9 @@ export default function App() {
               <Home size={18} />
             </button>
 
-
+            <h2 className={`text-lg lg:text-xl font-hand tracking-wide ml-2 ${isDarkMode ? 'text-white' : 'text-slate-900'} truncate hidden sm:block`}>
+              CAPS Project: <span className="text-brand-cyan underline decoration-brand-cyan/20">All Subjects</span>
+            </h2>
           </div>
           
           <div className="flex items-center gap-2 lg:gap-5">
@@ -1376,11 +591,9 @@ export default function App() {
                 }`}
                 title="Image Generation Engine"
               >
-                <option value="gemini-imagen">IMG: Gemini 2.5 Flash Image</option>
-                <option value="wan2.1-t2i-plus">IMG: Alibaba wan2.1-t2i-plus</option>
-                <option value="qwen-image-2.0-pro">IMG: Alibaba qwen-image-2.0-pro</option>
-                <option value="qwen-image-2512">IMG: NVIDIA qwen-image-2512</option>
-                <option value="huggingface">IMG: HF FLUX.1</option>
+                <option value="gemini-imagen">IMG: Gemini Imagen 3</option>
+                <option value="alibaba-qwen-image">IMG: Qwen-Image 2.0</option>
+                <option value="huggingface">IMG: FLUX.1 (HF)</option>
                 <option value="pollinations-schnell">IMG: Flux Schnell</option>
                 <option value="pollinations-turbo">IMG: Z-Image Turbo</option>
                 <option value="pollinations-klein">IMG: FLUX.2 Klein 4B</option>
@@ -1397,7 +610,7 @@ export default function App() {
                 title="Text-to-Speech Engine"
               >
                 <option value="browser">TTS: Browser Core</option>
-                <option value="groq-whisper">TTS: Groq Whisper</option>
+                <option value="elevenlabs">TTS: ElevenLabs HD</option>
                 <option value="huggingface">TTS: HuggingFace MMS</option>
                 <option value="google-tts">TTS: Google TTS</option>
               </select>
@@ -1413,9 +626,10 @@ export default function App() {
               }`}
               title="Primary Text Model"
             >
-              <option value="qwen-primary">Hugging Face Qwen3.5-397B-A17B (Primary)</option>
-              <option value="qwen-secondary">Groq Llama-4-Scout-17B (Secondary)</option>
-              <option value="gemini">Gemini (Fallback)</option>
+              <option value="llama-primary">Llama 3.3 70B (Primary)</option>
+              <option value="alibaba-qwen">Alibaba Qwen-Plus (Reasoning)</option>
+              <option value="alibaba-deepseek">Alibaba DeepSeek V3 (Coding)</option>
+              <option value="gemini">Gemini 3 Flash (Fallback)</option>
             </select>
             <button 
               onClick={() => setIsDarkMode(!isDarkMode)}
@@ -1423,160 +637,6 @@ export default function App() {
             >
               {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
-
-            {/* Global Sound & Animations Toggle Button for Accessibility */}
-            <button 
-              onClick={() => {
-                const val = !soundMuted;
-                setSoundMuted(val);
-                localStorage.setItem('eduai_sound_muted', String(val));
-                window.dispatchEvent(new Event('eduai_accessibility_change'));
-              }}
-              className={`p-2 rounded-full transition-all ${
-                soundMuted 
-                  ? 'bg-red-500/20 text-red-500 border border-red-500/30 ring-4 ring-red-500/20' 
-                  : (isDarkMode ? 'bg-white/5 text-emerald-400 hover:bg-white/10' : 'bg-slate-100 text-[#10b981] hover:bg-slate-200')
-              }`}
-              title={soundMuted ? "Unmute sounds & enable animations" : "Mute all sounds & disable animations"}
-            >
-              {soundMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-            </button>
-
-            {/* Global accessibility settings toggle for High-Contrast Mode */}
-            <button 
-              onClick={() => {
-                const val = !highContrastEnabled;
-                setHighContrastEnabled(val);
-                localStorage.setItem('eduai_high_contrast', String(val));
-                window.dispatchEvent(new Event('eduai_accessibility_change'));
-              }}
-              className={`p-2 rounded-full transition-all ${
-                highContrastEnabled 
-                  ? 'bg-yellow-400 text-slate-950 ring-4 ring-yellow-400/30' 
-                  : (isDarkMode ? 'bg-white/5 text-brand-pink hover:bg-white/10' : 'bg-slate-100 text-[#ea4335] hover:bg-slate-200')
-              }`}
-              title="Quick Toggle High-Contrast Mode"
-            >
-              <Contrast size={18} />
-            </button>
-
-            {/* Accessibility Helper Dropdown */}
-            <div className="relative">
-              <button 
-                onClick={() => setIsAccessibilityOpen(!isAccessibilityOpen)}
-                className={`p-2 rounded-full ${isDarkMode ? 'bg-white/5 text-brand-cyan hover:bg-white/10' : 'bg-slate-100 text-[#00a8cc] hover:bg-slate-200'} transition-all`}
-                title="Accessibility Center"
-              >
-                <Accessibility size={18} />
-              </button>
-
-              <AnimatePresence>
-                {isAccessibilityOpen && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className={`absolute right-0 mt-3 w-72 rounded-2xl shadow-2xl border overflow-hidden p-4 ${isDarkMode ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-800'} z-50`}
-                  >
-                    <div className="flex items-center gap-2 pb-3 mb-3 border-b border-dashed border-slate-500/20">
-                      <Accessibility className="w-5 h-5 text-brand-cyan animate-pulse" />
-                      <h3 className="font-display font-black text-base">Accessibility helpers</h3>
-                    </div>
-
-                    <div className="space-y-4">
-                      {/* Dyslexia Mode Toggle */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-col text-left">
-                          <span className="font-bold text-sm">📖 Dyslexia-Friendly</span>
-                          <span className="text-[10px] opacity-60">Easier fonts & line height</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const val = !dyslexiaEnabled;
-                            setDyslexiaEnabled(val);
-                            localStorage.setItem('eduai_dyslexia', String(val));
-                            window.dispatchEvent(new Event('eduai_accessibility_change'));
-                          }}
-                          className={`w-12 h-6 rounded-full p-1 transition-colors ${dyslexiaEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
-                        >
-                          <div className={`w-4 h-4 bg-white rounded-full transition-transform ${dyslexiaEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
-                        </button>
-                      </div>
-
-                      {/* Text Magnifier Toggle */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-col text-left">
-                          <span className="font-bold text-sm">🔍 Magnify Text</span>
-                          <span className="text-[10px] opacity-60">Bigger fonts for low sight</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const val = !magnifyEnabled;
-                            setMagnifyEnabled(val);
-                            localStorage.setItem('eduai_magnify', String(val));
-                            window.dispatchEvent(new Event('eduai_accessibility_change'));
-                          }}
-                          className={`w-12 h-6 rounded-full p-1 transition-colors ${magnifyEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
-                        >
-                          <div className={`w-4 h-4 bg-white rounded-full transition-transform ${magnifyEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
-                        </button>
-                      </div>
-
-                      {/* High Contrast Mode Toggle */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-col text-left">
-                          <span className="font-bold text-sm">🌓 High Contrast</span>
-                          <span className="text-[10px] opacity-60">Black & yellow text theme</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const val = !highContrastEnabled;
-                            setHighContrastEnabled(val);
-                            localStorage.setItem('eduai_high_contrast', String(val));
-                            window.dispatchEvent(new Event('eduai_accessibility_change'));
-                          }}
-                          className={`w-12 h-6 rounded-full p-1 transition-colors ${highContrastEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
-                        >
-                          <div className={`w-4 h-4 bg-white rounded-full transition-transform ${highContrastEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
-                        </button>
-                      </div>
-
-                      {/* Global Sound & Animations Mute Toggle */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-col text-left">
-                          <span className="font-bold text-sm">🔇 Mute Sounds & Motion</span>
-                          <span className="text-[10px] opacity-60 font-sans">Stop voice & animations</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const val = !soundMuted;
-                            setSoundMuted(val);
-                            localStorage.setItem('eduai_sound_muted', String(val));
-                            window.dispatchEvent(new Event('eduai_accessibility_change'));
-                          }}
-                          className={`w-12 h-6 rounded-full p-1 transition-colors ${soundMuted ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
-                        >
-                          <div className={`w-4 h-4 bg-white rounded-full transition-transform ${soundMuted ? 'translate-x-6' : 'translate-x-0'}`} />
-                        </button>
-                      </div>
-
-                      {/* TTS Core Narration Button */}
-                      <button
-                        type="button"
-                        onClick={() => speakText("Accessibility helpers center is active. You can choose to enable dyslexia friendly mode, text magnification, or high contrast layout settings. Select your preference by sliding the toggle controls shown.")}
-                        className="w-full py-2.5 px-3 rounded-xl bg-brand-cyan/10 hover:bg-brand-cyan/20 text-brand-cyan font-bold text-xs flex items-center justify-center gap-2 transition-all border border-brand-cyan/20"
-                      >
-                        🔊 Hear Description
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
             <NotificationsDropdown isDarkMode={isDarkMode} />
             
             {/* Profile Dropdown */}
@@ -1658,46 +718,7 @@ export default function App() {
               className="absolute inset-0 overflow-y-auto p-4 lg:p-8 custom-scrollbar"
             >
               <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8 pb-12">
-              {categoryOverviewActive ? (
-                <CategoryOverview
-                  categoryLabel={sidebarCategories.find(c => c.id === categoryOverviewActive)?.label || ''}
-                  categoryIcon={sidebarCategories.find(c => c.id === categoryOverviewActive)?.icon}
-                  subTabs={getSubTabsForCategory(categoryOverviewActive, userRole)}
-                  isDarkMode={isDarkMode}
-                  onSelect={(tabId) => {
-                    setCategoryOverviewActive(null);
-                    if (tabId === 'teaching') {
-                      setActiveCreatorTab('teaching');
-                      setActiveTab('teaching');
-                    } else {
-                      changeTab(tabId);
-                    }
-                  }}
-                />
-              ) : (
-                <>
-                  {(function() {
-                    const currentSubTabs = getSubTabsForCategory(activeCategory, userRole);
-                    if (currentSubTabs.length <= 1 || activeCategory === 'teacher-dashboard-menu') return null;
-                    const catLabel = sidebarCategories.find(c => c.id === activeCategory)?.label || '';
-                    return (
-                      <div className="flex justify-between items-center mb-6">
-                        <button
-                          onClick={() => setCategoryOverviewActive(activeCategory)}
-                          className={`flex items-center gap-2 px-5 py-2.5 rounded-[22px] text-xs font-bold transition-all border outline-none cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${
-                            isDarkMode 
-                              ? 'bg-slate-950/40 border-white/5 text-slate-300 hover:text-white hover:bg-[#00d2ff]/10 hover:border-[#00d2ff]/20' 
-                              : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:shadow-sm hover:bg-slate-50'
-                          }`}
-                        >
-                          <ArrowLeft size={14} strokeWidth={2.5} />
-                          <span>Back to {catLabel} Hub</span>
-                        </button>
-                      </div>
-                    );
-                  })()}
-
-                  {activeTab === 'dashboard' ? (
+            {activeTab === 'dashboard' ? (
               userRole === 'student' ? (
                 <StudentDashboard isDarkMode={isDarkMode} />
               ) : userRole === 'parent' ? (
@@ -1731,160 +752,30 @@ export default function App() {
                   </div>
                 </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch pt-4">
-                      {/* Left: Dynamic Stats Panel */}
-                      <div className="lg:col-span-4 h-full">
-                        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-1 gap-4 lg:gap-6 h-full">
-                          {[
-                            { label: 'Learners', value: '1,248', change: '+12%', icon: Users, color: 'text-brand-cyan', bg: 'bg-cyan-500/10', glow: 'shadow-cyan-500/20', displayColor: isDarkMode ? 'text-cyan-400' : 'text-cyan-600' },
-                            { label: 'Graded', value: '432', change: '+5%', icon: ClipboardCheck, color: 'text-brand-purple', bg: 'bg-purple-500/10', glow: 'shadow-purple-500/20', displayColor: isDarkMode ? 'text-purple-400' : 'text-purple-600'  },
-                            { label: 'Generated', value: '86', change: '+24%', icon: FileText, color: 'text-brand-yellow', bg: 'bg-yellow-500/10', glow: 'shadow-yellow-500/20', displayColor: isDarkMode ? 'text-yellow-400' : 'text-yellow-600' },
-                            { label: 'Sessions', value: '15.4k', change: '+18%', icon: MessageSquare, color: 'text-brand-green', bg: 'bg-green-500/10', glow: 'shadow-green-500/20', displayColor: isDarkMode ? 'text-green-400' : 'text-green-600' }
-                          ].map((stat, i) => (
-                            <div 
-                              key={`stat-${i}`} 
-                              className={`${isDarkMode ? 'glass border-white/5' : 'bg-white border-2 border-slate-100'} p-4 lg:p-5 rounded-[24px] kid-shadow hover:-translate-y-1 transition-all duration-300 h-full flex items-center gap-3.5`}
-                            >
-                              <div className={`${stat.color} p-3 rounded-[18px] ${stat.bg} ${stat.glow} shadow-md shrink-0`}>
-                                <stat.icon size={22} strokeWidth={2.5} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between gap-1.5">
-                                  <p className={`text-[10px] uppercase font-black tracking-[0.15em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} truncate`}>
-                                    {stat.label}
-                                  </p>
-                                  <span className="text-[9px] font-black uppercase text-brand-green bg-brand-green/10 px-1.5 py-0.5 rounded-md shrink-0">
-                                    {stat.change}
-                                  </span>
-                                </div>
-                                <h3 className={`text-2xl lg:text-3xl font-display font-black mt-0.5 tracking-tight ${stat.displayColor}`}>
-                                  {stat.value}
-                                </h3>
-                              </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                      {[
+                        { label: 'Learners', value: '1,248', change: '+12%', icon: Users, color: 'text-brand-cyan', bg: 'bg-cyan-500/10', glow: 'shadow-cyan-500/20', displayColor: isDarkMode ? 'text-cyan-400' : 'text-cyan-600' },
+                        { label: 'Graded', value: '432', change: '+5%', icon: ClipboardCheck, color: 'text-brand-purple', bg: 'bg-purple-500/10', glow: 'shadow-purple-500/20', displayColor: isDarkMode ? 'text-purple-400' : 'text-purple-600'  },
+                        { label: 'Generated', value: '86', change: '+24%', icon: FileText, color: 'text-brand-yellow', bg: 'bg-yellow-500/10', glow: 'shadow-yellow-500/20', displayColor: isDarkMode ? 'text-yellow-400' : 'text-yellow-600' },
+                        { label: 'Sessions', value: '15.4k', change: '+18%', icon: MessageSquare, color: 'text-brand-green', bg: 'bg-green-500/10', glow: 'shadow-green-500/20', displayColor: isDarkMode ? 'text-green-400' : 'text-green-600' }
+                      ].map((stat, i) => (
+                        <div 
+                          key={`stat-${i}`} 
+                          className={`${isDarkMode ? 'glass border-white/5' : 'bg-white border-2 border-slate-100'} p-6 lg:p-8 rounded-[36px] kid-shadow hover:-translate-y-1 transition-transform`}
+                        >
+                          <div className="flex justify-between items-start mb-4">
+                            <div className={`${stat.color} p-3 rounded-[20px] ${stat.bg} ${stat.glow} shadow-xl`}>
+                              <stat.icon size={24} strokeWidth={2.5} />
                             </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Right: Live Recharts Classroom progress tracker */}
-                      <div className={`${isDarkMode ? 'glass border-white/5' : 'bg-white border-2 border-slate-100'} p-6 lg:p-8 rounded-[36px] kid-shadow lg:col-span-8 h-full flex flex-col justify-between`}>
-                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                        <div>
-                          <span className={`text-[10px] uppercase font-black tracking-widest px-2.5 py-1 rounded-lg ${isDarkMode ? 'bg-[#00d2ff]/10 text-[#00d2ff]' : 'bg-cyan-100 text-cyan-700'}`}>
-                            Live Class Analytics
-                          </span>
-                          <h4 className={`text-xl lg:text-2xl font-display font-black mt-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                            Classroom Progress Trends & Performance
-                          </h4>
-                          <p className={`text-xs font-bold ${isDarkMode ? 'text-indigo-200/60' : 'text-slate-500'} mt-1`}>
-                            Real-time average marks aggregated directly from active student subject score sheets for the current cycle.
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3 bg-slate-950/20 p-1.5 rounded-2xl border border-white/5">
-                          <span className="text-xs font-black text-brand-yellow px-3 py-1 bg-brand-yellow/10 rounded-xl">
-                            Term History View
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-                        {/* Term-over-Term Trend Chart */}
-                        <div className="lg:col-span-2 min-h-[300px]">
-                          <ResponsiveContainer width="100%" height={300}>
-                            <AreaChart data={dashboardTermProgress} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                              <defs>
-                                <linearGradient id="colorMath" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#00d2ff" stopOpacity={0.4}/>
-                                  <stop offset="95%" stopColor="#00d2ff" stopOpacity={0}/>
-                                </linearGradient>
-                                <linearGradient id="colorSci" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#2ed573" stopOpacity={0.4}/>
-                                  <stop offset="95%" stopColor="#2ed573" stopOpacity={0}/>
-                                </linearGradient>
-                                <linearGradient id="colorLang" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#9b59b6" stopOpacity={0.4}/>
-                                  <stop offset="95%" stopColor="#9b59b6" stopOpacity={0}/>
-                                </linearGradient>
-                              </defs>
-                              <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} />
-                              <XAxis 
-                                dataKey="name" 
-                                stroke={isDarkMode ? '#94a3b8' : '#64748b'} 
-                                fontSize={11} 
-                                fontWeight="bold" 
-                              />
-                              <YAxis 
-                                stroke={isDarkMode ? '#94a3b8' : '#64748b'} 
-                                fontSize={11} 
-                                fontWeight="bold" 
-                                domain={[0, 100]} 
-                              />
-                              <Tooltip 
-                                contentStyle={{ 
-                                  backgroundColor: isDarkMode ? '#0f172a' : '#ffffff', 
-                                  borderColor: isDarkMode ? '#1e293b' : '#e2e8f0',
-                                  borderRadius: '16px',
-                                  color: isDarkMode ? '#ffffff' : '#0f172a',
-                                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                                  fontWeight: 'bold'
-                                }} 
-                              />
-                              <Legend wrapperStyle={{ fontSize: 11, fontWeight: 'bold', paddingTop: 10 }} />
-                              <Area type="monotone" dataKey="Mathematics" stroke="#00d2ff" strokeWidth={3} fillOpacity={1} fill="url(#colorMath)" />
-                              <Area type="monotone" dataKey="Sciences" stroke="#2ed573" strokeWidth={3} fillOpacity={1} fill="url(#colorSci)" />
-                              <Area type="monotone" dataKey="Languages" stroke="#9b59b6" strokeWidth={3} fillOpacity={1} fill="url(#colorLang)" />
-                            </AreaChart>
-                          </ResponsiveContainer>
-                        </div>
-
-                        {/* Current Term Subjects Average Performance List */}
-                        <div className={`p-6 rounded-[28px] ${isDarkMode ? 'bg-slate-950/40 border border-white/5' : 'bg-slate-50 border border-slate-100'} flex flex-col justify-between`}>
-                          <div>
-                            <h5 className={`text-base font-display font-black mb-4 ${isDarkMode ? 'text-white' : 'text-slate-700'}`}>
-                              Subject Performance (Current Term)
-                            </h5>
-                            <div className="space-y-4">
-                              {dashboardSubjectAverages.map((sub, idx) => {
-                                const colors = [
-                                  { text: 'text-brand-cyan', bg: 'bg-[#00d2ff]/10', bar: 'bg-[#00d2ff]' },
-                                  { text: 'text-brand-green', bg: 'bg-[#2ed573]/10', bar: 'bg-[#2ed573]' },
-                                  { text: 'text-brand-purple', bg: 'bg-[#9b59b6]/10', bar: 'bg-[#9b59b6]' }
-                                ];
-                                const itemColor = colors[idx % colors.length];
-
-                                return (
-                                  <div key={`subavg-${idx}`} className="space-y-1.5">
-                                    <div className="flex justify-between items-center text-xs font-bold">
-                                      <span className={isDarkMode ? 'text-slate-300' : 'text-slate-600'}>{sub.name}</span>
-                                      <span className={`${itemColor.text} px-2 py-0.5 rounded-md ${itemColor.bg}`}>{sub.average}% Avg</span>
-                                    </div>
-                                    <div className={`h-2.5 w-full rounded-full ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200'} overflow-hidden`}>
-                                      <div 
-                                        className={`h-full rounded-full ${itemColor.bar} transition-all duration-1000`} 
-                                        style={{ width: `${sub.average}%` }}
-                                      ></div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
+                            <span className="text-brand-green text-[12px] font-black uppercase tracking-widest bg-brand-green/10 px-2 py-1 rounded-lg">
+                              {stat.change}
+                            </span>
                           </div>
-
-                          <div className={`mt-6 pt-4 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-200'}`}>
-                            <div className="flex items-center gap-3">
-                              <span className="flex h-3 w-3 relative">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                              </span>
-                              <p className={`text-[11px] font-black uppercase tracking-wider ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
-                                Real-time syncing active
-                              </p>
-                            </div>
-                          </div>
+                          <p className={`text-[11px] uppercase font-bold tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{stat.label}</p>
+                          <h3 className={`text-3xl lg:text-4xl font-display font-black mt-2 ${stat.displayColor}`}>{stat.value}</h3>
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  </div>
 
                     {/* Feature Cards Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
@@ -1893,7 +784,6 @@ export default function App() {
                           {[
                             { title: "Content Creator Studio", desc: "Lessons, Plans & Assessments.", color: 'text-brand-cyan', bg20: 'bg-cyan-500/20', border30: 'border-cyan-500/30', bg10: 'bg-cyan-500/10', icon: FlaskConical, id: 'teaching' },
                             { title: "Content Archive", desc: "Posters, Cards & Displays.", color: 'text-brand-purple', bg20: 'bg-purple-500/20', border30: 'border-purple-500/30', bg10: 'bg-purple-500/10', icon: Archive, id: 'archive' },
-                            { title: "Illustration Library", desc: "Store & reuse graphics.", color: 'bg-gradient-to-tr from-pink-400 to-rose-400 bg-clip-text text-transparent', bg20: 'bg-pink-500/20', border30: 'border-pink-500/30', bg10: 'bg-pink-500/10', icon: Image, id: 'illustrations' },
                             { title: "AI Tutor", desc: "Interactive intelligence.", color: 'text-brand-yellow', bg20: 'bg-yellow-500/20', border30: 'border-yellow-500/30', bg10: 'bg-yellow-500/10', icon: Brain, id: 'ai-tutor' },
                             { title: "Scan & Autograde", desc: "Automated vision grading.", color: 'text-brand-pink', bg20: 'bg-pink-500/20', border30: 'border-pink-500/30', bg10: 'bg-pink-500/10', icon: Scan, id: 'ocr' },
                             { title: "Progress Reports", desc: "Track student performance.", color: 'text-orange-400', bg20: 'bg-orange-500/20', border30: 'border-orange-500/30', bg10: 'bg-orange-500/10', icon: TrendingUp, id: 'reports' },
@@ -1933,19 +823,13 @@ export default function App() {
                 ) : activeTab === 'messenger' ? (
                   <Messenger />
                 ) : activeTab === 'reports' ? (
-                  userRole === 'parent' ? (
-                    <ParentDashboard isDarkMode={isDarkMode} />
-                  ) : (
-                    <ProgressReports />
-                  )
+                  <ProgressReports />
                 ) : activeTab === 'class-management' ? (
                   <ClassManagement />
                 ) : activeTab === 'ocr' ? (
                   <AutoGrading />
                 ) : activeTab === 'archive' ? (
                   <ContentArchive />
-                ) : activeTab === 'illustrations' ? (
-                  <IllustrationLibrary isDarkMode={isDarkMode} />
                 ) : activeTab === 'ai-tutor' ? (
                   <AITutorPage />
                 ) : activeTab === 'student-practice' ? (
@@ -1954,8 +838,6 @@ export default function App() {
                   <StudentNotes isDarkMode={isDarkMode} />
                 ) : activeTab === 'portfolios' ? (
                   <StudentPortfolio isDarkMode={isDarkMode} />
-                ) : activeTab === 'curriculum' ? (
-                  <CurriculumSuite isDarkMode={isDarkMode} userRole={userRole} />
                 ) : activeTab === 'settings' ? (
                   <SettingsPage 
                     isDarkMode={isDarkMode} 
@@ -1971,52 +853,9 @@ export default function App() {
                       setShowLogin(true);
                       setUserRole(null);
                     }}
-                    isAppInstallable={isAppInstallable}
-                    installPWAApp={installPWAApp}
-                    isAlreadyInstalled={isAlreadyInstalled}
-                    userRole={userRole || 'teacher'}
                   />
-                ) : activeTab === 'teaching' ? (
-                  <div className={`p-8 rounded-[40px] text-center ${isDarkMode ? 'bg-[#0B1122] border border-white/5 animate-fade-in' : 'bg-white border border-slate-200 shadow-xl'} flex flex-col items-center justify-center min-h-[440px] space-y-6`}>
-                    <div className="w-20 h-20 rounded-[28px] bg-brand-cyan/20 text-[#00d2ff] flex items-center justify-center animate-bounce">
-                      <FlaskConical size={40} />
-                    </div>
-                    <h3 className={`text-2xl font-black font-display ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Content Creator Studio</h3>
-                    <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} max-w-sm leading-relaxed font-semibold`}>
-                      The CAPS-aligned AI curriculum content editor is open in a workspace hub overlay. Rubrics, worksheets, and exams are active inside the studio.
-                    </p>
-                    <button
-                      onClick={() => setActiveCreatorTab('teaching')}
-                      className="bg-[#00d2ff] hover:bg-[#00d2ff]/90 text-[#0F172A] font-extrabold px-8 py-3.5 rounded-full shadow-lg hover:shadow-cyan-500/20 shadow-cyan-500/10 transition-all font-display hover:scale-105 active:scale-95 border-none outline-none cursor-pointer"
-                    >
-                      Re-open Creator Studio Overlay
-                    </button>
-                  </div>
                 ) : activeTab === 'helpdesk' ? (
                   <Helpdesk isDarkMode={isDarkMode} />
-                ) : activeTab === 'faq' ? (
-                  <div className={`p-8 rounded-[40px] ${isDarkMode ? 'bg-slate-900/60 border border-white/5' : 'bg-white border border-slate-200 shadow-xl'}`}>
-                    <h2 className="text-3xl font-display font-black mb-2 flex items-center gap-3">
-                      <span>🤝 Support & Knowledge Base</span>
-                    </h2>
-                    <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'} mb-8 font-medium`}>
-                      Find answers to common questions about South African CAPS curriculum coverage and EduAI Companion platform features.
-                    </p>
-                    
-                    <div className="space-y-4">
-                      {[
-                        { q: "📚 Is the curriculum aligned with South African CAPS standards?", a: "Yes, 100%! All content created, lessons compiled, and rubrics generated map directly with the Department of Basic Education (DBE) South African National Curriculum Assessment Policy Statements (CAPS) requirements across Grades 1 to 12." },
-                        { q: "🤖 Which AI model powers the tutoring system?", a: "EduAI is powered by advanced multi-model intelligence, featuring state-of-the-art models like Google Gemini and Qwen. These models offer ultra-fast localized explanations, using rands (R), local currencies, and South African historical/geographic contexts." },
-                        { q: "📶 Can I use this application offline?", a: "Absolutely! Simply click on the 'INSTALL OFFLINE APP' button in the sidebar to download our Progressive Web App (PWA). Your downloaded study guides, textbook revisions, and completed portfolio tasks are cached on your local device for instant access without a stable internet connection." },
-                        { q: "🛡️ How is my data protected?", a: "We adhere to strict POPIA (Protection of Personal Information Act) regulation compliance. Student assessments or raw photos are processed securely and never shared with third-party advertising engines." }
-                      ].map((item, idx) => (
-                        <div key={idx} className={`p-6 rounded-[24px] ${isDarkMode ? 'bg-white/5 hover:bg-white/[0.08]' : 'bg-slate-50 hover:bg-slate-100'} transition-all`}>
-                          <h4 className={`text-base font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'} mb-2`}>{item.q}</h4>
-                          <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'} leading-relaxed font-semibold`}>{item.a}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
                 ) : ( 
                   <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200 shadow-sm'} p-12 rounded-[48px] text-center min-h-[500px] flex flex-col items-center justify-center`}>
                     <Logo className="w-40 h-40 mb-8" />
@@ -2042,8 +881,6 @@ export default function App() {
                     </div>
                   </div>
                 )}
-                </>
-              )}
               </div>
             </motion.div>
           </AnimatePresence>
@@ -2071,321 +908,6 @@ export default function App() {
           />
         )}
       </AnimatePresence>
-
-      {/* Offline sync success/error notifications or generic toast */}
-      <AnimatePresence>
-        {syncToast.show && (
-          <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-10 left-10 z-[100] max-w-sm"
-          >
-            <div className={`p-4 rounded-[20px] shadow-2xl flex items-center gap-3 border ${
-              syncToast.type === 'success' 
-                ? 'bg-emerald-500 border-emerald-400 text-white' 
-                : syncToast.type === 'error'
-                  ? 'bg-rose-500 border-rose-400 text-white'
-                  : 'bg-[#1e293b] border-slate-700 text-slate-100'
-            }`}>
-              <div className="p-2 bg-black/10 rounded-xl">
-                {syncToast.type === 'success' ? (
-                  <Check size={18} />
-                ) : syncToast.type === 'error' ? (
-                  <X size={18} />
-                ) : (
-                  <RefreshCcw size={18} className="animate-spin" />
-                )}
-              </div>
-              <div>
-                <p className="text-xs font-black uppercase tracking-wider font-display text-white">Offline Secure Sync</p>
-                <p className="text-sm font-bold opacity-90 text-white">{syncToast.message}</p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Cloud & AI API Blockage Alert Warning */}
-      <AnimatePresence>
-        {apiBlockedAlert && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className={`w-full max-w-md rounded-[28px] p-6 shadow-2xl border ${
-                isDarkMode ? 'bg-[#1e293b] border-rose-500/30' : 'bg-white border-rose-200'
-              }`}
-            >
-              <div className="flex flex-col gap-4">
-                <div className="flex items-start gap-3 text-rose-500">
-                  <div className="p-3 bg-rose-500/10 rounded-2xl shrink-0">
-                    <AlertTriangle size={24} />
-                  </div>
-                  <div>
-                    <h3 className={`text-lg font-black font-display tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                      {apiBlockedAlert.isBlockedByClient ? 'API Request Blocked' : 'API Unreachable'}
-                    </h3>
-                    <p className="text-xs font-black uppercase tracking-wider text-rose-500 font-display">
-                      Provider: {apiBlockedAlert.provider}
-                    </p>
-                  </div>
-                </div>
-
-                <div className={`p-4 rounded-2xl text-sm leading-relaxed ${isDarkMode ? 'bg-slate-800/80 text-slate-300' : 'bg-rose-50/50 text-slate-600 border border-rose-100'}`}>
-                  {apiBlockedAlert.message}
-                </div>
-
-                <div className="flex flex-col gap-2 text-xs">
-                  <span className={`font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Recommended Solutions:</span>
-                  <ul className={`list-disc list-inside space-y-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    <li><b>Disable Ad-Blockers</b> (e.g., uBlock Origin, AdBlock Plus) for this site.</li>
-                    <li>If on <b>Brave Browser</b>, lower shields or whitelist the API domains.</li>
-                    <li>Verify your local firewall or network DNS filter policies doesn't block out external AI APIs.</li>
-                  </ul>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setApiBlockedAlert(null)}
-                  className="w-full mt-2 py-3 bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-bold rounded-2xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer"
-                >
-                  Understood & Close
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Offline Study Material Vault Modal */}
-      <AnimatePresence>
-        {isOfflineViewerOpen && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[80] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 30 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 30 }}
-              className={`w-full max-w-5xl h-[85vh] rounded-[32px] shadow-2xl overflow-hidden flex flex-col border ${
-                isDarkMode ? 'bg-[#1E293B] border-white/5' : 'bg-white border-slate-200'
-              }`}
-            >
-              {/* Header */}
-              <div className="bg-gradient-to-r from-brand-cyan to-indigo-600 p-6 text-white flex justify-between items-center shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-white/10 rounded-2xl">
-                    <CloudDownload size={24} />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-black font-display tracking-tight text-white flex items-center gap-2">
-                      Lessons & Revision Offline Vault 📚
-                    </h2>
-                    <p className="text-xs opacity-90 font-bold text-slate-100">
-                      All study materials are active completely offline. Keep studying on any device, anywhere!
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setIsOfflineViewerOpen(false);
-                    setSelectedOfflineMaterial(null);
-                    setOfflineSearchQuery('');
-                  }}
-                  className="p-2 bg-white/10 hover:bg-white/20 text-white hover:scale-105 active:scale-95 transition-all rounded-full cursor-pointer border-0 outline-none"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Body Section */}
-              <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
-                {/* Left Panel: List of Saved Items */}
-                <div className={`w-full md:w-80 flex flex-col shrink-0 border-r ${
-                  isDarkMode ? 'border-white/5 bg-slate-900/40' : 'border-slate-100 bg-slate-50'
-                }`}>
-                  <div className="p-4 border-b border-inherit shrink-0">
-                    <p className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mb-2`}>
-                      Offline Archive
-                    </p>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                      <input
-                        type="text"
-                        value={offlineSearchQuery}
-                        placeholder="Search by title or subject..."
-                        className={`w-full pl-9 pr-3 py-2 rounded-xl text-xs font-bold outline-none transition-all ${
-                          isDarkMode 
-                            ? 'bg-slate-800 text-white focus:bg-slate-850 border border-white/5' 
-                            : 'bg-white text-slate-700 border border-slate-200 focus:border-brand-cyan'
-                        }`}
-                        onChange={(e) => setOfflineSearchQuery(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div id="offline-list" className="flex-1 overflow-y-auto p-2 space-y-1">
-                    {(function() {
-                      try {
-                        const filtered = offlineMaterials.filter((item: any) => {
-                          const query = offlineSearchQuery.toLowerCase().trim();
-                          if (!query) return true;
-                          const title = (item.title || '').toLowerCase();
-                          const subject = (item.subject || '').toLowerCase();
-                          return title.includes(query) || subject.includes(query);
-                        });
-
-                        if (offlineMaterials.length === 0) {
-                          return (
-                            <div className="p-6 text-center">
-                              <p className="text-xs font-bold text-slate-400">Your Vault is currently empty!</p>
-                              <p className="text-[11px] text-slate-500 mt-2">Tap "Sync" in side panel while connected to download lesson contents immediately.</p>
-                            </div>
-                          );
-                        }
-
-                        if (filtered.length === 0) {
-                          return (
-                            <div className="p-6 text-center">
-                              <p className="text-xs font-bold text-slate-400">No cached material matches your search.</p>
-                              <p className="text-[11px] text-slate-500 mt-2">Try searching with a different title or subject.</p>
-                            </div>
-                          );
-                        }
-
-                        return filtered.map((item: any, idx: number) => {
-                          const isSelected = selectedOfflineMaterial?.id === item.id || (!selectedOfflineMaterial && idx === 0);
-                          
-                          // Set initial selected item on mount/first view if not set
-                          if (!selectedOfflineMaterial && idx === 0) {
-                            setSelectedOfflineMaterial(item);
-                          }
-
-                          return (
-                            <button
-                              key={item.id || idx}
-                              onClick={() => setSelectedOfflineMaterial(item)}
-                              className={`offline-item w-full text-left p-3.5 rounded-2xl transition-all cursor-pointer border ${
-                                isSelected
-                                  ? 'bg-brand-cyan/15 border-brand-cyan text-brand-cyan shadow-sm font-semibold'
-                                  : isDarkMode
-                                    ? 'bg-transparent border-transparent text-slate-300 hover:bg-white/5'
-                                    : 'bg-transparent border-transparent text-slate-600 hover:bg-slate-200/50'
-                              }`}
-                            >
-                              <div className="flex justify-between items-start gap-2 mb-1">
-                                <span className={`text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full ${
-                                  isSelected 
-                                    ? 'bg-brand-cyan/25 text-brand-cyan' 
-                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
-                                }`}>
-                                  {item.contentType || 'Study Pack'}
-                                </span>
-                                <span className="text-[9px] opacity-70 font-mono">Grade {item.grade || '10'}</span>
-                              </div>
-                              <h4 className="text-xs font-black truncate max-w-[220px]">
-                                {item.title || 'Untitled Material'}
-                              </h4>
-                              <p className="text-[10px] opacity-80 mt-1 font-bold">
-                                {item.subject || 'General'}
-                              </p>
-                            </button>
-                          );
-                        });
-                      } catch {
-                        return <p className="text-xs text-center text-rose-500 p-4">Error parsing system cache.</p>;
-                      }
-                    })()}
-                  </div>
-                </div>
-
-                {/* Right Panel: Content Viewer & Features */}
-                <div className="flex-1 min-h-0 flex flex-col bg-slate-50/10">
-                  {selectedOfflineMaterial ? (
-                    <div className="flex-1 min-h-0 flex flex-col">
-                      {/* Sub-Header bar for the reader */}
-                      <div className={`p-4 border-b ${isDarkMode ? 'border-white/5 bg-slate-900/20' : 'border-slate-100 bg-white shadow-sm'} shrink-0 flex items-center justify-between`}>
-                        <div>
-                          <h3 className={`text-sm font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                            {selectedOfflineMaterial.title}
-                          </h3>
-                          <p className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-0.5`}>
-                            {selectedOfflineMaterial.subject} • {selectedOfflineMaterial.contentType} • Offline Copy
-                          </p>
-                        </div>
-
-                        {/* Speech synthesis offline read aloud button */}
-                        <button
-                          onClick={() => {
-                            if ('speechSynthesis' in window) {
-                              window.speechSynthesis.cancel();
-                              // strip markdown to read text nicely
-                              const stripped = selectedOfflineMaterial.content
-                                .replace(/[#*`_$\-\[\]()]/g, '')
-                                .substring(0, 550); // safety length
-                              const utterance = new SpeechSynthesisUtterance(stripped);
-                              utterance.rate = 1.0;
-                              utterance.pitch = 1.0;
-                              window.speechSynthesis.speak(utterance);
-                              triggerToast("🔊 Reading summary aloud...", "info");
-                            } else {
-                              triggerToast("Speech Synthesis is not supported in this environment.", "error");
-                            }
-                          }}
-                          className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase rounded-xl cursor-pointer hover:scale-105 active:scale-95 transition-all outline-none border-0"
-                          title="Generate text-to-speech reading off the cached lesson notes"
-                        >
-                          <Mic size={12} strokeWidth={2.5} /> Speak
-                        </button>
-                      </div>
-
-                      {/* Lesson Reader scroll area */}
-                      <div className="flex-1 overflow-y-auto p-6 md:p-8">
-                        <div 
-                          className={`p-6 md:p-10 rounded-[28px] shadow-sm border ${
-                            isDarkMode 
-                              ? 'bg-[#1E293B] border-white/5 text-slate-100' 
-                              : 'bg-white border-slate-100 text-slate-700'
-                          } markdown-body`}
-                          dangerouslySetInnerHTML={{
-                            __html: marked.parse(selectedOfflineMaterial.content || '*No content available for this study guide. Try sync again.*') as string
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-                      <div className="p-4 bg-brand-cyan/10 text-brand-cyan rounded-full animate-pulse mb-4">
-                        <BookOpen size={36} />
-                      </div>
-                      <h4 className={`text-lg font-black ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                        Vault Ready for Study
-                      </h4>
-                      <p className={`text-xs max-w-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-2`}>
-                        Select any downloaded CAPS syllabus content on the left pane to begin reviewing with high-contrast formatting!
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Secure Footer */}
-              <div className={`p-4 border-t ${
-                isDarkMode ? 'border-white/5 bg-slate-950/20 text-slate-400' : 'border-slate-100 bg-slate-50 text-slate-500'
-              } shrink-0 text-center flex flex-col sm:flex-row items-center justify-between text-[11px] font-bold`}>
-                <div className="flex items-center gap-1.5 justify-center">
-                  <Wifi size={12} className="text-emerald-500" />
-                  <span>Secure Encryption Active (Offline Isolation Protection)</span>
-                </div>
-                <p className="mt-1 sm:mt-0 font-mono text-[10px]">
-                  ID: CACHE_VAULT_{selectedOfflineMaterial?.id || 'GLOBAL_INSTANCE'}
-                </p>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
-    </MotionConfig>
   );
 }

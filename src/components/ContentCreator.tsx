@@ -3,9 +3,7 @@ import {
   Loader2, Sparkles, Printer, Save, Trash2, Download, Send,
   FlaskConical, Palette, FileText, Eye, BookOpen, GraduationCap,
   ChevronDown, ChevronUp, Zap, ClipboardList, ImageIcon, Settings2, RefreshCw,
-  Check, X, Plus, Users, Layout, Video, FileCode, HelpCircle, Archive, UserCircle, Image, AlertCircle,
-  Edit2, History, Share2, Copy, Link, Mail, FileJson, Maximize2, Minimize2,
-  Timer, Volume2, VolumeX, Bell
+  Check, X, Plus, Users, Layout, Video, FileCode, HelpCircle, Archive, UserCircle, Image, AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
@@ -13,18 +11,9 @@ import { educationalData } from '../lib/educational-data';
 import { generateCAPSContent, generateVisualAid, generateAdminDoc } from '../services/unifiedAiService';
 import { useAi } from '../contexts/AiContext';
 import AiImage from './AiImage';
-import EduVideoPlayer from './EduVideoPlayer';
-// PrintHeader removed as per user request
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 import { printContent, downloadAsHTML } from '../lib/printUtils';
-import { replaceImagePlaceholders } from '../lib/imageReplacer';
-import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
-import PrintPreviewModal from './PrintPreviewModal';
-import { PosterPreview } from './PosterPreview';
-import { db, auth } from '../lib/firebase';
-import { doc, setDoc, updateDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
 
 // ─── Utility ───────────────────────────────────────────────────────────────
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
@@ -256,9 +245,6 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
     processedHtml = formatObjectToHtml(html);
   }
   
-  // Replace text image placeholders with actual generated visuals on the fly
-  processedHtml = replaceImagePlaceholders(processedHtml);
-  
   if (typeof html === 'string' && processedHtml.trim().startsWith('div ')) {
     processedHtml = '<' + processedHtml;
   }
@@ -269,28 +255,19 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
                          processedHtml.trim().toLowerCase().startsWith('<svg');
 
   const isFullHtmlDoc = processedHtml.trim().toLowerCase().startsWith('<!doctype') || 
-                    processedHtml.trim().toLowerCase().startsWith('<html');
-                    
+                   processedHtml.trim().toLowerCase().startsWith('<html');
+                   
   const useIframe = isFullHtmlDoc || isHtmlFragment;
   
   const getParentStyles = () => {
     return Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-      .map(el => {
-        if (el.tagName.toLowerCase() === 'link') {
-          const href = (el as HTMLLinkElement).href;
-          return `<link rel="stylesheet" href="${href}">`;
-        }
-        return el.outerHTML;
-      })
+      .map(el => el.outerHTML)
       .join('\n');
   };
   
   let finalIframeContent = processedHtml;
-  // Always strip AI-generated tailwind CDN
-  finalIframeContent = finalIframeContent.replace(/<script[^>]*src=["'][^>]*cdn\.tailwindcss\.com[^>]*>[\s\S]*?<\/script>/gi, '');
-  
   if (useIframe) {
-      if (isFullHtmlDoc) {
+      if (isFullHtmlDoc && !finalIframeContent.includes('tailwindcss')) {
           if (finalIframeContent.includes('<head>')) {
               finalIframeContent = finalIframeContent.replace('<head>', `<head>\n${getParentStyles()}`);
           } else if (finalIframeContent.includes('<html')) {
@@ -368,28 +345,24 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
           Print / Save PDF
         </button>
       </div>
-
       <div className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} border rounded-[32px] overflow-hidden p-4 lg:p-8 shadow-2xl relative min-h-[400px]`}>
-        {processedHtml.includes('poster-container') || processedHtml.includes('content-card') ? (
-          <PosterPreview html={processedHtml} />
-        ) : useIframe ? (
+        {useIframe ? (
           <iframe 
             srcDoc={finalIframeContent} 
-            className="w-full h-[850px] border-0 bg-white rounded-xl"
+            className="w-full h-[600px] border-0 bg-white rounded-xl"
             title="Content Preview"
             sandbox="allow-scripts allow-same-origin"
           />
         ) : (
-          <div ref={contentRef} className="space-y-6">
-            <div 
-              className={cn("prose prose-sm max-w-none markdown-body", isDarkMode ? "prose-invert" : "")}
-              dangerouslySetInnerHTML={{ __html: processedHtml.trim().startsWith('<') ? processedHtml : rawMarkup }} 
-            />
-          </div>
+          <div 
+            ref={contentRef}
+            className={cn("prose prose-sm max-w-none markdown-body", isDarkMode ? "prose-invert" : "")}
+            dangerouslySetInnerHTML={{ __html: processedHtml.trim().startsWith('<') ? processedHtml : rawMarkup }} 
+          />
         )}
         <div className={`absolute top-4 right-4 text-[10px] font-bold uppercase tracking-widest pointer-events-none opacity-20 ${isDarkMode ? 'text-slate-400' : 'text-slate-300'}`}>
           EduAI Companion Engine
-         </div>
+        </div>
       </div>
     </div>
   );
@@ -420,61 +393,6 @@ function AdvancedSection({ children, label, isDarkMode }: { children: React.Reac
   );
 }
 
-const htmlToMarkdown = (html: string): string => {
-  if (!html) return "";
-  let md = html;
-
-  // Replace block elements headings
-  md = md.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '\n# $1\n');
-  md = md.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '\n## $1\n');
-  md = md.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, '\n### $1\n');
-  md = md.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, '\n#### $1\n');
-
-  // Replace paragraph and block-level separators
-  md = md.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, '\n$1\n');
-  md = md.replace(/<br\s*\/?>/gi, '\n');
-
-  // Replace list items
-  md = md.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, '\n- $1');
-  
-  // Replace strong / em
-  md = md.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '**$1**');
-  md = md.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, '**$1**');
-  md = md.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, '*$1*');
-  md = md.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, '*$1*');
-
-  // Replace links
-  md = md.replace(/<a[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi, '[$2]($1)');
-
-  // Remove other HTML tags (while keeping their content)
-  md = md.replace(/<[^>]*>/g, '');
-
-  // Clean up excessive newlines
-  md = md.replace(/\n\s*\n\s*\n/gi, '\n\n');
-
-  // Decode basic HTML entities
-  md = md.replace(/&nbsp;/g, ' ');
-  md = md.replace(/&amp;/g, '&');
-  md = md.replace(/&lt;/g, '<');
-  md = md.replace(/&gt;/g, '>');
-  md = md.replace(/&quot;/g, '"');
-  md = md.replace(/&#39;/g, "'");
-
-  return md.trim();
-};
-
-const downloadBlobFile = (content: string, filename: string, contentType: string) => {
-  const blob = new Blob([content], { type: contentType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
-
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching', isDarkMode = true }: { isOpen: boolean, onClose: () => void, initialTab?: string, isDarkMode?: boolean }) {
@@ -485,146 +403,11 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [activePreviewTab, setActivePreviewTab] = useState<'content' | 'memo' | 'rubric' | 'assessment'>('content');
   const [archiveSuccess, setArchiveSuccess] = useState(false);
   const [assignSuccess, setAssignSuccess] = useState(false);
-  
-  const [isFullscreenPreview, setIsFullscreenPreview] = useState(false);
-  const [dbClasses, setDbClasses] = useState<any[]>([]);
-  const [dbStudyGroups, setDbStudyGroups] = useState<any[]>([]);
-  const [dbStudents, setDbStudents] = useState<any[]>([]);
-
-  useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    // Listen to classes
-    const qClasses = query(collection(db, 'classes'), where('teacherId', '==', user.uid));
-    const unsubClasses = onSnapshot(qClasses, (snapshot) => {
-      setDbClasses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (err) => console.log("Creator classes sub error:", err));
-
-    // Listen to study groups
-    const qGroups = query(collection(db, 'study_groups'), where('teacherId', '==', user.uid));
-    const unsubGroups = onSnapshot(qGroups, (snapshot) => {
-      setDbStudyGroups(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (err) => console.log("Creator groups sub error:", err));
-
-    // Listen to students
-    const qStudents = query(collection(db, 'students'), where('teacherId', '==', user.uid));
-    const unsubStudents = onSnapshot(qStudents, (snapshot) => {
-      setDbStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (err) => console.log("Creator students sub error:", err));
-
-    return () => {
-      unsubClasses();
-      unsubGroups();
-      unsubStudents();
-    };
-  }, []);
 
   // Results state
   const [teachingResult, setTeachingResult] = useState<any>(null);
   const [visualResult, setVisualResult] = useState<any>(null);
   const [adminResult, setAdminResult] = useState<any>(null);
-  const [showPrintPreviewModal, setShowPrintPreviewModal] = useState(false);
-
-  // ─── Exam Mode Timer States ──────────────────────
-  const [examTimerDuration, setExamTimerDuration] = useState<number>(45); // general default 45 minutes
-  const [examWarningMinutes, setExamWarningMinutes] = useState<number>(5); // alert at 5 mins left
-  const [examTimeRemaining, setExamTimeRemaining] = useState<number>(0); // in seconds
-  const [isExamRunning, setIsExamRunning] = useState<boolean>(false);
-  const [isExamPaused, setIsExamPaused] = useState<boolean>(false);
-  const [examTimerAlertTriggered, setExamTimerAlertTriggered] = useState<boolean>(false);
-  const [examCompleted, setExamCompleted] = useState<boolean>(false);
-  const [showExamAlertOverlay, setShowExamAlertOverlay] = useState<boolean>(false);
-  const [examAlertMessage, setExamAlertMessage] = useState<string>('');
-  const [examSubjectName, setExamSubjectName] = useState<string>('');
-  const [examPaperTitle, setExamPaperTitle] = useState<string>('');
-  const [examSoundEnabled, setExamSoundEnabled] = useState<boolean>(true);
-  const [examTimerExpanded, setExamTimerExpanded] = useState<boolean>(false);
-
-  // Countdown timer logic
-  useEffect(() => {
-    let timer: NodeJS.Timeout | null = null;
-    if (isExamRunning && !isExamPaused && examTimeRemaining > 0) {
-      timer = setInterval(() => {
-        setExamTimeRemaining(prev => {
-          const nextSec = prev - 1;
-          
-          // Warning threshold trigger
-          const warningSeconds = examWarningMinutes * 60;
-          if (nextSec === warningSeconds && warningSeconds > 0) {
-            setExamTimerAlertTriggered(true);
-            setExamAlertMessage(`⚠️ Visual Warning Alert: Only ${examWarningMinutes} minutes remaining in the exam! Double-check your spelling.`);
-            setShowExamAlertOverlay(true);
-            
-            // Web Audio Synthesis for alert chime (non-blocking)
-            if (examSoundEnabled && typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
-              try {
-                const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-                const ctx = new AudioContextClass();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-                osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.2); // E5
-                osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.4); // G5 
-                gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.8);
-              } catch (_) {}
-            }
-          }
-          
-          if (nextSec <= 0) {
-            setIsExamRunning(false);
-            setExamCompleted(true);
-            setExamAlertMessage("🏁 TIME IS UP! Lay down your pens and hand in your papers immediately.");
-            setShowExamAlertOverlay(true);
-            
-            // Triple Beep for completion
-            if (examSoundEnabled && typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
-              try {
-                const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-                const ctx = new AudioContextClass();
-                [523.25, 523.25, 523.25].forEach((freq, idx) => {
-                  const osc = ctx.createOscillator();
-                  const gain = ctx.createGain();
-                  osc.type = 'triangle';
-                  osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.3);
-                  gain.gain.setValueAtTime(0.15, ctx.currentTime + idx * 0.3);
-                  gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + idx * 0.3 + 0.25);
-                  osc.connect(gain);
-                  gain.connect(ctx.destination);
-                  osc.start(ctx.currentTime + idx * 0.3);
-                  osc.stop(ctx.currentTime + idx * 0.3 + 0.25);
-                });
-              } catch (_) {}
-            }
-            return 0;
-          }
-          return nextSec;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [isExamRunning, isExamPaused, examWarningMinutes, examSoundEnabled]);
-
-  // Content Editing, Versioning, and Export/Sharing states
-  const [currentDocId, setCurrentDocId] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState('');
-  const [editContentText, setEditContentText] = useState('');
-  const [editMemoText, setEditMemoText] = useState('');
-  const [editRubricText, setEditRubricText] = useState('');
-  const [versions, setVersions] = useState<Record<string, { timestamp: string; content: string; memo?: string; rubric?: string }[]>>({});
-  
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [shareSuccess, setShareSuccess] = useState(false);
-  const [shareType, setShareType] = useState<'text' | 'html' | 'link' | 'email' | 'markdown' | 'json'>('link');
   
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -636,185 +419,8 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     }
   }, [isLoading, teachingResult, visualResult, adminResult]);
 
-  const autoSaveContent = async (result: any, tab: string) => {
-    const docId = Date.now().toString();
-    setCurrentDocId(docId);
-
-    const newItem = {
-      title: (tab === 'teaching' ? t_topic || t_type : tab === 'visual' ? v_topic || v_type : tab === 'grade1' ? f_topic : 'Administrative Doc') || 'Untitled Generation',
-      subject: (tab === 'teaching' ? t_subject : tab === 'visual' ? v_subject : tab === 'grade1' ? f_language : 'Administration') || 'General',
-      grade: (tab === 'teaching' ? t_grade : tab === 'visual' ? v_grade : tab === 'grade1' ? `Grade ${f_grade}` : 'All') || 'N/A',
-      contentType: (tab === 'teaching' ? t_type : tab === 'visual' ? v_type : tab === 'grade1' ? `${f_topic} Pack` : 'Notice') || 'Document',
-      isSystem: false,
-      content: result.content || " ",
-      memo: result.memo || null,
-      rubric: result.rubric || null,
-      imagePrompt: result.imagePrompt || null
-    };
-
-    try {
-      const user = auth.currentUser;
-      if (user) {
-        await setDoc(doc(db, 'created_content', docId), {
-          ...newItem,
-          teacherId: user.uid,
-          createdAt: serverTimestamp()
-        }).catch(err => {
-          handleFirestoreError(err, OperationType.CREATE, 'created_content/' + docId);
-        });
-      } else {
-        // Fallback to IndexedDB
-        const { saveStudyNote } = await import('../lib/offlineDB');
-        await saveStudyNote({id: docId, createdAt: new Date().toISOString(), ...newItem});
-      }
-    } catch (e) {
-      console.error('Failed to auto-save content to firestore', e);
-    }
-  };
-
-  const syncUpdatedContentToFirestore = async (updatedResult: any) => {
-    if (!currentDocId) return;
-
-    try {
-      const user = auth.currentUser;
-      if (user) {
-        await updateDoc(doc(db, 'created_content', currentDocId), {
-          content: updatedResult.content || " ",
-          memo: updatedResult.memo || null,
-          rubric: updatedResult.rubric || null,
-          updatedAt: serverTimestamp()
-        }).catch(err => {
-          handleFirestoreError(err, OperationType.UPDATE, 'created_content/' + currentDocId);
-        });
-      }
-    } catch (err) {
-      console.error("Failed to sync updated edits to Firestore:", err);
-    }
-  };
-
-  // Auto-save generated content to Firestore immediately after generation
-  useEffect(() => {
-    if (teachingResult && !currentDocId && (activeTab === 'teaching' || activeTab === 'grade1')) {
-      autoSaveContent(teachingResult, activeTab);
-    }
-  }, [teachingResult]);
-
-  useEffect(() => {
-    if (visualResult && !currentDocId && activeTab === 'visual') {
-      autoSaveContent(visualResult, 'visual');
-    }
-  }, [visualResult]);
-
-  useEffect(() => {
-    if (adminResult && !currentDocId && activeTab === 'admin') {
-      autoSaveContent(adminResult, 'admin');
-    }
-  }, [adminResult]);
-
-  const handleToggleEdit = () => {
-    if (!isEditing) {
-      // Initialize edit fields
-      if (activeTab === 'teaching' || activeTab === 'grade1') {
-        setEditContentText(typeof teachingResult?.content === 'string' ? teachingResult.content : JSON.stringify(teachingResult?.content || ''));
-        setEditMemoText(typeof teachingResult?.memo === 'string' ? teachingResult.memo : JSON.stringify(teachingResult?.memo || ''));
-        setEditRubricText(typeof teachingResult?.rubric === 'string' ? teachingResult.rubric : JSON.stringify(teachingResult?.rubric || ''));
-        setEditTitle(teachingResult?.title || (t_topic || t_type || 'Untitled'));
-      } else if (activeTab === 'visual') {
-        setEditContentText(typeof visualResult?.content === 'string' ? visualResult.content : JSON.stringify(visualResult?.content || ''));
-        setEditTitle(visualResult?.title || (v_topic || v_type || 'Untitled'));
-      } else if (activeTab === 'admin') {
-        setEditContentText(typeof adminResult?.content === 'string' ? adminResult.content : JSON.stringify(adminResult?.content || ''));
-        setEditTitle(adminResult?.title || (a_type || 'Untitled'));
-      }
-    }
-    setIsEditing(!isEditing);
-  };
-
-  const handleSaveEdits = async () => {
-    // 1. Create a historical version first if we have an existing state
-    const currentVer = {
-      timestamp: new Date().toLocaleTimeString(),
-      content: activeTab === 'teaching' || activeTab === 'grade1' ? teachingResult?.content : activeTab === 'visual' ? visualResult?.content : adminResult?.content,
-      memo: activeTab === 'teaching' || activeTab === 'grade1' ? teachingResult?.memo : undefined,
-      rubric: activeTab === 'teaching' || activeTab === 'grade1' ? teachingResult?.rubric : undefined
-    };
-
-    // Save history
-    setVersions(prev => {
-      const list = prev[activeTab] || [];
-      return {
-        ...prev,
-        [activeTab]: [currentVer, ...list]
-      };
-    });
-
-    // 2. Update the active result
-    if (activeTab === 'teaching' || activeTab === 'grade1') {
-      const updated = {
-        ...teachingResult,
-        content: editContentText,
-        memo: editMemoText || undefined,
-        rubric: editRubricText || undefined
-      };
-      setTeachingResult(updated);
-      await syncUpdatedContentToFirestore(updated);
-    } else if (activeTab === 'visual') {
-      const updated = {
-        ...visualResult,
-        content: editContentText
-      };
-      setVisualResult(updated);
-      await syncUpdatedContentToFirestore(updated);
-    } else if (activeTab === 'admin') {
-      const updated = {
-        ...adminResult,
-        content: editContentText
-      };
-      setAdminResult(updated);
-      await syncUpdatedContentToFirestore(updated);
-    }
-
-    setIsEditing(false);
-  };
-
-  const handleRestoreVersion = (version: any) => {
-    if (activeTab === 'teaching' || activeTab === 'grade1') {
-      const updated = {
-        ...teachingResult,
-        content: version.content,
-        memo: version.memo,
-        rubric: version.rubric
-      };
-      setTeachingResult(updated);
-      syncUpdatedContentToFirestore(updated);
-      setEditContentText(version.content);
-      setEditMemoText(version.memo || '');
-      setEditRubricText(version.rubric || '');
-    } else {
-      const resultObj = activeTab === 'visual' ? visualResult : adminResult;
-      const setter = activeTab === 'visual' ? setVisualResult : setAdminResult;
-      const updated = {
-        ...resultObj,
-        content: version.content
-      };
-      setter(updated);
-      syncUpdatedContentToFirestore(updated);
-      setEditContentText(version.content);
-    }
-  };
-
   const handlePrint = () => {
-    const itemTitle = (activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation';
-    const itemSubject = (activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : 'Administration') || 'General';
-    const itemGrade = (activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : 'All') || 'N/A';
-    const itemContentType = (activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : 'Notice') || 'Document';
-
-    printContent(contentRef, itemTitle, {
-      subject: itemSubject,
-      grade: itemGrade,
-      contentType: itemContentType,
-      title: itemTitle
-    });
+    printContent(contentRef, "EduAI-Output");
   };
 
   const handleArchive = async () => {
@@ -829,12 +435,15 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
       contentType: (activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : 'Notice') || 'Document',
       isSystem: false,
       content: result.content || " ",
-      memo: result.memo || null,
-      rubric: result.rubric || null,
-      imagePrompt: result.imagePrompt || null
+      memo: result.memo || undefined,
+      rubric: result.rubric || undefined,
+      imagePrompt: result.imagePrompt || undefined
     };
 
     try {
+      const { auth, db } = await import('../lib/firebase');
+      const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+      const { handleFirestoreError, OperationType } = await import('../lib/firestoreHelpers');
       const user = auth.currentUser;
       if (user) {
         const docId = Date.now().toString();
@@ -846,9 +455,9 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
         setArchiveSuccess(true);
         setTimeout(() => setArchiveSuccess(false), 2000);
       } else {
-        // Fallback to IndexedDB
-        const { saveStudyNote } = await import('../lib/offlineDB');
-        await saveStudyNote({id: Date.now().toString(), createdAt: new Date().toISOString(), ...newItem});
+        // Fallback to local storage
+        const existing = JSON.parse(localStorage.getItem('eduai_archive') || '[]');
+        localStorage.setItem('eduai_archive', JSON.stringify([{id: Date.now().toString(), createdAt: new Date().toISOString(), ...newItem}, ...existing]));
         setArchiveSuccess(true);
         setTimeout(() => setArchiveSuccess(false), 2000);
       }
@@ -859,7 +468,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   };
 
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [assignTargetType, setAssignTargetType] = useState<'class' | 'group' | 'student'>('class');
+  const [assignTargetType, setAssignTargetType] = useState<'class' | 'group'>('class');
   const [assignTargetName, setAssignTargetName] = useState('');
 
   const handleAssign = () => {
@@ -871,11 +480,13 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     if (!assignTargetName) return;
 
     try {
+      const { auth, db } = await import('../lib/firebase');
+      const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
       const user = auth.currentUser;
       if (user) {
         await setDoc(doc(db, 'notifications', Date.now().toString()), {
           title: 'Content Assigned',
-          message: `You assigned new content to ${assignTargetType === 'class' ? 'Class' : assignTargetType === 'group' ? 'Study Group' : 'Student'}: ${assignTargetName}.`,
+          message: `You assigned new content to ${assignTargetType === 'class' ? 'Class' : 'Study Group'}: ${assignTargetName}.`,
           read: false,
           userId: user.uid,
           createdAt: serverTimestamp(),
@@ -890,26 +501,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   };
 
   const handleDownloadPDF = () => {
-    if (!contentRef.current) return;
-    
-    const element = contentRef.current;
-    
-    const opt = {
-      margin:       10,
-      filename:     `${editTitle ? editTitle.replace(/\s+/g, '_') : 'EduAI_Companion_Document'}.pdf`,
-      image:        { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, logging: false },
-      jsPDF:        { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
-      pagebreak:    { mode: ['avoid-all' as const, 'css' as const, 'legacy' as const] }
-    };
-
-    const restoreGetComputedStyle = patchOklchForHtml2canvas();
-    
-    html2pdf().from(element).set(opt).save().catch((err: any) => {
-      console.error("PDF download failed:", err);
-    }).finally(() => {
-      restoreGetComputedStyle();
-    });
+    downloadAsHTML(contentRef, "EduAI-Generated-Content.html");
   };
 
   // ─── Teaching Tools State ─────────────────────────────────────────────────
@@ -930,7 +522,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [t_differentiation, setT_Differentiation] = useState('');
   const [t_memo, setT_Memo] = useState(true);
   const [t_rubric, setT_Rubric] = useState(true);
-  const [t_includeWorksheet, setT_IncludeWorksheet] = useState(true);
   const [t_dependencies, setT_Dependencies] = useState('');
   const [t_extraInstructions, setT_ExtraInstructions] = useState('');
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -1004,107 +595,23 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [f_language, setF_Language] = useState('English HL');
 
   const [videoResult, setVideoResult] = useState<any>(null);
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [isVideoError, setIsVideoError] = useState(false);
   const [vid_prompt, setVid_Prompt] = useState<string>('');
-  const [vid_model, setVid_Model] = useState<string>('omnihuman-1');
-  const [vid_seed, setVid_Seed] = useState<number>(-1);
-  const [vid_fps, setVid_Fps] = useState<number>(15);
-  const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
+  const [vid_model, setVid_Model] = useState<string>('replicate-minimax');
   
-  useEffect(() => {
-    const handleTriggerEditContent = (e: any) => {
-      const { item, tab } = e.detail || {};
-      if (!item || !tab) return;
-
-      // Close editing mode
-      setIsEditing(false);
-
-      // Set document reference
-      setCurrentDocId(item.id);
-      setActiveTab(tab);
-
-      // Clean up previous other results to avoid distraction
-      setTeachingResult(null);
-      setVisualResult(null);
-      setAdminResult(null);
-
-      // Set proper results based on target tab
-      if (tab === 'teaching' || tab === 'grade1') {
-         const res = {
-           content: item.content || '',
-           memo: item.memo || undefined,
-           rubric: item.rubric || undefined,
-           title: item.title || '',
-           imagePrompt: item.imagePrompt || undefined
-         };
-         setTeachingResult(res);
-         setT_Topic(item.title || '');
-         setT_Type(item.contentType || '');
-         setT_Subject(item.subject || '');
-         setT_Grade(item.grade || '');
-      } else if (tab === 'visual') {
-         const res = {
-           content: item.content || '',
-           title: item.title || '',
-           imagePrompt: item.imagePrompt || undefined
-         };
-         setVisualResult(res);
-         setV_Topic(item.title || '');
-         setV_Type(item.contentType || '');
-         setV_Subject(item.subject || '');
-         setV_Grade(item.grade || '');
-      } else if (tab === 'admin') {
-         const res = {
-           content: item.content || '',
-           title: item.title || ''
-         };
-         setAdminResult(res);
-         setA_Type(item.contentType || '');
-         setA_Subject(item.subject || '');
-         setA_Grade(item.grade || '');
-      }
-    };
-
-    window.addEventListener('trigger-edit-content', handleTriggerEditContent);
-    return () => window.removeEventListener('trigger-edit-content', handleTriggerEditContent);
-  }, []);
-
-  const handleEnhancePrompt = async () => {
-    if (!vid_prompt) return;
-    setIsEnhancingPrompt(true);
-    try {
-      const res = await fetch("/api/video/enhance-prompt", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: vid_prompt })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.enhanced) {
-          setVid_Prompt(data.enhanced);
-        }
-      }
-    } catch (err) {
-      console.warn("Error enhancing prompt:", err);
-    } finally {
-      setIsEnhancingPrompt(false);
-    }
-  };
-
   const handleGenerateVideo = async () => {
     setIsLoading(true);
     setGenerationProgress(0);
     setError(null);
     setVideoResult(null);
+    setIsVideoError(false);
+    setIsVideoLoading(true);
     try {
       const res = await fetch("/api/video/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          prompt: vid_prompt, 
-          model: vid_model,
-          seed: vid_seed,
-          fps: vid_fps
-        })
+        body: JSON.stringify({ prompt: vid_prompt, model: vid_model })
       });
       
       let data;
@@ -1125,11 +632,11 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
       const progressInterval = setInterval(() => {
         progress = Math.min(progress + Math.floor(Math.random() * 3), 90);
         setGenerationProgress(progress);
-      }, 1500);
+      }, 2000);
 
       // Poll until succeeded or failed
       while (true) {
-        await new Promise(r => setTimeout(r, 4000));
+        await new Promise(r => setTimeout(r, 5000));
         const statusRes = await fetch(`/api/video/status/${predictionId}`);
         
         let statusData;
@@ -1159,7 +666,9 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
       setIsLoading(false);
     } catch (err: any) {
       setError(err.message || "Failed to generate video.");
+      setIsVideoError(true);
       setIsLoading(false);
+      setIsVideoLoading(false);
     }
   };
 
@@ -1172,7 +681,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   // ─── Actions ──────────────────────────────────────────────────────────────
 
   const handleGenerateTeaching = async () => {
-    setCurrentDocId(null);
     const finalSubject = t_subject === 'Other' ? t_customSubject : t_subject;
     const finalTopic = t_topic === 'Other' ? t_customTopic : t_topic;
     setIsLoading(true);
@@ -1189,20 +697,12 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     try {
       const compiledInstructions = 
         (t_extraInstructions ? t_extraInstructions + '\n' : '') +
-        (t_dependencies ? `TASK DEPENDENCIES / PRE-REQUISITES:\n${t_dependencies}\n` : '') +
-        (t_difficulty ? `Difficulty Level: ${t_difficulty}\n` : '') +
-        (t_duration ? `Expected Duration: ${t_duration}\n` : '') +
-        (t_items ? `Number of questions/items: ${t_items}\n` : '') +
-        (t_differentiation ? `Learner Study Profile Differentiation Strategy: ${t_differentiation}\n` : '') +
-        (t_type === 'Lesson Plan' ? `Generate Student Exercise / Worksheet At End: ${t_includeWorksheet ? 'Yes' : 'No'}\n` : '') +
-        `Include Memorandum/Answer Sheet: ${t_memo ? 'Yes' : 'No'}\n` +
-        `Include Custom Grading Rubric Checklist: ${t_rubric ? 'Yes' : 'No'}\n`;
+        (t_dependencies ? `TASK DEPENDENCIES / PRE-REQUISITES:\n${t_dependencies}\n` : '');
 
       const result = await generateCAPSContent({
         category: t_category, contentType: t_type, grade: t_grade, subject: finalSubject,
         topic: finalTopic, term: t_term, language: t_language, objective: t_objective,
-        learnerProfile: t_profile, additionalInstructions: compiledInstructions,
-        includeWorksheet: t_type === 'Lesson Plan' ? t_includeWorksheet : undefined
+        learnerProfile: t_profile, additionalInstructions: compiledInstructions
       }, provider);
       
       clearInterval(progressInterval);
@@ -1221,7 +721,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   };
 
   const handleGenerateVisual = async () => {
-    setCurrentDocId(null);
     const finalSubject = v_subject === 'Other' ? v_customSubject : v_subject;
     const finalTopic = v_topic === 'Other' ? v_customTopic : v_topic;
     setIsLoading(true);
@@ -1274,7 +773,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   };
 
   const handleGenerateFoundation = async () => {
-    setCurrentDocId(null);
     setIsLoading(true);
     setError(null);
     setTeachingResult(null); // Reusing teaching result panel
@@ -1293,7 +791,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   };
 
   const handleGenerateAdmin = async () => {
-    setCurrentDocId(null);
     const finalSubject = a_subject === 'Other' ? a_customSubject : a_subject;
     setIsLoading(true);
     setError(null);
@@ -1376,20 +873,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                 </button>
               ))}
             </div>
-
-            {/* A4 Print Simulation Button */}
-            {hasResult && (
-              <button
-                type="button"
-                onClick={() => setShowPrintPreviewModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 lg:py-3 bg-brand-yellow hover:bg-yellow-400 text-navy-dark rounded-xl lg:rounded-2xl font-sans font-black uppercase tracking-widest text-[10px] shrink-0 hover:scale-105 active:scale-95 shadow-lg shadow-brand-yellow/20 cursor-pointer"
-                title="A4 Print Simulation"
-              >
-                <Printer size={15} strokeWidth={2.5} />
-                <span>Print Preview</span>
-              </button>
-            )}
-
             {/* Highly visible unified close button on Desktop */}
             <button 
               type="button" 
@@ -1405,12 +888,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
 
       <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
         {/* Left Form Panel */}
-        <div className={cn(
-          "bg-[#0B1122] lg:border-r border-white/5 lg:overflow-y-auto space-y-6 lg:space-y-8 scrollbar-hide shrink-0 h-max lg:h-full transition-all duration-300",
-          isFullscreenPreview 
-            ? "w-0 p-0 overflow-hidden opacity-0 hidden lg:hidden" 
-            : "w-full lg:w-[420px] p-4 lg:p-8 opacity-100 block"
-        )}>
+        <div className="w-full lg:w-[480px] bg-[#0B1122] lg:border-r border-white/5 lg:overflow-y-auto p-4 lg:p-10 space-y-6 lg:space-y-8 scrollbar-hide shrink-0 h-max lg:h-full">
           <AnimatePresence mode="wait">
             {activeTab === 'teaching' && (
               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
@@ -1529,23 +1007,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   </div>
                 )}
 
-                {t_type === 'Lesson Plan' && (
-                  <div className={cn(
-                    "p-4 rounded-[20px] border space-y-2 transition-all",
-                    isDarkMode ? "bg-white/5 border-white/5" : "bg-slate-50 border-slate-200"
-                  )}>
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="space-y-0.5">
-                        <Label className="font-black text-[11px] uppercase tracking-wider text-brand-cyan">Generate Student Worksheet</Label>
-                        <p className={cn("text-[11px] leading-normal", isDarkMode ? "text-slate-400" : "text-slate-500")}>
-                          Attach an interactive task / exercise sheet at the end of the lesson plan.
-                        </p>
-                      </div>
-                      <Switch checked={t_includeWorksheet} onCheckedChange={setT_IncludeWorksheet} id="t-include-worksheet" isDarkMode={isDarkMode} />
-                    </div>
-                  </div>
-                )}
-
                 <AdvancedSection label="Advanced Neural Configuration" isDarkMode={isDarkMode}>
                   <div className="space-y-4">
                     <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Learning Objective</Label>
@@ -1576,225 +1037,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                          />
                        </div>
                     </div>
-                  )}
-                </div>
-
-                {/* Exam Mode Timer Control Card */}
-                <div className={cn("border-t pt-6 mt-6", isDarkMode ? "border-white/5" : "border-slate-200")}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setExamTimerExpanded(!examTimerExpanded);
-                      // Pre-populate if empty
-                      if (!examPaperTitle) {
-                        setExamPaperTitle(t_topic || t_type || "Classroom Examination Paper");
-                      }
-                      if (!examSubjectName) {
-                        setExamSubjectName(t_subject || "General Study");
-                      }
-                    }}
-                    className={cn(
-                      "w-full flex items-center justify-between text-xs font-black uppercase tracking-widest transition-colors",
-                      isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"
-                    )}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Timer size={14} className="text-brand-cyan" />
-                      Exam Mode Countdown
-                      {isExamRunning && (
-                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping inline-block ml-1" />
-                      )}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      {isExamRunning && (
-                        <span className="text-[10px] font-mono text-emerald-400 px-1.5 py-0.5 bg-emerald-400/10 rounded">
-                          {Math.floor(examTimeRemaining / 60)}m left
-                        </span>
-                      )}
-                      {examTimerExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </span>
-                  </button>
-
-                  {examTimerExpanded && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      className="space-y-4 pt-4 text-left"
-                    >
-                      <div className="space-y-2">
-                        <Label>Exam/Test Title</Label>
-                        <Input 
-                          placeholder="e.g. Term 2 Mathematics Controlled Test" 
-                          value={examPaperTitle} 
-                          onChange={(e: any) => setExamPaperTitle(e.target.value)} 
-                          isDarkMode={isDarkMode} 
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Duration (Minutes)</Label>
-                          <Input 
-                            type="number" 
-                            min="1" 
-                            max="300"
-                            value={examTimerDuration} 
-                            onChange={(e: any) => setExamTimerDuration(Math.max(1, parseInt(e.target.value) || 1))} 
-                            isDarkMode={isDarkMode} 
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Warning At (Minutes Left)</Label>
-                          <Input 
-                            type="number" 
-                            min="1" 
-                            max={examTimerDuration - 1}
-                            value={examWarningMinutes} 
-                            onChange={(e: any) => setExamWarningMinutes(Math.max(1, Math.min(examTimerDuration - 1, parseInt(e.target.value) || 1)))} 
-                            isDarkMode={isDarkMode} 
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between py-1">
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setExamSoundEnabled(!examSoundEnabled)}
-                            className={cn(
-                              "p-2 rounded-xl border transition-all",
-                              isDarkMode 
-                                ? (examSoundEnabled ? "bg-white/5 border-brand-cyan/30 text-brand-cyan" : "bg-white/5 border-white/5 text-slate-500") 
-                                : (examSoundEnabled ? "bg-cyan-50 border-cyan-200 text-cyan-600" : "bg-slate-50 border-slate-200 text-slate-400")
-                            )}
-                          >
-                            {examSoundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-                          </button>
-                          <span className={`text-[11px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                            Sound Chimes {examSoundEnabled ? "Enabled" : "Muted"}
-                          </span>
-                        </div>
-                        
-                        {isExamRunning && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setExamTimerAlertTriggered(true);
-                              setExamAlertMessage("🔊 Visual Alert: This is a manual teacher alert chime test. Please keep silent.");
-                              setShowExamAlertOverlay(true);
-                              
-                              if (examSoundEnabled && typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
-                                try {
-                                  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-                                  const ctx = new AudioContextClass();
-                                  const osc = ctx.createOscillator();
-                                  const gain = ctx.createGain();
-                                  osc.type = 'sine';
-                                  osc.frequency.setValueAtTime(880, ctx.currentTime);
-                                  gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                                  gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-                                  osc.connect(gain);
-                                  gain.connect(ctx.destination);
-                                  osc.start();
-                                  osc.stop(ctx.currentTime + 0.5);
-                                } catch (_) {}
-                              }
-                            }}
-                            className="text-[10px] uppercase font-black tracking-widest text-brand-cyan hover:underline flex items-center gap-1 cursor-pointer"
-                          >
-                            <Bell size={10} /> Test Chime
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="flex gap-2 pt-2">
-                        {!isExamRunning && !examCompleted ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setExamTimeRemaining(examTimerDuration * 60);
-                              setIsExamRunning(true);
-                              setIsExamPaused(false);
-                              setExamTimerAlertTriggered(false);
-                              setExamCompleted(false);
-                              setExamAlertMessage(`⏰ The Exam (${examPaperTitle}) has started! Total duration: ${examTimerDuration} minutes.`);
-                              setShowExamAlertOverlay(true);
-                              // Trigger an initial start bell context (Play beautiful chime)
-                              if (examSoundEnabled) {
-                                try {
-                                  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-                                  const ctx = new AudioContextClass();
-                                  const osc = ctx.createOscillator();
-                                  const gain = ctx.createGain();
-                                  osc.type = 'triangle';
-                                  osc.frequency.setValueAtTime(440, ctx.currentTime);
-                                  osc.frequency.setValueAtTime(554.37, ctx.currentTime + 0.15);
-                                  osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.3);
-                                  gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                                  gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
-                                  osc.connect(gain);
-                                  gain.connect(ctx.destination);
-                                  osc.start();
-                                  osc.stop(ctx.currentTime + 0.6);
-                                } catch (_) {}
-                              }
-                            }}
-                            className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
-                          >
-                            <Timer size={14} /> Start Countdown
-                          </button>
-                        ) : (
-                          <div className="w-full space-y-2">
-                            {/* Running HUD status bar inside setting panel */}
-                            <div className={`p-3 rounded-xl border flex items-center justify-between ${
-                              isDarkMode ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200"
-                            }`}>
-                              <span className="text-[11px] font-bold flex items-center gap-1.5">
-                                <span className={cn(
-                                  "w-2 h-2 rounded-full",
-                                  isExamPaused ? "bg-amber-500" : examCompleted ? "bg-rose-500" : "bg-emerald-500 animate-pulse"
-                                )} />
-                                {isExamPaused ? "Paused" : examCompleted ? "Time Over" : "Exam Running..."}
-                              </span>
-                              <span className="text-sm font-mono font-black text-brand-cyan">
-                                {Math.floor(examTimeRemaining / 60).toString().padStart(2, '0')}:
-                                {(examTimeRemaining % 60).toString().padStart(2, '0')}
-                              </span>
-                            </div>
-
-                            <div className="flex gap-2">
-                              {!examCompleted && (
-                                <button
-                                  type="button"
-                                  onClick={() => setIsExamPaused(!isExamPaused)}
-                                  className={cn(
-                                    "flex-1 py-1 px-2 rounded-xl font-bold text-[10px] uppercase tracking-wider text-white transition-all cursor-pointer",
-                                    isExamPaused 
-                                      ? "bg-emerald-500 hover:bg-emerald-600" 
-                                      : "bg-amber-500 hover:bg-amber-600"
-                                  )}
-                                >
-                                  {isExamPaused ? "Resume" : "Pause"}
-                                </button>
-                              )}
-                              
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setIsExamRunning(false);
-                                  setIsExamPaused(false);
-                                  setExamTimeRemaining(0);
-                                  setExamCompleted(false);
-                                }}
-                                className="flex-1 py-1 px-2 bg-rose-500 hover:bg-rose-600 font-bold text-[10px] uppercase tracking-wider text-white rounded-xl transition-all cursor-pointer"
-                              >
-                                Stop / Reset
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
                   )}
                 </div>
               </motion.div>
@@ -1989,7 +1231,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   </div>
                   <div className="space-y-2">
                     <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Date <span className="opacity-50">(Optional)</span></Label>
-                    <Input placeholder="e.g. 15 October 2026" value={a_date} onChange={(e: any) => setA_Date(e.target.value)} isDarkMode={isDarkMode} />
+                    <Input placeholder="e.g. 15 October 2024" value={a_date} onChange={(e: any) => setA_Date(e.target.value)} isDarkMode={isDarkMode} />
                   </div>
                 </div>
 
@@ -2036,7 +1278,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                     <Select value={vid_model} onValueChange={setVid_Model} placeholder="Video Model" isDarkMode={isDarkMode}>
                       {(close: any) => (
                         <>
-                          <SelectItem onClick={() => { setVid_Model('omnihuman-1'); close(); }} active={vid_model === 'omnihuman-1'} isDarkMode={isDarkMode}>Omnihuman-1 (Gradio Streaming)</SelectItem>
                           <SelectItem onClick={() => { setVid_Model('replicate-minimax'); close(); }} active={vid_model === 'replicate-minimax'} isDarkMode={isDarkMode}>Minimax Video</SelectItem>
                           <SelectItem onClick={() => { setVid_Model('replicate-luma'); close(); }} active={vid_model === 'replicate-luma'} isDarkMode={isDarkMode}>Luma Ray</SelectItem>
                         </>
@@ -2044,17 +1285,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                     </Select>
                   </div>
                   <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className={cn("text-[10px] font-black uppercase tracking-widest ml-1 block", isDarkMode ? "text-slate-400" : "text-slate-500")}>Video Prompt</label>
-                      <button 
-                        type="button"
-                        onClick={handleEnhancePrompt} 
-                        disabled={isEnhancingPrompt || !vid_prompt} 
-                        className="text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-600 disabled:opacity-50 transition-all flex items-center gap-1"
-                      >
-                        {isEnhancingPrompt ? <Loader2 size={10} className="animate-spin" /> : "🌟"} Enhance Prompt
-                      </button>
-                    </div>
+                    <label className={cn("text-[10px] font-black uppercase tracking-widest ml-1 mb-1 block", isDarkMode ? "text-slate-400" : "text-slate-500")}>Video Prompt</label>
                     <textarea 
                       placeholder="E.g., A cinematic shot of a lion roaring in the African savanna..." 
                       value={vid_prompt} 
@@ -2062,31 +1293,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                       className={cn("w-full px-4 py-3 rounded-2xl text-sm min-h-[120px] outline-none transition-all", isDarkMode ? "bg-white/5 border border-white/10 text-white focus:border-indigo-500" : "bg-white border border-slate-200 text-slate-900 focus:border-indigo-500")}
                     />
                   </div>
-
-                  {vid_model === 'omnihuman-1' && (
-                    <div className="grid grid-cols-2 gap-4 p-4 rounded-2xl border bg-indigo-500/[0.02] border-indigo-500/10 transition-all">
-                      <div>
-                        <label className={cn("text-[10px] font-black uppercase tracking-widest mb-1.5 block", isDarkMode ? "text-slate-400" : "text-slate-500")}>Seed (-1 for random)</label>
-                        <input 
-                          type="number" 
-                          value={vid_seed} 
-                          onChange={(e: any) => setVid_Seed(Number(e.target.value))} 
-                          className={cn("w-full px-4 py-2 text-xs rounded-xl outline-none transition-all", isDarkMode ? "bg-white/5 border border-white/10 text-white focus:border-indigo-500" : "bg-white border border-slate-200 text-slate-900 focus:border-indigo-500")}
-                        />
-                      </div>
-                      <div>
-                        <label className={cn("text-[10px] font-black uppercase tracking-widest mb-1.5 block", isDarkMode ? "text-slate-400" : "text-slate-500")}>Playback FPS ({vid_fps})</label>
-                        <input 
-                          type="range" 
-                          min="1" 
-                          max="30" 
-                          value={vid_fps} 
-                          onChange={(e: any) => setVid_Fps(Number(e.target.value))} 
-                          className="w-full accent-indigo-500 py-1"
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 <div>
@@ -2186,7 +1392,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
 
         {/* Right Preview Panel */}
         <div id="preview-panel" className="w-full lg:flex-1 bg-navy-dark/40 lg:overflow-y-auto p-4 sm:p-8 lg:p-12 scrollbar-hide relative lg:h-full">
-          <AnimatePresence>
+           <AnimatePresence>
             {error && (
               <motion.div 
                 initial={{ opacity: 0, y: -20 }}
@@ -2206,169 +1412,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                 </button>
               </motion.div>
             )}
-          </AnimatePresence>
-
-          {/* Exam Mode Classroom HUD Banner */}
-          {(isExamRunning || examCompleted) && (
-            <motion.div
-              initial={{ opacity: 0, y: -20, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              className={cn(
-                "mb-8 p-6 border rounded-[24px] lg:rounded-[32px] shadow-2xl relative overflow-hidden",
-                examCompleted
-                  ? "bg-rose-500/10 border-rose-500/30 text-rose-200"
-                  : examTimeRemaining <= examWarningMinutes * 60
-                    ? "bg-amber-500/10 border-amber-500/30 text-amber-200 animate-pulse"
-                    : "bg-cyan-500/10 border-cyan-500/30 text-cyan-100"
-              )}
-            >
-              <div className="absolute top-0 right-0 p-3 opacity-15">
-                <Timer size={100} />
-              </div>
-              
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-                <div className="text-left space-y-1">
-                  <span className={cn(
-                    "inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full",
-                    examCompleted 
-                      ? "bg-rose-500/25 text-rose-300" 
-                      : isExamPaused 
-                        ? "bg-amber-500/25 text-amber-300" 
-                        : "bg-emerald-500/25 text-emerald-300"
-                  )}>
-                    <span className={cn("w-1.5 h-1.5 rounded-full", examCompleted ? "bg-rose-400" : isExamPaused ? "bg-amber-400" : "bg-emerald-400 animate-ping")} />
-                    {examCompleted ? "🏁 Exam Terminated" : isExamPaused ? "⏸️ Test Paused" : "📝 Active Exam Block"}
-                  </span>
-                  <h3 className="text-xl md:text-2xl font-hand font-black text-white leading-tight">
-                    {examPaperTitle || "Term Assessment Examination"}
-                  </h3>
-                  <p className="text-xs text-slate-400 flex items-center gap-1 font-medium font-sans">
-                    <span className="text-brand-cyan">{examSubjectName || t_subject || "General Subject"}</span>
-                    <span>•</span>
-                    <span>CAPS Registered Standard</span>
-                  </p>
-                </div>
-
-                <div className="flex flex-col items-center md:items-end gap-2 shrink-0">
-                  <div className="text-4xl md:text-5xl font-mono font-black text-white tracking-widest bg-black/40 px-6 py-3 rounded-2xl border border-white/5 shadow-inner">
-                    {Math.floor(examTimeRemaining / 3600) > 0 && (
-                      <span className="text-brand-cyan">
-                        {Math.floor(examTimeRemaining / 3600).toString().padStart(2, '0')}:
-                      </span>
-                    )}
-                    <span className="text-white">
-                      {Math.floor((examTimeRemaining % 3600) / 60).toString().padStart(2, '0')}
-                    </span>
-                    <span className="text-brand-cyan animate-pulse">:</span>
-                    <span className="text-white">
-                      {(examTimeRemaining % 60).toString().padStart(2, '0')}
-                    </span>
-                  </div>
-                  <div className="text-[10px] uppercase font-black tracking-widest text-slate-400">
-                    {examCompleted ? "Time Elapsed" : "Time Remaining Countdown"}
-                  </div>
-                </div>
-              </div>
-
-              {/* Progress bar */}
-              <div className="mt-6 space-y-1.5 font-sans">
-                <div className="flex justify-between text-[10px] uppercase tracking-widest font-black">
-                  <span>Progress Ratio</span>
-                  <span>
-                    {examCompleted 
-                      ? "100%" 
-                      : `${Math.round(((examTimerDuration * 60 - examTimeRemaining) / (examTimerDuration * 60)) * 100)}% Elapsed`}
-                  </span>
-                </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden border border-white/10 p-[1px]">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ 
-                      width: examCompleted 
-                        ? "100%" 
-                        : `${((examTimerDuration * 60 - examTimeRemaining) / (examTimerDuration * 60)) * 100}%` 
-                    }}
-                    transition={{ ease: "easeOut" }}
-                    className={cn(
-                      "h-full rounded-full",
-                      examCompleted 
-                        ? "bg-rose-500" 
-                        : examTimeRemaining <= examWarningMinutes * 60 
-                          ? "bg-gradient-to-r from-amber-500 to-rose-500 animate-pulse" 
-                          : "bg-gradient-to-r from-teal-400 to-brand-cyan"
-                    )}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Visual Alert Overlay (Teacher Classroom Alarm Chime Modal) */}
-          <AnimatePresence>
-            {showExamAlertOverlay && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[110] bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4"
-              >
-                <motion.div
-                  initial={{ scale: 0.9, y: 30 }}
-                  animate={{ scale: 1, y: 0 }}
-                  exit={{ scale: 0.9, y: 30 }}
-                  className={cn(
-                    "w-full max-w-lg rounded-[32px] border p-8 text-center shadow-2xl relative overflow-hidden",
-                    examCompleted 
-                      ? "bg-slate-900 border-rose-500/40 shadow-rose-500/10" 
-                      : "bg-slate-900 border-amber-500/40 shadow-amber-500/10"
-                  )}
-                >
-                  <div className="absolute -top-12 -left-12 w-48 h-48 bg-brand-cyan/5 blur-3xl rounded-full" />
-                  
-                  <div className="relative z-10 space-y-6">
-                    <div className="mx-auto w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-                      {examCompleted ? (
-                        <Bell className="text-rose-500 animate-bounce" size={32} />
-                      ) : (
-                        <Timer className="text-amber-500 animate-pulse" size={32} />
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <span className={cn(
-                        "text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full",
-                        examCompleted ? "bg-rose-500/20 text-rose-400" : "bg-amber-500/20 text-amber-400"
-                      )}>
-                        {examCompleted ? "🏁 Assessment Concluded" : "⚠️ Time Warning Alert"}
-                      </span>
-                      <h4 className="text-2xl font-hand font-black text-white leading-snug">
-                        {examPaperTitle || "Term Assessment Examination"}
-                      </h4>
-                    </div>
-
-                    <p className="text-sm text-slate-300 font-medium leading-relaxed bg-white/5 border border-white/5 p-4 rounded-2xl font-sans">
-                      {examAlertMessage}
-                    </p>
-
-                    <div className="flex justify-center pt-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowExamAlertOverlay(false)}
-                        className={cn(
-                          "px-8 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 shadow-md hover:shadow-lg cursor-pointer",
-                          examCompleted 
-                            ? "bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/20" 
-                            : "bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20"
-                        )}
-                      >
-                        Acknowledge Alert
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+           </AnimatePresence>
 
            {isLoading ? (
              <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-center space-y-8">
@@ -2385,71 +1429,18 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
              <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto space-y-8 lg:space-y-12 pb-12">
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white/5 p-4 lg:p-6 rounded-2xl lg:rounded-[32px] border border-white/5 gap-4">
                   <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
-                    <div className="flex flex-wrap gap-2 items-center text-xs">
-                      {(activeTab === 'teaching' || activeTab === 'grade1') && (
-                        <div className="text-[10px] font-black uppercase text-brand-cyan tracking-widest px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center">
-                          All Inclusive Package
-                        </div>
-                      )}
-                      {activeTab === 'visual' && (
-                        <div className="text-[10px] font-black uppercase text-purple-400 tracking-widest px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center">
-                          Visual Asset Ready
-                        </div>
-                      )}
-                      {activeTab === 'admin' && (
-                        <div className="text-[10px] font-black uppercase text-amber-500 tracking-widest px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center">
-                          Official Admin Draft
-                        </div>
-                      )}
-                      {currentDocId ? (
-                        <div className="text-[10px] font-black uppercase text-emerald-400 tracking-widest px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/25 rounded-xl flex items-center justify-center gap-1.5 animate-pulse">
-                          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block" />
-                          Synced to Cloud DB
-                        </div>
-                      ) : (
-                        <div className="text-[10px] font-black uppercase text-amber-400 tracking-widest px-3 py-1.5 bg-amber-500/10 border border-amber-500/25 rounded-xl flex items-center justify-center gap-1.5">
-                          Saving Draft...
-                        </div>
-                      )}
-                    </div>
+                    {(activeTab === 'teaching' || activeTab === 'grade1') && (
+                      <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 scrollbar-hide text-[10px] font-black uppercase text-brand-cyan tracking-widest px-4 py-2 bg-white/5 rounded-xl border border-white/10 items-center justify-center">
+                        All Inclusive Package Generated
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
-                    <button 
-                      onClick={() => setIsFullscreenPreview(prev => !prev)} 
-                      className={cn(
-                        "p-2.5 lg:p-3 rounded-xl lg:rounded-2xl transition-all tooltip shrink-0 border",
-                        isFullscreenPreview 
-                          ? "bg-brand-cyan border-brand-cyan/20 text-navy-dark" 
-                          : "bg-white/10 border-white/5 hover:bg-white/20 text-white"
-                      )} 
-                      title={isFullscreenPreview ? "Show Form Panel" : "Expand Preview to Full Screen"}
-                    >
-                      {isFullscreenPreview ? <Minimize2 size={16} className="lg:w-[18px] lg:h-[18px]" /> : <Maximize2 size={16} className="lg:w-[18px] lg:h-[18px]" />}
-                    </button>
                     <button onClick={handlePrint} className="bg-white/10 hover:bg-white/20 p-2.5 lg:p-3 rounded-xl lg:rounded-2xl text-white transition-all tooltip shrink-0" title="Print Content">
                       <Printer size={16} className="lg:w-[18px] lg:h-[18px]" />
                     </button>
                     <button onClick={handleDownloadPDF} className="bg-white/10 hover:bg-white/20 p-2.5 lg:p-3 rounded-xl lg:rounded-2xl text-white transition-all tooltip shrink-0" title="Download as PDF">
                       <Download size={16} className="lg:w-[18px] lg:h-[18px]" />
-                    </button>
-                    <button 
-                      onClick={handleToggleEdit} 
-                      className={cn(
-                        "p-2.5 lg:p-3 rounded-xl lg:rounded-2xl transition-all tooltip shrink-0 border",
-                        isEditing 
-                          ? "bg-brand-cyan border-brand-cyan/20 text-navy-dark" 
-                          : "bg-white/10 border-white/5 hover:bg-white/20 text-white"
-                      )} 
-                      title={isEditing ? "Exit Edit Mode" : "Edit Content"}
-                    >
-                      <Edit2 size={16} className="lg:w-[18px] lg:h-[18px]" />
-                    </button>
-                    <button 
-                      onClick={() => setShowShareModal(true)} 
-                      className="bg-white/10 hover:bg-white/20 p-2.5 lg:p-3 rounded-xl lg:rounded-2xl text-white transition-all tooltip shrink-0 border border-white/5" 
-                      title="Share / Export"
-                    >
-                      <Share2 size={16} className="lg:w-[18px] lg:h-[18px]" />
                     </button>
                     <button 
                       onClick={handleAssign}
@@ -2479,94 +1470,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   "pb-20 rounded-[32px] p-4 lg:p-6 printable-doc transition-colors",
                   isDarkMode ? "bg-navy-dark text-white" : "bg-white text-slate-900"
                 )} ref={contentRef}>
-                  {isEditing ? (
-                    <div className="space-y-6">
-                      <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-4 border-dashed">
-                        <div className="text-left">
-                          <h4 className="text-lg font-bold text-brand-cyan">Document Editor</h4>
-                          <p className="text-xs text-slate-400">Modify the generated layout markup below. Your edits auto-save.</p>
-                        </div>
-                        <button
-                          onClick={handleSaveEdits}
-                          className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
-                        >
-                          <Save size={14} />
-                          Save & Sync Changes
-                        </button>
-                      </div>
-
-                      {/* Editing fields based on Tab */}
-                      {(activeTab === 'teaching' || activeTab === 'grade1') ? (
-                        <div className="space-y-4 text-left">
-                          <div>
-                            <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Main Material content (HTML / styled text)</label>
-                            <textarea
-                              className="w-full h-80 p-4 border rounded-2xl font-mono text-xs bg-slate-900 border-white/10 text-white focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan outline-none resize-y"
-                              value={editContentText}
-                              onChange={(e) => setEditContentText(e.target.value)}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Expert Answer Key (Memo)</label>
-                            <textarea
-                              className="w-full h-40 p-4 border rounded-2xl font-mono text-xs bg-slate-900 border-white/10 text-white focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan outline-none resize-y"
-                              value={editMemoText}
-                              onChange={(e) => setEditMemoText(e.target.value)}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Grading Rubric Matrix</label>
-                            <textarea
-                              className="w-full h-40 p-4 border rounded-2xl font-mono text-xs bg-slate-900 border-white/10 text-white focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan outline-none resize-y"
-                              value={editRubricText}
-                              onChange={(e) => setEditRubricText(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-4 text-left">
-                          <div>
-                            <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Styled Document Content (HTML / styled text)</label>
-                            <textarea
-                              className="w-full h-96 p-4 border rounded-2xl font-mono text-xs bg-slate-900 border-white/10 text-white focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan outline-none resize-y"
-                              value={editContentText}
-                              onChange={(e) => setEditContentText(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Revision & Versioning History */}
-                      <div className="mt-8 border-t border-white/5 pt-6 text-left border-dashed">
-                        <h5 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-                          <History size={14} className="text-brand-cyan" /> Revision & Version History
-                        </h5>
-                        {(versions[activeTab] && versions[activeTab].length > 0) ? (
-                          <div className="space-y-2 max-h-48 overflow-y-auto">
-                            {versions[activeTab].map((ver, idx) => (
-                              <div key={idx} className="flex justify-between items-center bg-white/5 border border-white/10 p-3 rounded-xl text-xs">
-                                <div>
-                                  <span className="font-bold text-white">Version {versions[activeTab].length - idx}</span>
-                                  <span className="text-slate-400 text-[10px] ml-2 font-mono">({ver.timestamp})</span>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRestoreVersion(ver)}
-                                  className="text-brand-cyan font-bold hover:underline"
-                                >
-                                  Restore version
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-slate-500 italic">No previous versions. Edits will create backups.</p>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {(activeTab === 'teaching' || activeTab === 'grade1') && (
+                  {(activeTab === 'teaching' || activeTab === 'grade1') && (
                     <div className="space-y-12">
                       <div className="space-y-8" id="result-section">
                         {teachingResult.imagePrompt && (
@@ -2632,13 +1536,42 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                     </div>
                   )}
                   {activeTab === 'video' && (
-                    <div className="space-y-8 flex flex-col items-center w-full">
+                    <div className="space-y-8 flex flex-col items-center">
                       {videoResult ? (
-                        <EduVideoPlayer 
-                          src={videoResult.url} 
-                          prompt={videoResult.prompt || videoResult.enhanced || "AI Educational Video Frame Animation Loop"} 
-                          isDarkMode={isDarkMode} 
-                        />
+                        <div className="w-full max-w-3xl border border-indigo-500/20 rounded-3xl overflow-hidden shadow-2xl bg-black relative min-h-[300px] flex items-center justify-center">
+                          {isVideoLoading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-20">
+                              <Loader2 className="w-8 h-8 text-white animate-spin" />
+                            </div>
+                          )}
+                          {!isVideoError ? (
+                            <video 
+                              src={videoResult.url} 
+                              controls 
+                              autoPlay 
+                              loop 
+                              className="w-full aspect-video outline-none" 
+                              onLoadStart={() => setIsVideoLoading(true)}
+                              onLoadedData={() => setIsVideoLoading(false)}
+                              onError={(e) => {
+                                console.error('Video error occurred while trying to load the video.');
+                                setIsVideoError(true);
+                                setIsVideoLoading(false);
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full aspect-video flex flex-col items-center justify-center text-slate-400 bg-slate-900 border border-slate-800 rounded-2xl">
+                              <Video size={48} className="mb-4 opacity-50" />
+                              <p className="px-4 text-center">Video playback unavailable or format not supported.</p>
+                              <a href={videoResult.url} target="_blank" rel="noreferrer" className="mt-4 text-brand-cyan hover:underline text-sm font-bold tracking-widest uppercase">Open Video Direct Link</a>
+                            </div>
+                          )}
+                          <div className={cn("p-4 border-t text-center absolute bottom-0 left-0 right-0 z-10", isDarkMode ? "border-white/10 bg-slate-900/80 backdrop-blur-md" : "border-slate-200 bg-white/80 backdrop-blur-md")}>
+                            <p className={cn("font-medium text-sm", isDarkMode ? "text-slate-300" : "text-slate-700")}>
+                              {videoResult.prompt}
+                            </p>
+                          </div>
+                        </div>
                       ) : (
                         <div className="text-center py-20 opacity-50">
                           <Video size={48} className="mx-auto mb-4" />
@@ -2659,8 +1592,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                       <ContentPreview html={adminResult.content} label="Official Correspondence" isDarkMode={isDarkMode} />
                     </div>
                   )}
-                    </>
-                  )}
                 </div>
              </motion.div>
            ) : (
@@ -2680,337 +1611,48 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
       {/* Assign Modal */}
       {showAssignModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[32px] p-6 lg:p-8 w-full max-w-sm shadow-2xl relative">
+          <div className="bg-white rounded-[32px] p-6 lg:p-8 w-full max-w-md shadow-2xl relative">
             <button onClick={() => setShowAssignModal(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600">
               <X size={20} />
             </button>
             <h3 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
-              <Users className="text-brand-cyan" size={24} />
+              <Users className="text-brand-cyan" />
               Assign Content
             </h3>
             <form onSubmit={confirmAssign} className="space-y-4">
               <div>
-                <label className="block text-xs font-black uppercase text-slate-500 tracking-wider mb-2">Assign To</label>
-                <div className="flex flex-col gap-2">
-                  <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer font-medium">
-                    <input type="radio" value="class" checked={assignTargetType === 'class'} onChange={() => { setAssignTargetType('class'); setAssignTargetName(''); }} className="text-brand-cyan focus:ring-brand-cyan" />
-                    Their Classes
+                <label className="block text-sm font-bold text-slate-700 mb-2">Assign To</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
+                    <input type="radio" value="class" checked={assignTargetType === 'class'} onChange={() => setAssignTargetType('class')} className="text-brand-cyan focus:ring-brand-cyan" />
+                    Class
                   </label>
-                  <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer font-medium">
-                    <input type="radio" value="group" checked={assignTargetType === 'group'} onChange={() => { setAssignTargetType('group'); setAssignTargetName(''); }} className="text-brand-cyan focus:ring-brand-cyan" />
-                    Study Groups
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer font-medium">
-                    <input type="radio" value="student" checked={assignTargetType === 'student'} onChange={() => { setAssignTargetType('student'); setAssignTargetName(''); }} className="text-brand-cyan focus:ring-brand-cyan" />
-                    Individual Students
+                  <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
+                    <input type="radio" value="group" checked={assignTargetType === 'group'} onChange={() => setAssignTargetType('group')} className="text-brand-cyan focus:ring-brand-cyan" />
+                    Study Group
                   </label>
                 </div>
               </div>
               
               <div>
-                <label className="block text-xs font-black uppercase text-slate-500 tracking-wider mb-2">Select Recipient</label>
-                {assignTargetType === 'class' ? (
-                  dbClasses.length > 0 ? (
-                    <select 
-                      value={assignTargetName} 
-                      onChange={e => setAssignTargetName(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan text-sm text-slate-800 font-medium"
-                      required
-                    >
-                      <option value="">-- Select Class --</option>
-                      {dbClasses.map(cls => (
-                        <option key={cls.id} value={cls.name || cls.id}>{cls.name || `Grade ${cls.id}`}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input 
-                      type="text" 
-                      value={assignTargetName} 
-                      onChange={e => setAssignTargetName(e.target.value)} 
-                      placeholder="e.g. Grade 10A (Class)"
-                      className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan text-sm text-slate-800"
-                      required
-                    />
-                  )
-                ) : assignTargetType === 'group' ? (
-                  dbStudyGroups.length > 0 ? (
-                    <select 
-                      value={assignTargetName} 
-                      onChange={e => setAssignTargetName(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan text-sm text-slate-800 font-medium"
-                      required
-                    >
-                      <option value="">-- Select Study Group --</option>
-                      {dbStudyGroups.map(grp => (
-                        <option key={grp.id} value={grp.name || grp.id}>{grp.name || grp.id}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input 
-                      type="text" 
-                      value={assignTargetName} 
-                      onChange={e => setAssignTargetName(e.target.value)} 
-                      placeholder="e.g. Science Olympiad (Group)"
-                      className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan text-sm text-slate-800"
-                      required
-                    />
-                  )
-                ) : (
-                  dbStudents.length > 0 ? (
-                    <select 
-                      value={assignTargetName} 
-                      onChange={e => setAssignTargetName(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan text-sm text-slate-800 font-medium"
-                      required
-                    >
-                      <option value="">-- Select Student --</option>
-                      {dbStudents.map(st => (
-                        <option key={st.id} value={st.name || st.id}>{st.name} ({st.grade || 'N/A'})</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input 
-                      type="text" 
-                      value={assignTargetName} 
-                      onChange={e => setAssignTargetName(e.target.value)} 
-                      placeholder="e.g. Sibusiso Dube"
-                      className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan text-sm text-slate-800"
-                      required
-                    />
-                  )
-                )}
+                <label className="block text-sm font-bold text-slate-700 mb-2">Target Name</label>
+                <input 
+                  type="text" 
+                  value={assignTargetName} 
+                  onChange={e => setAssignTargetName(e.target.value)} 
+                  placeholder={assignTargetType === 'class' ? "e.g. Grade 10A" : "e.g. Math Olympiad Prep"}
+                  className="w-full border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan"
+                  required
+                />
               </div>
 
-              <button type="submit" className="w-full bg-brand-cyan hover:bg-cyan-500 text-navy-dark font-black uppercase tracking-widest text-[10px] py-4 rounded-xl mt-4 transition-all shadow-md shadow-brand-cyan/20">
-                Confirm Assignment
+              <button type="submit" className="w-full bg-brand-cyan hover:bg-cyan-500 text-navy-dark font-black uppercase tracking-widest text-xs py-4 rounded-xl mt-4 transition-all">
+                Create Assignment
               </button>
             </form>
           </div>
         </div>
       )}
-
-      {/* Share / Export Modal Overlay */}
-      <AnimatePresence>
-        {showShareModal && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[110] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#0B1122] border border-white/10 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-6 text-white text-left"
-            >
-              <div className="flex justify-between items-center pb-3 border-b border-white/5">
-                <h3 className="text-xl font-bold font-hand text-brand-cyan flex items-center gap-2">
-                  <Share2 size={18} /> Share & Export
-                </h3>
-                <button type="button" onClick={() => { setShowShareModal(false); setShareSuccess(false); }} className="cursor-pointer">
-                  <X className="text-slate-400 hover:text-white" />
-                </button>
-              </div>
-
-              {/* Selector Mode for Share Type */}
-              <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-black uppercase tracking-wider">
-                {[
-                  { id: 'link', label: 'Link', icon: Link },
-                  { id: 'text', label: 'Plain Text', icon: FileText },
-                  { id: 'html', label: 'HTML', icon: FileCode },
-                  { id: 'markdown', label: 'Markdown', icon: FileText },
-                  { id: 'json', label: 'JSON', icon: FileJson },
-                  { id: 'email', label: 'Email', icon: Mail }
-                ].map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => { setShareType(t.id as any); setShareSuccess(false); }}
-                    className={cn(
-                      "p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-all cursor-pointer",
-                      shareType === t.id 
-                        ? "border-brand-cyan bg-brand-cyan/10 text-brand-cyan font-bold" 
-                        : "border-white/5 bg-white/5 text-slate-400 hover:text-white"
-                    )}
-                  >
-                    <t.icon size={16} />
-                    <span>{t.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Share Content display according to selection */}
-              <div className="bg-white/5 rounded-2xl p-4 border border-white/5 space-y-4">
-                {shareType === 'link' && (
-                  <div className="space-y-2 text-left">
-                    <p className="text-xs text-slate-400">Generates an instant secure teaching-resource link.</p>
-                    <div className="flex gap-2">
-                      <input 
-                        type="text" 
-                        readOnly 
-                        value={`https://eduai-companion.co.za/share/resource-${currentDocId || 'preview'}`}
-                        className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-slate-300 select-all outline-none"
-                      />
-                      <button 
-                        onClick={() => {
-                          navigator.clipboard.writeText(`https://eduai-companion.co.za/share/resource-${currentDocId || 'preview'}`);
-                          setShareSuccess(true);
-                          setTimeout(() => setShareSuccess(false), 2000);
-                        }}
-                        className="bg-brand-cyan hover:bg-cyan-500 text-navy-dark font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1 shrink-0 cursor-pointer"
-                      >
-                        <Copy size={12} />
-                        {shareSuccess ? 'Copied' : 'Copy'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {shareType === 'text' && (
-                  <div className="space-y-3 text-left">
-                    <p className="text-xs text-slate-400">Copy compiled raw text of your educational package.</p>
-                    <button 
-                      onClick={() => {
-                        const rawText = (activeTab === 'teaching' || activeTab === 'grade1') ? teachingResult?.content : activeTab === 'visual' ? visualResult?.content : adminResult?.content;
-                        // Strip HTML tags
-                        const stripped = (rawText || '').replace(/<[^>]*>/g, '');
-                        navigator.clipboard.writeText(stripped);
-                        setShareSuccess(true);
-                        setTimeout(() => setShareSuccess(false), 2000);
-                      }}
-                      className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold p-3 rounded-xl text-xs flex items-center justify-center gap-2 border border-white/10 cursor-pointer"
-                    >
-                      {shareSuccess ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                      {shareSuccess ? 'Text Copied to Clipboard!' : 'Copy Plain Text'}
-                    </button>
-                  </div>
-                )}
-
-                {shareType === 'html' && (
-                  <div className="space-y-3 text-left">
-                    <p className="text-xs text-slate-400">Export as styled HTML code to easily paste into systems.</p>
-                    <button 
-                      onClick={() => {
-                        const rawHtml = (activeTab === 'teaching' || activeTab === 'grade1') ? teachingResult?.content : activeTab === 'visual' ? visualResult?.content : adminResult?.content;
-                        navigator.clipboard.writeText(rawHtml || '');
-                        setShareSuccess(true);
-                        setTimeout(() => setShareSuccess(false), 2000);
-                      }}
-                      className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold p-3 rounded-xl text-xs flex items-center justify-center gap-2 border border-white/10 cursor-pointer"
-                    >
-                      {shareSuccess ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                      {shareSuccess ? 'HTML Markup Copied!' : 'Copy HTML Code'}
-                    </button>
-                  </div>
-                )}
-
-                {shareType === 'markdown' && (
-                  <div className="space-y-3 text-left">
-                    <p className="text-xs text-slate-400">Save educational material as structured Markdown (.md) locally.</p>
-                    <button 
-                      onClick={() => {
-                        const rawHtml = (activeTab === 'teaching' || activeTab === 'grade1') ? teachingResult?.content : activeTab === 'visual' ? visualResult?.content : adminResult?.content;
-                        const markdown = htmlToMarkdown(rawHtml || '');
-                        const filename = `${(activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : 'Administrative_Doc') || 'Generation'}.md`;
-                        downloadBlobFile(markdown, filename, 'text/markdown;charset=utf-8');
-                        setShareSuccess(true);
-                        setTimeout(() => setShareSuccess(false), 2000);
-                      }}
-                      className="w-full bg-brand-cyan hover:bg-cyan-500 text-navy-dark font-black uppercase tracking-widest p-3 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      {shareSuccess ? <Check size={14} /> : <Download size={14} />}
-                      {shareSuccess ? 'Markdown File Saved!' : 'Download Markdown (.md)'}
-                    </button>
-                  </div>
-                )}
-
-                {shareType === 'json' && (
-                  <div className="space-y-3 text-left">
-                    <p className="text-xs text-slate-400">Export lesson plans & study notes in structured raw JSON layout.</p>
-                    <button 
-                      onClick={() => {
-                        const result = (activeTab === 'teaching' || activeTab === 'grade1') ? teachingResult : activeTab === 'visual' ? visualResult : adminResult;
-                        const filename = `${(activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : 'Administrative_Doc') || 'Generation'}.json`;
-                        const jsonContent = JSON.stringify({
-                          title: (activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation',
-                          subject: (activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : 'Administration') || 'General',
-                          grade: (activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : 'All') || 'N/A',
-                          contentType: (activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : 'Notice') || 'Document',
-                          content: result?.content || "",
-                          memo: result?.memo || null,
-                          rubric: result?.rubric || null,
-                          imagePrompt: result?.imagePrompt || null,
-                          exportedAt: new Date().toISOString()
-                        }, null, 2);
-                        downloadBlobFile(jsonContent, filename, 'application/json;charset=utf-8');
-                        setShareSuccess(true);
-                        setTimeout(() => setShareSuccess(false), 2000);
-                      }}
-                      className="w-full bg-slate-800 hover:bg-slate-700 text-white font-black uppercase tracking-widest p-3 rounded-xl text-xs flex items-center justify-center gap-2 border border-white/10 cursor-pointer"
-                    >
-                      {shareSuccess ? <Check size={14} className="text-emerald-500" /> : <Download size={14} />}
-                      {shareSuccess ? 'JSON File Saved!' : 'Download raw JSON'}
-                    </button>
-                  </div>
-                )}
-
-                {shareType === 'email' && (
-                  <div className="space-y-4 text-left">
-                    <p className="text-xs text-slate-400">Send precompiled content to staff or parents instantly.</p>
-                    <form onSubmit={(e) => {
-                      e.preventDefault();
-                      setShareSuccess(true);
-                      setTimeout(() => {
-                        setShareSuccess(false);
-                        setShowShareModal(false);
-                      }, 1800);
-                    }} className="space-y-3">
-                      <div>
-                        <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Recipient Email</label>
-                        <input 
-                          type="email" 
-                          required 
-                          placeholder="principal@school.za"
-                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-brand-cyan focus:outline-none"
-                        />
-                      </div>
-                      <button 
-                        type="submit" 
-                        className="w-full bg-brand-cyan hover:bg-cyan-500 text-navy-dark font-black uppercase tracking-widest text-[10px] py-3 rounded-xl cursor-pointer"
-                      >
-                        {shareSuccess ? 'Email Dispatched!' : 'Send Email Resource'}
-                      </button>
-                    </form>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Interactive A4 Print Preview Modal */}
-      <PrintPreviewModal
-        isOpen={showPrintPreviewModal}
-        onClose={() => setShowPrintPreviewModal(false)}
-        title={
-          (activeTab === 'teaching' || activeTab === 'grade1')
-            ? (t_topic || t_type || 'Lesson Material')
-            : activeTab === 'visual'
-            ? (v_topic || v_type || 'Visual Concept')
-            : 'Administrative Doc'
-        }
-        content={
-          (activeTab === 'teaching' || activeTab === 'grade1') ? (teachingResult?.content || '') : 
-          activeTab === 'visual' ? (visualResult?.content || '') : 
-          (adminResult?.content || '')
-        }
-        memo={(activeTab === 'teaching' || activeTab === 'grade1') ? teachingResult?.memo : undefined}
-        rubric={(activeTab === 'teaching' || activeTab === 'grade1') ? teachingResult?.rubric : undefined}
-        options={{
-          subject: (activeTab === 'teaching' || activeTab === 'grade1' ? t_subject : activeTab === 'visual' ? v_subject : 'Administration') || 'General',
-          grade: (activeTab === 'teaching' || activeTab === 'grade1' ? t_grade : activeTab === 'visual' ? v_grade : 'All') || 'N/A',
-          contentType: (activeTab === 'teaching' || activeTab === 'grade1' ? t_type : activeTab === 'visual' ? v_type : 'Notice') || 'Document',
-          title: (activeTab === 'teaching' || activeTab === 'grade1' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation'
-        }}
-        isDarkMode={isDarkMode}
-      />
     </motion.div>
   </>
 );

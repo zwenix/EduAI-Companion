@@ -5,7 +5,6 @@ import { marked } from 'marked';
 import { educationalData } from '../lib/educational-data';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 
 export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
   const [grade, setGrade] = useState('10');
@@ -59,13 +58,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
     if (!printRef.current) return;
     
     try {
-      const restoreGetComputedStyle = patchOklchForHtml2canvas();
-      let canvas;
-      try {
-        canvas = await html2canvas(printRef.current, { scale: 2 });
-      } finally {
-        restoreGetComputedStyle();
-      }
+      const canvas = await html2canvas(printRef.current, { scale: 2 });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',

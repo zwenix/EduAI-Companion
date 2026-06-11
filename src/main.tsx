@@ -9,20 +9,14 @@ import { AiProvider } from './contexts/AiContext.tsx';
 if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
-      .then(reg => {
-        console.log('Service Worker registered successfully!', reg);
-        reg.update();
-      })
+      .then(reg => console.log('Service Worker registered successfully!', reg))
       .catch(err => console.error('Service Worker registration failed:', err));
   });
 } else if ('serviceWorker' in navigator) {
   // Also register in dev mode if needed, which provides offline simulation capability
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
-      .then(reg => {
-        console.log('Service Worker registered in Dev Mode:', reg);
-        reg.update();
-      })
+      .then(reg => console.log('Service Worker registered in Dev Mode:', reg))
       .catch(err => console.error('Service Worker registration failed:', err));
   });
 }

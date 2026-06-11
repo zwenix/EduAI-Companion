@@ -27,9 +27,6 @@
         "email": { "type": "string" },
         "status": { "type": "string", "enum": ["Active", "Inactive"] },
         "teacherId": { "type": "string" },
-        "parentName": { "type": "string" },
-        "parentEmail": { "type": "string" },
-        "parentPhone": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -115,21 +112,6 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "messages", "updatedAt"]
-    },
-    "Illustration": {
-      "title": "Illustration",
-      "description": "An AI-generated or custom stored classroom illustration asset.",
-      "type": "object",
-      "properties": {
-        "prompt": { "type": "string" },
-        "imageUrl": { "type": "string" },
-        "subject": { "type": "string" },
-        "grade": { "type": "string" },
-        "teacherId": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["prompt", "imageUrl", "createdAt"]
     }
   },
   "firestore": {
@@ -164,10 +146,6 @@
     "/created_content/{contentId}": {
       "schema": "CreatedContent",
       "description": "Archived generated content."
-    },
-    "/illustrations/{illustrationId}": {
-      "schema": "Illustration",
-      "description": "Stored illustrations for classroom use."
     }
   }
 }
