@@ -862,6 +862,10 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
   // --- Vite Middleware ---
 
   async function initializeAndListen() {
+    if (process.env.VERCEL) {
+      return;
+    }
+
     if (process.env.NODE_ENV !== "production") {
       const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
