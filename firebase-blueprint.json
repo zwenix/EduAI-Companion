@@ -112,6 +112,23 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "messages", "updatedAt"]
+    },
+    "Lesson": {
+      "title": "Lesson",
+      "description": "User created classroom lessons structured by subject, topic and phase.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "topic": { "type": "string" },
+        "date": { "type": "string" },
+        "notes": { "type": "string" },
+        "resources": { "type": "string" },
+        "phase": { "type": "string" },
+        "subject": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "topic", "date", "notes", "resources", "phase", "subject", "userEmail"]
     }
   },
   "firestore": {
@@ -146,6 +163,10 @@
     "/created_content/{contentId}": {
       "schema": "CreatedContent",
       "description": "Archived generated content."
+    },
+    "/lessons/{lessonId}": {
+      "schema": "Lesson",
+      "description": "User created classroom lessons."
     }
   }
 }

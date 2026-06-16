@@ -4,80 +4,147 @@
  */
 
 export const WORKSHEET_PROMPT_TEMPLATE = `
-Generate a CAPS-aligned worksheet with this structure:
+Generate a highly descriptive, CAPS-aligned primary student activity worksheet. The content generated MUST be rich, complete, and fully fleshed out with actual, engaging questions tailored to Grade \${grade} \${subject}, with zero placeholders or standard summaries.
 
-\`\`\`html
-<!-- HERO ILLUSTRATION SECTION -->
-<div class="hero-section bg-gradient-to-r from-[subject-color] to-[accent-color] p-6 rounded-b-3xl mb-6">
-  <div class="illustration-placeholder aspect-video bg-white/20 rounded-2xl border-2 border-dashed border-white/50 flex items-center justify-center">
-    <span class="text-white/90 text-sm text-center px-4">
-      [Image: \${imagePrompt}]
-    </span>
-  </div>
-</div>
+🎨 WORK_SHEET DESIGN & REVERSE-ENGINEERED LAYOUT DIRECTIONS:
+- No fixed heights - use 'h-auto', dynamic padding ('py-6', 'px-6'), and relaxed block layouts.
+- Primary colors: Mathematics = blue grid accents; Languages = violet/indigo highlights; Life Skills = orange/amber warm details; Natural Sciences/EMS = emerald/green organic tones. REPLACE all general brackets like '[subject-color]' or '[accent-color]' with real, vivid hex/Tailwind classes (e.g. 'bg-emerald-600', 'text-indigo-800').
+- Circular Badge: A prominent badge at the top right: "Grade \${grade}" or "CAPS" in block font with micro shadow.
+- Header Block: Full width banner with a beautiful solid brand color, rounded-3xl corners, and custom metadata inputs:
+  - "Learner name: _______________________________"
+  - "Date: _________________________"
+  - "Overall Score: ______ / 15 Marks" (Use a beautifully-styled, layered score border card, no absolute positions to avoid overlap).
+- Section headers: Full width, rounded-xl colored banner pills representing different task sections (e.g., SECTION A [5 Marks]).
+- Choice options & Pills: Always use 'rounded-xl' or 'rounded-2xl' instead of 'rounded-full' to prevent text bounding errors if words wrap. Add thick colored borders ('border-2 border-emerald-100') that turn solid on hover.
+- Hand-drawn or Draw illustrations boxes: Explicitly styled boxes with a nice border-2 border-dashed gray border, minimum height ('min-h-[140px]') with soft neutral background and beautiful instruction guidelines.
 
-<!-- HEADER BANNER -->
-<header class="banner bg-white shadow-md rounded-xl p-4 mb-6 flex justify-between items-center">
-  <div>
-    <h1 class="text-2xl font-bold text-[subject-dark]">\${topic}</h1>
-    <p class="text-[subject-muted]">Grade \${grade} • \${subject} • CAPS Ref: \${capsCode}</p>
-  </div>
-  <div class="grade-badge bg-[accent-color] text-white w-16 h-16 rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
-    Grade \${grade}
-  </div>
-</header>
-
-<!-- METADATA STRIP -->
-<div class="metadata-strip flex gap-8 mb-8 pb-4 border-b-2 border-dashed border-gray-300">
-  <div class="field"><span class="font-semibold">Name:</span> <span class="underline flex-1 min-w-[200px] inline-block">&nbsp;</span></div>
-  <div class="field"><span class="font-semibold">Date:</span> <span class="underline flex-1 min-w-[150px] inline-block">&nbsp;</span></div>
-  <div class="field"><span class="font-semibold">Total:</span> <span class="underline w-16 inline-block">&nbsp;</span> / \${totalMarks}</div>
-</div>
-
-<!-- INSTRUCTIONS BOX -->
-<div class="instructions bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-6">
-  <p class="font-semibold text-blue-900">📋 Instructions:</p>
-  <p class="text-blue-800 mt-1">\${instructions}</p>
-</div>
-
-<!-- QUESTIONS SECTION -->
-\${questions.map((q, i) => \`
-<section class="question-block mb-8 p-5 bg-gray-50 rounded-xl border border-gray-200">
-  <div class="question-number bg-[subject-color] text-white w-8 h-8 rounded-full flex items-center justify-center font-bold mb-3 shadow">
-    \${i+1}
-  </div>
-  <p class="question-text font-semibold text-lg mb-3 text-gray-800">\${q.text}</p>
-  \${q.type === 'multiple-choice' ? \`
-    <div class="options-grid grid grid-cols-1 md:grid-cols-2 gap-3">
-      \${q.options.map(opt => \`
-        <label class="option-pill flex items-center gap-3 p-3 bg-white border-2 border-gray-200 rounded-full hover:border-[subject-color] cursor-pointer transition">
-          <input type="radio" name="q\${i}" class="accent-[subject-color]">
-          <span class="option-text">\${opt}</span>
-        </label>
-      \`).join('')}
+📝 WORK_SHEET HTML STRUCTURE:
+<article class="worksheet-container max-w-5xl mx-auto bg-white p-6 md:p-8 rounded-3xl shadow-xl font-sans">
+  
+  <!-- WORK_SHEET HEADER -->
+  <header class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-8 rounded-2xl mb-8 relative shadow-md" style="background: \${primary};">
+    <div class="flex justify-between items-start gap-4">
+      <div>
+        <span class="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider mb-2 font-mono">CAPS DIAGNOSTIC WORK_SHEET</span>
+        <h1 class="text-3xl font-extrabold tracking-tight leading-tight mb-2">\${topic}</h1>
+        <p class="text-white/90 text-sm font-medium">\${subject} • Grade \${grade} Activity Suite</p>
+      </div>
+      <div class="bg-white/25 backdrop-blur-md px-4 py-3 rounded-2xl text-center shadow-inner flex-shrink-0">
+        <span class="block text-[10px] font-bold uppercase tracking-wider opacity-80">Grade</span>
+        <span class="text-2xl font-black">\${grade}</span>
+      </div>
     </div>
-  \` : q.type === 'short-answer' ? \`
-    <div class="answer-space min-h-[60px] border-b-2 border-dashed border-gray-400 mt-2"></div>
-  \` : ''}
-  \${q.marks ? \`<p class="marks text-right text-sm text-gray-500 mt-2">[\${q.marks} marks]</p>\` : ''}
-</section>
-\`).join('')}
+    
+    <div class="mt-6 pt-6 border-t border-white/25 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-semibold">
+      <div>🧑‍🏫 <span class="font-bold">Term:</span> Term \${term}</div>
+      <div>🧬 <span class="font-bold">CAPS Focus:</span> \${capsCode}</div>
+      <div>🎖️ <span class="font-bold">Total Mark Allocation:</span> \${totalMarks} Marks</div>
+    </div>
+  </header>
 
-<!-- SUCCESS INDICATORS -->
-<div class="success-box bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg mb-6">
-  <p class="font-semibold text-green-900">✨ I will know I'm successful when I can:</p>
-  <ul class="list-disc list-inside text-green-800 mt-2 space-y-1">
-    \${successIndicators.map(si => \`<li>\${si}</li>\`).join('')}
-  </ul>
-</div>
+  <!-- METADATA STRIP -->
+  <div class="metadata-strip grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8 pb-4 border-b-2 border-dashed border-slate-200">
+    <div>
+      <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Learner's Full Name</label>
+      <div class="border-b-2 border-slate-350 py-1 text-slate-400 italic text-xs font-medium">_______________________________</div>
+    </div>
+    <div>
+      <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Date of Assessment</label>
+      <div class="border-b-2 border-slate-350 py-1 text-slate-400 italic text-xs font-medium">_________________</div>
+    </div>
+    <div class="sm:col-span-2 md:col-span-1 flex items-center justify-start md:justify-end">
+      <div class="bg-slate-50 border-2 rounded-2xl px-5 py-2 text-center w-40 flex items-center justify-between shadow-inner" style="border-color: \${light};">
+        <span class="text-[10px] font-heavy text-slate-500 uppercase tracking-wider mr-2">TOTAL SCORE:</span>
+        <span class="text-lg font-black text-slate-800">/ \${totalMarks}</span>
+      </div>
+    </div>
+  </div>
 
-<!-- FOOTER -->
-<footer class="footer text-center text-xs text-gray-500 pt-6 border-t mt-8">
-  EduAI Companion • CAPS Aligned • eduai-companion.github.io
-</footer>
-\`\`\`
+  <!-- INSTRUCTIONS BOX -->
+  <div class="bg-amber-50/70 border-l-4 border-amber-500 p-5 rounded-r-2xl mb-8 shadow-sm">
+    <h3 class="text-xs font-extrabold text-amber-900 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">📋 Directions & Guidelines</h3>
+    <p class="text-amber-805 text-sm leading-relaxed font-semibold">\${instructions}</p>
+  </div>
 
-CRITICAL: Return as JSON with keys: { content: "[HTML above]", memo: "[teacher memo HTML]", rubric: "[rubric HTML]", successIndicators: [...], imagePrompt: "[enhanced image prompt]" }
+  <!-- QUESTIONS BLOCK -->
+  <main class="space-y-8">
+    \${questions.map((q, i) => \`
+      <section class="question-row bg-slate-50 border border-slate-200 p-6 rounded-2xl relative shadow-sm">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="bg-indigo-600 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shadow-sm" style="background: \${primary};">
+            \${i+1}
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-850 tracking-tight leading-tight">\${q.text}</h3>
+            <span class="inline-block text-slate-400 font-bold text-xs">[\${q.marks} Marks]</span>
+          </div>
+        </div>
+
+        <div class="question-body pl-0 md:pl-14">
+          \${q.type === 'multiple-choice' ? \`
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              \${q.options.map((opt, idx) => \`
+                <label class="flex items-center gap-3 p-4 bg-white border-2 border-slate-200 rounded-2xl hover:border-indigo-500 cursor-pointer transition shadow-sm hover:shadow active:scale-95">
+                  <input type="radio" name="q\${i}" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
+                  <span class="text-sm font-semibold text-slate-705 leading-snug">\${String.fromCharCode(65 + idx)}. \${opt}</span>
+                </label>
+              \`).join('')}
+            </div>
+          \` : q.type === 'short-answer' ? \`
+            <div class="space-y-2">
+              <p class="text-xs text-slate-400 italic">Write your explanation neatly on the lines below:</p>
+              <div class="border-b border-dashed border-slate-350 h-8"></div>
+              <div class="border-b border-dashed border-slate-350 h-8"></div>
+            </div>
+          \` : q.type === 'matching' ? \`
+            <div class="grid grid-cols-1 gap-2">
+              \${q.matchingPairs.map(pair => \`
+                <div class="grid grid-cols-12 gap-2 items-center">
+                  <div class="col-span-5 p-3 bg-white border border-slate-200 rounded-xl font-bold text-sm text-slate-700 shadow-sm">\${pair.colA}</div>
+                  <div class="col-span-2 text-center text-slate-400">✏️ connects to</div>
+                  <div class="col-span-5 p-3 bg-white border border-slate-200 rounded-xl font-semibold text-xs text-slate-400 italic border-dashed text-center">Write matching letter here: [ _____ ]</div>
+                </div>
+              \`).join('')}
+            </div>
+          \` : q.type === 'drawing' ? \`
+            <div class="border-2 border-dashed border-slate-300 rounded-3xl min-h-[160px] bg-white flex flex-col items-center justify-center p-6 text-center shadow-inner">
+              <span class="text-4xl mb-2">🎨</span>
+              <p class="text-xs font-bold text-slate-500 tracking-wide uppercase mb-1">\${q.drawingInstructions}</p>
+              <p class="text-[10px] text-slate-400">Sketch your visual response in this dedicated block</p>
+            </div>
+          \` : ''}
+        </div>
+      </section>
+    \`).join('')}
+  </main>
+
+  <!-- SUCCESS INDICATORS -->
+  <div class="bg-emerald-50 border-l-4 border-emerald-500 p-5 rounded-r-2xl my-8 shadow-sm">
+    <h3 class="text-xs font-extrabold text-emerald-900 uppercase tracking-widest flex items-center gap-1.5 mb-2">🌟 Checklist for Success</h3>
+    <ul class="space-y-1.5 pl-2">
+      \${successIndicators.map(si => \`
+        <li class="flex items-start gap-2.5 text-sm font-semibold text-emerald-800">
+          <span class="text-emerald-500">✔</span>
+          <span>\${si}</span>
+        </li>
+      \`).join('')}
+    </ul>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="mt-8 pt-6 border-t-2 border-dashed border-slate-200 text-center text-xs text-slate-400 font-bold tracking-wide">
+    EduAI Companion • CAPS aligned worksheet suite • eduai-companion.github.io
+  </footer>
+</article>
+
+CRITICAL: Return as JSON matching:
+{
+  "content": "<HTML CODE FOR STUDENT ACTIVITY WORKSHEET (using HTML above) HERE>",
+  "memo": "<HTML CODE FOR ANSWER MEMORANDUM KEY OF WORKSHEET HERE>",
+  "rubric": "<HTML CODE FOR ANALYTICAL MARKING RUBRIC MATRIX OF WORKSHEET TABLE HERE>",
+  "successIndicators": ["string", "string"],
+  "imagePrompt": "Detailed printable class assessment illustration..."
+}
 `;
 
 export const VISUAL_AID_PROMPT_TEMPLATE = `

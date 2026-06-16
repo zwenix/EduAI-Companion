@@ -167,5 +167,27 @@ service cloud.firestore {
       allow delete: if isSignedIn() && isValidId(contentId) && existing().teacherId == request.auth.uid;
     }
 
+    function isValidLesson(data) {
+      return data.keys().size() >= 7 && data.keys().size() <= 9
+        && data.title is string && data.title.size() <= 200
+        && data.topic is string && data.topic.size() <= 200
+        && data.date is string && data.date.size() <= 100
+        && data.notes is string && data.notes.size() <= 5000
+        && data.resources is string && data.resources.size() <= 200
+        && data.phase is string && data.phase.size() <= 100
+        && data.subject is string && data.subject.size() <= 100
+        && data.userEmail is string && data.userEmail == request.auth.token.email
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 100));
+    }
+    match /lessons/{lessonId} {
+      allow get: if isSignedIn() && isValidId(lessonId) && existing().userEmail == request.auth.token.email;
+      allow list: if isSignedIn() && resource.data.userEmail == request.auth.token.email;
+      allow create: if isSignedIn() && isValidId(lessonId) && isValidLesson(incoming());
+      allow update: if isSignedIn() && isValidId(lessonId) && existing().userEmail == request.auth.token.email && isValidLesson(incoming())
+                     && incoming().userEmail == existing().userEmail
+                     && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'topic', 'date', 'notes', 'resources', 'phase', 'subject']);
+      allow delete: if isSignedIn() && isValidId(lessonId) && existing().userEmail == request.auth.token.email;
+    }
+
   }
 }

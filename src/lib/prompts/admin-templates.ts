@@ -4,164 +4,187 @@
  */
 
 export const LESSON_PLAN_TEMPLATE = `
-Generate a comprehensive, CAPS-aligned lesson plan with this professional structure:
+Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extremely detailed and easy to implement for anyone (even a layman or substitute teacher) with zero preparation.
 
-📋 LESSON PLAN TEMPLATE:
-<article class="lesson-plan max-w-5xl mx-auto bg-white shadow-xl rounded-3xl overflow-hidden print:shadow-none">
+📋 COGNITIVE LEVEL & EXPLAINABILITY GUIDELINES:
+- NO SHORT BULLETS OR HEADINGS-ONLY: Every single objective, resourse, activity, and strategy must be described in full, rich, easy-to-understand prose (at least 3-4 sentence paragraphs per item).
+- EXACT TEACHER SPOKEN SCRIPTS: Under Teacher Activities, you MUST provide word-for-word scripts of what the teacher should say to the class. Format clearly as "Teacher Spoken Script (Say this): '[word-for-word script]'".
+- SPECIFIC DETAILED SCENARIOS: Provide concrete scenarios with diverse South African character names (e.g. Zola, Liam, Thabo, Amina) and complete conversational dialogues that the teacher can present to the learners as real examples.
+- ZERO PLACEHOLDERS: Do not use "etc.", "fill in examples here", or standard summaries. Every exercise, rule, question, and instruction must be generated as complete, usable text.
+
+🎨 VISUAL STYLE & REVERSE-ENGINEERED COMPONENT DESIGN:
+- No fixed heights - use 'h-auto', dynamic padding ('py-6', 'px-6'), and relaxed flexbox/grid block layouts.
+- Header Block: Stunning full-width card with solid brand color (Teal, Purple, Orange etc., based on subject), with clean rounded top, containing round indicator badges like "CAPS ALIGNED", "LIFE SKILLS: GRADE \${grade}", and "TERM \${term} • WEEK \${week}".
+- Symmetric Side-by-Side Cards: Use a two-column grid ("grid grid-cols-1 md:grid-cols-2 gap-6") for "🎯 Aim of the Lesson" and "🎒 Resources Needed" using matching custom colors, thick rounded corners, and clear checkmarks.
+- Prior Knowledge & Preparations: A beautifully highlighted full-width box with custom borders and a highlighted inner yellow container representing "CAPS Connection".
+- Core Content & Key Rules: Clearly outlined, card-style rows enclosing major concepts or emergency golden rules. 
+- Procedure Timeline: Beautiful vertical timeline or phase flow using solid circles with big numbers, dividing:
+  - Phase 1: Introduction & Hook (Exactly what the teacher says, the prompt, icebreakers, 15 Minutes)
+  - Phase 2: Direct Instruction & Demonstration (Rich explanation of core concepts, exact physical aids to show representatively, word-for-word explanations, 30 Minutes)
+  - Phase 3: Guided Practice (Step-by-step roleplay instructions, pairing rules, specific scenario cards for learners to act out, 25 Minutes)
+  - Phase 4: Independent Practice & Worksheet (Full workbook instruction rules, 35 Minutes)
+  - Phase 5: Closure & Summary (Short interactive games, exact questions and answers to end on, school exit review, 15 Minutes)
+- Inclusive Education & Differentiation layouts: Side-by-side cards ("For Struggling Learners" and "For Advanced Learners") using clear colored backgrounds.
+
+📋 LESSON PLAN HTML TEMPLATE structure:
+<article class="lesson-plan max-w-5xl mx-auto bg-slate-50 shadow-xl rounded-3xl overflow-hidden print:shadow-none font-sans">
   
-  <!-- HEADER -->
-  <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-8">
-    <div class="flex justify-between items-start">
-      <div>
-        <h1 class="text-4xl font-extrabold mb-2">📚 Lesson Plan</h1>
-        <p class="text-xl opacity-95">\${topic}</p>
-      </div>
-      <div class="text-right">
-        <div class="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg mb-2">
-          <p class="font-bold">Grade \${grade}</p>
-        </div>
-        <div class="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg">
-          <p class="font-bold">\${subject}</p>
-        </div>
-      </div>
+  <!-- HEADER CARD -->
+  <header class="bg-[#EA580C] text-white p-8 rounded-b-3xl relative overflow-hidden shadow-lg" style="background-color: \${primary};">
+    <div class="flex flex-wrap gap-2 mb-4">
+      <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">CAPS ALIGNED</span>
+      <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">\${subject} : GRADE \${grade}</span>
+      <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">TERM \${term} • WEEK \${week}</span>
     </div>
-    <div class="mt-6 flex flex-wrap gap-3">
-      <span class="badge bg-white/20 px-3 py-1 rounded-full text-sm">Duration: \${duration}</span>
-      <span class="badge bg-white/20 px-3 py-1 rounded-full text-sm">Term \${term}</span>
-      <span class="badge bg-white/20 px-3 py-1 rounded-full text-sm">Week \${week}</span>
-      <span class="badge bg-white/20 px-3 py-1 rounded-full text-sm">CAPS: \${capsCode}</span>
+    <h1 class="text-4xl font-extrabold tracking-tight leading-tight mb-2">\${topic}</h1>
+    <p class="text-lg text-white/90 font-medium">CAPS Content & Diagnostic Mastery System</p>
+    
+    <div class="mt-6 pt-6 border-t border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm font-medium">
+      <div class="flex items-center gap-2">⏱️ <span class="font-bold">Duration:</span> \${duration}</div>
+      <div class="flex items-center gap-2">🏫 <span class="font-bold">Class Size:</span> 35-40 Learners</div>
+      <div class="flex items-center gap-2">🧬 <span class="font-bold">CAPS Code:</span> \${capsCode}</div>
     </div>
   </header>
 
-  <!-- LEARNING OBJECTIVES -->
-  <section class="objectives bg-blue-50 p-6 border-b border-blue-100">
-    <h2 class="text-2xl font-bold text-blue-900 mb-4 flex items-center gap-2">
-      <span>🎯</span> Learning Objectives
-    </h2>
-    <p class="text-blue-800 font-medium mb-3">By the end of this lesson, learners will be able to:</p>
-    <ul class="space-y-2">
-      \${objectives.map(obj => \`
-        <li class="flex items-start gap-3">
-          <span class="bullet bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm flex-shrink-0 mt-0.5">✓</span>
-          <span class="text-blue-900">\${obj}</span>
-        </li>
-      \`).join('')}
-    </ul>
-  </section>
-
-  <!-- RESOURCES NEEDED -->
-  <section class="resources bg-green-50 p-6 border-b border-green-100">
-    <h2 class="text-2xl font-bold text-green-900 mb-4 flex items-center gap-2">
-      <span>📦</span> Resources & Materials
-    </h2>
-    <div class="grid md:grid-cols-2 gap-4">
-      <div class="bg-white p-4 rounded-lg border border-green-200">
-        <p class="font-bold text-green-800 mb-2">Teacher Resources:</p>
-        <ul class="list-disc list-inside text-green-700 space-y-1">
-          \${teacherResources.map(r => \`<li>\${r}</li>\`).join('')}
-        </ul>
-      </div>
-      <div class="bg-white p-4 rounded-lg border border-green-200">
-        <p class="font-bold text-green-800 mb-2">Learner Materials:</p>
-        <ul class="list-disc list-inside text-green-700 space-y-1">
-          \${learnerMaterials.map(r => \`<li>\${r}</li>\`).join('')}
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <!-- LESSON SEQUENCE -->
-  <section class="sequence p-8">
-    <h2 class="text-3xl font-bold text-gray-900 mb-6">📖 Lesson Sequence</h2>
+  <div class="p-6 md:p-8 space-y-8">
     
-    \${phases.map((phase, idx) => \`
-    <div class="phase mb-8 p-6 bg-gray-50 rounded-2xl border border-gray-200">
-      <div class="flex items-center gap-4 mb-4">
-        <div class="phase-number bg-indigo-600 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl shadow">
-          \${idx + 1}
-        </div>
-        <div>
-          <h3 class="text-xl font-bold text-gray-900">\${phase.name}</h3>
-          <p class="text-gray-600">Duration: \${phase.duration}</p>
+    <!-- AIM AND RESOURCES -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-white rounded-3xl p-6 shadow-md border-2" style="border-color: \${light};">
+        <h2 class="text-xl font-extrabold flex items-center gap-2 mb-4" style="color: \${dark};">🎯 Aim of the Lesson</h2>
+        <div class="space-y-4">
+          <p class="text-slate-600 font-medium leading-relaxed">At the end of this lesson, learners must be accomplished, confident, and independently able to:</p>
+          <ul class="space-y-3">
+            \${objectives.map(obj => \`
+              <li class="flex items-start gap-2.5">
+                <span class="text-green-500 text-lg flex-shrink-0 mt-0.5">✓</span>
+                <span class="text-slate-700 font-medium text-sm leading-relaxed">\${obj}</span>
+              </li>
+            \`).join('')}
+          </ul>
         </div>
       </div>
       
-      <div class="phase-content space-y-4">
-        <div>
-          <p class="font-bold text-gray-800 mb-2">Teacher Activities:</p>
-          <ul class="list-disc list-inside text-gray-700 space-y-1 ml-4">
-            \${phase.teacherActivities.map(a => \`<li>\${a}</li>\`).join('')}
-          </ul>
+      <div class="bg-white rounded-3xl p-6 shadow-md border-2" style="border-color: \${light};">
+        <h2 class="text-xl font-extrabold flex items-center gap-2 mb-4" style="color: \${dark};">🎒 Resources Needed</h2>
+        <div class="space-y-4">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">For the Teacher:</p>
+            <ul class="list-disc list-inside text-slate-700 text-sm font-medium space-y-1.5 pl-2">
+              \${teacherResources.map(r => \`<li>\${r}</li>\`).join('')}
+            </ul>
+          </div>
+          <div>
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">For the Learners:</p>
+            <ul class="list-disc list-inside text-slate-700 text-sm font-medium space-y-1.5 pl-2">
+              \${learnerMaterials.map(r => \`<li>\${r}</li>\`).join('')}
+            </ul>
+          </div>
         </div>
-        
+      </div>
+    </div>
+
+    <!-- PRIOR KNOWLEDGE & PREPARATION -->
+    <div class="bg-white rounded-3xl p-6 shadow-md border border-slate-100">
+      <h2 class="text-xl font-extrabold flex items-center gap-2 mb-3 text-slate-800">🧠 Prior Knowledge & Preparation</h2>
+      <p class="text-slate-650 font-medium text-sm leading-relaxed mb-4">\${priorKnowledge}</p>
+      
+      <div class="rounded-2xl p-4 flex gap-3 border" style="background-color: \${light}; border-color: \${accent};">
+        <div class="text-2xl mt-0.5">💡</div>
         <div>
-          <p class="font-bold text-gray-800 mb-2">Learner Activities:</p>
-          <ul class="list-disc list-inside text-gray-700 space-y-1 ml-4">
-            \${phase.learnerActivities.map(a => \`<li>\${a}</li>\`).join('')}
-          </ul>
+          <p class="text-xs font-heavy uppercase tracking-wider mb-1 font-bold" style="color: \${dark};">CAPS Core connection</p>
+          <p class="text-xs leading-relaxed font-semibold" style="color: \${dark};">\${capsConnection}</p>
         </div>
-        
-        \${phase.assessment ? \`
-        <div class="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
-          <p class="font-bold text-yellow-900">Assessment Opportunities:</p>
-          <p class="text-yellow-800 mt-1">\${phase.assessment}</p>
-        </div>\` : ''}
       </div>
     </div>
-    \`).join('')}
-  </section>
 
-  <!-- DIFFERENTIATION -->
-  <section class="differentiation bg-purple-50 p-6 border-t border-purple-100">
-    <h2 class="text-2xl font-bold text-purple-900 mb-4 flex items-center gap-2">
-      <span>🌈</span> Differentiation Strategies
-    </h2>
-    <div class="grid md:grid-cols-3 gap-4">
-      <div class="bg-white p-4 rounded-lg border border-purple-200">
-        <p class="font-bold text-purple-800 mb-2">For Struggling Learners:</p>
-        <p class="text-purple-700">\${differentiation.struggling}</p>
-      </div>
-      <div class="bg-white p-4 rounded-lg border border-purple-200">
-        <p class="font-bold text-purple-800 mb-2">For On-Level Learners:</p>
-        <p class="text-purple-700">\${differentiation.onLevel}</p>
-      </div>
-      <div class="bg-white p-4 rounded-lg border border-purple-200">
-        <p class="font-bold text-purple-800 mb-2">For Advanced Learners:</p>
-        <p class="text-purple-700">\${differentiation.advanced}</p>
+    <!-- CORE CONTENT & RULES -->
+    <div class="bg-white rounded-3xl p-6 shadow-md border border-slate-100 space-y-4">
+      <h2 class="text-xl font-extrabold flex items-center gap-2 text-slate-800">📑 Core Content & Key Concepts</h2>
+      <div class="space-y-4">
+        \${coreConcepts.map(c => \`
+          <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+            <h3 class="font-extrabold text-slate-800 mb-1">\${c.title}</h3>
+            <p class="text-slate-600 text-sm font-medium leading-relaxed">\${c.description}</p>
+          </div>
+        \`).join('')}
       </div>
     </div>
-  </section>
 
-  <!-- ASSESSMENT & REFLECTION -->
-  <section class="assessment bg-orange-50 p-6 border-t border-orange-100">
-    <h2 class="text-2xl font-bold text-orange-900 mb-4 flex items-center gap-2">
-      <span>📊</span> Assessment & Reflection
-    </h2>
-    <div class="space-y-4">
-      <div>
-        <p class="font-bold text-orange-800 mb-2">Formative Assessment:</p>
-        <p class="text-orange-700">\${assessment.formative}</p>
-      </div>
-      <div>
-        <p class="font-bold text-orange-800 mb-2">Summative Assessment:</p>
-        <p class="text-orange-700">\${assessment.summative}</p>
-      </div>
-      <div class="bg-white p-4 rounded-lg border border-orange-200 mt-4">
-        <p class="font-bold text-orange-800 mb-2">Teacher Reflection Space:</p>
-        <div class="min-h-[80px] border-2 border-dashed border-orange-300 rounded bg-orange-50/50"></div>
-        <p class="text-xs text-orange-600 mt-2">What worked well? What needs adjustment for next time?</p>
+    <!-- LESSON PROCEDURE -->
+    <div class="bg-white rounded-3xl p-6 shadow-md border border-slate-100">
+      <h2 class="text-2xl font-extrabold text-slate-800 mb-6 flex items-center gap-2">📖 Step-by-Step Lesson Procedure</h2>
+      <div class="space-y-8 relative">
+        \${phases.map((phase, idx) => \`
+          <div class="phase-row border-l-4 pl-6 relative pb-6 border-slate-200 last:pb-0">
+            <!-- Timeline Circle badge -->
+            <div class="absolute -left-[18px] top-0 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-md" style="background-color: \${primary};">
+              \${idx + 1}
+            </div>
+            
+            <div class="mb-2">
+              <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold leading-none mb-2">\${phase.tag}</span>
+              <h3 class="text-lg font-extrabold text-slate-800 leading-tight">\${phase.name} <span class="text-slate-400 font-medium text-xs ml-2">(\${phase.duration})</span></h3>
+            </div>
+            
+            <div class="text-sm font-medium text-slate-700 space-y-4 pt-1 leading-relaxed">
+              <div>
+                <p class="font-bold mb-1" style="color: \${dark};">👩‍🏫 Teacher Actions & Explanations:</p>
+                <div class="text-slate-650 ml-4 space-y-3 font-medium text-sm leading-relaxed">
+                  \${phase.teacherDetails}
+                </div>
+              </div>
+              <div>
+                <p class="font-bold mb-1" style="color: \${dark};">🧑‍🎓 Learner Active Tasks:</p>
+                <div class="text-slate-650 ml-4 space-y-3 font-medium text-sm leading-relaxed">
+                  \${phase.learnerDetails}
+                </div>
+              </div>
+              \${phase.formativeAssessment ? \`
+                <div class="bg-yellow-50/70 p-3 rounded-xl border border-yellow-250 mt-2 text-xs">
+                  <p class="font-bold text-yellow-905 flex items-center gap-1.5">🔍 Formative Assessment Opportunity:</p>
+                  <p class="text-yellow-805 mt-1 font-semibold leading-relaxed">\${phase.formativeAssessment}</p>
+                </div>
+              \` : ''}
+            </div>
+          </div>
+        \`).join('')}
       </div>
     </div>
-  </section>
 
-  <!-- FOOTER -->
-  <footer class="bg-gray-100 p-6 text-center text-sm text-gray-600">
-    <p class="font-medium">EduAI Companion • CAPS-Aligned Lesson Plan</p>
-    <p class="text-xs mt-1">Generated: \${new Date().toLocaleDateString('en-ZA')} • eduai-companion.github.io</p>
+    <!-- DIFFERENTIATION -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white rounded-3xl p-6 shadow-md border border-slate-100">
+      <div class="rounded-2xl p-5 border border-purple-100 bg-purple-50/50">
+        <h3 class="font-extrabold text-purple-900 mb-2 flex items-center gap-1.5">🧩 For Struggling Learners</h3>
+        <p class="text-purple-800 text-sm font-semibold leading-relaxed">\${strugglingStrategies}</p>
+      </div>
+      <div class="rounded-2xl p-5 border border-indigo-100 bg-indigo-50/50">
+        <h3 class="font-extrabold text-indigo-900 mb-2 flex items-center gap-1.5">🚀 For Advanced Learners</h3>
+        <p class="text-indigo-800 text-sm font-semibold leading-relaxed">\${advancedStrategies}</p>
+      </div>
+    </div>
+
+    <!-- REFLECTION BANNER -->
+    <div class="bg-white rounded-3xl p-6 border-2 border-dashed border-slate-200">
+      <h3 class="text-lg font-bold text-slate-700 mb-2">📝 Teacher Reflection Notes</h3>
+      <div class="h-16 bg-slate-50/50 border border-slate-200 rounded-xl mb-2 flex items-center justify-center text-xs text-slate-400 italic font-medium">Use this space after the lesson to denote what parts worked-well vs. what requires adjustment...</div>
+    </div>
+  </div>
+
+  <footer class="bg-slate-200 p-6 text-center text-xs text-slate-500 font-bold border-t border-slate-300">
+    EduAI Companion • CAPS Aligned Lesson Material • eduai-companion.github.io
   </footer>
 </article>
 
-Return as JSON: { content: "[HTML above]", imagePrompt: "[optional lesson illustration]", capsAlignment: "[codes]", assessmentRubric: "[rubric HTML]" }
+Return as JSON matching:
+{
+  "content": "<HTML CODE FOR THE MAIN DOCUMENT (enclosing the complete styled lesson plan) HERE>",
+  "memo": "<HTML CODE FOR ANSWER MEMORANDUM KEY OF INTEGRATED WORK_SHEET (if applicable) HERE>",
+  "rubric": "<HTML CODE FOR ANALYTICAL MARKING RUBRIC MATRIX OF WORKSHEET TABLE HERE>",
+  "assessmentCriteria": "Detailed CAPS criteria tags...",
+  "successIndicators": ["string", "string"],
+  "imagePrompt": "Detailed classroom lesson visual aid image prompt..."
+}
 `;
 
 export const REPORT_COMMENT_TEMPLATE = `

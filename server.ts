@@ -29,10 +29,9 @@ dotenv.config();
 
 import { HfInference } from "@huggingface/inference";
 
-async function startServer() {
-  const app = express();
+const app = express();
 
-  const MASTER_SYSTEM_PROMPT = `
+const MASTER_SYSTEM_PROMPT = `
 You are the official AI content generator for **EduAI Companion** — a premium South African CAPS-aligned educational platform.
 
 CRITICAL DATE & YEAR RULE: 
@@ -607,7 +606,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
             term: input.term || '1',
             week: input.week ? parseInt(input.week) : undefined,
             duration: input.duration || '2 hours',
-            capsReference: input.capsReference || ''
+            capsReference: input.capsReference || '',
+            includeWorksheet: !!input.includeWorksheet
           });
 
           const response = await generateContentWithFallback({
@@ -862,23 +862,29 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
   // --- Vite Middleware ---
 
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
+  async function initializeAndListen() {
+    if (process.env.NODE_ENV !== "production") {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), "dist");
+      app.use(express.static(distPath));
+      app.get("*", (req, res) => {
+        res.sendFile(path.join(distPath, "index.html"));
+      });
+    }
+
+    if (!process.env.VERCEL) {
+      const PORT = 3000;
+      app.listen(PORT, "0.0.0.0", () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+      });
+    }
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
-}
+  initializeAndListen();
 
-startServer();
+  export default app;

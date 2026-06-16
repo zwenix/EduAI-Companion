@@ -40,6 +40,7 @@ export interface PromptContext {
   week?: number;
   studentName?: string;
   teacherName?: string;
+  includeWorksheet?: boolean;
 }
 
 export class EduAIPromptEngine {
@@ -62,6 +63,31 @@ export class EduAIPromptEngine {
     
     // Select base template based on content type
     let contentTemplate = this.selectTemplate(context.contentType);
+    
+    if (context.contentType === 'lesson-plan' && context.includeWorksheet) {
+      contentTemplate += `
+      
+⚠️ CRITICAL INTEGRATION FOR LESSON PLAN (WORK_SHEET):
+Since the worksheet toggle / 'includeWorksheet' is TRUE, you MUST append a complete, beautifully designed South African CAPS-aligned Student Activity Worksheet directly at the end of the lesson plan content (rendered inside or immediately after the main lesson-plan article). Use a clear page breaker:
+<div style="page-break-before: always;" class="my-12 border-t-4 border-dashed border-gray-300 pt-8 mt-12 print:mt-4"></div>
+followed by the complete, fully formed Worksheet matching the CAPS worksheet aesthetic.
+
+The integrated student activity worksheet MUST contain:
+1. A prominent SCORE BOX styled card at the top right of the worksheet area (using clear borders, elegant thick margins, e.g. "SCORE: ____ / 15"). No absolute/fixed positioning to prevent overlap!
+2. Creative thematic heading (e.g., "[Topic] Heroes Challenge Worksheet")
+3. Standard "Learner Name" and "Date" write-on-the-line blanks.
+4. At least 4 distinct, engaging diagnostic assessment questions customized for Grade \${grade} \${subject}:
+   - Question 1: Matching / Column A and Column B associations layout (using structured, side-by-side cards or matching lists)
+   - Question 2: Multiple Choice or True/False scenario pills (using beautiful Tailwind borders like green for True, red for False)
+   - Question 3: Fill in the remaining blanks with word banks
+   - Question 4: Creative Draw/Illustrate response box (styled with border-2 border-dashed border-gray-300, min-h-[140px], light grey background, and nice bold instructions)
+5. Structured empty boxes, lines, and write-in areas for student answers. NO placeholder text ("etc.", "solutions go here") — write the complete real test questions and blanks!
+
+You MUST ALSO generate:
+- The full step-by-step ANSWER KEY / MEMORANDUM in the 'memo' field of the JSON output. The memorandum must look extremely neat and detailed, offering a complete expert guide for marking, highlighting correct answers and marking notes.
+- The corresponding grading RUBRIC matrix table in the 'rubric' field of the JSON output. It must be styled using the Assessment Rubric Design style of the rubric templates, showing criteria, performance levels, marks, and feedback sections!
+      `;
+    }
     
     // Inject dynamic values into template
     const userPrompt = this.injectContext(contentTemplate, {
