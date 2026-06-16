@@ -26,15 +26,37 @@ interface FailedRequest {
 const failedRequestsLog: FailedRequest[] = [];
 dotenv.config();
 
-const geminiApiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
-const geminiAi = new GoogleGenAI({
-  apiKey: geminiApiKey || "dummy",
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
+let cachedGeminiClient: GoogleGenAI | null = null;
+let cachedApiKeyUsed: string | null = null;
+
+function getGeminiClient(): GoogleGenAI {
+  const currentKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+  if (cachedGeminiClient && cachedApiKeyUsed === currentKey) {
+    return cachedGeminiClient;
+  }
+  cachedApiKeyUsed = currentKey;
+  cachedGeminiClient = new GoogleGenAI({
+    apiKey: currentKey || "dummy",
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
     }
+  });
+  return cachedGeminiClient;
+}
+
+const geminiAi = new Proxy({} as GoogleGenAI, {
+  get(target, prop) {
+    const client = getGeminiClient();
+    const value = Reflect.get(client, prop);
+    if (typeof value === 'function') {
+      return value.bind(client);
+    }
+    return value;
   }
 });
+
 
 import { HfInference } from "@huggingface/inference";
 
@@ -105,14 +127,58 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
   // --- AI Provider Clients ---
 
-  const groq = new OpenAI({
-    apiKey: process.env.GROQ_API_KEY || "dummy",
-    baseURL: "https://api.groq.com/openai/v1",
+  let cachedGroqClient: OpenAI | null = null;
+  let cachedGroqKey: string | null = null;
+
+  function getGroqClient(): OpenAI {
+    const currentKey = (process.env.GROQ_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+    if (cachedGroqClient && cachedGroqKey === currentKey) {
+      return cachedGroqClient;
+    }
+    cachedGroqKey = currentKey;
+    cachedGroqClient = new OpenAI({
+      apiKey: currentKey || "dummy",
+      baseURL: "https://api.groq.com/openai/v1",
+    });
+    return cachedGroqClient;
+  }
+
+  const groq = new Proxy({} as OpenAI, {
+    get(target, prop) {
+      const client = getGroqClient();
+      const value = Reflect.get(client, prop);
+      if (typeof value === 'function') {
+        return value.bind(client);
+      }
+      return value;
+    }
   });
 
-  const alibaba = new OpenAI({
-    apiKey: process.env.ALIBABA_API_KEY || "dummy",
-    baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+  let cachedAlibabaClient: OpenAI | null = null;
+  let cachedAlibabaKey: string | null = null;
+
+  function getAlibabaClient(): OpenAI {
+    const currentKey = (process.env.ALIBABA_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+    if (cachedAlibabaClient && cachedAlibabaKey === currentKey) {
+      return cachedAlibabaClient;
+    }
+    cachedAlibabaKey = currentKey;
+    cachedAlibabaClient = new OpenAI({
+      apiKey: currentKey || "dummy",
+      baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+    });
+    return cachedAlibabaClient;
+  }
+
+  const alibaba = new Proxy({} as OpenAI, {
+    get(target, prop) {
+      const client = getAlibabaClient();
+      const value = Reflect.get(client, prop);
+      if (typeof value === 'function') {
+        return value.bind(client);
+      }
+      return value;
+    }
   });
 
   // --- API Routes ---
