@@ -1,7 +1,6 @@
 import { CAPS_LESSON_PLAN_SYSTEM_PROMPT } from "./src/lib/prompts/caps-lesson-plan-prompt";
 import { EduAIPromptEngine } from "./src/lib/prompt-engine";
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import dotenv from "dotenv";
 import OpenAI from "openai";
@@ -864,6 +863,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
   async function initializeAndListen() {
     if (process.env.NODE_ENV !== "production") {
+      const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
         server: { middlewareMode: true },
         appType: "spa",
