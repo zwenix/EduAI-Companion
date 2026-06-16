@@ -26,6 +26,16 @@ interface FailedRequest {
 const failedRequestsLog: FailedRequest[] = [];
 dotenv.config();
 
+const geminiApiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+const geminiAi = new GoogleGenAI({
+  apiKey: geminiApiKey || "dummy",
+  httpOptions: {
+    headers: {
+      'User-Agent': 'aistudio-build',
+    }
+  }
+});
+
 import { HfInference } from "@huggingface/inference";
 
 const app = express();
@@ -325,15 +335,6 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         return res.status(400).json({ error: "GEMINI_API_KEY missing" });
       }
 
-      const geminiAi = new GoogleGenAI({ 
-        apiKey,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build',
-          }
-        }
-      });
-
       // Try 1: gemini-2.5-flash-image (The designated Flash Image model)
       try {
         console.log("Attempting image generation with 'gemini-2.5-flash-image'...");
@@ -484,14 +485,6 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       return res.json(generateLocalFallbackILDP(studentName, grade, subjects));
     }
     try {
-      const geminiAi = new GoogleGenAI({ 
-        apiKey,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build',
-          }
-        }
-      });
       const prompt = `
         You are a supportive, insightful educational counselor and South African school advisor.
         Generate a constructive and professional Individual Learner Development Plan (ILDP) for a school student with this profile:
@@ -537,14 +530,6 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     }
 
     try {
-      const geminiAi = new GoogleGenAI({ 
-        apiKey,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build',
-          }
-        }
-      });
       const model = "gemini-3.5-flash";
 
       const generateContentWithFallback = async (options: { model: string, contents: any, config?: any }) => {
