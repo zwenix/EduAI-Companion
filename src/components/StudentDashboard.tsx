@@ -7,6 +7,7 @@ import confetti from 'canvas-confetti';
 import { StudentDoc, MilestoneTask, IdpModel, Subject } from '../types';
 import { logStudentActivity } from '../lib/activityLogger';
 import LoadingMascot from './LoadingMascot';
+import StudentAITutorBubble from './StudentAITutorBubble';
 
 
 export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }) {
@@ -437,6 +438,9 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
             })}
          </div>
       </div>
+      
+      {/* Floating 'Ask AI Tutor' Chat Bubble */}
+      <StudentAITutorBubble isDarkMode={isDarkMode} student={student} />
     </div>
   );
 }
