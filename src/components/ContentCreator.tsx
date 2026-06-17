@@ -447,15 +447,6 @@ function ContentPreview({ html, label, isDarkMode, imagePrompt }: { html: string
         <h3 className={`text-[11px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
           {label}
         </h3>
-        <button
-          onClick={handlePrint}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-sm ${
-            isDarkMode ? 'bg-brand-cyan/20 hover:bg-brand-cyan/30 text-brand-cyan border border-brand-cyan/30' : 'bg-brand-cyan hover:bg-brand-cyan/90 text-white shadow-brand-cyan/20'
-          }`}
-        >
-          <Printer size={14} />
-          Print / Save PDF
-        </button>
       </div>
 
       <div className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} border rounded-[32px] overflow-hidden p-4 lg:p-8 shadow-2xl relative min-h-[400px]`}>
@@ -896,18 +887,127 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     }
   };
 
-  const handlePrint = () => {
+  const getCompiledContentHtml = () => {
+    let bodyHtml = '';
+    let imagePrompt: string | null | undefined = null;
+
+    if (activeTab === 'teaching' || activeTab === 'grade1') {
+      if (!teachingResult) return { html: '', title: 'Document' };
+      bodyHtml = teachingResult.content;
+      imagePrompt = t_generateImage ? (teachingResult.imagePrompt || teachingResult.userImagePrompt) : undefined;
+      
+      if (typeof teachingResult.memo === 'string' && teachingResult.memo.trim()) {
+        bodyHtml += `
+          <div class="print-page-break my-10 border-t border-dashed border-slate-300 pt-8 text-slate-800"></div>
+          <h2 class="text-xl font-black uppercase tracking-widest text-[#2563eb] mb-4">Expert Answer Key (Memo)</h2>
+          ${teachingResult.memo}
+        `;
+      }
+      if (typeof teachingResult.rubric === 'string' && teachingResult.rubric.trim()) {
+        bodyHtml += `
+          <div class="print-page-break my-10 border-t border-dashed border-slate-300 pt-8 text-slate-800"></div>
+          <h2 class="text-xl font-black uppercase tracking-widest text-[#2563eb] mb-4">Marks Allocation Matrix (Rubric)</h2>
+          ${teachingResult.rubric}
+        `;
+      }
+    } else if (activeTab === 'visual') {
+      if (!visualResult) return { html: '', title: 'Visual_AID' };
+      bodyHtml = visualResult.content;
+      imagePrompt = v_generateImage ? (visualResult.userImagePrompt || visualResult.imagePrompt) : undefined;
+    } else if (activeTab === 'admin') {
+      if (!adminResult) return { html: '', title: 'Administrative_Doc' };
+      bodyHtml = adminResult.content;
+      imagePrompt = a_generateImage ? (adminResult.userImagePrompt || adminResult.imagePrompt) : undefined;
+    } else {
+      return { html: '', title: 'Document' };
+    }
+
+    if (imagePrompt) {
+      const cleanAlt = imagePrompt.replace(/"/g, '&quot;');
+      bodyHtml = `<div class="top-accompanying-visual max-w-full print:break-inside-avoid">[Illustration: ${cleanAlt}]</div>` + bodyHtml;
+    }
+
+    bodyHtml = replaceImagePlaceholders(bodyHtml);
+    
     const itemTitle = (activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation';
+
+    return { html: bodyHtml, title: itemTitle };
+  };
+
+  const handlePrint = () => {
+    const { html: compiledHtml, title: itemTitle } = getCompiledContentHtml();
+    if (!compiledHtml) return;
+
     const itemSubject = (activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : 'Administration') || 'General';
     const itemGrade = (activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : 'All') || 'N/A';
     const itemContentType = (activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : 'Notice') || 'Document';
 
-    printContent(contentRef, itemTitle, {
+    // Create offscreen container
+    const tempContainer = document.createElement('div');
+    tempContainer.className = 'bg-white text-slate-900 p-8 markdown-body';
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.left = '-9999px';
+    tempContainer.style.top = '-9999px';
+    tempContainer.style.width = '800px'; 
+    tempContainer.style.zIndex = '-9999';
+    tempContainer.style.fontFamily = "'Inter', system-ui, -apple-system, sans-serif";
+
+    // Set custom visual styles
+    const styleEl = document.createElement('style');
+    styleEl.innerHTML = `
+      .top-accompanying-visual {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
+        margin-bottom: 2rem !important;
+        margin-top: 0.5rem !important;
+      }
+      .top-accompanying-visual > div {
+        margin: 0 !important;
+        padding: 0.25rem !important;
+        width: 100% !important;
+        max-width: 1000px !important;
+        border-radius: 24px !important;
+        border: 1px solid rgba(226, 232, 240, 0.8) !important;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05) !important;
+        background-color: white !important;
+      }
+      .top-accompanying-visual img {
+        width: 100% !important;
+        height: 240px !important;
+        object-fit: cover !important;
+        object-position: center !important;
+        border-radius: 18px !important;
+      }
+      .print-page-break {
+        page-break-before: always !important;
+        break-before: page !important;
+      }
+    `;
+    tempContainer.appendChild(styleEl);
+
+    const contentEl = document.createElement('div');
+    contentEl.className = 'space-y-6 text-slate-800';
+    contentEl.innerHTML = compiledHtml;
+    tempContainer.appendChild(contentEl);
+
+    document.body.appendChild(tempContainer);
+
+    const tempRef = { current: tempContainer };
+
+    printContent(tempRef as any, itemTitle, {
       subject: itemSubject,
       grade: itemGrade,
       contentType: itemContentType,
       title: itemTitle
     });
+
+    // Remove the temporary container after print popup opens
+    setTimeout(() => {
+      if (document.body.contains(tempContainer)) {
+        document.body.removeChild(tempContainer);
+      }
+    }, 1000);
   };
 
   const handleArchive = async () => {
@@ -983,13 +1083,63 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   };
 
   const handleDownloadPDF = () => {
-    if (!contentRef.current) return;
-    
-    const element = contentRef.current;
-    
+    const { html: compiledHtml, title: itemTitle } = getCompiledContentHtml();
+    if (!compiledHtml) return;
+
+    // Create offscreen container
+    const tempContainer = document.createElement('div');
+    tempContainer.className = 'bg-white text-slate-900 p-8 markdown-body';
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.left = '-9999px';
+    tempContainer.style.top = '-9999px';
+    tempContainer.style.width = '800px'; 
+    tempContainer.style.zIndex = '-9999';
+    tempContainer.style.fontFamily = "'Inter', system-ui, -apple-system, sans-serif";
+
+    // Set custom visual styles
+    const styleEl = document.createElement('style');
+    styleEl.innerHTML = `
+      .top-accompanying-visual {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
+        margin-bottom: 2rem !important;
+        margin-top: 0.5rem !important;
+      }
+      .top-accompanying-visual > div {
+        margin: 0 !important;
+        padding: 0.25rem !important;
+        width: 100% !important;
+        max-width: 1000px !important;
+        border-radius: 24px !important;
+        border: 1px solid rgba(226, 232, 240, 0.8) !important;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05) !important;
+        background-color: white !important;
+      }
+      .top-accompanying-visual img {
+        width: 100% !important;
+        height: 240px !important;
+        object-fit: cover !important;
+        object-position: center !important;
+        border-radius: 18px !important;
+      }
+      .print-page-break {
+        page-break-before: always !important;
+        break-before: page !important;
+      }
+    `;
+    tempContainer.appendChild(styleEl);
+
+    const contentEl = document.createElement('div');
+    contentEl.className = 'space-y-6 text-slate-800';
+    contentEl.innerHTML = compiledHtml;
+    tempContainer.appendChild(contentEl);
+
+    document.body.appendChild(tempContainer);
+
     const opt = {
       margin:       10,
-      filename:     `${editTitle ? editTitle.replace(/\s+/g, '_') : 'EduAI_Companion_Document'}.pdf`,
+      filename:     `${itemTitle.replace(/\s+/g, '_')}.pdf`,
       image:        { type: 'jpeg' as const, quality: 0.98 },
       html2canvas:  { scale: 2, useCORS: true, logging: false },
       jsPDF:        { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
@@ -998,10 +1148,13 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
 
     const restoreGetComputedStyle = patchOklchForHtml2canvas();
     
-    html2pdf().from(element).set(opt).save().catch((err: any) => {
+    html2pdf().from(tempContainer).set(opt).save().catch((err: any) => {
       console.error("PDF download failed:", err);
     }).finally(() => {
       restoreGetComputedStyle();
+      if (document.body.contains(tempContainer)) {
+        document.body.removeChild(tempContainer);
+      }
     });
   };
 
