@@ -87,6 +87,8 @@ const downloadBlobFile = (content: string, filename: string, contentType: string
 export default function ContentArchive() {
   const [searchTerm, setSearchTerm] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('All');
+  const [gradeFilter, setGradeFilter] = useState('All');
+  const [contentTypeFilter, setContentTypeFilter] = useState('All');
   const [bookmarkedIds, setBookmarkedIds] = useState<string[]>(() => {
     try {
       return JSON.parse(localStorage.getItem('eduai_bookmarks') || '[]');
@@ -158,6 +160,8 @@ export default function ContentArchive() {
   }, []);
 
   const subjects = ['All', ...Array.from(new Set(items.map(item => item.subject).filter(Boolean)))];
+  const grades = ['All', ...Array.from(new Set(items.map(item => String(item.grade)).filter(Boolean)))];
+  const contentTypes = ['All', ...Array.from(new Set(items.map(item => item.contentType).filter(Boolean)))];
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -165,9 +169,11 @@ export default function ContentArchive() {
       item.grade?.toString().toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesSubject = subjectFilter === 'All' || item.subject === subjectFilter;
+    const matchesGrade = gradeFilter === 'All' || String(item.grade) === String(gradeFilter);
+    const matchesContentType = contentTypeFilter === 'All' || item.contentType === contentTypeFilter;
     const matchesBookmark = !showBookmarksOnly || bookmarkedIds.includes(item.id);
     
-    return matchesSearch && matchesSubject && matchesBookmark;
+    return matchesSearch && matchesSubject && matchesGrade && matchesContentType && matchesBookmark;
   });
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
@@ -280,46 +286,92 @@ export default function ContentArchive() {
       </div>
 
       {/* Filters and Search Bar */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6 lg:mb-8">
+      <div className="flex flex-col xl:flex-row gap-3 mb-6 lg:mb-8">
         <div className="relative flex-1">
           <Search className="absolute left-5 lg:left-6 top-1/2 -translate-y-1/2 h-4 w-4 lg:h-5 lg:w-5 text-slate-400" />
           <input 
             type="text"
             placeholder="Search your archive..." 
-            className="w-full pl-12 lg:pl-14 pr-6 py-3 lg:py-4 rounded-full bg-white border border-slate-200 shadow-sm focus:outline-none focus:border-brand-cyan transition-all text-slate-700 text-sm lg:text-base"
+            className="w-full pl-12 lg:pl-14 pr-6 py-3 lg:py-4 rounded-full bg-white border border-slate-200 shadow-sm focus:outline-none focus:border-brand-cyan transition-all text-slate-700 text-sm lg:text-base animate-pulse-once"
             value={searchTerm} 
             onChange={(e) => setSearchTerm(e.target.value)} 
           />
         </div>
-        <div className="relative sm:w-64 shrink-0">
-          <select
-            value={subjectFilter}
-            onChange={(e) => setSubjectFilter(e.target.value)}
-            className="w-full appearance-none px-6 py-3 lg:py-4 rounded-full bg-white border border-slate-200 shadow-sm focus:outline-none focus:border-brand-cyan transition-all text-slate-700 text-sm lg:text-base cursor-pointer"
-          >
-            {subjects.map((subject: any) => (
-              <option key={subject} value={subject}>
-                {subject === 'All' ? 'All Subjects' : subject}
-              </option>
-            ))}
-          </select>
-          <div className="absolute right-5 lg:right-6 top-1/2 -translate-y-1/2 pointer-events-none">
-            <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M1 1.5L6 6.5L11 1.5" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+        <div className="flex flex-wrap sm:flex-nowrap gap-3">
+          {/* Subject Filter */}
+          <div className="relative w-full sm:w-44 shrink-0">
+            <select
+              value={subjectFilter}
+              onChange={(e) => setSubjectFilter(e.target.value)}
+              className="w-full appearance-none px-5 py-3 lg:py-4 rounded-full bg-white border border-slate-200 shadow-sm focus:outline-none focus:border-brand-cyan transition-all text-slate-700 text-sm cursor-pointer"
+            >
+              {subjects.map((subject: any) => (
+                <option key={subject} value={subject}>
+                  {subject === 'All' ? 'All Subjects' : subject}
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg width="10" height="6" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1 1.5L6 6.5L11 1.5" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
           </div>
+
+          {/* Grade Filter */}
+          <div className="relative w-full sm:w-32 shrink-0">
+            <select
+              value={gradeFilter}
+              onChange={(e) => setGradeFilter(e.target.value)}
+              className="w-full appearance-none px-5 py-3 lg:py-4 rounded-full bg-white border border-slate-200 shadow-sm focus:outline-none focus:border-brand-cyan transition-all text-slate-700 text-sm cursor-pointer"
+            >
+              <option value="All">All Grades</option>
+              {grades.filter(g => g !== 'All').map((g: any) => (
+                <option key={g} value={g}>
+                  Grade {g}
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg width="10" height="6" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1 1.5L6 6.5L11 1.5" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </div>
+
+          {/* Content Type Filter */}
+          <div className="relative w-full sm:w-40 shrink-0">
+            <select
+              value={contentTypeFilter}
+              onChange={(e) => setContentTypeFilter(e.target.value)}
+              className="w-full appearance-none px-5 py-3 lg:py-4 rounded-full bg-white border border-slate-200 shadow-sm focus:outline-none focus:border-brand-cyan transition-all text-slate-700 text-sm cursor-pointer"
+            >
+              <option value="All">All Formats</option>
+              {contentTypes.filter(ct => ct !== 'All').map((ct: any) => (
+                <option key={ct} value={ct}>
+                  {ct}
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg width="10" height="6" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1 1.5L6 6.5L11 1.5" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowBookmarksOnly(prev => !prev)}
+            className={`px-5 py-3 lg:py-4 rounded-full flex items-center justify-center gap-2 font-hand text-base transition-all border shrink-0 ${
+              showBookmarksOnly 
+                ? 'bg-amber-500 border-amber-600 text-white shadow-md hover:bg-amber-600' 
+                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <Bookmark className={`h-4 w-4 ${showBookmarksOnly ? 'fill-current text-white' : 'text-slate-400'}`} />
+            {showBookmarksOnly ? 'Favorites' : 'Bookmarked'}
+          </button>
         </div>
-        <button
-          onClick={() => setShowBookmarksOnly(prev => !prev)}
-          className={`px-5 py-3 lg:py-4 rounded-full flex items-center justify-center gap-2 font-hand text-lg transition-all border shrink-0 ${
-            showBookmarksOnly 
-              ? 'bg-amber-500 border-amber-600 text-white shadow-md hover:bg-amber-600' 
-              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-          }`}
-        >
-          <Bookmark className={`h-5 w-5 ${showBookmarksOnly ? 'fill-current text-white' : 'text-slate-400'}`} />
-          {showBookmarksOnly ? 'Favorites Active' : 'Bookmarked Only'}
-        </button>
       </div>
 
       {/* Archive Grid */}

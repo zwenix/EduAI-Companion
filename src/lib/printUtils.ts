@@ -87,70 +87,31 @@ const getSubjectStyles = (subject: string = "") => {
 };
 
 const buildBrandedHeaderHTML = (title: string, options?: PrintOptions): string => {
-    if (!options) return "";
-    
-    const styles = getSubjectStyles(options.subject || "");
-    const dateStr = options.date || new Date().toLocaleDateString();
+    const subject = options?.subject || "Administration";
+    const grade = options?.grade || "All";
     
     return `
-<div class="eduai-branded-header mb-8 pb-6 border-b-2 border-slate-200" style="font-family: 'Inter', system-ui, -apple-system, sans-serif; text-align: left; box-sizing: border-box; width: 100%;">
-  <!-- Brand bar -->
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-    <div style="display: flex; align-items: center; gap: 0.75rem;">
-      <div style="width: 2.75rem; height: 2.75rem; border-radius: 0.75rem; background: ${styles.gradient}; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-        ${styles.icon}
-      </div>
-      <div>
-        <h3 style="font-size: 1.15rem; font-weight: 800; letter-spacing: -0.02em; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 0.35rem;">
-          EduAI Companion <span style="font-size: 0.65rem; font-weight: 900; background-color: #f1f5f9; color: #475569; padding: 0.15rem 0.4rem; border-radius: 0.25rem;">PRO v2.0</span>
-        </h3>
-        <p style="font-size: 0.7rem; font-weight: 700; color: #64748b; margin: 2px 0 0 0; text-transform: uppercase; letter-spacing: 0.05em;">
-          CAPS Aligned South African Educational Resource
-        </p>
-      </div>
-    </div>
-    
-    <div style="display: flex; align-items: center; gap: 0.75rem; margin-left: auto;">
-      <span style="font-size: 0.7rem; font-weight: 800; background-color: ${styles.badgeBg}; color: ${styles.badgeText}; padding: 0.35rem 0.75rem; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; font-family: monospace;">
-        ${styles.category}
-      </span>
-      ${options.grade ? `
-      <div style="width: 3.25rem; height: 3.25rem; border-radius: 9999px; background-color: #0f172a; color: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15);">
-        <span style="font-size: 0.5rem; font-weight: 800; text-transform: uppercase; opacity: 0.75; letter-spacing: 0.05em; line-height: 1;">Gr</span>
-        <span style="font-size: 1.1rem; font-weight: 900; line-height: 1.1;">${options.grade}</span>
-      </div>
-      ` : ''}
-    </div>
-  </div>
-
-  <!-- Main Resource Title Section -->
-  <div style="margin-bottom: 1.5rem; border-left: 4px solid ${styles.accentColor}; padding-left: 0.75rem;">
-    <h1 style="font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em; color: #0f172a; margin: 0; line-height: 1.25;">${options.title || title}</h1>
-    <p style="font-size: 0.8rem; font-weight: 600; color: #64748b; margin: 4px 0 0 0; display: flex; gap: 0.5rem; align-items: center;">
-      <span>Resource: <strong>${options.contentType || 'Activity Worksheet'}</strong></span>
-      <span style="color: #cbd5e1;">|</span>
-      <span>Date: <strong>${dateStr}</strong></span>
-    </p>
-  </div>
-
-  <!-- Metadata Student Form Lines -->
-  <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1.5rem; border-top: 1px dashed #cbd5e1; border-bottom: 1px dashed #cbd5e1; padding: 1.25rem 0; margin-bottom: 1.5rem;">
-    <div style="display: flex; align-items: flex-end; gap: 0.5rem;">
-      <span style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; white-space: nowrap;">Learner Name:</span>
-      <div style="border-bottom: 2px dotted #94a3b8; flex-grow: 1; height: 1.1rem;"></div>
-    </div>
-    <div style="display: flex; align-items: flex-end; gap: 0.5rem;">
-      <span style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; white-space: nowrap;">Date:</span>
-      <div style="border-bottom: 2px dotted #94a3b8; flex-grow: 1; height: 1.1rem;"></div>
-    </div>
-    <div style="display: flex; align-items: flex-end; gap: 0.5rem;">
-      <span style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; white-space: nowrap;">Total Marks:</span>
-      <div style="border-bottom: 2px dotted #94a3b8; flex-grow: 1; height: 1.1rem; text-align: right; padding-right: 0.25rem; font-size: 0.75rem; color: #94a3b8; font-weight: 700;">/ _____</div>
-    </div>
-  </div>
+<div class="eduai-branded-header mb-6 pb-2 border-b border-slate-200" style="font-family: 'Inter', system-ui, -apple-system, sans-serif; box-sizing: border-box; width: 100%; display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.2;">
+  <span>EduAI Companion PRO v2.0 - CAPS Aligned South African Educational Resource</span>
+  <span style="font-family: monospace; opacity: 0.85; background-color: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.6rem;">${subject} ${grade !== 'All' && grade !== 'N/A' && grade ? `• Gr ${grade}` : ''}</span>
 </div>
 `;
 };
+
+export function removeLegacyHeader(html: string): string {
+    if (!html) return '';
+    let cleaned = html;
+
+    // Strip legacy hardcoded text from the document body to prevent duplicate watermark headers
+    cleaned = cleaned.replace(/EduAI\s+Companion(\s|<br\/?>|&nbsp;)*PRO\s+v2\.0(\s|<br\/?>|&nbsp;)*CAPS\s+Aligned\s+South\s+African\s+Educational\s+Resource/gi, '');
+    cleaned = cleaned.replace(/Administration\s*(?:<br\s*\/?>)?\s*Gr\s*(?:<br\s*\/?>)?\s*All/gi, '');
+    cleaned = cleaned.replace(/Administrative\s+Doc\s+Resource:\s*Notice\s*\|/gi, '');
+    cleaned = cleaned.replace(/Date:\s*17\/06\/2026/gi, '');
+    cleaned = cleaned.replace(/Learner\s+Name:\s*Date:/gi, '');
+    cleaned = cleaned.replace(/Total\s+Marks:\s*\/(\s|_|&nbsp;)*/gi, '');
+
+    return cleaned;
+}
 
 export const printContent = (
     contentRef: React.RefObject<HTMLDivElement | null>, 
@@ -160,6 +121,7 @@ export const printContent = (
     try {
         if (!contentRef.current) return;
         let html = replaceImagePlaceholders(contentRef.current.innerHTML);
+        html = removeLegacyHeader(html);
         
         // Dynamically prepend our professional subject-specific branding header!
         const headerHtml = buildBrandedHeaderHTML(title, options);
@@ -200,9 +162,9 @@ export const printContent = (
                 <body class="p-8 prose max-w-none text-slate-800 bg-white">
                     ${html}
                     
-                    <footer style="margin-top: 5rem; border-top: 1px solid #e2e8f0; padding-top: 1.5rem; text-align: center; font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; display: flex; justify-content: space-between; align-items: center; page-break-inside: avoid;">
-                      <span>EduAI Companion • CAPS Aligned South Africa</span>
-                      <span>eduai-companion.github.io</span>
+                    <footer style="margin-top: 5rem; border-top: 1px dashed #e2e8f0; padding-top: 1rem; text-align: center; font-size: 0.55rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center; page-break-inside: avoid;">
+                      <span>EduAI Companion • CAPS Aligned • Developer & Owner: Z. Msuthu © 2026</span>
+                      <span>eduai-companion.vercel.app</span>
                     </footer>
                 </body>
                 </html>
@@ -231,6 +193,7 @@ export const downloadAsHTML = (
     try {
         if (!contentRef.current) return;
         let html = replaceImagePlaceholders(contentRef.current.innerHTML);
+        html = removeLegacyHeader(html);
         
         const headerHtml = buildBrandedHeaderHTML(filename.replace(/\.html$/i, ''), options);
         html = headerHtml + html;
@@ -257,9 +220,9 @@ export const downloadAsHTML = (
             <body>
                 ${html}
                 
-                <footer style="margin-top: 5rem; border-top: 1px solid #e2e8f0; padding-top: 1.5rem; text-align: center; font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; display: flex; justify-content: space-between; align-items: center;">
-                  <span>EduAI Companion • CAPS Aligned South Africa</span>
-                  <span>eduai-companion.github.io</span>
+                <footer style="margin-top: 5rem; border-top: 1px dashed #e2e8f0; padding-top: 1rem; text-align: center; font-size: 0.55rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center;">
+                  <span>EduAI Companion • CAPS Aligned • Developer & Owner: Z. Msuthu © 2026</span>
+                  <span>eduai-companion.vercel.app</span>
                 </footer>
             </body>
             </html>

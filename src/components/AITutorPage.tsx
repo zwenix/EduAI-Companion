@@ -114,25 +114,31 @@ export default function AITutorPage() {
     const fetchAdaptiveConfig = async () => {
       if (auth.currentUser) {
         try {
+          let currentRole = 'learner';
           const uRef = doc(db, 'users', auth.currentUser.uid);
           const uSnap = await getDoc(uRef);
           if (uSnap.exists()) {
             const uData = uSnap.data();
-            if (uData.role) setUserRole(uData.role);
+            if (uData.role) {
+              setUserRole(uData.role);
+              currentRole = uData.role;
+            }
             if (uData.gradeLevel) setStudentGrade(uData.gradeLevel);
             if (uData.learningPreference) setStudentStyle(uData.learningPreference);
           }
 
-          const email = auth.currentUser.email || '';
-          if (email) {
-            const q = query(collection(db, 'students'), where('email', '==', email));
-            unsubscribeStudent = onSnapshot(q, (snap) => {
-              if (!snap.empty) {
-                setStudentData(snap.docs[0].data());
-              }
-            }, (error) => {
-              console.error("Error subscribing to student controls in real-time:", error);
-            });
+          if (currentRole === 'student' || currentRole === 'learner') {
+            const email = auth.currentUser.email || '';
+            if (email) {
+              const q = query(collection(db, 'students'), where('email', '==', email));
+              unsubscribeStudent = onSnapshot(q, (snap) => {
+                if (!snap.empty) {
+                  setStudentData(snap.docs[0].data());
+                }
+              }, (error) => {
+                console.error("Error subscribing to student controls in real-time:", error);
+              });
+            }
           }
         } catch (e) {
           console.error("Failed to load user adaptive parameters:", e);

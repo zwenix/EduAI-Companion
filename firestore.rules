@@ -10,15 +10,20 @@ service cloud.firestore {
 
     function isValidUser(data) {
       return data.keys().size() >= 4
-        && data.keys().size() <= 9
+        && data.keys().size() <= 15
         && data.name is string && data.name.size() <= 100
         && data.email is string && data.email.size() <= 150
-        && data.role is string && data.role in ['teacher', 'learner', 'parent']
+        && data.role is string && data.role in ['teacher', 'student', 'learner', 'parent', 'admin']
         && data.createdAt is timestamp
         && (!('school' in data) || data.school == null || (data.school is string && data.school.size() <= 150))
         && (!('jobTitle' in data) || data.jobTitle == null || (data.jobTitle is string && data.jobTitle.size() <= 100))
         && (!('phone' in data) || data.phone == null || (data.phone is string && data.phone.size() <= 20))
         && (!('photoUrl' in data) || data.photoUrl == null || (data.photoUrl is string && data.photoUrl.size() <= 1000))
+        && (!('gradeLevel' in data) || data.gradeLevel == null || (data.gradeLevel is string && data.gradeLevel.size() <= 100))
+        && (!('learningPreference' in data) || data.learningPreference == null || (data.learningPreference is string && data.learningPreference.size() <= 100))
+        && (!('dyslexiaTheme' in data) || data.dyslexiaTheme == null || data.dyslexiaTheme is bool)
+        && (!('readSpeed' in data) || data.readSpeed == null || data.readSpeed is number)
+        && (!('dyscalculiaHelp' in data) || data.dyscalculiaHelp == null || data.dyscalculiaHelp is bool)
         && (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp);
     }
     match /users/{userId} {
@@ -29,31 +34,60 @@ service cloud.firestore {
                      && incoming().createdAt == existing().createdAt
                      && incoming().updatedAt == request.time
                      && (
-                        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'school', 'jobTitle', 'phone', 'photoUrl', 'updatedAt'])
+                        incoming().diff(existing()).affectedKeys().hasOnly([
+                          'name', 'school', 'jobTitle', 'phone', 'photoUrl', 'updatedAt', 'role',
+                          'gradeLevel', 'learningPreference', 'dyslexiaTheme', 'readSpeed', 'dyscalculiaHelp'
+                        ])
                      );
     }
 
     function isValidStudent(data) {
-      return data.keys().size() >= 6 && data.keys().size() <= 9
+      return data.keys().size() >= 6 && data.keys().size() <= 15
         && data.name is string && data.name.size() <= 100
         && data.grade is string && data.grade.size() <= 50
         && data.email is string && data.email.size() <= 150
         && data.status is string && data.status in ['Active', 'Inactive']
-        && data.teacherId is string && data.teacherId == request.auth.uid
+        && data.teacherId is string && (data.teacherId == request.auth.uid || data.teacherId == 'unassigned')
         && data.createdAt is timestamp
         && (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp)
+        && (!('parentEmail' in data) || data.parentEmail is string && data.parentEmail.size() <= 150)
+        && (!('parentPhone' in data) || data.parentPhone is string && data.parentPhone.size() <= 30)
+        && (!('parentName' in data) || data.parentName is string && data.parentName.size() <= 100)
+        && (!('id' in data) || data.id is string && data.id.size() <= 128)
         && (!('parentId' in data) || data.parentId == null || (data.parentId is string && data.parentId.size() <= 128));
     }
     match /students/{studentId} {
-      allow get: if isSignedIn() && isValidId(studentId) && existing().teacherId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(studentId) && (
+        existing().teacherId == request.auth.uid ||
+        existing().email == request.auth.token.email ||
+        (existing().parentId is string && existing().parentId == request.auth.uid) ||
+        (existing().parentEmail is string && existing().parentEmail == request.auth.token.email)
+      );
+      allow list: if isSignedIn() && (
+        resource.data.teacherId == request.auth.uid ||
+        resource.data.email == request.auth.token.email ||
+        (resource.data.parentId is string && resource.data.parentId == request.auth.uid) ||
+        (resource.data.parentEmail is string && resource.data.parentEmail == request.auth.token.email)
+      );
       allow create: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming()) && incoming().createdAt == request.time;
-      allow update: if isSignedIn() && isValidId(studentId) && existing().teacherId == request.auth.uid && isValidStudent(incoming())
-                     && incoming().teacherId == existing().teacherId
+      allow update: if isSignedIn() && isValidId(studentId) && (
+                      existing().teacherId == request.auth.uid ||
+                      existing().email == request.auth.token.email ||
+                      (existing().parentId is string && existing().parentId == request.auth.uid) ||
+                      (existing().parentEmail is string && existing().parentEmail == request.auth.token.email)
+                    ) && isValidStudent(incoming())
                      && incoming().createdAt == existing().createdAt
                      && incoming().updatedAt == request.time
-                     && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'grade', 'email', 'status', 'updatedAt', 'parentId']);
-      allow delete: if isSignedIn() && isValidId(studentId) && existing().teacherId == request.auth.uid;
+                     && (
+                        incoming().diff(existing()).affectedKeys().hasOnly([
+                          'name', 'grade', 'email', 'status', 'updatedAt', 'parentId', 'parentName', 'parentEmail', 'parentPhone', 'teacherId'
+                        ])
+                     );
+      allow delete: if isSignedIn() && isValidId(studentId) && (
+        existing().teacherId == request.auth.uid ||
+        (existing().parentId is string && existing().parentId == request.auth.uid) ||
+        (existing().parentEmail is string && existing().parentEmail == request.auth.token.email)
+      );
     }
 
     function isValidClass(data) {

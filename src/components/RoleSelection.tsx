@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, Loader2, School, Shield, Sparkles, Star, Users, type LucideIcon, Rocket, Navigation } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { GraduationCap, ToyBrick, Heart, Puzzle, Loader2, Sparkles, type LucideIcon, Rocket, Navigation } from 'lucide-react';
+import { motion } from 'motion/react';
 
 type Role = 'teacher' | 'student' | 'parent' | 'admin';
 
@@ -11,6 +11,10 @@ type RoleOption = {
   icon: LucideIcon;
   iconBg: string;
   color: string;
+  activeBg: string;
+  inactiveBg: string;
+  activeText: string;
+  activeDesc: string;
 };
 
 const ROLE_OPTIONS: RoleOption[] = [
@@ -21,30 +25,46 @@ const ROLE_OPTIONS: RoleOption[] = [
     icon: GraduationCap,
     iconBg: 'bg-purple-500',
     color: 'border-purple-400',
+    activeBg: 'bg-gradient-to-br from-purple-100 via-purple-50 to-white border-purple-400 text-purple-950 shadow-purple-200/50',
+    inactiveBg: 'bg-gradient-to-br from-purple-500/15 to-purple-500/5 border-purple-300/30 hover:from-purple-500/30 hover:to-purple-500/10',
+    activeText: 'text-purple-950',
+    activeDesc: 'text-purple-800',
   },
   {
     value: 'student',
     title: 'Student',
     description: 'Start your learning adventure and talk to AI!',
-    icon: School,
+    icon: ToyBrick,
     iconBg: 'bg-blue-500',
     color: 'border-blue-400',
+    activeBg: 'bg-gradient-to-br from-blue-100 via-blue-50 to-white border-blue-400 text-blue-950 shadow-blue-200/50',
+    inactiveBg: 'bg-gradient-to-br from-blue-500/15 to-blue-500/5 border-blue-300/30 hover:from-blue-500/30 hover:to-blue-500/10',
+    activeText: 'text-blue-950',
+    activeDesc: 'text-blue-800',
   },
   {
     value: 'parent',
     title: 'Parent',
     description: 'Watch your child grow and chat with teachers!',
-    icon: Users,
+    icon: Heart,
     iconBg: 'bg-green-500',
     color: 'border-green-400',
+    activeBg: 'bg-gradient-to-br from-green-100 via-green-50 to-white border-green-400 text-green-950 shadow-green-200/50',
+    inactiveBg: 'bg-gradient-to-br from-green-500/15 to-green-500/5 border-green-300/30 hover:from-green-500/30 hover:to-green-500/10',
+    activeText: 'text-green-950',
+    activeDesc: 'text-green-800',
   },
   {
     value: 'admin',
     title: 'Admin',
     description: 'Manage the magical kingdom of EduAI!',
-    icon: Shield,
+    icon: Puzzle,
     iconBg: 'bg-slate-600',
     color: 'border-slate-400',
+    activeBg: 'bg-gradient-to-br from-slate-200 via-slate-100 to-white border-slate-400 text-slate-900 shadow-slate-300/50',
+    inactiveBg: 'bg-gradient-to-br from-slate-500/15 to-slate-500/5 border-slate-300/30 hover:from-slate-500/30 hover:to-slate-500/10',
+    activeText: 'text-slate-900',
+    activeDesc: 'text-slate-700',
   },
 ];
 
@@ -149,10 +169,10 @@ export default function RoleSelection({ onComplete, onBack }: RoleSelectionProps
                 onClick={() => setSelectedRole(option.value)}
                 whileHover={{ scale: 1.03, y: -5 }}
                 whileTap={{ scale: 0.95 }}
-                className={`group flex flex-col items-center text-center rounded-[2rem] p-8 transition-all duration-300 outline-none relative overflow-hidden
+                className={`group flex flex-col items-center text-center rounded-[2rem] p-8 transition-all duration-300 outline-none relative overflow-hidden backdrop-blur-md border-2
                   ${active 
-                    ? `bg-white border-4 ${option.color} shadow-2xl shadow-yellow-400/30` 
-                    : 'bg-white/10 backdrop-blur-md border-2 border-white/20 hover:bg-white/20'
+                    ? `${option.activeBg}` 
+                    : `${option.inactiveBg}`
                   }
                 `}
               >
@@ -174,10 +194,10 @@ export default function RoleSelection({ onComplete, onBack }: RoleSelectionProps
                   <Icon className="h-12 w-12 text-white" strokeWidth={2} />
                 </motion.div>
                 
-                <h2 className={`font-comic text-3xl font-extrabold tracking-wide mb-3 relative z-10 ${active ? 'text-slate-800' : 'text-white'}`}>
+                <h2 className={`font-comic text-3xl font-extrabold tracking-wide mb-3 relative z-10 ${active ? option.activeText : 'text-white'}`}>
                   {option.title}
                 </h2>
-                <p className={`text-base leading-relaxed relative z-10 font-medium ${active ? 'text-slate-600' : 'text-blue-100'}`}>
+                <p className={`text-base leading-relaxed relative z-10 font-medium ${active ? option.activeDesc : 'text-blue-100'}`}>
                   {option.description}
                 </p>
               </motion.button>

@@ -18,6 +18,8 @@ import {
   Search,
   Bell,
   ChevronRight,
+  Sliders,
+  MoreHorizontal,
   ClipboardCheck,
   TrendingUp,
   FileBarChart,
@@ -37,6 +39,10 @@ import {
   FlaskConical,
   Palette,
   Sparkles,
+  Blocks,
+  ToyBrick,
+  Smile,
+  Award,
   Menu,
   X,
   AlertTriangle,
@@ -57,7 +63,11 @@ import {
   Eye,
   Contrast,
   Volume2,
-  VolumeX
+  VolumeX,
+  Baby,
+  Puzzle,
+  Sprout,
+  Heart
 } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'motion/react';
 import { marked } from 'marked';
@@ -80,6 +90,10 @@ import StudentDashboard from './components/StudentDashboard';
 import StudentPortfolio from './components/StudentPortfolio';
 import CurriculumSuite from './components/CurriculumSuite';
 import ParentDashboard from './components/ParentDashboard';
+import ReaderModeModal from './components/ReaderModeModal';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { patchOklchForHtml2canvas } from './lib/pdfHelper';
 import AdminDashboard from './components/AdminDashboard';
 import SettingsPage from './components/Settings';
 import Helpdesk from './components/Helpdesk';
@@ -278,12 +292,12 @@ const LandingPage = ({ onEnter }: { onEnter: () => void }) => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {[
-            { title: "Magic Lessons", desc: "Create amazing lesson plans in a flash! Perfect for any subject.", icon: Zap, bg: "bg-orange-500", shadow: "shadow-orange-500/40" },
-            { title: "Super Worksheets", desc: "Fun worksheets and exercises that you'll actually love doing!", icon: Palette, bg: "bg-brand-pink", shadow: "shadow-pink-500/40" },
-            { title: "Smart Bot Tutor", desc: "Ask your friendly AI tutor anything, anytime! It never sleeps.", icon: Brain, bg: "bg-brand-cyan", shadow: "shadow-cyan-500/40" },
-            { title: "Instant Grades", desc: "Get your results and helpful tips right away. No more waiting!", icon: Sparkles, bg: "bg-brand-yellow", shadow: "shadow-yellow-500/40" },
-            { title: "Skill Tracker", desc: "Watch your skills grow like a rocket ship! reach for the stars.", icon: TrendingUp, bg: "bg-brand-green", shadow: "shadow-green-500/40" },
-            { title: "Cool Posters", desc: "Make beautiful posters for your room or classroom.", icon: Image, bg: "bg-brand-purple", shadow: "shadow-purple-500/40" },
+            { title: "Magic Lessons", desc: "Create amazing lesson plans in a flash! Perfect for any subject.", icon: Blocks, bg: "bg-gradient-to-br from-orange-500/30 to-orange-400/20", border: "border-orange-300/40", iconBg: "bg-orange-500", shadow: "shadow-orange-500/30" },
+            { title: "Super Worksheets", desc: "Fun worksheets and exercises that you'll actually love doing!", icon: Palette, bg: "bg-gradient-to-br from-pink-500/30 to-pink-400/20", border: "border-pink-300/40", iconBg: "bg-brand-pink", shadow: "shadow-pink-500/30" },
+            { title: "Smart Bot Tutor", desc: "Ask your friendly AI tutor anything, anytime! It never sleeps.", icon: Smile, bg: "bg-gradient-to-br from-cyan-500/30 to-cyan-400/20", border: "border-cyan-300/40", iconBg: "bg-brand-cyan", shadow: "shadow-cyan-500/30" },
+            { title: "Instant Grades", desc: "Get your results and helpful tips right away. No more waiting!", icon: Award, bg: "bg-gradient-to-br from-yellow-500/35 to-yellow-400/25", border: "border-yellow-300/40", iconBg: "bg-brand-yellow", shadow: "shadow-yellow-500/30" },
+            { title: "Skill Tracker", desc: "Watch your skills grow like a rocket ship! reach for the stars.", icon: ToyBrick, bg: "bg-gradient-to-br from-green-500/30 to-green-400/20", border: "border-green-300/40", iconBg: "bg-brand-green", shadow: "shadow-green-500/30" },
+            { title: "Cool Posters", desc: "Make beautiful posters for your room or classroom.", icon: Sparkles, bg: "bg-gradient-to-br from-purple-500/30 to-purple-400/20", border: "border-purple-300/40", iconBg: "bg-brand-purple", shadow: "shadow-purple-500/30" },
           ].map((feature, i) => (
             <motion.div 
               key={i}
@@ -291,10 +305,10 @@ const LandingPage = ({ onEnter }: { onEnter: () => void }) => {
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
               viewport={{ once: true, margin: "-50px" }}
               transition={{ delay: i * 0.1, type: "spring", stiffness: 100 }}
-              className="bg-white/20 backdrop-blur-xl border-2 border-white/30 rounded-[40px] p-8 text-center hover:bg-white/30 transition-all kid-shadow-hover transform hover:-translate-y-2 relative overflow-hidden group"
+              className={`${feature.bg} backdrop-blur-xl border-2 ${feature.border} rounded-[40px] p-8 text-center hover:bg-white/30 transition-all kid-shadow-hover transform hover:-translate-y-2 relative overflow-hidden group`}
             >
-              <div className={`absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16 transition-transform group-hover:scale-150`}></div>
-              <div className={`w-20 h-20 mx-auto rounded-[28px] flex items-center justify-center mb-6 ${feature.bg} text-white shadow-xl ${feature.shadow} border-4 border-white/20 rotate-3 group-hover:rotate-0 transition-all`}>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16 transition-transform group-hover:scale-150"></div>
+              <div className={`w-20 h-20 mx-auto rounded-[28px] flex items-center justify-center mb-6 ${feature.iconBg} text-white shadow-xl ${feature.shadow} border-4 border-white/20 rotate-3 group-hover:rotate-0 transition-all`}>
                 <feature.icon size={40} />
               </div>
               <h3 className="text-2xl font-black text-white mb-3 font-display">{feature.title}</h3>
@@ -339,8 +353,20 @@ export default function App() {
   });
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [themeMode, setThemeMode] = useState<'dark' | 'light' | 'peach'>(() => {
+    const saved = localStorage.getItem('eduai_theme_mode');
+    if (saved === 'dark' || saved === 'light' || saved === 'peach') return saved;
+    return 'dark';
+  });
+  const isDarkMode = themeMode === 'dark';
+  const setIsDarkMode = (val: boolean) => {
+    const mode = val ? 'dark' : 'light';
+    setThemeMode(mode);
+    localStorage.setItem('eduai_theme_mode', mode);
+  };
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [headerCabinetOpen, setHeaderCabinetOpen] = useState(false);
 
   // Real-time Teacher Dashboard students & aggregates
   const [dashboardStudents, setDashboardStudents] = useState<any[]>([]);
@@ -463,6 +489,7 @@ export default function App() {
   const [magnifyEnabled, setMagnifyEnabled] = useState(() => localStorage.getItem('eduai_magnify') === 'true');
   const [highContrastEnabled, setHighContrastEnabled] = useState(() => localStorage.getItem('eduai_high_contrast') === 'true');
   const [soundMuted, setSoundMuted] = useState(() => localStorage.getItem('eduai_sound_muted') === 'true');
+  const [utilityDrawerOpen, setUtilityDrawerOpen] = useState(false);
 
   const speakText = (text: string) => {
     if (localStorage.getItem('eduai_sound_muted') === 'true') return;
@@ -487,6 +514,7 @@ export default function App() {
   });
   const [syncProgress, setSyncProgress] = useState(0);
   const [isOfflineViewerOpen, setIsOfflineViewerOpen] = useState(false);
+  const [isOfflineReaderOpen, setIsOfflineReaderOpen] = useState(false);
   const [selectedOfflineMaterial, setSelectedOfflineMaterial] = useState<any>(null);
   const [offlineSearchQuery, setOfflineSearchQuery] = useState('');
   const [offlineMaterials, setOfflineMaterials] = useState<any[]>([]);
@@ -701,11 +729,11 @@ export default function App() {
     else if (r === 'admin') firstLabel = 'Admin Dashboard';
     
     return [
-      { id: 'teacher-dashboard-menu', label: firstLabel, icon: LayoutDashboard },
-      { id: 'lesson-planning', label: 'Teaching Tools', icon: BookOpen },
-      { id: 'intelligence-ai', label: 'Intelligence AI', icon: Brain },
-      { id: 'class-analytics', label: 'Analytics & Reports', icon: TrendingUp },
-      { id: 'class-management', label: 'Class management', icon: School },
+      { id: 'teacher-dashboard-menu', label: firstLabel, icon: GraduationCap },
+      { id: 'lesson-planning', label: 'Teaching Tools', icon: Blocks },
+      { id: 'intelligence-ai', label: 'Intelligence AI', icon: Sparkles },
+      { id: 'class-analytics', label: 'Analytics & Reports', icon: Award },
+      { id: 'class-management', label: 'Class management', icon: Users },
       { id: 'student-class-management', label: 'Chat & Messenger', icon: MessageSquare },
       { id: 'system-support', label: 'System support', icon: Settings },
     ];
@@ -723,17 +751,17 @@ export default function App() {
           ];
         case 'lesson-planning':
           return [
-            { id: 'student-notes', label: 'Study & Revision Notes', icon: BookOpen }
+            { id: 'student-notes', label: 'Study & Revision Notes', icon: GraduationCap }
           ];
         case 'intelligence-ai':
           return [
-            { id: 'ai-tutor', label: 'AI Tutor Helpers', icon: Brain }
+            { id: 'ai-tutor', label: 'AI Tutor Helpers', icon: Sparkles }
           ];
         case 'class-analytics':
           return [
-            { id: 'reports', label: 'My Progress Analytics', icon: TrendingUp },
-            { id: 'portfolios', label: 'My Portfolio', icon: UserCircle },
-            { id: 'curriculum', label: 'CAPS & Gamification Hub', icon: Compass }
+            { id: 'reports', label: 'My Progress Analytics', icon: Award },
+            { id: 'portfolios', label: 'My Portfolio', icon: ClipboardCheck },
+            { id: 'curriculum', label: 'CAPS & Gamification Hub', icon: Puzzle }
           ];
         case 'class-management':
           return [
@@ -741,14 +769,14 @@ export default function App() {
           ];
         case 'student-class-management':
           return [
-            { id: 'student-practice', label: 'Practice Zone', icon: ClipboardCheck },
+            { id: 'student-practice', label: 'Practice Zone', icon: Blocks },
             { id: 'messenger', label: 'Chat & Friends', icon: MessageSquare }
           ];
         case 'system-support':
           return [
             { id: 'settings', label: 'Settings', icon: Settings },
             { id: 'helpdesk', label: 'Help', icon: HelpCircle },
-            { id: 'faq', label: 'Support', icon: Accessibility }
+            { id: 'faq', label: 'Support', icon: HelpCircle }
           ];
         default:
           return [];
@@ -763,12 +791,12 @@ export default function App() {
           return [];
         case 'intelligence-ai':
           return [
-            { id: 'dashboard', label: 'AI Classroom Updates', icon: Brain }
+            { id: 'dashboard', label: 'AI Classroom Updates', icon: Sparkles }
           ];
         case 'class-analytics':
           return [
-            { id: 'reports', label: "My Child's Progress", icon: TrendingUp },
-            { id: 'portfolios', label: 'Assignments & Portfolios', icon: FileText }
+            { id: 'reports', label: "My Child's Progress", icon: Award },
+            { id: 'portfolios', label: 'Assignments & Portfolios', icon: Blocks }
           ];
         case 'class-management':
           return [
@@ -782,7 +810,7 @@ export default function App() {
           return [
             { id: 'settings', label: 'Settings', icon: Settings },
             { id: 'helpdesk', label: 'Help', icon: HelpCircle },
-            { id: 'faq', label: 'Support', icon: Accessibility }
+            { id: 'faq', label: 'Support', icon: HelpCircle }
           ];
         default:
           return [];
@@ -795,30 +823,30 @@ export default function App() {
           ];
         case 'lesson-planning':
           return [
-            { id: 'archive', label: 'Database Content Archive', icon: Archive }
+            { id: 'archive', label: 'Database Content Archive', icon: Sprout }
           ];
         case 'intelligence-ai':
           return [
-            { id: 'ai-tutor', label: 'AI System Controls', icon: Brain },
-            { id: 'ocr', label: 'OCR Grading Logs', icon: Scan }
+            { id: 'ai-tutor', label: 'AI System Controls', icon: Sparkles },
+            { id: 'ocr', label: 'OCR Grading Logs', icon: Puzzle }
           ];
         case 'class-analytics':
           return [
-            { id: 'reports', label: 'School Analytics & Stats', icon: TrendingUp }
+            { id: 'reports', label: 'School Analytics & Stats', icon: Award }
           ];
         case 'class-management':
           return [
-            { id: 'class-management', label: 'Classrooms Manager', icon: School }
+            { id: 'class-management', label: 'Classrooms Manager', icon: Users }
           ];
         case 'student-class-management':
           return [
-            { id: 'dashboard', label: 'Students Overview', icon: UserCircle }
+            { id: 'dashboard', label: 'Students Overview', icon: Users }
           ];
         case 'system-support':
           return [
             { id: 'settings', label: 'Settings', icon: Settings },
             { id: 'helpdesk', label: 'Help', icon: HelpCircle },
-            { id: 'faq', label: 'Support', icon: Accessibility }
+            { id: 'faq', label: 'Support', icon: HelpCircle }
           ];
         default:
           return [];
@@ -832,24 +860,24 @@ export default function App() {
           ];
         case 'lesson-planning':
           return [
-            { id: 'teaching', label: 'Content Creator Studio', icon: FlaskConical },
-            { id: 'archive', label: 'Content Archive Storage', icon: Archive },
-            { id: 'illustrations', label: 'Illustration Library', icon: Image }
+            { id: 'teaching', label: 'Content Creator Studio', icon: Blocks },
+            { id: 'archive', label: 'Content Archive Storage', icon: Sprout },
+            { id: 'illustrations', label: 'Illustration Library', icon: Palette }
           ];
         case 'intelligence-ai':
           return [
-            { id: 'ai-tutor', label: 'AI Tutor Support', icon: Brain },
-            { id: 'ocr', label: 'Scan & Autograde', icon: Scan }
+            { id: 'ai-tutor', label: 'AI Tutor Support', icon: Sparkles },
+            { id: 'ocr', label: 'Scan & Autograde', icon: Puzzle }
           ];
         case 'class-analytics':
           return [
-            { id: 'reports', label: 'Progress Reports', icon: TrendingUp },
-            { id: 'portfolios', label: 'Learner Personal Portfolios', icon: UserCircle },
-            { id: 'curriculum', label: 'CAPS & Gamification Hub', icon: Compass }
+            { id: 'reports', label: 'Progress Reports', icon: Award },
+            { id: 'portfolios', label: 'Learner Personal Portfolios', icon: ClipboardCheck },
+            { id: 'curriculum', label: 'CAPS & Gamification Hub', icon: Puzzle }
           ];
         case 'class-management':
           return [
-            { id: 'class-management', label: 'Class Management', icon: School }
+            { id: 'class-management', label: 'Class Management', icon: Users }
           ];
         case 'student-class-management':
           return [
@@ -859,7 +887,7 @@ export default function App() {
           return [
             { id: 'settings', label: 'Settings', icon: Settings },
             { id: 'helpdesk', label: 'Help', icon: HelpCircle },
-            { id: 'faq', label: 'Support', icon: Accessibility }
+            { id: 'faq', label: 'Support', icon: HelpCircle }
           ];
         default:
           return [];
@@ -1096,7 +1124,7 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion="never">
-      <div className={`flex h-screen ${isDarkMode ? 'bg-[#0F172A]' : 'bg-slate-50'} font-sans selection:bg-brand-cyan/30 overflow-hidden transition-colors duration-500`}>
+      <div className={`flex h-screen ${isDarkMode ? 'bg-[#0F172A]' : themeMode === 'peach' ? 'bg-[#efe8d9] peach-theme' : 'bg-slate-50'} font-sans selection:bg-brand-cyan/30 overflow-hidden transition-colors duration-500`}>
       {/* Sidebar Overlay for Mobile */}
       <AnimatePresence>
         {isMobile && isMobileSidebarOpen && (
@@ -1319,12 +1347,13 @@ export default function App() {
       </motion.aside>
 
       {/* Main Content */}
-      <main className={`flex-1 flex flex-col overflow-hidden relative ${isDarkMode ? 'bg-[#0F172A] dark-theme' : 'bg-slate-50'} transition-colors duration-500`}>
+      <main className={`flex-1 flex flex-col overflow-hidden relative ${isDarkMode ? 'bg-[#0F172A] dark-theme' : themeMode === 'peach' ? 'bg-[#efe8d9] peach-theme' : 'bg-slate-50'} transition-colors duration-500`}>
         {/* Header */}
         <header 
-          className={`sticky top-0 left-0 right-0 h-20 border-b ${isDarkMode ? 'border-white/5 bg-[#0F172A]/90' : 'border-slate-200 bg-slate-50/90'} backdrop-blur-md px-4 lg:px-8 flex items-center justify-between shrink-0 z-50 transition-colors duration-500`}
+          className={`sticky top-0 left-0 right-0 h-20 border-b ${isDarkMode ? 'border-white/5 bg-[#0F172A]/90' : themeMode === 'peach' ? 'border-[#dcd4c3] bg-[#efe8d9]/90' : 'border-slate-200 bg-slate-50/90'} backdrop-blur-md px-4 lg:px-8 flex items-center justify-between shrink-0 z-50 transition-colors duration-500`}
         >
-          <div className="flex items-center gap-3 overflow-hidden">
+          {/* Left Side: Navigation (Home & Back Buttons) */}
+          <div className="flex items-center gap-3">
             {isMobile && (
               <button 
                 onClick={() => setMobileSidebarOpen(true)}
@@ -1343,249 +1372,131 @@ export default function App() {
               <ArrowLeft size={18} />
             </button>
             <button 
-              onClick={() => { setActiveTab('dashboard'); setActiveCreatorTab(null); }}
+              onClick={() => { 
+                setActiveTab('dashboard'); 
+                setActiveCreatorTab(null); 
+                setCategoryOverviewActive(null);
+                setActiveCategory('teacher-dashboard-menu');
+              }}
               className={`p-2 rounded-xl ${isDarkMode ? 'hover:bg-white/10 text-white' : 'hover:bg-slate-200 text-slate-600'} transition-all`}
               title="Home"
             >
               <Home size={18} />
             </button>
-
-
           </div>
-          
-          <div className="flex items-center gap-2 lg:gap-5">
-            <div className="hidden xl:flex items-center gap-2 mr-2">
-              <select 
-                value={ocrProvider}
-                onChange={(e) => setOcrProvider(e.target.value as any)}
-                className={`text-[9px] font-bold tracking-wider px-2 py-1.5 rounded-lg outline-none transition-all ${
-                  isDarkMode 
-                  ? 'bg-white/5 border border-white/10 text-emerald-400 focus:border-emerald-500 [&>option]:bg-slate-800' 
-                  : 'bg-white border border-slate-200 text-slate-600 focus:border-emerald-500 shadow-sm'
-                }`}
-                title="OCR Engine"
-              >
-                <option value="gemini">OCR: Gemini 3 Flash</option>
-                <option value="groq-vision">OCR: Llama 3.2 Vision</option>
-                <option value="ocrspace">OCR: OCR.Space</option>
-              </select>
 
-              <select 
-                value={imageProvider}
-                onChange={(e) => setImageProvider(e.target.value as any)}
-                className={`text-[9px] font-bold tracking-wider px-2 py-1.5 rounded-lg outline-none transition-all ${
-                  isDarkMode 
-                  ? 'bg-white/5 border border-white/10 text-orange-400 focus:border-orange-500 [&>option]:bg-slate-800' 
-                  : 'bg-white border border-slate-200 text-slate-600 focus:border-orange-500 shadow-sm'
-                }`}
-                title="Image Generation Engine"
-              >
-                <option value="gemini-imagen">IMG: Gemini 2.5 Flash Image</option>
-                <option value="nvidia-sana">IMG: NVIDIA Sana / SDXL</option>
-                <option value="huggingface">IMG: HF FLUX.1</option>
-                <option value="pollinations-schnell">IMG: Flux Schnell</option>
-                <option value="pollinations-turbo">IMG: Z-Image Turbo</option>
-                <option value="pollinations-klein">IMG: FLUX.2 Klein 4B</option>
-              </select>
-
-              <select 
-                value={ttsProvider}
-                onChange={(e) => setTtsProvider(e.target.value as any)}
-                className={`text-[9px] font-bold tracking-wider px-2 py-1.5 rounded-lg outline-none transition-all ${
-                  isDarkMode 
-                  ? 'bg-white/5 border border-white/10 text-purple-400 focus:border-purple-500 [&>option]:bg-slate-800' 
-                  : 'bg-white border border-slate-200 text-slate-600 focus:border-purple-500 shadow-sm'
-                }`}
-                title="Text-to-Speech Engine"
-              >
-                <option value="browser">TTS: Browser Core</option>
-                <option value="groq-whisper">TTS: Groq Whisper</option>
-                <option value="huggingface">TTS: HuggingFace MMS</option>
-                <option value="google-tts">TTS: Google TTS</option>
-              </select>
+          {/* Right Side: Profile dropdown, notifications, day/night & settings drawer */}
+          <div className="flex items-center gap-2 lg:gap-3">
+            <div className="hidden md:flex items-center mr-1">
+              <span className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-white/30' : 'text-slate-400'}`}>
+                EduAI Space
+              </span>
             </div>
-            
-            <select 
-              value={provider} 
-              onChange={(e) => setProvider(e.target.value as any)}
-              className={`text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 sm:px-4 py-2 rounded-xl outline-none transition-all hidden lg:block ${
-                isDarkMode 
-                ? 'bg-white/5 border border-white/10 text-brand-cyan hover:border-brand-cyan/50 focus:border-brand-cyan [&>option]:bg-slate-800 [&>option]:text-brand-cyan' 
-                : 'bg-white border border-slate-200 text-slate-600 hover:border-brand-cyan focus:border-brand-cyan shadow-sm [&>option]:bg-white [&>option]:text-slate-600'
+
+            {/* Expandable settings drawer trigger button */}
+            <button
+              onClick={() => setUtilityDrawerOpen(!utilityDrawerOpen)}
+              className={`p-2 rounded-full transition-all flex items-center justify-center ${
+                utilityDrawerOpen 
+                  ? 'bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/30' 
+                  : (isDarkMode ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-205 border border-slate-200/55 shadow-sm')
               }`}
-              title="Primary Text Model"
+              title={utilityDrawerOpen ? "Hide Console Drawer" : "Show Console Drawer"}
             >
-              <option value="gemini">Gemini (Primary - Recommended)</option>
-              <option value="hf-qwen">Hugging Face Qwen 3.5 (Alternative)</option>
-              <option value="groq-llama">Groq Llama 4 Scout (Alternative)</option>
-            </select>
-            <button 
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`p-2 rounded-full ${isDarkMode ? 'bg-white/5 text-brand-yellow hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'} transition-all`}
-            >
-              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+              <Sliders size={18} />
             </button>
 
-            {/* Global Sound & Animations Toggle Button for Accessibility */}
-            <button 
-              onClick={() => {
-                const val = !soundMuted;
-                setSoundMuted(val);
-                localStorage.setItem('eduai_sound_muted', String(val));
-                window.dispatchEvent(new Event('eduai_accessibility_change'));
-              }}
-              className={`p-2 rounded-full transition-all ${
-                soundMuted 
-                  ? 'bg-red-500/20 text-red-500 border border-red-500/30 ring-4 ring-red-500/20' 
-                  : (isDarkMode ? 'bg-white/5 text-emerald-400 hover:bg-white/10' : 'bg-slate-100 text-[#10b981] hover:bg-slate-200')
-              }`}
-              title={soundMuted ? "Unmute sounds & enable animations" : "Mute all sounds & disable animations"}
-            >
-              {soundMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-            </button>
-
-            {/* Global accessibility settings toggle for High-Contrast Mode */}
-            <button 
-              onClick={() => {
-                const val = !highContrastEnabled;
-                setHighContrastEnabled(val);
-                localStorage.setItem('eduai_high_contrast', String(val));
-                window.dispatchEvent(new Event('eduai_accessibility_change'));
-              }}
-              className={`p-2 rounded-full transition-all ${
-                highContrastEnabled 
-                  ? 'bg-yellow-400 text-slate-950 ring-4 ring-yellow-400/30' 
-                  : (isDarkMode ? 'bg-white/5 text-brand-pink hover:bg-white/10' : 'bg-slate-100 text-[#ea4335] hover:bg-slate-200')
-              }`}
-              title="Quick Toggle High-Contrast Mode"
-            >
-              <Contrast size={18} />
-            </button>
-
-            {/* Accessibility Helper Dropdown */}
+            {/* Theme Mode Dropdown Menu */}
             <div className="relative">
               <button 
-                onClick={() => setIsAccessibilityOpen(!isAccessibilityOpen)}
-                className={`p-2 rounded-full ${isDarkMode ? 'bg-white/5 text-brand-cyan hover:bg-white/10' : 'bg-slate-100 text-[#00a8cc] hover:bg-slate-200'} transition-all`}
-                title="Accessibility Center"
+                onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
+                className={`p-2 rounded-full transition-all flex items-center justify-center ${
+                  themeMode === 'dark' 
+                    ? 'bg-white/5 text-brand-yellow hover:bg-white/10' 
+                    : themeMode === 'peach'
+                      ? 'bg-[#ffebe5] text-orange-602 hover:bg-[#ffdacc] border border-orange-200/40'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/50 shadow-sm'
+                }`}
+                title="Change UI Theme Mode"
               >
-                <Accessibility size={18} />
+                {themeMode === 'dark' ? <Moon size={18} /> : themeMode === 'peach' ? <Palette size={18} /> : <Sun size={18} />}
               </button>
 
               <AnimatePresence>
-                {isAccessibilityOpen && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className={`absolute right-0 mt-3 w-72 rounded-2xl shadow-2xl border overflow-hidden p-4 ${isDarkMode ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-800'} z-50`}
-                  >
-                    <div className="flex items-center gap-2 pb-3 mb-3 border-b border-dashed border-slate-500/20">
-                      <Accessibility className="w-5 h-5 text-brand-cyan animate-pulse" />
-                      <h3 className="font-display font-black text-base">Accessibility helpers</h3>
-                    </div>
-
-                    <div className="space-y-4">
-                      {/* Dyslexia Mode Toggle */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-col text-left">
-                          <span className="font-bold text-sm">📖 Dyslexia-Friendly</span>
-                          <span className="text-[10px] opacity-60">Easier fonts & line height</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const val = !dyslexiaEnabled;
-                            setDyslexiaEnabled(val);
-                            localStorage.setItem('eduai_dyslexia', String(val));
-                            window.dispatchEvent(new Event('eduai_accessibility_change'));
-                          }}
-                          className={`w-12 h-6 rounded-full p-1 transition-colors ${dyslexiaEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
-                        >
-                          <div className={`w-4 h-4 bg-white rounded-full transition-transform ${dyslexiaEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
-                        </button>
-                      </div>
-
-                      {/* Text Magnifier Toggle */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-col text-left">
-                          <span className="font-bold text-sm">🔍 Magnify Text</span>
-                          <span className="text-[10px] opacity-60">Bigger fonts for low sight</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const val = !magnifyEnabled;
-                            setMagnifyEnabled(val);
-                            localStorage.setItem('eduai_magnify', String(val));
-                            window.dispatchEvent(new Event('eduai_accessibility_change'));
-                          }}
-                          className={`w-12 h-6 rounded-full p-1 transition-colors ${magnifyEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
-                        >
-                          <div className={`w-4 h-4 bg-white rounded-full transition-transform ${magnifyEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
-                        </button>
-                      </div>
-
-                      {/* High Contrast Mode Toggle */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-col text-left">
-                          <span className="font-bold text-sm">🌓 High Contrast</span>
-                          <span className="text-[10px] opacity-60">Black & yellow text theme</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const val = !highContrastEnabled;
-                            setHighContrastEnabled(val);
-                            localStorage.setItem('eduai_high_contrast', String(val));
-                            window.dispatchEvent(new Event('eduai_accessibility_change'));
-                          }}
-                          className={`w-12 h-6 rounded-full p-1 transition-colors ${highContrastEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
-                        >
-                          <div className={`w-4 h-4 bg-white rounded-full transition-transform ${highContrastEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
-                        </button>
-                      </div>
-
-                      {/* Global Sound & Animations Mute Toggle */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-col text-left">
-                          <span className="font-bold text-sm">🔇 Mute Sounds & Motion</span>
-                          <span className="text-[10px] opacity-60 font-sans">Stop voice & animations</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const val = !soundMuted;
-                            setSoundMuted(val);
-                            localStorage.setItem('eduai_sound_muted', String(val));
-                            window.dispatchEvent(new Event('eduai_accessibility_change'));
-                          }}
-                          className={`w-12 h-6 rounded-full p-1 transition-colors ${soundMuted ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
-                        >
-                          <div className={`w-4 h-4 bg-white rounded-full transition-transform ${soundMuted ? 'translate-x-6' : 'translate-x-0'}`} />
-                        </button>
-                      </div>
-
-                      {/* TTS Core Narration Button */}
-                      <button
-                        type="button"
-                        onClick={() => speakText("Accessibility helpers center is active. You can choose to enable dyslexia friendly mode, text magnification, or high contrast layout settings. Select your preference by sliding the toggle controls shown.")}
-                        className="w-full py-2.5 px-3 rounded-xl bg-brand-cyan/10 hover:bg-brand-cyan/20 text-brand-cyan font-bold text-xs flex items-center justify-center gap-2 transition-all border border-brand-cyan/20"
+                {isThemeMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsThemeMenuOpen(false)} />
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className={`absolute right-y-0 right-0 mt-3 w-40 rounded-2xl shadow-2xl border p-1.5 z-50 transition-colors ${
+                        isDarkMode 
+                          ? 'bg-slate-800 border-white/10 text-white shadow-black/80' 
+                          : themeMode === 'peach'
+                            ? 'bg-[#efe8d9] border-[#dcd4c3] text-[#431407] shadow-orange-950/20'
+                            : 'bg-white border-slate-200 text-slate-800 shadow-slate-200/80'
+                      }`}
+                    >
+                      <button 
+                        onClick={() => {
+                          setThemeMode('light');
+                          localStorage.setItem('eduai_theme_mode', 'light');
+                          setIsThemeMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all text-left ${
+                          themeMode === 'light' 
+                            ? 'bg-brand-cyan text-white shadow-lg shadow-cyan-500/20' 
+                            : isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-50 text-slate-700'
+                        }`}
                       >
-                        🔊 Hear Description
+                        <Sun size={15} /> Light Mode
                       </button>
-                    </div>
-                  </motion.div>
+                      
+                      <button 
+                        onClick={() => {
+                          setThemeMode('dark');
+                          localStorage.setItem('eduai_theme_mode', 'dark');
+                          setIsThemeMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all text-left mt-1 ${
+                          themeMode === 'dark' 
+                            ? 'bg-brand-cyan text-white shadow-lg shadow-cyan-500/20' 
+                            : isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-50 text-slate-700'
+                        }`}
+                      >
+                        <Moon size={15} /> Dark Mode
+                      </button>
+
+                      <button 
+                        onClick={() => {
+                          setThemeMode('peach');
+                          localStorage.setItem('eduai_theme_mode', 'peach');
+                          setIsThemeMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all text-left mt-1 ${
+                          themeMode === 'peach' 
+                            ? 'bg-[#ff7c5c] text-white shadow-lg shadow-[#ff7c5c]/30' 
+                            : isDarkMode ? 'hover:bg-white/5 text-slate-400' : 'hover:bg-[#fff0eb] text-orange-600'
+                        }`}
+                      >
+                        <Palette size={15} /> Peach Mode
+                      </button>
+                    </motion.div>
+                  </>
                 )}
               </AnimatePresence>
             </div>
+
+            {/* Notifications Dropdown */}
             <NotificationsDropdown isDarkMode={isDarkMode} />
-            
+
             {/* Profile Dropdown */}
             <div className="relative">
               <button 
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                 className={`w-8 h-8 lg:w-10 lg:h-10 rounded-[10px] lg:rounded-[14px] ${isDarkMode ? 'bg-slate-800 border border-white/5 shadow-2xl hover:border-brand-cyan/50' : 'bg-white shadow-xl hover:border-brand-cyan'} flex items-center justify-center text-xs lg:text-sm font-black text-brand-cyan shrink-0 overflow-hidden transition-all`}
+                title="Profile Settings"
               >
                 {localStorage.getItem('eduai_user_photo') ? (
                   <img src={localStorage.getItem('eduai_user_photo')!} alt="Profile" className="w-full h-full object-cover" />
@@ -1614,29 +1525,29 @@ export default function App() {
                       </div>
                     </div>
                     
-                    <div className="p-2 space-y-1">
+                    <div className="p-2 space-y-1 font-sans">
                       <button 
                         onClick={() => { changeTab('settings'); setIsProfileDropdownOpen(false); }}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors ${isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-50 text-slate-700'}`}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors text-left ${isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-50 text-slate-700'}`}
                       >
                         <Settings size={16} /> My Settings
                       </button>
                       <button 
                         onClick={() => { setNeedsRoleSetup(true); setIsProfileDropdownOpen(false); }}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors ${isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-50 text-slate-700'}`}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors text-left ${isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-50 text-slate-700'}`}
                       >
                         <UserCheck size={16} /> Switch Role
                       </button>
                       <button 
                         onClick={handleLogout}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors ${isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-50 text-slate-700'}`}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors text-left ${isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-50 text-slate-700'}`}
                       >
                         <RefreshCcw size={16} /> Switch User
                       </button>
                       <div className={`h-px my-1 ${isDarkMode ? 'bg-white/10' : 'bg-slate-100'}`} />
                       <button 
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors hover:bg-red-500/10 text-red-500"
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors text-left hover:bg-red-500/10 text-red-500"
                       >
                         <LogOut size={16} /> Log Out
                       </button>
@@ -1647,6 +1558,244 @@ export default function App() {
             </div>
           </div>
         </header>
+        {/* Expandable Side Utility Drawer */}
+        <AnimatePresence>
+          {utilityDrawerOpen && (
+            <>
+              {/* Backdrop Overlay */}
+              <motion.div
+                key="utility-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setUtilityDrawerOpen(false)}
+                className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50"
+              />
+
+              {/* Slide-out Panel */}
+              <motion.div
+                key="utility-panel"
+                initial={{ x: '-100%', opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: '-100%', opacity: 0 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 180 }}
+                className={`fixed top-0 left-0 bottom-0 w-85 max-w-full h-full shadow-2xl z-50 flex flex-col ${
+                  isDarkMode 
+                    ? 'bg-slate-900/98 border-r border-white/10 text-white' 
+                    : 'bg-white/98 border-r border-slate-200 text-slate-800'
+                } backdrop-blur-md overflow-hidden`}
+              >
+                {/* Drawer Header */}
+                <div className={`p-5 flex items-center justify-between border-b ${isDarkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                  <div className="flex items-center gap-2">
+                    <Sliders className="w-5 h-5 text-brand-cyan" />
+                    <div>
+                      <h3 className="font-display font-black text-lg">EduAI Console</h3>
+                      <p className={`text-[10px] font-bold uppercase tracking-wider ${isDarkMode ? 'text-brand-cyan' : 'text-slate-500'}`}>
+                        Advanced Controls
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setUtilityDrawerOpen(false)}
+                    className={`p-2 rounded-xl transition-all ${
+                      isDarkMode ? 'hover:bg-white/10 text-slate-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                {/* Drawer Body - Scrollable */}
+                <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
+                  {/* AI & Integration Engines Section */}
+                  <div className="space-y-4">
+                    <h4 className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-white/40' : 'text-slate-400'}`}>
+                      ⚡ AI & Cloud Engines
+                    </h4>
+
+                    {/* Primary Text Model */}
+                    <div className="space-y-1.5 text-left">
+                      <label className="text-xs font-bold block">Primary Text Engine</label>
+                      <select 
+                        value={provider} 
+                        onChange={(e) => setProvider(e.target.value as any)}
+                        className={`w-full text-xs font-bold uppercase tracking-wide px-3 py-2.5 rounded-xl outline-none transition-all ${
+                          isDarkMode 
+                            ? 'bg-white/5 border border-white/10 text-brand-cyan hover:border-brand-cyan/50 focus:border-brand-cyan [&>option]:bg-slate-800 [&>option]:text-brand-cyan' 
+                            : 'bg-slate-50 border border-slate-200 text-slate-700 hover:border-brand-cyan focus:border-brand-cyan shadow-sm [&>option]:bg-white [&>option]:text-slate-705'
+                        }`}
+                      >
+                        <option value="gemini">Gemini (Primary - Recommended)</option>
+                        <option value="hf-qwen">Hugging Face Qwen (Alternative)</option>
+                        <option value="groq-llama">Groq Llama (Alternative)</option>
+                      </select>
+                    </div>
+
+                    {/* OCR Engine */}
+                    <div className="space-y-1.5 text-left">
+                      <label className="text-xs font-bold block">OCR Vision Engine</label>
+                      <select 
+                        value={ocrProvider}
+                        onChange={(e) => setOcrProvider(e.target.value as any)}
+                        className={`w-full text-xs font-bold px-3 py-2.5 rounded-xl outline-none transition-all ${
+                          isDarkMode 
+                            ? 'bg-white/5 border border-white/10 text-emerald-400 focus:border-emerald-500 [&>option]:bg-slate-800' 
+                            : 'bg-slate-50 border border-slate-200 text-slate-700 focus:border-emerald-500 shadow-sm'
+                        }`}
+                      >
+                        <option value="gemini">OCR: Gemini 3 Flash</option>
+                        <option value="groq-vision">OCR: Llama 3.2 Vision</option>
+                        <option value="ocrspace">OCR: OCR.Space</option>
+                      </select>
+                    </div>
+
+                    {/* Image Generation Engine */}
+                    <div className="space-y-1.5 text-left">
+                      <label className="text-xs font-bold block">Creative Image Generator</label>
+                      <select 
+                        value={imageProvider}
+                        onChange={(e) => setImageProvider(e.target.value as any)}
+                        className={`w-full text-xs font-bold px-3 py-2.5 rounded-xl outline-none transition-all ${
+                          isDarkMode 
+                            ? 'bg-white/5 border border-white/10 text-orange-400 focus:border-orange-500 [&>option]:bg-slate-800' 
+                            : 'bg-slate-50 border border-slate-200 text-slate-700 focus:border-orange-500 shadow-sm'
+                        }`}
+                      >
+                        <option value="gemini-imagen">IMG: Gemini 2.5 Flash Image</option>
+                        <option value="nvidia-sana">IMG: NVIDIA Sana / SDXL</option>
+                        <option value="huggingface">IMG: HF FLUX.1</option>
+                        <option value="pollinations-schnell">IMG: Flux Schnell</option>
+                        <option value="pollinations-turbo">IMG: Z-Image Turbo</option>
+                        <option value="pollinations-klein">IMG: FLUX.2 Klein 4B</option>
+                      </select>
+                    </div>
+
+                    {/* Text-to-Speech Engine */}
+                    <div className="space-y-1.5 text-left">
+                      <label className="text-xs font-bold block">Voice Synthesis Engine</label>
+                      <select 
+                        value={ttsProvider}
+                        onChange={(e) => setTtsProvider(e.target.value as any)}
+                        className={`w-full text-xs font-bold px-3 py-2.5 rounded-xl outline-none transition-all ${
+                          isDarkMode 
+                            ? 'bg-white/5 border border-white/10 text-purple-400 focus:border-purple-500 [&>option]:bg-slate-800' 
+                            : 'bg-slate-50 border border-slate-200 text-slate-700 focus:border-purple-500 shadow-sm'
+                        }`}
+                      >
+                        <option value="browser">TTS: Browser Core</option>
+                        <option value="groq-whisper">TTS: Groq Whisper</option>
+                        <option value="huggingface">TTS: HuggingFace MMS</option>
+                        <option value="google-tts">TTS: Google TTS</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Accessibility & Environment Section */}
+                  <div className="space-y-4">
+                    <h4 className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-white/40' : 'text-slate-400'}`}>
+                      ♿ Accessibility Settings
+                    </h4>
+
+                    {/* Dyslexia Mode Toggle */}
+                    <div className="flex items-center justify-between py-1">
+                      <div className="flex flex-col text-left">
+                        <span className="font-bold text-sm">📖 Dyslexia-Friendly</span>
+                        <span className="text-[10px] opacity-60 font-sans">Easier fonts & spacing</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const val = !dyslexiaEnabled;
+                          setDyslexiaEnabled(val);
+                          localStorage.setItem('eduai_dyslexia', String(val));
+                          window.dispatchEvent(new Event('eduai_accessibility_change'));
+                        }}
+                        className={`w-12 h-6 rounded-full p-1 transition-colors ${dyslexiaEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
+                      >
+                        <div className={`w-4 h-4 bg-white rounded-full transition-transform ${dyslexiaEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+
+                    {/* Text Magnifier Toggle */}
+                    <div className="flex items-center justify-between py-1">
+                      <div className="flex flex-col text-left">
+                        <span className="font-bold text-sm">🔍 Magnify Text</span>
+                        <span className="text-[10px] opacity-60 font-sans">Enlarged readability fonts</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const val = !magnifyEnabled;
+                          setMagnifyEnabled(val);
+                          localStorage.setItem('eduai_magnify', String(val));
+                          window.dispatchEvent(new Event('eduai_accessibility_change'));
+                        }}
+                        className={`w-12 h-6 rounded-full p-1 transition-colors ${magnifyEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
+                      >
+                        <div className={`w-4 h-4 bg-white rounded-full transition-transform ${magnifyEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+
+                    {/* High Contrast Mode Toggle */}
+                    <div className="flex items-center justify-between py-1">
+                      <div className="flex flex-col text-left">
+                        <span className="font-bold text-sm">🌓 High Contrast</span>
+                        <span className="text-[10px] opacity-60 font-sans">Optimal visual layout settings</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const val = !highContrastEnabled;
+                          setHighContrastEnabled(val);
+                          localStorage.setItem('eduai_high_contrast', String(val));
+                          window.dispatchEvent(new Event('eduai_accessibility_change'));
+                        }}
+                        className={`w-12 h-6 rounded-full p-1 transition-colors ${highContrastEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
+                      >
+                        <div className={`w-4 h-4 bg-white rounded-full transition-transform ${highContrastEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+
+                    {/* Global Sound & Animations Mute Toggle */}
+                    <div className="flex items-center justify-between py-1">
+                      <div className="flex flex-col text-left">
+                        <span className="font-bold text-sm">🔇 Mute Sounds & Motion</span>
+                        <span className="text-[10px] opacity-60 font-sans font-sans">Stop narration & animations</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const val = !soundMuted;
+                          setSoundMuted(val);
+                          localStorage.setItem('eduai_sound_muted', String(val));
+                          window.dispatchEvent(new Event('eduai_accessibility_change'));
+                        }}
+                        className={`w-12 h-6 rounded-full p-1 transition-colors ${soundMuted ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
+                      >
+                        <div className={`w-4 h-4 bg-white rounded-full transition-transform ${soundMuted ? 'translate-x-6' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+
+                    {/* Speak Description Helper */}
+                    <button
+                      type="button"
+                      onClick={() => speakText("Accessibility helpers center is active. You can choose to enable dyslexia friendly mode, text magnification, or high contrast layout settings. Select your preference by sliding the toggle controls shown.")}
+                      className="w-full py-3 px-4 rounded-xl bg-brand-cyan/10 hover:bg-brand-cyan/20 text-brand-cyan font-bold text-xs flex items-center justify-center gap-2 transition-all border border-brand-cyan/20 mt-2"
+                    >
+                      🔊 Hear Description
+                    </button>
+                  </div>
+                </div>
+
+                {/* Drawer Footer info */}
+                <div className={`p-4 text-center text-[10px] font-bold tracking-widest ${isDarkMode ? 'bg-slate-950/40 text-white/20' : 'bg-slate-50 text-slate-400'}`}>
+                  EDUAI CORE CONSOLE · v1.4.0
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Content Container with Animations */}
         <div className="flex-1 overflow-hidden relative">
@@ -2330,7 +2479,7 @@ export default function App() {
                   {selectedOfflineMaterial ? (
                     <div className="flex-1 min-h-0 flex flex-col">
                       {/* Sub-Header bar for the reader */}
-                      <div className={`p-4 border-b ${isDarkMode ? 'border-white/5 bg-slate-900/20' : 'border-slate-100 bg-white shadow-sm'} shrink-0 flex items-center justify-between`}>
+                      <div className={`p-4 border-b ${isDarkMode ? 'border-white/5 bg-slate-900/20' : 'border-slate-100 bg-white shadow-sm'} shrink-0 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between`}>
                         <div>
                           <h3 className={`text-sm font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
                             {selectedOfflineMaterial.title}
@@ -2340,29 +2489,121 @@ export default function App() {
                           </p>
                         </div>
 
-                        {/* Speech synthesis offline read aloud button */}
-                        <button
-                          onClick={() => {
-                            if ('speechSynthesis' in window) {
-                              window.speechSynthesis.cancel();
-                              // strip markdown to read text nicely
-                              const stripped = selectedOfflineMaterial.content
-                                .replace(/[#*`_$\-\[\]()]/g, '')
-                                .substring(0, 550); // safety length
-                              const utterance = new SpeechSynthesisUtterance(stripped);
-                              utterance.rate = 1.0;
-                              utterance.pitch = 1.0;
-                              window.speechSynthesis.speak(utterance);
-                              triggerToast("🔊 Reading summary aloud...", "info");
-                            } else {
-                              triggerToast("Speech Synthesis is not supported in this environment.", "error");
-                            }
-                          }}
-                          className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase rounded-xl cursor-pointer hover:scale-105 active:scale-95 transition-all outline-none border-0"
-                          title="Generate text-to-speech reading off the cached lesson notes"
-                        >
-                          <Mic size={12} strokeWidth={2.5} /> Speak
-                        </button>
+                        {/* Speech, PDF, and Reader action bar */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {/* Reader mode triggers fullscreen overlay */}
+                          <button
+                            onClick={() => setIsOfflineReaderOpen(true)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-white text-[10px] font-black uppercase rounded-xl cursor-pointer hover:scale-105 active:scale-95 transition-all outline-none border-0 shadow-sm shadow-cyan-500/10"
+                            title="Open in fullscreen distraction-free reader layout"
+                          >
+                            <Eye size={11} strokeWidth={2.5} /> Reader Mode
+                          </button>
+
+                          {/* PDF compilation of local copy block content */}
+                          <button
+                            onClick={async () => {
+                              try {
+                                triggerToast("Creating PDF of cached material...", "info");
+                                const containerDiv = document.createElement('div');
+                                containerDiv.style.padding = '40px';
+                                containerDiv.style.width = '800px';
+                                containerDiv.style.backgroundColor = 'white';
+                                containerDiv.style.color = 'black';
+                                containerDiv.style.position = 'absolute';
+                                containerDiv.style.left = '-9999px';
+
+                                const tEl = document.createElement('h1');
+                                tEl.innerText = selectedOfflineMaterial.title;
+                                tEl.style.fontSize = '24px';
+                                tEl.style.marginBottom = '15px';
+                                document.title = selectedOfflineMaterial.title;
+                                containerDiv.appendChild(tEl);
+
+                                const metadataEl = document.createElement('p');
+                                metadataEl.innerText = `${selectedOfflineMaterial.subject} • Grade ${selectedOfflineMaterial.grade || '10'} • Offline Study Notes`;
+                                metadataEl.style.fontSize = '12px';
+                                metadataEl.style.color = '#555';
+                                metadataEl.style.marginBottom = '25px';
+                                containerDiv.appendChild(metadataEl);
+
+                                const txtEl = document.createElement('div');
+                                txtEl.style.fontSize = '13px';
+                                txtEl.style.lineHeight = '1.6';
+                                txtEl.innerHTML = replaceImagePlaceholders(marked.parse(selectedOfflineMaterial.content || '') as string);
+                                containerDiv.appendChild(txtEl);
+
+                                document.body.appendChild(containerDiv);
+
+                                const restoreStyle = patchOklchForHtml2canvas();
+                                let canvas;
+                                try {
+                                  canvas = await html2canvas(containerDiv, { scale: 1.5 });
+                                } finally {
+                                  restoreStyle();
+                                  document.body.removeChild(containerDiv);
+                                }
+
+                                const imgData = canvas.toDataURL('image/png');
+                                const pdf = new jsPDF({
+                                  orientation: 'portrait',
+                                  unit: 'px',
+                                  format: 'a4'
+                                });
+
+                                const pdfWidth = pdf.internal.pageSize.getWidth();
+                                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+                                let heightLeft = pdfHeight;
+                                let position = 0;
+
+                                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                                heightLeft -= pdf.internal.pageSize.getHeight();
+
+                                while (heightLeft >= 0) {
+                                  position = heightLeft - pdfHeight;
+                                  pdf.addPage();
+                                  pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                                  heightLeft -= pdf.internal.pageSize.getHeight();
+                                }
+
+                                pdf.save(`${selectedOfflineMaterial.title.replace(/\s+/g, '_')}_Offline_Draft.pdf`);
+                                triggerToast("PDF downloaded!", "success");
+                              } catch (err) {
+                                console.error(err);
+                                triggerToast("PDF export failed.", "error");
+                              }
+                            }}
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-black uppercase rounded-xl cursor-pointer hover:scale-105 active:scale-95 transition-all outline-none border-0"
+                            title="Export outline lessons copy to local pdf"
+                          >
+                            <Download size={11} strokeWidth={2.5} /> Export PDF
+                          </button>
+
+                          {/* Speech synthesis offline read aloud button */}
+                          <button
+                            onClick={() => {
+                              if ('speechSynthesis' in window) {
+                                window.speechSynthesis.cancel();
+                                // strip markdown to read text nicely
+                                const stripped = selectedOfflineMaterial.content
+                                  .replace(/[#*`_$\-\[\]()]/g, '')
+                                  .substring(0, 550); // safety length
+                                const utterance = new SpeechSynthesisUtterance(stripped);
+                                utterance.rate = 1.0;
+                                utterance.pitch = 1.0;
+                                window.speechSynthesis.speak(utterance);
+                                triggerToast("🔊 Reading summary aloud...", "info");
+                              } else {
+                                triggerToast("Speech Synthesis is not supported in this environment.", "error");
+                              }
+                            }}
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase rounded-xl cursor-pointer hover:scale-105 active:scale-95 transition-all outline-none border-0"
+                            title="Generate text-to-speech reading off the cached lesson notes"
+                          >
+                            <Mic size={11} strokeWidth={2.5} /> Speak
+                          </button>
+                        </div>
                       </div>
 
                       {/* Lesson Reader scroll area */}
@@ -2411,7 +2652,33 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
-    </div>
+
+        {/* Fullscreen Offline Material Reader Mode overlay */}
+        {selectedOfflineMaterial && (
+          <ReaderModeModal 
+            isOpen={isOfflineReaderOpen}
+            onClose={() => setIsOfflineReaderOpen(false)}
+            title={selectedOfflineMaterial.title || 'Syllabus Note Guide'}
+            content={selectedOfflineMaterial.content || ''}
+            subject={selectedOfflineMaterial.subject}
+            grade={selectedOfflineMaterial.grade}
+          />
+        )}
+
+        {/* Real-time hand-drawn displacement filters defs block (invisible) */}
+        <svg xmlns="http://www.w3.org/2000/svg" className="hidden" style={{ display: 'none', width: 0, height: 0 }}>
+          <defs>
+            <filter id="sketchy-hand-drawn-filter">
+              <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise" />
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.8" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="sketchy-hand-drawn-filter-active">
+              <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" result="noise" />
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.5" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+          </defs>
+        </svg>
+      </div>
     </MotionConfig>
   );
 }

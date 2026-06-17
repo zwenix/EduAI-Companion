@@ -59,12 +59,48 @@ export default function CategoryOverview({
 
   const getCardTheme = (id: string, idx: number) => {
     const colorThemes = [
-      { color: 'text-brand-cyan', bg: 'bg-[#00d2ff]/10', border: 'border-[#00d2ff]/10 shadow-cyan-500/5' },
-      { color: 'text-brand-purple', bg: 'bg-[#8e44ad]/10', border: 'border-[#8e44ad]/10 shadow-purple-500/5' },
-      { color: 'text-brand-yellow', bg: 'bg-[#ffdf40]/10', border: 'border-[#ffdf40]/10 shadow-yellow-500/5' },
-      { color: 'text-brand-pink', bg: 'bg-pink-500/10', border: 'border-pink-500/20 shadow-pink-500/5' },
-      { color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20 shadow-orange-500/5' },
-      { color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20 shadow-emerald-500/5' },
+      { 
+        color: 'text-brand-cyan', 
+        bg: 'bg-[#00d2ff]/15', 
+        border: 'border-[#00d2ff]/20 shadow-cyan-500/5',
+        gradLight: 'bg-gradient-to-br from-cyan-50/70 via-cyan-50/30 to-white hover:from-cyan-100/80 hover:to-white border-cyan-100/65',
+        gradDark: 'bg-gradient-to-br from-slate-900/60 to-[#00d2ff]/10 hover:from-slate-900/80 hover:to-[#00d2ff]/20 border-[#00d2ff]/25'
+      },
+      { 
+        color: 'text-brand-purple', 
+        bg: 'bg-[#8e44ad]/15', 
+        border: 'border-[#8e44ad]/20 shadow-purple-500/5',
+        gradLight: 'bg-gradient-to-br from-purple-50/70 via-purple-50/30 to-white hover:from-purple-100/80 hover:to-white border-purple-100/65',
+        gradDark: 'bg-gradient-to-br from-slate-900/60 to-[#8e44ad]/10 hover:from-slate-900/80 hover:to-[#8e44ad]/20 border-[#8e44ad]/25'
+      },
+      { 
+        color: 'text-brand-yellow', 
+        bg: 'bg-[#ffdf40]/15', 
+        border: 'border-[#ffdf40]/20 shadow-yellow-500/5',
+        gradLight: 'bg-gradient-to-br from-yellow-50/70 via-yellow-50/30 to-white hover:from-yellow-100/80 hover:to-white border-yellow-200/50',
+        gradDark: 'bg-gradient-to-br from-slate-900/60 to-[#ffdf40]/10 hover:from-slate-900/80 hover:to-[#ffdf40]/20 border-[#ffdf40]/25'
+      },
+      { 
+        color: 'text-brand-pink', 
+        bg: 'bg-pink-500/15', 
+        border: 'border-pink-500/20 shadow-pink-500/5',
+        gradLight: 'bg-gradient-to-br from-pink-50/70 via-pink-50/30 to-white hover:from-pink-100/80 hover:to-white border-pink-100/65',
+        gradDark: 'bg-gradient-to-br from-slate-900/60 to-pink-500/10 hover:from-slate-900/80 hover:to-pink-500/20 border-pink-500/25'
+      },
+      { 
+        color: 'text-orange-400', 
+        bg: 'bg-orange-500/15', 
+        border: 'border-orange-500/20 shadow-orange-500/5',
+        gradLight: 'bg-gradient-to-br from-orange-50/70 via-orange-50/30 to-white hover:from-orange-100/80 hover:to-white border-orange-200/40',
+        gradDark: 'bg-gradient-to-br from-slate-900/60 to-orange-500/10 hover:from-slate-900/80 hover:to-orange-500/20 border-orange-500/25'
+      },
+      { 
+        color: 'text-emerald-400', 
+        bg: 'bg-emerald-500/15', 
+        border: 'border-emerald-500/20 shadow-emerald-500/5',
+        gradLight: 'bg-gradient-to-br from-emerald-50/70 via-emerald-50/30 to-white hover:from-emerald-100/80 hover:to-white border-emerald-100/65',
+        gradDark: 'bg-gradient-to-br from-slate-900/60 to-emerald-500/10 hover:from-slate-900/80 hover:to-emerald-500/20 border-emerald-500/25'
+      },
     ];
     return colorThemes[idx % colorThemes.length];
   };
@@ -95,7 +131,7 @@ export default function CategoryOverview({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {subTabs.map((item, idx) => {
           const ItemIcon = item.icon;
-          const { color, bg, border } = getCardTheme(item.id, idx);
+          const { color, bg, gradLight, gradDark } = getCardTheme(item.id, idx);
           const desc = item.desc || getRichDescription(item.id, item.label);
 
           return (
@@ -105,11 +141,9 @@ export default function CategoryOverview({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: idx * 0.1 }}
-              className={`group flex flex-col p-8 rounded-[40px] transition-all text-left relative overflow-hidden cursor-pointer border ${border} ${
-                isDarkMode 
-                  ? 'bg-slate-900/40 hover:bg-slate-900/80 hover:border-white/20' 
-                  : 'bg-white hover:bg-slate-50/50 shadow-md hover:shadow-xl border-slate-100'
-              } hover:-translate-y-2.5 outline-none`}
+              className={`group flex flex-col p-8 rounded-[40px] transition-all text-left relative overflow-hidden cursor-pointer border hover:-translate-y-2.5 outline-none shadow-md hover:shadow-xl ${
+                isDarkMode ? gradDark : gradLight
+              }`}
             >
               <div className="flex justify-between items-start w-full mb-6 relative">
                 <div className={`p-4 rounded-[24px] ${bg} ${color} transition-all duration-300 group-hover:scale-110 shadow-inner`}>

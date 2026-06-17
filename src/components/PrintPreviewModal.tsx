@@ -13,7 +13,7 @@ import {
   Ruler,
   AlertTriangle
 } from 'lucide-react';
-import { printContent, downloadAsHTML, PrintOptions } from '../lib/printUtils';
+import { printContent, downloadAsHTML, PrintOptions, removeLegacyHeader } from '../lib/printUtils';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 
 interface PrintPreviewModalProps {
@@ -93,7 +93,7 @@ export default function PrintPreviewModal({
   // Read current display markup based on selection and replace text placeholders with images
   const activeHTML = useMemo(() => {
     const rawHTML = selectedSection === 'memo' ? (memo || '') : selectedSection === 'rubric' ? (rubric || '') : content;
-    return replaceImagePlaceholders(rawHTML);
+    return removeLegacyHeader(replaceImagePlaceholders(rawHTML));
   }, [selectedSection, memo, rubric, content]);
 
   if (!isOpen) return null;
@@ -307,64 +307,12 @@ export default function PrintPreviewModal({
                 fontFamily: "'Inter', system-ui, -apple-system, sans-serif"
               }}
             >
-              {/* Paper Top Branding Header (on-screen approximation of the built-in PDF styling) */}
-              <div className="mb-8 pb-6 border-b-2 border-slate-200 select-none">
-                {/* Brand row */}
-                <div className="flex justify-between items-center mb-6 gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${subjectStyling.gradient} flex items-center justify-center text-white text-lg font-mono font-black shadow-md`}>
-                      {subjectStyling.icon}
-                    </div>
-                    <div>
-                      <h4 className="text-base font-black tracking-tight text-slate-900 leading-none">
-                        EduAI Companion <span className="text-[9px] font-black bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded leading-none ml-1">PRO v2.0</span>
-                      </h4>
-                      <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase mt-1 leading-none">
-                        CAPS Subject Material
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <span className={`text-[10px] font-black uppercase tracking-widest ${subjectStyling.badgeBg} ${subjectStyling.badgeText} px-2.5 py-1 rounded-full`}>
-                      {subjectStyling.category}
-                    </span>
-                    {options.grade && (
-                      <div className="w-12 h-12 rounded-full bg-slate-900 text-white flex flex-col items-center justify-center shadow-md">
-                        <span className="text-[8px] font-black uppercase opacity-75 leading-none">Gr</span>
-                        <span className="text-base font-black leading-none mt-0.5">{options.grade}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Material Title Section */}
-                <div className="border-l-4 pl-3.5 mb-5" style={{ borderColor: subjectStyling.accent }}>
-                  <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-snug">
-                    {options.title || title}
-                  </h1>
-                  <p className="text-xs font-bold text-slate-500 mt-1 flex items-center gap-1.5">
-                    <span>Topic: <strong>{selectedSection === 'memo' ? 'Memorandum Key' : selectedSection === 'rubric' ? 'Assessment Guidelines' : (options.contentType || 'Concept Worksheet')}</strong></span>
-                    <span className="text-slate-300">|</span>
-                    <span>Class Sync: <strong>Grade {options.grade || 'General'}</strong></span>
-                  </p>
-                </div>
-
-                {/* Simulated Student sign space lines */}
-                <div className="grid grid-template grid-cols-3 gap-6 border-y border-dashed border-slate-200 py-4 mb-2">
-                  <div className="flex items-end gap-1.5 min-w-0">
-                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 shrink-0">Learner Name:</span>
-                    <div className="border-b border-dotted border-slate-400 flex-1 h-3"></div>
-                  </div>
-                  <div className="flex items-end gap-1.5 min-w-0">
-                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 shrink-0">Date Signed:</span>
-                    <div className="border-b border-dotted border-slate-400 flex-1 h-3"></div>
-                  </div>
-                  <div className="flex items-end gap-1.5 min-w-0">
-                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 shrink-0">Total Score:</span>
-                    <div className="border-b border-dotted border-slate-400 flex-1 h-3 text-right pr-1 text-slate-400 font-bold text-[10px]">/ _____</div>
-                  </div>
-                </div>
+              {/* Paper Top Branding Header (on-screen 1/2 line watermark) */}
+              <div className="mb-6 pb-2 border-b border-slate-200 select-none flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                <span>EduAI Companion PRO v2.0 - CAPS Aligned South African Educational Resource</span>
+                <span className="font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[8px]">
+                  {subjectStyling.category} {options.grade && `• Gr ${options.grade}`}
+                </span>
               </div>
 
               {/* Dynamic generated content inside paper wrapper */}
@@ -374,9 +322,9 @@ export default function PrintPreviewModal({
               />
 
               {/* Paper Footer information */}
-              <div className="mt-12 pt-4 border-t border-slate-200 flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest select-none">
-                <span>EduAI Companion • CAPS Aligned South Africa</span>
-                <span>eduai-companion.github.io</span>
+              <div className="mt-12 pt-4 border-t border-dashed border-slate-200 flex justify-between items-center text-[8px] font-semibold text-slate-400 uppercase tracking-widest select-none">
+                <span>EduAI Companion • CAPS Aligned • Developer & Owner: Z. Msuthu © 2026</span>
+                <span>eduai-companion.vercel.app</span>
               </div>
 
             </div>

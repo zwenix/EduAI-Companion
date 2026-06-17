@@ -442,7 +442,12 @@ function ContentPreview({ html, label, isDarkMode, imagePrompt }: { html: string
   };
 
   return (
-    <div className="space-y-4">
+    <motion.div 
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="space-y-4"
+    >
       <div className="flex items-center justify-between mb-4">
         <h3 className={`text-[11px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
           {label}
@@ -470,7 +475,7 @@ function ContentPreview({ html, label, isDarkMode, imagePrompt }: { html: string
           EduAI Companion Engine
          </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -1565,16 +1570,16 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
 
   return (
     <>
-      {/* Backdrop for click away dismiss */}
+      {/* Backdrop for click away dismiss - placed below header (top-20) and z-[40] */}
       <div 
         onClick={onClose}
-        className="fixed inset-0 bg-[#070b13]/80 backdrop-blur-md z-[65] cursor-pointer"
+        className="fixed top-20 inset-x-0 bottom-0 bg-[#070b13]/80 backdrop-blur-md z-[40] cursor-pointer"
       />
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="fixed inset-0 sm:inset-4 lg:inset-10 z-[70] backdrop-blur-3xl bg-[#0B1122]/95 sm:glass sm:bg-transparent rounded-none sm:rounded-[32px] lg:rounded-[48px] shadow-[0_40px_120px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden border-0 sm:border border-white/10"
+        className="fixed top-20 inset-x-0 bottom-0 sm:top-24 sm:inset-x-4 sm:bottom-4 lg:top-28 lg:inset-x-10 lg:bottom-10 z-[45] backdrop-blur-3xl bg-[#0B1122]/95 sm:glass sm:bg-transparent rounded-none sm:rounded-[32px] lg:rounded-[48px] shadow-[0_40px_120px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden border-t sm:border border-white/10"
       >
         {/* Header */}
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between p-4 lg:p-8 border-b border-white/5 bg-white/5 px-4 lg:px-10 gap-4 shrink-0">

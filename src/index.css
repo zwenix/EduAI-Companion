@@ -3,9 +3,9 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Patrick Hand", "Nunito", ui-sans-serif, system-ui, sans-serif;
   --font-hand: "Patrick Hand", cursive;
-  --font-display: "Fredoka", sans-serif;
+  --font-display: "Patrick Hand", "Fredoka", sans-serif;
   --font-comic: "Comic Neue", cursive;
   
   --color-brand-cyan: #00d2ff;
@@ -217,3 +217,101 @@ body.high-contrast-active a {
   box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.12), 0 8px 16px -8px rgba(0, 0, 0, 0.08) !important;
   border-color: rgba(0, 210, 255, 0.3) !important;
 }
+
+/* Real-time hand-drawn/sketchy displacement filters on vector icons */
+svg:not(.not-sketchy) {
+  filter: url(#sketchy-hand-drawn-filter);
+  transition: filter 0.3s ease, transform 0.2s ease;
+}
+
+svg:not(.not-sketchy):hover {
+  filter: url(#sketchy-hand-drawn-filter-active);
+}
+
+/* ==========================================================================
+   PEACH / ORANGISH & WHITE THEME MODE
+   ========================================================================== */
+.peach-theme {
+  --color-brand-cyan: #ff5e36 !important; /* Extremely high-intensity bright neon peach/coral */
+  --color-brand-yellow: #ff8800 !important; /* Strong bright orange/amber */
+  --color-brand-pink: #ff1e56 !important; /* Vivid neon magenta pink */
+  --color-brand-green: #00d27a !important; /* Brighter high-saturation mint/emerald */
+  --color-brand-purple: #ff4d6d !important; /* Strong warm coral-magenta subcolor */
+  
+  /* Core elements: Very dim classy cream */
+  background-color: #efe8d9 !important;
+}
+
+/* Remap to beautiful dim cream backgrounds */
+.peach-theme,
+.peach-theme .bg-slate-50,
+.peach-theme.bg-slate-50 {
+  background-color: #efe8d9 !important;
+}
+
+/* Bright eggshell/ivory card backgrounds context to pop against the dim cream */
+.peach-theme .bg-white,
+.peach-theme.bg-white,
+.peach-theme .glass,
+.peach-theme.glass {
+  background-color: #ffffff !important;
+}
+
+/* Slightly deeper warm borders for solid visual anchors */
+.peach-theme .border-slate-100,
+.peach-theme .border-slate-200,
+.peach-theme .border-slate-300/50,
+.peach-theme .border-slate-200/55 {
+  border-color: #dcd4c3 !important;
+}
+
+/* Strong warm peach block segments */
+.peach-theme .bg-slate-100,
+.peach-theme.bg-slate-100 {
+  background-color: #e4dbcb !important;
+}
+
+.peach-theme .bg-slate-200,
+.peach-theme.bg-slate-200 {
+  background-color: #ffbeaa !important; /* Super energetic bright peach block */
+}
+
+.peach-theme .hover\:bg-slate-100:hover,
+.peach-theme .hover\:bg-slate-50:hover {
+  background-color: #f7eedb !important;
+}
+
+/* Strong warm-toned typography for outstanding readability */
+.peach-theme .text-slate-900,
+.peach-theme .text-slate-800 {
+  color: #431407 !important; /* Highly solid deep cocoa/rust */
+}
+
+.peach-theme .text-slate-700,
+.peach-theme .text-slate-600 {
+  color: #7c2d12 !important; /* Deep bright reddish terracotta */
+}
+
+.peach-theme .text-slate-500,
+.peach-theme .text-slate-400 {
+  color: #9a3412 !important; /* Bold rust/orange accents */
+}
+
+/* Customize scrollbars with deep peach grip track */
+.peach-theme * {
+  scrollbar-color: rgba(255, 94, 54, 0.45) transparent !important;
+}
+
+.peach-theme .custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 94, 54, 0.5) !important;
+}
+
+.peach-theme .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 94, 54, 0.8) !important;
+}
+
+.peach-theme .shadow-cyan-500\/30 {
+  box-shadow: 0 10px 15px -3px rgba(255, 94, 54, 0.35) !important;
+}
+
+
