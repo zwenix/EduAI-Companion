@@ -158,30 +158,55 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini')
   const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nThe 'content' field in your JSON response MUST be stunningly designed HTML with Tailwind CSS. DO NOT use generic Markdown.`;
   const isPoster = input.visualType?.toLowerCase().includes('poster');
   const isInfographic = input.visualType?.toLowerCase().includes('infographic') || input.visualType?.toLowerCase().includes('mind map');
+  const isLessonDisplay = input.visualType?.toLowerCase().includes('display') || input.visualType?.toLowerCase().includes('chart') || input.visualType?.toLowerCase().includes('wall') || input.visualType?.toLowerCase().includes('lesson display');
   const isDiagram = input.visualType?.toLowerCase().includes('diagram');
   const isFlashcard = input.visualType?.toLowerCase().includes('flashcard') || input.visualType?.toLowerCase().includes('learning card');
 
   let visualPrompt = "";
   if (isPoster) {
     visualPrompt = `
-      Create a stunning, print-ready, highly visual classroom display poster for South African Grade ${input.grade} ${input.subject} learners on the CAPS topic: "${input.topic}".
+      Create an exceptionally polished, high-resolution educational poster layout on the CAPS topic: "${input.topic}" for South African Grade ${input.grade} ${input.subject} classrooms.
       
-      CRITICAL RULE: DO NOT write any worksheets, exercises, questions, answers, fill-in-the-blanks, or assessment tasks. This is strictly a visual aid for display and illustrative purposes during lessons.
+      CRITICAL RULE: DO NOT generate quiz questions, exam exercises, worksheets, homework, fill-in-the-blanks, or assessment tasks. This is exclusively a visual teaching aid.
       
-      DESIGN RESTRUCTURING - IMPLEMENT ONE OF THESE REVERSE-ENGINEERED SHOW-STOPPING CLASSROOM STYLES:
-      Style Option A) CHALKBOARD INSPIRATIONAL/MOTIVATIONAL DISPLAY style:
-      - Background: A deep charcoal or slate black chalkboard texture with subtle hand-drawn chalk dust and grid lines.
-      - Header: A bold, multi-colored hand-written 3D chalk styled title (using text shadows, hand-copied lettering feel with playful vibrant colors like chalk yellow, sky blue outline, hot pink).
-      - Central Visual: A stylized, handcrafted center-piece drawing illustrating the theme (e.g. a chalk-drawn tree of knowledge, interactive brain gears, or a scientific symbol).
-      - Surrounding Layout: Draw 5-7 beautifully color-coded thought bubbles, clouds, or capsule containers with dashed or scribbled colorful chalk borders radiating outward.
-      - Content: Inside each bubble, include highly motivational, brief, key facts or growth quotes of 4-8 words (e.g., "Mistakes mean I am learning!", "Math is my superpower!", "Try, improve, succeed!").
-      - Accents: Fill empty corners with small fun school-themed chalkboard doodles (pencils, rulers, clocks, books, stars, small lightbulbs, musical notes).
+      AESTHETICS & STRUCTURE SPECIFICATION:
+      1. Clean Visual Hierarchy: Establish a clear flow from the top down. Use a generous, modern header banner, well-spaced bento-grid sections, and an impressive footer.
+      2. Minimalist Vector Style: Keep illustrations, icons, and layout clean, elegant, and modern. Avoid chaotic overlays, noisy gradients, or over-rendered elements.
+      3. Color Palette: Use a cohesive, premium palette of 3-4 professional colors (e.g., deep slate blue, warm terracotta accent, clean cream background). Avoid neon rainbow noise.
+      4. Central Visual Component: A spectacular, high-resolution hero section featuring a minimalist vector style illustration portraying "${input.topic}" in a clean, professional manner (e.g., [Illustration: ${input.topic} depicted in an elegant, clean South African context]).
+      5. Content Blocks: Present key concepts inside elegantly spaced card containers (rounded-2xl, subtle border, shadow) with large beautifully tracking headers, concise bullet points (4-8 words), and relevant emojis.
       
-      Style Option B) NATURE / WILDLIFE / DISCOVERY LANDSCAPE style:
-      - Background & Frame: An elegant, solid, thick primary accent border (like standard National Geographic warm mustard-yellow or terracotta).
-      - Title: Large, display-oriented title in high-contrast crisp sans-serif with subtle text shadows.
-      - Central Artwork: A breathtaking scenic illustration of a South African landscape (e.g., golden-hour savanna, Drakensberg peaks, Table Mountain, or green fynbos reserve). Include kids in school uniforms holding notebooks and exploring, seeing local fauna and flora (Lions, Springboks, Proteas, Aloe) in their habitats.
-      - Information Layout: Position 3-4 beautifully semi-transparent white-boarded informational callout boxes overlapping the landscape. Use thin primary-colored borders, tiny playful emojis, and highly legibly structured bold summaries of 1-2 key facts.
+      Ensure every element is crisp, accessible, and ready for immediate high-resolution classroom display printing.
+    `;
+  } else if (isInfographic) {
+    visualPrompt = `
+      Design an incredibly structured, premium academic infographic on the CAPS topic: "${input.topic}" for South African Grade ${input.grade} ${input.subject} classrooms.
+      
+      CRITICAL RULE: DO NOT generate homework, questions, assessment exercises, or study guides with dense text. Focus on graphics, statistics, and high-impact visual layouts.
+      
+      AESTHETICS & STRUCTURE SPECIFICATION:
+      1. High-Resolution Educational Poster Layout: Organize complex theories into a dual-column matrix or an asymmetrical bento grid structure.
+      2. Minimalist Vector Style: Icons, graphics, charts, and mascots must be styled as modern flat minimalist vector graphics with clean outlines and balanced negative space.
+      3. Clean Visual Hierarchy: Guide the eye with clean numbered points, bold colored accents, distinct callout panels (rounded-xl), and elegant divider ribbons.
+      4. Concept breakdown: Each section must feature a descriptive visual mockup placeholder (e.g., [Illustration: Clean vector infographic icon of key concept]) alongside hyper-concise capsule bullet facts.
+      5. Visual Anchors: Include a striking comparison matrix or a centered concentric diagram showing relationships cleanly.
+      
+      The final product must be highly instructive, visually mesmerizing, and optimized for classroom display.
+    `;
+  } else if (isLessonDisplay) {
+    visualPrompt = `
+      Design a stunning, high-resolution visual Lesson Display / Anchor Chart on the CAPS topic: "${input.topic}" for South African Grade ${input.grade} ${input.subject} classrooms.
+      
+      CRITICAL RULE: This is a permanent reference display, not a quiz or activity workbook. Ensure zero assessment activities or worksheet blocks.
+      
+      AESTHETICS & STRUCTURE SPECIFICATION:
+      1. High-Resolution Educational Poster Layout: Style this as a full-screen, landscape or portrait anchor chart. Frame it with a bold, professional border and a large chalkboard-style or modern minimalist header.
+      2. Clean Visual Hierarchy: Create high-contrast floating keyword cards, word-wall cards, or step-by-step process paths. Use beautiful, generous negative space so keywords stand out clearly at a distance of 5 meters.
+      3. Minimalist Vector Style: All diagram lines, connecting arrows, indicators, and background grids must use a sleek, modern minimalist vector style.
+      4. Primary Focal Point: Frame a central diagram representing the core mechanism of "${input.topic}" (using clean labeled lines, e.g., pointing out labels like "ROOT", "PHOTOSYNTHESIS", "REACTIONS" in stark white backgrounds with crisp shadows).
+      5. Vocabulary Anchors: Highlight 4-6 key term definition cards, beautifully styled with dashed colored borders, a neat custom emoji, and single-sentence explanations.
+      
+      Make it visually inspiring, clean, and perfectly suited for prominent display on classroom bulletin boards or digital visual screens.
     `;
   } else if (isFlashcard) {
     visualPrompt = `
@@ -194,24 +219,6 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini')
         - Back side: Clear conceptual explanation, a South African contextual/CAPS example, and a small fun "Did you know?" fact box.
       - Aesthetics: Rounded-3xl corners (at least 24px), thick colored outlines (3px solid border that changes color per card), and micro shadow depth.
       - Use rich, vibrant background gradients or clean high-contrast card themes. Text must be large and instantly legible.
-    `;
-  } else if (isInfographic) {
-    visualPrompt = `
-      Design an incredibly structured, premium academic infographic/mind-map comparison chart on "${input.topic}" for Grade ${input.grade} ${input.subject}.
-      
-      CRITICAL RULE: DO NOT generate worksheet questions, exercises, or homework. This is a visual display cheat-sheet.
-      
-      AESTHETICS - CHOOSE ONE OF THESE COMPANION INFOGRAPHIC BLUEPRINTS:
-      Structure A) HIGH-CONTRAST DUAL-COLUMN CONCEPT OVERVIEW (e.g., Growth vs Fixed Mindset comparison):
-      - Main Header: A playful curved ribbon or banner spanning the top with a gorgeous title in bold, professional display typography.
-      - Interactive Mascots: Place two cute characters at the top of their respective columns (e.g., styled as adorable mini cartoon brains wearing glasses—one frowning, one smiling).
-      - Matrix Grid: A neat comparison grid. The left column (defeatist/negative views) is styled with a soft pastel red/pink background and card borders. The right column (positive reframes) is styled with a gorgeous soft mint green background and emerald card borders.
-      - Connectivity: Connect corresponding row concepts with subtle dotted lines and bright arrow selectors to guide the eye. Use short 5-word phrases.
-      
-      Structure B) ASYMMETRICAL BENTO GRID:
-      - Center-piece: A central bold circular capsule containing the primary topic, using thick shadows and bright rings.
-      - Bento Grid: Surround the center with 4-5 neat rectangular cards of unequal sizes (bento grid) styled beautifully.
-      - Cards: Each card has its own clean theme color (Fuchsia, Sky Blue, Forest Green, Amber), a large modern outline icon/emoji, and uses a bulleted structure for CAPS key theories.
     `;
   } else if (isDiagram) {
     visualPrompt = `
