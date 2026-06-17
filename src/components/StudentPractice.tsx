@@ -3,6 +3,7 @@ import { BookOpen, CheckCircle, FileText, Loader2, Target, BrainCircuit, Scan, H
 import { generateEducationalContent, runOCRAndGrade } from '../services/geminiService';
 import OCRScanner from './OCRScanner';
 import { marked } from 'marked';
+import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { educationalData } from '../lib/educational-data';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp } from 'firebase/firestore';
@@ -242,14 +243,14 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
             {result ? (
               <div className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} p-8 rounded-[24px] border shadow-sm`}>
                 <div 
-                  dangerouslySetInnerHTML={{ __html: marked.parse(result.content || result) as string }} 
-                  className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-800'}`} 
+                  dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(marked.parse(result.content || result) as string) }} 
+                  className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-850'}`} 
                 />
                 {result.memo && (
                   <div className={`mt-8 border-t ${isDarkMode ? 'border-white/10' : 'border-slate-200'} pt-8`}>
                      <h3 className={`text-2xl font-hand mb-4 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Memo & Rubric</h3>
                      <div 
-                        dangerouslySetInnerHTML={{ __html: marked.parse(result.memo) as string }} 
+                        dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(marked.parse(result.memo) as string) }} 
                         className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-800'}`} 
                      />
                   </div>
@@ -352,7 +353,7 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
               <div className="space-y-6">
                  <div>
                     <h4 className={`text-sm font-bold mb-2 uppercase tracking-wide ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>AI Feedback</h4>
-                    <div className={`p-4 rounded-xl border prose prose-sm max-w-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200 prose-invert' : 'bg-slate-50 border-slate-100 text-slate-800'}`} dangerouslySetInnerHTML={{ __html: marked.parse(ocrResult.feedback) as string }} />
+                    <div className={`p-4 rounded-xl border prose prose-sm max-w-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200 prose-invert' : 'bg-slate-50 border-slate-100 text-slate-800'}`} dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(marked.parse(ocrResult.feedback) as string) }} />
                  </div>
                  {ocrResult.marksPerQuestion && (
                    <div>

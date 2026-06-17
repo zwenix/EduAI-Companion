@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   Loader2, Sparkles, Printer, Save, Trash2, Download, Send,
   FlaskConical, Palette, FileText, Eye, BookOpen, GraduationCap,
-  ChevronDown, ChevronUp, Zap, ClipboardList, ImageIcon, Settings2, RefreshCw,
+  ChevronDown, ChevronUp, ChevronRight, Zap, ClipboardList, ImageIcon, Settings2, RefreshCw,
   Check, X, Plus, Users, Layout, Video, FileCode, HelpCircle, Archive, UserCircle, Image, AlertCircle,
   Edit2, History, Share2, Copy, Link, Mail, FileJson, Maximize2, Minimize2,
   Timer, Volume2, VolumeX, Bell
@@ -96,6 +96,54 @@ const TERMS = ['Term 1', 'Term 2', 'Term 3', 'Term 4'];
 const COLOR_SCHEMES = ['Bright Primary Colors', 'Pastel Soft', 'School Navy & Gold', 'Green & Nature', 'Monochrome Professional', 'Rainbow Fun'];
 const VISUAL_STYLES = ['Modern & Clean', 'Playful Cartoon', 'Professional Academic', 'Bold & Graphic', 'Minimalist'];
 const TONES = ['Formal & Professional', 'Warm & Friendly', 'Informative & Clear', 'Urgent & Important'];
+
+const GENERATOR_GROUPS = [
+  {
+    id: 'teaching',
+    label: 'Content Studio',
+    icon: FlaskConical,
+    desc: 'Generate high-quality lesson plans, worksheets, assignments, daily notes, and tests perfectly mapped to South African CAPS standard criteria.',
+    color: 'text-brand-cyan',
+    bg: 'bg-brand-cyan/10',
+    border: 'border-brand-cyan/20 shadow-cyan-500/5',
+  },
+  {
+    id: 'visual',
+    label: 'Visual Lab',
+    icon: Palette,
+    desc: 'Craft striking educational displays, printable flashcards, timeline cards, process flowmaps, mind maps, and interactive signs.',
+    color: 'text-brand-purple',
+    bg: 'bg-brand-purple/10',
+    border: 'border-brand-purple/20 shadow-purple-500/5',
+  },
+  {
+    id: 'video',
+    label: 'Video Lab',
+    icon: Video,
+    desc: 'Create captivating AI teacher avatars, lesson explainer animations, video guidelines, and dynamic digital slideshows.',
+    color: 'text-orange-400',
+    bg: 'bg-orange-500/10',
+    border: 'border-orange-500/20 shadow-orange-500/5',
+  },
+  {
+    id: 'admin',
+    label: 'Admin Lab',
+    icon: FileText,
+    desc: 'Draft school correspondence including custom parental permission notices, newsletters, calendars, and certificates of attendance.',
+    color: 'text-blue-400',
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/20 shadow-blue-500/5',
+  },
+  {
+    id: 'grade1',
+    label: 'Foundation Hub',
+    icon: Sparkles,
+    desc: 'Design foundational literacy and numeracy lessons, phonics flash exercises, spelling tables, and early learning games.',
+    color: 'text-brand-yellow',
+    bg: 'bg-brand-yellow/10',
+    border: 'border-brand-yellow/20 shadow-brand-yellow/5',
+  }
+];
 
 // ─── Shared UI Components (Simulating Shadcn) ───────────────────────────────
 
@@ -377,7 +425,6 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
             srcDoc={finalIframeContent} 
             className="w-full h-[850px] border-0 bg-white rounded-xl"
             title="Content Preview"
-            sandbox="allow-scripts allow-same-origin"
           />
         ) : (
           <div ref={contentRef} className="space-y-6">
@@ -479,7 +526,12 @@ const downloadBlobFile = (content: string, filename: string, contentType: string
 
 export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching', isDarkMode = true }: { isOpen: boolean, onClose: () => void, initialTab?: string, isDarkMode?: boolean }) {
   const { provider } = useAi();
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeTab, setActiveTab] = useState(() => {
+    if (initialTab === 'teaching' || !initialTab) {
+      return 'overview';
+    }
+    return initialTab;
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activePreviewTab, setActivePreviewTab] = useState<'content' | 'memo' | 'rubric' | 'assessment'>('content');
@@ -1353,29 +1405,16 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
           </div>
           
           <div className="flex items-center justify-between lg:justify-end gap-2 lg:gap-4 overflow-x-auto scrollbar-hide pb-2 lg:pb-0">
-            {/* Labs Toggle */}
-            <div className="bg-white/5 flex p-1.5 rounded-[24px] border border-white/5 gap-1 shadow-inner shrink-0 font-sans">
-              {[
-                { id: 'teaching', icon: FlaskConical, label: 'Content Studio' },
-                { id: 'visual', icon: Palette, label: 'Visual Lab' },
-                { id: 'video', icon: Video, label: 'Video Lab' },
-                { id: 'admin', icon: FileText, label: 'Admin Lab' },
-                { id: 'grade1', icon: Sparkles, label: 'Foundation' },
-              ].map(lab => (
-                <button 
-                  key={lab.id}
-                  onClick={() => setActiveTab(lab.id)}
-                  className={cn(
-                    "flex items-center gap-2 px-4 lg:px-6 py-2.5 lg:py-3 rounded-[18px] text-[10px] lg:text-xs font-black uppercase tracking-widest transition-all font-sans",
-                    activeTab === lab.id ? "bg-brand-cyan text-navy-dark shadow-xl" : "text-slate-400 hover:text-white"
-                  )}
-                >
-                  <lab.icon size={14} className="lg:w-4 lg:h-4" />
-                  <span className="whitespace-nowrap hidden sm:inline">{lab.label}</span>
-                  <span className="whitespace-nowrap sm:hidden">{lab.label.split(' ')[0]}</span>
-                </button>
-              ))}
-            </div>
+            {/* Back to Studio Menu button */}
+            {activeTab !== 'overview' && (
+              <button 
+                type="button"
+                onClick={() => setActiveTab('overview')}
+                className="flex items-center gap-2 px-4 lg:px-6 py-2.5 lg:py-3 rounded-[18px] text-[10px] lg:text-xs font-black uppercase tracking-widest transition-all font-sans bg-white/5 hover:bg-white/10 text-brand-cyan border border-brand-cyan/30 shadow-md hover:scale-105 active:scale-95 cursor-pointer"
+              >
+                <span>← Back to Labs Menu</span>
+              </button>
+            )}
 
             {/* A4 Print Simulation Button */}
             {hasResult && (
@@ -1403,8 +1442,71 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
           </div>
         </div>
 
-      <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
-        {/* Left Form Panel */}
+      <div className="flex-1 flex flex-col overflow-y-auto lg:overflow-hidden relative">
+        {activeTab === 'overview' ? (
+          <div className="flex-1 overflow-y-auto p-6 md:p-10 lg:p-14 custom-scrollbar bg-[#0B1122]">
+            {/* Ambient display heading */}
+            <div className={`p-8 rounded-[40px] relative overflow-hidden border mb-10 ${
+              isDarkMode ? 'bg-indigo-950/20 border-indigo-500/25' : 'bg-[#fff5ee] border-[#ffebd6] shadow-sm'
+            }`}>
+              <div className="relative z-10 flex items-center gap-4">
+                <div className={`p-4 rounded-[24px] ${isDarkMode ? 'bg-indigo-500/10 text-brand-cyan' : 'bg-brand-yellow/20 text-slate-700'}`}>
+                  <FlaskConical size={32} />
+                </div>
+                <div>
+                  <h3 className={`text-2xl sm:text-3xl font-display font-black tracking-wide ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                    Intelligence Labs Portal
+                  </h3>
+                  <p className={`text-sm font-semibold ${isDarkMode ? 'text-indigo-200' : 'text-slate-500'} mt-1`}>
+                    Select a specialized intelligence lab to begin orchestrating high-quality CAPS-aligned educational material.
+                  </p>
+                </div>
+              </div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-brand-cyan/10 rounded-full blur-3xl pointer-events-none" />
+            </div>
+
+            {/* Grid of Generation Groups */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in pb-12">
+              {GENERATOR_GROUPS.map((item, idx) => {
+                const ItemIcon = item.icon;
+                return (
+                  <motion.button
+                    key={item.id}
+                    onClick={() => {
+                      setActiveTab(item.id);
+                    }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: idx * 0.08 }}
+                    className={`group flex flex-col p-8 rounded-[40px] transition-all text-left relative overflow-hidden cursor-pointer border ${item.border} ${
+                      isDarkMode 
+                        ? 'bg-slate-900/40 hover:bg-slate-900/80 hover:border-white/20' 
+                        : 'bg-white hover:bg-slate-50/55 shadow-md hover:shadow-xl border-slate-100'
+                    } hover:-translate-y-2.5 outline-none`}
+                  >
+                    <div className="flex justify-between items-start w-full mb-6 relative">
+                      <div className={`p-4 rounded-[24px] ${item.bg} ${item.color} transition-all duration-300 group-hover:scale-110 shadow-inner`}>
+                        <ItemIcon size={28} />
+                      </div>
+                      <div className={`opacity-0 group-hover:opacity-100 transition-all ${item.color} ${item.bg} p-2.5 rounded-full absolute top-0 right-0 shadow-lg`}>
+                        <ChevronRight size={20} strokeWidth={3} className="group-hover:translate-x-0.5 transition-transform" />
+                      </div>
+                    </div>
+
+                    <h3 className={`text-xl lg:text-2xl font-display font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                      {item.label}
+                    </h3>
+                    <p className={`text-xs lg:text-sm font-medium leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-3`}>
+                      {item.desc}
+                    </p>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
+            {/* Left Form Panel */}
         <div className={cn(
           "bg-[#0B1122] lg:border-r border-white/5 lg:overflow-y-auto space-y-6 lg:space-y-8 scrollbar-hide shrink-0 h-max lg:h-full transition-all duration-300",
           isFullscreenPreview 
@@ -2676,6 +2778,8 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
            )}
         </div>
       </div>
+    )}
+  </div>
 
       {/* Assign Modal */}
       {showAssignModal && (

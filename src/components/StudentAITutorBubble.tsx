@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { Target, Sparkles, MessageCircle, X, Send, Bot, Loader2, ArrowRight, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
+import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { useAi } from '../contexts/AiContext';
 import { chatWithTutor } from '../services/unifiedAiService';
 import { auth, db } from '../lib/firebase';
@@ -342,7 +343,7 @@ export default function StudentAITutorBubble({ isDarkMode, student }: StudentAIT
                       {m.role === 'model' ? (
                         <div 
                           className="prose prose-xs max-w-none hover:prose-p:text-white leading-relaxed font-sans font-medium markdown-body transition-colors"
-                          dangerouslySetInnerHTML={{ __html: marked.parse(m.text) as string }}
+                          dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(marked.parse(m.text) as string) }}
                         />
                       ) : (
                         <p className="whitespace-pre-wrap leading-relaxed font-sans">{m.text}</p>

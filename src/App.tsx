@@ -61,6 +61,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'motion/react';
 import { marked } from 'marked';
+import { replaceImagePlaceholders } from './lib/imageReplacer';
 import ContentCreator from './components/ContentCreator';
 import Messenger from './components/Messenger';
 import ProgressReports from './components/ProgressReports';
@@ -2284,9 +2285,12 @@ export default function App() {
                           }
 
                           return (
-                            <button
+                            <motion.button
                               key={item.id || idx}
                               onClick={() => setSelectedOfflineMaterial(item)}
+                              initial={{ opacity: 0, y: 15 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.35, ease: "easeOut", delay: Math.min(idx * 0.05, 0.45) }}
                               className={`offline-item w-full text-left p-3.5 rounded-2xl transition-all cursor-pointer border ${
                                 isSelected
                                   ? 'bg-brand-cyan/15 border-brand-cyan text-brand-cyan shadow-sm font-semibold'
@@ -2311,7 +2315,7 @@ export default function App() {
                               <p className="text-[10px] opacity-80 mt-1 font-bold">
                                 {item.subject || 'General'}
                               </p>
-                            </button>
+                            </motion.button>
                           );
                         });
                       } catch {
@@ -2370,7 +2374,7 @@ export default function App() {
                               : 'bg-white border-slate-100 text-slate-700'
                           } markdown-body`}
                           dangerouslySetInnerHTML={{
-                            __html: marked.parse(selectedOfflineMaterial.content || '*No content available for this study guide. Try sync again.*') as string
+                            __html: replaceImagePlaceholders(marked.parse(selectedOfflineMaterial.content || '*No content available for this study guide. Try sync again.*') as string)
                           }}
                         />
                       </div>

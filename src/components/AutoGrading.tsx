@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Camera, Upload, Scan, X, RefreshCw, Loader2, FileCheck, Brain, CheckCircle, AlertCircle, ChevronRight, GraduationCap, Download, Printer, UserCircle, Users, Save, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
+import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { runOCRAndGrade, runOCRScan } from '../services/unifiedAiService';
 import { useAi } from '../contexts/AiContext';
 
@@ -445,7 +446,7 @@ export default function AutoGrading() {
                   <div className="bg-brand-cyan/10 border border-brand-cyan/30 p-8 rounded-[40px] relative mb-8">
                     <h4 className="text-[10px] font-black text-brand-cyan uppercase tracking-[0.3em] mb-4">Comprehensive Feedback</h4>
                     <div className="text-slate-800 font-medium italic leading-relaxed prose prose-sm max-w-none markdown-body"
-                      dangerouslySetInnerHTML={{ __html: marked.parse(result.feedback) as string }}
+                      dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(marked.parse(result.feedback) as string) }}
                     />
                   </div>
 

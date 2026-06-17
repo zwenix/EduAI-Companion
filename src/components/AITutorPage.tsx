@@ -3,6 +3,7 @@ import { Sparkles, User, Mic, Loader2, Play, Square, History as HistoryIcon, Gra
 import { motion, AnimatePresence } from 'motion/react';
 import { chatWithTutor } from '../services/unifiedAiService';
 import { marked } from 'marked';
+import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { useAi } from '../contexts/AiContext';
 import { speakText, stopSpeaking, pauseSpeaking, resumeSpeaking } from '../services/ttsService';
 import Logo from './Logo';
@@ -544,7 +545,7 @@ export default function AITutorPage() {
                 {msg.role === 'model' ? (
                   <div className="flex flex-col gap-4">
                     <div className="prose prose-xs lg:prose-sm max-w-none prose-p:leading-relaxed prose-invert markdown-body"
-                      dangerouslySetInnerHTML={{ __html: marked.parse(msg.text) as string }}
+                      dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(marked.parse(msg.text) as string) }}
                     />
                     {visuals[i] && (
                       <div className="pt-2 border-t border-white/5">
