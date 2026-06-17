@@ -262,7 +262,7 @@ const Switch = ({ checked, onCheckedChange, id, isDarkMode }: any) => (
 
 // ─── Preview Component ────────────────────────────────────────────────────────
 
-function ContentPreview({ html, label, isDarkMode }: { html: string | object; label: string, isDarkMode?: boolean }) {
+function ContentPreview({ html, label, isDarkMode, imagePrompt }: { html: string | object; label: string, isDarkMode?: boolean, imagePrompt?: string | null }) {
   const contentRef = useRef<HTMLDivElement>(null);
 
   if (!html) return null;
@@ -304,6 +304,11 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
     processedHtml = formatObjectToHtml(html);
   }
   
+  if (imagePrompt) {
+    const cleanAlt = imagePrompt.replace(/"/g, '&quot;');
+    processedHtml = `<div class="top-accompanying-visual max-w-full print:break-inside-avoid">[Illustration: ${cleanAlt}]</div>` + processedHtml;
+  }
+  
   // Replace text image placeholders with actual generated visuals on the fly
   processedHtml = replaceImagePlaceholders(processedHtml);
   
@@ -332,6 +337,40 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
       })
       .join('\n');
   };
+
+  const customVisualStyles = `
+<style>
+  .top-accompanying-visual {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    margin-bottom: 2rem !important;
+    margin-top: 0.5rem !important;
+  }
+  .top-accompanying-visual > div {
+    margin: 0 !important;
+    padding: 0.25rem !important;
+    width: 100% !important;
+    max-width: 1000px !important;
+    border-radius: 24px !important;
+    border: 1px solid rgba(226, 232, 240, 0.8) !important;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05) !important;
+    background-color: white !important;
+  }
+  .top-accompanying-visual img {
+    width: 100% !important;
+    height: 240px !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border-radius: 18px !important;
+  }
+  @media print {
+    .top-accompanying-visual img {
+      height: 2.2in !important;
+    }
+  }
+</style>
+`;
   
   let finalIframeContent = processedHtml;
   // Always strip AI-generated tailwind CDN
@@ -340,9 +379,9 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
   if (useIframe) {
       if (isFullHtmlDoc) {
           if (finalIframeContent.includes('<head>')) {
-              finalIframeContent = finalIframeContent.replace('<head>', `<head>\n${getParentStyles()}`);
+              finalIframeContent = finalIframeContent.replace('<head>', `<head>\n${getParentStyles()}\n${customVisualStyles}`);
           } else if (finalIframeContent.includes('<html')) {
-              finalIframeContent = finalIframeContent.replace(/<html[^>]*>/i, `$&<head>\n${getParentStyles()}</head>`);
+              finalIframeContent = finalIframeContent.replace(/<html[^>]*>/i, `$&<head>\n${getParentStyles()}\n${customVisualStyles}</head>`);
           }
       } else if (isHtmlFragment) {
           // Wrap fragment with Tailwind CSS
@@ -350,6 +389,7 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
 <html>
 <head>
     ${getParentStyles()}
+    ${customVisualStyles}
     <style>body { margin: 0; padding: 1rem; }</style>
 </head>
 <body class="bg-white text-slate-900">
@@ -374,6 +414,7 @@ function ContentPreview({ html, label, isDarkMode }: { html: string | object; la
             <head>
                 <title>${label}</title>
                 ${getParentStyles()}
+                ${customVisualStyles}
                 <style>
                     @media print {
                         @page { margin: 15mm; }
@@ -985,6 +1026,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [t_includeWorksheet, setT_IncludeWorksheet] = useState(true);
   const [t_dependencies, setT_Dependencies] = useState('');
   const [t_extraInstructions, setT_ExtraInstructions] = useState('');
+  const [t_generateImage, setT_GenerateImage] = useState(true);
   const [generationProgress, setGenerationProgress] = useState(0);
 
   const t_subjects = useMemo(() => {
@@ -1012,7 +1054,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [v_style, setV_Style] = useState('');
   const [v_specificContent, setV_SpecificContent] = useState('');
   const [v_quantity, setV_Quantity] = useState('');
-  const [v_generateImage, setV_GenerateImage] = useState(false);
+  const [v_generateImage, setV_GenerateImage] = useState(true);
   const [v_extraInstructions, setV_ExtraInstructions] = useState('');
   const [v_variations, setV_Variations] = useState(1);
   const [v_currentVariation, setV_CurrentVariation] = useState(0);
@@ -1046,7 +1088,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [a_tone, setA_Tone] = useState('');
   const [a_replySlip, setA_ReplySlip] = useState(false);
   const [a_extraInstructions, setA_ExtraInstructions] = useState('');
-  const [a_generateImage, setA_GenerateImage] = useState(false);
+  const [a_generateImage, setA_GenerateImage] = useState(true);
 
   // ─── Foundation State ─────────────────────────────────────────────────
   const [f_grade, setF_Grade] = useState('1');
@@ -1607,7 +1649,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   </div>
                 </div>
 
-                <div className="flex gap-10 py-4">
+                <div className="flex flex-wrap gap-x-10 gap-y-3 py-4">
                   <div className="flex items-center gap-3">
                     <Switch checked={t_memo} onCheckedChange={setT_Memo} id="t-memo" isDarkMode={isDarkMode} />
                     <Label className={isDarkMode ? "text-slate-300" : "text-slate-600"}>Include Memo</Label>
@@ -1615,6 +1657,10 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   <div className="flex items-center gap-3">
                     <Switch checked={t_rubric} onCheckedChange={setT_Rubric} id="t-rubric" isDarkMode={isDarkMode} />
                     <Label className={isDarkMode ? "text-slate-300" : "text-slate-600"}>Include Rubric</Label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Switch checked={t_generateImage} onCheckedChange={setT_GenerateImage} id="t-generateImage" isDarkMode={isDarkMode} />
+                    <Label className={isDarkMode ? "text-slate-300" : "text-slate-600"}>Accompanying Visual</Label>
                   </div>
                 </div>
 
@@ -2671,14 +2717,12 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                       {(activeTab === 'teaching' || activeTab === 'grade1') && (
                     <div className="space-y-12">
                       <div className="space-y-8" id="result-section">
-                        {teachingResult.imagePrompt && (
-                          <AiImage 
-                            prompt={teachingResult.imagePrompt} 
-                            aspectRatio="video"
-                            className="w-full mb-8"
-                          />
-                        )}
-                        <ContentPreview html={teachingResult.content} label="Integrated Material" isDarkMode={isDarkMode} />
+                        <ContentPreview 
+                          html={teachingResult.content} 
+                          label="Integrated Material" 
+                          isDarkMode={isDarkMode} 
+                          imagePrompt={t_generateImage ? (teachingResult.imagePrompt || teachingResult.userImagePrompt) : undefined}
+                        />
                       </div>
                       
                       {teachingResult.memo && (
@@ -2721,15 +2765,13 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                            </div>
                         </div>
                       )}
-                      {visualResult && visualResult.shouldGenerateImage && (visualResult.userImagePrompt || visualResult.imagePrompt) && (
-                        <AiImage 
-                          prompt={visualResult.userImagePrompt || visualResult.imagePrompt} 
-                          aspectRatio="portrait"
-                          className="w-full max-w-2xl mx-auto mb-8"
-                        />
-                      )}
                       {visualResult && (
-                        <ContentPreview html={visualResult.content} label="Digital Visual Asset" isDarkMode={isDarkMode} />
+                        <ContentPreview 
+                          html={visualResult.content} 
+                          label="Digital Visual Asset" 
+                          isDarkMode={isDarkMode} 
+                          imagePrompt={v_generateImage ? (visualResult.userImagePrompt || visualResult.imagePrompt) : undefined}
+                        />
                       )}
                     </div>
                   )}
@@ -2751,14 +2793,12 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                   )}
                   {activeTab === 'admin' && (
                     <div className="space-y-8">
-                      {adminResult.shouldGenerateImage && (adminResult.userImagePrompt || adminResult.imagePrompt) && (
-                        <AiImage 
-                          prompt={adminResult.userImagePrompt || adminResult.imagePrompt} 
-                          aspectRatio="square"
-                          className="w-1/2 max-w-sm mx-auto mb-8"
-                        />
-                      )}
-                      <ContentPreview html={adminResult.content} label="Official Correspondence" isDarkMode={isDarkMode} />
+                      <ContentPreview 
+                        html={adminResult.content} 
+                        label="Official Correspondence" 
+                        isDarkMode={isDarkMode} 
+                        imagePrompt={a_generateImage ? (adminResult.userImagePrompt || adminResult.imagePrompt) : undefined}
+                      />
                     </div>
                   )}
                     </>

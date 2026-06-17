@@ -129,6 +129,18 @@
         "createdAt": { "type": "string" }
       },
       "required": ["title", "topic", "date", "notes", "resources", "phase", "subject", "userEmail"]
+    },
+    "Illustration": {
+      "title": "Illustration",
+      "description": "Cached illustration files mapped to teacher visual prompts.",
+      "type": "object",
+      "properties": {
+        "prompt": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "teacherId": { "type": "string" }
+      },
+      "required": ["prompt", "imageUrl", "createdAt"]
     }
   },
   "firestore": {
@@ -167,6 +179,10 @@
     "/lessons/{lessonId}": {
       "schema": "Lesson",
       "description": "User created classroom lessons."
+    },
+    "/illustrations/{illustrationId}": {
+      "schema": "Illustration",
+      "description": "Cached illustrations and diagrams."
     }
   }
 }
