@@ -9,6 +9,7 @@ import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
+import { cleanTextForSpeech } from '../services/ttsService';
 
 interface ReaderModeModalProps {
   isOpen: boolean;
@@ -143,10 +144,11 @@ export default function ReaderModeModal({
 
     synthRef.current.cancel();
 
-    // Strip markdown tags to speak plain English / South African subjects nicely
+    // Strip markdown HTML, styling, structures, and metadata tags
     const element = document.createElement('div');
     element.innerHTML = activeHTML;
-    const cleanText = element.textContent || element.innerText || content;
+    const rawText = element.textContent || element.innerText || content;
+    const cleanText = cleanTextForSpeech(rawText);
     
     // Limit speaking length to avoid burning standard resource limits
     const textToSpeak = cleanText.substring(0, 4000);

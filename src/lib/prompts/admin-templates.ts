@@ -29,20 +29,24 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
 📋 LESSON PLAN HTML TEMPLATE structure:
 <article class="lesson-plan max-w-5xl mx-auto bg-slate-50 shadow-xl rounded-3xl overflow-hidden print:shadow-none font-sans">
   
-  <!-- HEADER CARD -->
-  <header class="bg-[#EA580C] text-white p-8 rounded-b-3xl relative overflow-hidden shadow-lg" style="background-color: \${primary};">
-    <div class="flex flex-wrap gap-2 mb-4">
-      <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">CAPS ALIGNED</span>
-      <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">\${subject} : GRADE \${grade}</span>
-      <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">TERM \${term} • WEEK \${week}</span>
+  <!-- PREMIUM CAPS LESSON PLAN HEADER (Replicated from signature PDF design) -->
+  <header class="text-white p-8 rounded-3xl m-4 relative overflow-hidden shadow-xl" style="background: linear-gradient(135deg, \${primary}, \${accent});">
+    <div class="flex flex-wrap gap-2.5 mb-5">
+      <span class="bg-white/20 text-white backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-sm">CAPS ALIGNED</span>
+      <span class="bg-white/20 text-white backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-sm">\${subject}: GRADE \${grade}</span>
+      <span class="bg-white/20 text-white backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-sm">TERM \${term} • WEEK \${week}</span>
     </div>
-    <h1 class="text-4xl font-extrabold tracking-tight leading-tight mb-2">\${topic}</h1>
-    <p class="text-lg text-white/90 font-medium">CAPS Content & Diagnostic Mastery System</p>
     
-    <div class="mt-6 pt-6 border-t border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm font-medium">
-      <div class="flex items-center gap-2">⏱️ <span class="font-bold">Duration:</span> \${duration}</div>
-      <div class="flex items-center gap-2">🏫 <span class="font-bold">Class Size:</span> 35-40 Learners</div>
-      <div class="flex items-center gap-2">🧬 <span class="font-bold">CAPS Code:</span> \${capsCode}</div>
+    <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight leading-none mb-3 font-sans">\${topic}</h1>
+    <p class="text-white/95 text-xl font-bold italic mb-6">Topic: \${topic}</p>
+    
+    <!-- Dot-divided premium metadata line -->
+    <div class="pt-6 border-t border-white/20 flex flex-wrap gap-x-6 gap-y-2 text-xs font-bold text-white uppercase tracking-wider">
+      <div class="flex items-center gap-2">📅 <span class="opacity-80">Date:</span> 20 July 2026</div>
+      <div class="hidden sm:inline opacity-40">•</div>
+      <div class="flex items-center gap-2">⏱️ <span class="opacity-80">Duration:</span> \${duration}</div>
+      <div class="hidden sm:inline opacity-40">•</div>
+      <div class="flex items-center gap-2">👥 <span class="opacity-80">Class Size:</span> 35 Learners</div>
     </div>
   </header>
 

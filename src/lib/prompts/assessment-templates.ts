@@ -9,23 +9,26 @@ Generate a comprehensive assessment rubric with this professional structure:
 📊 ASSESSMENT RUBRIC TEMPLATE:
 <article class="rubric max-w-6xl mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden print:shadow-none">
   
-  <!-- HEADER -->
-  <header class="bg-gradient-to-r from-rose-600 to-pink-600 text-white p-8">
-    <div class="flex justify-between items-start">
+  <!-- HIGH-CONTRAST ASSESSMENT HEADER AND floating GRADE BADGE (Matches Grade 7 LO / Maths Assessment screenshot) -->
+  <header class="bg-rose-600 text-white p-8 rounded-t-3xl relative overflow-hidden shadow-md">
+    <div class="flex justify-between items-start gap-4">
       <div>
-        <h1 class="text-4xl font-extrabold mb-2">📊 Assessment Rubric</h1>
-        <p class="text-xl opacity-95">\${assessmentTitle}</p>
+        <span class="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider mb-2 font-mono">📊 CAPS Rubric Matrix</span>
+        <h1 class="text-3xl font-extrabold tracking-tight leading-tight mb-2">\${assessmentTitle}</h1>
+        <p class="text-white/90 text-sm font-medium">\${subject} • CAPS Alignment Index</p>
       </div>
-      <div class="text-right">
-        <div class="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg mb-2">
-          <p class="font-bold">Grade \${grade}</p>
-        </div>
-        <div class="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg">
-          <p class="font-bold">\${subject}</p>
-        </div>
+      <!-- Hanging Grade Circle Badge -->
+      <div class="w-16 h-16 bg-white/25 border-2 border-white/40 rounded-full flex flex-col items-center justify-center text-white font-extrabold flex-shrink-0 shadow-lg select-none">
+        <span class="text-[8px] uppercase tracking-widest opacity-80 leading-none">Grade</span>
+        <span class="text-xl font-black leading-none mt-1">\${grade}</span>
       </div>
     </div>
-    <p class="mt-4 text-white/90">Total Marks: \${totalMarks} • CAPS: \${capsCode}</p>
+    
+    <div class="mt-6 pt-6 border-t border-white/25 grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs font-semibold uppercase tracking-wider">
+      <div>🧬 <span class="opacity-80">CAPS Code:</span> \${capsCode}</div>
+      <div>🎖️ <span class="opacity-80">Total Score:</span> \${totalMarks} Marks</div>
+      <div class="col-span-2 sm:col-span-1">📅 <span class="opacity-80">Cycle:</span> 2026 Academic Year</div>
+    </div>
   </header>
 
   <!-- RUBRIC TABLE -->

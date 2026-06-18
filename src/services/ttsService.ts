@@ -6,6 +6,70 @@ let currentUtterance: SpeechSynthesisUtterance | null = null;
 let isAudioPaused = false;
 let audioQueue: string[] = [];
 
+/**
+ * Sanitizes markdown, HTML, code fragments, table styling, and helper formatting
+ * to convert the input into screen-reader friendly plain text narration.
+ */
+export const cleanTextForSpeech = (text: string): string => {
+  if (!text) return '';
+  
+  let clean = text;
+
+  // 1. Remove code blocks completely (e.g. ```javascript ... ```) as they are unreadable
+  clean = clean.replace(/```[\s\S]*?```/g, ' ');
+
+  // 2. Remove inline code highlights (e.g. `const x = 5` -> const x = 5)
+  clean = clean.replace(/`([^`]+)`/g, '$1');
+
+  // 3. Remove all HTML tags completely (like <span style="..."> or <font color="...">)
+  clean = clean.replace(/<\/?[^>]+(>|$)/g, ' ');
+
+  // 4. Remove Markdown image links: ![alt text](url)
+  clean = clean.replace(/!\[[^\]]*\]\([^)]+\)/g, ' ');
+
+  // 5. Convert Markdown links: [Link Name](url) -> Link Name
+  clean = clean.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+
+  // 6. Handle Markdown table formatting elements:
+  // - Remove lines that are just dashes/pipes (table divider rows like |---|---|)
+  clean = clean.replace(/^[|:\s-]+\|[\s|:-]*$/gm, ' ');
+  // - Clean table pipes | by replacing them with space
+  clean = clean.replace(/\|/g, ' ');
+
+  // 7. Remove other common Markdown structure characters, but leave sentence structure intact:
+  // - Remove Asterisks (**bold**, *italic*)
+  clean = clean.replace(/\*+/g, '');
+  // - Remove Underscores (__bold__, _italic_)
+  clean = clean.replace(/_+/g, '');
+  // - Remove Strike-through: ~~strike~~
+  clean = clean.replace(/~~/g, '');
+  // - Remove Heading hashes at start of lines, e.g. #, ##, ###
+  clean = clean.replace(/^[#\s]+/gm, '');
+  // - Remove blockquote indicators at start of lines, e.g. > Space
+  clean = clean.replace(/^>\s*/gm, '');
+  // - Remove list dashes/asterisks/plus at start of lines, e.g. - list or * list, but keep numbers
+  clean = clean.replace(/^[\s]*[-*+]\s+/gm, ' ');
+
+  // 8. Replace HTML entities with clean spoken equivalents
+  const entities: { [key: string]: string } = {
+    '&nbsp;': ' ',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&amp;': 'and',
+    '&quot;': '"',
+    '&apos;': "'",
+    '#': ' ',
+  };
+  Object.keys(entities).forEach(entity => {
+    clean = clean.replaceAll(entity, entities[entity]);
+  });
+
+  // 9. Minimize multiple spaces/newlines to a single space, stripping extra leading/trailing whitespace
+  clean = clean.replace(/\s+/g, ' ').trim();
+
+  return clean;
+};
+
 export const speakText = async (text: string, provider: TTSProvider, language: string = 'en', voice: string = '21m00Tcm4TlvDq8ikWAM'): Promise<void> => {
   stopSpeaking(); // Stop any currently playing audio
 
@@ -13,21 +77,24 @@ export const speakText = async (text: string, provider: TTSProvider, language: s
     return;
   }
 
+  const sanitizedText = cleanTextForSpeech(text);
+  if (!sanitizedText.trim()) return;
+
   if (provider === 'groq-whisper') {
     try {
       console.info("Groq's whisper-large-v3-turbo selected. (Whisper is an ASR transcription model; utilizing high-quality Google TTS/Browser Core fallback for vocal synthesis output).");
-      return await speakWithGoogle(text, language);
+      return await speakWithGoogle(sanitizedText, language);
     } catch (error) {
       console.error('Groq whisper TTS fallback failed:', error);
-      return await speakWithBrowser(text, language);
+      return await speakWithBrowser(sanitizedText, language);
     }
   } else if (provider === 'huggingface') {
-    return await speakWithHuggingFace(text, language);
+    return await speakWithHuggingFace(sanitizedText, language);
   } else if (provider === 'google-tts') {
-    return await speakWithGoogle(text, language);
+    return await speakWithGoogle(sanitizedText, language);
   } else {
     // browser falls back to browser synthesis
-    return await speakWithBrowser(text, language);
+    return await speakWithBrowser(sanitizedText, language);
   }
 };
 
@@ -57,7 +124,7 @@ export const speakWithHuggingFace = async (text: string, language: string): Prom
     // Some models like espnet/kan-bayashi_ljspeech_vits are better for English 
     if (code === 'en') model = 'espnet/kan-bayashi_ljspeech_vits';
 
-    const cleanText = text.replace(/[*_#`~>|-]/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/!\[[^\]]*\]\([^)]+\)/g, '');
+    const cleanText = cleanTextForSpeech(text);
     if (!cleanText.trim()) return;
 
     // Split text into chunks because HF inference API limits length
@@ -121,9 +188,7 @@ export const speakWithHuggingFace = async (text: string, language: string): Prom
 
 export const speakWithGoogle = async (text: string, language: string): Promise<void> => {
   return new Promise((resolve) => {
-    let cleanText = text.replace(/[*_#`~>|-]/g, '');
-    cleanText = cleanText.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); 
-    cleanText = cleanText.replace(/!\[[^\]]*\]\([^)]+\)/g, '');
+    const cleanText = cleanTextForSpeech(text);
     if (!cleanText.trim()) return resolve();
     
     const run = async () => {
@@ -175,9 +240,8 @@ export const speakWithBrowser = (text: string, language: string): Promise<void> 
   return new Promise((resolve) => {
     if (!('speechSynthesis' in window)) return resolve();
     
-    let cleanText = text.replace(/[*_#`~>|-]/g, '');
-    cleanText = cleanText.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); 
-    cleanText = cleanText.replace(/!\[[^\]]*\]\([^)]+\)/g, '');
+    const cleanText = cleanTextForSpeech(text);
+    if (!cleanText.trim()) return resolve();
     
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.volume = 1;

@@ -21,42 +21,38 @@ Generate a highly descriptive, CAPS-aligned primary student activity worksheet. 
 📝 WORK_SHEET HTML STRUCTURE:
 <article class="worksheet-container max-w-5xl mx-auto bg-white p-6 md:p-8 rounded-3xl shadow-xl font-sans">
   
-  <!-- WORK_SHEET HEADER -->
-  <header class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-8 rounded-2xl mb-8 relative shadow-md" style="background: \${primary};">
-    <div class="flex justify-between items-start gap-4">
-      <div>
-        <span class="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider mb-2 font-mono">CAPS DIAGNOSTIC WORK_SHEET</span>
-        <h1 class="text-3xl font-extrabold tracking-tight leading-tight mb-2">\${topic}</h1>
-        <p class="text-white/90 text-sm font-medium">\${subject} • Grade \${grade} Activity Suite</p>
-      </div>
-      <div class="bg-white/25 backdrop-blur-md px-4 py-3 rounded-2xl text-center shadow-inner flex-shrink-0">
-        <span class="block text-[10px] font-bold uppercase tracking-wider opacity-80">Grade</span>
-        <span class="text-2xl font-black">\${grade}</span>
-      </div>
+  <!-- WORKSHEET HEADER AND BRANDING STRIP (Matches EduAI signature design) -->
+  <div class="flex justify-between items-start flex-wrap gap-4 mb-4">
+    <div class="flex flex-wrap gap-2">
+      <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full uppercase tracking-wider">
+        za EduAI Companion • \${subject} Grade \${grade} • Term \${term}
+      </span>
+      <span class="inline-block px-3 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-full uppercase tracking-wider font-mono">
+        CAPS: \${capsCode}
+      </span>
     </div>
     
-    <div class="mt-6 pt-6 border-t border-white/25 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-semibold">
-      <div>🧑‍🏫 <span class="font-bold">Term:</span> Term \${term}</div>
-      <div>🧬 <span class="font-bold">CAPS Focus:</span> \${capsCode}</div>
-      <div>🎖️ <span class="font-bold">Total Mark Allocation:</span> \${totalMarks} Marks</div>
+    <!-- Large, layered offset score block -->
+    <div class="border-4 border-slate-900 bg-amber-55 rounded-2xl px-5 py-2 text-center w-36 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] transition-all">
+      <span class="block text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">SCORE</span>
+      <span class="text-base font-black text-slate-900 border-t-2 border-dashed border-slate-350 block pt-1.5 mt-1.5 leading-none">______ / \${totalMarks}</span>
     </div>
-  </header>
+  </div>
 
-  <!-- METADATA STRIP -->
-  <div class="metadata-strip grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8 pb-4 border-b-2 border-dashed border-slate-200">
+  <div class="mb-6">
+    <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight mb-2">\${topic} Worksheet</h1>
+    <p class="text-slate-500 text-sm font-semibold">\${subtitle} ✨ Let's explore together!</p>
+  </div>
+
+  <!-- Learner metadata inputs block -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 p-5 mb-8 bg-slate-50 border-2 border-slate-200 rounded-3xl">
     <div>
-      <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Learner's Full Name</label>
-      <div class="border-b-2 border-slate-350 py-1 text-slate-400 italic text-xs font-medium">_______________________________</div>
+      <label class="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1">LEARNER NAME:</label>
+      <div class="border-b-2 border-slate-400 py-1 text-slate-400 italic text-sm font-medium">________________________________________________</div>
     </div>
     <div>
-      <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Date of Assessment</label>
-      <div class="border-b-2 border-slate-350 py-1 text-slate-400 italic text-xs font-medium">_________________</div>
-    </div>
-    <div class="sm:col-span-2 md:col-span-1 flex items-center justify-start md:justify-end">
-      <div class="bg-slate-50 border-2 rounded-2xl px-5 py-2 text-center w-40 flex items-center justify-between shadow-inner" style="border-color: \${light};">
-        <span class="text-[10px] font-heavy text-slate-500 uppercase tracking-wider mr-2">TOTAL SCORE:</span>
-        <span class="text-lg font-black text-slate-800">/ \${totalMarks}</span>
-      </div>
+      <label class="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1">DATE OF ASSESSMENT:</label>
+      <div class="border-b-2 border-slate-400 py-1 text-slate-400 italic text-sm font-semibold">__________________________________ 2026</div>
     </div>
   </div>
 
@@ -238,27 +234,31 @@ Create a comprehensive, textbook-quality study guide with this sophisticated lay
 📖 STRUCTURE & TYPOGRAPHY:
 <article class="study-guide max-w-5xl mx-auto bg-white shadow-xl rounded-3xl overflow-hidden">
   
-  <!-- COVER SECTION -->
-  <header class="cover bg-gradient-to-br from-[subject-start] via-[subject-mid] to-[subject-end] text-white p-10 text-center">
-    <div class="subject-icon text-6xl mb-4">📚</div>
-    <h1 class="text-5xl font-extrabold mb-3 tracking-tight">\${title}</h1>
-    <p class="text-2xl opacity-95 mb-2">\${subject} • Grade \${grade}</p>
-    <p class="text-lg opacity-90">\${capsReference}</p>
-    <div class="mt-6 flex justify-center gap-4">
-      <span class="badge bg-white/20 px-4 py-2 rounded-full text-sm">CAPS Aligned</span>
-      <span class="badge bg-white/20 px-4 py-2 rounded-full text-sm">\${term}</span>
+  <!-- COVER HEADER SYSTEM (Matches Grade 3 PE / Educational Guide aesthetic) -->
+  <header class="text-center p-6 bg-slate-50 border-b-2 border-slate-100">
+    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-200/65 text-slate-800 text-xs font-bold uppercase tracking-wider mb-2 font-mono">
+      📚 CAPS ALIGNED • \${subject}
     </div>
+    <p class="text-[10px] font-extrabold text-slate-400 tracking-widest uppercase mt-1">Grade \${grade} • Term \${term} • CAPS Focus: \${capsReference}</p>
   </header>
 
-  <!-- HERO ILLUSTRATION -->
-  <div class="hero-illustration bg-[light-bg] p-8">
-    <div class="illustration-container max-w-3xl mx-auto aspect-video bg-white rounded-2xl shadow-lg border-4 border-dashed border-[subject-color]/20 flex items-center justify-center">
-      <div class="text-center p-6">
-        <p class="text-5xl mb-4">🖼️</p>
-        <p class="font-semibold text-gray-800">[Concept Illustration: \${imagePrompt}]</p>
-        <p class="text-sm text-gray-500 mt-2">Semi-realistic educational art • South African context • Print-ready 300 DPI</p>
+  <!-- ILLUSTRATION HERO BLOCK (Placed prominently at the top level prior to cover subtitle) -->
+  <div class="hero-illustration bg-slate-50 p-6">
+    <div class="illustration-container max-w-4xl mx-auto aspect-video rounded-3xl bg-white shadow-md border-4 border-dashed border-slate-200 flex items-center justify-center p-4">
+      <div class="text-center">
+        <span class="text-5xl block mb-3">🎨</span>
+        <p class="font-bold text-slate-700 text-sm">[Illustration: \${imagePrompt}]</p>
+        <p class="text-[10px] text-slate-400 mt-1.5 uppercase font-semibold">Semi-realistic educational art • South African context • Print-ready 300 DPI</p>
       </div>
     </div>
+  </div>
+
+  <!-- STUNNING COLORED COVER BANNER CARD -->
+  <div class="mx-6 md:mx-8 mb-8 p-8 rounded-3xl text-center text-white" style="background: linear-gradient(135deg, \${primary}, \${accent});">
+    <p class="text-xs font-bold uppercase tracking-widest leading-none mb-3">⭐ Grade \${grade} \${subject} ⭐</p>
+    <h1 class="text-3xl md:text-4xl font-black tracking-tight leading-tight mb-2 uppercase">\${title}</h1>
+    <p class="text-white/95 text-sm font-semibold mb-1">Term \${term} Study Guide</p>
+    <p class="text-white/80 text-xs font-bold tracking-wide italic">Teacher: Zwelakhe Msuthu</p>
   </div>
 
   <!-- TABLE OF CONTENTS -->

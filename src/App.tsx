@@ -99,6 +99,7 @@ import SettingsPage from './components/Settings';
 import Helpdesk from './components/Helpdesk';
 import CategoryOverview from './components/CategoryOverview';
 import IllustrationLibrary from './components/IllustrationLibrary';
+import { cleanTextForSpeech } from './services/ttsService';
 import { auth, db } from './lib/firebase';
 import { doc, setDoc, serverTimestamp, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
@@ -496,7 +497,9 @@ export default function App() {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       if (!text) return;
-      const utterance = new SpeechSynthesisUtterance(text);
+      const sanitized = cleanTextForSpeech(text);
+      if (!sanitized) return;
+      const utterance = new SpeechSynthesisUtterance(sanitized);
       utterance.rate = 1.0;
       window.speechSynthesis.speak(utterance);
     }
@@ -2619,10 +2622,8 @@ export default function App() {
                             onClick={() => {
                               if ('speechSynthesis' in window) {
                                 window.speechSynthesis.cancel();
-                                // strip markdown to read text nicely
-                                const stripped = selectedOfflineMaterial.content
-                                  .replace(/[#*`_$\-\[\]()]/g, '')
-                                  .substring(0, 550); // safety length
+                                // Clean HTML, styling, markdown tags robustly
+                                const stripped = cleanTextForSpeech(selectedOfflineMaterial.content).substring(0, 750); // safety length
                                 const utterance = new SpeechSynthesisUtterance(stripped);
                                 utterance.rate = 1.0;
                                 utterance.pitch = 1.0;
