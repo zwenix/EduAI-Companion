@@ -192,6 +192,36 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     const { provider } = req.params;
     const { messages, model, temperature = 0.7 } = req.body;
 
+    if (provider === "hf-qwen") {
+      const hfApiKey = (process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_TOKEN || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+      if (!hfApiKey || hfApiKey === "dummy" || hfApiKey === "undefined" || hfApiKey === "") {
+        return res.status(400).json({ error: { message: `Provider hf-qwen is not configured. Please add the HUGGINGFACE_API_KEY in the application settings.` }});
+      }
+      try {
+        const response = await axios.post(
+          "https://api-inference.huggingface.co/v1/chat/completions",
+          {
+            model: model || "Qwen/Qwen3.5-397B-A17B",
+            messages,
+            temperature,
+            max_completion_tokens: 8192,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${hfApiKey}`,
+            },
+          }
+        );
+        return res.json(response.data);
+      } catch (error: any) {
+        const status = error.response?.status || 500;
+        return res.status(status).json({
+          error: error.response?.data?.error || error.message || "Failed to call Hugging Face"
+        });
+      }
+    }
+
     let client: OpenAI | null = null;
     let apiKey = "";
 
@@ -199,6 +229,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       case "llama-primary":
       case "llama-secondary":
       case "groq-vision":
+      case "groq-llama":
         client = groq;
         apiKey = process.env.GROQ_API_KEY || "";
         break;
@@ -221,6 +252,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
           provider === "alibaba-qwen" ? "qwen-plus" :
           provider === "alibaba-deepseek" ? "deepseek-v3" :
           provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
+          provider === "groq-llama" ? "Llama-4-Scout-17B-16E-Instruct" :
           ""
         ),
         messages,

@@ -1393,6 +1393,19 @@ export default function App() {
               </span>
             </div>
 
+            {/* Accessibility Helpers Expandable Bar Button */}
+            <button
+              onClick={() => setIsAccessibilityOpen(!isAccessibilityOpen)}
+              className={`p-2 rounded-full transition-all flex items-center justify-center ${
+                isAccessibilityOpen 
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                  : (isDarkMode ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-205 border border-slate-200/55 shadow-sm')
+              }`}
+              title={isAccessibilityOpen ? "Hide Accessibility" : "Show Accessibility"}
+            >
+              <Accessibility size={18} />
+            </button>
+
             {/* Expandable settings drawer trigger button */}
             <button
               onClick={() => setUtilityDrawerOpen(!utilityDrawerOpen)}
@@ -1401,7 +1414,7 @@ export default function App() {
                   ? 'bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/30' 
                   : (isDarkMode ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-205 border border-slate-200/55 shadow-sm')
               }`}
-              title={utilityDrawerOpen ? "Hide Console Drawer" : "Show Console Drawer"}
+              title={utilityDrawerOpen ? "Hide AI Engines" : "Show AI Engines"}
             >
               <Sliders size={18} />
             </button>
@@ -1558,238 +1571,259 @@ export default function App() {
             </div>
           </div>
         </header>
-        {/* Expandable Side Utility Drawer */}
+        {/* Horizontal Accessibility Helpers Sliding Panel */}
+        <AnimatePresence>
+          {isAccessibilityOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: "easeInOut" }}
+              className={`w-full border-b shrink-0 z-40 transition-colors duration-300 ${
+                isDarkMode 
+                  ? 'bg-slate-900 border-white/5 text-white' 
+                  : themeMode === 'peach'
+                    ? 'bg-[#f7eedf] border-[#dcd4c3] text-[#431407]'
+                    : 'bg-slate-50 border-slate-200 text-slate-805'
+              }`}
+            >
+              <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-1 px-2 rounded-lg bg-emerald-500/10 text-emerald-400 font-black text-[10px] tracking-widest uppercase">
+                    HELPERS
+                  </div>
+                  <span className="text-xs font-black uppercase tracking-wider font-display">Accessibility & System</span>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-3 w-full md:w-auto">
+                  {/* Dyslexia Mode Toggle */}
+                  <div className="flex items-center gap-2 text-left">
+                    <div className="w-1.5 h-1.5 rounded-full bg-brand-cyan shrink-0" />
+                    <div>
+                      <div className="text-xs font-bold leading-none">Dyslexia Font</div>
+                      <div className="text-[9px] opacity-65">Easy-reading</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const val = !dyslexiaEnabled;
+                        setDyslexiaEnabled(val);
+                        localStorage.setItem('eduai_dyslexia', String(val));
+                        window.dispatchEvent(new Event('eduai_accessibility_change'));
+                      }}
+                      className={`w-10 h-5.5 rounded-full p-0.5 transition-colors ml-1 shrink-0 ${dyslexiaEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
+                    >
+                      <div className={`w-4 h-4 bg-white rounded-full transition-transform ${dyslexiaEnabled ? 'translate-x-4.5' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+
+                  {/* Text Magnifier Toggle */}
+                  <div className="flex items-center gap-2 text-left">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                    <div>
+                      <div className="text-xs font-bold leading-none">Magnify Text</div>
+                      <div className="text-[9px] opacity-65">Enlarged visibility</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const val = !magnifyEnabled;
+                        setMagnifyEnabled(val);
+                        localStorage.setItem('eduai_magnify', String(val));
+                        window.dispatchEvent(new Event('eduai_accessibility_change'));
+                      }}
+                      className={`w-10 h-5.5 rounded-full p-0.5 transition-colors ml-1 shrink-0 ${magnifyEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
+                    >
+                      <div className={`w-4 h-4 bg-white rounded-full transition-transform ${magnifyEnabled ? 'translate-x-4.5' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+
+                  {/* High Contrast Mode Toggle */}
+                  <div className="flex items-center gap-2 text-left">
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" />
+                    <div>
+                      <div className="text-xs font-bold leading-none">High Contrast</div>
+                      <div className="text-[9px] opacity-65">Optimal layouts</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const val = !highContrastEnabled;
+                        setHighContrastEnabled(val);
+                        localStorage.setItem('eduai_high_contrast', String(val));
+                        window.dispatchEvent(new Event('eduai_accessibility_change'));
+                      }}
+                      className={`w-10 h-5.5 rounded-full p-0.5 transition-colors ml-1 shrink-0 ${highContrastEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
+                    >
+                      <div className={`w-4 h-4 bg-white rounded-full transition-transform ${highContrastEnabled ? 'translate-x-4.5' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+
+                  {/* Mute toggle */}
+                  <div className="flex items-center gap-2 text-left">
+                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${soundMuted ? 'bg-brand-pink animate-pulse' : 'bg-brand-green'}`} />
+                    <div>
+                      <div className="text-xs font-bold leading-none">Mute Sounds</div>
+                      <div className="text-[9px] opacity-65">Stop narrator</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const val = !soundMuted;
+                        setSoundMuted(val);
+                        localStorage.setItem('eduai_sound_muted', String(val));
+                        window.dispatchEvent(new Event('eduai_accessibility_change'));
+                      }}
+                      className={`w-10 h-5.5 rounded-full p-0.5 transition-colors ml-1 shrink-0 ${soundMuted ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
+                    >
+                      <div className={`w-4 h-4 bg-white rounded-full transition-transform ${soundMuted ? 'translate-x-4.5' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+
+                  {/* Speak Description helper */}
+                  <button
+                    type="button"
+                    onClick={() => speakText("Accessibility helpers bar is active. You can choose to enable dyslexia friendly mode, text magnification, high contrast font weights, or mute all voice alerts.")}
+                    className="py-1 px-3 ml-2 rounded-lg bg-brand-cyan/10 hover:bg-brand-cyan/20 text-brand-cyan font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-all border border-brand-cyan/20"
+                  >
+                    🔊 Hear Guide
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Floating AI Options Dropdown underneath Profile/Avatar on the right hand side */}
         <AnimatePresence>
           {utilityDrawerOpen && (
             <>
-              {/* Backdrop Overlay */}
+              {/* Overlay Backdrop to close drop-down on click away */}
+              <div className="fixed inset-0 z-40" onClick={() => setUtilityDrawerOpen(false)} />
+              
               <motion.div
-                key="utility-backdrop"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.5 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setUtilityDrawerOpen(false)}
-                className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50"
-              />
-
-              {/* Slide-out Panel */}
-              <motion.div
-                key="utility-panel"
-                initial={{ x: '-100%', opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: '-100%', opacity: 0 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 180 }}
-                className={`fixed top-0 left-0 bottom-0 w-85 max-w-full h-full shadow-2xl z-50 flex flex-col ${
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                transition={{ duration: 0.15 }}
+                className={`absolute right-4 top-[84px] w-80 max-w-[calc(100vw-32px)] rounded-[22px] shadow-2xl border p-5 z-50 flex flex-col ${
                   isDarkMode 
-                    ? 'bg-slate-900/98 border-r border-white/10 text-white' 
-                    : 'bg-white/98 border-r border-slate-200 text-slate-800'
-                } backdrop-blur-md overflow-hidden`}
+                    ? 'bg-slate-900/98 border-white/10 text-white shadow-black/80' 
+                    : themeMode === 'peach'
+                      ? 'bg-[#efe8d9] border-[#dcd4c3] text-[#431407] shadow-orange-950/20'
+                      : 'bg-white border-slate-205 text-slate-800 shadow-slate-200/80'
+                } backdrop-blur-md`}
               >
-                {/* Drawer Header */}
-                <div className={`p-5 flex items-center justify-between border-b ${isDarkMode ? 'border-white/10' : 'border-slate-100'}`}>
+                {/* Header inside the popover */}
+                <div className="flex items-center justify-between pb-3.5 border-b border-slate-500/10">
                   <div className="flex items-center gap-2">
                     <Sliders className="w-5 h-5 text-brand-cyan" />
-                    <div>
-                      <h3 className="font-display font-black text-lg">EduAI Console</h3>
+                    <div className="text-left">
+                      <h3 className="font-display font-black text-sm">AI Options</h3>
                       <p className={`text-[10px] font-bold uppercase tracking-wider ${isDarkMode ? 'text-brand-cyan' : 'text-slate-500'}`}>
-                        Advanced Controls
+                        Engine Configuration
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => setUtilityDrawerOpen(false)}
-                    className={`p-2 rounded-xl transition-all ${
-                      isDarkMode ? 'hover:bg-white/10 text-slate-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'
+                    className={`p-1.5 rounded-lg transition-all ${
+                      isDarkMode ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-100 text-slate-500'
                     }`}
                   >
-                    <X size={20} />
+                    <X size={16} />
                   </button>
                 </div>
 
-                {/* Drawer Body - Scrollable */}
-                <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
-                  {/* AI & Integration Engines Section */}
-                  <div className="space-y-4">
-                    <h4 className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-white/40' : 'text-slate-400'}`}>
-                      ⚡ AI & Cloud Engines
-                    </h4>
-
-                    {/* Primary Text Model */}
-                    <div className="space-y-1.5 text-left">
-                      <label className="text-xs font-bold block">Primary Text Engine</label>
-                      <select 
-                        value={provider} 
-                        onChange={(e) => setProvider(e.target.value as any)}
-                        className={`w-full text-xs font-bold uppercase tracking-wide px-3 py-2.5 rounded-xl outline-none transition-all ${
-                          isDarkMode 
-                            ? 'bg-white/5 border border-white/10 text-brand-cyan hover:border-brand-cyan/50 focus:border-brand-cyan [&>option]:bg-slate-800 [&>option]:text-brand-cyan' 
-                            : 'bg-slate-50 border border-slate-200 text-slate-700 hover:border-brand-cyan focus:border-brand-cyan shadow-sm [&>option]:bg-white [&>option]:text-slate-705'
-                        }`}
-                      >
-                        <option value="gemini">Gemini (Primary - Recommended)</option>
-                        <option value="hf-qwen">Hugging Face Qwen (Alternative)</option>
-                        <option value="groq-llama">Groq Llama (Alternative)</option>
-                      </select>
+                {/* Dropdowns list */}
+                <div className="py-3 space-y-4">
+                  {/* Primary Text Engine */}
+                  <div className="space-y-1.5 text-left">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-black uppercase tracking-wider">Primary Text Engine</label>
+                      <span className="text-[9px] font-bold text-brand-cyan">ACTIVE</span>
                     </div>
-
-                    {/* OCR Engine */}
-                    <div className="space-y-1.5 text-left">
-                      <label className="text-xs font-bold block">OCR Vision Engine</label>
-                      <select 
-                        value={ocrProvider}
-                        onChange={(e) => setOcrProvider(e.target.value as any)}
-                        className={`w-full text-xs font-bold px-3 py-2.5 rounded-xl outline-none transition-all ${
-                          isDarkMode 
-                            ? 'bg-white/5 border border-white/10 text-emerald-400 focus:border-emerald-500 [&>option]:bg-slate-800' 
-                            : 'bg-slate-50 border border-slate-200 text-slate-700 focus:border-emerald-500 shadow-sm'
-                        }`}
-                      >
-                        <option value="gemini">OCR: Gemini 3 Flash</option>
-                        <option value="groq-vision">OCR: Llama 3.2 Vision</option>
-                        <option value="ocrspace">OCR: OCR.Space</option>
-                      </select>
-                    </div>
-
-                    {/* Image Generation Engine */}
-                    <div className="space-y-1.5 text-left">
-                      <label className="text-xs font-bold block">Creative Image Generator</label>
-                      <select 
-                        value={imageProvider}
-                        onChange={(e) => setImageProvider(e.target.value as any)}
-                        className={`w-full text-xs font-bold px-3 py-2.5 rounded-xl outline-none transition-all ${
-                          isDarkMode 
-                            ? 'bg-white/5 border border-white/10 text-orange-400 focus:border-orange-500 [&>option]:bg-slate-800' 
-                            : 'bg-slate-50 border border-slate-200 text-slate-700 focus:border-orange-500 shadow-sm'
-                        }`}
-                      >
-                        <option value="gemini-imagen">IMG: Gemini 2.5 Flash Image</option>
-                        <option value="nvidia-sana">IMG: NVIDIA Sana / SDXL</option>
-                        <option value="huggingface">IMG: HF FLUX.1</option>
-                        <option value="pollinations-schnell">IMG: Flux Schnell</option>
-                        <option value="pollinations-turbo">IMG: Z-Image Turbo</option>
-                        <option value="pollinations-klein">IMG: FLUX.2 Klein 4B</option>
-                      </select>
-                    </div>
-
-                    {/* Text-to-Speech Engine */}
-                    <div className="space-y-1.5 text-left">
-                      <label className="text-xs font-bold block">Voice Synthesis Engine</label>
-                      <select 
-                        value={ttsProvider}
-                        onChange={(e) => setTtsProvider(e.target.value as any)}
-                        className={`w-full text-xs font-bold px-3 py-2.5 rounded-xl outline-none transition-all ${
-                          isDarkMode 
-                            ? 'bg-white/5 border border-white/10 text-purple-400 focus:border-purple-500 [&>option]:bg-slate-800' 
-                            : 'bg-slate-50 border border-slate-200 text-slate-700 focus:border-purple-500 shadow-sm'
-                        }`}
-                      >
-                        <option value="browser">TTS: Browser Core</option>
-                        <option value="groq-whisper">TTS: Groq Whisper</option>
-                        <option value="huggingface">TTS: HuggingFace MMS</option>
-                        <option value="google-tts">TTS: Google TTS</option>
-                      </select>
-                    </div>
+                    <select 
+                      value={provider} 
+                      onChange={(e) => setProvider(e.target.value as any)}
+                      className={`w-full text-xs font-bold uppercase tracking-wide px-3 py-2.5 rounded-xl outline-none transition-all ${
+                        isDarkMode 
+                          ? 'bg-slate-800 border border-white/10 text-brand-cyan hover:border-brand-cyan/50 focus:border-brand-cyan [&>option]:bg-slate-800 [&>option]:text-brand-cyan' 
+                          : themeMode === 'peach'
+                            ? 'bg-[#f7eedb] border-[#dcd4c3] text-[#431407] hover:border-[#ff7c5c] focus:border-[#ff7c5c] [&>option]:bg-[#f7eedb]'
+                            : 'bg-slate-50 border border-slate-200 text-slate-705 hover:border-brand-cyan/50 focus:border-brand-cyan shadow-sm [&>option]:bg-white'
+                      }`}
+                    >
+                      <option value="gemini">Gemini (Primary - Recommended)</option>
+                      <option value="hf-qwen">Hugging Face Qwen (Alternative)</option>
+                      <option value="groq-llama">Groq Llama (Alternative)</option>
+                    </select>
                   </div>
 
-                  {/* Accessibility & Environment Section */}
-                  <div className="space-y-4">
-                    <h4 className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-white/40' : 'text-slate-400'}`}>
-                      ♿ Accessibility Settings
-                    </h4>
-
-                    {/* Dyslexia Mode Toggle */}
-                    <div className="flex items-center justify-between py-1">
-                      <div className="flex flex-col text-left">
-                        <span className="font-bold text-sm">📖 Dyslexia-Friendly</span>
-                        <span className="text-[10px] opacity-60 font-sans">Easier fonts & spacing</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const val = !dyslexiaEnabled;
-                          setDyslexiaEnabled(val);
-                          localStorage.setItem('eduai_dyslexia', String(val));
-                          window.dispatchEvent(new Event('eduai_accessibility_change'));
-                        }}
-                        className={`w-12 h-6 rounded-full p-1 transition-colors ${dyslexiaEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
-                      >
-                        <div className={`w-4 h-4 bg-white rounded-full transition-transform ${dyslexiaEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
-                      </button>
-                    </div>
-
-                    {/* Text Magnifier Toggle */}
-                    <div className="flex items-center justify-between py-1">
-                      <div className="flex flex-col text-left">
-                        <span className="font-bold text-sm">🔍 Magnify Text</span>
-                        <span className="text-[10px] opacity-60 font-sans">Enlarged readability fonts</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const val = !magnifyEnabled;
-                          setMagnifyEnabled(val);
-                          localStorage.setItem('eduai_magnify', String(val));
-                          window.dispatchEvent(new Event('eduai_accessibility_change'));
-                        }}
-                        className={`w-12 h-6 rounded-full p-1 transition-colors ${magnifyEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
-                      >
-                        <div className={`w-4 h-4 bg-white rounded-full transition-transform ${magnifyEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
-                      </button>
-                    </div>
-
-                    {/* High Contrast Mode Toggle */}
-                    <div className="flex items-center justify-between py-1">
-                      <div className="flex flex-col text-left">
-                        <span className="font-bold text-sm">🌓 High Contrast</span>
-                        <span className="text-[10px] opacity-60 font-sans">Optimal visual layout settings</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const val = !highContrastEnabled;
-                          setHighContrastEnabled(val);
-                          localStorage.setItem('eduai_high_contrast', String(val));
-                          window.dispatchEvent(new Event('eduai_accessibility_change'));
-                        }}
-                        className={`w-12 h-6 rounded-full p-1 transition-colors ${highContrastEnabled ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
-                      >
-                        <div className={`w-4 h-4 bg-white rounded-full transition-transform ${highContrastEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
-                      </button>
-                    </div>
-
-                    {/* Global Sound & Animations Mute Toggle */}
-                    <div className="flex items-center justify-between py-1">
-                      <div className="flex flex-col text-left">
-                        <span className="font-bold text-sm">🔇 Mute Sounds & Motion</span>
-                        <span className="text-[10px] opacity-60 font-sans font-sans">Stop narration & animations</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const val = !soundMuted;
-                          setSoundMuted(val);
-                          localStorage.setItem('eduai_sound_muted', String(val));
-                          window.dispatchEvent(new Event('eduai_accessibility_change'));
-                        }}
-                        className={`w-12 h-6 rounded-full p-1 transition-colors ${soundMuted ? 'bg-brand-cyan' : 'bg-slate-500/30'}`}
-                      >
-                        <div className={`w-4 h-4 bg-white rounded-full transition-transform ${soundMuted ? 'translate-x-6' : 'translate-x-0'}`} />
-                      </button>
-                    </div>
-
-                    {/* Speak Description Helper */}
-                    <button
-                      type="button"
-                      onClick={() => speakText("Accessibility helpers center is active. You can choose to enable dyslexia friendly mode, text magnification, or high contrast layout settings. Select your preference by sliding the toggle controls shown.")}
-                      className="w-full py-3 px-4 rounded-xl bg-brand-cyan/10 hover:bg-brand-cyan/20 text-brand-cyan font-bold text-xs flex items-center justify-center gap-2 transition-all border border-brand-cyan/20 mt-2"
+                  {/* OCR Engine */}
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-[11px] font-black uppercase tracking-wider block">OCR Vision Engine</label>
+                    <select 
+                      value={ocrProvider}
+                      onChange={(e) => setOcrProvider(e.target.value as any)}
+                      className={`w-full text-xs font-bold px-3 py-2.5 rounded-xl outline-none transition-all ${
+                        isDarkMode 
+                          ? 'bg-slate-800 border border-white/10 text-emerald-400 focus:border-emerald-500 [&>option]:bg-slate-800' 
+                          : themeMode === 'peach'
+                            ? 'bg-[#f7eedb] border-[#dcd4c3] text-emerald-700 focus:border-[#ff7c5c] [&>option]:bg-[#f7eedb]'
+                            : 'bg-slate-50 border border-slate-205 text-slate-705 focus:border-emerald-500 shadow-sm'
+                      }`}
                     >
-                      🔊 Hear Description
-                    </button>
+                      <option value="gemini">Gemini OCR Vision (Multimodal)</option>
+                      <option value="groq-vision">Groq Llama Vision (Alternative)</option>
+                    </select>
+                  </div>
+
+                  {/* Creative Image Generator */}
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-[11px] font-black uppercase tracking-wider block">Creative Image Generator</label>
+                    <select 
+                      value={imageProvider}
+                      onChange={(e) => setImageProvider(e.target.value as any)}
+                      className={`w-full text-xs font-bold px-3 py-2.5 rounded-xl outline-none transition-all ${
+                        isDarkMode 
+                          ? 'bg-slate-800 border border-white/10 text-orange-400 focus:border-orange-500 [&>option]:bg-slate-800' 
+                          : themeMode === 'peach'
+                            ? 'bg-[#f7eedb] border-[#dcd4c3] text-orange-700 focus:border-[#ff7c5c] [&>option]:bg-[#f7eedb]'
+                            : 'bg-slate-50 border border-slate-200 text-slate-705 focus:border-orange-500 shadow-sm'
+                      }`}
+                    >
+                      <option value="gemini-imagen">Google Imagen 3 (Default)</option>
+                      <option value="alibaba-qwen-image">Alibaba Qwen Image (HD)</option>
+                      <option value="huggingface">FLUX Schnell (Hugging Face)</option>
+                    </select>
+                  </div>
+
+                  {/* Voice Synthesis Engine */}
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-[11px] font-black uppercase tracking-wider block">Voice Synthesis Engine</label>
+                    <select 
+                      value={ttsProvider}
+                      onChange={(e) => setTtsProvider(e.target.value as any)}
+                      className={`w-full text-xs font-bold px-3 py-2.5 rounded-xl outline-none transition-all ${
+                        isDarkMode 
+                          ? 'bg-slate-800 border border-white/10 text-purple-400 focus:border-purple-500 [&>option]:bg-slate-800' 
+                          : themeMode === 'peach'
+                            ? 'bg-[#f7eedb] border-[#dcd4c3] text-purple-700 focus:border-[#ff7c5c] [&>option]:bg-[#f7eedb]'
+                            : 'bg-slate-50 border border-slate-200 text-slate-705 focus:border-purple-500 shadow-sm'
+                      }`}
+                    >
+                      <option value="google">Standard Voice (Google Cloud)</option>
+                      <option value="elevenlabs">Premium Natural Voice (ElevenLabs)</option>
+                      <option value="hf">Hugging Face Kokoro (Wav2Vec)</option>
+                    </select>
                   </div>
                 </div>
 
-                {/* Drawer Footer info */}
-                <div className={`p-4 text-center text-[10px] font-bold tracking-widest ${isDarkMode ? 'bg-slate-950/40 text-white/20' : 'bg-slate-50 text-slate-400'}`}>
+                {/* Core label footer */}
+                <div className={`p-3 text-center text-[9px] font-bold tracking-widest rounded-xl mt-1 ${
+                  isDarkMode ? 'bg-slate-950/40 text-white/20' : 'bg-slate-50 text-slate-400'
+                }`}>
                   EDUAI CORE CONSOLE · v1.4.0
                 </div>
               </motion.div>
