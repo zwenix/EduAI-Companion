@@ -40,8 +40,9 @@ Generate a highly descriptive, CAPS-aligned primary student activity worksheet. 
   </div>
 
   <div class="mb-6">
-    <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight mb-2">\${topic} Worksheet</h1>
-    <p class="text-slate-500 text-sm font-semibold">\${subtitle} ✨ Let's explore together!</p>
+    <!-- Generate an exceptionally creative, engaging thematic heading here based on \${topic} (e.g. "Quest of the Golden Numbers: The Ultimate Addition Safari!" instead of "Addition Worksheet") -->
+    <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight mb-2">[Generate an exceptionally creative, immersive thematic heading here based on the topic \${topic}]</h1>
+    <p class="text-slate-500 text-sm font-semibold">[Generate a contextually tailored, encouraging layout caption here] ✨ Let's explore together!</p>
   </div>
 
   <!-- Learner metadata inputs block -->
@@ -152,12 +153,13 @@ Design a classroom-ready educational poster/infographic with this layout system:
   <!-- TOP BANNER: Title + Grade -->
   <div class="banner bg-gradient-to-r from-[subject-start] to-[subject-end] p-6 text-white">
     <div class="flex justify-between items-start">
-      <h1 class="text-4xl font-extrabold tracking-tight">\${title}</h1>
+      <!-- Generate a stunningly creative, comprehensive title here matching the topic (e.g. "The Whispering Wilds: Exploring South African Ecosystems" instead of "Ecosystems") -->
+      <h1 class="text-4xl font-extrabold tracking-tight">[Generate a spectacularly unique, creative educational title here matching the topic \${title}]</h1>
       <div class="grade-badge bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full font-bold">
         Grade \${grade}
       </div>
     </div>
-    <p class="mt-2 text-white/90 text-lg">\${subtitle}</p>
+    <p class="mt-2 text-white/90 text-lg">[Generate an encouraging, high-level caption or subtitle matching the theme here]</p>
   </div>
 
   <!-- HERO ILLUSTRATION (30% of poster) -->
@@ -256,8 +258,9 @@ Create a comprehensive, textbook-quality study guide with this sophisticated lay
   <!-- STUNNING COLORED COVER BANNER CARD -->
   <div class="mx-6 md:mx-8 mb-8 p-8 rounded-3xl text-center text-white" style="background: linear-gradient(135deg, \${primary}, \${accent});">
     <p class="text-xs font-bold uppercase tracking-widest leading-none mb-3">⭐ Grade \${grade} \${subject} ⭐</p>
-    <h1 class="text-3xl md:text-4xl font-black tracking-tight leading-tight mb-2 uppercase">\${title}</h1>
-    <p class="text-white/95 text-sm font-semibold mb-1">Term \${term} Study Guide</p>
+    <!-- Generate a textbook-quality, highly creative, captivating concept title (e.g. "Commanders of the Circuit: Master Guide to Electricity" instead of "Electricity Study Guide") -->
+    <h1 class="text-3xl md:text-4xl font-black tracking-tight leading-tight mb-2 uppercase">[Generate an exceptionally creative, professional-grade textbook title here matching the topic \${title}]</h1>
+    <p class="text-white/95 text-sm font-semibold mb-1">[Generate a creative, inspiring sub-caption or learning focus matching the topic \${title}]</p>
     <p class="text-white/80 text-xs font-bold tracking-wide italic">Teacher: Zwelakhe Msuthu</p>
   </div>
 

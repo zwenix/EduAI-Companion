@@ -7,7 +7,7 @@ import { replaceImagePlaceholders } from '../lib/imageReplacer';
 // PrintHeader import removed as per user request
 import { PosterPreview } from './PosterPreview';
 import { auth, db } from '../lib/firebase';
-import { collection, query, where, getDocs, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteDoc, doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
 
 // Mock data to simulate the user's generated content and system templates
@@ -113,6 +113,46 @@ export default function ContentArchive() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const printableRef = useRef<HTMLDivElement>(null);
+
+  // Assignment targeting states
+  const [assigneeType, setAssigneeType] = useState<'class' | 'group' | 'student'>('class');
+  const [assigneeTargetId, setAssigneeTargetId] = useState('');
+  const [availableStudents, setAvailableStudents] = useState<any[]>([]);
+  const [availableClasses, setAvailableClasses] = useState<any[]>([]);
+  const [availableGroups, setAvailableGroups] = useState<any[]>([]);
+
+  useEffect(() => {
+    setAssigneeTargetId('');
+  }, [selectedItem]);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    // Load students
+    const qStudents = query(collection(db, 'students'), where('teacherId', '==', user.uid));
+    const unsubStudents = onSnapshot(qStudents, (snapshot) => {
+      setAvailableStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    // Load classes
+    const qClasses = query(collection(db, 'classes'), where('teacherId', '==', user.uid));
+    const unsubClasses = onSnapshot(qClasses, (snapshot) => {
+      setAvailableClasses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    // Load study groups
+    const qGroups = query(collection(db, 'study_groups'), where('teacherId', '==', user.uid));
+    const unsubGroups = onSnapshot(qGroups, (snapshot) => {
+      setAvailableGroups(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    return () => {
+      unsubStudents();
+      unsubClasses();
+      unsubGroups();
+    };
+  }, []);
 
   useEffect(() => {
     let unsubscribe: any;
@@ -239,12 +279,82 @@ export default function ContentArchive() {
     window.dispatchEvent(event);
   };
 
-  const handleAssign = () => {
+  const handleAssign = async () => {
+    if (!selectedItem) return;
+    if (!assigneeTargetId) {
+      alert("Please select an assignment target!");
+      return;
+    }
+
     setIsAssigning(true);
-    setTimeout(() => {
-      setIsAssigning(false);
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        alert("Please sign in first to assign tasks.");
+        setIsAssigning(false);
+        return;
+      }
+
+      let assigneeName = '';
+      let targetStudentIds: string[] = [];
+
+      if (assigneeType === 'class') {
+        const foundClass = availableClasses.find(c => c.id === assigneeTargetId || c.name === assigneeTargetId);
+        assigneeName = foundClass ? foundClass.name : assigneeTargetId;
+        // In this system, student enrolled in a class has grade == className
+        const classStudents = availableStudents.filter(s => s.grade === assigneeName);
+        targetStudentIds = classStudents.map(s => s.id);
+      } else if (assigneeType === 'group') {
+        const foundGroup = availableGroups.find(g => g.id === assigneeTargetId);
+        assigneeName = foundGroup ? foundGroup.name : 'Study Group';
+        targetStudentIds = foundGroup ? (foundGroup.members || []) : [];
+      } else if (assigneeType === 'student') {
+        const foundStudent = availableStudents.find(s => s.id === assigneeTargetId);
+        assigneeName = foundStudent ? foundStudent.name : 'Learner';
+        targetStudentIds = [assigneeTargetId];
+      }
+
+      const assignmentId = 'assign_' + Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+      
+      await setDoc(doc(db, 'assignments', assignmentId), {
+        id: assignmentId,
+        teacherId: user.uid,
+        teacherName: user.displayName || 'Teacher',
+        title: selectedItem.title || 'Untitled Assignment',
+        subject: selectedItem.subject || 'General',
+        grade: selectedItem.grade || 'All',
+        contentId: selectedItem.id,
+        contentType: selectedItem.contentType || 'Worksheet',
+        content: selectedItem.content || '',
+        memo: selectedItem.memo || '',
+        rubric: selectedItem.rubric || '',
+        assigneeType,
+        assigneeId: assigneeTargetId,
+        assigneeName,
+        createdAt: serverTimestamp()
+      });
+
+      // Send notifications to all affected students
+      for (const studentId of targetStudentIds) {
+        const notifId = 'notif_assign_' + Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+        await setDoc(doc(db, 'notifications', notifId), {
+          title: '🆕 Assigned Content',
+          message: `Your teacher has assigned a new ${selectedItem.contentType || 'task'}: "${selectedItem.title}". Click to complete!`,
+          read: false,
+          userId: studentId,
+          assignmentId: assignmentId, // link to original assignment
+          createdAt: serverTimestamp()
+        });
+      }
+
+      alert(`Successfully assigned "${selectedItem.title}" to ${assigneeName}! ${targetStudentIds.length} students notified.`);
       setSelectedItem(null);
-    }, 1000);
+    } catch (err: any) {
+      console.error("Failed to assign task", err);
+      alert("Assignment failed: " + err.message);
+    } finally {
+      setIsAssigning(false);
+    }
   };
 
   return (
@@ -528,22 +638,65 @@ export default function ContentArchive() {
                     <FileJson size={16} /> Export JSON
                   </button>
                 </div>
-                
-                <div className="flex gap-2">
-                  <select className="flex-1 border border-slate-200 rounded-xl lg:rounded-2xl px-3 lg:px-4 py-2.5 lg:py-3 bg-white outline-none focus:border-brand-cyan text-slate-700 text-xs lg:text-sm">
-                    <option value="">Assign to Class...</option>
-                    <option value="class-1">Class A</option>
-                    <option value="class-2">Class B</option>
-                  </select>
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col sm:flex-row gap-3 items-center w-full">
+                  <div className="flex gap-2 items-center shrink-0 w-full sm:w-auto">
+                    <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">Assign To:</span>
+                    <div className="flex bg-slate-200/60 p-1 rounded-xl">
+                      {(['class', 'group', 'student'] as const).map((t) => (
+                        <button
+                          key={t}
+                          onClick={() => { setAssigneeType(t); setAssigneeTargetId(''); }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all border-0 outline-none cursor-pointer ${
+                            assigneeType === t 
+                              ? 'bg-white text-navy-dark shadow-sm' 
+                              : 'text-slate-500 hover:text-navy-dark bg-transparent'
+                          }`}
+                        >
+                          {t === 'group' ? 'Group' : t === 'student' ? 'Learner' : 'Class'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 w-full relative">
+                    <select 
+                      value={assigneeTargetId}
+                      onChange={(e) => setAssigneeTargetId(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl px-4 py-2 bg-white outline-none focus:border-brand-cyan text-slate-700 text-xs font-bold"
+                    >
+                      <option value="">
+                        Select {assigneeType === 'class' ? 'Class' : assigneeType === 'group' ? 'Study Group' : 'Specific Learner'}...
+                      </option>
+                      
+                      {assigneeType === 'class' && availableClasses.map((item) => (
+                        <option key={item.id} value={item.name || item.id}>
+                          {item.name} ({item.subject})
+                        </option>
+                      ))}
+
+                      {assigneeType === 'group' && availableGroups.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+
+                      {assigneeType === 'student' && availableStudents.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name} ({item.grade || 'No Class'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <button 
                     onClick={handleAssign}
                     disabled={isAssigning}
-                    className="flex items-center justify-center gap-2 bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-6 lg:px-8 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl font-black uppercase tracking-widest text-[10px] lg:text-[11px] transition-all disabled:opacity-50"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-6 py-2.5 rounded-xl font-black uppercase tracking-widest text-xs transition-all disabled:opacity-50 shrink-0 cursor-pointer border-0 outline-none"
                   >
-                    {isAssigning ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} Assign
+                    {isAssigning ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} Assign Task
                   </button>
                   
-                  <button onClick={() => setSelectedItem(null)} className="p-2.5 lg:p-3 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl lg:rounded-2xl transition-all">
+                  <button onClick={() => setSelectedItem(null)} className="p-2.5 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all cursor-pointer border-0 outline-none">
                     <X size={20} />
                   </button>
                 </div>

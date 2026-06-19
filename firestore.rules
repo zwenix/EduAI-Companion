@@ -173,6 +173,14 @@ service cloud.firestore {
                      && incoming().userId == existing().userId
                      && incoming().diff(existing()).affectedKeys().hasOnly(['messages', 'updatedAt']);
     }
+    match /ai_floating_sessions/{userId} {
+      allow get: if isSignedIn() && userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && userId == request.auth.uid && isValidAiSession(incoming()) && incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && userId == request.auth.uid && isValidAiSession(incoming()) && incoming().updatedAt == request.time
+                     && incoming().userId == existing().userId
+                     && incoming().diff(existing()).affectedKeys().hasOnly(['messages', 'updatedAt']);
+    }
 
     function isValidCreatedContent(data) {
       return data.keys().size() >= 8 && data.keys().size() <= 13
@@ -233,6 +241,21 @@ service cloud.firestore {
     match /illustrations/{illustrationId} {
       allow read: if true;
       allow create, update: if isSignedIn() && isValidIllustration(incoming());
+      allow delete: if isSignedIn() && existing().teacherId == request.auth.uid;
+    }
+
+    match /assignments/{assignmentId} {
+      allow read, create, update, delete: if isSignedIn();
+    }
+
+    match /submissions/{submissionId} {
+      allow read: if isSignedIn() && (
+        resource.data.teacherId == request.auth.uid ||
+        resource.data.studentId == request.auth.uid ||
+        resource.data.studentEmail == request.auth.token.email ||
+        resource.data.studentEmail == request.auth.uid
+      );
+      allow create, update: if isSignedIn();
       allow delete: if isSignedIn() && existing().teacherId == request.auth.uid;
     }
 

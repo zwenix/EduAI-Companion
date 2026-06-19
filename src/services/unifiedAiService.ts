@@ -5,6 +5,7 @@ import {
   generateAdminDoc as geminiGenerateAdmin,
   runOCRAndGrade as geminiOCR,
   runOCRScan as geminiOCRScan,
+  runTextGrade as geminiTextGrade,
   chatWithTutor as geminiChat,
   MASTER_SYSTEM_PROMPT,
   IMAGE_PROMPT_GOLDEN_RULE,
@@ -378,6 +379,10 @@ export const runOCRScan = async (imageData: string, provider: string = 'gemini',
   } catch (error: any) {
     return await geminiOCRScan(imageData, language);
   }
+};
+
+export const runTextGrade = async (studentAnswers: string, memo: string, rubric: string, language: string = 'English') => {
+  return await geminiTextGrade(studentAnswers, memo, rubric, language);
 };
 
 export const runOCRAndGrade = async (imageData: string, rubric: string, provider: string = 'gemini', ocrProvider: string = 'gemini', language: string = 'English') => {

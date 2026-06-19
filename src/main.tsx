@@ -27,6 +27,17 @@ if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
   });
 }
 
+// Prevent unhandled rejections from WebSocket connection issues (e.g. from HMR being disabled in remote dev environments)
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    const reasonStr = event.reason?.message || event.reason?.toString?.() || '';
+    if (reasonStr.includes('WebSocket') || reasonStr.includes('websocket')) {
+      console.debug('Prevented benign HMR WebSocket unhandled promise rejection');
+      event.preventDefault();
+    }
+  });
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AiProvider>

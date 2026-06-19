@@ -18,6 +18,7 @@ import {
   Search,
   Bell,
   ChevronRight,
+  ChevronLeft,
   Sliders,
   MoreHorizontal,
   ClipboardCheck,
@@ -101,7 +102,7 @@ import CategoryOverview from './components/CategoryOverview';
 import IllustrationLibrary from './components/IllustrationLibrary';
 import { cleanTextForSpeech } from './services/ttsService';
 import { auth, db } from './lib/firebase';
-import { doc, setDoc, serverTimestamp, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, serverTimestamp, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { MOCK_STUDENTS } from './data/mockStudents';
 import { 
@@ -519,6 +520,7 @@ export default function App() {
   const [isOfflineViewerOpen, setIsOfflineViewerOpen] = useState(false);
   const [isOfflineReaderOpen, setIsOfflineReaderOpen] = useState(false);
   const [selectedOfflineMaterial, setSelectedOfflineMaterial] = useState<any>(null);
+  const [isOfflineListCollapsed, setIsOfflineListCollapsed] = useState(false);
   const [offlineSearchQuery, setOfflineSearchQuery] = useState('');
   const [offlineMaterials, setOfflineMaterials] = useState<any[]>([]);
 
@@ -1045,18 +1047,13 @@ export default function App() {
       }
     });
 
-    const timer = setTimeout(() => {
-      setIsRefreshing(false);
-    }, 2000);
-
     return () => {
       unsubscribe();
-      clearTimeout(timer);
     };
   }, []);
 
   if (isRefreshing) {
-    return <SplashScreen />;
+    return <SplashScreen onVideoEnd={() => setIsRefreshing(false)} />;
   }
 
   if (!showDashboard && !showLogin) {
@@ -1107,12 +1104,24 @@ export default function App() {
         const user = auth.currentUser;
         if (user) {
           try {
-            await setDoc(doc(db, 'users', user.uid), {
-              role: role,
-              name: user.displayName || user.email?.split('@')[0] || 'User',
-              email: user.email,
-              updatedAt: serverTimestamp()
-            }, { merge: true });
+            const userRef = doc(db, 'users', user.uid);
+            const userSnap = await getDoc(userRef);
+            if (!userSnap.exists()) {
+              // Create user profile with required createdAt timestamp
+              await setDoc(userRef, {
+                role: role,
+                name: user.displayName || user.email?.split('@')[0] || 'User',
+                email: user.email,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+              });
+            } else {
+              // Update existing profile role
+              await updateDoc(userRef, {
+                role: role,
+                updatedAt: serverTimestamp()
+              });
+            }
           } catch (err) {
             console.error("Error updating role in users collection:", err);
           }
@@ -1759,7 +1768,7 @@ export default function App() {
                     >
                       <option value="gemini">Gemini (Primary - Recommended)</option>
                       <option value="hf-qwen">Hugging Face Qwen (Alternative)</option>
-                      <option value="groq-llama">Groq Llama (Alternative)</option>
+                      <option value="openrouter-nemotron">Nemotron 3 Super (Alternative)</option>
                     </select>
                   </div>
 
@@ -2410,13 +2419,27 @@ export default function App() {
               {/* Body Section */}
               <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
                 {/* Left Panel: List of Saved Items */}
-                <div className={`w-full md:w-80 flex flex-col shrink-0 border-r ${
+                <div className={`w-full md:w-80 flex-col shrink-0 border-r transition-all duration-305 ${
+                  isOfflineListCollapsed ? 'hidden' : 'flex'
+                } ${
+                  selectedOfflineMaterial ? 'hidden md:flex' : 'flex'
+                } ${
                   isDarkMode ? 'border-white/5 bg-slate-900/40' : 'border-slate-100 bg-slate-50'
                 }`}>
-                  <div className="p-4 border-b border-inherit shrink-0">
-                    <p className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mb-2`}>
+                  <div className="p-4 border-b border-inherit shrink-0 flex items-center justify-between">
+                    <p className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                       Offline Archive
                     </p>
+                    <button
+                      onClick={() => setIsOfflineListCollapsed(true)}
+                      className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-brand-cyan transition-all rounded-lg cursor-pointer border-0 outline-none flex items-center justify-center"
+                      title="Collapse sidebar"
+                    >
+                      <ChevronLeft size={16} strokeWidth={2.5} />
+                    </button>
+                  </div>
+                  
+                  <div className="p-4 border-b border-inherit shrink-0">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                       <input
@@ -2463,12 +2486,7 @@ export default function App() {
                         }
 
                         return filtered.map((item: any, idx: number) => {
-                          const isSelected = selectedOfflineMaterial?.id === item.id || (!selectedOfflineMaterial && idx === 0);
-                          
-                          // Set initial selected item on mount/first view if not set
-                          if (!selectedOfflineMaterial && idx === 0) {
-                            setSelectedOfflineMaterial(item);
-                          }
+                          const isSelected = selectedOfflineMaterial?.id === item.id;
 
                           return (
                             <motion.button
@@ -2512,18 +2530,40 @@ export default function App() {
                 </div>
 
                 {/* Right Panel: Content Viewer & Features */}
-                <div className="flex-1 min-h-0 flex flex-col bg-slate-50/10">
+                <div className={`flex-1 min-h-0 flex-col bg-slate-50/10 ${selectedOfflineMaterial ? 'flex' : 'hidden md:flex'}`}>
                   {selectedOfflineMaterial ? (
                     <div className="flex-1 min-h-0 flex flex-col">
                       {/* Sub-Header bar for the reader */}
                       <div className={`p-4 border-b ${isDarkMode ? 'border-white/5 bg-slate-900/20' : 'border-slate-100 bg-white shadow-sm'} shrink-0 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between`}>
-                        <div>
-                          <h3 className={`text-sm font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                            {selectedOfflineMaterial.title}
-                          </h3>
-                          <p className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-0.5`}>
-                            {selectedOfflineMaterial.subject} • {selectedOfflineMaterial.contentType} • Offline Copy
-                          </p>
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          {/* Back Button for mobile */}
+                          <button
+                            onClick={() => setSelectedOfflineMaterial(null)}
+                            className="md:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-brand-cyan transition-all rounded-lg cursor-pointer border-0 outline-none flex items-center justify-center"
+                            title="Back to material list"
+                          >
+                            <ArrowLeft size={16} strokeWidth={2.5} />
+                          </button>
+
+                          {/* Expand Button for desktop */}
+                          {isOfflineListCollapsed && (
+                            <button
+                              onClick={() => setIsOfflineListCollapsed(false)}
+                              className="hidden md:flex mr-2 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-855 text-slate-500 dark:text-slate-400 hover:text-brand-cyan transition-all rounded-lg cursor-pointer border-0 outline-none items-center justify-center animate-pulse"
+                              title="Show material list"
+                            >
+                              <ChevronRight size={18} strokeWidth={2.5} />
+                            </button>
+                          )}
+                          
+                          <div>
+                            <h3 className={`text-sm font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                              {selectedOfflineMaterial.title}
+                            </h3>
+                            <p className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-0.5`}>
+                              {selectedOfflineMaterial.subject} • {selectedOfflineMaterial.contentType} • Offline Copy
+                            </p>
+                          </div>
                         </div>
 
                         {/* Speech, PDF, and Reader action bar */}
@@ -2656,7 +2696,7 @@ export default function App() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-fade-in">
                       <div className="p-4 bg-brand-cyan/10 text-brand-cyan rounded-full animate-pulse mb-4">
                         <BookOpen size={36} />
                       </div>
@@ -2666,6 +2706,14 @@ export default function App() {
                       <p className={`text-xs max-w-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-2`}>
                         Select any downloaded CAPS syllabus content on the left pane to begin reviewing with high-contrast formatting!
                       </p>
+                      {isOfflineListCollapsed && (
+                        <button
+                          onClick={() => setIsOfflineListCollapsed(false)}
+                          className="mt-5 px-4.5 py-2 bg-brand-cyan hover:bg-brand-cyan/80 text-white font-black text-xs uppercase tracking-wide rounded-2xl flex items-center gap-1.5 cursor-pointer shadow-lg shadow-brand-cyan/10 hover:scale-[1.03] active:scale-[0.97] transition-all border-0 outline-none"
+                        >
+                          <ChevronRight size={14} strokeWidth={2.5} /> Show Study Materials List
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

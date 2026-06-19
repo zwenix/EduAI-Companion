@@ -550,7 +550,7 @@ export default function Settings({
                     >
                       <option value="gemini">Gemini (Primary - Recommended)</option>
                       <option value="hf-qwen">Hugging Face Qwen 3.5 (Alternative)</option>
-                      <option value="groq-llama">Groq Llama 4 Scout (Alternative)</option>
+                      <option value="openrouter-nemotron">OpenRouter Nemotron 3 Super (Alternative)</option>
                     </select>
                   </div>
 

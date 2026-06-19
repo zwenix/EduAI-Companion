@@ -181,6 +181,37 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     }
   });
 
+  let cachedOpenRouterClient: OpenAI | null = null;
+  let cachedOpenRouterKey: string | null = null;
+
+  function getOpenRouterClient(): OpenAI {
+    const currentKey = (process.env.OPENROUTER_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+    if (cachedOpenRouterClient && cachedOpenRouterKey === currentKey) {
+      return cachedOpenRouterClient;
+    }
+    cachedOpenRouterKey = currentKey;
+    cachedOpenRouterClient = new OpenAI({
+      apiKey: currentKey || "dummy",
+      baseURL: "https://openrouter.ai/api/v1",
+      defaultHeaders: {
+        "HTTP-Referer": "https://ai.studio/build",
+        "X-Title": "EduAI Companion",
+      }
+    });
+    return cachedOpenRouterClient;
+  }
+
+  const openrouter = new Proxy({} as OpenAI, {
+    get(target, prop) {
+      const client = getOpenRouterClient();
+      const value = Reflect.get(client, prop);
+      if (typeof value === 'function') {
+        return value.bind(client);
+      }
+      return value;
+    }
+  });
+
   // --- API Routes ---
 
   app.get("/api/health", (req, res) => {
@@ -229,9 +260,12 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       case "llama-primary":
       case "llama-secondary":
       case "groq-vision":
-      case "groq-llama":
         client = groq;
         apiKey = process.env.GROQ_API_KEY || "";
+        break;
+      case "openrouter-nemotron":
+        client = openrouter;
+        apiKey = process.env.OPENROUTER_API_KEY || "";
         break;
       case "alibaba-qwen":
       case "alibaba-deepseek":
@@ -241,7 +275,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     }
 
     if (!apiKey || apiKey === "dummy" || apiKey === 'undefined') {
-      return res.status(400).json({ error: { message: `Provider ${provider} is not configured. Please add the ${provider === 'alibaba-qwen' ? 'ALIBABA_API_KEY' : 'API_KEY'} in the application settings.` }});
+      const neededKey = provider === 'openrouter-nemotron' ? 'OPENROUTER_API_KEY' : provider.startsWith('alibaba') ? 'ALIBABA_API_KEY' : 'API_KEY';
+      return res.status(400).json({ error: { message: `Provider ${provider} is not configured. Please add the ${neededKey} in the application settings.` }});
     }
 
     try {
@@ -252,7 +287,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
           provider === "alibaba-qwen" ? "qwen-plus" :
           provider === "alibaba-deepseek" ? "deepseek-v3" :
           provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
-          provider === "groq-llama" ? "Llama-4-Scout-17B-16E-Instruct" :
+          provider === "openrouter-nemotron" ? "nvidia/llama-3.1-nemotron-70b-instruct" :
           ""
         ),
         messages,
@@ -904,6 +939,39 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
                   totalScore: { type: Type.STRING }
                 },
                 required: ["extractedText", "marksPerQuestion", "feedback", "totalScore"]
+              }
+            }
+          });
+          return res.json(safeJsonParse(response.text));
+        }
+
+        case "text-grade": {
+          const { studentAnswers, memo, rubric, language } = input;
+          const prompt = `You are an AI Grader. Grade this student's written response in ${language || 'English'}.
+          Student answers: ${studentAnswers}
+          Memorandum / Memo notes: ${memo}
+          Rubric guidelines: ${rubric}
+          
+          Perform the following steps:
+          1. Evaluate each answer.
+          2. Calculate marks obtained per question according to the memo and rubric.
+          3. Provide encouraging and highly constructive feedback for the student.
+          4. Suggest actionable next steps to improve.
+          5. Sum the final score and return a neat JSON report.`;
+
+          const response = await generateContentWithFallback({
+            model,
+            contents: prompt,
+            config: {
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  marksPerQuestion: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  feedback: { type: Type.STRING },
+                  totalScore: { type: Type.STRING }
+                },
+                required: ["marksPerQuestion", "feedback", "totalScore"]
               }
             }
           });

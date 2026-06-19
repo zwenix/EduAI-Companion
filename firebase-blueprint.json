@@ -172,6 +172,10 @@
       "schema": "AiChatSession",
       "description": "Tutor sessions."
     },
+    "/ai_floating_sessions/{userId}": {
+      "schema": "AiChatSession",
+      "description": "Floating tutor sessions."
+    },
     "/created_content/{contentId}": {
       "schema": "CreatedContent",
       "description": "Archived generated content."
@@ -183,6 +187,14 @@
     "/illustrations/{illustrationId}": {
       "schema": "Illustration",
       "description": "Cached illustrations and diagrams."
+    },
+    "/assignments/{assignmentId}": {
+      "schema": "Assignment",
+      "description": "Teacher's generated assessment or worksheet assignments"
+    },
+    "/submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "Student's submissions for grading and results history"
     }
   }
 }

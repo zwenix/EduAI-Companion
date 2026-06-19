@@ -15,28 +15,49 @@ export const cleanTextForSpeech = (text: string): string => {
   
   let clean = text;
 
-  // 1. Remove code blocks completely (e.g. ```javascript ... ```) as they are unreadable
+  // 1. Remove HTML and CSS comments completely
+  clean = clean.replace(/<!--[\s\S]*?-->/g, ' ');
+  clean = clean.replace(/\/\*[\s\S]*?\*\//g, ' ');
+
+  // 2. Remove <style> ... </style> blocks and all content inside them
+  clean = clean.replace(/<style[\s\S]*?<\/style>/gi, ' ');
+
+  // 3. Remove <script> ... </script> blocks and all content inside them
+  clean = clean.replace(/<script[\s\S]*?<\/script>/gi, ' ');
+
+  // 4. Remove code blocks completely (e.g. ```javascript ... ```) as they are unreadable
   clean = clean.replace(/```[\s\S]*?```/g, ' ');
 
-  // 2. Remove inline code highlights (e.g. `const x = 5` -> const x = 5)
+  // 5. Remove inline code highlights (e.g. `const x = 5` -> const x = 5)
   clean = clean.replace(/`([^`]+)`/g, '$1');
 
-  // 3. Remove all HTML tags completely (like <span style="..."> or <font color="...">)
+  // 6. Remove dynamic and visual layout tags/instructions or brackets (e.g. [Illustration: ...])
+  clean = clean.replace(/\[\s*(Illustration|Style|Color|Layout|Background|Font|Image|Theme)[^\]]*\]/gi, ' ');
+  clean = clean.replace(/\[[^\]]{1,100}\]/g, ' '); // general safety for brackets containing style/meta annotations up to 100 chars
+
+  // 7. Remove hex color codes (e.g. #FFFFFF or #123456)
+  clean = clean.replace(/#[0-9a-fA-F]{6}\b/g, ' ');
+  clean = clean.replace(/#[0-9a-fA-F]{3}\b/g, ' ');
+
+  // 8. Replace common CSS properties text if printed/leaked
+  clean = clean.replace(/\b(color|background|font-family|font-size|font-weight|text-align|border|padding|margin|display|flex|grid|justify-content|align-items|height|width|line-height|text-decoration|text-transform|position|top|left|right|bottom|z-index|opacity|box-shadow|border-radius)\s*:[^;]+;/gi, ' ');
+
+  // 9. Remove all HTML tags completely (like <span style="..."> or <font color="...">)
   clean = clean.replace(/<\/?[^>]+(>|$)/g, ' ');
 
-  // 4. Remove Markdown image links: ![alt text](url)
+  // 10. Remove Markdown image links: ![alt text](url)
   clean = clean.replace(/!\[[^\]]*\]\([^)]+\)/g, ' ');
 
-  // 5. Convert Markdown links: [Link Name](url) -> Link Name
+  // 11. Convert Markdown links: [Link Name](url) -> Link Name
   clean = clean.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
 
-  // 6. Handle Markdown table formatting elements:
+  // 12. Handle Markdown table formatting elements:
   // - Remove lines that are just dashes/pipes (table divider rows like |---|---|)
   clean = clean.replace(/^[|:\s-]+\|[\s|:-]*$/gm, ' ');
   // - Clean table pipes | by replacing them with space
   clean = clean.replace(/\|/g, ' ');
 
-  // 7. Remove other common Markdown structure characters, but leave sentence structure intact:
+  // 13. Remove other common Markdown structure characters, but leave sentence structure intact:
   // - Remove Asterisks (**bold**, *italic*)
   clean = clean.replace(/\*+/g, '');
   // - Remove Underscores (__bold__, _italic_)
@@ -50,7 +71,10 @@ export const cleanTextForSpeech = (text: string): string => {
   // - Remove list dashes/asterisks/plus at start of lines, e.g. - list or * list, but keep numbers
   clean = clean.replace(/^[\s]*[-*+]\s+/gm, ' ');
 
-  // 8. Replace HTML entities with clean spoken equivalents
+  // 14. Strip any dangling curly braces/styles braces
+  clean = clean.replace(/[{}]/g, ' ');
+
+  // 15. Replace HTML entities with clean spoken equivalents
   const entities: { [key: string]: string } = {
     '&nbsp;': ' ',
     '&lt;': '<',
@@ -64,7 +88,7 @@ export const cleanTextForSpeech = (text: string): string => {
     clean = clean.replaceAll(entity, entities[entity]);
   });
 
-  // 9. Minimize multiple spaces/newlines to a single space, stripping extra leading/trailing whitespace
+  // 16. Minimize multiple spaces/newlines to a single space, stripping extra leading/trailing whitespace
   clean = clean.replace(/\s+/g, ' ').trim();
 
   return clean;

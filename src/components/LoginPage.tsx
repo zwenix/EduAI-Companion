@@ -16,6 +16,7 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogle, setIsGoogle] = useState(false);
   const [error, setError] = useState('');
+  const isIframe = typeof window !== 'undefined' && window.self !== window.top;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,6 +124,15 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
               {isSignUp ? "Create your account" : "Log in to your magical adventure"}
             </p>
           </div>
+
+          {isIframe && (
+            <div className="mb-4 p-3.5 bg-indigo-950/80 text-indigo-200 border-2 border-indigo-500/40 rounded-2xl font-bold text-xs text-center flex flex-col items-center gap-1.5 shadow-lg">
+              <span>🔒 Iframe Sandbox Active</span>
+              <span className="font-medium text-indigo-300 leading-normal text-[11px]">
+                If Google login fails, please click <b>"Open in a new tab"</b> in the top right of AI Studio first!
+              </span>
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 p-3 bg-red-400 text-slate-900 border border-red-500/50 rounded-xl font-bold text-sm text-center">

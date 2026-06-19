@@ -1,10 +1,12 @@
-import React, { useState, useRef } from 'react';
-import { Camera, Upload, Scan, X, RefreshCw, Loader2, FileCheck, Brain, CheckCircle, AlertCircle, ChevronRight, GraduationCap, Download, Printer, UserCircle, Users, Save, Check } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Camera, Upload, Scan, X, RefreshCw, Loader2, FileCheck, Brain, CheckCircle, AlertCircle, ChevronRight, GraduationCap, Download, Printer, UserCircle, Users, Save, Check, FileText, ClipboardList } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { runOCRAndGrade, runOCRScan } from '../services/unifiedAiService';
 import { useAi } from '../contexts/AiContext';
+import { db } from '../lib/firebase';
+import { collection, query, onSnapshot, where } from 'firebase/firestore';
 
 import { printContent, downloadAsHTML } from '../lib/printUtils';
 
@@ -33,6 +35,49 @@ export default function AutoGrading() {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [mode, setMode] = useState<'grade' | 'extract'>('grade');
   const [ocrLanguage, setOcrLanguage] = useState('English');
+
+  // Firestore integration states
+  const [dbAssignments, setDbAssignments] = useState<any[]>([]);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string>('');
+  const [allSubmissions, setAllSubmissions] = useState<any[]>([]);
+  const [filteredSubmissions, setFilteredSubmissions] = useState<any[]>([]);
+  const [selectedSubmission, setSelectedSubmission] = useState<any | null>(null);
+
+  // Load existing assignments created by teachers
+  useEffect(() => {
+    const q = query(collection(db, 'assignments'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setDbAssignments(list);
+    }, (err) => console.error("Error loading assignments in AutoGrading", err));
+    return unsub;
+  }, []);
+
+  // Sync submissions
+  useEffect(() => {
+    const q = query(collection(db, 'submissions'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setAllSubmissions(list);
+    }, (err) => console.error("Error loading submissions in AutoGrading", err));
+    return unsub;
+  }, []);
+
+  // Filter submissions when selectedAssignmentId changes
+  useEffect(() => {
+    if (!selectedAssignmentId) {
+      setFilteredSubmissions([]);
+      return;
+    }
+    const filtered = allSubmissions.filter(s => s.assignmentId === selectedAssignmentId);
+    setFilteredSubmissions(filtered);
+
+    // Auto prepopulate rubric corresponding to selected assignment
+    const chosen = dbAssignments.find(a => a.id === selectedAssignmentId);
+    if (chosen) {
+      setRubric(chosen.rubric || '');
+    }
+  }, [selectedAssignmentId, allSubmissions, dbAssignments]);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -41,7 +86,7 @@ export default function AutoGrading() {
   const [archiveSuccess, setArchiveSuccess] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isCameraActive && stream && videoRef.current) {
       videoRef.current.srcObject = stream;
     }
@@ -335,13 +380,108 @@ export default function AutoGrading() {
               </div>
               <h3 className="text-xl font-hand text-white">Grading Parameters</h3>
             </div>
+
+            {/* Select from Content Archive Vault / Assignments */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase font-black tracking-widest text-slate-400 pl-1">
+                Linked Class Assignment
+              </label>
+              <select
+                value={selectedAssignmentId}
+                onChange={(e) => {
+                  setSelectedAssignmentId(e.target.value);
+                  setSelectedSubmission(null);
+                  setResult(null);
+                }}
+                className="w-full bg-navy-dark border border-white/10 outline-none text-slate-300 text-xs font-black uppercase tracking-widest py-3.5 px-4 rounded-2xl [&>option]:bg-slate-900 cursor-pointer"
+              >
+                <option value="">-- Or select an assigned task (Autofills Memo & Rubric) --</option>
+                {dbAssignments.map(asg => (
+                  <option key={asg.id} value={asg.id}>
+                    {asg.title} ({asg.subject} • {asg.grade})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* If has linked assignment and submissions, show students submissions queue */}
+            {selectedAssignmentId && (
+              <div className="space-y-3 pt-2 bg-slate-900/10 p-4 rounded-2xl border border-white/5">
+                <div className="flex justify-between items-center pl-1">
+                  <span className="text-[10px] uppercase font-black tracking-widest text-[#06b6d4]">
+                    Student Submissions ({filteredSubmissions.length})
+                  </span>
+                  <span className="text-[9px] text-slate-500 font-mono">Real-time sync</span>
+                </div>
+
+                {filteredSubmissions.length === 0 ? (
+                  <div className="p-4 bg-navy-dark/40 rounded-2xl text-center border border-dashed border-white/5">
+                    <p className="text-xs text-slate-500 font-medium">No students have submitted this task yet.</p>
+                  </div>
+                ) : (
+                  <div className="max-h-[160px] overflow-y-auto space-y-2 pr-1">
+                    {filteredSubmissions.map(sub => {
+                      const isGraded = sub.status === 'graded';
+                      const isChosen = selectedSubmission?.id === sub.id;
+
+                      return (
+                        <div
+                          key={sub.id}
+                          onClick={() => {
+                            setSelectedSubmission(sub);
+                            setCapturedImage(sub.uploadedImage || null);
+                            if (sub.grade) {
+                              setResult({
+                                totalScore: sub.grade,
+                                feedback: sub.feedback || 'No feedback found.',
+                                marksPerQuestion: sub.marksPerQuestion || [],
+                                extractedText: sub.answersText || '(RAW answers uploaded)'
+                              });
+                            }
+                          }}
+                          className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                            isChosen
+                              ? 'bg-brand-cyan/25 border-brand-cyan/40 text-white'
+                              : (isGraded ? 'bg-emerald-950/10 border-emerald-900/25 text-slate-300 hover:bg-white/5' : 'bg-navy-dark/40 border-white/5 text-slate-400 hover:bg-white/5')
+                          }`}
+                        >
+                          <div>
+                            <p className="text-xs font-black text-white">{sub.studentName}</p>
+                            <p className="text-[10px] font-mono text-slate-500 mt-0.5">
+                              {sub.completedOnline ? 'Completed Online' : 'Uploaded Hand-written paper'}
+                            </p>
+                          </div>
+                          
+                          <div className="text-right">
+                            {isGraded ? (
+                              <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded">
+                                Graded: {sub.grade}
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-mono text-yellow-400 bg-yellow-950/40 px-2 py-0.5 rounded">
+                                Pending
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
             
-            <textarea 
-              value={rubric}
-              onChange={(e) => setRubric(e.target.value)}
-              placeholder="Enter your marking rubric, success criteria, or specific student objectives here..."
-              className="w-full bg-navy-dark/40 border border-white/10 rounded-[32px] p-8 focus:border-brand-cyan focus:bg-navy-dark outline-none transition-all resize-none text-[15px] text-slate-300 placeholder:text-slate-700 leading-relaxed font-mono h-48 shadow-inner"
-            />
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase font-black tracking-widest text-slate-400 pl-1">
+                Marking Rubric / Memo Notes
+              </label>
+              <textarea 
+                value={rubric}
+                onChange={(e) => setRubric(e.target.value)}
+                placeholder="Enter your marking rubric, success criteria, or specific student objectives here..."
+                className="w-full bg-navy-dark/40 border border-white/10 rounded-[32px] p-8 focus:border-brand-cyan focus:bg-navy-dark outline-none transition-all resize-none text-[15px] text-slate-300 placeholder:text-slate-700 leading-relaxed font-mono h-48 shadow-inner"
+              />
+            </div>
             
             {capturedImage && (
               <div className={`w-full py-6 rounded-[28px] font-black uppercase tracking-[0.2em] text-xs flex flex-col items-center justify-center gap-4 transition-all border ${

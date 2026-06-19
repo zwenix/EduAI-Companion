@@ -164,7 +164,12 @@ export default function CurriculumSuite({ isDarkMode, userRole }: { isDarkMode: 
   // Load profile metrics from database for gamification sync
   useEffect(() => {
     const fetchProfile = async () => {
-      if (auth.currentUser) {
+      if (auth.currentUser && userRole) {
+        // Only student/learner roles have student profiles stored in the 'students' collection.
+        // Doing this query as a teacher/parent/admin violates security rules and is unnecessary.
+        if (userRole !== 'student' && userRole !== 'learner') {
+          return;
+        }
         try {
           const email = auth.currentUser.email?.toLowerCase().trim() || '';
           const q = query(collection(db, 'students'), where('email', '==', email));
@@ -185,7 +190,7 @@ export default function CurriculumSuite({ isDarkMode, userRole }: { isDarkMode: 
       }
     };
     fetchProfile();
-  }, []);
+  }, [userRole]);
 
   // Sync points back to Firestore helper
   const handleUpdatePoints = async (newVal: number, xpDelta = 10) => {
@@ -427,7 +432,54 @@ export default function CurriculumSuite({ isDarkMode, userRole }: { isDarkMode: 
 
       {/* CURRICULUM SYLLABUS TAB */}
       {currentTab === 'curriculum' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="space-y-6">
+          {/* Phase-specific adaptive aesthetic mascot banner */}
+          <div className={cn(
+            "p-6 rounded-[28px] border-2 transition-all duration-300 relative overflow-hidden flex flex-col md:flex-row items-center gap-6 shadow-md shadow-brand-cyan/5",
+            selectedPhase === 'Foundation Phase' 
+              ? "bg-gradient-to-r from-pink-500/10 via-yellow-500/10 to-blue-500/10 border-pink-500/30 text-pink-100"
+              : selectedPhase === 'Intermediate Phase'
+              ? "bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border-emerald-500/30 text-emerald-100"
+              : selectedPhase === 'Senior Phase'
+              ? "bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-violet-500/10 border-purple-500/30 text-purple-100"
+              : "bg-gradient-to-r from-slate-900/40 via-blue-900/20 to-slate-900/40 border-cyan-500/30 text-cyan-100"
+          )}>
+            <div className="flex-shrink-0 text-5xl select-none animate-bounce" style={{ animationDuration: '3s' }}>
+              {selectedPhase === 'Foundation Phase' ? '🦁' : selectedPhase === 'Intermediate Phase' ? '🦓' : selectedPhase === 'Senior Phase' ? '🐆' : '🦉'}
+            </div>
+            <div className="text-center md:text-left space-y-1 z-10">
+              <span className={cn(
+                "inline-block px-3 py-1 text-[9px] font-black uppercase tracking-[0.15em] rounded-full",
+                selectedPhase === 'Foundation Phase' 
+                  ? "bg-pink-500/20 text-pink-300"
+                  : selectedPhase === 'Intermediate Phase'
+                  ? "bg-emerald-500/20 text-emerald-300"
+                  : selectedPhase === 'Senior Phase'
+                  ? "bg-purple-500/20 text-purple-300"
+                  : "bg-cyan-500/20 text-cyan-300"
+              )}>
+                {selectedPhase === 'Foundation Phase' ? 'Lumi the Learning Lion • Foundation Guide' : selectedPhase === 'Intermediate Phase' ? 'Zari the Zebra Explorer • Intermediate Guide' : selectedPhase === 'Senior Phase' ? 'Sipho the Smart Cheetah • Senior Quest' : 'Dr. Wise Owl • FET Senior Academic Vault'}
+              </span>
+              <h4 className={cn("text-base font-bold", isDarkMode ? "text-white" : "text-slate-800")}>
+                {selectedPhase === 'Foundation Phase' 
+                  ? "Let's play and write, future superstar!" 
+                  : selectedPhase === 'Intermediate Phase' 
+                  ? "Let's explore ecosystems, math tricks and language paths!" 
+                  : selectedPhase === 'Senior Phase' 
+                  ? "Ready to run fast and discover complex formulas!" 
+                  : "Welcome to the CAPS college and matric prep arena!"}
+              </h4>
+              <p className={cn("text-xs max-w-2xl font-medium leading-relaxed", isDarkMode ? "text-slate-400" : "text-slate-600")}>
+                {selectedPhase === 'Foundation Phase' 
+                  ? "We use extra large elements, bubblegum layouts, dotted handwriting guides, and fun illustration sheets perfectly matched for R-3 learners. Enjoy tracer exercises and rewards!" 
+                  : selectedPhase === 'Intermediate Phase' 
+                  ? "We transition to clean bento-layouts, single accent worksheets, diagrams, progress charts, and engagement trackers perfect for Grade 4-6 explorers." 
+                  : "High density past-exam formats, structured questions matching real matrices, specific mark allocations, and professional study guidelines for Grade 10-12 matriculants."}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left selectors sidebar */}
           <div className="lg:col-span-1 space-y-6">
             <div className={`p-6 rounded-[24px] border ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'} space-y-4`}>
@@ -570,6 +622,7 @@ export default function CurriculumSuite({ isDarkMode, userRole }: { isDarkMode: 
               </div>
             </div>
           </div>
+        </div>
         </div>
       )}
 

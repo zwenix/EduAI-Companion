@@ -314,4 +314,29 @@ svg:not(.not-sketchy):hover {
   box-shadow: 0 10px 15px -3px rgba(255, 94, 54, 0.35) !important;
 }
 
+/* Custom Splash Screen Animations */
+@keyframes reverse-spin {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+.animate-reverse-spin {
+  animation: reverse-spin 12s linear infinite;
+}
+
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.animate-float-gentle {
+  animation: float-gentle 4s ease-in-out infinite;
+}
+
 

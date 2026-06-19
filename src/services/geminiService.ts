@@ -211,6 +211,20 @@ export const runOCRAndGrade = async (imageData: string, rubric: string, language
   }
 };
 
+export const runTextGrade = async (studentAnswers: string, memo: string, rubric: string, language: string = 'English') => {
+  try {
+    const response = await axios.post("/api/gemini/action", {
+      action: "text-grade",
+      input: { studentAnswers, memo, rubric, language }
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Express /api/gemini/action failed text-grade:", error.message || error);
+    checkAndReportApiError(error, "Gemini");
+    throw error;
+  }
+};
+
 export const chatWithTutor = async (messages: any[]) => {
   try {
     const response = await axios.post("/api/gemini/action", {
