@@ -35,6 +35,7 @@ export default function AutoGrading() {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [mode, setMode] = useState<'grade' | 'extract'>('grade');
   const [ocrLanguage, setOcrLanguage] = useState('English');
+  const [isHandwritten, setIsHandwritten] = useState(true);
 
   // Firestore integration states
   const [dbAssignments, setDbAssignments] = useState<any[]>([]);
@@ -177,7 +178,7 @@ export default function AutoGrading() {
     }, 300);
 
     try {
-      const resp = await runOCRScan(img, provider, ocrProvider, ocrLanguage);
+      const resp = await runOCRScan(img, provider, ocrProvider, ocrLanguage, isHandwritten);
       clearInterval(progressInterval);
       setGenerationProgress(100);
       setTimeout(() => {
@@ -208,7 +209,7 @@ export default function AutoGrading() {
     }, 400);
 
     try {
-      const gradingResult = await runOCRAndGrade(img, rubric || "Grade accurately based on standard academic quality, checking for correctness, clarity, and completeness.", provider, ocrProvider, ocrLanguage);
+      const gradingResult = await runOCRAndGrade(img, rubric || "Grade accurately based on standard academic quality, checking for correctness, clarity, and completeness.", provider, ocrProvider, ocrLanguage, isHandwritten);
       clearInterval(progressInterval);
       setGenerationProgress(100);
       setTimeout(() => {
@@ -284,7 +285,24 @@ export default function AutoGrading() {
               ))}
             </select>
           </div>
+          <div className="flex flex-col">
+            <label className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-widest pl-1">Handwriting Mode</label>
+            <button
+              id="toggle-handwritten"
+              type="button"
+              onClick={() => setIsHandwritten(!isHandwritten)}
+              className={`py-3 px-4 rounded-2xl border text-xs font-black uppercase tracking-widest transition-all h-[42px] flex items-center gap-2 cursor-pointer ${
+                isHandwritten 
+                  ? 'bg-brand-cyan/20 border-brand-cyan text-brand-cyan shadow-sm shadow-brand-cyan/20' 
+                  : 'bg-navy-dark border-white/10 text-slate-400'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${isHandwritten ? 'bg-brand-cyan animate-pulse' : 'bg-slate-600'}`} />
+              {isHandwritten ? 'Handwritten' : 'Printed Text'}
+            </button>
+          </div>
           <button 
+            type="button"
             onClick={() => fileInputRef.current?.click()}
             className="glass px-6 py-3 rounded-2xl flex items-center gap-3 text-xs font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all border border-white/5 h-[42px]"
           >

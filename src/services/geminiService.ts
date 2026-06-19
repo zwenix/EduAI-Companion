@@ -183,11 +183,11 @@ export const generateAdminDoc = async (input: any) => {
   }
 };
 
-export const runOCRScan = async (imageData: string, language: string = 'English') => {
+export const runOCRScan = async (imageData: string, language: string = 'English', isHandwritten: boolean = true) => {
   try {
     const response = await axios.post("/api/gemini/action", {
       action: "ocr-scan",
-      input: { imageData, language }
+      input: { imageData, language, isHandwritten }
     });
     return response.data;
   } catch (error: any) {
@@ -197,11 +197,11 @@ export const runOCRScan = async (imageData: string, language: string = 'English'
   }
 };
 
-export const runOCRAndGrade = async (imageData: string, rubric: string, language: string = 'English') => {
+export const runOCRAndGrade = async (imageData: string, rubric: string, language: string = 'English', isHandwritten: boolean = true) => {
   try {
     const response = await axios.post("/api/gemini/action", {
       action: "ocr-grade",
-      input: { imageData, rubric, language }
+      input: { imageData, rubric, language, isHandwritten }
     });
     return response.data;
   } catch (error: any) {

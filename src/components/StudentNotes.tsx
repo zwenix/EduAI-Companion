@@ -3,6 +3,7 @@ import { BookOpen, Loader2, FileText, BrainCircuit, Download, History, ArrowRigh
 import { generateEducationalContent } from '../services/geminiService';
 import { marked } from 'marked';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
+import { renderMathInHtml } from '../lib/latexHelper';
 import { educationalData } from '../lib/educational-data';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -288,7 +289,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
               </div>
               <div ref={printRef} className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} p-8 rounded-[24px] border shadow-sm`}>
                 <div 
-                  dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(marked.parse(result.content || result) as string) }} 
+                  dangerouslySetInnerHTML={{ __html: renderMathInHtml(replaceImagePlaceholders(marked.parse(result.content || result) as string)) }} 
                   className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-800'}`} 
                 />
               </div>

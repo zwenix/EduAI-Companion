@@ -1,19 +1,19 @@
-const CACHE_NAME = 'caps-academy-cache-v1';
-const OFFLINE_URL = '/index.html';
-
+const CACHE_NAME = 'eduai-companion-v1';
 const ASSETS_TO_CACHE = [
   '/',
-  '/index.html',
-  '/src/main.tsx',
-  '/src/index.css',
-  '/src/App.tsx',
+  '/index.html'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Precaching app shell...');
-      return cache.addAll(ASSETS_TO_CACHE);
+      return Promise.allSettled(
+        ASSETS_TO_CACHE.map((asset) => {
+          return cache.add(asset).catch((err) => {
+            console.warn(`Failed to pre-cache asset ${asset}:`, err);
+          });
+        })
+      );
     }).then(() => self.skipWaiting())
   );
 });
@@ -22,10 +22,10 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('[Service Worker] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            console.log('Clearing old Service Worker Cache:', cache);
+            return caches.delete(cache);
           }
         })
       );
@@ -33,68 +33,58 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Cache strategy: Network first falling back to Cache, with dynamic caching
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
-  if (event.request.method !== 'GET') return;
-
   const url = new URL(event.request.url);
 
-  // Skip web sockets or dev server refresh packages or browser extensions
+  // Bypass API routes, external networks, and non-GET requests
   if (
-    url.pathname.includes('ws') || 
-    url.pathname.includes('chrome-extension') || 
-    url.hostname.includes('localhost') && url.port === '3001'
+    url.pathname.startsWith('/api') || 
+    event.request.method !== 'GET' ||
+    !url.origin.includes(self.location.origin)
   ) {
     return;
   }
 
-  // Handle API proxy requests or external API calls differently if needed
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          // Cache successful API responses to allow students offline lesson access!
-          if (response.status === 200) {
-            const responseClone = response.clone();
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      if (cachedResponse) {
+        // stale-while-revalidate pattern
+        fetch(event.request)
+          .then((networkResponse) => {
+            if (networkResponse.status === 200) {
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, networkResponse);
+              });
+            }
+          })
+          .catch(() => {
+            // Ignore background fetch offline failure
+          });
+        return cachedResponse;
+      }
+
+      return fetch(event.request)
+        .then((networkResponse) => {
+          if (!networkResponse || networkResponse.status !== 200) {
+            return networkResponse;
+          }
+
+          // Cache valid resources dynamically (e.g. static assets)
+          const isAsset = /\.(js|css|png|jpg|jpeg|svg|woff2?|ico|json)$/.test(url.pathname);
+          if (isAsset) {
+            const responseToCache = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
+              cache.put(event.request, responseToCache);
             });
           }
-          return response;
+
+          return networkResponse;
         })
         .catch(() => {
-          // If network fails, try to return cached API response or fallback securely
-          return caches.match(event.request);
-        })
-    );
-    return;
-  }
-
-  // Default asset handler: Network First, falling back to cache
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // If valid response, clone and cache it
-        if (response && response.status === 200) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
-        }
-        return response;
-      })
-      .catch(() => {
-        // Fallback to cache
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          // If completely offline and request is for navigation, return index.html
           if (event.request.mode === 'navigate') {
-            return caches.match(OFFLINE_URL);
+            return caches.match('/');
           }
         });
-      })
+    })
   );
 });

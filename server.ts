@@ -897,8 +897,9 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         }
 
         case "ocr-scan": {
-          const { imageData, language } = input;
+          const { imageData, language, isHandwritten } = input;
           const prompt = `Extract all text from the attached image accurately, assuming the text is in ${language}.
+          ${isHandwritten ? "The image contains handwritten notes, assessments, or drawings. Use professional Multimodal Handwriting Recognition to transcribe printed text, cursive handwriting, math symbols, annotations, and notes precisely." : ""}
           Format it cleanly. Make no other comments.`;
           const response = await generateContentWithFallback({
             model,
@@ -913,9 +914,10 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         }
 
         case "ocr-grade": {
-          const { imageData, rubric, language } = input;
+          const { imageData, rubric, language, isHandwritten } = input;
           const prompt = `You are an AI Grader. Analyze the attached image of a student's assessment in ${language}.
           Reference this rubric: ${rubric}.
+          ${isHandwritten ? "The student's inputs are handwritten. Apply deep Handwriting Recognition (HWR) and optical reading on the student answers. Be forgiving on cursive forms, crossed-out errors, printed text, mathematical symbols, and structural layout answers." : ""}
           1. Extract the text from the image (OCR).
           2. Grade each question according to the rubric.
           3. Provide constructive feedback for the student.

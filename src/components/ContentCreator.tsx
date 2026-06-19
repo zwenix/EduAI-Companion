@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
+import { renderMathInHtml } from '../lib/latexHelper';
 import { educationalData } from '../lib/educational-data';
 import { generateCAPSContent, generateVisualAid, generateAdminDoc } from '../services/unifiedAiService';
 import { useAi } from '../contexts/AiContext';
@@ -372,7 +373,7 @@ function ContentPreview({ html, label, isDarkMode, imagePrompt }: { html: string
 </style>
 `;
   
-  let finalIframeContent = processedHtml;
+  let finalIframeContent = renderMathInHtml(processedHtml);
   // Always strip AI-generated tailwind CDN
   finalIframeContent = finalIframeContent.replace(/<script[^>]*src=["'][^>]*cdn\.tailwindcss\.com[^>]*>[\s\S]*?<\/script>/gi, '');
   
@@ -399,7 +400,7 @@ function ContentPreview({ html, label, isDarkMode, imagePrompt }: { html: string
       }
   }
 
-  const rawMarkup = useIframe ? processedHtml : marked.parse(processedHtml) as string;
+  const rawMarkup = useIframe ? processedHtml : renderMathInHtml(marked.parse(processedHtml) as string);
 
   const handlePrint = () => {
     try {

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { marked } from 'marked';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
+import { renderMathInHtml } from '../lib/latexHelper';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
@@ -102,9 +103,9 @@ export default function ReaderModeModal({
     if (!content) return '';
     try {
       const parsed = marked.parse(content) as string;
-      return replaceImagePlaceholders(parsed);
+      return renderMathInHtml(replaceImagePlaceholders(parsed));
     } catch (e) {
-      return content;
+      return renderMathInHtml(content);
     }
   }, [content]);
 
