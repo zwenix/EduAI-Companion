@@ -7,6 +7,18 @@ import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import axios from "axios";
 import { GoogleGenAI, Type } from "@google/genai";
+import mammoth from "mammoth";
+
+async function tryExtractDocxText(base64Data: string): Promise<string> {
+  try {
+    const buffer = Buffer.from(base64Data, "base64");
+    const result = await mammoth.extractRawText({ buffer });
+    return result.value || "";
+  } catch (err: any) {
+    console.error("Failed to parse docx with mammoth:", err);
+    return "";
+  }
+}
 
 
 // Cache the last verified working Gemini model to eliminate fallback latency and unnecessary fallback warnings.
@@ -26,11 +38,42 @@ interface FailedRequest {
 const failedRequestsLog: FailedRequest[] = [];
 dotenv.config();
 
+function resolveOpenRouterKey(): string {
+  const keys = [
+    process.env.OPENROUTER_API_KEY,
+    process.env.VITE_OPENROUTER_API_KEY,
+    process.env.OPEN_ROUTER_API_KEY,
+    process.env.OPENROUTER_TOKEN,
+    process.env.MULEROUTER_API_KEY,
+  ];
+  for (const key of keys) {
+    if (key && key !== "dummy" && key !== "undefined" && key.trim() !== "") {
+      return key.trim().replace(/^['"\s]+|['"\s]+$/g, "");
+    }
+  }
+  return "";
+}
+
+function resolveGeminiKey(): string {
+  const keys = [
+    process.env.GEMINI_API_KEY,
+    process.env.VITE_GEMINI_API_KEY,
+    process.env.GOOGLE_GENAI_API_KEY,
+    process.env.GOOGLE_AI_API_KEY,
+  ];
+  for (const key of keys) {
+    if (key && key !== "dummy" && key !== "undefined" && key.trim() !== "") {
+      return key.trim().replace(/^['"\s]+|['"\s]+$/g, "");
+    }
+  }
+  return "";
+}
+
 let cachedGeminiClient: GoogleGenAI | null = null;
 let cachedApiKeyUsed: string | null = null;
 
 function getGeminiClient(): GoogleGenAI {
-  const currentKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+  const currentKey = resolveGeminiKey();
   if (cachedGeminiClient && cachedApiKeyUsed === currentKey) {
     return cachedGeminiClient;
   }
@@ -185,7 +228,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
   let cachedOpenRouterKey: string | null = null;
 
   function getOpenRouterClient(): OpenAI {
-    const currentKey = (process.env.OPENROUTER_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+    const currentKey = resolveOpenRouterKey();
     if (cachedOpenRouterClient && cachedOpenRouterKey === currentKey) {
       return cachedOpenRouterClient;
     }
@@ -265,7 +308,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         break;
       case "openrouter-nemotron":
         client = openrouter;
-        apiKey = process.env.OPENROUTER_API_KEY || "";
+        apiKey = resolveOpenRouterKey();
         break;
       case "alibaba-qwen":
       case "alibaba-deepseek":
@@ -463,7 +506,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     const { prompt, provider } = req.body;
     
     if (provider === "gemini-imagen") {
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = resolveGeminiKey();
       if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
         return res.status(400).json({ error: "GEMINI_API_KEY missing" });
       }
@@ -657,7 +700,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
   
   app.post("/api/gemini/action", async (req, res) => {
     const { action, input } = req.body || {};
-    const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+    const apiKey = resolveGeminiKey();
     if (!apiKey || apiKey === "" || apiKey === "dummy" || apiKey === "undefined") {
       return res.status(400).json({ error: "GEMINI_API_KEY is not configured in settings." });
     }
@@ -898,37 +941,137 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
         case "ocr-scan": {
           const { imageData, language, isHandwritten } = input;
-          const prompt = `Extract all text from the attached image accurately, assuming the text is in ${language}.
-          ${isHandwritten ? "The image contains handwritten notes, assessments, or drawings. Use professional Multimodal Handwriting Recognition to transcribe printed text, cursive handwriting, math symbols, annotations, and notes precisely." : ""}
-          Format it cleanly. Make no other comments.`;
-          const response = await generateContentWithFallback({
-            model,
-            contents: [
-              { role: 'user', parts: [
-                { text: prompt },
-                { inlineData: { mimeType: "image/jpeg", data: imageData.split(',')[1] } }
-              ]}
-            ]
-          });
-          return res.json({ extractedText: response.text });
+          const items = Array.isArray(imageData) ? imageData : [imageData];
+          const textContents: string[] = [];
+          const partsToProcess: any[] = [];
+          
+          for (const item of items) {
+            let mimeType = "image/jpeg";
+            let base64Data = item;
+            
+            if (item.startsWith("data:")) {
+              const p = item.split(";base64,");
+              if (p.length === 2) {
+                mimeType = p[0].replace("data:", "").split(";")[0];
+                base64Data = p[1];
+              } else {
+                base64Data = item.split(",")[1] || item;
+              }
+            }
+            
+            if (mimeType.includes("wordprocessingml") || mimeType.includes("msword") || mimeType.includes("officedocument") || mimeType === "application/docx" || mimeType === "docx") {
+              const docxText = await tryExtractDocxText(base64Data);
+              if (docxText) {
+                textContents.push(docxText);
+              }
+            } else {
+              partsToProcess.push({
+                inlineData: { mimeType, data: base64Data }
+              });
+            }
+          }
+          
+          let resultText = "";
+          if (partsToProcess.length > 0) {
+            const prompt = `Extract all text from the attached ${partsToProcess.length} page/s or document accurately, assuming the text is in ${language}.
+            ${isHandwritten ? "The image/document contains handwritten notes, assessments, or drawings. Use professional Multimodal Handwriting Recognition to transcribe printed text, cursive handwriting, math symbols, annotations, and notes precisely." : ""}
+            Format it cleanly. Make no other comments.`;
+            
+            const response = await generateContentWithFallback({
+              model,
+              contents: [
+                { role: 'user', parts: [
+                  { text: prompt },
+                  ...partsToProcess
+                ]}
+              ]
+            });
+            resultText = response.text || "";
+          }
+          
+          if (textContents.length > 0) {
+            if (resultText) {
+              resultText += "\n\n=== Extracted Word Document Text ===\n\n" + textContents.join("\n\n");
+            } else {
+              resultText = textContents.join("\n\n");
+            }
+          }
+          
+          return res.json({ extractedText: resultText });
         }
 
         case "ocr-grade": {
           const { imageData, rubric, language, isHandwritten } = input;
-          const prompt = `You are an AI Grader. Analyze the attached image of a student's assessment in ${language}.
-          Reference this rubric: ${rubric}.
-          ${isHandwritten ? "The student's inputs are handwritten. Apply deep Handwriting Recognition (HWR) and optical reading on the student answers. Be forgiving on cursive forms, crossed-out errors, printed text, mathematical symbols, and structural layout answers." : ""}
-          1. Extract the text from the image (OCR).
-          2. Grade each question according to the rubric.
-          3. Provide constructive feedback for the student.
-          4. Summarize the total score.`;
+          const items = Array.isArray(imageData) ? imageData : [imageData];
+          const textContents: string[] = [];
+          const partsToProcess: any[] = [];
+          
+          for (const item of items) {
+            let mimeType = "image/jpeg";
+            let base64Data = item;
+            
+            if (item.startsWith("data:")) {
+              const p = item.split(";base64,");
+              if (p.length === 2) {
+                mimeType = p[0].replace("data:", "").split(";")[0];
+                base64Data = p[1];
+              } else {
+                base64Data = item.split(",")[1] || item;
+              }
+            }
+            
+            if (mimeType.includes("wordprocessingml") || mimeType.includes("msword") || mimeType.includes("officedocument") || mimeType === "application/docx" || mimeType === "docx") {
+              const docxText = await tryExtractDocxText(base64Data);
+              if (docxText) {
+                textContents.push(docxText);
+              }
+            } else {
+              partsToProcess.push({
+                inlineData: { mimeType, data: base64Data }
+              });
+            }
+          }
+          
+          const textDocContext = textContents.length > 0 
+            ? `\n\nWord Document content uploaded by student:\n${textContents.join("\n\n")}`
+            : "";
+          
+          const prompt = `You are an AI Grader and South African CAPS Curriculum Specialist.
+          Analyze these student assessment page/s.
+          ${textDocContext}
+          
+          TASK 1: MEMORANDUM & RUBRIC QUALITY CHECK & AUTO-GENERATION
+          - You are supplied with this Teacher's Memorandum/Rubric: "${rubric || ''}".
+          - IF the supplied Memorandum/Rubric is missing, blank, or extremely brief:
+            * You MUST automatically generate a highly comprehensive, detailed Memorandum and grading rubric mapped to CAPS criteria based on the student's work and the questions/answers found in their submission.
+            * Describe this generation in 'memoCorrectionReport' (mention that a comprehensive Memorandum/Rubric has been dynamically generated to complete grading).
+            * Set 'originalMemoCorrected' to true.
+            * Produce the newly generated Memorandum/Rubric in 'correctedMemo'.
+          - IF a Memorandum/Rubric IS supplied by the teacher:
+            * Review it for correctness, spelling mistakes, factual errors, marks allotment problems, CAPS curriculum misalignments, or lack of clarity.
+            * If any issues are found, correct them. Describe exactly what issues were corrected in 'memoCorrectionReport'.
+            * Set 'originalMemoCorrected' to true if you modified it, or false if it was fully correct.
+            * Return the (modified/corrected) Memorandum/Rubric in 'correctedMemo'.
+          
+          TASK 2: EVALUATION AND GRADING
+          - Extract all text answers from the student's submission pages and return it in 'extractedText'.
+          - Evaluate each question's answer accurately according to the verified or generated memorandum/rubric.
+          - ${isHandwritten ? "The student's inputs may be handwritten. Apply deep Handwriting Recognition (HWR) and optical reading on the student answers. Be forgiving on cursive forms, crossed-out errors, printed text, mathematical symbols, and structural layout answers." : ""}
+          - Sum and return the total obtained score as a string in 'totalScore' (e.g., "18/25" or "72%").
+          - List marks and reasoning for each question individually in the array 'marksPerQuestion'.
+          - Provide highly constructive, encouraging feedback for the learner in 'feedback' (use encouraging South African educational tone).`;
+          
+          const contentsToUse: any[] = [
+            { text: prompt }
+          ];
+          for (const part of partsToProcess) {
+            contentsToUse.push(part);
+          }
+          
           const response = await generateContentWithFallback({
             model,
             contents: [
-              { role: 'user', parts: [
-                { text: prompt },
-                { inlineData: { mimeType: "image/jpeg", data: imageData.split(',')[1] } }
-              ]}
+              { role: 'user', parts: contentsToUse }
             ],
             config: {
               responseMimeType: "application/json",
@@ -938,9 +1081,12 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
                   extractedText: { type: Type.STRING },
                   marksPerQuestion: { type: Type.ARRAY, items: { type: Type.STRING } },
                   feedback: { type: Type.STRING },
-                  totalScore: { type: Type.STRING }
+                  totalScore: { type: Type.STRING },
+                  originalMemoCorrected: { type: Type.BOOLEAN },
+                  memoCorrectionReport: { type: Type.STRING },
+                  correctedMemo: { type: Type.STRING }
                 },
-                required: ["extractedText", "marksPerQuestion", "feedback", "totalScore"]
+                required: ["extractedText", "marksPerQuestion", "feedback", "totalScore", "originalMemoCorrected", "memoCorrectionReport", "correctedMemo"]
               }
             }
           });

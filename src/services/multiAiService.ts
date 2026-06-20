@@ -16,7 +16,14 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
     }
   } else if (provider === 'openrouter-nemotron') {
     url = "https://openrouter.ai/api/v1/chat/completions";
-    apiKey = (process.env as any).OPENROUTER_API_KEY || (import.meta as any).env?.VITE_OPENROUTER_API_KEY || "";
+    apiKey = (
+      (process.env as any).OPENROUTER_API_KEY || 
+      (import.meta as any).env?.VITE_OPENROUTER_API_KEY || 
+      (process.env as any).OPEN_ROUTER_API_KEY || 
+      (import.meta as any).env?.VITE_OPEN_ROUTER_API_KEY || 
+      (process.env as any).MULEROUTER_API_KEY || 
+      ""
+    ).trim().replace(/^['"\s]+|['"\s]+$/g, "");
     if (!selectedModel) {
       selectedModel = "nvidia/llama-3.1-nemotron-70b-instruct";
     }

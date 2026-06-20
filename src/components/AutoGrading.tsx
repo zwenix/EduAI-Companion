@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, Scan, X, RefreshCw, Loader2, FileCheck, Brain, CheckCircle, AlertCircle, ChevronRight, GraduationCap, Download, Printer, UserCircle, Users, Save, Check, FileText, ClipboardList } from 'lucide-react';
+import { Camera, Upload, Scan, X, RefreshCw, Loader2, FileCheck, Brain, CheckCircle, AlertCircle, ChevronRight, GraduationCap, Download, Printer, UserCircle, Users, Save, Check, FileText, ClipboardList, Bookmark, Plus, Trash } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { runOCRAndGrade, runOCRScan } from '../services/unifiedAiService';
 import { useAi } from '../contexts/AiContext';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { collection, query, onSnapshot, where } from 'firebase/firestore';
 
 import { printContent, downloadAsHTML } from '../lib/printUtils';
@@ -44,24 +44,113 @@ export default function AutoGrading() {
   const [filteredSubmissions, setFilteredSubmissions] = useState<any[]>([]);
   const [selectedSubmission, setSelectedSubmission] = useState<any | null>(null);
 
+  const [createdContents, setCreatedContents] = useState<any[]>([]);
+  const [selectedContentId, setSelectedContentId] = useState<string>('');
+  const [uploadedFiles, setUploadedFiles] = useState<{ id: string; name: string; type: string; dataUrl: string }[]>([]);
+  const [activePreviewIndex, setActivePreviewIndex] = useState<number>(0);
+
   // Load existing assignments created by teachers
   useEffect(() => {
-    const q = query(collection(db, 'assignments'));
-    const unsub = onSnapshot(q, (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setDbAssignments(list);
-    }, (err) => console.error("Error loading assignments in AutoGrading", err));
-    return unsub;
+    let active = true;
+    let unsub: (() => void) | null = null;
+
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      if (!user) {
+        if (active) setDbAssignments([]);
+        if (unsub) {
+          unsub();
+          unsub = null;
+        }
+        return;
+      }
+      
+      const q = query(collection(db, 'assignments'));
+      unsub = onSnapshot(q, (snapshot) => {
+        if (!active) return;
+        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setDbAssignments(list);
+      }, (err) => {
+        console.warn("Error loading assignments in AutoGrading (handled):", err);
+      });
+    });
+
+    return () => {
+      active = false;
+      unsubscribeAuth();
+      if (unsub) unsub();
+    };
+  }, []);
+
+  // Sync teacher's personal Created Content Vault (rubrics/memos generated in Content Studio)
+  useEffect(() => {
+    let active = true;
+    let unsub: (() => void) | null = null;
+
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      if (!user) {
+        if (active) setCreatedContents([]);
+        if (unsub) {
+          unsub();
+          unsub = null;
+        }
+        return;
+      }
+      
+      const q = query(collection(db, 'created_content'), where('teacherId', '==', user.uid));
+      unsub = onSnapshot(q, (snapshot) => {
+        if (!active) return;
+        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setCreatedContents(list);
+      }, (err) => {
+        console.warn("Error loading created_content in AutoGrading (handled):", err);
+      });
+    });
+
+    return () => {
+      active = false;
+      unsubscribeAuth();
+      if (unsub) unsub();
+    };
   }, []);
 
   // Sync submissions
   useEffect(() => {
-    const q = query(collection(db, 'submissions'));
-    const unsub = onSnapshot(q, (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setAllSubmissions(list);
-    }, (err) => console.error("Error loading submissions in AutoGrading", err));
-    return unsub;
+    let active = true;
+    let unsub: (() => void) | null = null;
+
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      if (!user) {
+        if (active) setAllSubmissions([]);
+        if (unsub) {
+          unsub();
+          unsub = null;
+        }
+        return;
+      }
+      
+      const cachedRole = localStorage.getItem(`userRole_${user.uid}`) || 'teacher';
+      
+      let q;
+      if (cachedRole === 'student') {
+        q = query(collection(db, 'submissions'), where('studentId', '==', user.uid));
+      } else {
+        q = query(collection(db, 'submissions'), where('teacherId', '==', user.uid));
+      }
+      
+      unsub = onSnapshot(q, (snapshot) => {
+        if (!active) return;
+        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setAllSubmissions(list);
+      }, (err) => {
+        console.warn("Error loading submissions in AutoGrading (handled):", err);
+      });
+    });
+
+    return () => {
+      active = false;
+      unsubscribeAuth();
+      if (unsub) unsub();
+    };
   }, []);
 
   // Filter submissions when selectedAssignmentId changes
@@ -163,8 +252,8 @@ export default function AutoGrading() {
   };
 
   const handleExtract = async (imageToProcess?: string) => {
-    const img = imageToProcess || capturedImage;
-    if (!img) return;
+    const imgs = imageToProcess ? [imageToProcess] : uploadedFiles.map(f => f.dataUrl);
+    if (imgs.length === 0) return;
     
     setIsProcessing(true);
     setGenerationProgress(0);
@@ -178,7 +267,7 @@ export default function AutoGrading() {
     }, 300);
 
     try {
-      const resp = await runOCRScan(img, provider, ocrProvider, ocrLanguage, isHandwritten);
+      const resp = await runOCRScan(imgs, provider, ocrProvider, ocrLanguage, isHandwritten);
       clearInterval(progressInterval);
       setGenerationProgress(100);
       setTimeout(() => {
@@ -194,8 +283,8 @@ export default function AutoGrading() {
   };
 
   const handleProcess = async (imageToProcess?: string) => {
-    const img = imageToProcess || capturedImage;
-    if (!img) return;
+    const imgs = imageToProcess ? [imageToProcess] : uploadedFiles.map(f => f.dataUrl);
+    if (imgs.length === 0) return;
     
     setIsProcessing(true);
     setGenerationProgress(0);
@@ -209,7 +298,7 @@ export default function AutoGrading() {
     }, 400);
 
     try {
-      const gradingResult = await runOCRAndGrade(img, rubric || "Grade accurately based on standard academic quality, checking for correctness, clarity, and completeness.", provider, ocrProvider, ocrLanguage, isHandwritten);
+      const gradingResult = await runOCRAndGrade(imgs, rubric || "Grade accurately based on standard academic quality, checking for correctness, clarity, and completeness.", provider, ocrProvider, ocrLanguage, isHandwritten);
       clearInterval(progressInterval);
       setGenerationProgress(100);
       setTimeout(() => {
@@ -232,29 +321,67 @@ export default function AutoGrading() {
         canvasRef.current.height = videoRef.current.videoHeight;
         context.drawImage(videoRef.current, 0, 0);
         const dataUrl = canvasRef.current.toDataURL('image/jpeg');
-        setCapturedImage(dataUrl);
+        
+        const newFile = {
+          id: `raw-captured-${Date.now()}`,
+          name: `Camera Snapshot ${uploadedFiles.length + 1}.jpeg`,
+          type: 'image',
+          dataUrl
+        };
+        const updated = [...uploadedFiles, newFile];
+        setUploadedFiles(updated);
+        setActivePreviewIndex(updated.length - 1);
         stopCamera();
       }
     }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUrl = reader.result as string;
-        setCapturedImage(dataUrl);
-      };
-      reader.readAsDataURL(file);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const newItems: typeof uploadedFiles = [];
+      let loadedCount = 0;
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dataUrl = reader.result as string;
+          let fileType = 'image';
+          if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+            fileType = 'pdf';
+          } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc') || file.type.includes('word') || file.type.includes('officedocument')) {
+            fileType = 'docx';
+          }
+          
+          newItems.push({
+            id: `upload-${Date.now()}-${i}-${Math.random()}`,
+            name: file.name,
+            type: fileType,
+            dataUrl
+          });
+          
+          loadedCount++;
+          if (loadedCount === files.length) {
+            const updated = [...uploadedFiles, ...newItems];
+            setUploadedFiles(updated);
+            setActivePreviewIndex(updated.length - 1);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
   const reset = () => {
+    setUploadedFiles([]);
+    setActivePreviewIndex(0);
     setCapturedImage(null);
     setResult(null);
     setExtractResult(null);
     setRubric('');
+    setSelectedAssignmentId('');
+    setSelectedContentId('');
     setIsCameraActive(false);
     setMode('grade');
   };
@@ -307,14 +434,15 @@ export default function AutoGrading() {
             className="glass px-6 py-3 rounded-2xl flex items-center gap-3 text-xs font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all border border-white/5 h-[42px]"
           >
             <Upload size={18} className="text-brand-cyan" />
-            Upload Scan
+            Upload Scans
           </button>
           <input 
             type="file" 
             ref={fileInputRef} 
             onChange={handleFileUpload} 
             className="hidden" 
-            accept="image/*" 
+            accept="image/*,application/pdf,.pdf,.docx,.doc,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
+            multiple
           />
         </div>
       </div>
@@ -322,17 +450,17 @@ export default function AutoGrading() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         {/* Left Column: Input */}
         <div className="lg:col-span-7 space-y-8">
-          {!capturedImage && !isCameraActive ? (
+          {uploadedFiles.length === 0 && !isCameraActive ? (
             <button 
               onClick={startCamera}
-              className="w-full aspect-[4/3] glass rounded-[48px] border-2 border-dashed border-white/10 flex flex-col items-center justify-center group hover:border-brand-cyan/40 transition-all overflow-hidden relative"
+              className="w-full aspect-[4/3] glass rounded-[48px] border-2 border-dashed border-white/10 flex flex-col items-center justify-center group hover:border-brand-cyan/40 transition-all overflow-hidden relative p-8 text-center"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-brand-cyan/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center text-brand-cyan mb-6 group-hover:scale-110 transition-transform">
                 <Camera size={40} />
               </div>
               <h3 className="text-2xl font-hand text-white">Initialize Visual Stream</h3>
-              <p className="text-slate-500 text-xs mt-2 uppercase font-black tracking-widest">Click to activate camera hardware</p>
+              <p className="text-slate-500 text-xs mt-2 uppercase font-black tracking-widest">Click to scan/capture custom student work</p>
               {cameraError && (
                 <div className="mt-4 flex items-center gap-2 text-rose-400 text-[10px] font-black uppercase tracking-widest bg-rose-400/10 px-4 py-2 rounded-full border border-rose-400/20">
                   <AlertCircle size={14} />
@@ -354,12 +482,12 @@ export default function AutoGrading() {
               <div className="absolute top-12 right-12 w-12 h-12 border-t-4 border-r-4 border-brand-cyan pointer-events-none rounded-tr-xl" />
               <div className="absolute bottom-[110px] left-12 w-12 h-12 border-b-4 border-l-4 border-brand-cyan pointer-events-none rounded-bl-xl" />
               <div className="absolute bottom-[110px] right-12 w-12 h-12 border-b-4 border-r-4 border-brand-cyan pointer-events-none rounded-br-xl" />
-
+ 
               {/* On-screen Instructions */}
               <div className="absolute top-6 left-0 right-0 flex justify-center pointer-events-none">
                 <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-full flex items-center gap-3 border border-white/10">
                   <AlertCircle size={16} className="text-brand-cyan" />
-                  <span className="text-white text-xs font-medium tracking-wide">Align document within the frame. Ensure good lighting.</span>
+                  <span className="text-white text-xs font-medium tracking-wide">Align page. Take multiple shots if needed.</span>
                 </div>
               </div>
               
@@ -379,15 +507,108 @@ export default function AutoGrading() {
               </div>
             </div>
           ) : (
-            <div className="relative aspect-[4/3] glass rounded-[48px] overflow-hidden border border-white/10 shadow-2xl group">
-              <img src={capturedImage!} className="w-full h-full object-cover opacity-80" />
-              <div className="absolute inset-0 bg-navy-dark/20 group-hover:bg-transparent transition-colors" />
-              <button 
-                onClick={reset}
-                className="absolute top-8 right-8 bg-brand-cyan text-navy-dark p-4 rounded-3xl hover:bg-cyan-500 transition-all shadow-2xl active:scale-95"
-              >
-                <RefreshCw size={24} />
-              </button>
+            <div className="space-y-4">
+              {/* Active File Preview Container */}
+              <div className="relative aspect-[4/3] glass rounded-[48px] overflow-hidden border border-white/10 shadow-2xl group">
+                {uploadedFiles[activePreviewIndex]?.type === 'image' ? (
+                  <img 
+                    src={uploadedFiles[activePreviewIndex]?.dataUrl} 
+                    className="w-full h-full object-cover opacity-90" 
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950/40 p-10">
+                    <div className="w-20 h-20 bg-brand-cyan/10 rounded-3xl flex items-center justify-center text-brand-cyan mb-4">
+                      {uploadedFiles[activePreviewIndex]?.type === 'pdf' ? (
+                        <FileText size={40} />
+                      ) : (
+                        <ClipboardList size={40} />
+                      )}
+                    </div>
+                    <p className="text-white text-base font-black uppercase tracking-wider text-center max-w-xs truncate">
+                      {uploadedFiles[activePreviewIndex]?.name}
+                    </p>
+                    <p className="text-slate-500 text-[10px] font-mono mt-2 uppercase tracking-widest bg-navy-dark px-3 py-1 rounded-full border border-white/5">
+                      {uploadedFiles[activePreviewIndex]?.type?.toUpperCase()} Document
+                    </p>
+                  </div>
+                )}
+                
+                {/* Reset All Button */}
+                <button 
+                  onClick={reset}
+                  className="absolute top-8 right-8 bg-rose-500/85 text-white p-3 py-2 rounded-2xl hover:bg-rose-600 transition-all shadow-2xl active:scale-95 text-xs font-black uppercase tracking-widest flex items-center gap-1.5"
+                >
+                  <Trash size={14} />
+                  Reset Queue
+                </button>
+              </div>
+
+              {/* Multipage Thumbnails Carousel & Document Queue */}
+              <div className="bg-navy-darker/60 p-4 rounded-3xl border border-white/5 space-y-3">
+                <div className="flex justify-between items-center px-1">
+                  <p className="text-[10px] uppercase font-black text-brand-cyan tracking-widest">
+                    Uploaded Document Queue ({uploadedFiles.length} page/s or file/s)
+                  </p>
+                  <p className="text-[9px] text-slate-500 font-mono">Accepts Multiple Images, PDFs, & DOCX</p>
+                </div>
+
+                <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-thin">
+                  {uploadedFiles.map((file, idx) => {
+                    const isSelected = idx === activePreviewIndex;
+                    return (
+                      <div 
+                        key={file.id}
+                        className={`relative group flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden border transition-all cursor-pointer ${
+                          isSelected ? 'border-brand-cyan ring-2 ring-brand-cyan/25 scale-[0.98]' : 'border-white/10 hover:border-white/30'
+                        }`}
+                        onClick={() => setActivePreviewIndex(idx)}
+                      >
+                        {file.type === 'image' ? (
+                          <img src={file.dataUrl} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/60 font-black text-[10px] text-slate-400">
+                            {file.type === 'pdf' ? <span className="text-rose-400">PDF</span> : <span className="text-blue-400 font-mono">DOCX</span>}
+                            <span className="text-[8px] mt-1 text-slate-500 truncate max-w-[80px] p-1">{file.name}</span>
+                          </div>
+                        )}
+                        
+                        {/* Remove item button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const updated = uploadedFiles.filter(item => item.id !== file.id);
+                            setUploadedFiles(updated);
+                            setActivePreviewIndex(prev => Math.max(0, Math.min(prev, updated.length - 1)));
+                          }}
+                          className="absolute top-1 right-1 bg-black/80 hover:bg-rose-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Append scan/upload button in thumbnail row */}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-24 h-24 flex-shrink-0 rounded-2xl border-2 border-dashed border-white/10 hover:border-brand-cyan/40 bg-white/5 hover:bg-white/10 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Plus size={18} className="text-brand-cyan" />
+                      <span className="text-[9px] font-black uppercase text-slate-400">Add File</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={startCamera}
+                      className="w-24 h-24 flex-shrink-0 rounded-2xl border-2 border-dashed border-white/10 hover:border-brand-cyan/40 bg-white/5 hover:bg-white/10 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Camera size={18} className="text-brand-cyan animate-pulse" />
+                      <span className="text-[9px] font-black uppercase text-slate-400">Scan Page</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -422,6 +643,39 @@ export default function AutoGrading() {
               </select>
             </div>
 
+            {/* Load Memo/Rubric from Personal Created Content Vault */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase font-black tracking-widest text-[#06b6d4] pl-1 flex items-center gap-1.5">
+                <Bookmark size={12} />
+                Load Rubric/Memo from Teacher Content Vault
+              </label>
+              <select
+                value={selectedContentId}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedContentId(val);
+                  if (val) {
+                    const chosenContent = createdContents.find(c => c.id === val);
+                    if (chosenContent) {
+                      const parts = [];
+                      if (chosenContent.rubric) parts.push(`[Rubric]\n${chosenContent.rubric}`);
+                      if (chosenContent.memo) parts.push(`[Memo]\n${chosenContent.memo}`);
+                      if (chosenContent.content) parts.push(`[Content Details]\n${chosenContent.content}`);
+                      setRubric(parts.filter(Boolean).join("\n\n"));
+                    }
+                  }
+                }}
+                className="w-full bg-navy-dark border border-white/10 outline-none text-slate-300 text-xs font-black uppercase tracking-widest py-3.5 px-4 rounded-2xl [&>option]:bg-slate-900 cursor-pointer"
+              >
+                <option value="">-- Or Select from Created Content Vault --</option>
+                {createdContents.map(cnt => (
+                  <option key={cnt.id} value={cnt.id}>
+                    {cnt.title || cnt.topic} ({cnt.contentType || 'Materials'} • {cnt.subject})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* If has linked assignment and submissions, show students submissions queue */}
             {selectedAssignmentId && (
               <div className="space-y-3 pt-2 bg-slate-900/10 p-4 rounded-2xl border border-white/5">
@@ -447,7 +701,17 @@ export default function AutoGrading() {
                           key={sub.id}
                           onClick={() => {
                             setSelectedSubmission(sub);
-                            setCapturedImage(sub.uploadedImage || null);
+                            if (sub.uploadedImage) {
+                              setUploadedFiles([{
+                                id: `sub-img-${sub.id}`,
+                                name: `${sub.studentName} Submitted Page.jpeg`,
+                                type: 'image',
+                                dataUrl: sub.uploadedImage
+                              }]);
+                              setActivePreviewIndex(0);
+                            } else {
+                              setUploadedFiles([]);
+                            }
                             if (sub.grade) {
                               setResult({
                                 totalScore: sub.grade,
@@ -501,7 +765,7 @@ export default function AutoGrading() {
               />
             </div>
             
-            {capturedImage && (
+            {uploadedFiles.length > 0 && (
               <div className={`w-full py-6 rounded-[28px] font-black uppercase tracking-[0.2em] text-xs flex flex-col items-center justify-center gap-4 transition-all border ${
                 isProcessing ? 'bg-brand-cyan/10 border-brand-cyan/20 text-brand-cyan' : 'bg-white/5 border-white/10 text-slate-400'
               }`}>
@@ -599,6 +863,32 @@ export default function AutoGrading() {
                       </div>
                     </div>
                   </div>
+
+                  {/* AI Rubric / Memo Corrections Log */}
+                  {result.originalMemoCorrected && (
+                    <div className="bg-amber-500/10 border border-amber-500/30 p-8 rounded-[40px] mb-8 relative">
+                      <div className="absolute top-6 right-6 px-3 py-1 bg-amber-500 text-white rounded-full text-[9px] font-black uppercase tracking-widest">
+                        AI Corrected Memo
+                      </div>
+                      <h4 className="text-[10px] font-black text-amber-600 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                        <Brain size={14} />
+                        Rubric / Memo Adjustments Report
+                      </h4>
+                      <p className="text-xs text-slate-700 font-semibold mb-4 bg-white/40 p-4 rounded-2xl border border-black/5 leading-relaxed">
+                        {result.memoCorrectionReport || "The original memo had spelling/content omissions or was missing entirely. The AI corrected and streamlined the rubric for optimal auto-grading accuracy."}
+                      </p>
+                      {result.correctedMemo && (
+                        <details className="cursor-pointer group">
+                          <summary className="text-[10px] font-black uppercase tracking-widest text-[#06b6d4] select-none outline-none">
+                            View Corrected Rubric & Memo Checklist
+                          </summary>
+                          <pre className="mt-4 p-4 bg-slate-950 text-slate-300 rounded-2xl text-xs font-mono whitespace-pre-wrap overflow-x-auto leading-relaxed border border-white/5">
+                            {result.correctedMemo}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
+                  )}
 
                   {/* Feedback Box */}
                   <div className="bg-brand-cyan/10 border border-brand-cyan/30 p-8 rounded-[40px] relative mb-8">

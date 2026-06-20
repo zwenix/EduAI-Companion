@@ -340,7 +340,7 @@ const getOcrSpaceLangCode = (lang: string) => {
   return map[lang] || 'eng';
 };
 
-export const runOCRScan = async (imageData: string, provider: string = 'gemini', ocrProvider: string = 'gemini', language: string = 'English', isHandwritten: boolean = true) => {
+export const runOCRScan = async (imageData: string | string[], provider: string = 'gemini', ocrProvider: string = 'gemini', language: string = 'English', isHandwritten: boolean = true) => {
   if (ocrProvider === 'gemini') {
     try {
       return await geminiOCRScan(imageData, language, isHandwritten);
@@ -354,6 +354,8 @@ export const runOCRScan = async (imageData: string, provider: string = 'gemini',
     }
   }
   
+  const firstImage = Array.isArray(imageData) ? imageData[0] || '' : imageData;
+
   if (ocrProvider === 'groq-vision') {
     const handwritingPrompt = isHandwritten 
       ? "\nNote: This document contains handwriting (cursive or print). Please use advanced handwriting recognition to carefully transcribe all handwritings, scribbles, and student notations."
@@ -363,7 +365,7 @@ export const runOCRScan = async (imageData: string, provider: string = 'gemini',
         role: "user",
         content: [
           { type: "text", text: `Please extract all the text from this image exactly as it appears. Keep formatting where possible. The language is ${language}.${handwritingPrompt}` },
-          { type: "image_url", image_url: { url: imageData.startsWith('data:image') ? imageData : `data:image/jpeg;base64,${imageData}` } }
+          { type: "image_url", image_url: { url: firstImage.startsWith('data:image') ? firstImage : `data:image/jpeg;base64,${firstImage}` } }
         ]
       }
     ];
@@ -377,7 +379,7 @@ export const runOCRScan = async (imageData: string, provider: string = 'gemini',
   }
   
   try {
-    const extractedText = await performOCR(imageData, getOcrSpaceLangCode(language));
+    const extractedText = await performOCR(firstImage, getOcrSpaceLangCode(language));
     return { extractedText };
   } catch (error: any) {
     return await geminiOCRScan(imageData, language, isHandwritten);
@@ -388,7 +390,7 @@ export const runTextGrade = async (studentAnswers: string, memo: string, rubric:
   return await geminiTextGrade(studentAnswers, memo, rubric, language);
 };
 
-export const runOCRAndGrade = async (imageData: string, rubric: string, provider: string = 'gemini', ocrProvider: string = 'gemini', language: string = 'English', isHandwritten: boolean = true) => {
+export const runOCRAndGrade = async (imageData: string | string[], rubric: string, provider: string = 'gemini', ocrProvider: string = 'gemini', language: string = 'English', isHandwritten: boolean = true) => {
   if (provider === 'gemini' && ocrProvider === 'gemini') {
     try {
       return await geminiOCR(imageData, rubric, language, isHandwritten);
