@@ -197,11 +197,11 @@ export const runOCRScan = async (imageData: string | string[], language: string 
   }
 };
 
-export const runOCRAndGrade = async (imageData: string | string[], rubric: string, language: string = 'English', isHandwritten: boolean = true) => {
+export const runOCRAndGrade = async (imageData: string | string[], rubric: string, language: string = 'English', isHandwritten: boolean = true, behavioralAspects?: string[], adjustLateSubmission?: boolean) => {
   try {
     const response = await axios.post("/api/gemini/action", {
       action: "ocr-grade",
-      input: { imageData, rubric, language, isHandwritten }
+      input: { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission }
     });
     return response.data;
   } catch (error: any) {

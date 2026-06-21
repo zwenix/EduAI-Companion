@@ -564,7 +564,12 @@ export default function App() {
     const onApiError = (e: Event) => {
       const customEvent = e as CustomEvent;
       if (customEvent && customEvent.detail) {
-        setApiBlockedAlert(customEvent.detail);
+        const detail = customEvent.detail;
+        if (detail.provider && detail.provider.toLowerCase() !== 'gemini') {
+          triggerToast(`Optional API ${detail.provider} is not configured or blocked. Seamlessly falling back to Gemini...`, 'info');
+        } else {
+          setApiBlockedAlert(detail);
+        }
       }
     };
     window.addEventListener('api-blocked-or-unreachable', onApiError);
@@ -872,7 +877,7 @@ export default function App() {
         case 'intelligence-ai':
           return [
             { id: 'ai-tutor', label: 'AI Tutor Support', icon: Sparkles },
-            { id: 'ocr', label: 'Scan & Autograde', icon: Puzzle }
+            { id: 'ocr', label: "Teacher's Auto-Grading Lab", icon: ClipboardCheck }
           ];
         case 'class-analytics':
           return [

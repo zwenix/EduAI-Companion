@@ -266,10 +266,52 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     const { provider } = req.params;
     const { messages, model, temperature = 0.7 } = req.body;
 
+    const executeGeminiFallback = async (reason: string) => {
+      console.warn(`[API Network Guard] Falling back to Gemini for provider ${provider}: ${reason}`);
+      try {
+        const modelCandidate = "gemini-3.5-flash";
+        const contentsList: any[] = [];
+        
+        for (const msg of messages || []) {
+          const role = msg.role === 'assistant' ? 'model' : msg.role === 'system' ? 'system' : 'user';
+          if (role !== 'system') {
+            contentsList.push({
+              role: role,
+              parts: [{ text: msg.content || "" }]
+            });
+          }
+        }
+
+        const systemMessages = messages?.filter((m: any) => m.role === 'system');
+        const systemInstruction = systemMessages?.map((m: any) => m.content).join("\n\n");
+
+        const response = await geminiAi.models.generateContent({
+          model: modelCandidate,
+          contents: contentsList.length > 0 ? contentsList : [{ role: 'user', parts: [{ text: "Hello" }] }],
+          config: systemInstruction ? { systemInstruction } : undefined
+        });
+
+        const text = response.text || "";
+        return res.json({
+          choices: [
+            {
+              message: {
+                role: "assistant",
+                content: text
+              }
+            }
+          ]
+        });
+      } catch (err: any) {
+        console.error("Gemini fallback also failed:", err);
+        return res.status(500).json({ error: { message: `Both ${provider} and Gemini fallback failed: ${err.message}` } });
+      }
+    };
+
     if (provider === "hf-qwen") {
       const hfApiKey = (process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_TOKEN || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
       if (!hfApiKey || hfApiKey === "dummy" || hfApiKey === "undefined" || hfApiKey === "") {
-        return res.status(400).json({ error: { message: `Provider hf-qwen is not configured. Please add the HUGGINGFACE_API_KEY in the application settings.` }});
+        return await executeGeminiFallback("HUGGINGFACE_API_KEY is not configured.");
       }
       try {
         const response = await axios.post(
@@ -290,9 +332,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         return res.json(response.data);
       } catch (error: any) {
         const status = error.response?.status || 500;
-        return res.status(status).json({
-          error: error.response?.data?.error || error.message || "Failed to call Hugging Face"
-        });
+        console.warn(`Hugging Face call failed with status ${status}, falling back to Gemini.`);
+        return await executeGeminiFallback(`HuggingFace API failed: ${error.message}`);
       }
     }
 
@@ -317,9 +358,9 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         break;
     }
 
-    if (!apiKey || apiKey === "dummy" || apiKey === 'undefined') {
+    if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
       const neededKey = provider === 'openrouter-nemotron' ? 'OPENROUTER_API_KEY' : provider.startsWith('alibaba') ? 'ALIBABA_API_KEY' : 'API_KEY';
-      return res.status(400).json({ error: { message: `Provider ${provider} is not configured. Please add the ${neededKey} in the application settings.` }});
+      return await executeGeminiFallback(`${neededKey} is not configured.`);
     }
 
     try {
@@ -345,12 +386,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       } else {
         console.error(`${provider} error:`, error.message || error);
       }
-      res.status(status).json({ 
-        error: error.message,
-        provider,
-        code: error.code,
-        type: error.type 
-      });
+      console.warn(`Attempting Gemini fallback after ${provider} request failure.`);
+      return await executeGeminiFallback(`${provider} API failed with status ${status}: ${error.message}`);
     }
   });
 
@@ -1001,7 +1038,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         }
 
         case "ocr-grade": {
-          const { imageData, rubric, language, isHandwritten } = input;
+          const { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission } = input;
           const items = Array.isArray(imageData) ? imageData : [imageData];
           const textContents: string[] = [];
           const partsToProcess: any[] = [];
@@ -1033,8 +1070,16 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
           }
           
           const textDocContext = textContents.length > 0 
-            ? `\n\nWord Document content uploaded by student:\n${textContents.join("\n\n")}`
-            : "";
+             ? `\n\nWord Document content uploaded by student:\n${textContents.join("\n\n")}`
+             : "";
+
+          let behaviorPrompt = "";
+          if (behavioralAspects && Array.isArray(behavioralAspects) && behavioralAspects.length > 0) {
+            behaviorPrompt = `\n- Evaluate the student's submission on these behavioral/work habit dimensions: ${behavioralAspects.join(", ")}. Analyze their work layout, structure, and handwriting quality to provide a dedicated, supportive "Learning Behavior & Focus Feedback" section in the overall feedback.`;
+          }
+          if (adjustLateSubmission) {
+            behaviorPrompt += `\n- Special Context: This was submitted late, or as a redo attempt. Maintain rigorous academic scoring standards, but add a supportive, encouraging remark acknowledging their initiative to catch up or refine their work.`;
+          }
           
           const prompt = `You are an AI Grader and South African CAPS Curriculum Specialist.
           Analyze these student assessment page/s.
@@ -1055,7 +1100,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
           
           TASK 2: EVALUATION AND GRADING
           - Extract all text answers from the student's submission pages and return it in 'extractedText'.
-          - Evaluate each question's answer accurately according to the verified or generated memorandum/rubric.
+          - Evaluate each question's answer accurately according to the verified or generated memorandum/rubric.${behaviorPrompt}
           - ${isHandwritten ? "The student's inputs may be handwritten. Apply deep Handwriting Recognition (HWR) and optical reading on the student answers. Be forgiving on cursive forms, crossed-out errors, printed text, mathematical symbols, and structural layout answers." : ""}
           - Sum and return the total obtained score as a string in 'totalScore' (e.g., "18/25" or "72%").
           - List marks and reasoning for each question individually in the array 'marksPerQuestion'.

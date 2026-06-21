@@ -390,10 +390,10 @@ export const runTextGrade = async (studentAnswers: string, memo: string, rubric:
   return await geminiTextGrade(studentAnswers, memo, rubric, language);
 };
 
-export const runOCRAndGrade = async (imageData: string | string[], rubric: string, provider: string = 'gemini', ocrProvider: string = 'gemini', language: string = 'English', isHandwritten: boolean = true) => {
+export const runOCRAndGrade = async (imageData: string | string[], rubric: string, provider: string = 'gemini', ocrProvider: string = 'gemini', language: string = 'English', isHandwritten: boolean = true, behavioralAspects?: string[], adjustLateSubmission?: boolean) => {
   if (provider === 'gemini' && ocrProvider === 'gemini') {
     try {
-      return await geminiOCR(imageData, rubric, language, isHandwritten);
+      return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
         console.warn("Gemini limit hit, auto-falling back to hf-qwen for OCR grading...");
@@ -408,15 +408,23 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
   const scanRef = await runOCRScan(imageData, provider, ocrProvider, language, isHandwritten);
   const extractedText = scanRef.extractedText;
 
+  let behaviorNote = "";
+  if (behavioralAspects && behavioralAspects.length > 0) {
+    behaviorNote = `\nEvaluate also behavioral skills: ${behavioralAspects.join(", ")}.`;
+  }
+  if (adjustLateSubmission) {
+    behaviorNote += `\nThis is late or a redo, add supportive, encouraging catch-up remarks.`;
+  }
+
   const messages = [
-    { role: 'system', content: `You are an AI Grader. Use this rubric: ${rubric}` },
+    { role: 'system', content: `You are an AI Grader. Use this rubric: ${rubric}${behaviorNote}` },
     { role: 'user', content: `Grade this text: ${extractedText}. Return JSON with 'totalScore', 'marksPerQuestion[]', 'feedback'.` }
   ];
   
   if (provider === 'gemini') {
     // Gemini can process text grading
     try {
-      return await geminiOCR(imageData, rubric, language, isHandwritten);
+      return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
     } catch(err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
         provider = 'hf-qwen';
@@ -443,7 +451,7 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
   } catch (error: any) {
     if (isProviderFailure(error)) {
       console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
-      return await geminiOCR(imageData, rubric, language);
+      return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
     }
     throw error;
   }
