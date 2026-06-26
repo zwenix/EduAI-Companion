@@ -67,7 +67,9 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
     }
   }
   
-  const isStudyGuide = input.contentType === 'Study Guide / Learning Notes';
+  const isStudyGuide = ['Study Guide / Learning Notes', 'Revision Pack', 'Daily Lesson Notes', 'Learning Activity'].includes(input.contentType);
+  const isNonAssessment = isStudyGuide || ['Poster', 'Infographic', 'Educational Diagram', 'Visual Aid', 'Mind Map / Concept Map', 'Mind Map'].includes(input.contentType);
+  
   const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.`;
   
   let studyGuideRequirements = "";
@@ -76,8 +78,15 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
     CRITICAL STUDY GUIDE REQUIREMENTS:
     - This is a Study Guide/Learning Notes document. The primary content MUST be comprehensive, article-like, or textbook chapter-like notes.
     - Break down the concepts logically into paragraphs, using rich explanations that a learner can actually study from.
-    - Include illustrations or visual aids (describe or embed them using CSS/HTML shapes, or leave marked spaces for the hero illustration).
-    - You can include a few exercises, examples, or a worksheet section at the end, but the MAJORITY of the document must be the detailed educational reading material and notes.
+    - Include drawings, diagram outlines, or visual aids (describe or embed them using decorative HTML/CSS shapes, icons, or leave marked spaces for illustrations).
+    - Under NO circumstances include any grading headers, mark allocations, scoring scales, or score inputs (e.g., do NOT generate "Score: ___" or "[5 Marks]" anywhere).
+    - The headers and banners must be purely informative and educational, designed exactly like standard high-quality textbook chapters.
+    `;
+  } else if (isNonAssessment) {
+    studyGuideRequirements = `
+    CRITICAL NON-ASSESSMENT RESOURCE REQUIREMENTS:
+    - Under NO circumstances include any grading headers, mark allocations, scoring scales, or score inputs (e.g., do NOT generate "Score: ___" or "[10 Marks]" anywhere).
+    - The document must be purely study or learning oriented (rich infographics, maps, posters, visual summaries) and must strictly avoid quiz/assessment formatting.
     `;
   }
 
@@ -103,9 +112,11 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
     REQUIREMENTS FOR HTML DESIGN:
     - Include full-width colored banners (e.g. orange for Life Skills, teal/blue for Math, purple/pink for Languages).
     - Add a large circular badge in the top right for the Grade (e.g., "Grade 4").
-    - "Name: ____ Date: _____ Total __ / 30" layout below header (if applicable).
-    - Question text styles: Make them bold with distinct numbered bullets (e.g. circles with white text).
-    - Options/Answers: Enclose multiple choices or matching lists inside pill-shaped boxes with a colored border or background.
+    - Header Details: 
+      * For worksheets/assessments: show "Name: ____ Date: _____ Total Marks: ___" layout below the header.
+      * For study guides, revision notes, infographics, and non-assessment content: DO NOT show any marks, score blanks, total score, or grading indicators. Only show descriptive student notes/metadata (e.g. "Name: ____ Date: _____ Focus: ${input.topic}").
+    - Question text styles (if applicable/worksheets): Make them bold with distinct numbered bullets (e.g. circles with white text).
+    - Options/Answers (if applicable): Enclose multiple choices or matching lists inside pill-shaped boxes with a colored border or background.
     - Footer: "EduAI Companion | CAPS Aligned | eduai-companion.github.io".
     - DO NOT USE MARKDOWN. Write raw HTML inside the JSON content values using tailwind CSS classes.
     ${studyGuideRequirements}
@@ -346,8 +357,8 @@ export const runOCRScan = async (imageData: string | string[], provider: string 
       return await geminiOCRScan(imageData, language, isHandwritten);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to groq-vision...");
-        ocrProvider = 'groq-vision';
+        console.warn("Gemini limit hit, auto-falling back to ocrspace...");
+        ocrProvider = 'ocrspace';
       } else {
         throw err;
       }
@@ -355,28 +366,6 @@ export const runOCRScan = async (imageData: string | string[], provider: string 
   }
   
   const firstImage = Array.isArray(imageData) ? imageData[0] || '' : imageData;
-
-  if (ocrProvider === 'groq-vision') {
-    const handwritingPrompt = isHandwritten 
-      ? "\nNote: This document contains handwriting (cursive or print). Please use advanced handwriting recognition to carefully transcribe all handwritings, scribbles, and student notations."
-      : "";
-    const messages = [
-      {
-        role: "user",
-        content: [
-          { type: "text", text: `Please extract all the text from this image exactly as it appears. Keep formatting where possible. The language is ${language}.${handwritingPrompt}` },
-          { type: "image_url", image_url: { url: firstImage.startsWith('data:image') ? firstImage : `data:image/jpeg;base64,${firstImage}` } }
-        ]
-      }
-    ];
-    try {
-      const text = await callMultiAi('groq-vision', messages);
-      return { extractedText: text };
-    } catch(err) {
-      console.warn("groq vision failed, fallback to gemini", err);
-      return await geminiOCRScan(imageData, language, isHandwritten);
-    }
-  }
   
   try {
     const extractedText = await performOCR(firstImage, getOcrSpaceLangCode(language));
@@ -396,9 +385,9 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
       return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to hf-qwen for OCR grading...");
+        console.warn("Gemini limit hit, auto-falling back to hf-qwen for grading and ocrspace for scanning...");
         provider = 'hf-qwen';
-        ocrProvider = 'groq-vision';
+        ocrProvider = 'ocrspace';
       } else {
         throw err;
       }

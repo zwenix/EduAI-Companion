@@ -55,6 +55,39 @@ export default function AITutorPage() {
   const [language, setLanguage] = useState('English');
   const [priorityTopic, setPriorityTopic] = useState('General');
   const [voice, setVoice] = useState('21m00Tcm4TlvDq8ikWAM');
+  const [allVoices, setAllVoices] = useState<{ value: string; label: string }[]>(VOICES);
+
+  useEffect(() => {
+    const loadVoices = () => {
+      if ('speechSynthesis' in window) {
+        const localVoices = window.speechSynthesis.getVoices();
+        if (localVoices.length > 0) {
+          const localOptions = localVoices.map(v => ({
+            value: v.name,
+            label: `${v.name} (${v.lang})`
+          }));
+          const combined = [...localOptions, ...VOICES];
+          const uniqueOptions = combined.filter((v, idx, self) => 
+            self.findIndex(t => t.value === v.value) === idx
+          );
+          setAllVoices(uniqueOptions);
+          
+          // Set voice default to first local english if there is one
+          const firstLocalEnglish = localVoices.find(v => v.lang.startsWith('en'));
+          if (firstLocalEnglish) {
+            setVoice(firstLocalEnglish.name);
+          } else {
+            setVoice(localVoices[0].name);
+          }
+        }
+      }
+    };
+    loadVoices();
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  }, []);
+
   const [isRecording, setIsRecording] = useState(false);
   const [visuals, setVisuals] = useState<Record<number, boolean>>({});
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -513,7 +546,7 @@ export default function AITutorPage() {
               onChange={e => setVoice(e.target.value)}
               className="bg-white/10 hover:bg-white/15 transition-all border border-white/10 outline-none text-white text-xs lg:text-sm font-medium py-1.5 lg:py-2 px-3 lg:px-4 rounded-lg lg:rounded-xl w-full sm:w-auto [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer"
             >
-              {VOICES.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
+              {allVoices.map((v, index) => <option key={`${v.value}-${index}`} value={v.value}>{v.label}</option>)}
             </select>
           </div>
         </div>

@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type AIProvider = 'gemini' | 'hf-qwen' | 'openrouter-nemotron' | 'groq-vision';
+export type AIProvider = 'gemini' | 'hf-qwen' | 'openrouter-nemotron';
 export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
-export type OCRProvider = 'gemini' | 'ocrspace' | 'groq-vision';
-export type ImageProvider = 'gemini-imagen' | 'huggingface' | 'pollinations-schnell' | 'pollinations-turbo' | 'pollinations-klein' | 'nvidia-sana';
+export type OCRProvider = 'gemini' | 'ocrspace';
+export type ImageProvider = 'gemini-imagen' | 'hf-flux-schnell' | 'hf-flux-2';
 
 interface AiContextType {
   provider: AIProvider;
@@ -18,10 +18,10 @@ interface AiContextType {
 
 const AiContext = createContext<AiContextType | undefined>(undefined);
 
-const VALID_PROVIDERS: AIProvider[] = ['gemini', 'hf-qwen', 'openrouter-nemotron', 'groq-vision'];
+const VALID_PROVIDERS: AIProvider[] = ['gemini', 'hf-qwen', 'openrouter-nemotron'];
 const VALID_TTS: TTSProvider[] = ['browser', 'groq-whisper', 'huggingface', 'google-tts'];
-const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace', 'groq-vision'];
-const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'huggingface', 'pollinations-schnell', 'pollinations-turbo', 'pollinations-klein', 'nvidia-sana'];
+const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace'];
+const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'hf-flux-schnell', 'hf-flux-2'];
 
 export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {
@@ -39,9 +39,9 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [ttsProvider, setTtsProvider] = useState<TTSProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_tts_provider') as TTSProvider;
-      return saved && VALID_TTS.includes(saved) ? saved : 'browser';
+      return saved && VALID_TTS.includes(saved) ? saved : 'groq-whisper';
     } catch {
-      return 'browser';
+      return 'groq-whisper';
     }
   });
 
@@ -57,7 +57,6 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [imageProvider, setImageProvider] = useState<ImageProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_image_provider') as any;
-      if (saved === 'zhipu' || saved === 'glm-image' || saved === 'pollinations') return 'gemini-imagen';
       return saved && VALID_IMAGE.includes(saved) ? saved : 'gemini-imagen';
     } catch {
       return 'gemini-imagen';

@@ -31,9 +31,10 @@ export const cleanTextForSpeech = (text: string): string => {
   // 5. Remove inline code highlights (e.g. `const x = 5` -> const x = 5)
   clean = clean.replace(/`([^`]+)`/g, '$1');
 
-  // 6. Remove dynamic and visual layout tags/instructions or brackets (e.g. [Illustration: ...])
-  clean = clean.replace(/\[\s*(Illustration|Style|Color|Layout|Background|Font|Image|Theme)[^\]]*\]/gi, ' ');
-  clean = clean.replace(/\[[^\]]{1,100}\]/g, ' '); // general safety for brackets containing style/meta annotations up to 100 chars
+  // 6. Remove ANY brackets enclosing visual/layout tags, illustration prompts, or custom elements regardless of length
+  clean = clean.replace(/!\[[\s\S]*?\]\([^)]*\)/g, ' '); // remove standard markdown images
+  clean = clean.replace(/!\[[\s\S]*?\]/g, ' '); // remove any other exclamation images
+  clean = clean.replace(/\[[\s\S]*?\]/g, ' '); // remove all brackets contents of any length (e.g. [Illustration: ...], [Diagram: ...], etc.)
 
   // 7. Remove hex color codes (e.g. #FFFFFF or #123456)
   clean = clean.replace(/#[0-9a-fA-F]{6}\b/g, ' ');
@@ -110,7 +111,7 @@ export const speakText = async (text: string, provider: TTSProvider, language: s
       return await speakWithGoogle(sanitizedText, language);
     } catch (error) {
       console.error('Groq whisper TTS fallback failed:', error);
-      return await speakWithBrowser(sanitizedText, language);
+      return await speakWithBrowser(sanitizedText, language, voice);
     }
   } else if (provider === 'huggingface') {
     return await speakWithHuggingFace(sanitizedText, language);
@@ -118,7 +119,7 @@ export const speakText = async (text: string, provider: TTSProvider, language: s
     return await speakWithGoogle(sanitizedText, language);
   } else {
     // browser falls back to browser synthesis
-    return await speakWithBrowser(sanitizedText, language);
+    return await speakWithBrowser(sanitizedText, language, voice);
   }
 };
 
@@ -260,7 +261,7 @@ export const speakWithGoogle = async (text: string, language: string): Promise<v
   });
 };
 
-export const speakWithBrowser = (text: string, language: string): Promise<void> => {
+export const speakWithBrowser = (text: string, language: string, voice?: string): Promise<void> => {
   return new Promise((resolve) => {
     if (!('speechSynthesis' in window)) return resolve();
     
@@ -279,7 +280,10 @@ export const speakWithBrowser = (text: string, language: string): Promise<void> 
   
     const setupVoice = () => {
       const voices = window.speechSynthesis.getVoices();
-      const matchedVoice = voices.find(v => v.lang.startsWith(code) || v.lang.startsWith(utterance.lang.split('-')[0]));
+      let matchedVoice = voices.find(v => v.name === voice);
+      if (!matchedVoice) {
+        matchedVoice = voices.find(v => v.lang.startsWith(code) || v.lang.startsWith(utterance.lang.split('-')[0]));
+      }
       if (matchedVoice) {
         utterance.voice = matchedVoice;
       }

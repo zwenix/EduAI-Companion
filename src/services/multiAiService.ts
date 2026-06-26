@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { checkAndReportApiError } from '../lib/apiErrorHelper';
 
-export type AIProvider = 'hf-qwen' | 'openrouter-nemotron' | 'groq-vision';
+export type AIProvider = 'hf-qwen' | 'openrouter-nemotron';
 
 const executeClientMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
   let url = "";
@@ -25,13 +25,7 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
       ""
     ).trim().replace(/^['"\s]+|['"\s]+$/g, "");
     if (!selectedModel) {
-      selectedModel = "nvidia/llama-3.1-nemotron-70b-instruct";
-    }
-  } else if (provider === 'groq-vision') {
-    url = "https://api.groq.com/openai/v1/chat/completions";
-    apiKey = (process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "";
-    if (!selectedModel) {
-      selectedModel = "llama-3.2-11b-vision-instant";
+      selectedModel = "nvidia/nemotron-4-340b-instruct";
     }
   }
 

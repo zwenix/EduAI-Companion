@@ -141,6 +141,21 @@
         "teacherId": { "type": "string" }
       },
       "required": ["prompt", "imageUrl", "createdAt"]
+    },
+    "GeneratedVideo": {
+      "title": "Generated Video",
+      "description": "Cached video files generated using the OmniHuman API mapped to teacher prompts.",
+      "type": "object",
+      "properties": {
+        "prompt": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "model": { "type": "string" },
+        "seed": { "type": "number" },
+        "fps": { "type": "number" },
+        "teacherId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["prompt", "videoUrl", "teacherId", "createdAt"]
     }
   },
   "firestore": {
@@ -195,6 +210,10 @@
     "/submissions/{submissionId}": {
       "schema": "Submission",
       "description": "Student's submissions for grading and results history"
+    },
+    "/omnihuman_videos/{videoId}": {
+      "schema": "GeneratedVideo",
+      "description": "Cached video files generated using the OmniHuman API."
     }
   }
 }

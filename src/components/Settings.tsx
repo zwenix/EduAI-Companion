@@ -549,8 +549,8 @@ export default function Settings({
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
                       <option value="gemini">Gemini (Primary - Recommended)</option>
-                      <option value="hf-qwen">Hugging Face Qwen 3.5 (Alternative)</option>
-                      <option value="openrouter-nemotron">OpenRouter Nemotron 3 Super (Alternative)</option>
+                      <option value="hf-qwen">Hugging Face Qwen (Alternative)</option>
+                      <option value="openrouter-nemotron">OpenRouter Nemotron 4 (Alternative)</option>
                     </select>
                   </div>
 
@@ -561,12 +561,9 @@ export default function Settings({
                       onChange={(e) => setImageProvider(e.target.value as any)}
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
-                      <option value="gemini-imagen">Gemini 2.5 Flash Image (Primary)</option>
-                      <option value="nvidia-sana">NVIDIA Sana / SDXL</option>
-                      <option value="huggingface">HuggingFace FLUX.1 (Key Req)</option>
-                      <option value="pollinations-schnell">Flux Schnell (Pollinations)</option>
-                      <option value="pollinations-turbo">Z-Image Turbo (Pollinations)</option>
-                      <option value="pollinations-klein">FLUX.2 Klein 4B (Pollinations)</option>
+                      <option value="gemini-imagen">Google Imagen 3 (Default)</option>
+                      <option value="hf-flux-schnell">FLUX Schnell (Hugging Face)</option>
+                      <option value="hf-flux-2">FLUX 2 (Hugging Face)</option>
                     </select>
                   </div>
 
@@ -577,8 +574,7 @@ export default function Settings({
                       onChange={(e) => setOcrProvider(e.target.value as any)}
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
-                      <option value="groq-vision">Llama 3.2 Vision (Primary)</option>
-                      <option value="gemini">Gemini 3 Flash (Vision)</option>
+                      <option value="gemini">Gemini Flash (Vision)</option>
                       <option value="ocrspace">OCR.Space Core</option>
                     </select>
                   </div>
@@ -590,9 +586,9 @@ export default function Settings({
                       onChange={(e) => setTtsProvider(e.target.value as any)}
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
+                      <option value="groq-whisper">Groq Whisper (whisper-large-v3-turbo - Default)</option>
                       <option value="browser">Browser Core HD (Free)</option>
                       <option value="google-tts">Google TTS (Free)</option>
-                      <option value="groq-whisper">Groq Whisper (whisper-large-v3-turbo)</option>
                       <option value="huggingface">HuggingFace MMS (Free)</option>
                     </select>
                   </div>

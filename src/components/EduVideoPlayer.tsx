@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Play, Pause, Volume2, VolumeX, RotateCcw, Loader2, Video, Maximize } from 'lucide-react';
+import Hls from 'hls.js';
 
 // Simplified class merger for independence
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
@@ -22,6 +23,68 @@ export default function EduVideoPlayer({ src, prompt, isDarkMode }: EduVideoPlay
   const [volume, setVolume] = useState(0.8);
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
+
+  // Initialize and update media source (including HLS .m3u8 support)
+  useEffect(() => {
+    let hls: Hls | null = null;
+    const video = videoRef.current;
+    if (!video || !src) return;
+
+    setIsVideoError(false);
+    setIsVideoLoading(true);
+
+    if (src.includes('.m3u8')) {
+      if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Native support (Safari / iOS)
+        video.src = src;
+      } else if (Hls.isSupported()) {
+        // HLS.js support for Chrome, Firefox, Edge, etc.
+        hls = new Hls({
+          maxMaxBufferLength: 10,
+          enableWorker: true,
+        });
+        hls.loadSource(src);
+        hls.attachMedia(video);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          setIsVideoLoading(false);
+        });
+
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.error("Fatal HLS network error, attempting recovery...");
+                hls?.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.error("Fatal HLS media error, attempting recovery...");
+                hls?.recoverMediaError();
+                break;
+              default:
+                console.error("Fatal unrecoverable HLS error:", data);
+                setIsVideoError(true);
+                setIsVideoLoading(false);
+                break;
+            }
+          }
+        });
+      } else {
+        console.error("HLS streaming is not supported by your browser.");
+        setIsVideoError(true);
+        setIsVideoLoading(false);
+      }
+    } else {
+      // Standard video format playback (mp4, webm)
+      video.src = src;
+    }
+
+    return () => {
+      if (hls) {
+        hls.destroy();
+      }
+    };
+  }, [src]);
 
   // Auto-hide controls after a period of inactivity
   useEffect(() => {
@@ -155,7 +218,6 @@ export default function EduVideoPlayer({ src, prompt, isDarkMode }: EduVideoPlay
         {!isVideoError ? (
           <video
             ref={videoRef}
-            src={src}
             autoPlay
             loop
             onClick={togglePlay}
@@ -164,8 +226,11 @@ export default function EduVideoPlayer({ src, prompt, isDarkMode }: EduVideoPlay
             onLoadStart={() => setIsVideoLoading(true)}
             onCanPlay={() => setIsVideoLoading(false)}
             onError={() => {
-              setIsVideoError(true);
-              setIsVideoLoading(false);
+              // Only trigger error if we didn't succeed with Hls
+              if (videoRef.current && !videoRef.current.src.includes('.m3u8')) {
+                setIsVideoError(true);
+                setIsVideoLoading(false);
+              }
             }}
             className="w-full h-full object-contain cursor-pointer"
           />

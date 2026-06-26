@@ -15,6 +15,7 @@ import { generateCAPSContent, generateVisualAid, generateAdminDoc } from '../ser
 import { useAi } from '../contexts/AiContext';
 import AiImage from './AiImage';
 import EduVideoPlayer from './EduVideoPlayer';
+import VideoGenerationHistory from './VideoGenerationHistory';
 // PrintHeader removed as per user request
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
@@ -24,7 +25,7 @@ import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 import PrintPreviewModal from './PrintPreviewModal';
 import { PosterPreview } from './PosterPreview';
 import { db, auth } from '../lib/firebase';
-import { doc, setDoc, updateDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
 
 // ─── Utility ───────────────────────────────────────────────────────────────
@@ -580,6 +581,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [dbClasses, setDbClasses] = useState<any[]>([]);
   const [dbStudyGroups, setDbStudyGroups] = useState<any[]>([]);
   const [dbStudents, setDbStudents] = useState<any[]>([]);
+  const [videoHistory, setVideoHistory] = useState<any[]>([]);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -603,10 +605,23 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
       setDbStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, (err) => console.log("Creator students sub error:", err));
 
+    // Listen to video history
+    const qVideos = query(collection(db, 'omnihuman_videos'), where('teacherId', '==', user.uid));
+    const unsubVideos = onSnapshot(qVideos, (snapshot) => {
+      const vids = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      vids.sort((a: any, b: any) => {
+        const tA = a.createdAt?.seconds || 0;
+        const tB = b.createdAt?.seconds || 0;
+        return tB - tA;
+      });
+      setVideoHistory(vids);
+    }, (err) => console.log("Creator videos sub error:", err));
+
     return () => {
       unsubClasses();
       unsubGroups();
       unsubStudents();
+      unsubVideos();
     };
   }, []);
 
@@ -1401,7 +1416,27 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
         if (statusData.status === "succeeded") {
            clearInterval(progressInterval);
            setGenerationProgress(100);
-           setVideoResult({ url: statusData.url, prompt: vid_prompt, model: vid_model });
+           
+           // Save to Firestore history
+           const user = auth.currentUser;
+           if (user) {
+             try {
+               const videoId = "vid_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+               await setDoc(doc(db, 'omnihuman_videos', videoId), {
+                 prompt: vid_prompt,
+                 videoUrl: statusData.url,
+                 model: vid_model,
+                 seed: vid_seed,
+                 fps: vid_fps,
+                 teacherId: user.uid,
+                 createdAt: serverTimestamp()
+               });
+             } catch (fsErr) {
+               console.error("Failed to save generated video to database:", fsErr);
+             }
+           }
+
+           setVideoResult({ url: statusData.url, prompt: vid_prompt, model: vid_model, seed: vid_seed, fps: vid_fps });
            break;
         } else if (statusData.status === "failed" || statusData.status === "canceled") {
            clearInterval(progressInterval);
@@ -1413,6 +1448,14 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     } catch (err: any) {
       setError(err.message || "Failed to generate video.");
       setIsLoading(false);
+    }
+  };
+
+  const handleDeleteVideo = async (videoId: string) => {
+    try {
+      await deleteDoc(doc(db, 'omnihuman_videos', videoId));
+    } catch (err) {
+      console.error("Failed to delete video:", err);
     }
   };
 
@@ -2329,7 +2372,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
             )}
 
             {activeTab === 'video' && (
-              <div className="space-y-4">
+              <div id="video-generator-form" className="space-y-4">
                 <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 p-5 rounded-3xl">
                   <h3 className={cn("text-lg font-black uppercase tracking-widest mb-1 flex items-center gap-2", isDarkMode ? "text-indigo-400" : "text-indigo-600")}>
                     <Video size={18} /> Cinematic Generator
@@ -2948,6 +2991,33 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                           <p>Ready to generate video.</p>
                         </div>
                       )}
+
+                      <VideoGenerationHistory 
+                        videoHistory={videoHistory}
+                        currentVideoUrl={videoResult?.url}
+                        onSelectVideo={(video) => {
+                          setVideoResult({
+                            url: video.videoUrl,
+                            prompt: video.prompt,
+                            model: video.model,
+                            seed: video.seed,
+                            fps: video.fps
+                          });
+                        }}
+                        onReGenerateVideo={(video) => {
+                          setVid_Prompt(video.prompt);
+                          setVid_Model(video.model || 'omnihuman-1');
+                          setVid_Seed(video.seed ?? -1);
+                          setVid_Fps(video.fps ?? 12);
+                          
+                          const formEl = document.getElementById('video-generator-form');
+                          if (formEl) {
+                            formEl.scrollIntoView({ behavior: 'smooth' });
+                          }
+                        }}
+                        onDeleteVideo={handleDeleteVideo}
+                        isDarkMode={isDarkMode}
+                      />
                     </div>
                   )}
                   {activeTab === 'admin' && (

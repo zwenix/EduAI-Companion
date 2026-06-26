@@ -1792,7 +1792,7 @@ export default function App() {
                       }`}
                     >
                       <option value="gemini">Gemini OCR Vision (Multimodal)</option>
-                      <option value="groq-vision">Groq Llama Vision (Alternative)</option>
+                      <option value="ocrspace">OCR Space Engine</option>
                     </select>
                   </div>
 
@@ -1811,8 +1811,8 @@ export default function App() {
                       }`}
                     >
                       <option value="gemini-imagen">Google Imagen 3 (Default)</option>
-                      <option value="alibaba-qwen-image">Alibaba Qwen Image (HD)</option>
-                      <option value="huggingface">FLUX Schnell (Hugging Face)</option>
+                      <option value="hf-flux-schnell">FLUX Schnell (Hugging Face)</option>
+                      <option value="hf-flux-2">FLUX 2 (Hugging Face)</option>
                     </select>
                   </div>
 
@@ -1830,9 +1830,10 @@ export default function App() {
                             : 'bg-slate-50 border border-slate-200 text-slate-705 focus:border-purple-500 shadow-sm'
                       }`}
                     >
-                      <option value="google">Standard Voice (Google Cloud)</option>
-                      <option value="elevenlabs">Premium Natural Voice (ElevenLabs)</option>
-                      <option value="hf">Hugging Face Kokoro (Wav2Vec)</option>
+                      <option value="groq-whisper">Groq Whisper Voice (Default)</option>
+                      <option value="browser">Native Browser Voice (Free/Offline)</option>
+                      <option value="google-tts">Standard Google Cloud Speech</option>
+                      <option value="huggingface">Hugging Face Local Audio</option>
                     </select>
                   </div>
                 </div>

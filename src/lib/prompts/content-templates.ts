@@ -174,6 +174,13 @@ CRITICAL: Return as JSON matching:
 export const VISUAL_AID_PROMPT_TEMPLATE = `
 Design a classroom-ready educational poster/infographic with this layout system:
 
+⚠️ CORE NON-ASSESSMENT RULE:
+This is a visual teaching aid, poster, chart, or infographic. It is NOT an assessment.
+- NO MARK ALLOCATIONS: Do NOT include any marks allocations (e.g. [5 Marks], Marks: 10) anywhere.
+- NO GRADING/SCORE INDICATORS: Do NOT include grading/score fields, e.g. "SCORE: ____", "Total Marks: ___", or scoring rubrics anywhere.
+- The header banner must strictly include human-readable educational metadata (e.g., Grade, Subject, Topic, Term, CAPS Alignment Focus) but ZERO reference to marks or grading.
+- RELATED DRAWINGS / ILLUSTRATIONS: Inside the text, seamlessly embed visual aid placeholders like \`[Illustration: description]\` highlighting key concepts where helpful.
+
 🎨 LAYOUT GRID (Tailwind CSS):
 <div class="poster-container max-w-4xl mx-auto bg-white p-2 rounded-[2.5rem] shadow-2xl border-4 overflow-hidden" style="border-color: \\\${light};">
   
@@ -273,6 +280,13 @@ Return as JSON: { content: "[HTML above]", imagePrompt: "[enhanced prompt]", pri
 
 export const STUDY_GUIDE_PROMPT_TEMPLATE = `
 Create a comprehensive, textbook-quality study guide with this sophisticated layout:
+
+⚠️ CORE NON-ASSESSMENT RULE:
+This is a study guide, revision list, or textbook learning material. It is NOT an assessment or test.
+- NO MARK ALLOCATIONS: You must NOT include any marks allocations (e.g. [5 Marks], Marks: 10) anywhere.
+- NO GRADING/SCORE INDICATORS: Do NOT include grading/score fields, e.g. "SCORE: ____", "Total Marks: ___", or scoring rubrics anywhere.
+- The header banner must strictly include human-readable educational metadata (e.g., Grade, Subject, Topic, Term, CAPS Alignment Focus) but ZERO reference to marks or grading.
+- RELATED DRAWINGS / ILLUSTRATIONS: Inside the text, seamlessly embed visual aid placeholders like \`[Illustration: description]\` highlighting key concepts where helpful.
 
 📖 STRUCTURE & TYPOGRAPHY:
 <article class="study-guide max-w-5xl mx-auto bg-white p-2 rounded-[2.5rem] shadow-2xl border-4 overflow-hidden" style="border-color: \\\${light};">
