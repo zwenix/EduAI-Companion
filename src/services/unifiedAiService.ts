@@ -24,8 +24,8 @@ export const generateEducationalContent = async (type: string, details: string, 
       return await geminiGenerateContent(type, details);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to hf-qwen...");
-        provider = 'hf-qwen';
+        console.warn("Gemini limit hit, auto-falling back to groq-gpt-oss...");
+        provider = 'groq-gpt-oss';
       } else {
         throw err;
       }
@@ -59,8 +59,8 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
       return await geminiGenerateCAPS(input);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to hf-qwen...");
-        provider = 'hf-qwen';
+        console.warn("Gemini limit hit, auto-falling back to groq-gpt-oss...");
+        provider = 'groq-gpt-oss';
       } else {
         throw err;
       }
@@ -159,8 +159,8 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini')
       return await geminiGenerateVisual(input);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to hf-qwen...");
-        provider = 'hf-qwen';
+        console.warn("Gemini limit hit, auto-falling back to groq-gpt-oss...");
+        provider = 'groq-gpt-oss';
       } else {
         throw err;
       }
@@ -293,8 +293,8 @@ export const generateAdminDoc = async (input: any, provider: string = 'gemini') 
       return await geminiGenerateAdmin(input);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to hf-qwen...");
-        provider = 'hf-qwen';
+        console.warn("Gemini limit hit, auto-falling back to groq-gpt-oss...");
+        provider = 'groq-gpt-oss';
       } else {
         throw err;
       }
@@ -385,8 +385,8 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
       return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to hf-qwen for grading and ocrspace for scanning...");
-        provider = 'hf-qwen';
+        console.warn("Gemini limit hit, auto-falling back to groq-gpt-oss for grading and ocrspace for scanning...");
+        provider = 'groq-gpt-oss';
         ocrProvider = 'ocrspace';
       } else {
         throw err;
@@ -416,7 +416,7 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
       return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
     } catch(err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        provider = 'hf-qwen';
+        provider = 'groq-gpt-oss';
       } else {
         throw err;
       }
@@ -424,7 +424,7 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
   }
 
   try {
-    let model = provider === 'hf-qwen' ? 'Qwen/Qwen3.5-397B-A17B' : 'Llama-4-Scout-17B-16E-Instruct';
+    let model = provider === 'groq-gpt-oss' ? 'gpt-oss-120b' : 'qwen-3.6-27b';
     
     const grading = await callMultiAi(provider as AIProvider, messages, model);
     
@@ -458,7 +458,7 @@ export const chatWithTutor = async (messages: any[], provider: string = 'gemini'
          if (hasImage) {
            throw new Error("Cannot fallback, Image context requires Gemini API, but quota is exceeded.");
          }
-         provider = 'hf-qwen';
+         provider = 'groq-gpt-oss';
        } else {
          throw err;
        }

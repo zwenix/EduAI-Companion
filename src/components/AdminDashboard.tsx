@@ -77,9 +77,9 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
     switch (provider) {
       case 'gemini':
         return 'bg-violet-500/10 text-violet-400 border-violet-500/25';
-      case 'hf-qwen':
+      case 'groq-gpt-oss':
         return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25';
-      case 'openrouter-nemotron':
+      case 'groq-qwen':
         return 'bg-amber-500/10 text-amber-400 border-amber-500/25';
       default:
         return 'bg-slate-500/10 text-slate-400 border-slate-500/25';
@@ -324,7 +324,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
 
           {/* Filtering Tab Pills */}
           <div className="flex flex-wrap gap-2 pb-2">
-            {['all', 'gemini', 'hf-qwen', 'openrouter-nemotron'].map((prov) => {
+            {['all', 'gemini', 'groq-gpt-oss', 'groq-qwen'].map((prov) => {
               const count = prov === 'all' 
                 ? errors.length 
                 : errors.filter(e => e.provider === prov).length;

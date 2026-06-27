@@ -128,7 +128,7 @@ export default function CategoryOverview({
       </div>
 
       {/* Grid of Options */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 gap-3 sm:gap-6">
         {subTabs.map((item, idx) => {
           const ItemIcon = item.icon;
           const { color, bg, gradLight, gradDark } = getCardTheme(item.id, idx);
@@ -141,23 +141,23 @@ export default function CategoryOverview({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: idx * 0.1 }}
-              className={`group flex flex-col p-8 rounded-[40px] transition-all text-left relative overflow-hidden cursor-pointer border hover:-translate-y-2.5 outline-none shadow-md hover:shadow-xl ${
+              className={`group flex flex-col p-3.5 sm:p-6 md:p-8 rounded-[20px] sm:rounded-[30px] md:rounded-[40px] transition-all text-left relative overflow-hidden cursor-pointer border hover:-translate-y-2.5 outline-none shadow-md hover:shadow-xl ${
                 isDarkMode ? gradDark : gradLight
               }`}
             >
-              <div className="flex justify-between items-start w-full mb-6 relative">
-                <div className={`p-4 rounded-[24px] ${bg} ${color} transition-all duration-300 group-hover:scale-110 shadow-inner`}>
-                  <ItemIcon size={28} />
+              <div className="flex justify-between items-start w-full mb-3 sm:mb-6 relative">
+                <div className={`p-2.5 sm:p-4 rounded-[12px] sm:rounded-[20px] md:rounded-[24px] ${bg} ${color} transition-all duration-300 group-hover:scale-110 shadow-inner`}>
+                  <ItemIcon size={18} className="sm:w-[24px] sm:h-[24px] md:w-[28px] md:h-[28px]" />
                 </div>
-                <div className={`opacity-0 group-hover:opacity-100 transition-all ${color} ${bg} p-2.5 rounded-full absolute top-0 right-0`}>
-                  <ChevronRight size={20} strokeWidth={3} className="group-hover:translate-x-0.5 transition-transform" />
+                <div className={`opacity-0 sm:group-hover:opacity-100 transition-all ${color} ${bg} p-1.5 sm:p-2.5 rounded-full absolute top-0 right-0 hidden sm:block`}>
+                  <ChevronRight size={16} strokeWidth={3} className="group-hover:translate-x-0.5 transition-transform sm:w-[20px] sm:h-[20px]" />
                 </div>
               </div>
 
-              <h3 className={`text-xl lg:text-2xl font-display font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+              <h3 className={`text-xs sm:text-base md:text-xl lg:text-2xl font-display font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'} line-clamp-1 sm:line-clamp-none`}>
                 {item.label}
               </h3>
-              <p className={`text-xs lg:text-sm font-bold leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-3`}>
+              <p className={`text-[10px] sm:text-xs md:text-sm font-medium sm:font-bold leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-1 sm:mt-3 line-clamp-2 sm:line-clamp-none`}>
                 {desc}
               </p>
             </motion.button>

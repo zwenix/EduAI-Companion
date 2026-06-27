@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { BookOpen, CheckCircle, FileText, Loader2, Target, BrainCircuit, Scan, History, ArrowRight } from 'lucide-react';
+import { BookOpen, CheckCircle, FileText, Loader2, Target, BrainCircuit, Scan, History, ArrowRight, Download, Printer } from 'lucide-react';
 import { generateEducationalContent, runOCRAndGrade } from '../services/geminiService';
 import OCRScanner from './OCRScanner';
 import { marked } from 'marked';
@@ -7,6 +7,8 @@ import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { educationalData } from '../lib/educational-data';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import html2pdf from 'html2pdf.js';
+import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 
 export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean }) {
   const [activeTab, setActiveTab] = useState<'create'|'autograde'|'custom'>('create');
@@ -117,6 +119,78 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
       console.error(e);
     }
     setLoading(false);
+  };
+
+  const handleExportPDF = async () => {
+    if (!result) return;
+    const contentString = result.content || result;
+    const memoString = result.memo;
+    const filename = `${(subject || 'Subject').replace(/\s+/g, '_')}_${(topic || 'Topic').replace(/\s+/g, '_')}_Practice.pdf`;
+
+    // Create offscreen container
+    const tempContainer = document.createElement('div');
+    tempContainer.className = 'bg-white text-slate-900 p-8 markdown-body';
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.left = '-9999px';
+    tempContainer.style.top = '-9999px';
+    tempContainer.style.width = '800px'; 
+    tempContainer.style.zIndex = '-9999';
+    tempContainer.style.fontFamily = "'Inter', system-ui, -apple-system, sans-serif";
+
+    // Convert potential markdown to HTML first if it's not raw HTML
+    let bodyHtml = typeof contentString === 'string' ? contentString.trim() : '';
+    if (bodyHtml && !bodyHtml.startsWith('<')) {
+      bodyHtml = marked.parse(bodyHtml) as string;
+    }
+    bodyHtml = replaceImagePlaceholders(bodyHtml);
+
+    let memoHtml = typeof memoString === 'string' ? memoString.trim() : '';
+    if (memoHtml) {
+      if (!memoHtml.startsWith('<')) {
+        memoHtml = marked.parse(memoHtml) as string;
+      }
+      memoHtml = replaceImagePlaceholders(memoHtml);
+    }
+
+    const contentEl = document.createElement('div');
+    contentEl.className = 'space-y-6 text-slate-800';
+    contentEl.innerHTML = `
+      <div style="margin-bottom: 24px; border-bottom: 2px solid #3b82f6; padding-bottom: 12px;">
+        <h1 style="font-size: 24px; font-weight: 800; color: #1e3a8a; margin: 0;">${subject || 'CAPS Practice Session'}</h1>
+        <p style="font-size: 14px; color: #4b5563; margin: 4px 0 0 0;">Topic: ${topic || 'Practice exercises'} • EduAI Companion</p>
+      </div>
+      <div>
+        ${bodyHtml}
+      </div>
+      ${memoHtml ? `
+        <div class="print-page-break" style="page-break-before: always; margin-top: 40px; border-top: 2px dashed #94a3b8; padding-top: 24px;">
+          <h2 style="font-size: 20px; font-weight: 800; color: #059669; margin-bottom: 16px;">Memo & Answer Guidelines</h2>
+          ${memoHtml}
+        </div>
+      ` : ''}
+    `;
+    tempContainer.appendChild(contentEl);
+    document.body.appendChild(tempContainer);
+
+    const opt = {
+      margin:       10,
+      filename:     filename,
+      image:        { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
+      jsPDF:        { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
+      pagebreak:    { mode: ['avoid-all' as const, 'css' as const, 'legacy' as const] }
+    };
+
+    const restoreGetComputedStyle = patchOklchForHtml2canvas();
+    
+    html2pdf().from(tempContainer).set(opt).save().catch((err: any) => {
+      console.error("PDF download failed:", err);
+    }).finally(() => {
+      restoreGetComputedStyle();
+      if (document.body.contains(tempContainer)) {
+        document.body.removeChild(tempContainer);
+      }
+    });
   };
   
   const handleScanAndGrade = async (imageData: string) => {
@@ -241,20 +315,38 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
 
           <div className="lg:col-span-2">
             {result ? (
-              <div className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} p-8 rounded-[24px] border shadow-sm`}>
-                <div 
-                  dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(marked.parse(result.content || result) as string) }} 
-                  className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-850'}`} 
-                />
-                {result.memo && (
-                  <div className={`mt-8 border-t ${isDarkMode ? 'border-white/10' : 'border-slate-200'} pt-8`}>
-                     <h3 className={`text-2xl font-hand mb-4 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Memo & Rubric</h3>
-                     <div 
-                        dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(marked.parse(result.memo) as string) }} 
-                        className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-800'}`} 
-                     />
-                  </div>
-                )}
+              <div className="space-y-4">
+                <div className="flex justify-end gap-2">
+                  <button 
+                    onClick={handleExportPDF}
+                    className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${isDarkMode ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-slate-150 hover:bg-slate-200 text-slate-700'}`}
+                  >
+                    <Download size={16} /> Export Practice to PDF
+                  </button>
+                </div>
+                <div className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} p-8 rounded-[24px] border shadow-sm`}>
+                  <div 
+                    dangerouslySetInnerHTML={{ 
+                      __html: (result.content || result).trim().startsWith('<') 
+                        ? replaceImagePlaceholders(result.content || result)
+                        : replaceImagePlaceholders(marked.parse(result.content || result) as string)
+                    }} 
+                    className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-850'}`} 
+                  />
+                  {result.memo && (
+                    <div className={`mt-8 border-t ${isDarkMode ? 'border-white/10' : 'border-slate-200'} pt-8`}>
+                       <h3 className={`text-2xl font-hand mb-4 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Memo & Rubric</h3>
+                       <div 
+                          dangerouslySetInnerHTML={{ 
+                            __html: result.memo.trim().startsWith('<') 
+                              ? replaceImagePlaceholders(result.memo)
+                              : replaceImagePlaceholders(marked.parse(result.memo) as string)
+                          }} 
+                          className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-800'}`} 
+                       />
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
                <div className={`${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'} p-12 rounded-[24px] border border-dashed text-center flex flex-col items-center justify-center opacity-70`}>

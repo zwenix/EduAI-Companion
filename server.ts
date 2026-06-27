@@ -269,7 +269,6 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     const executeGeminiFallback = async (reason: string) => {
       console.warn(`[API Network Guard] Falling back to Gemini for provider ${provider}: ${reason}`);
       try {
-        const modelCandidate = "gemini-3.5-flash";
         const contentsList: any[] = [];
         
         for (const msg of messages || []) {
@@ -310,11 +309,29 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         const systemMessages = messages?.filter((m: any) => m.role === 'system');
         const systemInstruction = systemMessages?.map((m: any) => m.content).join("\n\n");
 
-        const response = await geminiAi.models.generateContent({
-          model: modelCandidate,
-          contents: contentsList.length > 0 ? contentsList : [{ role: 'user', parts: [{ text: "Hello" }] }],
-          config: systemInstruction ? { systemInstruction } : undefined
-        });
+        const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+        let lastError: any = null;
+        let response: any = null;
+
+        for (const candidate of modelsToTry) {
+          try {
+            response = await geminiAi.models.generateContent({
+              model: candidate,
+              contents: contentsList.length > 0 ? contentsList : [{ role: 'user', parts: [{ text: "Hello" }] }],
+              config: systemInstruction ? { systemInstruction } : undefined
+            });
+            if (response) {
+              break;
+            }
+          } catch (err: any) {
+            lastError = err;
+            console.warn(`Gemini fallback model '${candidate}' is unavailable, trying next candidate...`);
+          }
+        }
+
+        if (!response) {
+          throw lastError || new Error("All Gemini models failed.");
+        }
 
         const text = response.text || "";
         return res.json({
@@ -333,35 +350,6 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       }
     };
 
-    if (provider === "hf-qwen") {
-      const hfApiKey = (process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_TOKEN || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
-      if (!hfApiKey || hfApiKey === "dummy" || hfApiKey === "undefined" || hfApiKey === "") {
-        return await executeGeminiFallback("HUGGINGFACE_API_KEY is not configured.");
-      }
-      try {
-        const response = await axios.post(
-          "https://api-inference.huggingface.co/v1/chat/completions",
-          {
-            model: model || "Qwen/Qwen3.5-397B-A17B",
-            messages,
-            temperature,
-            max_completion_tokens: 8192,
-          },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${hfApiKey}`,
-            },
-          }
-        );
-        return res.json(response.data);
-      } catch (error: any) {
-        const status = error.response?.status || 500;
-        console.warn(`Hugging Face call failed with status ${status}, falling back to Gemini.`);
-        return await executeGeminiFallback(`HuggingFace API failed: ${error.message}`);
-      }
-    }
-
     let client: OpenAI | null = null;
     let apiKey = "";
 
@@ -369,12 +357,10 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       case "llama-primary":
       case "llama-secondary":
       case "groq-vision":
+      case "groq-gpt-oss":
+      case "groq-qwen":
         client = groq;
         apiKey = process.env.GROQ_API_KEY || "";
-        break;
-      case "openrouter-nemotron":
-        client = openrouter;
-        apiKey = resolveOpenRouterKey();
         break;
       case "alibaba-qwen":
       case "alibaba-deepseek":
@@ -384,21 +370,33 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     }
 
     if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-      const neededKey = provider === 'openrouter-nemotron' ? 'OPENROUTER_API_KEY' : provider.startsWith('alibaba') ? 'ALIBABA_API_KEY' : 'API_KEY';
+      const neededKey = provider.startsWith('groq') || provider.startsWith('llama') ? 'GROQ_API_KEY' : provider.startsWith('alibaba') ? 'ALIBABA_API_KEY' : 'API_KEY';
       return await executeGeminiFallback(`${neededKey} is not configured.`);
+    }
+
+    let finalModel = model;
+    if (finalModel === "groq-gpt-oss") {
+      finalModel = "gpt-oss-120b";
+    } else if (finalModel === "groq-qwen") {
+      finalModel = "qwen-3.6-27b";
+    }
+
+    if (!finalModel) {
+      finalModel = (
+        provider === "llama-primary" ? "llama-3.3-70b-versatile" : 
+        provider === "llama-secondary" ? "llama-3.1-8b-instant" : 
+        provider === "alibaba-qwen" ? "qwen-plus" :
+        provider === "alibaba-deepseek" ? "deepseek-v3" :
+        provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
+        provider === "groq-gpt-oss" ? "gpt-oss-120b" :
+        provider === "groq-qwen" ? "qwen-3.6-27b" :
+        ""
+      );
     }
 
     try {
       const response = await client.chat.completions.create({
-        model: model || (
-          provider === "llama-primary" ? "llama-3.3-70b-versatile" : 
-          provider === "llama-secondary" ? "llama-3.1-8b-instant" : 
-          provider === "alibaba-qwen" ? "qwen-plus" :
-          provider === "alibaba-deepseek" ? "deepseek-v3" :
-          provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
-          provider === "openrouter-nemotron" ? "nvidia/nemotron-4-340b-instruct" :
-          ""
-        ),
+        model: finalModel,
         messages,
         temperature,
         max_completion_tokens: 8192,

@@ -1,31 +1,20 @@
 import axios from 'axios';
 import { checkAndReportApiError } from '../lib/apiErrorHelper';
 
-export type AIProvider = 'hf-qwen' | 'openrouter-nemotron';
+export type AIProvider = 'groq-gpt-oss' | 'groq-qwen';
 
 const executeClientMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
-  let url = "";
-  let apiKey = "";
+  let url = "https://api.groq.com/openai/v1/chat/completions";
+  let apiKey = ((process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
   let selectedModel = model;
 
-  if (provider === 'hf-qwen') {
-    url = "https://api-inference.huggingface.co/v1/chat/completions";
-    apiKey = (process.env as any).HUGGINGFACE_API_KEY || (import.meta as any).env?.VITE_HUGGINGFACE_API_KEY || (process.env as any).HUGGINGFACE_TOKEN || (import.meta as any).env?.VITE_HUGGINGFACE_TOKEN || "";
-    if (!selectedModel) {
-      selectedModel = "Qwen/Qwen3.5-397B-A17B";
+  if (provider === 'groq-gpt-oss') {
+    if (!selectedModel || selectedModel === 'groq-gpt-oss') {
+      selectedModel = "gpt-oss-120b";
     }
-  } else if (provider === 'openrouter-nemotron') {
-    url = "https://openrouter.ai/api/v1/chat/completions";
-    apiKey = (
-      (process.env as any).OPENROUTER_API_KEY || 
-      (import.meta as any).env?.VITE_OPENROUTER_API_KEY || 
-      (process.env as any).OPEN_ROUTER_API_KEY || 
-      (import.meta as any).env?.VITE_OPEN_ROUTER_API_KEY || 
-      (process.env as any).MULEROUTER_API_KEY || 
-      ""
-    ).trim().replace(/^['"\s]+|['"\s]+$/g, "");
-    if (!selectedModel) {
-      selectedModel = "nvidia/nemotron-4-340b-instruct";
+  } else if (provider === 'groq-qwen') {
+    if (!selectedModel || selectedModel === 'groq-qwen') {
+      selectedModel = "qwen-3.6-27b";
     }
   }
 

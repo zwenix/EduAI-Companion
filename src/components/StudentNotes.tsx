@@ -5,8 +5,7 @@ import { marked } from 'marked';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { renderMathInHtml } from '../lib/latexHelper';
 import { educationalData } from '../lib/educational-data';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import html2pdf from 'html2pdf.js';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp } from 'firebase/firestore';
@@ -118,44 +117,63 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
   };
 
   const handleExportPDF = async () => {
-    if (!printRef.current) return;
-    
-    try {
-      const restoreGetComputedStyle = patchOklchForHtml2canvas();
-      let canvas;
-      try {
-        canvas = await html2canvas(printRef.current, { scale: 2 });
-      } finally {
-        restoreGetComputedStyle();
-      }
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'px',
-        format: 'a4'
-      });
-      
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      let heightLeft = pdfHeight;
-      let position = 0;
+    if (!result) return;
+    const contentString = result.content || result;
+    const filename = `${(subject || 'Subject').replace(/\s+/g, '_')}_${(topic || 'Topic').replace(/\s+/g, '_')}_Notes.pdf`;
 
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pdf.internal.pageSize.getHeight();
+    // Create offscreen container
+    const tempContainer = document.createElement('div');
+    tempContainer.className = 'bg-white text-slate-900 p-8 markdown-body';
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.left = '-9999px';
+    tempContainer.style.top = '-9999px';
+    tempContainer.style.width = '800px'; 
+    tempContainer.style.zIndex = '-9999';
+    tempContainer.style.fontFamily = "'Inter', system-ui, -apple-system, sans-serif";
 
-      while (heightLeft >= 0) {
-        position = heightLeft - pdfHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-        heightLeft -= pdf.internal.pageSize.getHeight();
-      }
-
-      pdf.save(`${subject.replace(/\s+/g, '_')}_${topic.replace(/\s+/g, '_')}_Notes.pdf`);
-    } catch (error) {
-      console.error("Failed to generate PDF", error);
+    // Convert potential markdown to HTML first if it's not raw HTML
+    let bodyHtml = contentString.trim();
+    if (!bodyHtml.startsWith('<')) {
+      bodyHtml = marked.parse(bodyHtml) as string;
     }
+    bodyHtml = replaceImagePlaceholders(renderMathInHtml(bodyHtml));
+
+    const contentEl = document.createElement('div');
+    contentEl.className = 'space-y-6 text-slate-800';
+    contentEl.innerHTML = `
+      <div style="margin-bottom: 24px; border-bottom: 2px solid #3b82f6; padding-bottom: 12px;">
+        <h1 style="font-size: 24px; font-weight: 800; color: #1e3a8a; margin: 0;">${subject || 'CAPS Study Guide'}</h1>
+        <p style="font-size: 14px; color: #4b5563; margin: 4px 0 0 0;">Topic: ${topic || 'Syllabus notes'} • EduAI Companion</p>
+      </div>
+      <div>
+        ${bodyHtml}
+      </div>
+    `;
+    tempContainer.appendChild(contentEl);
+    document.body.appendChild(tempContainer);
+
+    const opt = {
+      margin:       10,
+      filename:     filename,
+      image:        { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
+      jsPDF:        { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
+      pagebreak:    { mode: ['avoid-all' as const, 'css' as const, 'legacy' as const] }
+    };
+
+    const restoreGetComputedStyle = patchOklchForHtml2canvas();
+    
+    html2pdf().from(tempContainer).set(opt).save().catch((err: any) => {
+      console.error("PDF download failed:", err);
+    }).finally(() => {
+      restoreGetComputedStyle();
+      if (document.body.contains(tempContainer)) {
+        document.body.removeChild(tempContainer);
+      }
+    });
   };
+
+
   
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-12">
@@ -289,7 +307,11 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
               </div>
               <div ref={printRef} className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} p-8 rounded-[24px] border shadow-sm`}>
                 <div 
-                  dangerouslySetInnerHTML={{ __html: renderMathInHtml(replaceImagePlaceholders(marked.parse(result.content || result) as string)) }} 
+                  dangerouslySetInnerHTML={{ 
+                    __html: (result.content || result).trim().startsWith('<') 
+                      ? renderMathInHtml(replaceImagePlaceholders(result.content || result))
+                      : renderMathInHtml(replaceImagePlaceholders(marked.parse(result.content || result) as string))
+                  }} 
                   className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-800'}`} 
                 />
               </div>

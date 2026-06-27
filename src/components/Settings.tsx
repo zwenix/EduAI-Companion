@@ -549,8 +549,8 @@ export default function Settings({
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
                       <option value="gemini">Gemini (Primary - Recommended)</option>
-                      <option value="hf-qwen">Hugging Face Qwen (Alternative)</option>
-                      <option value="openrouter-nemotron">OpenRouter Nemotron 4 (Alternative)</option>
+                      <option value="groq-gpt-oss">GPT OSS 120B (Groq Alternative)</option>
+                      <option value="groq-qwen">Qwen3.6 27B (Groq Alternative)</option>
                     </select>
                   </div>
 

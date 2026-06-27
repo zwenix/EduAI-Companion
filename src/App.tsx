@@ -105,6 +105,7 @@ import { auth, db } from './lib/firebase';
 import { doc, setDoc, updateDoc, serverTimestamp, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { MOCK_STUDENTS } from './data/mockStudents';
+import axios from 'axios';
 import { 
   AreaChart, Area, 
   LineChart, Line,
@@ -492,6 +493,101 @@ export default function App() {
   const [highContrastEnabled, setHighContrastEnabled] = useState(() => localStorage.getItem('eduai_high_contrast') === 'true');
   const [soundMuted, setSoundMuted] = useState(() => localStorage.getItem('eduai_sound_muted') === 'true');
   const [utilityDrawerOpen, setUtilityDrawerOpen] = useState(false);
+  const [modelStatus, setModelStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+  const [modelStatusError, setModelStatusError] = useState<string | null>(null);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizationStats, setOptimizationStats] = useState<Record<string, number | 'failed'>>({});
+
+  const runAutoOptimize = async () => {
+    if (isOptimizing) return;
+    setIsOptimizing(true);
+    setOptimizationStats({});
+    triggerToast("Initiating regional model speed diagnostic...", "info");
+    
+    const candidates = [
+      { id: 'gemini', label: 'Gemini 3.5' },
+      { id: 'groq-gpt-oss', label: 'GPT OSS 120B' },
+      { id: 'groq-qwen', label: 'Qwen 3.6 27B' }
+    ];
+
+    const results: Record<string, number | 'failed'> = {};
+
+    const testPromises = candidates.map(async (candidate) => {
+      const startTime = performance.now();
+      try {
+        const testMsg = [{ role: 'user', content: 'Say "OK"' }];
+        const res = await axios.post(`/api/ai/${candidate.id}`, {
+          messages: testMsg,
+          temperature: 0.1,
+          max_completion_tokens: 3
+        });
+        
+        if (res.data && res.data.choices && res.data.choices[0]?.message?.content) {
+          const duration = Math.round(performance.now() - startTime);
+          results[candidate.id] = duration;
+        } else {
+          results[candidate.id] = 'failed';
+        }
+      } catch (err) {
+        console.warn(`Speed test failed for ${candidate.id}:`, err);
+        results[candidate.id] = 'failed';
+      }
+    });
+
+    await Promise.allSettled(testPromises);
+
+    setOptimizationStats(results);
+    setIsOptimizing(false);
+
+    let fastestId: string | null = null;
+    let minLatency = Infinity;
+
+    for (const key of Object.keys(results)) {
+      const lat = results[key];
+      if (typeof lat === 'number' && lat < minLatency) {
+        minLatency = lat;
+        fastestId = key;
+      }
+    }
+
+    if (fastestId) {
+      const fastestName = candidates.find(c => c.id === fastestId)?.label || fastestId;
+      setProvider(fastestId as any);
+      triggerToast(`⚡ Optimization complete! Auto-selected ${fastestName} (${minLatency}ms latency in your region).`, 'success');
+    } else {
+      triggerToast("⚠️ Diagnostic completed, but all regional requests timed out or failed. Please check your API keys.", "error");
+    }
+  };
+
+  const checkModelConnection = async (selectedProvider: string) => {
+    setModelStatus('checking');
+    setModelStatusError(null);
+    try {
+      const testMsg = [{ role: 'user', content: 'Say "connected"' }];
+      const res = await axios.post(`/api/ai/${selectedProvider}`, {
+        messages: testMsg,
+        temperature: 0.1,
+        max_completion_tokens: 10
+      });
+      if (res.data && res.data.choices && res.data.choices[0]?.message?.content) {
+        setModelStatus('connected');
+      } else {
+        setModelStatus('error');
+        setModelStatusError('Invalid response format');
+      }
+    } catch (err: any) {
+      console.error('Error testing model connection:', err);
+      const errMsg = err.response?.data?.error?.message || err.message || 'Connection failed';
+      setModelStatus('error');
+      setModelStatusError(errMsg);
+    }
+  };
+
+  useEffect(() => {
+    if (utilityDrawerOpen) {
+      checkModelConnection(provider);
+    }
+  }, [provider, utilityDrawerOpen]);
 
   const speakText = (text: string) => {
     if (localStorage.getItem('eduai_sound_muted') === 'true') return;
@@ -1758,23 +1854,139 @@ export default function App() {
                   <div className="space-y-1.5 text-left">
                     <div className="flex items-center justify-between">
                       <label className="text-[11px] font-black uppercase tracking-wider">Primary Text Engine</label>
-                      <span className="text-[9px] font-bold text-brand-cyan">ACTIVE</span>
+                      <div className="flex items-center gap-1.5">
+                        {modelStatus === 'checking' && (
+                          <div className="flex items-center gap-1">
+                            <RefreshCcw className="w-2.5 h-2.5 text-amber-500 animate-spin" />
+                            <span className="text-[9px] font-bold text-amber-500 uppercase tracking-wider">Checking</span>
+                          </div>
+                        )}
+                        {modelStatus === 'connected' && (
+                          <button 
+                            onClick={() => checkModelConnection(provider)}
+                            title="Re-test model response"
+                            className="flex items-center gap-1 hover:opacity-80 transition-all cursor-pointer border-none bg-transparent p-0 outline-none"
+                          >
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                            <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-wider">Connected</span>
+                          </button>
+                        )}
+                        {modelStatus === 'error' && (
+                          <button 
+                            onClick={() => checkModelConnection(provider)}
+                            className="flex items-center gap-1 hover:opacity-80 transition-all cursor-pointer border-none bg-transparent p-0 outline-none"
+                            title={`${modelStatusError || "API key or network error."} Click to retry check.`}
+                          >
+                            <span className="relative flex h-2 w-2">
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 animate-pulse"></span>
+                            </span>
+                            <span className="text-[9px] font-bold text-rose-500 uppercase tracking-wider">Offline</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <select 
-                      value={provider} 
-                      onChange={(e) => setProvider(e.target.value as any)}
-                      className={`w-full text-xs font-bold uppercase tracking-wide px-3 py-2.5 rounded-xl outline-none transition-all ${
-                        isDarkMode 
-                          ? 'bg-slate-800 border border-white/10 text-brand-cyan hover:border-brand-cyan/50 focus:border-brand-cyan [&>option]:bg-slate-800 [&>option]:text-brand-cyan' 
-                          : themeMode === 'peach'
-                            ? 'bg-[#f7eedb] border-[#dcd4c3] text-[#431407] hover:border-[#ff7c5c] focus:border-[#ff7c5c] [&>option]:bg-[#f7eedb]'
-                            : 'bg-slate-50 border border-slate-200 text-slate-705 hover:border-brand-cyan/50 focus:border-brand-cyan shadow-sm [&>option]:bg-white'
-                      }`}
-                    >
-                      <option value="gemini">Gemini (Primary - Recommended)</option>
-                      <option value="hf-qwen">Hugging Face Qwen (Alternative)</option>
-                      <option value="openrouter-nemotron">Nemotron 3 Super (Alternative)</option>
-                    </select>
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <select 
+                          value={provider} 
+                          onChange={(e) => setProvider(e.target.value as any)}
+                          className={`w-full text-xs font-bold uppercase tracking-wide px-3 py-2.5 rounded-xl outline-none transition-all ${
+                            isDarkMode 
+                              ? 'bg-slate-800 border border-white/10 text-brand-cyan hover:border-brand-cyan/50 focus:border-brand-cyan [&>option]:bg-slate-800 [&>option]:text-brand-cyan' 
+                              : themeMode === 'peach'
+                                ? 'bg-[#f7eedb] border-[#dcd4c3] text-[#431407] hover:border-[#ff7c5c] focus:border-[#ff7c5c] [&>option]:bg-[#f7eedb]'
+                                : 'bg-slate-50 border border-slate-200 text-slate-705 hover:border-brand-cyan/50 focus:border-brand-cyan shadow-sm [&>option]:bg-white'
+                          }`}
+                        >
+                          <option value="gemini">Gemini (Primary - Recommended)</option>
+                          <option value="groq-gpt-oss">GPT OSS 120B (Groq Alternative)</option>
+                          <option value="groq-qwen">Qwen3.6 27B (Groq Alternative)</option>
+                        </select>
+                      </div>
+                      <button
+                        onClick={runAutoOptimize}
+                        disabled={isOptimizing}
+                        title="Auto-Optimize: Run regional speed test across all models"
+                        className={`flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl border transition-all cursor-pointer ${
+                          isOptimizing ? 'animate-pulse opacity-80' : ''
+                        } ${
+                          isDarkMode 
+                            ? 'bg-slate-800 border-white/10 text-amber-400 hover:border-amber-400/50 hover:bg-slate-750' 
+                            : themeMode === 'peach'
+                              ? 'bg-[#f7eedb] border-[#dcd4c3] text-amber-600 hover:border-[#ff7c5c] hover:bg-[#efe5d0]'
+                              : 'bg-slate-50 border-slate-200 text-amber-500 hover:border-brand-cyan/50 hover:bg-slate-100 shadow-sm'
+                        }`}
+                      >
+                        <Zap className={`w-4 h-4 ${isOptimizing ? 'animate-spin text-amber-500' : ''}`} />
+                      </button>
+                      <div 
+                        className={`flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl border ${
+                          isDarkMode 
+                            ? 'bg-slate-850 border-white/10 text-brand-cyan' 
+                            : themeMode === 'peach'
+                              ? 'bg-[#f0e6d2] border-[#dcd4c3] text-[#431407]'
+                              : 'bg-slate-50 border-slate-200 text-slate-705'
+                        }`}
+                        title={
+                          modelStatus === 'checking' 
+                            ? 'Checking connectivity...' 
+                            : modelStatus === 'connected' 
+                              ? 'Successfully connected and responding! Click status label above to re-test.' 
+                              : `${modelStatusError || "API connection failed. Please check credentials."} Click status label above to retry.`
+                        }
+                      >
+                        {modelStatus === 'checking' && (
+                          <RefreshCcw className="w-4 h-4 text-amber-500 animate-spin" />
+                        )}
+                        {modelStatus === 'connected' && (
+                          <div className="relative flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                          </div>
+                        )}
+                        {modelStatus === 'error' && (
+                          <div className="relative flex h-3 w-3 cursor-help">
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500 animate-pulse"></span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {/* Latency results summary */}
+                    {Object.keys(optimizationStats).length > 0 && (
+                      <div className="mt-2.5 p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-slate-500/10 text-[10px] space-y-1 animate-fadeInZoom">
+                        <div className="font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 flex items-center justify-between">
+                          <span>Regional Latency Results</span>
+                          <span className="text-[9px] font-bold text-amber-500 lowercase">fastest selected</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5 text-center font-mono">
+                          {['gemini', 'groq-gpt-oss', 'groq-qwen'].map((pId) => {
+                            const lat = optimizationStats[pId];
+                            const name = pId === 'gemini' ? 'Gemini' : pId === 'groq-gpt-oss' ? 'GPT OSS' : 'Qwen';
+                            const isCurrent = provider === pId;
+                            return (
+                              <div 
+                                key={pId} 
+                                className={`flex flex-col p-1.5 rounded-lg border ${
+                                  isCurrent 
+                                    ? isDarkMode
+                                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                                      : 'bg-amber-50 border-amber-200 text-amber-700'
+                                    : 'bg-black/5 dark:bg-white/5 border-transparent'
+                                }`}
+                              >
+                                <span className="font-bold text-[9px] truncate opacity-80">{name}</span>
+                                <span className={lat === 'failed' ? 'text-rose-500 font-bold' : 'text-emerald-500 font-bold'}>
+                                  {lat === 'failed' ? 'Offline' : `${lat}ms`}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* OCR Engine */}
@@ -2092,7 +2304,7 @@ export default function App() {
                     {/* Feature Cards Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
                       <div className="lg:col-span-12">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
                           {[
                             { title: "Content Creator Studio", desc: "Lessons, Plans & Assessments.", color: 'text-brand-cyan', bg20: 'bg-cyan-500/20', border30: 'border-cyan-500/30', bg10: 'bg-cyan-500/10', icon: FlaskConical, id: 'teaching' },
                             { title: "Content Archive", desc: "Posters, Cards & Displays.", color: 'text-brand-purple', bg20: 'bg-purple-500/20', border30: 'border-purple-500/30', bg10: 'bg-purple-500/10', icon: Archive, id: 'archive' },
@@ -2115,16 +2327,16 @@ export default function App() {
                                   setActiveTab(item.id);
                                 }
                               }}
-                              className={`group ${isDarkMode ? 'glass hover:bg-white/10' : 'bg-white border-2 border-slate-100'} p-6 lg:p-8 rounded-[40px] transition-all text-left relative overflow-hidden backdrop-blur-xl kid-shadow-hover hover:-translate-y-2 flex flex-col items-center sm:items-start text-center sm:text-left`}
+                              className={`group ${isDarkMode ? 'glass hover:bg-white/10' : 'bg-white border-2 border-slate-100'} p-3.5 sm:p-6 lg:p-8 rounded-[20px] sm:rounded-[40px] transition-all text-left relative overflow-hidden backdrop-blur-xl kid-shadow-hover hover:-translate-y-2 flex flex-col items-center sm:items-start text-center sm:text-left cursor-pointer`}
                             >
-                              <div className={`w-16 h-16 lg:w-20 lg:h-20 rounded-[24px] lg:rounded-[28px] flex items-center justify-center mb-4 lg:mb-6 ${item.bg20} border-4 ${item.border30} ${item.color} group-hover:scale-110 transition-transform shadow-inner`}>
-                                <item.icon size={isMobile ? 32 : 40} strokeWidth={2} />
+                              <div className={`w-11 h-11 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-[12px] sm:rounded-[24px] lg:rounded-[28px] flex items-center justify-center mb-2.5 sm:mb-4 lg:mb-6 ${item.bg20} border-2 sm:border-4 ${item.border30} ${item.color} group-hover:scale-110 transition-transform shadow-inner`}>
+                                <item.icon size={18} className="sm:w-[32px] sm:h-[32px] lg:w-[40px] lg:h-[40px]" strokeWidth={2} />
                               </div>
-                              <h4 className={`text-xl lg:text-2xl font-display font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{item.title}</h4>
-                              <p className={`text-xs lg:text-sm font-bold leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-2`}>{item.desc}</p>
+                              <h4 className={`text-xs sm:text-xl lg:text-2xl font-display font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'} line-clamp-1 sm:line-clamp-none`}>{item.title}</h4>
+                              <p className={`text-[10px] sm:text-xs lg:text-sm font-medium sm:font-bold leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-1 sm:mt-2 line-clamp-2 sm:line-clamp-none`}>{item.desc}</p>
                               
-                              <div className={`absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-all ${item.color} ${item.bg10} p-2 rounded-full`}>
-                                <ChevronRight size={24} strokeWidth={3} />
+                              <div className={`absolute top-4 right-4 sm:top-6 sm:right-6 opacity-0 sm:group-hover:opacity-100 transition-all ${item.color} ${item.bg10} p-1.5 sm:p-2 rounded-full hidden sm:block`}>
+                                <ChevronRight size={16} strokeWidth={3} className="sm:w-[24px] sm:h-[24px]" />
                               </div>
                             </button>
                           ))}
