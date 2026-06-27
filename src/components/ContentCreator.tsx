@@ -1710,7 +1710,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
             </div>
 
             {/* Grid of Generation Groups */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in pb-12">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 animate-fade-in pb-12">
               {GENERATOR_GROUPS.map((item, idx) => {
                 const ItemIcon = item.icon;
                 return (
@@ -1722,25 +1722,25 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: idx * 0.08 }}
-                    className={`group flex flex-col p-8 rounded-[40px] transition-all text-left relative overflow-hidden cursor-pointer border ${item.border} ${
+                    className={`group flex flex-col p-3.5 sm:p-6 md:p-8 rounded-[20px] sm:rounded-[30px] md:rounded-[40px] transition-all text-left relative overflow-hidden cursor-pointer border ${item.border} ${
                       isDarkMode 
                         ? 'bg-slate-900/40 hover:bg-slate-900/80 hover:border-white/20' 
                         : 'bg-white hover:bg-slate-50/55 shadow-md hover:shadow-xl border-slate-100'
                     } hover:-translate-y-2.5 outline-none`}
                   >
-                    <div className="flex justify-between items-start w-full mb-6 relative">
-                      <div className={`p-4 rounded-[24px] ${item.bg} ${item.color} transition-all duration-300 group-hover:scale-110 shadow-inner`}>
-                        <ItemIcon size={28} />
+                    <div className="flex justify-between items-start w-full mb-3 sm:mb-6 relative">
+                      <div className={`p-2.5 sm:p-4 rounded-[12px] sm:rounded-[20px] md:rounded-[24px] ${item.bg} ${item.color} transition-all duration-300 group-hover:scale-110 shadow-inner`}>
+                        <ItemIcon size={18} className="sm:w-[24px] sm:h-[24px] md:w-[28px] md:h-[28px]" />
                       </div>
-                      <div className={`opacity-0 group-hover:opacity-100 transition-all ${item.color} ${item.bg} p-2.5 rounded-full absolute top-0 right-0 shadow-lg`}>
-                        <ChevronRight size={20} strokeWidth={3} className="group-hover:translate-x-0.5 transition-transform" />
+                      <div className={`opacity-0 sm:group-hover:opacity-100 transition-all ${item.color} ${item.bg} p-1.5 sm:p-2.5 rounded-full absolute top-0 right-0 shadow-lg hidden sm:block`}>
+                        <ChevronRight size={16} strokeWidth={3} className="group-hover:translate-x-0.5 transition-transform sm:w-[20px] sm:h-[20px]" />
                       </div>
                     </div>
 
-                    <h3 className={`text-xl lg:text-2xl font-display font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                    <h3 className={`text-xs sm:text-base md:text-xl lg:text-2xl font-display font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'} line-clamp-1 sm:line-clamp-none`}>
                       {item.label}
                     </h3>
-                    <p className={`text-xs lg:text-sm font-medium leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-3`}>
+                    <p className={`text-[10px] sm:text-xs md:text-sm font-medium sm:font-bold leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-1 sm:mt-3 line-clamp-2 sm:line-clamp-none`}>
                       {item.desc}
                     </p>
                   </motion.button>

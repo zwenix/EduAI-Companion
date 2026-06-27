@@ -13,6 +13,7 @@ import {
 } from './geminiService';
 
 import { callMultiAi, performOCR, AIProvider } from './multiAiService';
+import { EduAIPromptEngine } from '../lib/prompt-engine';
 
 const isProviderFailure = (error: any) => {
   return true; // Always fallback if the primary provider fails!
@@ -67,71 +68,96 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
     }
   }
   
-  const isStudyGuide = ['Study Guide / Learning Notes', 'Revision Pack', 'Daily Lesson Notes', 'Learning Activity'].includes(input.contentType);
-  const isNonAssessment = isStudyGuide || ['Poster', 'Infographic', 'Educational Diagram', 'Visual Aid', 'Mind Map / Concept Map', 'Mind Map'].includes(input.contentType);
+  const isLessonPlan = ['Lesson Plan', 'Weekly Lesson Plan', 'Unit Plan'].includes(input.contentType);
   
-  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.`;
+  let systemInstruction = "";
+  let prompt = "";
   
-  let studyGuideRequirements = "";
-  if (isStudyGuide) {
-    studyGuideRequirements = `
-    CRITICAL STUDY GUIDE REQUIREMENTS:
-    - This is a Study Guide/Learning Notes document. The primary content MUST be comprehensive, article-like, or textbook chapter-like notes.
-    - Break down the concepts logically into paragraphs, using rich explanations that a learner can actually study from.
-    - Include drawings, diagram outlines, or visual aids (describe or embed them using decorative HTML/CSS shapes, icons, or leave marked spaces for illustrations).
-    - Under NO circumstances include any grading headers, mark allocations, scoring scales, or score inputs (e.g., do NOT generate "Score: ___" or "[5 Marks]" anywhere).
-    - The headers and banners must be purely informative and educational, designed exactly like standard high-quality textbook chapters.
-    `;
-  } else if (isNonAssessment) {
-    studyGuideRequirements = `
-    CRITICAL NON-ASSESSMENT RESOURCE REQUIREMENTS:
-    - Under NO circumstances include any grading headers, mark allocations, scoring scales, or score inputs (e.g., do NOT generate "Score: ___" or "[10 Marks]" anywhere).
-    - The document must be purely study or learning oriented (rich infographics, maps, posters, visual summaries) and must strictly avoid quiz/assessment formatting.
+  if (isLessonPlan) {
+    let contentTypeEng: 'lesson-plan' | 'worksheet' | 'study-guide' = 'lesson-plan';
+    const assembled = EduAIPromptEngine.assemblePrompt({
+      contentType: contentTypeEng,
+      grade: input.grade || "4",
+      subject: input.subject || "Mathematics",
+      topic: input.topic || "Addition",
+      language: input.language || 'English',
+      learnerProfile: input.learnerProfile || 'General Class',
+      additionalInstructions: input.additionalInstructions || '',
+      term: input.term || '1',
+      week: input.week ? parseInt(input.week) : undefined,
+      duration: input.duration || '2 hours',
+      capsReference: input.capsReference || '',
+      includeWorksheet: !!input.includeWorksheet
+    });
+    systemInstruction = assembled.system;
+    prompt = assembled.user;
+  } else {
+    const isStudyGuide = ['Study Guide / Learning Notes', 'Revision Pack', 'Daily Lesson Notes', 'Learning Activity'].includes(input.contentType);
+    const isNonAssessment = isStudyGuide || ['Poster', 'Infographic', 'Educational Diagram', 'Visual Aid', 'Mind Map / Concept Map', 'Mind Map'].includes(input.contentType);
+    
+    systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate high-quality ${input.contentType} for Grade ${input.grade} ${input.subject}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.`;
+    
+    let studyGuideRequirements = "";
+    if (isStudyGuide) {
+      studyGuideRequirements = `
+      CRITICAL STUDY GUIDE REQUIREMENTS:
+      - This is a Study Guide/Learning Notes document. The primary content MUST be comprehensive, article-like, or textbook chapter-like notes.
+      - Break down the concepts logically into paragraphs, using rich explanations that a learner can actually study from.
+      - Include drawings, diagram outlines, or visual aids (describe or embed them using decorative HTML/CSS shapes, icons, or leave marked spaces for illustrations).
+      - Under NO circumstances include any grading headers, mark allocations, scoring scales, or score inputs (e.g., do NOT generate "Score: ___" or "[5 Marks]" anywhere).
+      - The headers and banners must be purely informative and educational, designed exactly like standard high-quality textbook chapters.
+      `;
+    } else if (isNonAssessment) {
+      studyGuideRequirements = `
+      CRITICAL NON-ASSESSMENT RESOURCE REQUIREMENTS:
+      - Under NO circumstances include any grading headers, mark allocations, scoring scales, or score inputs (e.g., do NOT generate "Score: ___" or "[10 Marks]" anywhere).
+      - The document must be purely study or learning oriented (rich infographics, maps, posters, visual summaries) and must strictly avoid quiz/assessment formatting.
+      `;
+    }
+
+    prompt = `
+      Type: ${input.contentType}
+      Grade: ${input.grade}
+      Subject: ${input.subject}
+      Topic: ${input.topic}
+      Language: ${input.language}
+      Objective: ${input.objective}
+      Learner Profile: ${input.learnerProfile}
+      Additional Info: ${input.additionalInstructions}
+
+      SPECIFIC VISUAL ENHANCEMENT:
+      For every worksheet/document, create ONE stunning hero illustration at the top that occupies 25–30% of the page. 
+      The illustration must be:
+      - Directly related to the specific CAPS topic
+      - Set in a recognizable South African context
+      - Semi-realistic digital painting style (like children’s non-fiction books)
+      - Emotionally engaging and curiosity-sparking
+      - High detail, rich colors, perfect composition
+
+      REQUIREMENTS FOR HTML DESIGN:
+      - Include full-width colored banners (e.g. orange for Life Skills, teal/blue for Math, purple/pink for Languages).
+      - Add a large circular badge in the top right for the Grade (e.g., "Grade 4").
+      - Header Details: 
+        * For worksheets/assessments: show "Name: ____ Date: _____ Total Marks: ___" layout below the header.
+        * For study guides, revision notes, infographics, and non-assessment content: DO NOT show any marks, score blanks, total score, or grading indicators. Only show descriptive student notes/metadata (e.g. "Name: ____ Date: _____ Focus: ${input.topic}").
+      - Question text styles (if applicable/worksheets): Make them bold with distinct numbered bullets (e.g. circles with white text).
+      - Options/Answers (if applicable): Enclose multiple choices or matching lists inside pill-shaped boxes with a colored border or background.
+      - Footer: "EduAI Companion | CAPS Aligned | eduai-companion.github.io".
+      - DO NOT USE MARKDOWN. Write raw HTML inside the JSON content values using tailwind CSS classes.
+      ${studyGuideRequirements}
+
+      Return the result as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
+      {
+        "content": "<HTML CODE FOR THE MAIN DOCUMENT HERE>",
+        "memo": "<HTML CODE FOR THE ANSWER MEMO HERE>",
+        "rubric": "<HTML CODE FOR THE GRADING RUBRIC HERE>",
+        "successIndicators": ["string", "string"],
+        "imagePrompt": "Detailed prompt matching IMAGE GUIDE..."
+      }
+      
+      GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}
     `;
   }
-
-  const prompt = `
-    Type: ${input.contentType}
-    Grade: ${input.grade}
-    Subject: ${input.subject}
-    Topic: ${input.topic}
-    Language: ${input.language}
-    Objective: ${input.objective}
-    Learner Profile: ${input.learnerProfile}
-    Additional Info: ${input.additionalInstructions}
-
-    SPECIFIC VISUAL ENHANCEMENT:
-    For every worksheet/document, create ONE stunning hero illustration at the top that occupies 25–30% of the page. 
-    The illustration must be:
-    - Directly related to the specific CAPS topic
-    - Set in a recognizable South African context
-    - Semi-realistic digital painting style (like children’s non-fiction books)
-    - Emotionally engaging and curiosity-sparking
-    - High detail, rich colors, perfect composition
-
-    REQUIREMENTS FOR HTML DESIGN:
-    - Include full-width colored banners (e.g. orange for Life Skills, teal/blue for Math, purple/pink for Languages).
-    - Add a large circular badge in the top right for the Grade (e.g., "Grade 4").
-    - Header Details: 
-      * For worksheets/assessments: show "Name: ____ Date: _____ Total Marks: ___" layout below the header.
-      * For study guides, revision notes, infographics, and non-assessment content: DO NOT show any marks, score blanks, total score, or grading indicators. Only show descriptive student notes/metadata (e.g. "Name: ____ Date: _____ Focus: ${input.topic}").
-    - Question text styles (if applicable/worksheets): Make them bold with distinct numbered bullets (e.g. circles with white text).
-    - Options/Answers (if applicable): Enclose multiple choices or matching lists inside pill-shaped boxes with a colored border or background.
-    - Footer: "EduAI Companion | CAPS Aligned | eduai-companion.github.io".
-    - DO NOT USE MARKDOWN. Write raw HTML inside the JSON content values using tailwind CSS classes.
-    ${studyGuideRequirements}
-
-    Return the result as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
-    {
-      "content": "<HTML CODE FOR THE MAIN DOCUMENT HERE>",
-      "memo": "<HTML CODE FOR THE ANSWER MEMO HERE>",
-      "rubric": "<HTML CODE FOR THE GRADING RUBRIC HERE>",
-      "successIndicators": ["string", "string"],
-      "imagePrompt": "Detailed prompt matching IMAGE GUIDE..."
-    }
-    
-    GUIDE: ${IMAGE_PROMPT_GOLDEN_RULE}
-  `;
 
   const messages = [
     { role: 'system', content: systemInstruction },
