@@ -57,6 +57,39 @@
       },
       "required": ["name", "description", "teacherId", "members", "createdAt"]
     },
+    "CollaborativeProject": {
+      "title": "Collaborative Project",
+      "description": "Shared project drafts and synced tasks within study groups.",
+      "type": "object",
+      "properties": {
+        "groupId": { "type": "string" },
+        "title": { "type": "string" },
+        "subject": { "type": "string" },
+        "description": { "type": "string" },
+        "notes": { "type": "string" },
+        "tasks": { "type": "array" },
+        "createdBy": { "type": "string" },
+        "createdByName": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["groupId", "title", "subject", "updatedAt"]
+    },
+    "CollaborativeCursor": {
+      "title": "Collaborative Cursor",
+      "description": "Real-time mouse cursor tracking coordinates.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "projectId": { "type": "string" },
+        "groupId": { "type": "string" },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "color": { "type": "string" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "name", "projectId", "x", "y", "updatedAt"]
+    },
     "Notification": {
       "title": "Notification",
       "description": "User notifications.",
@@ -210,6 +243,14 @@
     "/submissions/{submissionId}": {
       "schema": "Submission",
       "description": "Student's submissions for grading and results history"
+    },
+    "/collaborative_projects/{projectId}": {
+      "schema": "CollaborativeProject",
+      "description": "Shared group project workspaces"
+    },
+    "/collaborative_cursors/{userId}": {
+      "schema": "CollaborativeCursor",
+      "description": "Real-time presence coordinates for students working together"
     },
     "/omnihuman_videos/{videoId}": {
       "schema": "GeneratedVideo",

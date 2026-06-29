@@ -154,7 +154,7 @@ export default function RoleSelection({ onComplete, onBack }: RoleSelectionProps
           </p>
         </motion.div>
 
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full mt-6">
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 w-full mt-6">
           {ROLE_OPTIONS.map((option, index) => {
             const Icon = option.icon;
             const active = selectedRole === option.value;
@@ -169,7 +169,7 @@ export default function RoleSelection({ onComplete, onBack }: RoleSelectionProps
                 onClick={() => setSelectedRole(option.value)}
                 whileHover={{ scale: 1.03, y: -5 }}
                 whileTap={{ scale: 0.95 }}
-                className={`group flex flex-col items-center text-center rounded-[2rem] p-8 transition-all duration-300 outline-none relative overflow-hidden backdrop-blur-md border-2
+                className={`group flex flex-col items-center text-center rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-8 transition-all duration-300 outline-none relative overflow-hidden backdrop-blur-md border-2
                   ${active 
                     ? `${option.activeBg}` 
                     : `${option.inactiveBg}`
@@ -180,24 +180,24 @@ export default function RoleSelection({ onComplete, onBack }: RoleSelectionProps
                 {active && (
                   <motion.div 
                     layoutId="activeRing"
-                    className="absolute inset-0 border-4 border-yellow-400 rounded-[2rem]"
+                    className="absolute inset-0 border-4 border-yellow-400 rounded-[1.5rem] sm:rounded-[2rem]"
                     initial={false}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   />
                 )}
                 
                 <motion.div 
-                  className={`${option.iconBg} p-6 rounded-3xl mb-6 shadow-xl relative z-10 transition-transform duration-300 group-hover:rotate-6`}
+                  className={`${option.iconBg} p-3 sm:p-6 rounded-2xl sm:rounded-3xl mb-3 sm:mb-6 shadow-xl relative z-10 transition-transform duration-300 group-hover:rotate-6`}
                   animate={active ? { y: [0, -10, 0] } : {}}
                   transition={{ duration: 2, repeat: Infinity }}
                 >
-                  <Icon className="h-12 w-12 text-white" strokeWidth={2} />
+                  <Icon className="h-6 w-6 sm:h-12 sm:w-12 text-white" strokeWidth={2} />
                 </motion.div>
                 
-                <h2 className={`font-comic text-3xl font-extrabold tracking-wide mb-3 relative z-10 ${active ? option.activeText : 'text-white'}`}>
+                <h2 className={`font-comic text-lg sm:text-3xl font-extrabold tracking-wide mb-1 sm:mb-3 relative z-10 ${active ? option.activeText : 'text-white'}`}>
                   {option.title}
                 </h2>
-                <p className={`text-base leading-relaxed relative z-10 font-medium ${active ? option.activeDesc : 'text-blue-100'}`}>
+                <p className={`text-xs sm:text-base leading-relaxed relative z-10 font-medium ${active ? option.activeDesc : 'text-blue-100'} line-clamp-2 sm:line-clamp-none`}>
                   {option.description}
                 </p>
               </motion.button>

@@ -10,16 +10,16 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
 
   if (provider === 'groq-gpt-oss') {
     if (!selectedModel || selectedModel === 'groq-gpt-oss') {
-      selectedModel = "gpt-oss-120b";
+      selectedModel = "openai/gpt-oss-120b";
     }
   } else if (provider === 'groq-qwen') {
     if (!selectedModel || selectedModel === 'groq-qwen') {
-      selectedModel = "qwen-3.6-27b";
+      selectedModel = "qwen/qwen3.6-27b";
     }
   }
 
   if (!apiKey) {
-    throw new Error(`API key for ${provider} is not configured in settings or environment. Please add it to your server/Vercel settings.`);
+    throw new Error(`API key for ${provider} is not configured in settings or environment. Please add it.`);
   }
 
   const response = await axios.post(
@@ -28,7 +28,6 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
       model: selectedModel,
       messages,
       temperature: 0.7,
-      max_completion_tokens: 8192,
     },
     {
       headers: {

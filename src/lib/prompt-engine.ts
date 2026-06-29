@@ -41,6 +41,7 @@ export interface PromptContext {
   studentName?: string;
   teacherName?: string;
   includeWorksheet?: boolean;
+  isGroq?: boolean;
 }
 
 export class EduAIPromptEngine {
@@ -90,7 +91,7 @@ You MUST ALSO generate:
     }
     
     // Inject dynamic values into template
-    const userPrompt = this.injectContext(contentTemplate, {
+    let userPrompt = this.injectContext(contentTemplate, {
       ...context,
       capsCode: context.capsReference || '',
       instructions: context.additionalInstructions || '',
@@ -103,14 +104,45 @@ You MUST ALSO generate:
     });
     
     // Enhance system prompt with phase-specific guidance
-    const systemPrompt = ENHANCED_MASTER_PROMPT
+    let systemPrompt = ENHANCED_MASTER_PROMPT
       .replace(/\$\{phase\}/g, phase)
       .replace(/\$\{gradeRange\}/g, this.getGradeRange(phase));
+    
+    if (context.isGroq) {
+      systemPrompt = this.compressWhitespace(systemPrompt);
+      userPrompt = this.compressWhitespace(userPrompt);
+    }
     
     return {
       system: systemPrompt,
       user: userPrompt
     };
+  }
+  
+  private static getCompressedSystemPrompt(phase: string): string {
+    const gradeRange = this.getGradeRange(phase);
+    return `You are EduAI Pro, the world's most sophisticated educational content designer for South African schools (${gradeRange}, ${phase}). Generate high-quality CAPS-aligned lesson plans/worksheets in raw HTML/Tailwind inside JSON values. No markdown.
+Visual Hierarchy:
+- HERO: 25-30% top space for illustration placeholder.
+- BANNER: Gradient banner with subject color coding (Math: #2563eb->#60a5fa blue, Languages: #7c3aed->#a78bfa purple, Life Skills: #f97316->#fbbf24 orange, Science: #059669->#34d399 green).
+- METADATA/BADGE: Circular Grade badge. Underlined Name, Date, and Score cards.
+- QUESTIONS: Bold questions, numbered circle headers. Pill-shaped answer containers matching subject color.
+Phase Rules:
+- Foundation Phase (R-3): Rounded sans-serif (min 16pt), high-contrast, simple icons, generous padding (min 1.5rem).
+- Intermediate Phase (4-6): Sans-serif (min 14pt), bold key terms, simple labeled diagrams, "Challenge Corner".
+- Senior Phase (7-9): Professional sans-serif (min 12pt), multi-column layout, formulas, "Think Deeper" boxes.
+- FET Phase (10-12): Academic layout, visible marks, margin notes area, formula boxes.
+Image: "Professional educational illustration for South African Grade [X] [Subject]: [Topic]. Style: Semi-realistic digital painting. 300 DPI, sharp, no text."
+Layout Guardrails: No fixed heights on containers (use h-auto, py-4/py-6). No absolute text positioning. Use rounded-xl/2xl (not rounded-full) for choice pills to prevent clipping on wrap. Pair text-2xl+ headings with leading-tight/leading-snug.
+Output format: raw JSON (no markdown block wrapper). Escaped double quotes.`;
+  }
+
+  private static compressWhitespace(text: string): string {
+    return text
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
+      .join('\n');
   }
   
   /**

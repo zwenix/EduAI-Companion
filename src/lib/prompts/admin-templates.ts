@@ -7,7 +7,7 @@ export const LESSON_PLAN_TEMPLATE = `
 Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extremely detailed and easy to implement for anyone (even a layman or substitute teacher) with zero preparation.
 
 📋 COGNITIVE LEVEL & EXPLAINABILITY GUIDELINES:
-- NO SHORT BULLETS OR HEADINGS-ONLY: Every single objective, resourse, activity, and strategy must be described in full, rich, easy-to-understand prose (at least 3-4 sentence paragraphs per item).
+- NO SHORT BULLETS OR HEADINGS-ONLY: Every single objective, resource, activity, and strategy must be described in full, rich, easy-to-understand prose (at least 3-4 sentence paragraphs per item).
 - EXACT TEACHER SPOKEN SCRIPTS: Under Teacher Activities, you MUST provide word-for-word scripts of what the teacher should say to the class. Format clearly as "Teacher Spoken Script (Say this): '[word-for-word script]'".
 - SPECIFIC DETAILED SCENARIOS: Provide concrete scenarios with diverse South African character names (e.g. Zola, Liam, Thabo, Amina) and complete conversational dialogues that the teacher can present to the learners as real examples.
 - ZERO PLACEHOLDERS: Do not use "etc.", "fill in examples here", or standard summaries. Every exercise, rule, question, and instruction must be generated as complete, usable text.
@@ -59,12 +59,12 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
         <div class="space-y-4">
           <p class="text-slate-600 font-medium leading-relaxed">At the end of this lesson, learners must be accomplished, confident, and independently able to:</p>
           <ul class="space-y-3">
-            \${objectives.map(obj => \`
-              <li class="flex items-start gap-2.5">
-                <span class="text-green-500 text-lg flex-shrink-0 mt-0.5">✓</span>
-                <span class="text-slate-700 font-medium text-sm leading-relaxed">\${obj}</span>
-              </li>
-            \`).join('')}
+            <!-- INSTRUCTIONS: Generate 3 to 5 highly detailed and specific learning objectives using Bloom's Taxonomy. Every objective MUST be fully written out inside a styled <li> element. DO NOT USE INTERPOLATION CODE. Write real content. Example structure:
+            <li class="flex items-start gap-2.5">
+              <span class="text-green-500 text-lg flex-shrink-0 mt-0.5">✓</span>
+              <span class="text-slate-700 font-medium text-sm leading-relaxed">[Measurable objective here, e.g. "Listen attentively to a short story and accurately recall details (who, what, and where)."]</span>
+            </li>
+            -->
           </ul>
         </div>
       </div>
@@ -75,13 +75,17 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
           <div>
             <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">For the Teacher:</p>
             <ul class="list-disc list-inside text-slate-700 text-sm font-medium space-y-1.5 pl-2">
-              \${teacherResources.map(r => \`<li>\${r}</li>\`).join('')}
+              <!-- INSTRUCTIONS: Generate at least 3-4 specific physical and visual resources for the teacher, each inside a <li> element. Example:
+              <li>[Detailed teacher resource, e.g. "A bright, decorated 'Speaking Token' like a colorful South African beaded stick."]</li>
+              -->
             </ul>
           </div>
           <div>
             <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">For the Learners:</p>
             <ul class="list-disc list-inside text-slate-700 text-sm font-medium space-y-1.5 pl-2">
-              \${learnerMaterials.map(r => \`<li>\${r}</li>\`).join('')}
+              <!-- INSTRUCTIONS: Generate at least 2-3 specific learner materials, each inside a <li> element. Example:
+              <li>[Detailed learner material, e.g. "Printed active-listening worksheet with color pencils."]</li>
+              -->
             </ul>
           </div>
         </div>
@@ -91,13 +95,17 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
     <!-- PRIOR KNOWLEDGE & PREPARATION -->
     <div class="bg-white rounded-3xl p-6 shadow-md border border-slate-100">
       <h2 class="text-xl font-extrabold flex items-center gap-2 mb-3 text-slate-800">🧠 Prior Knowledge & Preparation</h2>
-      <p class="text-slate-650 font-medium text-sm leading-relaxed mb-4">\${priorKnowledge}</p>
+      <p class="text-slate-650 font-medium text-sm leading-relaxed mb-4">
+        <!-- INSTRUCTIONS: Write 2-3 detailed paragraphs of the learners' prior knowledge, pre-classroom prep, and how to activate their attention. DO NOT use generic summaries. -->
+      </p>
       
       <div class="rounded-2xl p-4 flex gap-3 border" style="background-color: \${light}; border-color: \${accent};">
         <div class="text-2xl mt-0.5">💡</div>
         <div>
           <p class="text-xs font-heavy uppercase tracking-wider mb-1 font-bold" style="color: \${dark};">CAPS Core connection</p>
-          <p class="text-xs leading-relaxed font-semibold" style="color: \${dark};">\${capsConnection}</p>
+          <p class="text-xs leading-relaxed font-semibold" style="color: \${dark};">
+            <!-- INSTRUCTIONS: Write a highly detailed South African CAPS connection statement referencing the specific Grade, Subject, Term, and curriculum focus. -->
+          </p>
         </div>
       </div>
     </div>
@@ -106,12 +114,12 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
     <div class="bg-white rounded-3xl p-6 shadow-md border border-slate-100 space-y-4">
       <h2 class="text-xl font-extrabold flex items-center gap-2 text-slate-800">📑 Core Content & Key Concepts</h2>
       <div class="space-y-4">
-        \${coreConcepts.map(c => \`
-          <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200">
-            <h3 class="font-extrabold text-slate-800 mb-1">\${c.title}</h3>
-            <p class="text-slate-600 text-sm font-medium leading-relaxed">\${c.description}</p>
-          </div>
-        \`).join('')}
+        <!-- INSTRUCTIONS: Generate 2 to 3 detailed cards for core content and concepts. Each card must use the following structure:
+        <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+          <h3 class="font-extrabold text-slate-800 mb-1">[Concept Title, e.g. "Whole-Body Listening"]</h3>
+          <p class="text-slate-600 text-sm font-medium leading-relaxed">[Detailed, extremely comprehensive content explanation, including South African contexts and terminology]</p>
+        </div>
+        -->
       </div>
     </div>
 
@@ -119,40 +127,138 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
     <div class="bg-white rounded-3xl p-6 shadow-md border border-slate-100">
       <h2 class="text-2xl font-extrabold text-slate-800 mb-6 flex items-center gap-2">📖 Step-by-Step Lesson Procedure</h2>
       <div class="space-y-8 relative">
-        \${phases.map((phase, idx) => \`
-          <div class="phase-row border-l-4 pl-6 relative pb-6 border-slate-200 last:pb-0">
-            <!-- Timeline Circle badge -->
-            <div class="absolute -left-[18px] top-0 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-md" style="background-color: \${primary};">
-              \${idx + 1}
-            </div>
-            
-            <div class="mb-2">
-              <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold leading-none mb-2">\${phase.tag}</span>
-              <h3 class="text-lg font-extrabold text-slate-800 leading-tight">\${phase.name} <span class="text-slate-400 font-medium text-xs ml-2">(\${phase.duration})</span></h3>
-            </div>
-            
-            <div class="text-sm font-medium text-slate-700 space-y-4 pt-1 leading-relaxed">
-              <div>
-                <p class="font-bold mb-1" style="color: \${dark};">👩‍🏫 Teacher Actions & Explanations:</p>
-                <div class="text-slate-650 ml-4 space-y-3 font-medium text-sm leading-relaxed">
-                  \${phase.teacherDetails}
-                </div>
+        <!-- INSTRUCTIONS: You must generate all 5 phases of the lesson procedure sequentially. For each phase, use the exact HTML structure below. DO NOT skip any phase, and ensure content is rich, extensive, and complete. -->
+        
+        <!-- PHASE 1: HOOK (15 Minutes) -->
+        <div class="phase-row border-l-4 pl-6 relative pb-6 border-slate-200">
+          <div class="absolute -left-[18px] top-0 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-md" style="background-color: \${primary};">1</div>
+          <div class="mb-2">
+            <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold leading-none mb-2">PHASE 1: HOOK</span>
+            <h3 class="text-lg font-extrabold text-slate-800 leading-tight">Introduction & Hook <span class="text-slate-400 font-medium text-xs ml-2">(15 Minutes)</span></h3>
+          </div>
+          <div class="text-sm font-medium text-slate-700 space-y-4 pt-1 leading-relaxed">
+            <div>
+              <p class="font-bold mb-1" style="color: \${dark};">👩‍🏫 Teacher Actions & Explanations:</p>
+              <div class="text-slate-650 ml-4 space-y-3 font-medium text-sm leading-relaxed">
+                <p>[Generate extensive teacher actions explaining how to launch the lesson and draw in learner attention]</p>
+                <p><strong>Teacher Spoken Script (Say this):</strong> "[Generate the exact, word-for-word spoken script for the teacher]"</p>
               </div>
-              <div>
-                <p class="font-bold mb-1" style="color: \${dark};">🧑‍🎓 Learner Active Tasks:</p>
-                <div class="text-slate-650 ml-4 space-y-3 font-medium text-sm leading-relaxed">
-                  \${phase.learnerDetails}
-                </div>
+            </div>
+            <div>
+              <p class="font-bold mb-1" style="color: \${dark};">🧑‍🎓 Learner Active Tasks:</p>
+              <div class="text-slate-650 ml-4 space-y-3 font-medium text-sm leading-relaxed">
+                <p>[Generate the physical/verbal/written tasks the learners perform]</p>
               </div>
-              \${phase.formativeAssessment ? \`
-                <div class="bg-yellow-50/70 p-3 rounded-xl border border-yellow-250 mt-2 text-xs">
-                  <p class="font-bold text-yellow-905 flex items-center gap-1.5">🔍 Formative Assessment Opportunity:</p>
-                  <p class="text-yellow-805 mt-1 font-semibold leading-relaxed">\${phase.formativeAssessment}</p>
-                </div>
-              \` : ''}
+            </div>
+            <div class="bg-yellow-50/70 p-3 rounded-xl border border-yellow-250 mt-2 text-xs">
+              <p class="font-bold text-yellow-905 flex items-center gap-1.5">🔍 Formative Assessment Opportunity:</p>
+              <p class="text-yellow-805 mt-1 font-semibold leading-relaxed">[Generate clear observation guidelines for the teacher to check learner focus]</p>
             </div>
           </div>
-        \`).join('')}
+        </div>
+
+        <!-- PHASE 2: DIRECT INSTRUCTION (30 Minutes) -->
+        <div class="phase-row border-l-4 pl-6 relative pb-6 border-slate-200">
+          <div class="absolute -left-[18px] top-0 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-md" style="background-color: \${primary};">2</div>
+          <div class="mb-2">
+            <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold leading-none mb-2">PHASE 2: DIRECT INSTRUCTION</span>
+            <h3 class="text-lg font-extrabold text-slate-800 leading-tight">Concept Demonstration <span class="text-slate-400 font-medium text-xs ml-2">(30 Minutes)</span></h3>
+          </div>
+          <div class="text-sm font-medium text-slate-700 space-y-4 pt-1 leading-relaxed">
+            <div>
+              <p class="font-bold mb-1" style="color: \${dark};">👩‍🏫 Teacher Actions & Explanations:</p>
+              <div class="text-slate-650 ml-4 space-y-3 font-medium text-sm leading-relaxed">
+                <p>[Generate extensive teacher actions explaining core concepts clearly]</p>
+                <p><strong>Teacher Spoken Script (Say this):</strong> "[Generate exact word-for-word spoken script with rich examples and South African contexts]"</p>
+              </div>
+            </div>
+            <div>
+              <p class="font-bold mb-1" style="color: \${dark};">🧑‍🎓 Learner Active Tasks:</p>
+              <div class="text-slate-650 ml-4 space-y-3 font-medium text-sm leading-relaxed">
+                <p>[Generate physical/verbal/written tasks the learners perform]</p>
+              </div>
+            </div>
+            <div class="bg-yellow-50/70 p-3 rounded-xl border border-yellow-250 mt-2 text-xs">
+              <p class="font-bold text-yellow-905 flex items-center gap-1.5">🔍 Formative Assessment Opportunity:</p>
+              <p class="text-yellow-805 mt-1 font-semibold leading-relaxed">[Generate clear observation guidelines for the teacher]</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- PHASE 3: GUIDED PRACTICE (25 Minutes) -->
+        <div class="phase-row border-l-4 pl-6 relative pb-6 border-slate-200">
+          <div class="absolute -left-[18px] top-0 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-md" style="background-color: \${primary};">3</div>
+          <div class="mb-2">
+            <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold leading-none mb-2">PHASE 3: GUIDED PRACTICE</span>
+            <h3 class="text-lg font-extrabold text-slate-800 leading-tight">Collaborative Activity <span class="text-slate-400 font-medium text-xs ml-2">(25 Minutes)</span></h3>
+          </div>
+          <div class="text-sm font-medium text-slate-700 space-y-4 pt-1 leading-relaxed">
+            <div>
+              <p class="font-bold mb-1" style="color: \${dark};">👩‍🏫 Teacher Actions & Explanations:</p>
+              <div class="text-slate-650 ml-4 space-y-3 font-medium text-sm leading-relaxed">
+                <p>[Generate step-by-step roleplay or pair activity rules]</p>
+              </div>
+            </div>
+            <div>
+              <p class="font-bold mb-1" style="color: \${dark};">🧑‍🎓 Learner Active Tasks:</p>
+              <div class="text-slate-650 ml-4 space-y-3 font-medium text-sm leading-relaxed">
+                <p>[Generate the tasks learners perform together. Must use character names like Zola, Liam, etc.]</p>
+              </div>
+            </div>
+            <div class="bg-yellow-50/70 p-3 rounded-xl border border-yellow-250 mt-2 text-xs">
+              <p class="font-bold text-yellow-905 flex items-center gap-1.5">🔍 Formative Assessment Opportunity:</p>
+              <p class="text-yellow-805 mt-1 font-semibold leading-relaxed">[Generate clear observation guidelines for the teacher to monitor pair work]</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- PHASE 4: INDEPENDENT PRACTICE (35 Minutes) -->
+        <div class="phase-row border-l-4 pl-6 relative pb-6 border-slate-200">
+          <div class="absolute -left-[18px] top-0 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-md" style="background-color: \${primary};">4</div>
+          <div class="mb-2">
+            <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold leading-none mb-2">PHASE 4: INDEPENDENT PRACTICE</span>
+            <h3 class="text-lg font-extrabold text-slate-800 leading-tight">Written Worksheet <span class="text-slate-400 font-medium text-xs ml-2">(35 Minutes)</span></h3>
+          </div>
+          <div class="text-sm font-medium text-slate-700 space-y-4 pt-1 leading-relaxed">
+            <div>
+              <p class="font-bold mb-1" style="color: \${dark};">👩‍🏫 Teacher Actions & Explanations:</p>
+              <div class="text-slate-650 ml-4 space-y-3 font-medium text-sm leading-relaxed">
+                <p>[Explain how to transition learners and hand out the independent worksheet]</p>
+                <p><strong>Teacher Spoken Script (Say this):</strong> "[Generate the exact spoken script introducing the worksheet]"</p>
+              </div>
+            </div>
+            <div>
+              <p class="font-bold mb-1" style="color: \${dark};">🧑‍🎓 Learner Active Tasks:</p>
+              <div class="text-slate-650 ml-4 space-y-3 font-medium text-sm leading-relaxed">
+                <p>[Generate description of learners completing the worksheet independently]</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PHASE 5: CLOSURE & SUMMARY (15 Minutes) -->
+        <div class="phase-row border-l-4 pl-6 relative pb-6 border-slate-200 last:pb-0">
+          <div class="absolute -left-[18px] top-0 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-md" style="background-color: \${primary};">5</div>
+          <div class="mb-2">
+            <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold leading-none mb-2">PHASE 5: CLOSURE</span>
+            <h3 class="text-lg font-extrabold text-slate-800 leading-tight">Interactive Summary & Exit Ticket <span class="text-slate-400 font-medium text-xs ml-2">(15 Minutes)</span></h3>
+          </div>
+          <div class="text-sm font-medium text-slate-700 space-y-4 pt-1 leading-relaxed">
+            <div>
+              <p class="font-bold mb-1" style="color: \${dark};">👩‍🏫 Teacher Actions & Explanations:</p>
+              <div class="text-slate-650 ml-4 space-y-3 font-medium text-sm leading-relaxed">
+                <p>[Generate review of key vocabulary or a fast-paced summary game]</p>
+                <p><strong>Teacher Spoken Script (Say this):</strong> "[Generate the exact exit ticket/review script]"</p>
+              </div>
+            </div>
+            <div>
+              <p class="font-bold mb-1" style="color: \${dark};">🧑‍🎓 Learner Active Tasks:</p>
+              <div class="text-slate-650 ml-4 space-y-3 font-medium text-sm leading-relaxed">
+                <p>[Generate description of learners participating in the thumbs-up/down review or handing in exit tickets]</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -160,11 +266,15 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white rounded-3xl p-6 shadow-md border border-slate-100">
       <div class="rounded-2xl p-5 border border-purple-100 bg-purple-50/50">
         <h3 class="font-extrabold text-purple-900 mb-2 flex items-center gap-1.5">🧩 For Struggling Learners</h3>
-        <p class="text-purple-800 text-sm font-semibold leading-relaxed">\${strugglingStrategies}</p>
+        <p class="text-purple-800 text-sm font-semibold leading-relaxed">
+          <!-- INSTRUCTIONS: Write 3-4 specific, actionable strategies to scaffold and simplify tasks for struggling learners in rich prose. No placeholders. -->
+        </p>
       </div>
       <div class="rounded-2xl p-5 border border-indigo-100 bg-indigo-50/50">
         <h3 class="font-extrabold text-indigo-900 mb-2 flex items-center gap-1.5">🚀 For Advanced Learners</h3>
-        <p class="text-indigo-800 text-sm font-semibold leading-relaxed">\${advancedStrategies}</p>
+        <p class="text-indigo-800 text-sm font-semibold leading-relaxed">
+          <!-- INSTRUCTIONS: Write 3-4 specific, actionable extension activities and advanced tasks for fast-finishers or highly capable learners. -->
+        </p>
       </div>
     </div>
 
@@ -172,6 +282,34 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
     <div class="bg-white rounded-3xl p-6 border-2 border-dashed border-slate-200">
       <h3 class="text-lg font-bold text-slate-700 mb-2">📝 Teacher Reflection Notes</h3>
       <div class="h-16 bg-slate-50/50 border border-slate-200 rounded-xl mb-2 flex items-center justify-center text-xs text-slate-400 italic font-medium">Use this space after the lesson to denote what parts worked-well vs. what requires adjustment...</div>
+    </div>
+
+    <!-- APPENDED DIAGNOSTIC WORKSHEET -->
+    <div class="bg-white rounded-3xl p-8 shadow-xl mt-12 border-t-[16px]" style="border-color: \${primary};">
+      <div class="border-b-2 border-dashed border-slate-300 pb-6 mb-8 text-center">
+        <span class="bg-orange-100 text-orange-800 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider mb-4 inline-block">GRADE \${grade} \${subject}</span>
+        <h2 class="text-3xl font-extrabold text-slate-800 mb-2">\${topic} Challenge</h2>
+        <p class="text-slate-500 font-medium">Diagnostic Assessment & Worksheet</p>
+        
+        <div class="max-w-md mx-auto mt-6 flex justify-between items-end border-b-2 border-slate-800 pb-2">
+          <div class="text-left w-full mr-4">
+            <span class="text-sm font-bold text-slate-500">Learner Name:</span>
+            <div class="w-full h-px bg-slate-400 mt-4 border-b border-dashed"></div>
+          </div>
+          <div class="text-center bg-slate-50 rounded-2xl border-4 border-slate-800 px-6 py-4 shadow-sm min-w-[120px]">
+            <span class="text-xs font-bold text-orange-600 block mb-1 uppercase tracking-wider">Score</span>
+            <span class="text-2xl font-black text-slate-800">______ / 15</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-10">
+        <!-- INSTRUCTIONS: YOU MUST Generate exactly 4 highly-detailed distinct worksheet questions with actual subject-specific content matching the lesson. -->
+        <!-- Question 1: Matching / Column A and B -->
+        <!-- Question 2: True or False Scenarios -->
+        <!-- Question 3: Complete Sentences with Word Bank -->
+        <!-- Question 4: Creative Drawing/Diagram box -->
+      </div>
     </div>
   </div>
 

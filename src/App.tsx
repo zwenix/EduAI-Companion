@@ -87,6 +87,7 @@ import Logo from './components/Logo';
 import NotificationsDropdown from './components/NotificationsDropdown';
 import StudentPractice from './components/StudentPractice';
 import StudentNotes from './components/StudentNotes';
+import CollaborativeWorkspace from './components/CollaborativeWorkspace';
 import StudentDashboard from './components/StudentDashboard';
 import StudentPortfolio from './components/StudentPortfolio';
 import CurriculumSuite from './components/CurriculumSuite';
@@ -876,6 +877,7 @@ export default function App() {
         case 'student-class-management':
           return [
             { id: 'student-practice', label: 'Practice Zone', icon: Blocks },
+            { id: 'collaborative-workspace', label: 'Collaborative Workspace', icon: Users },
             { id: 'messenger', label: 'Chat & Friends', icon: MessageSquare }
           ];
         case 'system-support':
@@ -2313,6 +2315,7 @@ export default function App() {
                             { title: "Scan & Autograde", desc: "Automated vision grading.", color: 'text-brand-pink', bg20: 'bg-pink-500/20', border30: 'border-pink-500/30', bg10: 'bg-pink-500/10', icon: Scan, id: 'ocr' },
                             { title: "Progress Reports", desc: "Track student performance.", color: 'text-orange-400', bg20: 'bg-orange-500/20', border30: 'border-orange-500/30', bg10: 'bg-orange-500/10', icon: TrendingUp, id: 'reports' },
                             { title: "Communicator & Messenger", desc: "School connection hub.", color: 'text-indigo-400', bg20: 'bg-indigo-500/20', border30: 'border-indigo-500/30', bg10: 'bg-indigo-500/10', icon: MessageSquare, id: 'messenger' },
+                            { title: "Collaborative Workspace", desc: "Multiplayer workspace labs.", color: 'text-violet-400', bg20: 'bg-violet-500/20', border30: 'border-violet-500/30', bg10: 'bg-violet-500/10', icon: Users, id: 'collaborative-workspace' },
                             { title: "Portfolios", desc: "Student work portfolio.", color: 'text-emerald-400', bg20: 'bg-emerald-500/20', border30: 'border-emerald-500/30', bg10: 'bg-emerald-500/10', icon: UserCircle, id: 'portfolios' },
                             { title: "Class & Student Management", desc: "Manage your learners.", color: 'text-blue-400', bg20: 'bg-blue-500/20', border30: 'border-blue-500/30', bg10: 'bg-blue-500/10', icon: Users, id: 'class-management' },
                             { title: "Settings", desc: "Account & App preferences.", color: 'text-slate-400', bg20: 'bg-slate-500/20', border30: 'border-slate-500/30', bg10: 'bg-slate-500/10', icon: Settings, id: 'settings' },
@@ -2365,6 +2368,8 @@ export default function App() {
                   <AITutorPage />
                 ) : activeTab === 'student-practice' ? (
                   <StudentPractice isDarkMode={isDarkMode} />
+                ) : activeTab === 'collaborative-workspace' ? (
+                  <CollaborativeWorkspace isDarkMode={isDarkMode} />
                 ) : activeTab === 'student-notes' ? (
                   <StudentNotes isDarkMode={isDarkMode} />
                 ) : activeTab === 'portfolios' ? (

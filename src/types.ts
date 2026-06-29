@@ -42,6 +42,7 @@ export interface StudentDoc {
   parentName?: string;
   parentEmail?: string;
   parentPhone?: string;
+  widgetOrder?: string[];
   createdAt?: any;
 }
 

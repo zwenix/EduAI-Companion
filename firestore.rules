@@ -117,14 +117,21 @@ service cloud.firestore {
         && data.createdAt is timestamp;
     }
     match /study_groups/{groupId} {
-      allow get: if isSignedIn() && isValidId(groupId) && existing().teacherId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+      allow get, list: if isSignedIn();
       allow create: if isSignedIn() && isValidId(groupId) && isValidStudyGroup(incoming()) && incoming().createdAt == request.time;
       allow update: if isSignedIn() && isValidId(groupId) && existing().teacherId == request.auth.uid && isValidStudyGroup(incoming())
                      && incoming().teacherId == existing().teacherId
                      && incoming().createdAt == existing().createdAt
                      && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'members']);
       allow delete: if isSignedIn() && isValidId(groupId) && existing().teacherId == request.auth.uid;
+    }
+
+    match /collaborative_projects/{projectId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /collaborative_cursors/{userId} {
+      allow read, write: if isSignedIn();
     }
 
     function isValidNotification(data) {

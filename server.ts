@@ -146,27 +146,171 @@ VISUAL STYLING DOCTRINE (Follow these for all HTML output):
 Ultra-detailed digital illustration, professional educational graphic design, vibrant colors, perfect composition, sharp focus, 300 DPI print quality, award-winning children’s non-fiction book style, no text overlays (text will be added separately), no borders, no frames, no watermarks, no emojis, no cartoonish exaggeration, suitable for South African classroom display, museum-quality detail
 `;
 
-  const safeJsonParse = (text) => {
+   const safeJsonParse = (text) => {
     if (!text) return {};
-    let processedText = text;
+    let processedText = text.trim();
+    
+    // 1. Strip reasoning thoughts if present (<think>...</think> or unclosed <think>)
     processedText = processedText.replace(/<think>[\s\S]*?<\/think>/gi, '');
     processedText = processedText.replace(/<think>[\s\S]*$/gi, '');
-    try {
-      return JSON.parse(processedText.trim());
-    } catch (e) {
-      const jsonMatch = processedText.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch && jsonMatch[1]) {
-        try {
-          return JSON.parse(jsonMatch[1].trim());
-        } catch (e2) {}
+    processedText = processedText.trim();
+
+    // 2. Extract content from markdown JSON block or generic markdown block anywhere in the text
+    if (processedText.includes("```json")) {
+      const match = processedText.match(/```json\s*([\s\S]*?)\s*```/i);
+      if (match) {
+        processedText = match[1].trim();
       }
+    } else if (processedText.includes("```")) {
+      const match = processedText.match(/```\s*([\s\S]*?)\s*```/);
+      if (match) {
+        processedText = match[1].trim();
+      }
+    }
+
+    // 3. Extract the clean JSON object if there is leading/trailing conversational text
+    if (!processedText.startsWith("{") && processedText.includes("{") && processedText.includes("}")) {
+      const firstCurly = processedText.indexOf("{");
+      const lastCurly = processedText.lastIndexOf("}");
+      processedText = processedText.substring(firstCurly, lastCurly + 1).trim();
+    }
+
+    try {
+      // First try normal JSON parse
+      return JSON.parse(processedText);
+    } catch (err) {
+      console.warn("safeJsonParse: Standard JSON parse failed, trying regex fallback...", err);
+
+      // Direct Javascript execution/extraction recovery if brackets are matched at all
+      if (processedText.includes('{') && processedText.includes('}')) {
+        try {
+          const potentialJson = processedText.substring(processedText.indexOf('{'), processedText.lastIndexOf('}') + 1);
+          const parsedObj = JSON.parse(potentialJson);
+          if (parsedObj) return parsedObj;
+        } catch (e2) {
+          try {
+            const potentialJson2 = processedText.substring(processedText.indexOf('{'), processedText.lastIndexOf('}') + 1);
+            const evaluated = new Function('return ' + potentialJson2)();
+            if (typeof evaluated === 'object' && evaluated !== null) return evaluated;
+          } catch(e4) {}
+        }
+      }
+
+      const closeOpenHtmlTags = (html: string): string => {
+        const tagRegex = /<\/?([a-z1-6]+)(?:\s+[^>]*?)?>/gi;
+        let match;
+        const openTags: string[] = [];
+        
+        while ((match = tagRegex.exec(html)) !== null) {
+          const fullTag = match[0];
+          const tagName = match[1].toLowerCase();
+          
+          if (fullTag.endsWith('/>') || ['img', 'br', 'hr', 'input', 'meta', 'link'].includes(tagName)) {
+            continue;
+          }
+          
+          if (fullTag.startsWith('</')) {
+            if (openTags.length > 0 && openTags[openTags.length - 1] === tagName) {
+              openTags.pop();
+            }
+          } else {
+            openTags.push(tagName);
+          }
+        }
+        
+        let closedHtml = html;
+        while (openTags.length > 0) {
+          const tag = openTags.pop();
+          closedHtml += `</${tag}>`;
+        }
+        return closedHtml;
+      };
+
+      // Helper regex extractors
+      const extractField = (source: string, field: string): string | null => {
+        const escapedField = field.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const regex = new RegExp(`"${escapedField}"\\s*:\\s*"([\\s\\S]*?)"(?=\\s*,|\\s*})`, 'i');
+        const match = source.match(regex);
+        if (match) {
+          let val = match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n');
+          if (val.trim().startsWith('<')) {
+            val = closeOpenHtmlTags(val);
+          }
+          return val;
+        }
+
+        // Truncated fallback match
+        const truncatedRegex = new RegExp(`"${escapedField}"\\s*:\\s*"([\\s\\S]*)$`, 'i');
+        const truncMatch = source.match(truncatedRegex);
+        if (truncMatch) {
+          let val = truncMatch[1].trim();
+          if (val.endsWith('\\')) {
+            val = val.slice(0, -1);
+          }
+          if (val.endsWith('"') && !val.endsWith('\\"')) {
+            val = val.slice(0, -1);
+          }
+          val = val.replace(/\\"/g, '"').replace(/\\n/g, '\n');
+          if (val.trim().startsWith('<')) {
+            val = closeOpenHtmlTags(val);
+          }
+          return val;
+        }
+        return null;
+      };
+
+      const extractArrayField = (source: string, field: string): string[] => {
+        const escapedField = field.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const regex = new RegExp(`"${escapedField}"\\s*:\\s*\\[([\\s\\S]*?)\\]`, 'i');
+        const match = source.match(regex);
+        if (match && match[1]) {
+          return match[1]
+            .split(',')
+            .map(item => item.trim().replace(/^["']|["']$/g, '').trim())
+            .filter(item => item.length > 0);
+        }
+        return [];
+      };
+
+      const textToSearch = processedText;
+
+      // ─── POWERFALLBACK: HEAL TRUNCATED JSON PROPERTIES ───
+      const fallbackObj: any = {};
+      const stringFields = [
+        "content", "memo", "rubric", "assessmentCriteria", "imagePrompt",
+        "description", "printInstructions", "notes", "documentType",
+        "extractedText", "feedback", "totalScore"
+      ];
+      
+      for (const field of stringFields) {
+        const extracted = extractField(textToSearch, field);
+        if (extracted !== null) {
+          fallbackObj[field] = extracted;
+        }
+      }
+      
+      const arrayFields = ["successIndicators", "marksPerQuestion"];
+      for (const field of arrayFields) {
+        const extracted = extractArrayField(textToSearch, field);
+        if (extracted.length > 0) {
+          fallbackObj[field] = extracted;
+        }
+      }
+
+      if (fallbackObj.content || fallbackObj.extractedText || fallbackObj.feedback || fallbackObj.description) {
+        console.warn("safeJsonParse: Reconstructed truncated JSON response successfully via fallback regex extraction!");
+        return fallbackObj;
+      }
+
+      console.error("Failed to parse AI response as JSON:", processedText);
       return {};
     }
   };
 
   const PORT = 3000;
 
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // --- AI Provider Clients ---
 
@@ -370,15 +514,19 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     }
 
     if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-      const neededKey = provider.startsWith('groq') || provider.startsWith('llama') ? 'GROQ_API_KEY' : provider.startsWith('alibaba') ? 'ALIBABA_API_KEY' : 'API_KEY';
+      const neededKey = (provider.startsWith('groq') || provider.startsWith('llama'))
+        ? 'GROQ_API_KEY'
+        : provider.startsWith('alibaba')
+        ? 'ALIBABA_API_KEY'
+        : 'API_KEY';
       return await executeGeminiFallback(`${neededKey} is not configured.`);
     }
 
     let finalModel = model;
     if (finalModel === "groq-gpt-oss") {
-      finalModel = "gpt-oss-120b";
+      finalModel = "openai/gpt-oss-120b";
     } else if (finalModel === "groq-qwen") {
-      finalModel = "qwen-3.6-27b";
+      finalModel = "qwen/qwen3.6-27b";
     }
 
     if (!finalModel) {
@@ -388,19 +536,25 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         provider === "alibaba-qwen" ? "qwen-plus" :
         provider === "alibaba-deepseek" ? "deepseek-v3" :
         provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
-        provider === "groq-gpt-oss" ? "gpt-oss-120b" :
-        provider === "groq-qwen" ? "qwen-3.6-27b" :
+        provider === "groq-gpt-oss" ? "openai/gpt-oss-120b" : 
+        provider === "groq-qwen" ? "qwen/qwen3.6-27b" :
         ""
       );
     }
 
     try {
-      const response = await client.chat.completions.create({
+      const payload: any = {
         model: finalModel,
         messages,
         temperature,
-        max_completion_tokens: 8192,
-      });
+      };
+      
+      // Only set max_tokens for non-Groq providers, as Groq returns 422 if max_tokens exceeds context window
+      if (!provider.startsWith('groq') && !provider.startsWith('llama')) {
+        payload.max_tokens = 4000;
+      }
+
+      const response = await client.chat.completions.create(payload);
       res.json(response);
     } catch (error: any) {
       const status = error.status || 500;

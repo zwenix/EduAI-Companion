@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Target, BookOpen, CheckCircle, Flame, Star, Brain, Play, Check, Heart, MessageCircle, Printer, Camera, Upload, Loader2, AlertCircle, RefreshCw, Eye } from 'lucide-react';
+import { Target, BookOpen, CheckCircle, Flame, Star, Brain, Play, Check, Heart, MessageCircle, Printer, Camera, Upload, Loader2, AlertCircle, RefreshCw, Eye, GripVertical, ArrowUp, ArrowDown, Move, Activity, Clock } from 'lucide-react';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, updateDoc, doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -172,6 +173,51 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
   }, []);
 
   const [liveStreak, setLiveStreak] = useState(1);
+  const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragoverIndex, setDragoverIndex] = useState<number | null>(null);
+
+  const DEFAULT_WIDGET_ORDER = useMemo(() => [
+    'progress-charts',
+    'upcoming-assignments',
+    'upcoming-missions',
+    'recent-activities',
+    'parent-motivation'
+  ], []);
+
+  const currentOrder = useMemo(() => {
+    if (student && student.widgetOrder && student.widgetOrder.length > 0) {
+      return student.widgetOrder;
+    }
+    return DEFAULT_WIDGET_ORDER;
+  }, [student, DEFAULT_WIDGET_ORDER]);
+
+  const handleSaveWidgetOrder = async (newOrder: string[]) => {
+    if (!student?.id) return;
+    try {
+      setStudent(prev => prev ? { ...prev, widgetOrder: newOrder } : null);
+      await updateDoc(doc(db, 'students', student.id), {
+        widgetOrder: newOrder
+      });
+    } catch (err) {
+      console.warn("Failed saving widget reorder:", err);
+    }
+  };
+
+  const handleResetWidgetOrder = () => {
+    handleSaveWidgetOrder(DEFAULT_WIDGET_ORDER);
+  };
+
+  const moveWidget = (index: number, direction: 'up' | 'down') => {
+    const newOrder = [...currentOrder];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex >= 0 && targetIndex < newOrder.length) {
+      const temp = newOrder[index];
+      newOrder[index] = newOrder[targetIndex];
+      newOrder[targetIndex] = temp;
+      handleSaveWidgetOrder(newOrder);
+    }
+  };
 
   // Record login activity once resolved
   useEffect(() => {
@@ -191,12 +237,22 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const uniqueDates = new Set<string>();
+      const rawLogs: any[] = [];
       snapshot.docs.forEach(doc => {
         const data = doc.data();
+        rawLogs.push({ id: doc.id, ...data });
         if (data.timestamp) {
           uniqueDates.add(data.timestamp);
         }
       });
+
+      // Sort and slice top 5 logs
+      rawLogs.sort((a, b) => {
+        const t1 = a.createdAt?.seconds || 0;
+        const t2 = b.createdAt?.seconds || 0;
+        return t2 - t1;
+      });
+      setRecentLogs(rawLogs.slice(0, 5));
 
       const todayStr = new Date().toISOString().split('T')[0];
       const yesterday = new Date();
@@ -601,191 +657,402 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
          ))}
       </div>
 
-      {/* Parent Motivation Note Card (If Provided) */}
-      {student?.idp?.parentNote && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className={`p-6 rounded-[28px] border-2 bg-gradient-to-tr ${
-            isDarkMode 
-              ? 'from-[#3B0764]/40 via-[#1E1B4B]/30 to-[#030712]/50 border-purple-500/20 shadow-purple-950/20' 
-              : 'from-pink-50 via-purple-50 to-indigo-50 border-purple-200/55 shadow-purple-100/50'
-          } border-solid shadow-xl flex flex-col sm:flex-row items-start sm:items-center gap-4 relative overflow-hidden`}
+      {/* Dashboard Customization Control Panel */}
+      <div className={`p-4 rounded-[24px] border ${isDarkMode ? 'bg-slate-900/40 border-white/5' : 'bg-slate-50 border-slate-200'} flex flex-col sm:flex-row justify-between items-center gap-4`}>
+        <div className="flex items-center gap-2">
+          <Move className="text-indigo-500 shrink-0" size={16} />
+          <span className="text-xs font-bold text-slate-500">
+            Customize Dashboard: Drag-and-drop the headers or use the <ArrowUp className="inline" size={12}/> <ArrowDown className="inline" size={12}/> buttons to arrange widgets!
+          </span>
+        </div>
+        <button
+          onClick={handleResetWidgetOrder}
+          className="text-[10px] font-black uppercase tracking-wider px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition-colors border-0 cursor-pointer shadow-sm"
         >
-          <div className="absolute top-0 right-0 p-8 opacity-5 text-purple-400">
-            <Heart size={140} className="fill-current" />
-          </div>
-          <div className={`p-4 bg-purple-500/10 rounded-2xl border border-purple-500/20 shrink-0 flex items-center justify-center`}>
-            <Heart size={26} className="fill-current animate-pulse text-red-500" />
-          </div>
-          <div className="space-y-1.5 z-10">
-            <h4 className={`text-xs font-black uppercase tracking-widest ${
-              isDarkMode ? 'text-purple-300' : 'text-purple-500'
-            }`}>
-              Message from Parent/Guardian
-            </h4>
-            <p className={`text-base sm:text-lg font-hand leading-relaxed italic ${
-              isDarkMode ? 'text-slate-100' : 'text-slate-800'
-            }`}>
-              "{student.idp.parentNote}"
-            </p>
-            {student.idp.parentNoteTimestamp && (
-              <p className="text-[9px] font-mono font-bold text-slate-500 mr-auto">
-                Received: {new Date(student.idp.parentNoteTimestamp).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              </p>
-            )}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Teacher Assigned Homework / Assessments Vault */}
-      <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
-         <div className="flex justify-between items-center mb-6">
-           <div>
-             <h3 className={`text-2xl font-hand ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Teacher Assigned Tasks</h3>
-             <p className="text-xs text-slate-400 mt-1">Assessments and worksheets from your teachers</p>
-           </div>
-           <span className="text-xs font-black uppercase tracking-widest text-indigo-500 bg-indigo-50 dark:bg-indigo-950 px-3 py-1 rounded-full animate-pulse">
-             Homework
-           </span>
-         </div>
-
-         {myAssignments.length === 0 ? (
-           <div className="text-center p-8 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200">
-             <BookOpen className="mx-auto h-12 w-12 text-slate-300 mb-2 animate-bounce" />
-             <p className="text-slate-500 font-medium text-sm">No homework assignments from your teachers yet!</p>
-             <p className="text-xs text-slate-400 mt-0.5">Your dashboard is up to date.</p>
-           </div>
-         ) : (
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             {myAssignments.map((assignment) => {
-               const submission = submissions.find(s => s.assignmentId === assignment.id);
-               const isCompleted = !!submission;
-
-               return (
-                 <div
-                   key={assignment.id}
-                   className={`p-5 rounded-2xl border transition-all flex flex-col justify-between ${
-                     isCompleted
-                       ? 'bg-emerald-50/20 border-emerald-100 dark:bg-emerald-950/10 dark:border-emerald-900/30'
-                       : (isDarkMode ? 'bg-white/5 border-white/10 hover:border-indigo-400' : 'bg-white border-slate-200 hover:border-indigo-400')
-                   } shadow-sm group relative overflow-hidden`}
-                 >
-                   <div>
-                     <div className="flex justify-between items-start gap-2 mb-2">
-                       <span className="text-[10px] font-black uppercase tracking-widest text-[#06b6d4] bg-cyan-100/50 dark:bg-cyan-950 px-2 py-0.5 rounded-md">
-                         {assignment.subject}
-                       </span>
-                       {isCompleted ? (
-                         <span className="text-[9px] font-mono font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-md flex items-center gap-1">
-                           <CheckCircle size={10} /> Graded: {submission.grade}
-                         </span>
-                       ) : (
-                         <span className="text-[9px] font-mono font-bold text-yellow-600 bg-yellow-50 dark:bg-yellow-950 px-2 py-0.5 rounded-md">
-                           Incomplete
-                         </span>
-                       )}
-                     </div>
-
-                     <h4 className={`font-bold text-base mt-2 line-clamp-1 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                       {assignment.title}
-                     </h4>
-                     <p className="text-xs text-slate-400 mt-1 line-clamp-2">
-                       {assignment.contentType} • Assigned by {assignment.teacherName}
-                     </p>
-                   </div>
-
-                   <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800/60 flex justify-between items-center bg-transparent">
-                     <span className="text-[10px] font-mono text-slate-400 font-medium">
-                       {assignment.createdAt ? new Date(assignment.createdAt.seconds * 1000 || assignment.createdAt).toLocaleDateString() : 'Active'}
-                     </span>
-
-                     <button
-                       onClick={() => {
-                         setSelectedAssignment(assignment);
-                         setOnlineAnswers('');
-                         setOcrImage('');
-                         setGradingResult(submission || null);
-                         setGradingError('');
-                         setSolvingMode('online');
-                       }}
-                       className={`px-4 py-1.5 rounded-xl font-bold uppercase tracking-wider text-[10px] transition-all border-0 cursor-pointer ${
-                         isCompleted
-                           ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
-                           : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-sm'
-                       }`}
-                     >
-                       {isCompleted ? 'View Graded' : 'Solve & Hand-In'}
-                     </button>
-                   </div>
-                 </div>
-               );
-             })}
-           </div>
-         )}
+          Reset Layout
+        </button>
       </div>
 
-      {/* Upcoming Missions (Interactive Tasks) */}
-      <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
-         <div className="flex justify-between items-center mb-6">
-            <h3 className={`text-2xl font-hand ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>My Upcoming Tasks & Missions</h3>
-            <span className="text-xs font-black uppercase tracking-widest text-[#06b6d4] bg-cyan-100 dark:bg-cyan-950 px-3 py-1 rounded-full animate-pulse">Personalized Map</span>
-         </div>
-         
-         <div className="space-y-4">
-            {stats.missions.map((m, i) => {
-              const completed = m.status === 'Completed';
-              return (
-                <div 
-                  key={i} 
-                  onClick={() => handleToggleMission(i)}
-                  className={`p-4 rounded-2xl border transition-all flex items-center justify-between group cursor-pointer shadow-sm relative overflow-hidden ${
-                    completed
-                    ? (isDarkMode ? 'border-emerald-500/30 bg-emerald-505/10 bg-white/5 opacity-75' : 'border-emerald-200 bg-emerald-50/50 opacity-75')
-                    : (isDarkMode ? 'border-white/10 bg-white/5 hover:border-brand-cyan' : 'border-slate-100 bg-slate-50 hover:border-brand-cyan')
-                  }`}
-                >
-                   {celebrateTaskId === i && (
-                     <div className="absolute inset-0 bg-emerald-500/20 pointer-events-none animate-ping"></div>
-                   )}
-                   
-                   <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner transition-colors ${
-                        completed 
-                        ? 'bg-emerald-100 text-emerald-600'
-                        : 'bg-indigo-100 text-indigo-500'
-                      }`}>
-                        {completed ? <CheckCircle size={20}/> : <BookOpen size={20}/>}
-                      </div>
-                      <div>
-                        <h4 className={`font-bold transition-all ${
-                          completed 
-                          ? 'line-through text-slate-400' 
-                          : (isDarkMode ? 'text-white' : 'text-slate-700')
-                        }`}>{m.task}</h4>
-                        <p className={`text-xs font-medium ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                          Target: <span className="font-bold underline text-cyan-500">{m.milestone}</span> • <span className="uppercase tracking-wider font-extrabold text-[10px]">{m.status}</span>
-                        </p>
-                      </div>
-                   </div>
-                   
-                   <button 
-                     onClick={(e) => {
-                       e.stopPropagation();
-                       handleToggleMission(i);
-                     }}
-                     className={`shadow-lg border p-2.5 rounded-full transition-all group-hover:scale-110 active:scale-95 ${
-                       completed
-                       ? 'bg-emerald-500 border-emerald-600 text-white'
-                       : (isDarkMode ? 'bg-white/10 border-white/20 text-slate-300 hover:text-brand-cyan hover:border-brand-cyan' : 'bg-white border-slate-200 text-slate-400 hover:text-brand-cyan hover:border-brand-cyan')
-                     }`}
-                   >
-                     {completed ? <Check size={20} className="stroke-[3.5]" /> : <Play size={20} className="fill-current"/>}
-                   </button>
+      {/* Dynamic customizable widgets container */}
+      <div className="space-y-6 sm:space-y-8">
+        {currentOrder.map((widgetId, index) => {
+          const isDragged = draggedIndex === index;
+          const isDragover = dragoverIndex === index;
+
+          let widgetContent: React.ReactNode = null;
+
+          if (widgetId === 'progress-charts') {
+            const subjectsData = student?.subjects || [];
+            const mathSub = subjectsData.find(s => s.name.toLowerCase().includes('math'));
+            const physSub = subjectsData.find(s => s.name.toLowerCase().includes('phys'));
+            const engSub = subjectsData.find(s => s.name.toLowerCase().includes('english') || s.name.toLowerCase().includes('efal'));
+
+            const mathHistory = mathSub?.termHistory || [74, 78, 80, mathSub?.mark || 84];
+            const physHistory = physSub?.termHistory || [70, 72, 75, physSub?.mark || 79];
+            const engHistory = engSub?.termHistory || [82, 85, 87, engSub?.mark || 89];
+
+            const performanceData = [
+              { name: 'Term 1', 'Mathematics': mathHistory[0] || 74, 'Physical Sciences': physHistory[0] || 70, 'English': engHistory[0] || 82 },
+              { name: 'Term 2', 'Mathematics': mathHistory[1] || 78, 'Physical Sciences': physHistory[1] || 72, 'English': engHistory[1] || 85 },
+              { name: 'Term 3', 'Mathematics': mathHistory[2] || 80, 'Physical Sciences': physHistory[2] || 75, 'English': engHistory[2] || 87 },
+              { name: 'Term 4', 'Mathematics': mathHistory[3] || 84, 'Physical Sciences': physHistory[3] || 79, 'English': engHistory[3] || 89 }
+            ];
+
+            widgetContent = (
+              <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm space-y-4`}>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className={`text-2xl font-hand ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Academic Growth Charts</h3>
+                    <p className="text-xs text-slate-400 mt-1">Live subject performance trends over the academic terms</p>
+                  </div>
+                  <Activity className="text-indigo-500 animate-pulse" size={24} />
                 </div>
-              );
-            })}
-         </div>
+                <div className="h-[280px] w-full pt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={performanceData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorMath" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#818cf8" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="colorPhys" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="colorEng" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} />
+                      <XAxis dataKey="name" stroke={isDarkMode ? '#64748b' : '#94a3b8'} fontSize={10} tickLine={false} />
+                      <YAxis stroke={isDarkMode ? '#64748b' : '#94a3b8'} fontSize={10} tickLine={false} domain={[50, 100]} />
+                      <Tooltip contentStyle={{ backgroundColor: isDarkMode ? '#0f172a' : '#ffffff', borderColor: isDarkMode ? '#1e293b' : '#e2e8f0', borderRadius: '12px' }} />
+                      <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                      <Area type="monotone" dataKey="Mathematics" stroke="#818cf8" strokeWidth={2.5} fillOpacity={1} fill="url(#colorMath)" />
+                      <Area type="monotone" dataKey="Physical Sciences" stroke="#06b6d4" strokeWidth={2.5} fillOpacity={1} fill="url(#colorPhys)" />
+                      <Area type="monotone" dataKey="English" stroke="#f59e0b" strokeWidth={2.5} fillOpacity={1} fill="url(#colorEng)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            );
+          } else if (widgetId === 'recent-activities') {
+            widgetContent = (
+              <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm space-y-5`}>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className={`text-2xl font-hand ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>My Recent Live Feed</h3>
+                    <p className="text-xs text-slate-400 mt-1">Real-time chronicle of your study sessions and achievements</p>
+                  </div>
+                  <Clock className="text-emerald-500 animate-spin-slow" size={24} />
+                </div>
+                <div className="space-y-4">
+                  {recentLogs.length === 0 ? (
+                    <p className="text-xs text-slate-400 italic py-4 text-center">No recent activity logged yet. Complete tasks to light up your feed!</p>
+                  ) : (
+                    recentLogs.map((log) => {
+                      let LogIcon = Flame;
+                      let logColor = 'bg-yellow-500/10 text-yellow-500';
+                      if (log.activityType === 'task_completed') {
+                        LogIcon = CheckCircle;
+                        logColor = 'bg-indigo-500/10 text-indigo-500';
+                      } else if (log.activityType === 'practice_attempt') {
+                        LogIcon = Target;
+                        logColor = 'bg-emerald-500/10 text-emerald-500';
+                      } else if (log.activityType === 'ai_chat') {
+                        LogIcon = Brain;
+                        logColor = 'bg-cyan-500/10 text-cyan-500';
+                      }
+                      
+                      return (
+                        <div key={log.id} className="flex items-start gap-4 p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
+                          <div className={`w-9 h-9 rounded-xl ${logColor} flex items-center justify-center shrink-0`}>
+                            <LogIcon size={16} />
+                          </div>
+                          <div className="space-y-0.5">
+                            <p className={`text-xs font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{log.description}</p>
+                            <span className="text-[10px] text-slate-400 font-mono">{log.timestamp} • Active Session</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            );
+          } else if (widgetId === 'upcoming-assignments') {
+            widgetContent = (
+              <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
+                 <div className="flex justify-between items-center mb-6">
+                   <div>
+                     <h3 className={`text-2xl font-hand ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Teacher Assigned Tasks</h3>
+                     <p className="text-xs text-slate-400 mt-1">Assessments and worksheets from your teachers</p>
+                   </div>
+                   <span className="text-xs font-black uppercase tracking-widest text-indigo-500 bg-indigo-50 dark:bg-indigo-950 px-3 py-1 rounded-full animate-pulse">
+                     Homework
+                   </span>
+                 </div>
+
+                 {myAssignments.length === 0 ? (
+                   <div className="text-center p-8 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200">
+                     <BookOpen className="mx-auto h-12 w-12 text-slate-300 mb-2 animate-bounce" />
+                     <p className="text-slate-500 font-medium text-sm">No homework assignments from your teachers yet!</p>
+                     <p className="text-xs text-slate-400 mt-0.5">Your dashboard is up to date.</p>
+                   </div>
+                 ) : (
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     {myAssignments.map((assignment) => {
+                       const submission = submissions.find(s => s.assignmentId === assignment.id);
+                       const isCompleted = !!submission;
+
+                       return (
+                         <div
+                           key={assignment.id}
+                           className={`p-5 rounded-2xl border transition-all flex flex-col justify-between ${
+                             isCompleted
+                               ? 'bg-emerald-50/20 border-emerald-100 dark:bg-emerald-950/10 dark:border-emerald-900/30'
+                               : (isDarkMode ? 'bg-white/5 border-white/10 hover:border-indigo-400' : 'bg-white border-slate-200 hover:border-indigo-400')
+                           } shadow-sm group relative overflow-hidden`}
+                         >
+                           <div>
+                             <div className="flex justify-between items-start gap-2 mb-2">
+                               <span className="text-[10px] font-black uppercase tracking-widest text-[#06b6d4] bg-cyan-100/50 dark:bg-cyan-950 px-2 py-0.5 rounded-md">
+                                 {assignment.subject}
+                               </span>
+                               {isCompleted ? (
+                                 <span className="text-[9px] font-mono font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                   <CheckCircle size={10} /> Graded: {submission.grade}
+                                 </span>
+                               ) : (
+                                 <span className="text-[9px] font-mono font-bold text-yellow-600 bg-yellow-50 dark:bg-yellow-950 px-2 py-0.5 rounded-md">
+                                   Incomplete
+                                 </span>
+                               )}
+                             </div>
+
+                             <h4 className={`font-bold text-base mt-2 line-clamp-1 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                               {assignment.title}
+                             </h4>
+                             <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                               {assignment.contentType} • Assigned by {assignment.teacherName}
+                             </p>
+                           </div>
+
+                           <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800/60 flex justify-between items-center bg-transparent">
+                             <span className="text-[10px] font-mono text-slate-400 font-medium">
+                               {assignment.createdAt ? new Date(assignment.createdAt.seconds * 1000 || assignment.createdAt).toLocaleDateString() : 'Active'}
+                             </span>
+
+                             <button
+                               onClick={() => {
+                                 setSelectedAssignment(assignment);
+                                 setOnlineAnswers('');
+                                 setOcrImage('');
+                                 setGradingResult(submission || null);
+                                 setGradingError('');
+                                 setSolvingMode('online');
+                               }}
+                               className={`px-4 py-1.5 rounded-xl font-bold uppercase tracking-wider text-[10px] transition-all border-0 cursor-pointer ${
+                                 isCompleted
+                                   ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
+                                   : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-sm'
+                               }`}
+                             >
+                               {isCompleted ? 'View Graded' : 'Solve & Hand-In'}
+                             </button>
+                           </div>
+                         </div>
+                       );
+                     })}
+                   </div>
+                 )}
+              </div>
+            );
+          } else if (widgetId === 'upcoming-missions') {
+            widgetContent = (
+              <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
+                 <div className="flex justify-between items-center mb-6">
+                    <h3 className={`text-2xl font-hand ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>My Upcoming Tasks & Missions</h3>
+                    <span className="text-xs font-black uppercase tracking-widest text-[#06b6d4] bg-cyan-100 dark:bg-cyan-950 px-3 py-1 rounded-full animate-pulse">Personalized Map</span>
+                 </div>
+                 
+                 <div className="space-y-4">
+                    {stats.missions.map((m, i) => {
+                      const completed = m.status === 'Completed';
+                      return (
+                        <div 
+                          key={i} 
+                          onClick={() => handleToggleMission(i)}
+                          className={`p-4 rounded-2xl border transition-all flex items-center justify-between group cursor-pointer shadow-sm relative overflow-hidden ${
+                            completed
+                            ? (isDarkMode ? 'border-emerald-500/30 bg-emerald-505/10 bg-white/5 opacity-75' : 'border-emerald-200 bg-emerald-50/50 opacity-75')
+                            : (isDarkMode ? 'border-white/10 bg-white/5 hover:border-brand-cyan' : 'border-slate-100 bg-slate-50 hover:border-brand-cyan')
+                          }`}
+                        >
+                           {celebrateTaskId === i && (
+                             <div className="absolute inset-0 bg-emerald-500/20 pointer-events-none animate-ping"></div>
+                           )}
+                           
+                           <div className="flex items-center gap-4">
+                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner transition-colors ${
+                                completed 
+                                ? 'bg-emerald-100 text-emerald-600'
+                                : 'bg-indigo-100 text-indigo-500'
+                              }`}>
+                                {completed ? <CheckCircle size={20}/> : <BookOpen size={20}/>}
+                              </div>
+                              <div>
+                                <h4 className={`font-bold transition-all ${
+                                  completed 
+                                  ? 'line-through text-slate-400' 
+                                  : (isDarkMode ? 'text-white' : 'text-slate-700')
+                                }`}>{m.task}</h4>
+                                <p className={`text-xs font-medium ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                                  Target: <span className="font-bold underline text-cyan-500">{m.milestone}</span> • <span className="uppercase tracking-wider font-extrabold text-[10px]">{m.status}</span>
+                                </p>
+                              </div>
+                           </div>
+                           
+                           <button 
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               handleToggleMission(i);
+                             }}
+                             className={`shadow-lg border p-2.5 rounded-full transition-all group-hover:scale-110 active:scale-95 ${
+                               completed
+                               ? 'bg-emerald-500 border-emerald-600 text-white'
+                               : (isDarkMode ? 'bg-white/10 border-white/20 text-slate-300 hover:text-brand-cyan hover:border-brand-cyan' : 'bg-white border-slate-200 text-slate-400 hover:text-brand-cyan hover:border-brand-cyan')
+                             }`}
+                           >
+                             {completed ? <Check size={20} className="stroke-[3.5]" /> : <Play size={20} className="fill-current"/>}
+                           </button>
+                        </div>
+                      );
+                    })}
+                 </div>
+              </div>
+            );
+          } else if (widgetId === 'parent-motivation') {
+            widgetContent = (
+              <div>
+                {student?.idp?.parentNote ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className={`p-6 rounded-[28px] border-2 bg-gradient-to-tr ${
+                      isDarkMode 
+                        ? 'from-[#3B0764]/40 via-[#1E1B4B]/30 to-[#030712]/50 border-purple-500/20 shadow-purple-950/20' 
+                        : 'from-pink-50 via-purple-50 to-indigo-50 border-purple-200/55 shadow-purple-100/50'
+                    } border-solid shadow-xl flex flex-col sm:flex-row items-start sm:items-center gap-4 relative overflow-hidden`}
+                  >
+                    <div className="absolute top-0 right-0 p-8 opacity-5 text-purple-400">
+                      <Heart size={140} className="fill-current" />
+                    </div>
+                    <div className={`p-4 bg-purple-500/10 rounded-2xl border border-purple-500/20 shrink-0 flex items-center justify-center`}>
+                      <Heart size={26} className="fill-current animate-pulse text-red-500" />
+                    </div>
+                    <div className="space-y-1.5 z-10">
+                      <h4 className={`text-xs font-black uppercase tracking-widest ${
+                        isDarkMode ? 'text-purple-300' : 'text-purple-500'
+                      }`}>
+                        Message from Parent/Guardian
+                      </h4>
+                      <p className={`text-base sm:text-lg font-hand leading-relaxed italic ${
+                        isDarkMode ? 'text-slate-100' : 'text-slate-800'
+                      }`}>
+                        "{student.idp.parentNote}"
+                      </p>
+                      {student.idp.parentNoteTimestamp && (
+                        <p className="text-[9px] font-mono font-bold text-slate-500 mr-auto">
+                          Received: {new Date(student.idp.parentNoteTimestamp).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      )}
+                    </div>
+                  </motion.div>
+                ) : (
+                  <div className={`p-6 rounded-[28px] border-2 bg-gradient-to-tr ${
+                    isDarkMode 
+                      ? 'from-indigo-950/30 to-slate-950/40 border-indigo-500/10 shadow-sm' 
+                      : 'from-blue-50/50 to-indigo-50/50 border-indigo-100 shadow-sm'
+                  } border-solid flex items-center gap-4 relative overflow-hidden`}>
+                    <div className="p-4 bg-indigo-500/10 rounded-2xl shrink-0 flex items-center justify-center text-indigo-500">
+                      <Star size={24} className="fill-current animate-pulse" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-widest text-indigo-500">AI Tutor Sparks</h4>
+                      <p className={`text-sm sm:text-base font-hand leading-relaxed italic ${isDarkMode ? 'text-slate-300' : 'text-slate-700'} mt-1`}>
+                        "Believe in your learning journey! Every question asked is a step closer to deep mastery." — Sparky 🪄
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          return (
+            <div
+              key={widgetId}
+              draggable={true}
+              onDragStart={(e) => {
+                setDraggedIndex(index);
+                e.dataTransfer.effectAllowed = 'move';
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragoverIndex(index);
+              }}
+              onDragEnd={() => {
+                setDraggedIndex(null);
+                setDragoverIndex(null);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (draggedIndex !== null && draggedIndex !== index) {
+                  const newOrder = [...currentOrder];
+                  const [removed] = newOrder.splice(draggedIndex, 1);
+                  newOrder.splice(index, 0, removed);
+                  handleSaveWidgetOrder(newOrder);
+                }
+                setDraggedIndex(null);
+                setDragoverIndex(null);
+              }}
+              className={`transition-all duration-300 ${
+                isDragged ? 'opacity-40 scale-95 shadow-inner' : ''
+              } ${
+                isDragover ? 'border-2 border-dashed border-indigo-500 scale-[1.01] rounded-[36px] bg-indigo-500/5' : ''
+              } relative group/widget`}
+            >
+              {/* Drag controller handle bar overlays */}
+              <div className="absolute top-4 right-4 z-20 flex items-center gap-1 opacity-0 group-hover/widget:opacity-100 transition-opacity bg-slate-100/90 dark:bg-slate-900/90 rounded-full px-3 py-1 shadow-sm border border-slate-200/50 dark:border-white/5">
+                <GripVertical size={12} className="text-slate-400 cursor-grab active:cursor-grabbing shrink-0 animate-pulse" />
+                <span className="text-[9px] font-bold text-slate-500 select-none uppercase tracking-widest hidden sm:inline mr-1">Reorder</span>
+                
+                {index > 0 && (
+                  <button
+                    onClick={() => moveWidget(index, 'up')}
+                    className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 border-0 cursor-pointer"
+                    title="Move Up"
+                  >
+                    <ArrowUp size={10} />
+                  </button>
+                )}
+                {index < currentOrder.length - 1 && (
+                  <button
+                    onClick={() => moveWidget(index, 'down')}
+                    className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 border-0 cursor-pointer"
+                    title="Move Down"
+                  >
+                    <ArrowDown size={10} />
+                  </button>
+                )}
+              </div>
+
+              {widgetContent}
+            </div>
+          );
+        })}
       </div>
       
       {/* SOLVER & GRADER MODAL DIALOG */}
