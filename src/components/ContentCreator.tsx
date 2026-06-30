@@ -1634,7 +1634,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
               </div>
               <div className="font-sans">
                 <h2 className="text-xl md:text-2xl lg:text-3xl font-hand text-white">Content Creator Studio</h2>
-                <p className="hidden lg:block text-[10px] text-slate-500 uppercase font-black tracking-[0.3em] mt-1 font-sans">CAPS Intelligence Matrix</p>
+                <p className="hidden lg:block text-xs text-slate-400 font-medium mt-1 font-sans">Select a specialized intelligence lab to begin orchestrating high-quality, CAPS-aligned educational material.</p>
               </div>
             </div>
             {/* Always visible Close Button on Mobile/Tablet right in row 1 */}
@@ -1689,25 +1689,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
       <div className="flex-1 flex flex-col overflow-y-auto lg:overflow-hidden relative">
         {activeTab === 'overview' ? (
           <div className="flex-1 overflow-y-auto p-6 md:p-10 lg:p-14 custom-scrollbar bg-[#0B1122]">
-            {/* Ambient display heading */}
-            <div className={`p-8 rounded-[40px] relative overflow-hidden border mb-10 ${
-              isDarkMode ? 'bg-indigo-950/20 border-indigo-500/25' : 'bg-[#fff5ee] border-[#ffebd6] shadow-sm'
-            }`}>
-              <div className="relative z-10 flex items-center gap-4">
-                <div className={`p-4 rounded-[24px] ${isDarkMode ? 'bg-indigo-500/10 text-brand-cyan' : 'bg-brand-yellow/20 text-slate-700'}`}>
-                  <FlaskConical size={32} />
-                </div>
-                <div>
-                  <h3 className={`text-2xl sm:text-3xl font-display font-black tracking-wide ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                    Intelligence Labs Portal
-                  </h3>
-                  <p className={`text-sm font-semibold ${isDarkMode ? 'text-indigo-200' : 'text-slate-500'} mt-1`}>
-                    Select a specialized intelligence lab to begin orchestrating high-quality CAPS-aligned educational material.
-                  </p>
-                </div>
-              </div>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-brand-cyan/10 rounded-full blur-3xl pointer-events-none" />
-            </div>
+
 
             {/* Grid of Generation Groups */}
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 animate-fade-in pb-12">

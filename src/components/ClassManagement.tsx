@@ -396,7 +396,7 @@ export default function ClassManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-[24px] shadow-sm border border-slate-200">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-blue-50/50 p-6 rounded-[24px] shadow-sm border border-slate-200">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
             <Users className="text-brand-cyan" />
@@ -436,21 +436,21 @@ export default function ClassManagement() {
                 placeholder="Search learners..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-cyan/50 focus:border-brand-cyan"
+                className="w-full bg-blue-50/50 border border-slate-200 rounded-xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-cyan/50 focus:border-brand-cyan"
               />
             </div>
             <div className="relative">
               <select
                 value={selectedGrade}
                 onChange={e => setSelectedGrade(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-cyan/50 focus:border-brand-cyan appearance-none"
+                className="w-full bg-blue-50/50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-cyan/50 focus:border-brand-cyan appearance-none"
               >
                 <option value="All">All Classes</option>
                 {classes.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
               </select>
             </div>
           </div>
-          <div className="bg-white rounded-[24px] shadow-sm border border-slate-200 overflow-hidden">
+          <div className="bg-blue-50/50 rounded-[24px] shadow-sm border border-slate-200 overflow-hidden">
             {/* Desktop Table View */}
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -518,14 +518,14 @@ export default function ClassManagement() {
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button 
                         onClick={() => handleEditLearner(student)} 
-                        className="p-2 text-slate-400 hover:text-brand-cyan hover:bg-cyan-50 rounded-xl transition-all shrink-0 border border-slate-100 bg-white cursor-pointer" 
+                        className="p-2 text-slate-400 hover:text-brand-cyan hover:bg-cyan-50 rounded-xl transition-all shrink-0 border border-slate-100 bg-blue-50/50 cursor-pointer" 
                         title="Edit Profile"
                       >
                         <Edit2 size={15} />
                       </button>
                       <button 
                         onClick={() => handleDeleteStudent(student.id, student.name)} 
-                        className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all shrink-0 border border-slate-100 bg-white cursor-pointer" 
+                        className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all shrink-0 border border-slate-100 bg-blue-50/50 cursor-pointer" 
                         title="Remove"
                       >
                         <Trash2 size={15} />
@@ -534,7 +534,7 @@ export default function ClassManagement() {
                   </div>
                   
                   <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                    <div className="flex items-center gap-1 text-[11px] text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-100">
+                    <div className="flex items-center gap-1 text-[11px] text-slate-600 bg-blue-50/50 px-2.5 py-1 rounded-lg border border-slate-100">
                       <GraduationCap size={13} className="text-brand-cyan" />
                       <span>Class: <strong className="font-bold text-slate-800">{student.grade}</strong></span>
                     </div>
@@ -568,7 +568,7 @@ export default function ClassManagement() {
                 <div 
                   key={cls.id} 
                   onClick={() => setSelectedClass(cls)}
-                  className="bg-white rounded-[24px] p-6 shadow-sm border border-slate-200 hover:border-brand-cyan/60 hover:shadow-md transition-all cursor-pointer group text-left"
+                  className="bg-blue-50/50 rounded-[24px] p-6 shadow-sm border border-slate-200 hover:border-brand-cyan/60 hover:shadow-md transition-all cursor-pointer group text-left"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div className="w-12 h-12 rounded-xl bg-brand-cyan/10 text-brand-cyan flex justify-center items-center group-hover:bg-brand-cyan group-hover:text-slate-900 transition-all">
@@ -608,7 +608,7 @@ export default function ClassManagement() {
       {activeTab === 'classes' && selectedClass && (
         <div className="space-y-6 animate-fadeInZoom text-left">
           {/* Header with Back button and actions */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-[24px] shadow-sm border border-slate-200">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-blue-50/50 p-6 rounded-[24px] shadow-sm border border-slate-200">
             <div>
               <button 
                 onClick={() => setSelectedClass(null)} 
@@ -646,7 +646,7 @@ export default function ClassManagement() {
           {/* Enrolled Learners List */}
           <div className="space-y-4">
             <h4 className="text-lg font-bold text-slate-800">Enrolled Learners</h4>
-            <div className="bg-white rounded-[24px] shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-blue-50/50 rounded-[24px] shadow-sm border border-slate-200 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -711,7 +711,7 @@ export default function ClassManagement() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {studyGroups.map((group) => (
-              <div key={group.id} className="bg-white rounded-[24px] p-6 shadow-sm border border-slate-200">
+              <div key={group.id} className="bg-[#f4faff] rounded-[24px] p-6 shadow-sm border border-slate-200">
                 <div className="flex justify-between items-start mb-4">
                   <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex justify-center items-center">
                     <BookOpen size={24} />
@@ -738,7 +738,7 @@ export default function ClassManagement() {
       {/* Modals */}
       {isAddingLearner && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-md">
+          <div className="bg-[#f4faff] rounded-3xl p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold">Add Learner</h3>
               <button type="button" onClick={() => {
@@ -772,7 +772,7 @@ export default function ClassManagement() {
                 <div><label className="block text-sm font-semibold mb-1">Name</label><input required className="w-full border rounded-xl p-3" value={learnerForm.name} onChange={e => setLearnerForm({...learnerForm, name: e.target.value})} /></div>
                 <div><label className="block text-sm font-semibold mb-1">Email</label><input type="email" required className="w-full border rounded-xl p-3" value={learnerForm.email} onChange={e => setLearnerForm({...learnerForm, email: e.target.value})} /></div>
                 <div><label className="block text-sm font-semibold mb-1">Class</label>
-                  <select required className="w-full border rounded-xl p-3 bg-white" value={learnerForm.grade} onChange={e => setLearnerForm({...learnerForm, grade: e.target.value})}>
+                  <select required className="w-full border rounded-xl p-3 bg-[#f4faff]" value={learnerForm.grade} onChange={e => setLearnerForm({...learnerForm, grade: e.target.value})}>
                     <option value="">Select Class</option>
                     {classes.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                   </select>
@@ -822,7 +822,7 @@ export default function ClassManagement() {
 
       {isAddingClass && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-md">
+          <div className="bg-[#f4faff] rounded-3xl p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold">Create Class</h3>
               <button type="button" onClick={() => setIsAddingClass(false)}><X className="text-slate-400" /></button>
@@ -838,7 +838,7 @@ export default function ClassManagement() {
 
       {isAddingGroup && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-md">
+          <div className="bg-[#f4faff] rounded-3xl p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold">Create Study Group</h3>
               <button type="button" onClick={() => setIsAddingGroup(false)}><X className="text-slate-400" /></button>
@@ -874,7 +874,7 @@ export default function ClassManagement() {
 
       {isEditingLearner && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-md">
+          <div className="bg-[#f4faff] rounded-3xl p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-3">
               <h3 className="text-xl font-bold text-slate-900">Edit Learner Profile</h3>
               <button type="button" onClick={() => setIsEditingLearner(false)}>
@@ -905,7 +905,7 @@ export default function ClassManagement() {
                 <label className="block text-sm font-semibold mb-1 text-slate-700">Class</label>
                 <select 
                   required 
-                  className="w-full border border-slate-200 rounded-xl p-3 bg-white text-slate-900 focus:outline-none focus:border-brand-cyan" 
+                  className="w-full border border-slate-200 rounded-xl p-3 bg-[#f4faff] text-slate-900 focus:outline-none focus:border-brand-cyan" 
                   value={editLearnerForm.grade} 
                   onChange={e => setEditLearnerForm({...editLearnerForm, grade: e.target.value})}
                 >
@@ -917,7 +917,7 @@ export default function ClassManagement() {
                 <label className="block text-sm font-semibold mb-1 text-slate-700">Status</label>
                 <select 
                   required 
-                  className="w-full border border-slate-200 rounded-xl p-3 bg-white text-slate-900 focus:outline-none focus:border-brand-cyan" 
+                  className="w-full border border-slate-200 rounded-xl p-3 bg-[#f4faff] text-slate-900 focus:outline-none focus:border-brand-cyan" 
                   value={editLearnerForm.status} 
                   onChange={e => setEditLearnerForm({...editLearnerForm, status: e.target.value as 'Active' | 'Inactive'})}
                 >
@@ -935,7 +935,7 @@ export default function ClassManagement() {
 
       {isEditingClass && selectedClass && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-md animate-fadeInZoom">
+          <div className="bg-[#f4faff] rounded-3xl p-6 w-full max-w-md animate-fadeInZoom">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold">Edit Class Details</h3>
               <button type="button" onClick={() => setIsEditingClass(false)}><X className="text-slate-400" /></button>

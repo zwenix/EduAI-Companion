@@ -1050,7 +1050,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         }
 
         case "generate-caps": {
-          const isLessonPlan = ['Lesson Plan', 'Weekly Lesson Plan', 'Unit Plan'].includes(input.contentType);
+          const isLessonPlan = ['Lesson Plan', 'Weekly Lesson Plan', 'Unit Plan', 'lesson-plan'].includes(input.contentType);
           const isStudyGuide = ['Study Guide / Learning Notes', 'Revision Pack', 'Daily Lesson Notes', 'Learning Activity'].includes(input.contentType);
 
           let contentTypeEng: 'lesson-plan' | 'worksheet' | 'study-guide' = 'worksheet';
