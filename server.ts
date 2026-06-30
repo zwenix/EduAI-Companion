@@ -146,6 +146,58 @@ VISUAL STYLING DOCTRINE (Follow these for all HTML output):
 Ultra-detailed digital illustration, professional educational graphic design, vibrant colors, perfect composition, sharp focus, 300 DPI print quality, award-winning children’s non-fiction book style, no text overlays (text will be added separately), no borders, no frames, no watermarks, no emojis, no cartoonish exaggeration, suitable for South African classroom display, museum-quality detail
 `;
 
+  const repairTruncatedJson = (jsonStr: string): string => {
+     let inString = false;
+     let escape = false;
+     const stack: string[] = [];
+     
+     for (let i = 0; i < jsonStr.length; i++) {
+       const char = jsonStr[i];
+       if (escape) {
+         escape = false;
+         continue;
+       }
+       if (char === '\\') {
+         escape = true;
+         continue;
+       }
+       if (char === '"') {
+         inString = !inString;
+         continue;
+       }
+       if (!inString) {
+         if (char === '{' || char === '[') {
+           stack.push(char);
+         } else if (char === '}') {
+           if (stack.length > 0 && stack[stack.length - 1] === '{') {
+             stack.pop();
+           }
+         } else if (char === ']') {
+           if (stack.length > 0 && stack[stack.length - 1] === '[') {
+             stack.pop();
+           }
+         }
+       }
+     }
+
+     let repaired = jsonStr;
+     if (inString) {
+       repaired += '"';
+     }
+     
+     while (stack.length > 0) {
+       const last = stack.pop();
+       if (last === '{') {
+         repaired += '}';
+       } else if (last === '[') {
+         repaired += ']';
+       }
+     }
+     
+     repaired = repaired.replace(/,\s*([}\]])/g, '$1');
+     return repaired;
+   };
+
    const safeJsonParse = (text) => {
     if (!text) return {};
     let processedText = text.trim();
@@ -179,20 +231,24 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       // First try normal JSON parse
       return JSON.parse(processedText);
     } catch (err) {
-      console.warn("safeJsonParse: Standard JSON parse failed, trying regex fallback...", err);
+      try {
+        const repaired = repairTruncatedJson(processedText);
+        return JSON.parse(repaired);
+      } catch (errRep) {
+        console.warn("safeJsonParse: Standard and repaired JSON parse failed, trying regex fallback...", errRep);
 
-      // Direct Javascript execution/extraction recovery if brackets are matched at all
-      if (processedText.includes('{') && processedText.includes('}')) {
-        try {
-          const potentialJson = processedText.substring(processedText.indexOf('{'), processedText.lastIndexOf('}') + 1);
-          const parsedObj = JSON.parse(potentialJson);
-          if (parsedObj) return parsedObj;
-        } catch (e2) {
+        // Direct Javascript execution/extraction recovery if brackets are matched at all
+        if (processedText.includes('{') && processedText.includes('}')) {
+          try {
+            const repaired = repairTruncatedJson(processedText);
+            const evaluated = new Function('return ' + repaired)();
+            if (typeof evaluated === 'object' && evaluated !== null) return evaluated;
+          } catch(e4) {}
           try {
             const potentialJson2 = processedText.substring(processedText.indexOf('{'), processedText.lastIndexOf('}') + 1);
             const evaluated = new Function('return ' + potentialJson2)();
             if (typeof evaluated === 'object' && evaluated !== null) return evaluated;
-          } catch(e4) {}
+          } catch(e5) {}
         }
       }
 

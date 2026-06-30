@@ -1420,11 +1420,11 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
            // Save to Firestore history
            const user = auth.currentUser;
            if (user) {
+             const videoId = "vid" + Date.now() + Math.floor(Math.random() * 1000);
              try {
-               const videoId = "vid_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
                await setDoc(doc(db, 'omnihuman_videos', videoId), {
                  prompt: vid_prompt,
-                 videoUrl: statusData.url,
+                 videoUrl: statusData.url || "",
                  model: vid_model,
                  seed: vid_seed,
                  fps: vid_fps,
@@ -1433,6 +1433,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                });
              } catch (fsErr) {
                console.error("Failed to save generated video to database:", fsErr);
+               handleFirestoreError(fsErr, OperationType.CREATE, 'omnihuman_videos/' + videoId);
              }
            }
 
