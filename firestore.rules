@@ -267,14 +267,10 @@ service cloud.firestore {
     }
 
     function isValidGeneratedVideo(data) {
-      return data.keys().size() >= 4 && data.keys().size() <= 8
-        && data.prompt is string && data.prompt.size() <= 2000
-        && data.videoUrl is string && data.videoUrl.size() <= 4096
+      return data.prompt is string && data.prompt.size() <= 10000
+        && data.videoUrl is string && data.videoUrl.size() <= 1048576
         && data.teacherId is string && data.teacherId == request.auth.uid
-        && data.createdAt is timestamp
-        && (!('model' in data) || data.model is string && data.model.size() <= 100)
-        && (!('seed' in data) || data.seed is number)
-        && (!('fps' in data) || data.fps is number);
+        && data.createdAt is timestamp;
     }
     match /omnihuman_videos/{videoId} {
       allow get: if isSignedIn() && isValidId(videoId) && existing().teacherId == request.auth.uid;

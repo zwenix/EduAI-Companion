@@ -539,7 +539,7 @@ export default function AutoGrading() {
         date: new Date().toLocaleDateString()
       };
 
-      const subIndex = updatedSubjects.findIndex((s: any) => s.name.toLowerCase() === currentSubjectName.toLowerCase());
+      const subIndex = updatedSubjects.findIndex((s: any) => (s.name || '').toLowerCase() === currentSubjectName.toLowerCase());
       if (subIndex > -1) {
         const sub = updatedSubjects[subIndex];
         const updatedAssessments = [...(sub.assessments || []), newAssessment];
@@ -668,11 +668,21 @@ export default function AutoGrading() {
       // 2. Dispatch real-time server notification back to teacher accounts
       try {
         const notifId = 'notif_' + Date.now().toString();
+        const baseMessage = `Auto-grading completed for ${reportLogPayload.fileName || 'submission'}. Achieved Score: ${reportLogPayload.totalScore}.`;
+        const actionMessage = detectedStuId === 'unassigned'
+          ? ` Report needs manual learner assignment.`
+          : ` Results assigned to ${reportLogPayload.studentName}.`;
+
         await setDoc(doc(db, 'notifications', notifId), {
           id: notifId,
           userId: auth.currentUser?.uid || 'guest_teacher',
           title: "Grading Task Completed 🎉",
-          message: `Auto-grading completed for ${reportLogPayload.studentName}! Achieved Score: ${reportLogPayload.totalScore}. Detailed breakdown copied to your Lab.`,
+          message: baseMessage + actionMessage,
+          reportData: {
+            extractedText: gradingResult.extractedText || '',
+            feedback: gradingResult.feedback || '',
+            marksPerQuestion: gradingResult.marksPerQuestion || []
+          },
           read: false,
           createdAt: serverTimestamp()
         });
@@ -682,7 +692,7 @@ export default function AutoGrading() {
 
       // 3. Dispatch gradebook changes back to matching student's active caps score sheet
       if (detectedStuId && detectedStuId !== 'unassigned') {
-        await saveAcademicRecord(detectedStuId, assTitle, gradingResult.totalScore, gradingResult.feedback);
+        await saveAcademicRecord(detectedStuId, assTitle, gradingResult.totalScore, gradingResult.feedback || '');
       }
 
       setTimeout(() => {
@@ -781,27 +791,38 @@ export default function AutoGrading() {
 
         // Dispatch alert notification
         const notifId = 'notif_' + Date.now().toString() + '_' + i;
+        const baseMessage = `Auto-grading completed for ${file.name}. Suggested Score: ${gradingResult.totalScore}.`;
+        const actionMessage = detectedStuId === 'unassigned' 
+          ? ` Report needs manual learner assignment.`
+          : ` Results assigned to ${dbStudents.find(s => s.id === detectedStuId)?.name || 'Learner'}.`;
+        
         await setDoc(doc(db, 'notifications', notifId), {
           id: notifId,
           userId: auth.currentUser?.uid || 'guest_teacher',
           title: "Grading Task Completed 🎉",
-          message: `[Bulk Run] Auto-grading completed for ${file.name}. Suggested Score: ${gradingResult.totalScore}.`,
+          message: baseMessage + actionMessage,
+          reportData: {
+            extractedText: gradingResult.extractedText || '',
+            feedback: gradingResult.feedback || '',
+            marksPerQuestion: gradingResult.marksPerQuestion || []
+          },
           read: false,
           createdAt: serverTimestamp()
         });
 
         // Record learner's mark
         if (detectedStuId && detectedStuId !== 'unassigned') {
-          await saveAcademicRecord(detectedStuId, assTitle, gradingResult.totalScore, gradingResult.feedback);
+          await saveAcademicRecord(detectedStuId, assTitle, gradingResult.totalScore, gradingResult.feedback || '');
         }
 
         setBulkStatus(prev => ({
           ...prev,
           [file.id]: {
+            ...prev[file.id],
             status: 'Graded',
             score: gradingResult.totalScore,
-            feedback: gradingResult.feedback,
-            extractedText: gradingResult.extractedText,
+            feedback: gradingResult.feedback || '',
+            extractedText: gradingResult.extractedText || '',
             studentId: detectedStuId,
             studentName: detectedStuId === 'unassigned' ? 'Learner Name not detected automatically' : (dbStudents.find(s => s.id === detectedStuId)?.name || 'Learner'),
             fileName: file.name
@@ -1241,13 +1262,17 @@ export default function AutoGrading() {
                             <select
                               value={fileStatus.studentId}
                               onChange={(e) => {
-                                setBulkStatus(prev => ({
-                                  ...prev,
-                                  [file.id]: {
-                                    ...prev[file.id],
-                                    studentId: e.target.value
-                                  }
-                                }));
+                                const val = e.target.value;
+                                setBulkStatus(prev => {
+                                  const current = prev[file.id] || { status: 'Draft', studentId: 'unassigned' };
+                                  return {
+                                    ...prev,
+                                    [file.id]: {
+                                      ...current,
+                                      studentId: val
+                                    }
+                                  };
+                                });
                               }}
                               className="bg-navy-dark border border-white/10 outline-none text-slate-300 text-[10px] font-bold px-2 py-1.5 rounded-lg cursor-pointer [&>option]:bg-slate-900"
                             >

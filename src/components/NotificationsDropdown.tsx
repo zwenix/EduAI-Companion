@@ -87,6 +87,12 @@ export default function NotificationsDropdown({ isDarkMode }: { isDarkMode: bool
                   <div className="flex-1">
                     <p className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{n.title}</p>
                     <p className={`text-xs mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{n.message}</p>
+                    {n.reportData && (
+                      <div className={`mt-2 p-2 rounded-lg text-[10px] ${isDarkMode ? 'bg-black/20 text-slate-400' : 'bg-slate-50 text-slate-600'} border ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
+                        <div className="font-bold mb-1">Feedback:</div>
+                        <div className="line-clamp-2">{n.reportData.feedback}</div>
+                      </div>
+                    )}
                     <p className="text-[10px] text-slate-400 mt-2 uppercase tracking-wide">
                       {n.createdAt ? new Date(n.createdAt.seconds * 1000).toLocaleString() : 'Just now'}
                     </p>

@@ -115,34 +115,39 @@ export const safeJsonParse = (text: string | null | undefined): any => {
   }
 
   // 3. Extract the clean JSON object if there is leading/trailing conversational text
-  if (!processedText.startsWith("{") && processedText.includes("{") && processedText.includes("}")) {
+  let extractedJson = processedText;
+  if (processedText.includes("{") && processedText.includes("}")) {
     const firstCurly = processedText.indexOf("{");
     const lastCurly = processedText.lastIndexOf("}");
-    processedText = processedText.substring(firstCurly, lastCurly + 1).trim();
+    extractedJson = processedText.substring(firstCurly, lastCurly + 1).trim();
   }
 
   try {
-    // First try normal JSON parse
-    return JSON.parse(processedText);
+    // First try normal JSON parse on extracted JSON
+    return JSON.parse(extractedJson);
   } catch (err) {
     try {
-      const repaired = repairTruncatedJson(processedText);
-      return JSON.parse(repaired);
-    } catch (errRep) {
-      console.warn("safeJsonParse: Standard and repaired JSON parse failed, trying regex fallback...", errRep);
+      // Try parsing the original text directly if extraction was somehow off
+      return JSON.parse(processedText);
+    } catch (errOrig) {
+      try {
+        const repaired = repairTruncatedJson(extractedJson);
+        return JSON.parse(repaired);
+      } catch (errRep) {
+        console.warn("safeJsonParse: Standard and repaired JSON parse failed, trying regex fallback...", errRep);
 
-      // Direct Javascript execution/extraction recovery if brackets are matched at all
-      if (processedText.includes('{') && processedText.includes('}')) {
-        try {
-          const repaired = repairTruncatedJson(processedText);
-          const evaluated = new Function('return ' + repaired)();
-          if (typeof evaluated === 'object' && evaluated !== null) return evaluated;
-        } catch(e4) {}
-        try {
-          const potentialJson2 = processedText.substring(processedText.indexOf('{'), processedText.lastIndexOf('}') + 1);
-          const evaluated = new Function('return ' + potentialJson2)();
-          if (typeof evaluated === 'object' && evaluated !== null) return evaluated;
-        } catch(e5) {}
+        // Direct Javascript execution/extraction recovery if brackets are matched at all
+        if (extractedJson.includes('{') && extractedJson.includes('}')) {
+          try {
+            const repaired = repairTruncatedJson(extractedJson);
+            const evaluated = new Function('return ' + repaired)();
+            if (typeof evaluated === 'object' && evaluated !== null) return evaluated;
+          } catch(e4) {}
+          try {
+            const evaluated = new Function('return ' + extractedJson)();
+            if (typeof evaluated === 'object' && evaluated !== null) return evaluated;
+          } catch(e5) {}
+        }
       }
     }
 

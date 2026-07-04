@@ -749,11 +749,26 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
   }
 
   async function runGradioGeneration(jobId: string, promptText: string) {
+    // Save current tokens
+    const origHfToken = process.env.HF_TOKEN;
+    const origHfApiKey = process.env.HUGGINGFACE_API_KEY;
+
     try {
       const { Client } = await import("@gradio/client");
       console.log(`[OmniHuman] Connecting to Hugging Face space multimodalart/self-forcing for prompt: "${promptText}"`);
       
-      const client = await Client.connect("multimodalart/self-forcing");
+      // Temporarily remove tokens from process.env so @gradio/client doesn't auto-read them
+      delete process.env.HF_TOKEN;
+      delete process.env.HUGGINGFACE_API_KEY;
+
+      let client;
+      try {
+        client = await Client.connect("multimodalart/self-forcing", { hf_token: "" } as any);
+      } finally {
+        // Restore them immediately after connecting
+        if (origHfToken !== undefined) process.env.HF_TOKEN = origHfToken;
+        if (origHfApiKey !== undefined) process.env.HUGGINGFACE_API_KEY = origHfApiKey;
+      }
       
       const predictionPromise = client.predict("/video_generation_handler_streaming", {
         prompt: promptText,
@@ -1047,9 +1062,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         }
       });
       const text = response.text || "";
-      const trimmed = text.trim();
-      const cleanJson = trimmed.startsWith("```") ? trimmed.replace(/^```json\s*/i, "").replace(/```$/, "").trim() : trimmed;
-      const data = JSON.parse(cleanJson);
+      const data = safeJsonParse(text);
       res.json(data);
     } catch (err: any) {
       console.warn("Gemini ILDP Generation failed, using local builder:", err.message);
