@@ -207,6 +207,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     processedText = processedText.replace(/<think>[\s\S]*$/gi, '');
     processedText = processedText.trim();
 
+    if (!processedText) return {};
+
     // 2. Extract content from markdown JSON block or generic markdown block anywhere in the text
     if (processedText.includes("```json")) {
       const match = processedText.match(/```json\s*([\s\S]*?)\s*```/i);
@@ -221,36 +223,41 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     }
 
     // 3. Extract the clean JSON object if there is leading/trailing conversational text
-    if (!processedText.startsWith("{") && processedText.includes("{") && processedText.includes("}")) {
+    let extractedJson = processedText;
+    if (processedText.includes("{") && processedText.includes("}")) {
       const firstCurly = processedText.indexOf("{");
       const lastCurly = processedText.lastIndexOf("}");
-      processedText = processedText.substring(firstCurly, lastCurly + 1).trim();
+      extractedJson = processedText.substring(firstCurly, lastCurly + 1).trim();
     }
 
     try {
-      // First try normal JSON parse
-      return JSON.parse(processedText);
+      // First try normal JSON parse on extracted JSON
+      return JSON.parse(extractedJson);
     } catch (err) {
       try {
-        const repaired = repairTruncatedJson(processedText);
-        return JSON.parse(repaired);
-      } catch (errRep) {
+        // Try parsing the original text directly if extraction was somehow off
+        return JSON.parse(processedText);
+      } catch (errOrig) {
+        try {
+          const repaired = repairTruncatedJson(extractedJson);
+          return JSON.parse(repaired);
+        } catch (errRep) {
         console.warn("safeJsonParse: Standard and repaired JSON parse failed, trying regex fallback...", errRep);
 
         // Direct Javascript execution/extraction recovery if brackets are matched at all
-        if (processedText.includes('{') && processedText.includes('}')) {
+        if (extractedJson.includes('{') && extractedJson.includes('}')) {
           try {
-            const repaired = repairTruncatedJson(processedText);
+            const repaired = repairTruncatedJson(extractedJson);
             const evaluated = new Function('return ' + repaired)();
             if (typeof evaluated === 'object' && evaluated !== null) return evaluated;
           } catch(e4) {}
           try {
-            const potentialJson2 = processedText.substring(processedText.indexOf('{'), processedText.lastIndexOf('}') + 1);
-            const evaluated = new Function('return ' + potentialJson2)();
+            const evaluated = new Function('return ' + extractedJson)();
             if (typeof evaluated === 'object' && evaluated !== null) return evaluated;
           } catch(e5) {}
         }
       }
+    }
 
       const closeOpenHtmlTags = (html: string): string => {
         const tagRegex = /<\/?([a-z1-6]+)(?:\s+[^>]*?)?>/gi;
@@ -358,7 +365,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         return fallbackObj;
       }
 
-      console.error("Failed to parse AI response as JSON:", processedText);
+      console.warn("Failed to parse AI response as JSON:", processedText);
       return {};
     }
   };
@@ -966,30 +973,47 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       return res.json({ url: fallbackUrl, isFallback: true });
     }
 
-    if (provider === "hf-flux-schnell" || provider === "hf-flux-2") {
-      const apiKey = process.env.HUGGINGFACE_API_KEY;
-      if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-        // Fallback to pollinations schnell to ensure it never fails for the user when API key is missing
-        const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 100000)}`;
-        return res.json({ url: fallbackUrl, isFallback: true });
-      }
-
+    if (provider === "perchance") {
       try {
-        const hf = new HfInference(apiKey);
-        const selectedModel = provider === "hf-flux-schnell" ? 'black-forest-labs/FLUX.1-schnell' : 'black-forest-labs/FLUX.1-dev';
-        const imageBlob = await hf.textToImage({
-          model: selectedModel,
-          inputs: prompt,
-          parameters: { negative_prompt: 'blurry' }
+        console.log("Attempting image generation with Perchance AI...");
+        const seed = Math.floor(Math.random() * 100000);
+        // Approach 1 direct API url (Fetch on backend to avoid CORS)
+        const perchanceUrl = `https://perchance.org/imageapi?prompt=${encodeURIComponent(prompt)}&width=1024&height=1024&seed=${seed}`;
+        
+        const response = await fetch(perchanceUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'image/png, image/jpeg',
+          },
         });
-        const arrayBuffer = await (imageBlob as any).arrayBuffer();
+        
+        if (!response.ok) {
+          throw new Error(`Perchance API error: ${response.status}`);
+        }
+        
+        const arrayBuffer = await response.arrayBuffer();
         const base64 = Buffer.from(arrayBuffer).toString('base64');
+        console.log("Image successfully generated with Perchance AI!");
         return res.json({ url: `data:image/jpeg;base64,${base64}` });
       } catch (error: any) {
-        console.warn(`HuggingFace ${provider} image warn:`, error.message);
-        // Fallback to pollinations flux to guarantee a successful render
-        const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 100000)}`;
+        console.warn("Perchance generation failed, falling back to Pollinations:", error.message);
+        // Fallback to pollinations to guarantee successful render
+        const seed = Math.floor(Math.random() * 100000);
+        const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&enhance=true&seed=${seed}`;
         return res.json({ url: fallbackUrl, isFallback: true });
+      }
+    }
+
+    if (provider === "pollinations") {
+      try {
+        console.log("Attempting image generation with Pollinations AI...");
+        const seed = Math.floor(Math.random() * 100000);
+        // Approach 2 Recommended direct URL return (super fast, CORS-friendly)
+        const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&enhance=true&seed=${seed}`;
+        return res.json({ url: pollinationsUrl });
+      } catch (error: any) {
+        console.warn("Pollinations generation failed:", error.message);
+        return res.status(500).json({ error: "Pollinations image generation failed" });
       }
     }
     

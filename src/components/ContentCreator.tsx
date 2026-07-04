@@ -16,6 +16,7 @@ import { useAi } from '../contexts/AiContext';
 import AiImage from './AiImage';
 import EduVideoPlayer from './EduVideoPlayer';
 import VideoGenerationHistory from './VideoGenerationHistory';
+import { PromptQualityValidator } from '../lib/prompt-validator';
 // PrintHeader removed as per user request
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
@@ -264,8 +265,35 @@ const Switch = ({ checked, onCheckedChange, id, isDarkMode }: any) => (
 
 // ─── Preview Component ────────────────────────────────────────────────────────
 
-function ContentPreview({ html, label, isDarkMode, imagePrompt }: { html: string | object; label: string, isDarkMode?: boolean, imagePrompt?: string | null }) {
+function ContentPreview({ 
+  html, 
+  label, 
+  isDarkMode, 
+  imagePrompt,
+  grade,
+  subject,
+  contentType
+}: { 
+  html: string | object; 
+  label: string; 
+  isDarkMode?: boolean; 
+  imagePrompt?: string | null;
+  grade?: string;
+  subject?: string;
+  contentType?: string;
+}) {
+  const [showQualityDetails, setShowQualityDetails] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  const validationResult = useMemo(() => {
+    if (!html) return null;
+    const checkHtml = typeof html === 'object' ? JSON.stringify(html) : String(html);
+    return PromptQualityValidator.validateOutput(checkHtml, {
+      grade: grade || '4',
+      subject: subject || 'Mathematics',
+      contentType: contentType || 'worksheet'
+    });
+  }, [html, grade, subject, contentType]);
 
   if (!html) return null;
   
@@ -455,6 +483,116 @@ function ContentPreview({ html, label, isDarkMode, imagePrompt }: { html: string
           {label}
         </h3>
       </div>
+
+      {validationResult && (
+        <div className={`border rounded-[24px] p-4 ${isDarkMode ? 'bg-slate-900 border-white/5' : 'bg-slate-50 border-slate-200'} mb-4`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
+                validationResult.score >= 85 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                validationResult.score >= 65 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+              }`}>
+                {validationResult.score}
+              </div>
+              <div>
+                <h4 className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-slate-950'}`}>
+                  EduAI QA Quality Score: {validationResult.score >= 80 ? 'Excellent' : 'Action Required'}
+                </h4>
+                <p className={`text-[10px] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Automated CAPS design rules, hierarchy, contrast & print-readiness validation.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowQualityDetails(!showQualityDetails)}
+              className={`text-[10px] self-start sm:self-auto font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border transition ${
+                isDarkMode 
+                  ? 'border-white/10 hover:bg-white/5 text-slate-300' 
+                  : 'border-slate-200 hover:bg-slate-100 text-slate-600'
+              }`}
+            >
+              {showQualityDetails ? 'Hide QA Details' : 'View QA Report'}
+            </button>
+          </div>
+
+          <AnimatePresence>
+            {showQualityDetails && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-4 pt-4 border-t border-dashed border-slate-200 dark:border-white/5 space-y-4 overflow-hidden"
+              >
+                {/* Metrics Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+                  {Object.entries(validationResult.metrics).map(([key, value]) => (
+                    <div key={key} className={`p-2 rounded-xl border text-center ${
+                      value 
+                        ? (isDarkMode ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-400' : 'bg-emerald-50 border-emerald-100 text-emerald-600')
+                        : (isDarkMode ? 'bg-slate-800/50 border-white/5 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500')
+                    }`}>
+                      <p className="text-[9px] font-black uppercase tracking-wider mb-1">
+                        {key.replace(/([A-Z])/g, ' $1')}
+                      </p>
+                      <p className="text-xs font-bold">
+                        {value ? 'PASSED ✅' : 'OPTIONAL 💡'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Issues, Warnings & Suggestions */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  {/* Warnings and Issues */}
+                  <div className="space-y-2">
+                    <h5 className="font-bold text-[10px] uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
+                      <AlertCircle size={12} /> Design & Layout Diagnostics
+                    </h5>
+                    {validationResult.issues.length === 0 && validationResult.warnings.length === 0 ? (
+                      <p className="text-slate-500 dark:text-slate-400 italic text-[11px]">No layout, spacing, or CAPS issues. Highly professional document structure!</p>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {validationResult.issues.map((iss, i) => (
+                          <li key={i} className="flex items-start gap-1.5 text-rose-400">
+                            <span className="mt-0.5">•</span>
+                            <span>{iss}</span>
+                          </li>
+                        ))}
+                        {validationResult.warnings.map((warn, i) => (
+                          <li key={i} className="flex items-start gap-1.5 text-amber-400 text-[11px]">
+                            <span className="mt-0.5">•</span>
+                            <span>{warn}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Suggestions */}
+                  <div className="space-y-2">
+                    <h5 className="font-bold text-[10px] uppercase tracking-wider text-brand-cyan flex items-center gap-1.5">
+                      <Sparkles size={12} className="text-brand-cyan" /> Pedagogical Suggestions
+                    </h5>
+                    {validationResult.suggestions.length === 0 ? (
+                      <p className="text-slate-500 dark:text-slate-400 italic text-[11px]">Complies with 100% of South African CAPS aesthetic best practices.</p>
+                    ) : (
+                      <ul className="space-y-1.5 list-disc pl-3 text-slate-400">
+                        {validationResult.suggestions.map((sug, i) => (
+                          <li key={i} className="text-[11px] text-slate-300">
+                            {sug}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
 
       <div className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} border rounded-[32px] overflow-hidden p-4 lg:p-8 shadow-2xl relative min-h-[400px]`}>
         {processedHtml.includes('poster-container') || processedHtml.includes('content-card') ? (
@@ -2858,20 +2996,37 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                           label="Integrated Material" 
                           isDarkMode={isDarkMode} 
                           imagePrompt={t_generateImage ? (teachingResult.imagePrompt || teachingResult.userImagePrompt) : undefined}
+                          grade={activeTab === 'grade1' ? f_grade : t_grade}
+                          subject={activeTab === 'grade1' ? f_language : (t_subject === 'Other' ? t_customSubject : t_subject)}
+                          contentType={activeTab === 'grade1' ? 'worksheet' : t_type}
                         />
                       </div>
                       
                       {teachingResult.memo && (
                         <div id="memo-section">
                            <hr className="my-10 border-slate-200 dark:border-white/10" />
-                           <ContentPreview html={teachingResult.memo} label="Expert Answer Key" isDarkMode={isDarkMode} />
+                           <ContentPreview 
+                             html={teachingResult.memo} 
+                             label="Expert Answer Key" 
+                             isDarkMode={isDarkMode} 
+                             grade={activeTab === 'grade1' ? f_grade : t_grade}
+                             subject={activeTab === 'grade1' ? f_language : (t_subject === 'Other' ? t_customSubject : t_subject)}
+                             contentType="memo"
+                           />
                         </div>
                       )}
                       
                       {teachingResult.rubric && (
                         <div id="rubric-section">
                            <hr className="my-10 border-slate-200 dark:border-white/10" />
-                           <ContentPreview html={teachingResult.rubric} label="Marks Allocation Matrix" isDarkMode={isDarkMode} />
+                           <ContentPreview 
+                             html={teachingResult.rubric} 
+                             label="Marks Allocation Matrix" 
+                             isDarkMode={isDarkMode} 
+                             grade={activeTab === 'grade1' ? f_grade : t_grade}
+                             subject={activeTab === 'grade1' ? f_language : (t_subject === 'Other' ? t_customSubject : t_subject)}
+                             contentType="rubric"
+                           />
                         </div>
                       )}
                     </div>
@@ -2907,6 +3062,9 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                           label="Digital Visual Asset" 
                           isDarkMode={isDarkMode} 
                           imagePrompt={v_generateImage ? (visualResult.userImagePrompt || visualResult.imagePrompt) : undefined}
+                          grade={v_grade}
+                          subject={v_subject === 'Other' ? v_customSubject : v_subject}
+                          contentType={v_type}
                         />
                       )}
                     </div>
@@ -2961,6 +3119,9 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                         label="Official Correspondence" 
                         isDarkMode={isDarkMode} 
                         imagePrompt={a_generateImage ? (adminResult.userImagePrompt || adminResult.imagePrompt) : undefined}
+                        grade={a_grade || 'N/A'}
+                        subject={a_subject === 'Other' ? a_customSubject : a_subject}
+                        contentType={a_type}
                       />
                     </div>
                   )}

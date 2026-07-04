@@ -562,8 +562,8 @@ export default function Settings({
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
                       <option value="gemini-imagen">Google Imagen 3 (Default)</option>
-                      <option value="hf-flux-schnell">FLUX Schnell (Hugging Face)</option>
-                      <option value="hf-flux-2">FLUX 2 (Hugging Face)</option>
+                      <option value="perchance">Perchance AI (Secondary)</option>
+                      <option value="pollinations">Pollinations AI (Tertiary)</option>
                     </select>
                   </div>
 

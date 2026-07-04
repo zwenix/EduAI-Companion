@@ -101,6 +101,8 @@ export const safeJsonParse = (text: string | null | undefined): any => {
   processedText = processedText.replace(/<think>[\s\S]*$/gi, '');
   processedText = processedText.trim();
 
+  if (!processedText) return {};
+
   // 2. Extract content from markdown JSON block or generic markdown block anywhere in the text
   if (processedText.includes("```json")) {
     const match = processedText.match(/```json\s*([\s\S]*?)\s*```/i);
@@ -257,7 +259,7 @@ export const safeJsonParse = (text: string | null | undefined): any => {
       return fallbackObj;
     }
 
-    console.error("Failed to parse AI response as JSON:", processedText);
+    console.warn("Failed to parse AI response as JSON:", processedText);
     return {};
   }
 };

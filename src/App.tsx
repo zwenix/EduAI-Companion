@@ -2025,8 +2025,8 @@ export default function App() {
                       }`}
                     >
                       <option value="gemini-imagen">Google Imagen 3 (Default)</option>
-                      <option value="hf-flux-schnell">FLUX Schnell (Hugging Face)</option>
-                      <option value="hf-flux-2">FLUX 2 (Hugging Face)</option>
+                      <option value="perchance">Perchance AI (Secondary)</option>
+                      <option value="pollinations">Pollinations AI (Tertiary)</option>
                     </select>
                   </div>
 
