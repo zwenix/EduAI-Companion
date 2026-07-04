@@ -44,6 +44,40 @@ const VOICES = [
 
 const STORAGE_KEY = 'eduai_chat_history_page';
 
+const SUGGESTIONS = [
+  { text: "Explain Gravity", color: "border-orange-500/50 shadow-[0_0_8px_rgba(249,115,22,0.2)] text-orange-200 bg-orange-950/30 hover:bg-orange-950/50" },
+  { text: "Math Help", color: "border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.2)] text-emerald-200 bg-emerald-950/30 hover:bg-emerald-950/50" },
+  { text: "Science Facts", color: "border-amber-500/50 shadow-[0_0_8px_rgba(245,158,11,0.2)] text-amber-200 bg-amber-950/30 hover:bg-amber-950/50" },
+  { text: "Tell a Joke", color: "border-teal-500/50 shadow-[0_0_8px_rgba(20,184,166,0.2)] text-teal-200 bg-teal-950/30 hover:bg-teal-950/50" },
+];
+
+const RobbieFace = ({ className = "w-16 h-16" }: { className?: string }) => (
+  <svg className={`${className} filter drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]`} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    {/* Ears/Antenna elements */}
+    <rect x="22" y="38" width="8" height="24" rx="4" fill="#22d3ee" opacity="0.8" />
+    <rect x="70" y="38" width="8" height="24" rx="4" fill="#22d3ee" opacity="0.8" />
+    <circle cx="50" cy="18" r="4" fill="#22d3ee" />
+    <line x1="50" y1="18" x2="50" y2="28" stroke="#22d3ee" strokeWidth="3" />
+    
+    {/* Robot Head Body */}
+    <rect x="26" y="26" width="48" height="48" rx="16" fill="#1E293B" stroke="#22d3ee" strokeWidth="3.5" />
+    
+    {/* Inner Screen Face */}
+    <rect x="32" y="32" width="36" height="36" rx="10" fill="#0F172A" stroke="#1e293b" strokeWidth="2" />
+    
+    {/* Glowing Eyes */}
+    <path d="M 38 48 Q 42 44 46 48" stroke="#22d3ee" strokeWidth="3.5" strokeLinecap="round" />
+    <path d="M 54 48 Q 58 44 62 48" stroke="#22d3ee" strokeWidth="3.5" strokeLinecap="round" />
+    
+    {/* Glowing Smile */}
+    <path d="M 44 58 Q 50 63 56 58" stroke="#22d3ee" strokeWidth="3" strokeLinecap="round" />
+    
+    {/* Neck/Shoulder bases */}
+    <rect x="42" y="74" width="16" height="8" rx="2" fill="#22d3ee" opacity="0.9" />
+    <path d="M 34 82 L 66 82" stroke="#22d3ee" strokeWidth="4.5" strokeLinecap="round" />
+  </svg>
+);
+
 export default function AITutorPage() {
   const { provider, ttsProvider } = useAi();
   const [input, setInput] = useState('');
@@ -89,6 +123,7 @@ export default function AITutorPage() {
   }, []);
 
   const [isRecording, setIsRecording] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [visuals, setVisuals] = useState<Record<number, boolean>>({});
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -444,7 +479,7 @@ export default function AITutorPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] lg:h-[calc(100vh-140px)] w-full max-w-5xl mx-auto rounded-[2rem] lg:rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl bg-[#0F172A] relative">
+    <div className="flex flex-col h-[calc(100vh-80px)] lg:h-[calc(100vh-140px)] w-full max-w-5xl mx-auto rounded-[2rem] lg:rounded-[3rem] overflow-hidden border border-white/15 shadow-[0_0_50px_rgba(34,211,238,0.12)] bg-gradient-to-b from-[#070b19] via-[#0d1330] to-[#120721] text-white relative">
       {isTimeLimitReached() && (
         <div className="absolute inset-0 bg-[#0F172A]/95 backdrop-blur-md z-55 flex flex-col items-center justify-center text-center p-8 space-y-6">
           <div className="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-455">
@@ -461,105 +496,174 @@ export default function AITutorPage() {
           </div>
         </div>
       )}
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 lg:p-6 bg-[#0B1122]/90 border-b border-white/15 shrink-0 backdrop-blur-md">
-        <div className="flex items-center justify-between sm:block">
-          <h1 className="text-2xl lg:text-3xl font-hand tracking-wide flex items-center text-white">
-            <div className="mr-2 lg:mr-4"><Logo className="w-6 h-6 lg:w-8 lg:h-8" /></div>
+      {/* Header matching Image 1 layout & design */}
+      <div className="flex items-center justify-between p-4 lg:p-5 bg-gradient-to-r from-[#070b19] to-[#0c1228] border-b border-white/15 shrink-0 backdrop-blur-md relative z-30">
+        {/* Back Button capsule */}
+        <button 
+          onClick={() => {}} 
+          className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 transition-all cursor-pointer active:scale-95"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        {/* Centered Title */}
+        <div className="text-center">
+          <h1 className="text-lg lg:text-xl font-black tracking-tight text-white flex items-center justify-center gap-2">
             AI Tutor
           </h1>
-          <p className="hidden sm:flex text-xs text-slate-400 font-bold uppercase tracking-widest mt-2 items-center flex-wrap gap-2">
-            <HistoryIcon className="h-3 w-3 mr-1 text-brand-cyan" /> Chats saved locally
-            <span className="ml-2 px-2.5 py-0.5 bg-brand-cyan/20 text-brand-cyan rounded-full text-[9px] border border-brand-cyan/10">
-              🤖 Adaptive: {studentGrade} • {studentStyle} Mode
-            </span>
+          <p className="text-[10px] text-brand-cyan uppercase tracking-widest font-extrabold">
+            Robbie Active
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 lg:gap-4 mt-2 sm:mt-0 justify-end">
-          <div className="flex flex-col flex-1 sm:flex-none">
-            <label className="text-[9px] lg:text-[10px] uppercase font-black text-brand-cyan/80 mb-0.5 lg:mb-1">Target Grade</label>
-            <select 
-              value={studentGrade} 
-              onChange={e => setStudentGrade(e.target.value)}
-              className="bg-white/10 hover:bg-white/15 transition-all border border-white/10 outline-none text-white text-xs lg:text-sm font-medium py-1.5 lg:py-2 px-3 lg:px-4 rounded-lg lg:rounded-xl w-full sm:w-auto [&>option]:bg-[#0B1122] [&>option]:text-white mb-2 cursor-pointer"
-            >
-              <option value="Grades R-12">Grades R-12 (Adaptive)</option>
-              <option value="Grade R">Grade R</option>
-              <option value="Grade 1">Grade 1</option>
-              <option value="Grade 2">Grade 2</option>
-              <option value="Grade 3">Grade 3</option>
-              <option value="Grade 4">Grade 4</option>
-              <option value="Grade 5">Grade 5</option>
-              <option value="Grade 6">Grade 6</option>
-              <option value="Grade 7">Grade 7</option>
-              <option value="Grade 8">Grade 8</option>
-              <option value="Grade 9">Grade 9</option>
-              <option value="Grade 10">Grade 10</option>
-              <option value="Grade 11">Grade 11</option>
-              <option value="Grade 12">Grade 12</option>
-            </select>
-          </div>
-          <div className="flex flex-col flex-1 sm:flex-none">
-            <label className="text-[9px] lg:text-[10px] uppercase font-black text-brand-cyan/80 mb-0.5 lg:mb-1">Priority Topic</label>
-            <select 
-              value={['General', 'Mathematics', 'Physical Sciences', 'Life Sciences', 'History', 'Geography', 'Languages'].includes(priorityTopic) ? priorityTopic : 'Other'} 
-              onChange={e => {
-                if (e.target.value === 'Other') setPriorityTopic('');
-                else setPriorityTopic(e.target.value);
-              }}
-              className="bg-white/10 hover:bg-white/15 transition-all border border-white/10 outline-none text-white text-xs lg:text-sm font-medium py-1.5 lg:py-2 px-3 lg:px-4 rounded-lg lg:rounded-xl w-full sm:w-auto [&>option]:bg-[#0B1122] [&>option]:text-white mb-2 cursor-pointer"
-            >
-              <option value="General">General</option>
-              <option value="Mathematics">Mathematics</option>
-              <option value="Physical Sciences">Physical Sciences</option>
-              <option value="Life Sciences">Life Sciences</option>
-              <option value="History">History</option>
-              <option value="Geography">Geography</option>
-              <option value="Languages">Languages</option>
-              <option value="Other">Other...</option>
-            </select>
-            {!['General', 'Mathematics', 'Physical Sciences', 'Life Sciences', 'History', 'Geography', 'Languages'].includes(priorityTopic) && priorityTopic !== 'General' && (
-              <input 
-                type="text" 
-                placeholder="Type topic..." 
-                value={priorityTopic}
-                onChange={e => setPriorityTopic(e.target.value)}
-                className="bg-white/10 border border-white/15 outline-none text-white text-xs lg:text-sm font-medium py-1.5 lg:py-2 px-3 lg:px-4 rounded-lg lg:rounded-xl w-full sm:w-auto placeholder:text-slate-400"
-                autoFocus
-              />
-            )}
-          </div>
-          <div className="flex flex-col flex-1 sm:flex-none">
-            <label className="text-[9px] lg:text-[10px] uppercase font-black text-brand-cyan/80 mb-0.5 lg:mb-1">Language</label>
-            <select 
-              value={language} 
-              onChange={e => setLanguage(e.target.value)}
-              className="bg-white/10 hover:bg-white/15 transition-all border border-white/10 outline-none text-white text-xs lg:text-sm font-medium py-1.5 lg:py-2 px-3 lg:px-4 rounded-lg lg:rounded-xl w-full sm:w-auto [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer"
-            >
-              {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-            </select>
-          </div>
-          <div className="flex flex-col flex-1 sm:flex-none">
-            <label className="text-[9px] lg:text-[10px] uppercase font-black text-brand-cyan/80 mb-0.5 lg:mb-1">Voice</label>
-            <select 
-              value={voice} 
-              onChange={e => setVoice(e.target.value)}
-              className="bg-white/10 hover:bg-white/15 transition-all border border-white/10 outline-none text-white text-xs lg:text-sm font-medium py-1.5 lg:py-2 px-3 lg:px-4 rounded-lg lg:rounded-xl w-full sm:w-auto [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer"
-            >
-              {allVoices.map((v, index) => <option key={`${v.value}-${index}`} value={v.value}>{v.label}</option>)}
-            </select>
-          </div>
-        </div>
+
+        {/* Settings Gear Button */}
+        <button 
+          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+          title="Tutor Customization"
+          className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
+            isSettingsOpen 
+              ? 'bg-brand-cyan/25 text-brand-cyan border-brand-cyan/40 shadow-[0_0_12px_rgba(34,211,238,0.3)]' 
+              : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'
+          }`}
+        >
+          <svg className={`w-5 h-5 ${isSettingsOpen ? 'rotate-90' : 'rotate-0'} transition-transform duration-300`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </button>
       </div>
 
-      {/* Chat Window */}
-      <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-4 lg:space-y-6 bg-[#0d1527]/50">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-slate-400 px-6">
-            <div className="bg-brand-cyan/15 p-4 rounded-3xl mb-4 border border-brand-cyan/20">
-               <GraduationCap size={44} className="text-brand-cyan" />
+      {/* Collapsible Settings Panel (Preserves Grade, Topic, Language, Voice) */}
+      <AnimatePresence>
+        {isSettingsOpen && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="bg-[#090e1d]/95 border-b border-white/10 p-5 shrink-0 overflow-hidden backdrop-blur-xl relative z-20 shadow-xl"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="flex flex-col">
+                <label className="text-[10px] uppercase font-black text-brand-cyan mb-1.5 tracking-wider">Target Grade</label>
+                <select 
+                  value={studentGrade} 
+                  onChange={e => setStudentGrade(e.target.value)}
+                  className="bg-white/5 border border-white/10 outline-none text-white text-xs lg:text-sm font-medium py-2 px-3 rounded-xl [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 hover:border-white/15 transition-all"
+                >
+                  <option value="Grades R-12">Grades R-12 (Adaptive)</option>
+                  <option value="Grade R">Grade R</option>
+                  <option value="Grade 1">Grade 1</option>
+                  <option value="Grade 2">Grade 2</option>
+                  <option value="Grade 3">Grade 3</option>
+                  <option value="Grade 4">Grade 4</option>
+                  <option value="Grade 5">Grade 5</option>
+                  <option value="Grade 6">Grade 6</option>
+                  <option value="Grade 7">Grade 7</option>
+                  <option value="Grade 8">Grade 8</option>
+                  <option value="Grade 9">Grade 9</option>
+                  <option value="Grade 10">Grade 10</option>
+                  <option value="Grade 11">Grade 11</option>
+                  <option value="Grade 12">Grade 12</option>
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <label className="text-[10px] uppercase font-black text-brand-cyan mb-1.5 tracking-wider">Priority Topic</label>
+                <select 
+                  value={['General', 'Mathematics', 'Physical Sciences', 'Life Sciences', 'History', 'Geography', 'Languages'].includes(priorityTopic) ? priorityTopic : 'Other'} 
+                  onChange={e => {
+                    if (e.target.value === 'Other') setPriorityTopic('');
+                    else setPriorityTopic(e.target.value);
+                  }}
+                  className="bg-white/5 border border-white/10 outline-none text-white text-xs lg:text-sm font-medium py-2 px-3 rounded-xl [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 hover:border-white/15 transition-all"
+                >
+                  <option value="General">General</option>
+                  <option value="Mathematics">Mathematics</option>
+                  <option value="Physical Sciences">Physical Sciences</option>
+                  <option value="Life Sciences">Life Sciences</option>
+                  <option value="History">History</option>
+                  <option value="Geography">Geography</option>
+                  <option value="Languages">Languages</option>
+                  <option value="Other">Other...</option>
+                </select>
+                {!['General', 'Mathematics', 'Physical Sciences', 'Life Sciences', 'History', 'Geography', 'Languages'].includes(priorityTopic) && priorityTopic !== 'General' && (
+                  <input 
+                    type="text" 
+                    placeholder="Type topic..." 
+                    value={priorityTopic}
+                    onChange={e => setPriorityTopic(e.target.value)}
+                    className="bg-white/10 border border-white/15 outline-none text-white text-xs font-medium py-2 px-3 mt-2 rounded-xl placeholder:text-slate-400"
+                    autoFocus
+                  />
+                )}
+              </div>
+              <div className="flex flex-col">
+                <label className="text-[10px] uppercase font-black text-brand-cyan mb-1.5 tracking-wider">Language</label>
+                <select 
+                  value={language} 
+                  onChange={e => setLanguage(e.target.value)}
+                  className="bg-white/5 border border-white/10 outline-none text-white text-xs lg:text-sm font-medium py-2 px-3 rounded-xl [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 hover:border-white/15 transition-all"
+                >
+                  {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <label className="text-[10px] uppercase font-black text-brand-cyan mb-1.5 tracking-wider">Voice</label>
+                <select 
+                  value={voice} 
+                  onChange={e => setVoice(e.target.value)}
+                  className="bg-white/5 border border-white/10 outline-none text-white text-xs lg:text-sm font-medium py-2 px-3 rounded-xl [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 hover:border-white/15 transition-all"
+                >
+                  {allVoices.map((v, index) => <option key={`${v.value}-${index}`} value={v.value}>{v.label}</option>)}
+                </select>
+              </div>
             </div>
-            <p className="text-center font-semibold font-hand text-xl lg:text-3xl text-slate-200">Ask me anything about your school subjects, or upload a picture to learn about it! 🚀</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Chat Window */}
+      <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-4 lg:space-y-6 bg-[#0a0f21]/60">
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-slate-400 px-6 relative overflow-hidden">
+            {/* Ambient Circuit Board Backing SVG */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] pointer-events-none opacity-20">
+              <svg className="w-full h-full text-cyan-500" viewBox="0 0 500 500" fill="none">
+                {/* Circuit lines */}
+                <path d="M 250 250 L 250 50 L 100 50" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3,3" />
+                <path d="M 250 250 L 100 250" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M 250 250 L 400 250" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M 250 250 L 250 450 L 400 450" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3,3" />
+                <path d="M 250 250 L 120 120 L 50 120" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M 250 250 L 380 380 L 450 380" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M 250 250 L 380 120 L 450 120" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M 250 250 L 120 380 L 50 380" stroke="currentColor" strokeWidth="1.5" />
+                {/* Nodes */}
+                <circle cx="100" cy="50" r="4" fill="currentColor" />
+                <circle cx="100" cy="250" r="4" fill="currentColor" />
+                <circle cx="400" cy="250" r="4" fill="currentColor" />
+                <circle cx="400" cy="450" r="4" fill="currentColor" />
+                <circle cx="50" cy="120" r="4" fill="currentColor" />
+                <circle cx="450" cy="380" r="4" fill="currentColor" />
+                <circle cx="450" cy="120" r="4" fill="currentColor" />
+                <circle cx="50" cy="380" r="4" fill="currentColor" />
+              </svg>
+            </div>
+
+            <div className="relative z-10 flex flex-col items-center">
+              {/* Center-staged Glowing Robbie Avatar */}
+              <div className="w-24 h-24 rounded-full bg-cyan-950/40 border-2 border-cyan-400 p-1 shadow-[0_0_30px_rgba(34,211,238,0.5)] flex items-center justify-center mb-5 animate-bounce" style={{ animationDuration: '4s' }}>
+                <RobbieFace className="w-20 h-20" />
+              </div>
+              <h2 className="text-2xl lg:text-3xl font-black text-white text-center mb-2">
+                Robbie, your AI Tutor
+              </h2>
+              <p className="text-center text-sm lg:text-base text-slate-300 max-w-md font-sans leading-relaxed mb-6">
+                Ask me anything about your school subjects, or upload a picture of your homework to solve it together! 🚀
+              </p>
+            </div>
           </div>
         ) : (
           messages.map((msg, i) => (
@@ -567,19 +671,19 @@ export default function AITutorPage() {
               {msg.role === 'model' && (
                 <motion.div 
                   whileHover={{ scale: 1.1, rotate: 5 }}
-                  className="w-8 h-8 lg:w-12 lg:h-12 flex flex-col items-center justify-center shrink-0"
+                  className="w-10 h-10 flex flex-col items-center justify-center shrink-0 shadow-[0_0_12px_rgba(34,211,238,0.4)] border border-[#22d3ee]/50 rounded-full overflow-hidden bg-[#1E293B] mb-1"
                 >
-                  <Logo className="w-full h-full object-contain drop-shadow-md p-1 bg-[#1E293B] rounded-2xl shadow-lg border-2 border-brand-cyan/20" />
+                  <RobbieFace className="w-8 h-8" />
                 </motion.div>
               )}
               
               <motion.div 
-                initial={{ scale: 0.9, opacity: 0, y: 10 }}
+                initial={{ scale: 0.95, opacity: 0, y: 10 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
-                className={`p-4 lg:p-6 max-w-[85%] lg:max-w-[80%] shadow-2xl ${
+                className={`p-4.5 lg:p-5 max-w-[82%] lg:max-w-[75%] shadow-2xl ${
                 msg.role === 'user' 
-                  ? 'bg-gradient-to-r from-brand-cyan to-[#00a2cc] text-slate-950 rounded-2xl lg:rounded-3xl rounded-br-none font-bold' 
-                  : 'bg-[#1E293B] border border-white/10 rounded-2xl lg:rounded-3xl rounded-bl-none text-slate-100'
+                  ? 'bg-[#d946ef]/10 border-2 border-[#d946ef]/60 shadow-[0_0_15px_rgba(217,70,239,0.25)] text-white rounded-[24px] rounded-br-[4px] font-sans font-medium' 
+                  : 'bg-[#22d3ee]/10 border-2 border-[#22d3ee]/60 shadow-[0_0_15px_rgba(34,211,238,0.25)] text-white rounded-[24px] rounded-bl-[4px] font-sans'
               }`}>
                 {msg.role === 'model' ? (
                   <div className="flex flex-col gap-4">
@@ -603,9 +707,9 @@ export default function AITutorPage() {
               </motion.div>
               
               {msg.role === 'model' && (
-                <div className="flex flex-col gap-2 shrink-0">
+                <div className="flex flex-col gap-2 shrink-0 mb-1">
                   <button
-                    className={`w-8 h-8 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl flex items-center justify-center transition-colors border ${
+                    className={`w-8 h-8 lg:w-9 lg:h-9 rounded-xl flex items-center justify-center transition-colors border ${
                       isAudioPlaying === i && !isAudioPaused 
                         ? 'bg-brand-cyan/20 border-brand-cyan text-brand-cyan shadow-lg shadow-brand-cyan/10' 
                         : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
@@ -618,7 +722,7 @@ export default function AITutorPage() {
                   </button>
                   {isAudioPlaying === i && (
                     <button
-                      className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl flex items-center justify-center transition-colors bg-red-500/20 text-red-200 border border-red-500/30 hover:bg-red-500/30"
+                      className="w-8 h-8 lg:w-9 lg:h-9 rounded-xl flex items-center justify-center transition-colors bg-red-500/20 text-red-200 border border-red-500/30 hover:bg-red-500/30"
                       onClick={handleStopAudio}
                       title="Stop"
                     >
@@ -626,7 +730,7 @@ export default function AITutorPage() {
                     </button>
                   )}
                   <button
-                    className={`w-8 h-8 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl flex items-center justify-center transition-colors border ${
+                    className={`w-8 h-8 lg:w-9 lg:h-9 rounded-xl flex items-center justify-center transition-colors border ${
                       visuals[i] 
                         ? 'bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-lg shadow-purple-500/10' 
                         : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
@@ -640,8 +744,8 @@ export default function AITutorPage() {
               )}
               
               {msg.role === 'user' && (
-                <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl bg-[#1E293B] border border-white/10 flex items-center justify-center shrink-0 text-slate-300 shadow-sm">
-                  <User className="w-4 h-4 lg:w-5 lg:h-5 text-brand-cyan" />
+                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#d946ef] to-[#a21caf] border border-[#d946ef]/50 p-0.5 flex items-center justify-center shrink-0 text-white shadow-[0_0_12px_rgba(217,70,239,0.4)] mb-1">
+                  <User className="w-5 h-5 text-white" />
                 </div>
               )}
             </div>
@@ -670,7 +774,7 @@ export default function AITutorPage() {
       </div>
 
       {/* Input Bar */}
-      <div className="p-4 lg:p-6 bg-[#0B1122]/95 border-t border-white/15 shrink-0 flex flex-col gap-2">
+      <div className="p-4 lg:p-5 bg-gradient-to-b from-[#070b19]/90 to-[#030611]/95 border-t border-white/15 shrink-0 flex flex-col items-center z-25 relative">
         {isTopicRestricted() ? (
           <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-center text-red-400 text-xs font-semibold max-w-xl mx-auto w-full flex items-center justify-center gap-2 font-sans py-5 h-14">
             <AlertCircle size={14} className="shrink-0" />
@@ -682,9 +786,25 @@ export default function AITutorPage() {
             <span>🔒 Syllabus Focus Active: General conversation is restricted by parents. Choose a subject above.</span>
           </div>
         ) : (
-          <>
+          <div className="w-full max-w-2xl flex flex-col items-center">
+            {/* Suggestions Sparks Row - Shown when no messages */}
+            {!isLoading && !selectedImage && messages.length === 0 && (
+              <div className="flex flex-wrap items-center justify-center gap-2 mb-4 w-full">
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s.text}
+                    disabled={isLoading}
+                    onClick={() => handleSend(s.text)}
+                    className={`px-4.5 py-1.5 rounded-full text-xs font-black border transition-all duration-300 cursor-pointer active:scale-95 ${s.color}`}
+                  >
+                    ✨ {s.text}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {selectedImage && (
-              <div className="relative inline-block self-start ml-2 lg:ml-4">
+              <div className="relative inline-block self-start ml-2 lg:ml-4 mb-2">
                 <img src={selectedImage} alt="Preview" className="h-16 lg:h-20 rounded-lg object-contain border border-white/10 shadow-sm" />
                 <button 
                   onClick={() => setSelectedImage(null)}
@@ -694,7 +814,8 @@ export default function AITutorPage() {
                 </button>
               </div>
             )}
-            <div className="relative flex items-center gap-2 lg:gap-3 max-w-4xl mx-auto w-full">
+
+            <div className="relative flex items-center gap-2 lg:gap-3 w-full">
               <input 
                 type="file" 
                 ref={fileInputRef} 
@@ -702,50 +823,70 @@ export default function AITutorPage() {
                 accept="image/*" 
                 className="hidden" 
               />
+              
+              {/* Attachment Button */}
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-white/5 text-slate-300 border border-white/10 flex items-center justify-center hover:bg-white/15 hover:text-white transition-all shrink-0 cursor-pointer"
-                title="Upload Image"
+                className="w-12 h-12 rounded-full bg-white/5 text-slate-300 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:text-white transition-all shrink-0 cursor-pointer active:scale-95"
+                title="Upload Homework Picture"
               >
-                <ImageIcon className="w-4 h-4 lg:w-5 lg:h-5" />
+                <ImageIcon className="w-5 h-5 text-brand-cyan" />
               </button>
-              <div className="relative flex-1 group">
+
+              {/* Centered Pill Input */}
+              <div className="relative flex-1">
                 <input
                   type="text"
-                  placeholder={isRecording ? "Listening..." : "Type your question, or upload a picture... 🖼️"}
+                  placeholder={isRecording ? "Listening..." : "Ask me anything..."}
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && !isLoading && (input.trim() || selectedImage) && handleSend()}
-                  className="w-full pl-5 lg:pl-6 pr-12 lg:pr-14 h-12 lg:h-14 rounded-full border-2 border-white/10 focus:border-brand-cyan focus:outline-none bg-white/5 transition-all font-medium text-white text-sm lg:text-base placeholder:text-slate-500"
+                  className="w-full pl-5 pr-5 h-12 rounded-full border border-white/10 focus:border-brand-cyan focus:outline-none bg-white/5 transition-all font-sans text-white text-sm lg:text-base placeholder:text-slate-500"
                   disabled={isLoading}
                 />
-                <button
-                  className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-                    isRecording ? 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/30' : 'text-slate-400 hover:bg-white/10 hover:text-slate-200'
-                  }`}
-                  onClick={handleMicClick}
-                  disabled={isLoading}
-                >
-                  <Mic className="w-4 h-4 lg:w-5 lg:h-5" />
-                </button>
               </div>
+
+              {/* Send Button */}
               <button 
                 onClick={() => handleSend()} 
                 disabled={isLoading || (!input.trim() && !selectedImage)} 
-                className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-brand-cyan text-slate-950 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 disabled:opacity-50 transition-all shrink-0 font-black cursor-pointer shadow-brand-cyan/20"
+                className="w-12 h-12 rounded-full bg-brand-cyan text-slate-950 shadow-[0_0_15px_rgba(34,211,238,0.4)] flex items-center justify-center hover:scale-105 active:scale-95 disabled:opacity-50 transition-all shrink-0 font-black cursor-pointer"
+                title="Send Question"
               >
-                <Sparkles className="w-4 h-4 lg:w-5 lg:h-5" />
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                </svg>
               </button>
+
               {isAudioPlaying !== null && (
                 <button 
                   onClick={handleStopAudio} 
-                  className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all shrink-0 cursor-pointer shadow-red-500/20"
+                  className="w-12 h-12 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all shrink-0 cursor-pointer shadow-red-500/20"
                 >
                   <Square className="w-4 h-4 lg:w-5 lg:h-5" />
                 </button>
               )}
             </div>
-          </>
+
+            {/* Giant Centered Voice Microphone Button */}
+            <div className="flex flex-col items-center justify-center mt-4">
+              <button
+                onClick={handleMicClick}
+                disabled={isLoading}
+                className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer border-2 ${
+                  isRecording 
+                    ? 'bg-gradient-to-tr from-red-500 to-rose-600 text-white border-red-400 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.7)] scale-110' 
+                    : 'bg-gradient-to-tr from-[#22d3ee] to-[#3b82f6] text-slate-950 border-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.6)] hover:shadow-[0_0_25px_rgba(34,211,238,0.9)] hover:scale-105 active:scale-95'
+                }`}
+                title={isRecording ? "Stop Recording" : "Speak to Robbie"}
+              >
+                <Mic className="w-7 h-7" />
+              </button>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">
+                {isRecording ? "Listening Active" : "Speak to Robbie"}
+              </span>
+            </div>
+          </div>
         )}
       </div>
       <audio ref={audioRef} className="hidden" />

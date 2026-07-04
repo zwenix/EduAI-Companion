@@ -118,20 +118,22 @@ const SidebarItem = ({ icon: Icon, label, active, onClick, collapsed, isDarkMode
   <button
     onClick={onClick}
     title={collapsed ? label : undefined}
-    className={`flex items-center w-full gap-3 px-4 py-3 rounded-[20px] transition-all duration-300 text-sm font-bold group ${
+    className={`flex items-center w-full gap-3 px-4 py-3 rounded-[16px] transition-all duration-300 text-sm font-bold group border ${
       active 
-      ? `bg-brand-cyan text-white shadow-lg shadow-cyan-500/30 scale-[1.02]` 
-      : `${isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'} border border-transparent hover:scale-100`
+      ? `bg-white/15 border-white/25 text-white shadow-[inset_0_1px_2px_rgba(255,255,255,0.3),0_4px_12px_rgba(0,0,0,0.15)] scale-[1.02]` 
+      : `${isDarkMode ? 'text-white/70 hover:text-white hover:bg-white/5 border-transparent hover:border-white/5' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border-transparent hover:border-slate-200/50'} hover:scale-[1.01]`
     } ${collapsed ? 'justify-center !px-0' : 'justify-start'}`}
   >
-    <Icon size={22} className={`${active ? 'text-white' : `group-hover:${isDarkMode ? 'text-white' : 'text-slate-900'}`} transition-colors shrink-0 ${active && 'animate-bounce'}`} style={{ animationDuration: '2s' }} />
+    <div className={`p-1.5 rounded-xl transition-all duration-300 ${active ? 'text-white scale-110' : 'text-current group-hover:scale-110'}`}>
+      <Icon size={20} className="shrink-0" />
+    </div>
     <AnimatePresence>
       {!collapsed && (
         <motion.span 
           initial={{ opacity: 0, width: 0 }}
           animate={{ opacity: 1, width: "auto" }}
           exit={{ opacity: 0, width: 0 }}
-          className="truncate whitespace-nowrap overflow-hidden text-left font-sans"
+          className="truncate whitespace-nowrap overflow-hidden text-left font-sans text-[15px] font-medium"
         >
           {label}
         </motion.span>
@@ -342,6 +344,7 @@ export default function App() {
   const [showDashboard, setShowDashboard] = useState(false);
   const [needsRoleSetup, setNeedsRoleSetup] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>('Leo');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [previousTabs, setPreviousTabs] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState('teacher-dashboard-menu');
@@ -1125,11 +1128,14 @@ export default function App() {
           if (docSnap.exists()) {
             const data = docSnap.data();
             const role = data.role || 'teacher';
+            const name = data.name || user.displayName || user.email?.split('@')[0] || 'Leo';
+            setUserName(name);
             localStorage.setItem(`userRole_${user.uid}`, role);
             setUserRole(role);
             setShowDashboard(true);
             setShowLogin(false);
           } else {
+            setUserName(user.displayName || user.email?.split('@')[0] || 'Leo');
             // Logged in but needs role setup
             setNeedsRoleSetup(true);
             setShowDashboard(true);
@@ -1140,6 +1146,7 @@ export default function App() {
           // If Firestore is offline or setup is failing, fall back to last cached role or default
           const cachedRole = localStorage.getItem(`userRole_${user.uid}`) || 'teacher';
           setUserRole(cachedRole);
+          setUserName(user.displayName || user.email?.split('@')[0] || 'Leo');
           setShowDashboard(true);
           setShowLogin(false);
         }
@@ -1261,7 +1268,7 @@ export default function App() {
           x: isMobile ? (isMobileSidebarOpen ? 0 : -280) : 0
         }}
         transition={{ type: "spring", bounce: 0, duration: 0.3 }}
-        className={`${isDarkMode ? 'bg-[#0B1122]' : 'bg-white shadow-xl'} border-r ${isDarkMode ? 'border-white/5' : 'border-slate-200'} h-full flex flex-col py-6 px-3 lg:px-4 fixed lg:relative shrink-0 z-[60] lg:z-40 overflow-hidden`}
+        className={`${isDarkMode ? 'bg-gradient-to-b from-[#090e1a]/95 via-[#121633]/90 to-[#0a0c1a]/95 backdrop-blur-2xl text-white' : 'bg-white shadow-xl'} border-r ${isDarkMode ? 'border-white/10' : 'border-slate-200'} h-full flex flex-col py-6 px-3 lg:px-4 fixed lg:relative shrink-0 z-[60] lg:z-40 overflow-hidden`}
       >
         <div className={`flex items-center justify-between mb-10 min-w-0 ${isSidebarOpen || isMobile ? 'px-2' : ''}`}>
           <div className="flex items-center gap-3">
@@ -1446,6 +1453,61 @@ export default function App() {
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Profile Card matching Image 2 */}
+        {(isSidebarOpen || isMobile) ? (
+          <div className={`mt-4 p-3 rounded-2xl flex items-center gap-3 border transition-all duration-300 ${
+            isDarkMode 
+              ? 'bg-white/5 border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.1)]' 
+              : 'bg-slate-50 border-slate-200 shadow-sm'
+          } shrink-0 mx-1 mb-2`}>
+            {/* Robot Avatar with Glow */}
+            <div className="relative shrink-0">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-400 to-indigo-500 p-0.5 shadow-[0_0_12px_rgba(34,211,238,0.4)] flex items-center justify-center">
+                <div className="w-full h-full bg-[#1E293B] rounded-full flex items-center justify-center overflow-hidden border border-white/10">
+                  <svg className="w-5 h-5 text-brand-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="10" rx="2" />
+                    <circle cx="12" cy="5" r="2" />
+                    <path d="M12 7v4" />
+                    <line x1="8" y1="16" x2="8.01" y2="16" />
+                    <line x1="16" y1="16" x2="16.01" y2="16" />
+                    <path d="M9 19h6" />
+                  </svg>
+                </div>
+              </div>
+              <span className="absolute bottom-0 right-0 h-3 w-3 bg-emerald-500 border-2 border-[#1E293B] rounded-full" />
+            </div>
+
+            {/* Profile Info */}
+            <div className="min-w-0 flex-1">
+              <h4 className={`font-black text-sm truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                {userName}
+              </h4>
+              <p className={`text-[10px] font-bold ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'} truncate`}>
+                {userRole === 'student' ? 'Level 12: Explorer' : userRole === 'parent' ? 'Level 24: Guardian' : 'Level 99: Master Tutor'}
+              </p>
+            </div>
+          </div>
+        ) : (
+          /* Compact Avatar for Collapsed Sidebar */
+          <div className="mt-4 flex justify-center shrink-0 mb-2">
+            <div className="relative group cursor-pointer" title={`${userName} (${userRole})`}>
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-400 to-indigo-500 p-0.5 shadow-[0_0_12px_rgba(34,211,238,0.4)] flex items-center justify-center hover:scale-105 transition-all">
+                <div className="w-full h-full bg-[#1E293B] rounded-full flex items-center justify-center overflow-hidden border border-white/10">
+                  <svg className="w-5 h-5 text-brand-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="10" rx="2" />
+                    <circle cx="12" cy="5" r="2" />
+                    <path d="M12 7v4" />
+                    <line x1="8" y1="16" x2="8.01" y2="16" />
+                    <line x1="16" y1="16" x2="16.01" y2="16" />
+                    <path d="M9 19h6" />
+                  </svg>
+                </div>
+              </div>
+              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-emerald-500 border border-[#1E293B] rounded-full" />
+            </div>
           </div>
         )}
 
