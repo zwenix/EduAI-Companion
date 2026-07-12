@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { BookOpen, CheckCircle, FileText, Loader2, Target, BrainCircuit, Scan, History, ArrowRight, Download, Printer } from 'lucide-react';
+import { BookOpen, CheckCircle, FileText, Loader2, Target, BrainCircuit, Scan, History, ArrowRight, Download, Printer, Award, Trophy } from 'lucide-react';
+import { motion } from 'motion/react';
 import { generateEducationalContent, runOCRAndGrade } from '../services/geminiService';
 import OCRScanner from './OCRScanner';
 import { marked } from 'marked';
@@ -9,6 +10,9 @@ import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import html2pdf from 'html2pdf.js';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
+import PrintPreviewModal from './PrintPreviewModal';
+
+const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
 export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean }) {
   const [activeTab, setActiveTab] = useState<'create'|'autograde'|'custom'>('create');
@@ -17,6 +21,7 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
   const [topic, setTopic] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrResult, setOcrResult] = useState<any>(null);
@@ -219,16 +224,36 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-12">
-      <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
-        <h2 className={`text-3xl font-hand mb-2 flex items-center gap-3 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}><Target className="text-brand-cyan"/> Practice & Exercises</h2>
-        <p className={`${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Generate CAPs-aligned mock assessments, practice your skills, and get instant AI feedback on your handwritten answers.</p>
+    <div className="max-w-6xl mx-auto space-y-8 pb-12 animate-in fade-in duration-700">
+      {/* Hero Section */}
+      <div className={cn(
+        "relative rounded-[36px] p-8 lg:p-12 overflow-hidden text-white flex flex-col justify-end min-h-[300px] border shadow-2xl",
+        isDarkMode ? "bg-[#0B1122] border-white/10" : "bg-slate-900 border-slate-800"
+      )}>
+        <div className="absolute top-0 right-0 p-8 opacity-20 pointer-events-none">
+           <Target size={200} />
+        </div>
+        
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none mix-blend-overlay" />
+        
+        <div className="relative z-10 max-w-3xl">
+           <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-4 py-1.5 text-sm font-bold text-emerald-300 mb-6 shadow-sm">
+             <Trophy size={16} className="text-emerald-400" /> Practice Zone
+           </motion.div>
+           <h1 className="text-4xl lg:text-6xl font-hand tracking-wide leading-tight mb-4 drop-shadow-md">
+             Practice & <span className="text-brand-cyan">Exercises</span>
+           </h1>
+           <p className="text-slate-300 font-medium text-sm lg:text-base leading-relaxed max-w-lg">
+             Generate CAPS-aligned mock assessments, practice your skills, and get instant, detailed feedback on your handwritten answers.
+           </p>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-4 mb-6">
-        <button onClick={() => setActiveTab('create')} className={`px-6 py-3 rounded-full font-bold transition-all ${activeTab === 'create' ? 'bg-brand-cyan text-white shadow-lg' : isDarkMode ? 'bg-white/10 text-slate-300 hover:bg-white/20' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>Generate Practice</button>
-        <button onClick={() => setActiveTab('custom')} className={`px-6 py-3 rounded-full font-bold transition-all ${activeTab === 'custom' ? 'bg-brand-cyan text-white shadow-lg' : isDarkMode ? 'bg-white/10 text-slate-300 hover:bg-white/20' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>Custom Questions</button>
-        <button onClick={() => setActiveTab('autograde')} className={`px-6 py-3 rounded-full font-bold transition-all ${activeTab === 'autograde' ? 'bg-brand-cyan text-white shadow-lg' : isDarkMode ? 'bg-white/10 text-slate-300 hover:bg-white/20' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>Autograde Answers</button>
+        <button onClick={() => setActiveTab('create')} className={cn("px-6 py-3 rounded-full font-bold transition-all border cursor-pointer", activeTab === 'create' ? 'bg-brand-cyan text-slate-950 border-brand-cyan/20 shadow-lg shadow-cyan-500/20' : isDarkMode ? 'bg-white/10 text-slate-300 border-white/10 hover:bg-white/20' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50')}>Generate Practice</button>
+        <button onClick={() => setActiveTab('custom')} className={cn("px-6 py-3 rounded-full font-bold transition-all border cursor-pointer", activeTab === 'custom' ? 'bg-brand-cyan text-slate-950 border-brand-cyan/20 shadow-lg shadow-cyan-500/20' : isDarkMode ? 'bg-white/10 text-slate-300 border-white/10 hover:bg-white/20' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50')}>Custom Questions</button>
+        <button onClick={() => setActiveTab('autograde')} className={cn("px-6 py-3 rounded-full font-bold transition-all border cursor-pointer", activeTab === 'autograde' ? 'bg-brand-cyan text-slate-950 border-brand-cyan/20 shadow-lg shadow-cyan-500/20' : isDarkMode ? 'bg-white/10 text-slate-300 border-white/10 hover:bg-white/20' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50')}>Autograde Answers</button>
       </div>
 
       {activeTab === 'create' && (
@@ -316,15 +341,21 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
           <div className="lg:col-span-2">
             {result ? (
               <div className="space-y-4">
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-2 flex-wrap">
+                  <button 
+                    onClick={() => setShowPrintModal(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer hover:scale-105 active:scale-95 shadow-md shadow-indigo-500/20"
+                  >
+                    <Printer size={16} /> Print / Preview (A4)
+                  </button>
                   <button 
                     onClick={handleExportPDF}
-                    className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${isDarkMode ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-slate-150 hover:bg-slate-200 text-slate-700'}`}
+                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${isDarkMode ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-slate-150 hover:bg-slate-200 text-slate-700'}`}
                   >
                     <Download size={16} /> Export Practice to PDF
                   </button>
                 </div>
-                <div className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} p-8 rounded-[24px] border shadow-sm`}>
+                <div className={`${isDarkMode ? 'bg-slate-900/60 border-white/10 text-slate-200' : 'bg-white text-slate-900 border-slate-200'} p-8 rounded-[36px] border shadow-sm`}>
                   <div 
                     dangerouslySetInnerHTML={{ 
                       __html: (result.content || result).trim().startsWith('<') 
@@ -349,7 +380,7 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
                 </div>
               </div>
             ) : (
-               <div className={`${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'} p-12 rounded-[24px] border border-dashed text-center flex flex-col items-center justify-center opacity-70`}>
+               <div className={`${isDarkMode ? 'bg-slate-900/60 border-white/10' : 'bg-slate-50 border-slate-200'} p-12 rounded-[36px] border border-dashed text-center flex flex-col items-center justify-center opacity-70`}>
                  <FileText size={48} className={`${isDarkMode ? 'text-slate-500' : 'text-slate-300'} mb-4`} />
                  <p className={`font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Your generated practice content will appear here.</p>
                </div>
@@ -469,6 +500,25 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
             )}
           </div>
         </div>
+      )}
+
+      {/* Interactive A4 Print Preview Modal */}
+      {result && (
+        <PrintPreviewModal
+          isOpen={showPrintModal}
+          onClose={() => setShowPrintModal(false)}
+          title={topic || 'Practice Assessment'}
+          content={result.content || result}
+          memo={result.memo}
+          rubric={result.rubric}
+          options={{
+            subject: subject || 'General',
+            grade: grade || 'All',
+            contentType: 'Practice Exercise',
+            title: topic || 'Practice session'
+          }}
+          isDarkMode={isDarkMode}
+        />
       )}
     </div>
   );

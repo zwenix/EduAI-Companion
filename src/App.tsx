@@ -83,6 +83,7 @@ import ClassManagement from './components/ClassManagement';
 import { SplashScreen } from './components/SplashScreen';
 import RoleSelection from './components/RoleSelection';
 import LoginPage from './components/LoginPage';
+import LandingPage from './components/LandingPage';
 import Logo from './components/Logo';
 import NotificationsDropdown from './components/NotificationsDropdown';
 import StudentPractice from './components/StudentPractice';
@@ -114,226 +115,100 @@ import {
   Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
 
-const SidebarItem = ({ icon: Icon, label, active, onClick, collapsed, isDarkMode }: { icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean, isDarkMode?: boolean }) => (
-  <button
-    onClick={onClick}
-    title={collapsed ? label : undefined}
-    className={`flex items-center w-full gap-3 px-4 py-3 rounded-[16px] transition-all duration-300 text-sm font-bold group border ${
-      active 
-      ? `bg-white/15 border-white/25 text-white shadow-[inset_0_1px_2px_rgba(255,255,255,0.3),0_4px_12px_rgba(0,0,0,0.15)] scale-[1.02]` 
-      : `${isDarkMode ? 'text-white/70 hover:text-white hover:bg-white/5 border-transparent hover:border-white/5' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border-transparent hover:border-slate-200/50'} hover:scale-[1.01]`
-    } ${collapsed ? 'justify-center !px-0' : 'justify-start'}`}
-  >
-    <div className={`p-1.5 rounded-xl transition-all duration-300 ${active ? 'text-white scale-110' : 'text-current group-hover:scale-110'}`}>
-      <Icon size={20} className="shrink-0" />
-    </div>
-    <AnimatePresence>
-      {!collapsed && (
-        <motion.span 
-          initial={{ opacity: 0, width: 0 }}
-          animate={{ opacity: 1, width: "auto" }}
-          exit={{ opacity: 0, width: 0 }}
-          className="truncate whitespace-nowrap overflow-hidden text-left font-sans text-[15px] font-medium"
-        >
-          {label}
-        </motion.span>
-      )}
-    </AnimatePresence>
-  </button>
-);
+const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
-const LandingPage = ({ onEnter }: { onEnter: () => void }) => {
+const categoryIconsMap: Record<string, string> = {
+  'teacher-dashboard-menu': 'https://lh3.googleusercontent.com/aida-public/AB6AXuAGGuKWRly4nhnBYri8gDVnI3-wO6fOy2YvyxVYw33oY9TQIieHaugj35F8COMT0VgMDYSMyL6U1C8dsfqDYSG4H6SmMg_OzpeIOehNE412TwoFHPF2hdVRbTeVisi7zS0K2knn6fuv0oL08FFj3LAUOX_EcTEC_Cu40ngevo0bYf_qUwDWmcmTvrUH1TmHfsqWKUyuMhvv9uOLoUM6jceHwZV__Fsbe4stb8WeyexqKUUobimeBQGg5w',
+  'lesson-planning': 'https://lh3.googleusercontent.com/aida-public/AB6AXuANc3c_lgt81zqEC4B1u8RrslxLMjp9n7ONiPBTG_bJgHibibQ14DlWaP50jgDoZ-dmljIdt1u23bGmxiAL4Wtj7R8clreqp9lsZHHuGrXYiVoUyGSYGyGX8APIFfXPkL0DHgKEPxl5QEEzj3bmrEs4eoRfC7GUstEWpTJADLReGSq1YHPHPVWLm02d9d7jKMGqpTeYObz7ElOwrjlCSVecgMLrC0RUjdMHzEbOclXApXLJ-y5b12kdeA',
+  'intelligence-ai': 'https://lh3.googleusercontent.com/aida-public/AB6AXuDOucOGfvc7dNNfUMza0gqBNI5tD56aSYNC2qA0NwhEc9bbhlaQ0vmgAI6HCiu4TpSgrGSj94Yjb1tz443tMfNY6NXFggvHYnBX7CT2IUgMum_jwYp-FLBmxHA11G0lN2Px6jgYi-i0oO6jMvlLbloiqeopJ0jHQkGZx5ygwE7Z-9mH6NL__69-YUUd2DBrXUdE2oRQJrh3bttyYuhkOSm4E4AT9wedtJWoB51oiqOd4zCo96pFHM3KSA',
+  'class-management': 'https://lh3.googleusercontent.com/aida-public/AB6AXuArUcKc1czBA3RvnErre7vSOMptRHVJu1GRUaQnmMS7nRCRZCuVI1KznUhgkHXRQBKehRk53Yxw2kg8WsOL_ANari75xDgn6PR91KgyMSj-iwhxuvJeq5q9dCxHdu0u7RoNPVLIs7fFpxBtfYtW3Csmbz4c00N7Nl41yVLIMdB6u4kW045EDQWanBq1QF6QpPXoHzTbVbi55UaGBJz3xH4rUfxH7F2NXZyXXJHlFVhFSeFvHMyaIn9a4Q'
+};
+
+const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDarkMode, themeMode }: { id?: string, icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean, isDarkMode?: boolean, themeMode?: string }) => {
+  const imageUrl = id ? categoryIconsMap[id] : undefined;
+  const displayLabel = id === 'teacher-dashboard-menu' ? 'Home' : label;
+  const [imgFailed, setImgFailed] = useState(false);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#00d2ff] via-[#3a7bd5] to-[#8e44ad] relative overflow-hidden flex flex-col font-sans animate-fadeInZoom">
-      {/* Subtle Star Decorations */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <Sparkles className="absolute top-20 left-10 text-white/30 w-10 h-10 animate-float" style={{ animationDelay: '0s' }} />
-        <Sparkles className="absolute top-40 right-20 text-white/30 w-14 h-14 animate-float" style={{ animationDelay: '1s' }} />
-        <Sparkles className="absolute bottom-1/3 left-1/4 text-white/20 w-8 h-8 animate-float" style={{ animationDelay: '2s' }} />
-        <Sparkles className="absolute top-1/2 right-1/4 text-white/20 w-12 h-12 animate-float" style={{ animationDelay: '3s' }} />
+    <button
+      onClick={onClick}
+      title={collapsed ? displayLabel : undefined}
+      className={cn(
+        "flex items-center w-full gap-4 transition-all duration-300 relative cursor-pointer border outline-none group",
+        collapsed ? "justify-center p-2 rounded-2xl border-transparent" : "p-3 rounded-2xl mb-1.5 border-transparent/5",
+        active 
+          ? isDarkMode 
+            ? "bg-brand-cyan/20 text-brand-cyan font-black border-brand-cyan/30 shadow-[0_0_15px_rgba(0,179,255,0.25)] text-glow-cyan" 
+            : "bg-brand-cyan/15 text-brand-cyan font-black border-brand-cyan/20"
+          : isDarkMode 
+            ? "text-slate-300 hover:text-white hover:bg-white/5 font-medium" 
+            : themeMode === 'peach'
+              ? "text-[#431407]/75 hover:text-[#431407] hover:bg-[#431407]/5 font-medium"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
+      )}
+    >
+      <div className={cn(
+        "shrink-0 flex items-center justify-center transition-all duration-300",
+        collapsed 
+          ? isDarkMode ? "w-10 h-10 bg-white/5 rounded-xl border border-white/5" : "w-10 h-10 bg-slate-100 rounded-xl border border-slate-200"
+          : isDarkMode ? "w-11 h-11 bg-white/10 rounded-xl border border-white/10 group-hover:scale-105" : "w-11 h-11 bg-slate-100 rounded-xl border border-slate-200 group-hover:scale-105"
+      )}>
+        {(imageUrl && !imgFailed) ? (
+          <img 
+            src={imageUrl} 
+            alt={displayLabel} 
+            className={cn(
+              "object-contain",
+              collapsed ? "w-6 h-6" : "w-7 h-7",
+              id === 'lesson-planning' ? "filter drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]" : ""
+            )} 
+            referrerPolicy="no-referrer"
+            onError={() => {
+              setImgFailed(true);
+            }}
+          />
+        ) : (
+          <Icon 
+            size={collapsed ? 20 : 22} 
+            className={cn(
+              active 
+                ? "text-brand-cyan" 
+                : isDarkMode 
+                  ? "text-slate-300 group-hover:text-white" 
+                  : themeMode === 'peach'
+                    ? "text-[#431407]/75 group-hover:text-[#431407]"
+                    : "text-slate-600 group-hover:text-slate-900"
+            )} 
+          />
+        )}
       </div>
-
-      {/* Navbar */}
-      <motion.nav 
-        initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut", type: "spring", stiffness: 120 }}
-        className="h-24 px-6 lg:px-12 flex items-center justify-between relative z-10 max-w-7xl mx-auto w-full"
-      >
-        <div className="flex items-center gap-3 bg-white/20 backdrop-blur-md px-4 py-2 rounded-[30px] border border-white/30 kid-shadow">
-          <Logo className="w-10 h-10" />
-          <span className="text-2xl font-display font-bold tracking-wide text-white">
-            EduAI <span className="text-brand-yellow">Companion</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-4 lg:gap-6">
-          <button onClick={onEnter} className="hidden sm:block text-white font-bold hover:text-brand-yellow transition-colors font-display text-lg">
-            Sign In
-          </button>
-          <button 
-            onClick={onEnter}
-            className="bg-brand-yellow hover:bg-[#ffdf40] text-slate-800 px-8 py-3 rounded-[30px] font-display font-bold text-lg transition-all kid-shadow-hover active:scale-95 border-2 border-[#fdbb2d]/50"
-          >
-            Get Started!
-          </button>
-        </div>
-      </motion.nav>
-
-      {/* Hero */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-6 lg:px-12 pt-10 pb-20 relative z-10 flex flex-col lg:flex-row items-center gap-12">
-        <motion.div
-           initial={{ opacity: 0, x: -30 }}
-           animate={{ opacity: 1, x: 0 }}
-           transition={{ duration: 0.8, ease: "easeOut" }}
-           className="flex-1 text-center lg:text-left"
-        >
-          <motion.div 
-            initial={{ opacity: 0, y: 20, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.6, type: "spring" }}
-            className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md border border-white/40 px-5 py-2.5 rounded-full mb-6 text-sm font-bold text-white kid-shadow uppercase tracking-wider"
-          >
-             <Sparkles size={18} className="text-brand-yellow" /> 
-             The Smartest Way to Learn!
-          </motion.div>
+      
+      {!collapsed && (
+        <span className="font-sans text-[11px] font-black uppercase tracking-wider text-left leading-none flex-1 flex items-center justify-between gap-2 overflow-hidden truncate">
+          <span className="truncate">{displayLabel}</span>
           
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-            className="text-6xl md:text-7xl lg:text-8xl font-black text-white mb-6 leading-[1.1] drop-shadow-lg font-display"
-          >
-            Learning is an <br />
-            <span className="text-brand-yellow relative inline-block drop-shadow-md">
-              Adventure!
-              <motion.svg 
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: 1 }}
-                transition={{ duration: 1, delay: 0.5, ease: "easeInOut" }}
-                className="absolute -bottom-2 lg:-bottom-4 left-0 w-full h-4 lg:h-6 text-brand-yellow drop-shadow-md" 
-                viewBox="0 0 200 20" 
-                preserveAspectRatio="none"
-              >
-                <path d="M0,10 Q25,20 50,10 T100,10 T150,10 T200,10" fill="none" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
-              </motion.svg>
-            </span>
-          </motion.h1>
-          
-          <motion.p 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.6 }}
-            className="text-xl lg:text-2xl text-blue-50/90 mb-10 max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed drop-shadow-sm font-sans"
-          >
-            Magic lesson plans, super homework help, and your very own AI robot tutor! 🚀
-          </motion.p>
-          
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.6 }}
-            className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4"
-          >
-            <button 
-              onClick={onEnter}
-              className="w-full sm:w-auto bg-brand-yellow hover:bg-[#ffdf40] text-slate-800 px-10 py-5 rounded-[36px] font-display font-black text-xl transition-all kid-shadow-hover active:scale-95 flex items-center justify-center gap-3 border-4 border-white/20"
-            >
-              Start My Adventure <ChevronRight strokeWidth={4} />
-            </button>
-            <button 
-              onClick={onEnter}
-              className="w-full sm:w-auto bg-white/10 hover:bg-white/20 border-4 border-white/40 text-white px-10 py-5 rounded-[36px] font-display font-bold text-xl transition-all backdrop-blur-md flex items-center justify-center kid-shadow-hover"
-            >
-              Log In
-            </button>
-          </motion.div>
-        </motion.div>
+          {/* Class Management Badge */}
+          {id === 'class-management' && (
+            <div className="w-5 h-5 bg-red-600 rounded-full flex items-center justify-center text-[10px] font-black shadow-[0_0_10px_rgba(220,38,38,0.8)] border border-white/20 text-white shrink-0">
+              3
+            </div>
+          )}
+        </span>
+      )}
 
-        {/* Hero Image / Illustration Area */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
-          animate={{ opacity: 1, scale: 1, rotate: 0 }}
-          transition={{ delay: 0.3, type: "spring", stiffness: 100 }}
-          className="flex-1 relative w-full max-w-lg lg:max-w-none"
-        >
-          <div className="relative rounded-[48px] overflow-hidden shadow-2xl kid-shadow border-8 border-white/20 aspect-[4/5] sm:aspect-square lg:aspect-[4/5] bg-white/10 backdrop-blur-sm animate-float">
-             <img 
-               src="https://i.ibb.co/CsvbkGYG/landing-image.jpg" 
-               alt="Classroom adventure" 
-               className="w-full h-full object-cover"
-             />
-             <div className="absolute inset-0 bg-gradient-to-t from-[#3a7bd5]/60 to-transparent pointer-events-none" />
-          </div>
-          
-          {/* Floating Badge */}
-          <motion.div 
-            animate={{ y: [-15, 15, -15], rotate: [-5, 5, -5] }}
-            transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-            className="absolute -bottom-8 -right-8 lg:bottom-4 lg:-right-8 w-36 h-36 lg:w-44 lg:h-44 bg-brand-pink rounded-full shadow-2xl flex items-center justify-center border-8 border-white z-20 kid-shadow"
-          >
-            <p className="text-white font-display font-black text-center text-lg lg:text-xl leading-tight">
-              100% Fun <br/> <span className="text-2xl lg:text-3xl">🎉</span>
-            </p>
-          </motion.div>
-
-          {/* Second Floating Badge */}
-          <motion.div 
-            animate={{ y: [15, -15, 15], rotate: [5, -5, 5] }}
-            transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
-            className="absolute -top-6 -left-6 lg:top-10 lg:-left-10 w-24 h-24 lg:w-28 lg:h-28 bg-brand-cyan rounded-full shadow-2xl flex items-center justify-center border-6 border-white z-20 kid-shadow"
-          >
-            <p className="text-white font-display font-black text-center text-3xl lg:text-4xl">
-              🚀
-            </p>
-          </motion.div>
-        </motion.div>
-      </div>
-
-      {/* Features Section */}
-      <div className="w-full max-w-7xl mx-auto px-6 lg:px-12 py-24 relative z-10">
-        <div className="text-center mb-16">
-          <h2 className="text-5xl md:text-6xl font-black text-white mb-6 drop-shadow-md font-display">Your Super Powers! 🦸‍♂️</h2>
-          <p className="text-xl text-blue-100 font-bold max-w-2xl mx-auto drop-shadow-sm">Everything you need to be a top student or a master teacher, all powered by magic AI.</p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[
-            { title: "Magic Lessons", desc: "Create amazing lesson plans in a flash! Perfect for any subject.", icon: Blocks, bg: "bg-gradient-to-br from-orange-500/30 to-orange-400/20", border: "border-orange-300/40", iconBg: "bg-orange-500", shadow: "shadow-orange-500/30" },
-            { title: "Super Worksheets", desc: "Fun worksheets and exercises that you'll actually love doing!", icon: Palette, bg: "bg-gradient-to-br from-pink-500/30 to-pink-400/20", border: "border-pink-300/40", iconBg: "bg-brand-pink", shadow: "shadow-pink-500/30" },
-            { title: "Smart Bot Tutor", desc: "Ask your friendly AI tutor anything, anytime! It never sleeps.", icon: Smile, bg: "bg-gradient-to-br from-cyan-500/30 to-cyan-400/20", border: "border-cyan-300/40", iconBg: "bg-brand-cyan", shadow: "shadow-cyan-500/30" },
-            { title: "Instant Grades", desc: "Get your results and helpful tips right away. No more waiting!", icon: Award, bg: "bg-gradient-to-br from-yellow-500/35 to-yellow-400/25", border: "border-yellow-300/40", iconBg: "bg-brand-yellow", shadow: "shadow-yellow-500/30" },
-            { title: "Skill Tracker", desc: "Watch your skills grow like a rocket ship! reach for the stars.", icon: ToyBrick, bg: "bg-gradient-to-br from-green-500/30 to-green-400/20", border: "border-green-300/40", iconBg: "bg-brand-green", shadow: "shadow-green-500/30" },
-            { title: "Cool Posters", desc: "Make beautiful posters for your room or classroom.", icon: Sparkles, bg: "bg-gradient-to-br from-purple-500/30 to-purple-400/20", border: "border-purple-300/40", iconBg: "bg-brand-purple", shadow: "shadow-purple-500/30" },
-          ].map((feature, i) => (
-            <motion.div 
-              key={i}
-              initial={{ opacity: 0, y: 30, scale: 0.9 }}
-              whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ delay: i * 0.1, type: "spring", stiffness: 100 }}
-              className={`${feature.bg} backdrop-blur-xl border-2 ${feature.border} rounded-[40px] p-8 text-center hover:bg-white/30 transition-all kid-shadow-hover transform hover:-translate-y-2 relative overflow-hidden group`}
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16 transition-transform group-hover:scale-150"></div>
-              <div className={`w-20 h-20 mx-auto rounded-[28px] flex items-center justify-center mb-6 ${feature.iconBg} text-white shadow-xl ${feature.shadow} border-4 border-white/20 rotate-3 group-hover:rotate-0 transition-all`}>
-                <feature.icon size={40} />
-              </div>
-              <h3 className="text-2xl font-black text-white mb-3 font-display">{feature.title}</h3>
-              <p className="text-base text-blue-50 leading-relaxed font-bold">{feature.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      <footer className="mt-auto px-6 lg:px-12 py-8 bg-black/20 border-t border-white/10 text-center lg:text-left flex flex-col lg:flex-row justify-between items-center gap-4 text-sm font-bold text-white/70 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <Logo className="w-8 h-8 opacity-80" />
-          <span className="font-display text-lg">EduAI <span className="text-brand-yellow">Companion</span></span>
-        </div>
-        <p>© 2026 EduAI Companion. Built with 💖</p>
-      </footer>
-    </div>
+      {/* Animated Sparkles for Intelligence AI */}
+      {!collapsed && id === 'intelligence-ai' && (
+        <>
+          <span className="sparkle-twinkle text-[10px]" style={{ top: '6px', right: '14px' }}>✦</span>
+          <span className="sparkle-twinkle text-[14px]" style={{ top: '16px', right: '-2px' }}>✧</span>
+          <span className="sparkle-twinkle text-[8px]" style={{ bottom: '8px', right: '8px' }}>✦</span>
+        </>
+      )}
+    </button>
   );
 };
+
+// Inline LandingPage removed in favor of imported component from './components/LandingPage'
 
 import { useAi, AIProvider as AIProviderType } from './contexts/AiContext';
 
@@ -374,6 +249,19 @@ export default function App() {
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [headerCabinetOpen, setHeaderCabinetOpen] = useState(false);
+
+  // Real-time device clock for sidebar
+  const [currentTime, setCurrentTime] = useState<string>('');
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Real-time Teacher Dashboard students & aggregates
   const [dashboardStudents, setDashboardStudents] = useState<any[]>([]);
@@ -840,7 +728,7 @@ export default function App() {
     
     return [
       { id: 'teacher-dashboard-menu', label: firstLabel, icon: GraduationCap },
-      { id: 'lesson-planning', label: 'Teaching Tools', icon: Blocks },
+      { id: 'lesson-planning', label: 'Teachers Magic', icon: Blocks },
       { id: 'intelligence-ai', label: 'Intelligence AI', icon: Sparkles },
       { id: 'class-analytics', label: 'Analytics & Reports', icon: Award },
       { id: 'class-management', label: 'Class management', icon: Users },
@@ -1246,7 +1134,7 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion="never">
-      <div className={`flex h-screen ${isDarkMode ? 'bg-[#0F172A]' : themeMode === 'peach' ? 'bg-[#efe8d9] peach-theme' : 'bg-slate-50'} font-sans selection:bg-brand-cyan/30 overflow-hidden transition-colors duration-500`}>
+      <div className={`flex h-screen ${isDarkMode ? 'bg-[#050a18]' : themeMode === 'peach' ? 'bg-[#efe8d9] peach-theme' : 'bg-slate-50'} font-sans selection:bg-brand-cyan/30 overflow-hidden transition-colors duration-500`}>
       {/* Sidebar Overlay for Mobile */}
       <AnimatePresence>
         {isMobile && isMobileSidebarOpen && (
@@ -1260,6 +1148,11 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Sidebar Base Placeholder on Desktop to prevent page content starting at 0 */}
+      {!isMobile && (
+        <div className="w-20 shrink-0 transition-all duration-300" />
+      )}
+
       {/* Sidebar */}
       <motion.aside 
         initial={false}
@@ -1268,32 +1161,85 @@ export default function App() {
           x: isMobile ? (isMobileSidebarOpen ? 0 : -280) : 0
         }}
         transition={{ type: "spring", bounce: 0, duration: 0.3 }}
-        className={`${isDarkMode ? 'bg-gradient-to-b from-[#090e1a]/95 via-[#121633]/90 to-[#0a0c1a]/95 backdrop-blur-2xl text-white' : 'bg-white shadow-xl'} border-r ${isDarkMode ? 'border-white/10' : 'border-slate-200'} h-full flex flex-col py-6 px-3 lg:px-4 fixed lg:relative shrink-0 z-[60] lg:z-40 overflow-hidden`}
+        className={cn(
+          "h-full flex flex-col py-6 px-3 lg:px-4 fixed left-0 top-0 shrink-0 z-[60] shadow-2xl transition-all duration-300 border-r",
+          isSidebarOpen ? "overflow-y-auto" : "overflow-hidden",
+          isDarkMode 
+            ? "bg-[#050a18]/75 border-white/5 text-white backdrop-blur-2xl" 
+            : themeMode === 'peach'
+              ? "bg-[#efe8d9]/75 border-[#dcd4c3] text-[#431407] backdrop-blur-2xl"
+              : "bg-white/75 border-slate-200 text-slate-800 backdrop-blur-2xl"
+        )}
       >
-        <div className={`flex items-center justify-between mb-10 min-w-0 ${isSidebarOpen || isMobile ? 'px-2' : ''}`}>
-          <div className="flex items-center gap-3">
-            <Logo />
-            <AnimatePresence>
-              {(isSidebarOpen || isMobile) && (
-                <motion.h1 
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: "auto" }}
-                  exit={{ opacity: 0, width: 0 }}
-                  className={`font-hand text-2xl tracking-widest whitespace-nowrap overflow-hidden ${isDarkMode ? 'text-white' : 'text-slate-900'}`}
-                >
-                  EduAI Companion
-                </motion.h1>
-              )}
-            </AnimatePresence>
+        {isDarkMode && <div className="sidebar-glow-highlight" />}
+
+        {/* Center-aligned Animated Logo & Compact Header */}
+        <div className="flex flex-col items-center justify-center mb-6 relative shrink-0">
+          <div className="flex items-center justify-center w-full relative">
+            <div className="flex justify-center flex-1">
+              <Logo className="w-12 h-12" />
+            </div>
+            {isMobile && (
+              <button 
+                onClick={() => setMobileSidebarOpen(false)} 
+                className={cn(
+                  "absolute right-1 p-1.5 rounded-lg transition-all",
+                  isDarkMode ? "text-slate-400 hover:text-white hover:bg-white/10" : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                )}
+              >
+                <X size={20} />
+              </button>
+            )}
           </div>
-          {isMobile && (
-            <button onClick={() => setMobileSidebarOpen(false)} className={isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"}>
-              <X size={24} />
+          
+          {/* Prominent Sidebar Maximizer/Minimizer button at the top */}
+          {!isMobile && (
+            <button
+              onClick={() => setSidebarOpen(!isSidebarOpen)}
+              className={cn(
+                "mt-3 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border outline-none cursor-pointer",
+                isDarkMode
+                  ? "bg-white/5 border-white/10 hover:bg-white/10 hover:border-[#00d2ff]/30 text-slate-300 hover:text-[#00d2ff]"
+                  : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-600 hover:text-slate-900"
+              )}
+              title={isSidebarOpen ? "Minimize Sidebar" : "Maximize Sidebar"}
+            >
+              {isSidebarOpen ? (
+                <>
+                  <ChevronLeft size={10} strokeWidth={3} />
+                  <span>Collapse</span>
+                </>
+              ) : (
+                <ChevronRight size={10} strokeWidth={3} />
+              )}
             </button>
           )}
         </div>
 
-        <nav className="flex-1 min-h-0 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+        {/* Real-time Digital Clock Widget */}
+        {(isSidebarOpen || isMobile) && (
+          <div className={cn(
+            "mb-4 px-3 py-2 rounded-2xl flex items-center justify-between border select-none shrink-0",
+            isDarkMode 
+              ? "bg-slate-950/40 border-white/5 text-slate-400" 
+              : themeMode === 'peach'
+                ? "bg-[#efe8d9]/50 border-[#dcd4c3] text-[#431407]/70"
+                : "bg-slate-50 border-slate-100 text-slate-500"
+          )}>
+            <div className="flex flex-col text-left">
+              <span className="text-[8px] font-black uppercase tracking-wider opacity-60 leading-none">System Time</span>
+              <span className="text-xs font-mono font-black mt-0.5 tracking-tight leading-none">
+                {currentTime || '00:00:00'}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 bg-emerald-500/10 text-emerald-500 rounded-lg px-2 py-0.5 text-[8px] font-black uppercase tracking-wider">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span>Active</span>
+            </div>
+          </div>
+        )}
+
+        <nav className="flex-1 min-h-0 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar pr-1 relative z-10">
           {sidebarCategories.map((cat) => {
             const collapsed = !isSidebarOpen && !isMobile;
             const active = activeCategory === cat.id;
@@ -1301,10 +1247,12 @@ export default function App() {
             return (
               <SidebarItem 
                 key={cat.id}
+                id={cat.id}
                 icon={cat.icon} 
                 label={cat.label} 
                 active={active} 
                 isDarkMode={isDarkMode}
+                themeMode={themeMode}
                 onClick={() => {
                   setActiveCategory(cat.id);
                   const subTabs = getSubTabsForCategory(cat.id, userRole);
@@ -1456,78 +1404,81 @@ export default function App() {
           </div>
         )}
 
-        {/* Profile Card matching Image 2 */}
+        {/* BEGIN: User Profile Section */}
         {(isSidebarOpen || isMobile) ? (
-          <div className={`mt-4 p-3 rounded-2xl flex items-center gap-3 border transition-all duration-300 ${
+          <div className={cn(
+            "p-3 mt-auto flex items-center gap-3 mb-4 shrink-0 mx-1 border rounded-[22px]",
             isDarkMode 
-              ? 'bg-white/5 border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.1)]' 
-              : 'bg-slate-50 border-slate-200 shadow-sm'
-          } shrink-0 mx-1 mb-2`}>
-            {/* Robot Avatar with Glow */}
+              ? "bg-white/5 border-white/10 text-white" 
+              : themeMode === 'peach'
+                ? "bg-[#efe8d9]/50 border-[#dcd4c3] text-[#431407]"
+                : "bg-slate-50 border-slate-200 text-slate-800"
+          )} data-purpose="user-profile-card">
             <div className="relative shrink-0">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-400 to-indigo-500 p-0.5 shadow-[0_0_12px_rgba(34,211,238,0.4)] flex items-center justify-center">
-                <div className="w-full h-full bg-[#1E293B] rounded-full flex items-center justify-center overflow-hidden border border-white/10">
-                  <svg className="w-5 h-5 text-brand-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="11" width="18" height="10" rx="2" />
-                    <circle cx="12" cy="5" r="2" />
-                    <path d="M12 7v4" />
-                    <line x1="8" y1="16" x2="8.01" y2="16" />
-                    <line x1="16" y1="16" x2="16.01" y2="16" />
-                    <path d="M9 19h6" />
-                  </svg>
-                </div>
+              <div className="w-12 h-12 rounded-full border-2 border-emerald-500 overflow-hidden bg-slate-800">
+                <img 
+                  alt="Profile" 
+                  className="w-full h-full object-cover" 
+                  referrerPolicy="no-referrer"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuC84-NEFvwZ7DJM6n9YadrglDB8eRZh5QhtpIKevJPmkMBaZ3RkjJ9cIZKMDhDdhi3Fm2vPK5KwuuIpM9M0T1QWfIrr9FYQZDoWaA5vG-P0gwhFLuHvW-kHBMutdlciDTTSzWc4OgZqI2wnPR8TKZEQ2JwrAhN01mVbao5KXaNjC2TkVtzJ_KpaSWV8kvi3RcI2ij0P6uiU4J4MCueD2QLas3WSqTUUAQPuhOnbmyer0gb5k78eHF-Eew" 
+                  onError={(e) => {
+                    e.currentTarget.src = `https://placehold.co/100/10b981/ffffff?text=${encodeURIComponent((userName || 'ZH').substring(0,2).toUpperCase())}`;
+                  }}
+                />
               </div>
-              <span className="absolute bottom-0 right-0 h-3 w-3 bg-emerald-500 border-2 border-[#1E293B] rounded-full" />
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#1a1b3a]"></div>
             </div>
-
-            {/* Profile Info */}
-            <div className="min-w-0 flex-1">
-              <h4 className={`font-black text-sm truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                {userName}
-              </h4>
-              <p className={`text-[10px] font-bold ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'} truncate`}>
-                {userRole === 'student' ? 'Level 12: Explorer' : userRole === 'parent' ? 'Level 24: Guardian' : 'Level 99: Master Tutor'}
-              </p>
+            <div className="flex flex-col min-w-0">
+              <span className={cn(
+                "font-sans font-bold text-sm leading-tight truncate",
+                isDarkMode ? "text-white" : "text-slate-900"
+              )}>
+                {userName || 'Zwelakhe Hsuthu'}
+              </span>
+              <span className={cn(
+                "text-[10px] font-bold font-sans truncate opacity-60",
+                isDarkMode ? "text-white/60" : "text-slate-500"
+              )}>
+                {userRole === 'student' ? 'Level 12: Explorer' : userRole === 'parent' ? 'Level 24: Guardian' : 'Level 94: Master Tutor'}
+              </span>
             </div>
           </div>
         ) : (
           /* Compact Avatar for Collapsed Sidebar */
-          <div className="mt-4 flex justify-center shrink-0 mb-2">
-            <div className="relative group cursor-pointer" title={`${userName} (${userRole})`}>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-400 to-indigo-500 p-0.5 shadow-[0_0_12px_rgba(34,211,238,0.4)] flex items-center justify-center hover:scale-105 transition-all">
-                <div className="w-full h-full bg-[#1E293B] rounded-full flex items-center justify-center overflow-hidden border border-white/10">
-                  <svg className="w-5 h-5 text-brand-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="11" width="18" height="10" rx="2" />
-                    <circle cx="12" cy="5" r="2" />
-                    <path d="M12 7v4" />
-                    <line x1="8" y1="16" x2="8.01" y2="16" />
-                    <line x1="16" y1="16" x2="16.01" y2="16" />
-                    <path d="M9 19h6" />
-                  </svg>
-                </div>
+          <div className="mt-auto flex justify-center shrink-0 mb-4">
+            <div className="relative group cursor-pointer" title={`${userName || 'Zwelakhe Hsuthu'} (${userRole})`}>
+              <div className="w-12 h-12 rounded-full border-2 border-emerald-500 overflow-hidden bg-slate-800 hover:scale-105 transition-all duration-300">
+                <img 
+                  alt="Profile" 
+                  className="w-full h-full object-cover" 
+                  referrerPolicy="no-referrer"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuC84-NEFvwZ7DJM6n9YadrglDB8eRZh5QhtpIKevJPmkMBaZ3RkjJ9cIZKMDhDdhi3Fm2vPK5KwuuIpM9M0T1QWfIrr9FYQZDoWaA5vG-P0gwhFLuHvW-kHBMutdlciDTTSzWc4OgZqI2wnPR8TKZEQ2JwrAhN01mVbao5KXaNjC2TkVtzJ_KpaSWV8kvi3RcI2ij0P6uiU4J4MCueD2QLas3WSqTUUAQPuhOnbmyer0gb5k78eHF-Eew" 
+                  onError={(e) => {
+                    e.currentTarget.src = `https://placehold.co/100/10b981/ffffff?text=${encodeURIComponent((userName || 'ZH').substring(0,2).toUpperCase())}`;
+                  }}
+                />
               </div>
-              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-emerald-500 border border-[#1E293B] rounded-full" />
+              <span className="absolute bottom-0 right-0 h-3.5 w-3.5 bg-emerald-500 border border-[#1a1b3a] rounded-full animate-pulse" />
             </div>
           </div>
         )}
-
-        <div className={`mt-auto pt-4 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-100'} space-y-2 overflow-hidden flex justify-center`}>
-          {!isMobile && (
-            <button 
-              onClick={() => setSidebarOpen(!isSidebarOpen)}
-              className={`flex items-center justify-center rounded-2xl ${isSidebarOpen ? 'w-full p-3' : 'w-12 h-12'} ${isDarkMode ? 'hover:bg-white/5 text-slate-500' : 'hover:bg-slate-100 text-slate-400'} transition-colors`}
-            >
-              <ChevronRight className={`transition-transform duration-300 ${isSidebarOpen ? 'rotate-180' : 'rotate-0'}`} />
-            </button>
-          )}
-        </div>
+        {/* END: User Profile Section */}
       </motion.aside>
 
       {/* Main Content */}
-      <main className={`flex-1 flex flex-col overflow-hidden relative ${isDarkMode ? 'bg-[#0F172A] dark-theme' : themeMode === 'peach' ? 'bg-[#efe8d9] peach-theme' : 'bg-slate-50'} transition-colors duration-500`}>
+      <main className={`flex-1 flex flex-col overflow-hidden relative ${isDarkMode ? 'bg-[#0d0e1b] dark-theme' : themeMode === 'peach' ? 'bg-[#efe8d9] peach-theme' : 'bg-slate-50'} transition-colors duration-500`}>
+        {isDarkMode && (
+          <div className="dashboard-bg-container" data-purpose="mock-dashboard-layers">
+            <div className="bg-blur-card bg-blur-card-1"></div>
+            <div className="bg-blur-card bg-blur-card-2"></div>
+            <div className="bg-blur-card bg-blur-card-3"></div>
+            <div className="bg-blur-card bg-blur-card-4"></div>
+            <div className="bg-blur-card bg-blur-card-5"></div>
+          </div>
+        )}
         {/* Header */}
         <header 
-          className={`sticky top-0 left-0 right-0 h-20 border-b ${isDarkMode ? 'border-white/5 bg-[#0F172A]/90' : themeMode === 'peach' ? 'border-[#dcd4c3] bg-[#efe8d9]/90' : 'border-slate-200 bg-slate-50/90'} backdrop-blur-md px-4 lg:px-8 flex items-center justify-between shrink-0 z-50 transition-colors duration-500`}
+          className={`sticky top-0 left-0 right-0 h-20 border-b ${isDarkMode ? 'border-white/5 bg-[#050a18]/90' : themeMode === 'peach' ? 'border-[#dcd4c3] bg-[#efe8d9]/90' : 'border-slate-200 bg-slate-50/90'} backdrop-blur-md px-4 lg:px-8 flex items-center justify-between shrink-0 z-50 transition-colors duration-500`}
         >
           {/* Left Side: Navigation (Home & Back Buttons) */}
           <div className="flex items-center gap-3">
@@ -2185,83 +2136,163 @@ export default function App() {
                 <AdminDashboard isDarkMode={isDarkMode} />
               ) : (
                 <>
-                {/* Action Bar */}
-                <div className={`flex flex-col md:flex-row justify-between items-center ${isDarkMode ? 'bg-indigo-900/40 border-indigo-500/30' : 'bg-[#fff5ee] border-[#ffebd6] shadow-md'} border p-8 md:p-10 rounded-[40px] gap-6 relative overflow-hidden`}>
-                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-yellow/20 rounded-full blur-2xl"></div>
-                  <div className="absolute bottom-0 left-10 w-32 h-32 bg-brand-cyan/20 rounded-full blur-2xl"></div>
-                  
-                  <div className="relative z-10 text-center md:text-left">
-                    <h3 className={`text-4xl lg:text-5xl font-display font-black ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Teacher Console 👩‍🏫</h3>
-                    <p className={`text-base font-bold ${isDarkMode ? 'text-indigo-200' : 'text-slate-500'} mt-2 max-w-sm`}>Manage and generate magic educational resources.</p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-4 relative z-10 w-full md:w-auto">
-                    <button 
-                      onClick={() => setActiveCreatorTab('teaching')}
-                      className="bg-brand-yellow hover:bg-[#ffdf40] text-slate-800 px-8 py-4 rounded-[30px] font-display font-bold text-sm lg:text-base kid-shadow-hover flex items-center justify-center gap-2 transition-all active:scale-95 w-full sm:w-auto"
-                    >
-                      <Plus size={20} strokeWidth={3} /> Create Content!
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab('archive')}
-                      className={`px-8 py-4 rounded-[30px] font-display font-bold text-sm lg:text-base border-4 ${isDarkMode ? 'border-indigo-400/30 hover:bg-indigo-400/10 text-indigo-100' : 'border-[#ffdf40] hover:bg-[#ffebd6] text-slate-700'} transition-all kid-shadow-hover w-full sm:w-auto flex justify-center`}
-                    >
-                       View Archive
-                    </button>
-                  </div>
-                </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch pt-4">
-                      {/* Left: Dynamic Stats Panel */}
-                      <div className="lg:col-span-4 h-full">
-                        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-1 gap-4 lg:gap-6 h-full">
-                          {[
-                            { label: 'Learners', value: '1,248', change: '+12%', icon: Users, color: 'text-brand-cyan', bg: 'bg-cyan-500/10', glow: 'shadow-cyan-500/20', displayColor: isDarkMode ? 'text-cyan-400' : 'text-cyan-600' },
-                            { label: 'Graded', value: '432', change: '+5%', icon: ClipboardCheck, color: 'text-brand-purple', bg: 'bg-purple-500/10', glow: 'shadow-purple-500/20', displayColor: isDarkMode ? 'text-purple-400' : 'text-purple-600'  },
-                            { label: 'Generated', value: '86', change: '+24%', icon: FileText, color: 'text-brand-yellow', bg: 'bg-yellow-500/10', glow: 'shadow-yellow-500/20', displayColor: isDarkMode ? 'text-yellow-400' : 'text-yellow-600' },
-                            { label: 'Sessions', value: '15.4k', change: '+18%', icon: MessageSquare, color: 'text-brand-green', bg: 'bg-green-500/10', glow: 'shadow-green-500/20', displayColor: isDarkMode ? 'text-green-400' : 'text-green-600' }
-                          ].map((stat, i) => (
-                            <div 
-                              key={`stat-${i}`} 
-                              className={`${isDarkMode ? 'glass border-white/5' : 'bg-white border-2 border-slate-100'} p-4 lg:p-5 rounded-[24px] kid-shadow hover:-translate-y-1 transition-all duration-300 h-full flex items-center gap-3.5`}
-                            >
-                              <div className={`${stat.color} p-3 rounded-[18px] ${stat.bg} ${stat.glow} shadow-md shrink-0`}>
-                                <stat.icon size={22} strokeWidth={2.5} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between gap-1.5">
-                                  <p className={`text-[10px] uppercase font-black tracking-[0.15em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} truncate`}>
-                                    {stat.label}
-                                  </p>
-                                  <span className="text-[9px] font-black uppercase text-brand-green bg-brand-green/10 px-1.5 py-0.5 rounded-md shrink-0">
-                                    {stat.change}
-                                  </span>
-                                </div>
-                                <h3 className={`text-2xl lg:text-3xl font-display font-black mt-0.5 tracking-tight ${stat.displayColor}`}>
-                                  {stat.value}
-                                </h3>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                  {/* Action Bar */}
+                  <div className={cn(
+                    "relative rounded-[40px] p-8 lg:p-12 overflow-hidden text-white flex flex-col lg:flex-row lg:items-center lg:justify-between min-h-[260px] border shadow-2xl gap-8 mb-6 transition-all duration-300",
+                    isDarkMode 
+                      ? "glass-neon-card bg-[#0b1122]/75 border-brand-cyan/25" 
+                      : themeMode === 'peach'
+                        ? "bg-[#efe8d9]/95 border-[#dcd4c3] text-[#431407]"
+                        : "bg-slate-900 border-slate-800 text-white"
+                  )}>
+                    {/* Decorative Elements */}
+                    <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none hidden md:block">
+                      <GraduationCap size={200} className={cn(isDarkMode && "icon-glow-cyan text-brand-cyan")} />
+                    </div>
+                    {isDarkMode && (
+                      <>
+                        <div className="absolute -left-10 -bottom-10 w-40 h-40 rounded-full bg-brand-cyan/15 blur-3xl pointer-events-none" />
+                        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-brand-pink/15 blur-3xl pointer-events-none" />
+                      </>
+                    )}
+                    
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-slate-900/10 to-transparent pointer-events-none" />
+                    
+                    <div className="relative z-10 max-w-xl">
+                      <div className={cn(
+                        "inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-black uppercase tracking-widest mb-6 shadow-sm",
+                        isDarkMode 
+                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 animate-pulse" 
+                          : "border-[#dcd4c3] bg-[#efe8d9] text-[#431407]"
+                      )}>
+                        <Plus size={12} className="animate-pulse shrink-0" /> Localized South Africa DBE & CAPS
                       </div>
+                      <h1 className={cn(
+                        "text-3.5xl lg:text-5.5xl font-display font-black tracking-tight leading-tight mb-4 drop-shadow-md",
+                        isDarkMode 
+                          ? "text-white text-glow-cyan" 
+                          : themeMode === 'peach' ? "text-[#431407]" : "text-white"
+                      )}>
+                        Teacher <span className={isDarkMode ? "text-brand-cyan text-glow-cyan" : "text-cyan-500"}>Console</span> 👩‍🏫
+                      </h1>
+                      <p className={cn(
+                        "font-medium text-sm lg:text-base leading-relaxed",
+                        isDarkMode ? "text-slate-300" : themeMode === 'peach' ? "text-[#431407]/80" : "text-slate-300"
+                      )}>
+                        Manage localized DBE classrooms, track continuous school-based assessments (SBA), and generate magic CAPS lesson templates in seconds.
+                      </p>
+                    </div>
+                    
+                    <div className="relative z-10 flex flex-col sm:flex-row gap-4 w-full lg:w-auto shrink-0">
+                      <button 
+                        onClick={() => {
+                          setActiveCategory('content-creator-menu');
+                          setActiveCreatorTab('teaching');
+                          setActiveTab('teaching');
+                        }}
+                        className={cn(
+                          "px-8 py-4 rounded-[30px] font-display font-black text-sm lg:text-base flex items-center justify-center gap-2 transition-all active:scale-95 w-full sm:w-auto cursor-pointer border-none outline-none shadow-lg",
+                          isDarkMode 
+                            ? "bg-emerald-500 hover:bg-emerald-400 text-[#0c1424] shadow-emerald-500/15" 
+                            : "bg-[#00d2ff] hover:bg-cyan-400 text-slate-900 shadow-cyan-500/15"
+                        )}
+                      >
+                        <Plus size={20} strokeWidth={3} /> Create Content!
+                      </button>
+                      <button 
+                        onClick={() => setActiveTab('archive')}
+                        className={cn(
+                          "px-8 py-4 rounded-[30px] font-display font-bold text-sm lg:text-base transition-all w-full sm:w-auto flex justify-center items-center gap-2 cursor-pointer border",
+                          isDarkMode 
+                            ? "bg-white/5 hover:bg-white/10 border-white/10 text-white" 
+                            : "bg-slate-800 hover:bg-slate-700 text-white border-transparent"
+                        )}
+                      >
+                        View Archive
+                      </button>
+                    </div>
+                  </div>
 
-                      {/* Right: Live Recharts Classroom progress tracker */}
-                      <div className={`${isDarkMode ? 'glass border-white/5' : 'bg-white border-2 border-slate-100'} p-6 lg:p-8 rounded-[36px] kid-shadow lg:col-span-8 h-full flex flex-col justify-between`}>
+                  {/* Dynamic Stats Panel & Live Progress Area */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch pt-2 mb-8">
+                    {/* Left: Dynamic Stats Panel */}
+                    <div className="lg:col-span-4 h-full flex flex-col gap-4 justify-between">
+                      {[
+                        { label: 'Active Learners', value: '38', change: 'DBE Class 7-A', icon: Users, color: 'text-brand-cyan', bg: 'bg-cyan-500/10', displayColor: isDarkMode ? 'text-brand-cyan text-glow-cyan' : 'text-cyan-600', border: 'hover-neon-cyan' },
+                        { label: 'SBA Grade Sheets', value: '142', change: 'Term 1 Complete', icon: ClipboardCheck, color: 'text-brand-pink', bg: 'bg-pink-500/10', displayColor: isDarkMode ? 'text-brand-pink text-glow-pink' : 'text-rose-600', border: 'hover-neon-pink' },
+                        { label: 'CAPS Drafted', value: '47', change: '+12 This Week', icon: FileText, color: 'text-brand-yellow', bg: 'bg-yellow-500/10', displayColor: isDarkMode ? 'text-brand-yellow' : 'text-amber-600', border: 'hover-neon-yellow' },
+                        { label: 'Active Tutoring', value: '24h', change: 'Continuous Sync', icon: MessageSquare, color: 'text-brand-green', bg: 'bg-green-500/10', displayColor: isDarkMode ? 'text-brand-green text-glow-green' : 'text-emerald-600', border: 'hover-neon-green' }
+                      ].map((stat, i) => (
+                        <div 
+                          key={`stat-${i}`} 
+                          className={cn(
+                            "p-4 lg:p-5 rounded-[30px] transition-all duration-300 h-full flex items-center gap-3.5 border",
+                            isDarkMode 
+                              ? `glass-neon-card border-white/5 ${stat.border}` 
+                              : "bg-white border-slate-200 shadow-sm hover:shadow-md"
+                          )}
+                        >
+                          <div className={cn(stat.color, `p-3 rounded-2xl ${stat.bg} shadow-md shrink-0`)}>
+                            <stat.icon size={22} strokeWidth={2.5} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1.5">
+                              <p className={cn(
+                                "text-[10px] uppercase font-black tracking-[0.15em] truncate",
+                                isDarkMode ? "text-slate-400" : "text-slate-500"
+                              )}>
+                                {stat.label}
+                              </p>
+                              <span className={cn(
+                                "text-[9px] font-black uppercase px-2 py-0.5 rounded-lg shrink-0",
+                                isDarkMode ? "bg-white/5 text-slate-400" : "bg-slate-100 text-slate-600"
+                              )}>
+                                {stat.change}
+                              </span>
+                            </div>
+                            <h3 className={`text-xl lg:text-2xl font-display font-black mt-0.5 tracking-tight ${stat.displayColor}`}>
+                              {stat.value}
+                            </h3>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Right: Live Recharts Classroom progress tracker */}
+                    <div className={cn(
+                      "p-6 lg:p-8 rounded-[36px] shadow-sm lg:col-span-8 h-full flex flex-col justify-between border",
+                      isDarkMode ? "glass-neon-card border-brand-green/15 bg-[#0b1122]/50" : "bg-white border-slate-200"
+                    )}>
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                         <div>
-                          <span className={`text-[10px] uppercase font-black tracking-widest px-2.5 py-1 rounded-lg ${isDarkMode ? 'bg-[#00d2ff]/10 text-[#00d2ff]' : 'bg-cyan-100 text-cyan-700'}`}>
-                            Live Class Analytics
+                          <span className={cn(
+                            "text-[10px] uppercase font-black tracking-widest px-2.5 py-1 rounded-lg",
+                            isDarkMode ? 'bg-brand-cyan/20 text-brand-cyan text-glow-cyan' : 'bg-cyan-100 text-cyan-700'
+                          )}>
+                            SBA Progress Trends (Term-over-Term)
                           </span>
-                          <h4 className={`text-xl lg:text-2xl font-display font-black mt-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                            Classroom Progress Trends & Performance
+                          <h4 className={cn(
+                            "text-xl lg:text-2.5xl font-display font-black mt-2",
+                            isDarkMode ? "text-white text-glow-cyan" : "text-slate-800"
+                          )}>
+                            Classroom Subject Aggregates
                           </h4>
-                          <p className={`text-xs font-bold ${isDarkMode ? 'text-indigo-200/60' : 'text-slate-500'} mt-1`}>
-                            Real-time average marks aggregated directly from active student subject score sheets for the current cycle.
+                          <p className={cn(
+                            "text-xs font-semibold mt-1",
+                            isDarkMode ? "text-slate-400" : "text-slate-500"
+                          )}>
+                            Real-time average marks aggregated directly from student SBA scores (Mathematics, Natural Sciences, Languages).
                           </p>
                         </div>
-                        <div className="flex items-center gap-3 bg-slate-950/20 p-1.5 rounded-2xl border border-white/5">
-                          <span className="text-xs font-black text-brand-yellow px-3 py-1 bg-brand-yellow/10 rounded-xl">
-                            Term History View
+                        <div className={cn(
+                          "flex items-center gap-3 p-1.5 rounded-2xl border",
+                          isDarkMode ? "bg-slate-950/40 border-white/5" : "bg-slate-50 border-slate-200 shadow-sm"
+                        )}>
+                          <span className={cn(
+                            "text-xs font-black px-3 py-1 rounded-xl",
+                            isDarkMode ? "bg-emerald-500/10 text-emerald-400 text-glow-green" : "bg-emerald-50/10 text-emerald-600"
+                          )}>
+                            Term 1 SBA View
                           </span>
                         </div>
                       </div>
@@ -2317,17 +2348,23 @@ export default function App() {
                         </div>
 
                         {/* Current Term Subjects Average Performance List */}
-                        <div className={`p-6 rounded-[28px] ${isDarkMode ? 'bg-slate-950/40 border border-white/5' : 'bg-slate-50 border border-slate-100'} flex flex-col justify-between`}>
+                        <div className={cn(
+                          "p-4 rounded-[28px] border flex flex-col justify-between",
+                          isDarkMode ? "bg-slate-950/40 border-white/5" : "bg-slate-50 border-slate-100"
+                        )}>
                           <div>
-                            <h5 className={`text-base font-display font-black mb-4 ${isDarkMode ? 'text-white' : 'text-slate-700'}`}>
-                              Subject Performance (Current Term)
+                            <h5 className={cn(
+                              "text-sm font-display font-black mb-4",
+                              isDarkMode ? "text-white" : "text-slate-700"
+                            )}>
+                              Subject Averages
                             </h5>
                             <div className="space-y-4">
                               {dashboardSubjectAverages.map((sub, idx) => {
                                 const colors = [
-                                  { text: 'text-brand-cyan', bg: 'bg-[#00d2ff]/10', bar: 'bg-[#00d2ff]' },
-                                  { text: 'text-brand-green', bg: 'bg-[#2ed573]/10', bar: 'bg-[#2ed573]' },
-                                  { text: 'text-brand-purple', bg: 'bg-[#9b59b6]/10', bar: 'bg-[#9b59b6]' }
+                                  { text: isDarkMode ? 'text-brand-cyan text-glow-cyan' : 'text-brand-cyan', bg: 'bg-[#00d2ff]/10', bar: 'bg-[#00d2ff]' },
+                                  { text: isDarkMode ? 'text-brand-green text-glow-green' : 'text-brand-green', bg: 'bg-[#2ed573]/10', bar: 'bg-[#2ed573]' },
+                                  { text: isDarkMode ? 'text-[#9b59b6] text-glow-pink' : 'text-[#9b59b6]', bg: 'bg-[#9b59b6]/10', bar: 'bg-[#9b59b6]' }
                                 ];
                                 const itemColor = colors[idx % colors.length];
 
@@ -2335,7 +2372,7 @@ export default function App() {
                                   <div key={`subavg-${idx}`} className="space-y-1.5">
                                     <div className="flex justify-between items-center text-xs font-bold">
                                       <span className={isDarkMode ? 'text-slate-300' : 'text-slate-600'}>{sub.name}</span>
-                                      <span className={`${itemColor.text} px-2 py-0.5 rounded-md ${itemColor.bg}`}>{sub.average}% Avg</span>
+                                      <span className={cn("px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider", itemColor.bg, itemColor.text)}>{sub.average}%</span>
                                     </div>
                                     <div className={`h-2.5 w-full rounded-full ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200'} overflow-hidden`}>
                                       <div 
@@ -2350,13 +2387,16 @@ export default function App() {
                           </div>
 
                           <div className={`mt-6 pt-4 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-200'}`}>
-                            <div className="flex items-center gap-3">
-                              <span className="flex h-3 w-3 relative">
+                            <div className="flex items-center gap-2">
+                              <span className="flex h-2.5 w-2.5 relative">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                               </span>
-                              <p className={`text-[11px] font-black uppercase tracking-wider ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
-                                Real-time syncing active
+                              <p className={cn(
+                                "text-[10px] font-black uppercase tracking-wider",
+                                isDarkMode ? "text-emerald-400" : "text-emerald-700"
+                              )}>
+                                DBE Synced
                               </p>
                             </div>
                           </div>
@@ -2365,61 +2405,189 @@ export default function App() {
                     </div>
                   </div>
 
-                    {/* Feature Cards Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-                      <div className="lg:col-span-12">
-                        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
-                          {[
-                            { title: "Content Creator Studio", desc: "Lessons, Plans & Assessments.", color: 'text-brand-cyan', bg20: 'bg-cyan-500/20', border30: 'border-cyan-500/30', bg10: 'bg-cyan-500/10', icon: FlaskConical, id: 'teaching' },
-                            { title: "Content Archive", desc: "Posters, Cards & Displays.", color: 'text-brand-purple', bg20: 'bg-purple-500/20', border30: 'border-purple-500/30', bg10: 'bg-purple-500/10', icon: Archive, id: 'archive' },
-                            { title: "Illustration Library", desc: "Store & reuse graphics.", color: 'bg-gradient-to-tr from-pink-400 to-rose-400 bg-clip-text text-transparent', bg20: 'bg-pink-500/20', border30: 'border-pink-500/30', bg10: 'bg-pink-500/10', icon: Image, id: 'illustrations' },
-                            { title: "AI Tutor", desc: "Interactive intelligence.", color: 'text-brand-yellow', bg20: 'bg-yellow-500/20', border30: 'border-yellow-500/30', bg10: 'bg-yellow-500/10', icon: Brain, id: 'ai-tutor' },
-                            { title: "Scan & Autograde", desc: "Automated vision grading.", color: 'text-brand-pink', bg20: 'bg-pink-500/20', border30: 'border-pink-500/30', bg10: 'bg-pink-500/10', icon: Scan, id: 'ocr' },
-                            { title: "Progress Reports", desc: "Track student performance.", color: 'text-orange-400', bg20: 'bg-orange-500/20', border30: 'border-orange-500/30', bg10: 'bg-orange-500/10', icon: TrendingUp, id: 'reports' },
-                            { title: "Communicator & Messenger", desc: "School connection hub.", color: 'text-indigo-400', bg20: 'bg-indigo-500/20', border30: 'border-indigo-500/30', bg10: 'bg-indigo-500/10', icon: MessageSquare, id: 'messenger' },
-                            { title: "Collaborative Workspace", desc: "Multiplayer workspace labs.", color: 'text-violet-400', bg20: 'bg-violet-500/20', border30: 'border-violet-500/30', bg10: 'bg-violet-500/10', icon: Users, id: 'collaborative-workspace' },
-                            { title: "Portfolios", desc: "Student work portfolio.", color: 'text-emerald-400', bg20: 'bg-emerald-500/20', border30: 'border-emerald-500/30', bg10: 'bg-emerald-500/10', icon: UserCircle, id: 'portfolios' },
-                            { title: "Class & Student Management", desc: "Manage your learners.", color: 'text-blue-400', bg20: 'bg-blue-500/20', border30: 'border-blue-500/30', bg10: 'bg-blue-500/10', icon: Users, id: 'class-management' },
-                            { title: "Settings", desc: "Account & App preferences.", color: 'text-slate-400', bg20: 'bg-slate-500/20', border30: 'border-slate-500/30', bg10: 'bg-slate-500/10', icon: Settings, id: 'settings' },
-                            { title: "Helpdesk", desc: "Technical Support & FAQ.", color: 'text-indigo-300', bg20: 'bg-indigo-400/20', border30: 'border-indigo-400/30', bg10: 'bg-indigo-400/10', icon: HelpCircle, id: 'helpdesk' },
-                          ].map((item, i) => (
-                            <button 
-                              key={`feature-${item.id}-${i}`} 
-                              onClick={() => {
-                                if (['teaching', 'grade1'].includes(item.id)) {
-                                  setActiveCreatorTab(item.id);
-                                } else {
-                                  setActiveTab(item.id);
-                                }
-                              }}
-                              className={`group ${isDarkMode ? 'glass hover:bg-white/10' : 'bg-white border-2 border-slate-100'} p-3.5 sm:p-6 lg:p-8 rounded-[20px] sm:rounded-[40px] transition-all text-left relative overflow-hidden backdrop-blur-xl kid-shadow-hover hover:-translate-y-2 flex flex-col items-center sm:items-start text-center sm:text-left cursor-pointer`}
-                            >
-                              <div className={`w-11 h-11 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-[12px] sm:rounded-[24px] lg:rounded-[28px] flex items-center justify-center mb-2.5 sm:mb-4 lg:mb-6 ${item.bg20} border-2 sm:border-4 ${item.border30} ${item.color} group-hover:scale-110 transition-transform shadow-inner`}>
-                                <item.icon size={18} className="sm:w-[32px] sm:h-[32px] lg:w-[40px] lg:h-[40px]" strokeWidth={2} />
-                              </div>
-                              <h4 className={`text-xs sm:text-xl lg:text-2xl font-display font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'} line-clamp-1 sm:line-clamp-none`}>{item.title}</h4>
-                              <p className={`text-[10px] sm:text-xs lg:text-sm font-medium sm:font-bold leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-1 sm:mt-2 line-clamp-2 sm:line-clamp-none`}>{item.desc}</p>
-                              
-                              <div className={`absolute top-4 right-4 sm:top-6 sm:right-6 opacity-0 sm:group-hover:opacity-100 transition-all ${item.color} ${item.bg10} p-1.5 sm:p-2 rounded-full hidden sm:block`}>
-                                <ChevronRight size={16} strokeWidth={3} className="sm:w-[24px] sm:h-[24px]" />
-                              </div>
-                            </button>
-                          ))}
-                        </div>
+                  {/* DBE South African Student Class Roster Section */}
+                  <div className={cn(
+                    "p-6 lg:p-8 rounded-[36px] border mb-8",
+                    isDarkMode ? "glass-neon-card bg-[#0b1122]/50 border-white/5" : "bg-white border-slate-200 shadow-sm"
+                  )}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                      <div>
+                        <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-cyan-500/10 text-[#00d2ff] rounded-lg">
+                          Class List
+                        </span>
+                        <h3 className={cn("text-xl lg:text-2xl font-display font-black mt-1", isDarkMode ? "text-white" : "text-slate-900")}>
+                          Continuous Assessment Grade Sheet
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-0.5 font-bold">
+                          Monitor individual pupil marks, Term SBA sheets, and assign diagnostic remedial worksheets instantly.
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => setActiveTab('class-management')}
+                          className={cn(
+                            "px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer",
+                            isDarkMode ? "bg-white/5 hover:bg-white/10 border-white/10 text-white" : "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700"
+                          )}
+                        >
+                          Manage Class
+                        </button>
                       </div>
                     </div>
-                  </>
-                )
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className={cn("border-b text-[10px] uppercase font-black tracking-wider", isDarkMode ? "border-white/5 text-slate-400" : "border-slate-100 text-slate-500")}>
+                            <th className="py-3 px-4">Learner</th>
+                            <th className="py-3 px-4">Class</th>
+                            <th className="py-3 px-4">Mathematics</th>
+                            <th className="py-3 px-4">Natural Sciences</th>
+                            <th className="py-3 px-4">Languages</th>
+                            <th className="py-3 px-4 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className={cn("text-xs font-semibold", isDarkMode ? "text-slate-300" : "text-slate-700")}>
+                          {[
+                            { name: "Sipho Nkosi", class: "Grade 7-A", math: "88%", sci: "84%", lang: "91%", color: "text-emerald-500 bg-emerald-500/10" },
+                            { name: "Liezel de Wet", class: "Grade 7-A", math: "94%", sci: "92%", lang: "89%", color: "text-[#00d2ff] bg-[#00d2ff]/10" },
+                            { name: "Thabo Mbeki", class: "Grade 7-B", math: "72%", sci: "78%", lang: "81%", color: "text-amber-500 bg-amber-500/10" },
+                            { name: "Chantal Naidoo", class: "Grade 7-A", math: "64%", sci: "70%", lang: "75%", color: "text-rose-500 bg-rose-500/10" },
+                            { name: "Muhammad Cassim", class: "Grade 7-B", math: "81%", sci: "85%", lang: "88%", color: "text-emerald-500 bg-emerald-500/10" }
+                          ].map((stu, i) => (
+                            <tr key={`stu-${i}`} className={cn("border-b hover:bg-slate-50/50 transition-all", isDarkMode ? "border-white/5 hover:bg-white/5" : "border-slate-100")}>
+                              <td className="py-4 px-4 font-bold flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-black text-slate-600 border border-slate-300">
+                                  {stu.name.split(' ').map(n=>n[0]).join('')}
+                                </div>
+                                <span className={isDarkMode ? "text-white" : "text-slate-900"}>{stu.name}</span>
+                              </td>
+                              <td className="py-4 px-4">
+                                <span className="px-2.5 py-1 bg-slate-100 dark:bg-white/5 rounded-lg text-[10px] font-black uppercase">
+                                  {stu.class}
+                                </span>
+                              </td>
+                              <td className="py-4 px-4">
+                                <span className="font-mono font-black">{stu.math}</span>
+                              </td>
+                              <td className="py-4 px-4">
+                                <span className="font-mono font-black">{stu.sci}</span>
+                              </td>
+                              <td className="py-4 px-4">
+                                <span className="font-mono font-black">{stu.lang}</span>
+                              </td>
+                              <td className="py-4 px-4 text-right">
+                                <div className="flex justify-end gap-2">
+                                  <button 
+                                    onClick={() => {
+                                      setActiveCategory('content-creator-menu');
+                                      setActiveCreatorTab('teaching');
+                                      setActiveTab('teaching');
+                                      triggerToast(`Generating target CAPS lesson plan for ${stu.name}! 📚`, "info");
+                                    }}
+                                    className="px-2.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-500 rounded-lg text-[10px] font-black uppercase border-none cursor-pointer transition-all"
+                                  >
+                                    Custom Lesson
+                                  </button>
+                                  <button 
+                                    onClick={() => {
+                                      setActiveTab('reports');
+                                      triggerToast(`Opening portfolio files for ${stu.name}! 📁`, "info");
+                                    }}
+                                    className="px-2.5 py-1.5 bg-[#00d2ff]/10 hover:bg-[#00d2ff]/25 text-[#00d2ff] rounded-lg text-[10px] font-black uppercase border-none cursor-pointer transition-all"
+                                  >
+                                    Portfolio
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Feature Cards Grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+                    <div className="lg:col-span-12">
+                      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                        {[
+                          { title: "Content Creator Studio", desc: "Lessons, Plans & Assessments.", color: 'text-brand-cyan', bg20: 'bg-cyan-500/20', border30: 'border-brand-cyan/20 hover:border-brand-cyan/70 hover:shadow-[0_0_15px_rgba(0,179,255,0.25)]', bg10: 'bg-cyan-500/10', icon: FlaskConical, id: 'teaching', glow: 'cyan' },
+                          { title: "Content Archive", desc: "Posters, Cards & Displays.", color: 'text-[#9b59b6]', bg20: 'bg-purple-500/20', border30: 'border-brand-purple/20 hover:border-brand-purple/70 hover:shadow-[0_0_15px_rgba(155,89,182,0.25)]', bg10: 'bg-purple-500/10', icon: Archive, id: 'archive', glow: 'purple' },
+                          { title: "Illustration Library", desc: "Store & reuse graphics.", color: 'bg-gradient-to-tr from-pink-400 to-rose-400 bg-clip-text text-transparent', bg20: 'bg-pink-500/20', border30: 'border-brand-pink/20 hover:border-brand-pink/70 hover:shadow-[0_0_15px_rgba(255,0,212,0.25)]', bg10: 'bg-pink-500/10', icon: Image, id: 'illustrations', glow: 'pink' },
+                          { title: "AI Tutor", desc: "Interactive intelligence.", color: 'text-brand-yellow', bg20: 'bg-yellow-500/20', border30: 'border-brand-yellow/20 hover:border-brand-yellow/70 hover:shadow-[0_0_15px_rgba(250,204,21,0.25)]', bg10: 'bg-yellow-500/10', icon: Brain, id: 'ai-tutor', glow: 'yellow' },
+                          { title: "Scan & Autograde", desc: "Automated vision grading.", color: 'text-brand-pink', bg20: 'bg-pink-500/20', border30: 'border-brand-pink/20 hover:border-brand-pink/70 hover:shadow-[0_0_15px_rgba(255,0,212,0.25)]', bg10: 'bg-pink-500/10', icon: Scan, id: 'ocr', glow: 'pink' },
+                          { title: "Progress Reports", desc: "Track student performance.", color: 'text-orange-400', bg20: 'bg-orange-500/20', border30: 'border-orange-500/20 hover:border-orange-500/70 hover:shadow-[0_0_15px_rgba(249,115,22,0.25)]', bg10: 'bg-orange-500/10', icon: TrendingUp, id: 'reports', glow: 'yellow' },
+                          { title: "Communicator & Messenger", desc: "School connection hub.", color: 'text-indigo-400', bg20: 'bg-indigo-500/20', border30: 'border-indigo-500/20 hover:border-indigo-500/70 hover:shadow-[0_0_15px_rgba(99,102,241,0.25)]', bg10: 'bg-indigo-500/10', icon: MessageSquare, id: 'messenger', glow: 'cyan' },
+                          { title: "Collaborative Workspace", desc: "Multiplayer workspace labs.", color: 'text-violet-400', bg20: 'bg-violet-500/20', border30: 'border-violet-500/20 hover:border-violet-500/70 hover:shadow-[0_0_15px_rgba(139,92,246,0.25)]', bg10: 'bg-violet-500/10', icon: Users, id: 'collaborative-workspace', glow: 'purple' },
+                          { title: "Portfolios", desc: "Student work portfolio.", color: 'text-emerald-400', bg20: 'bg-emerald-500/20', border30: 'border-brand-green/20 hover:border-brand-green/70 hover:shadow-[0_0_15px_rgba(0,255,159,0.25)]', bg10: 'bg-emerald-500/10', icon: UserCircle, id: 'portfolios', glow: 'green' },
+                          { title: "Class & Student Management", desc: "Manage your learners.", color: 'text-blue-400', bg20: 'bg-blue-500/20', border30: 'border-blue-500/20 hover:border-blue-500/70 hover:shadow-[0_0_15px_rgba(59,130,246,0.25)]', bg10: 'bg-blue-500/10', icon: Users, id: 'class-management', glow: 'cyan' },
+                          { title: "Settings", desc: "Account & App preferences.", color: 'text-slate-400', bg20: 'bg-slate-500/20', border30: 'border-slate-500/20 hover:border-slate-400/70 hover:shadow-[0_0_15px_rgba(148,163,184,0.25)]', bg10: 'bg-slate-500/10', icon: Settings, id: 'settings', glow: 'cyan' },
+                          { title: "Helpdesk", desc: "Technical Support & FAQ.", color: 'text-indigo-300', bg20: 'bg-indigo-400/20', border30: 'border-indigo-400/20 hover:border-indigo-400/70 hover:shadow-[0_0_15px_rgba(129,140,248,0.25)]', bg10: 'bg-indigo-400/10', icon: HelpCircle, id: 'helpdesk', glow: 'purple' },
+                        ].map((item, i) => (
+                          <button 
+                            key={`feature-${item.id}-${i}`} 
+                            onClick={() => {
+                              if (['teaching', 'grade1'].includes(item.id)) {
+                                setActiveCategory('content-creator-menu');
+                                setActiveCreatorTab('teaching');
+                                setActiveTab('teaching');
+                              } else {
+                                // Map feature key correctly to active categories
+                                if (['reports', 'class-management', 'portfolios'].includes(item.id)) {
+                                  setActiveCategory('teacher-dashboard-menu');
+                                } else if (['archive', 'illustrations'].includes(item.id)) {
+                                  setActiveCategory('content-archive-menu');
+                                } else if (['ai-tutor', 'collaborative-workspace'].includes(item.id)) {
+                                  setActiveCategory('tutoring-workspace-menu');
+                                } else if (['ocr'].includes(item.id)) {
+                                  setActiveCategory('autograde-vision-menu');
+                                } else if (['settings', 'helpdesk'].includes(item.id)) {
+                                  setActiveCategory('settings-menu');
+                                }
+                                setActiveTab(item.id);
+                              }
+                            }}
+                            className={cn(
+                              "group p-3.5 sm:p-6 lg:p-8 rounded-[20px] sm:rounded-[40px] transition-all text-left relative overflow-hidden backdrop-blur-xl hover:-translate-y-2 flex flex-col items-center sm:items-start text-center sm:text-left cursor-pointer border",
+                              isDarkMode 
+                                ? `glass-neon-card ${item.border30}` 
+                                : "bg-white border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-1"
+                            )}
+                          >
+                            <div className={`w-11 h-11 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-[12px] sm:rounded-[24px] lg:rounded-[28px] flex items-center justify-center mb-2.5 sm:mb-4 lg:mb-6 ${item.bg20} border-2 sm:border-4 ${isDarkMode ? 'border-white/10' : 'border-slate-100'} ${item.color} group-hover:scale-110 transition-transform shadow-inner`}>
+                              <item.icon size={18} className={cn("sm:w-[32px] sm:h-[32px] lg:w-[40px] lg:h-[40px]", isDarkMode && `icon-glow-${item.glow}`)} strokeWidth={2} />
+                            </div>
+                            <h4 className={cn(
+                              "text-xs sm:text-xl lg:text-2xl font-display font-black line-clamp-1 sm:line-clamp-none",
+                              isDarkMode ? "text-white group-hover:text-glow-cyan" : "text-slate-800"
+                            )}>{item.title}</h4>
+                            <p className={`text-[10px] sm:text-xs lg:text-sm font-medium sm:font-bold leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-1 sm:mt-2 line-clamp-2 sm:line-clamp-none`}>{item.desc}</p>
+                            
+                            <div className={cn(
+                              "absolute top-4 right-4 sm:top-6 sm:right-6 opacity-0 sm:group-hover:opacity-100 transition-all p-1.5 sm:p-2 rounded-full hidden sm:block",
+                              item.color,
+                              item.bg10
+                            )}>
+                              <ChevronRight size={16} strokeWidth={3} className="sm:w-[24px] sm:h-[24px]" />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )
                 ) : activeTab === 'messenger' ? (
                   <Messenger />
                 ) : activeTab === 'reports' ? (
                   userRole === 'parent' ? (
                     <ParentDashboard isDarkMode={isDarkMode} />
                   ) : (
-                    <ProgressReports />
+                    <ProgressReports isDarkMode={isDarkMode} />
                   )
                 ) : activeTab === 'class-management' ? (
-                  <ClassManagement />
+                  <ClassManagement isDarkMode={isDarkMode} />
                 ) : activeTab === 'ocr' ? (
                   <AutoGrading />
                 ) : activeTab === 'archive' ? (
@@ -2427,7 +2595,7 @@ export default function App() {
                 ) : activeTab === 'illustrations' ? (
                   <IllustrationLibrary isDarkMode={isDarkMode} />
                 ) : activeTab === 'ai-tutor' ? (
-                  <AITutorPage />
+                  <AITutorPage onBack={() => setActiveTab('dashboard')} />
                 ) : activeTab === 'student-practice' ? (
                   <StudentPractice isDarkMode={isDarkMode} />
                 ) : activeTab === 'collaborative-workspace' ? (
@@ -2535,10 +2703,23 @@ export default function App() {
       {/* Floating Action Button */}
       {!isMobile && (
         <button 
-          onClick={() => setActiveTab('ai-tutor')}
-          className="fixed bottom-10 right-10 w-20 h-20 bg-brand-cyan rounded-[28px] text-navy-dark shadow-[0_20px_50px_rgba(6,182,212,0.3)] flex items-center justify-center hover:scale-110 active:scale-90 transition-all z-50 group border-4 border-navy-dark"
+          onClick={() => {
+            setActiveTab('ai-tutor');
+            setActiveCategory('intelligence-ai');
+          }}
+          className="fixed bottom-6 right-6 w-16 h-16 bg-cyan-500 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.6)] hover:scale-110 active:scale-95 transition-all z-50 group border-none cursor-pointer"
+          style={{ boxShadow: '0 0 35px rgba(6,182,212,1)' }}
+          title="Ask AI Tutor"
         >
-          <MessageSquare size={28} className="group-hover:rotate-6 transition-transform" />
+          <img 
+            alt="Chat" 
+            className="w-10 h-10 opacity-95 group-hover:rotate-6 transition-transform" 
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7zewRMyV--kCZaHJSO_9x4qxRG3o69WfH4n9leN13ztwgzvFzeOJQYDn6jpdMAoXYrBxfDCl29siyH7vDmw68cTdENIjUO-r06T5MTNnFzbOSuE4tPHDtv1ci1c1jh1fmU0nkqEcnEMXr_tgOu0CCS5xi1xseKuCGk8aU9ebquaZXWwLaa-uyXygeY1pkCoMNpfcvnLrO-fz73IT66HLSczmeQ9_IQdzQKXK3xIFk3X8k0zPFzAXBeg" 
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
         </button>
       )}
 

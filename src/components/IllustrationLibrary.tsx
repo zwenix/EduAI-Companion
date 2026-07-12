@@ -102,7 +102,7 @@ export default function IllustrationLibrary({ isDarkMode }: { isDarkMode: boolea
       }
 
       // Generate enhanced educational visual style compliant with SA palette
-      const enhancedPrompt = `${cleanPrompt}, professional children's educational book illustration style, pencil sketch and clean watercolor painting blend, rich vibrant colors, high detail, no text overlays, South African classroom display, 300 DPI`;
+      const enhancedPrompt = `${cleanPrompt}, World-class masterpiece work of art, crisp render, sharp focus, charmingly aesthetic design, 4k, soft lighting, masterpiece emoji-style figurine 3D render, 3D Disney Character render, pure white background, natural beauty`;
       const generatedUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=600&nologo=true&model=flux&seed=${seed}`;
 
       const docRef = doc(db, 'illustrations', cleanId);

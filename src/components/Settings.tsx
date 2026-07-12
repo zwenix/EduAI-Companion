@@ -251,6 +251,7 @@ export default function Settings({
     { id: 'ai', label: 'AI Configuration', icon: Activity },
     { id: 'pwa', label: 'App Install (PWA)', icon: Smartphone },
     { id: 'billing', label: 'Plan & Billing', icon: CreditCard },
+    { id: 'codebase', label: 'Codebase Spec', icon: Database },
   ];
 
   if (isLoading) {
@@ -886,6 +887,127 @@ export default function Settings({
                         </div>
                      </div>
                    </div>
+                </div>
+             </div>
+          )}
+
+          {activeSubTab === 'codebase' && (
+             <div className={cn("rounded-[48px] p-8 lg:p-12 space-y-8", isDarkMode ? "glass" : "bg-white border border-slate-200 shadow-sm animate-pop-in")}>
+                <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                   <div className="flex items-center gap-4">
+                      <div className="p-3 bg-brand-cyan/10 rounded-2xl text-brand-cyan">
+                         <Database size={24} />
+                      </div>
+                      <div>
+                        <h2 className={cn("text-2xl font-bold", isDarkMode ? "text-white" : "text-slate-900")}>Codebase Specifications</h2>
+                        <p className="text-sm text-slate-500">Core architectural maps, key files, and pedagogical goals.</p>
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-2 px-3 py-1 bg-brand-cyan/10 text-brand-cyan rounded-full text-[10px] font-black tracking-widest uppercase border border-brand-cyan/20">
+                     Active Repository
+                   </div>
+                </div>
+
+                {/* Purpose section */}
+                <div className={cn("p-6 md:p-8 rounded-[36px] border space-y-3", isDarkMode ? "bg-white/5 border-white/5" : "bg-slate-50 border-slate-200")}>
+                  <h3 className={cn("text-lg font-bold flex items-center gap-2", isDarkMode ? "text-white" : "text-slate-900")}>
+                    🚀 Core Platform Purpose
+                  </h3>
+                  <p className={cn("text-sm leading-relaxed", isDarkMode ? "text-slate-300" : "text-slate-600")}>
+                    <strong className="text-brand-cyan font-bold">EduAI Companion</strong> is an intelligent, CAPS-aligned educational workspace engineered specifically for personalized learning plans, lesson generation, auto-grading, and AI tutoring.
+                    It aligns directly with South African school calendars, WCED ATP guidelines, and Bloom's Taxonomy, providing complete, rich, non-truncated content for educators, learners, parents, and system administrators.
+                  </p>
+                </div>
+
+                {/* Critical Files section */}
+                <div className="space-y-4">
+                  <h3 className={cn("text-lg font-bold px-2", isDarkMode ? "text-white" : "text-slate-900")}>
+                    📂 Critical Codebase Components
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      {
+                        title: "server.ts",
+                        desc: "Backend entry point. Manages API routes, serving Vite development assets, registering OmniHuman-1 Gradio streaming, and proxying Groq models.",
+                        badge: "CJS/ESM Bundle",
+                        color: "from-brand-cyan/15 to-transparent border-brand-cyan/20"
+                      },
+                      {
+                        title: "src/App.tsx",
+                        desc: "Core routing controller. Governs role workflows (Teacher, Student, Parent, Admin), visual themes, navigation drawers, and state.",
+                        badge: "Main Interface",
+                        color: "from-brand-pink/15 to-transparent border-brand-pink/20"
+                      },
+                      {
+                        title: "src/components/ContentCreator.tsx",
+                        desc: "Generates high-fidelity CAPS lesson plans, diagnostic worksheets, study notes, structured exams, rubrics, and educational posters.",
+                        badge: "Authoring",
+                        color: "from-brand-yellow/15 to-transparent border-brand-yellow/20"
+                      },
+                      {
+                        title: "src/components/AutoGrading.tsx",
+                        desc: "Processes submitted worksheets, applying optical character recognition and scoring criteria from standard diagnostic rubrics.",
+                        badge: "OCR Grading",
+                        color: "from-brand-green/15 to-transparent border-brand-green/20"
+                      },
+                      {
+                        title: "src/services/unifiedAiService.ts",
+                        desc: "Core dispatcher for AI OCR and grading completions. Maps models directly, enforcing CAPS-aligned prompt constraints.",
+                        badge: "Proxy Service",
+                        color: "from-brand-purple/15 to-transparent border-brand-purple/20"
+                      },
+                      {
+                        title: "/AGENTS.md",
+                        desc: "Enforces strict project rules, model mapping identifiers (such as openai/gpt-oss-120b), and formatting criteria.",
+                        badge: "System Rules",
+                        color: "from-slate-500/10 to-transparent border-slate-500/20"
+                      }
+                    ].map((file, i) => (
+                      <div key={i} className={cn("p-5 rounded-3xl border bg-gradient-to-br flex flex-col justify-between gap-3", file.color)}>
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between items-center">
+                            <span className={cn("font-mono font-bold text-sm", isDarkMode ? "text-white" : "text-slate-900")}>{file.title}</span>
+                            <span className="text-[9px] font-black uppercase tracking-wider opacity-60">{file.badge}</span>
+                          </div>
+                          <p className="text-xs text-slate-500 leading-relaxed font-medium">{file.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Strategic Goals section */}
+                <div className="space-y-4">
+                  <h3 className={cn("text-lg font-bold px-2", isDarkMode ? "text-white" : "text-slate-900")}>
+                    🎯 Curricular & Technical Goals
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {[
+                      {
+                        title: "100% CAPS Alignment",
+                        desc: "Guarantees complete coverage of WCED subject time limits, term structures (1-4), ATP directives, and Bloom's cognitive taxonomy depths.",
+                        icon: "🇿🇦"
+                      },
+                      {
+                        title: "Accessibility Assists",
+                        desc: "Enhances student outcomes using active Dyslexia reader mode styling, Dyscalculia rainbow number tagging, and vocal TTS narration speeds.",
+                        icon: "🎨"
+                      },
+                      {
+                        title: "Resilient Execution",
+                        desc: "Utilizes robust HTML-tag repair parsers and fail-safe local video libraries to maintain perfect operation during latency or queue delays.",
+                        icon: "⚡"
+                      }
+                    ].map((goal, i) => (
+                      <div key={i} className={cn("p-6 rounded-3xl border flex flex-col gap-3", isDarkMode ? "bg-white/5 border-white/5" : "bg-slate-50 border-slate-200")}>
+                        <div className="text-2xl">{goal.icon}</div>
+                        <div>
+                          <h4 className={cn("font-bold text-sm mb-1", isDarkMode ? "text-white" : "text-slate-900")}>{goal.title}</h4>
+                          <p className="text-xs text-slate-500 leading-relaxed font-medium">{goal.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
              </div>
           )}

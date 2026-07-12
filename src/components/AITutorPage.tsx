@@ -1,16 +1,20 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Sparkles, User, Mic, Loader2, Play, Square, History as HistoryIcon, GraduationCap, Pause, Image as ImageIcon, Clock, AlertCircle } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { 
+  Sparkles, User, Mic, Loader2, Play, Square, GraduationCap, Pause, 
+  Image as ImageIcon, Clock, AlertCircle, Search, Plus, Trash2, Folder, 
+  FolderOpen, ChevronDown, ChevronRight, Settings, ArrowLeft, Brain, Check, X
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { chatWithTutor } from '../services/unifiedAiService';
 import { marked } from 'marked';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { useAi } from '../contexts/AiContext';
 import { speakText, stopSpeaking, pauseSpeaking, resumeSpeaking } from '../services/ttsService';
-import Logo from './Logo';
 import AiImage from './AiImage';
 import { auth, db } from '../lib/firebase';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
+
+const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
 type ChatMessage = {
   role: 'user' | 'model';
@@ -18,6 +22,15 @@ type ChatMessage = {
   image?: string;
   id?: string;
 };
+
+interface ChatSession {
+  id: string;
+  title: string;
+  subject: string; // e.g. 'Mathematics', 'Physical Sciences', 'Life Sciences', 'History', 'Geography', 'Languages', 'General'
+  createdAt: string; // ISO String
+  updatedAt: string; // ISO String
+  messages: ChatMessage[];
+}
 
 const LANGUAGES = [
   { value: 'English',   label: 'English' },
@@ -42,7 +55,7 @@ const VOICES = [
   { value: 'VR6AewLTigWG4xSOukaG', label: 'Arnold (Male)' },
 ];
 
-const STORAGE_KEY = 'eduai_chat_history_page';
+const STORAGE_KEY = 'eduai_chat_history_page_v2';
 
 const SUGGESTIONS = [
   { text: "Explain Gravity", color: "border-orange-500/50 shadow-[0_0_8px_rgba(249,115,22,0.2)] text-orange-200 bg-orange-950/30 hover:bg-orange-950/50" },
@@ -78,10 +91,18 @@ const RobbieFace = ({ className = "w-16 h-16" }: { className?: string }) => (
   </svg>
 );
 
-export default function AITutorPage() {
+export default function AITutorPage({ onBack }: { onBack?: () => void }) {
   const { provider, ttsProvider } = useAi();
+  
+  // State variables for sessions
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string>('');
+  const [folders, setFolders] = useState<string[]>(['Mathematics', 'Physical Sciences', 'Life Sciences', 'History', 'Geography', 'Languages', 'General']);
+  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<string>('All');
+  const [searchHistoryQuery, setSearchHistoryQuery] = useState<string>('');
+  const [isFoldersOpen, setIsFoldersOpen] = useState(true);
+
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isTtsLoading, setIsTtsLoading] = useState<number | null>(null);
   const [isAudioPlaying, setIsAudioPlaying] = useState<number | null>(null);
@@ -91,6 +112,7 @@ export default function AITutorPage() {
   const [voice, setVoice] = useState('21m00Tcm4TlvDq8ikWAM');
   const [allVoices, setAllVoices] = useState<{ value: string; label: string }[]>(VOICES);
 
+  // Loaded Voices
   useEffect(() => {
     const loadVoices = () => {
       if ('speechSynthesis' in window) {
@@ -153,6 +175,14 @@ export default function AITutorPage() {
     return () => clearInterval(timer);
   }, [storageTimeKey]);
 
+  const activeSession = useMemo(() => {
+    return sessions.find(s => s.id === activeSessionId) || null;
+  }, [sessions, activeSessionId]);
+
+  const messages = useMemo(() => {
+    return activeSession ? activeSession.messages : [];
+  }, [activeSession]);
+
   const isTopicRestricted = useCallback(() => {
     if (!studentData?.parentControls) return false;
     const restricted = studentData.parentControls.restrictedSubjects || [];
@@ -176,6 +206,7 @@ export default function AITutorPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Subscribing to parent controls
   useEffect(() => {
     let unsubscribeStudent: (() => void) | undefined;
 
@@ -204,7 +235,9 @@ export default function AITutorPage() {
                   setStudentData(snap.docs[0].data());
                 }
               }, (error) => {
-                console.error("Error subscribing to student controls in real-time:", error);
+                import('../lib/firestoreHelpers').then(({ handleFirestoreError, OperationType }) => {
+                  handleFirestoreError(error, OperationType.LIST, 'students');
+                });
               });
             }
           }
@@ -219,82 +252,115 @@ export default function AITutorPage() {
     };
   }, []);
 
-  useEffect(() => {
-    const savedHistory = localStorage.getItem(STORAGE_KEY);
-    if (savedHistory) {
-      try {
-        setMessages(JSON.parse(savedHistory));
-      } catch (e) {
-        console.error("Failed to parse chat history", e);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
-
+  // Fetch AI Chat sessions from Firebase or fallback to local
   useEffect(() => {
     const fetchAiChats = async () => {
       if (auth.currentUser) {
         try {
            const docRef = doc(db, 'ai_tutor_sessions', auth.currentUser.uid);
            const docSnap = await getDoc(docRef);
+           let loadedSessions: ChatSession[] = [];
+           
            if (docSnap.exists() && docSnap.data().messages) {
-              const loadedMessages = JSON.parse(docSnap.data().messages);
-              setMessages(loadedMessages);
+              const rawData = docSnap.data().messages;
+              let parsedData: any;
+              try {
+                parsedData = JSON.parse(rawData);
+              } catch (e) {
+                parsedData = [];
+              }
+
+              if (Array.isArray(parsedData)) {
+                // Backward compatibility: existing messages array
+                if (parsedData.length > 0) {
+                  loadedSessions = [{
+                    id: 'default',
+                    title: 'Previous Discussion',
+                    subject: 'General',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    messages: parsedData
+                  }];
+                }
+              } else if (parsedData && parsedData.sessions) {
+                loadedSessions = parsedData.sessions;
+                if (parsedData.folders) {
+                  setFolders(parsedData.folders);
+                }
+              }
            } else {
+             // Try localStorage
              const localData = localStorage.getItem(STORAGE_KEY);
-             if (localData) setMessages(JSON.parse(localData));
+             if (localData) {
+               try {
+                 const parsed = JSON.parse(localData);
+                 if (parsed && parsed.sessions) {
+                   loadedSessions = parsed.sessions;
+                   if (parsed.folders) setFolders(parsed.folders);
+                 } else if (Array.isArray(parsed) && parsed.length > 0) {
+                   loadedSessions = [{
+                     id: 'default',
+                     title: 'Previous Discussion',
+                     subject: 'General',
+                     createdAt: new Date().toISOString(),
+                     updatedAt: new Date().toISOString(),
+                     messages: parsed
+                   }];
+                 }
+               } catch (e) {}
+             }
            }
+
+           if (loadedSessions.length === 0) {
+             const freshId = 'session-' + Date.now();
+             loadedSessions = [{
+               id: freshId,
+               title: 'New Discussion',
+               subject: 'General',
+               createdAt: new Date().toISOString(),
+               updatedAt: new Date().toISOString(),
+               messages: []
+             }];
+           }
+
+           setSessions(loadedSessions);
+           setActiveSessionId(loadedSessions[0].id);
         } catch (error) {
            console.error("Error fetching AI chat history", error);
-           handleFirestoreError(error, OperationType.GET, 'ai_tutor_sessions/' + auth.currentUser.uid);
         }
       }
     };
     fetchAiChats();
   }, []);
 
-  const saveMessagesToFirebase = async (newMessages: ChatMessage[]) => {
-    if (auth.currentUser && newMessages.length > 0) {
+  // Save Sessions state to Firebase and localStorage
+  const saveSessionsToFirebase = async (updatedSessions: ChatSession[]) => {
+    if (auth.currentUser) {
        try {
+         const payload = {
+           sessions: updatedSessions,
+           folders: folders
+         };
+         // Save locally first for high speed!
+         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+
          const docRef = doc(db, 'ai_tutor_sessions', auth.currentUser.uid);
-         const docSnap = await getDoc(docRef);
-         if (docSnap.exists()) {
-           await updateDoc(docRef, {
-             messages: JSON.stringify(newMessages),
-             updatedAt: serverTimestamp()
-           });
-         } else {
-           await setDoc(docRef, {
-             userId: auth.currentUser.uid,
-             messages: JSON.stringify(newMessages),
-             updatedAt: serverTimestamp()
-           });
-         }
+         await setDoc(docRef, {
+           userId: auth.currentUser.uid,
+           messages: JSON.stringify(payload),
+           updatedAt: serverTimestamp()
+         });
        } catch (error) {
-         console.error("Error saving AI chat history", error);
-         handleFirestoreError(error, OperationType.WRITE, 'ai_tutor_sessions/' + auth.currentUser.uid);
+         console.error("Error saving AI chat sessions", error);
        }
     }
   };
 
   useEffect(() => {
-    if (messages.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-      saveMessagesToFirebase(messages);
-    }
-  }, [messages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isLoading]);
 
-  useEffect(() => {
-    // Pre-load voices to ensure they are available for synchronous playback 
-    // to bypass user interaction restrictions on iOS/Safari
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.getVoices();
-    }
-  }, []);
-
+  // Handle Play TTS
   const handlePlayAudio = useCallback(async (text: string, index: number) => {
     if (isAudioPlaying === index) {
       if (isAudioPaused) {
@@ -322,8 +388,65 @@ export default function AITutorPage() {
       setIsAudioPlaying(null);
       setIsAudioPaused(false);
     }
-  }, [isAudioPlaying, isAudioPaused, ttsProvider, language]);
+  }, [isAudioPlaying, isAudioPaused, ttsProvider, language, voice]);
 
+  // Create "New Chat" session
+  const handleNewChat = () => {
+    const newId = 'session-' + Date.now();
+    const newSession: ChatSession = {
+      id: newId,
+      title: 'New Discussion',
+      subject: selectedSubjectFilter !== 'All' ? selectedSubjectFilter : 'General',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      messages: []
+    };
+    const updated = [newSession, ...sessions];
+    setSessions(updated);
+    setActiveSessionId(newId);
+    saveSessionsToFirebase(updated);
+  };
+
+  // Delete Chat Session
+  const handleDeleteChat = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm('Are you sure you want to delete this chat session?')) {
+      const updated = sessions.filter(s => s.id !== id);
+      setSessions(updated);
+      if (activeSessionId === id) {
+        if (updated.length > 0) {
+          setActiveSessionId(updated[0].id);
+        } else {
+          const freshId = 'session-' + Date.now();
+          const freshSession: ChatSession = {
+            id: freshId,
+            title: 'New Discussion',
+            subject: 'General',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            messages: []
+          };
+          setSessions([freshSession]);
+          setActiveSessionId(freshId);
+        }
+      }
+      saveSessionsToFirebase(updated.length > 0 ? updated : []);
+    }
+  };
+
+  // Update subject/folder of active chat session
+  const handleMoveSessionToFolder = (subject: string) => {
+    const updated = sessions.map(s => {
+      if (s.id === activeSessionId) {
+        return { ...s, subject, updatedAt: new Date().toISOString() };
+      }
+      return s;
+    });
+    setSessions(updated);
+    saveSessionsToFirebase(updated);
+  };
+
+  // Send message
   const handleSend = useCallback(async (overrideText?: string) => {
     if (isTimeLimitReached()) {
       alert("⏳ Study Limit reached! You've used your daily learning time set by your parent.");
@@ -346,7 +469,28 @@ export default function AITutorPage() {
 
     setInput('');
     setSelectedImage(null);
-    setMessages(prev => [...prev, userMsg]);
+
+    // Update session state with User Message
+    let updatedMsgs = [...messages, userMsg];
+    let updatedSessions = sessions.map(s => {
+      if (s.id === activeSessionId) {
+        let newTitle = s.title;
+        if (s.title === 'New Discussion' || s.title === 'Previous Discussion') {
+          newTitle = userText.substring(0, 32);
+          if (userText.length > 32) newTitle += '...';
+        }
+        return {
+          ...s,
+          title: newTitle,
+          messages: updatedMsgs,
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return s;
+    });
+
+    setSessions(updatedSessions);
+    saveSessionsToFirebase(updatedSessions);
     setIsLoading(true);
     setGenerationProgress(0);
 
@@ -355,7 +499,7 @@ export default function AITutorPage() {
     }, 400);
 
     try {
-      const chatMessagesForTutor = messages.map(m => {
+      const chatMessagesForTutor = updatedMsgs.map(m => {
         const parts: any[] = [{ text: m.text }];
         if (m.image) {
           const match = m.image.match(/^data:(image\/[a-z]+);base64,(.*)$/);
@@ -376,9 +520,10 @@ export default function AITutorPage() {
         dynamicDiagnosticContext = `[Student Profile diagnostics: AvgPerformance=${averageMark}%, DynamicDifficulty=${scaleDifficulty}, Strengths="${strengths}", Core Identified Knowledge Gaps/Weaknesses="${weaknesses}", Targeted Remediation Recommendations="${recommendations}". Scaffold responses appropriately to gently remediate designated weaknesses, prompt them with active check-in questions, and match cognitive load precisely to current performance tier.] `;
       }
 
+      const activeSubject = activeSession?.subject || 'General';
       const adaptiveInstruction = `[Adaptive Delivery Config: GradeLevel=${studentGrade} StylePreference=${studentStyle}. Adapt text terminology, layout styling, and exercises precisely to this profile.] ${dynamicDiagnosticContext}`;
-      const promptText = `[Instruct: Reply exclusively in ${language}] ${adaptiveInstruction}` + (priorityTopic !== 'General' 
-        ? `[Priority Topic: ${priorityTopic}] ${userText}`
+      const promptText = `[Instruct: Reply exclusively in ${language}] ${adaptiveInstruction}` + (activeSubject !== 'General' 
+        ? `[Priority Subject: ${activeSubject}] ${userText}`
         : userText);
       
       const newParts: any[] = [{ text: promptText }];
@@ -386,7 +531,9 @@ export default function AITutorPage() {
         const match = selectedImage.match(/^data:(image\/[a-z]+);base64,(.*)$/);
         if (match) newParts.push({ inlineData: { mimeType: match[1], data: match[2] } });
       }
-      chatMessagesForTutor.push({ role: 'user', parts: newParts });
+      
+      // Override the last prompt for tutoring engine parameters
+      chatMessagesForTutor[chatMessagesForTutor.length - 1] = { role: 'user', parts: newParts };
 
       const response = await chatWithTutor(chatMessagesForTutor, provider);
       
@@ -395,7 +542,21 @@ export default function AITutorPage() {
       
       setTimeout(() => {
         const modelMsg: ChatMessage = { role: 'model', text: response || 'I could not process that.' };
-        setMessages(prev => [...prev, modelMsg]);
+        const finalMsgs = [...updatedMsgs, modelMsg];
+        
+        const nextSessions = sessions.map(s => {
+          if (s.id === activeSessionId) {
+            return {
+              ...s,
+              messages: finalMsgs,
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return s;
+        });
+
+        setSessions(nextSessions);
+        saveSessionsToFirebase(nextSessions);
         setIsLoading(false);
       }, 300);
 
@@ -405,8 +566,9 @@ export default function AITutorPage() {
       alert('Failed to get response. Please try again.');
       setIsLoading(false);
     }
-  }, [input, messages, provider, priorityTopic, language, selectedImage, studentData, isTimeLimitReached, isTopicRestricted, isCustomChatRestricted]);
+  }, [input, messages, provider, language, selectedImage, studentData, isTimeLimitReached, isTopicRestricted, isCustomChatRestricted, sessions, activeSessionId, activeSession, folders]);
 
+  // Voice recognition microphone recording
   const handleMicClick = useCallback(() => {
     if (isRecording) {
       recognitionRef.current?.stop();
@@ -478,324 +640,480 @@ export default function AITutorPage() {
     }
   };
 
+  // Grouping sessions chronologically by Date
+  const groupedSessions = useMemo(() => {
+    const grouped: Record<string, ChatSession[]> = {
+      'Today': [],
+      'Yesterday': [],
+      'Previous 7 Days': [],
+      'Older Discussions': []
+    };
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // Apply Filters (search box and folders filter)
+    const filtered = sessions.filter(s => {
+      const matchesSearch = s.title.toLowerCase().includes(searchHistoryQuery.toLowerCase()) || 
+        s.messages.some(m => m.text.toLowerCase().includes(searchHistoryQuery.toLowerCase()));
+      const matchesSubject = selectedSubjectFilter === 'All' || s.subject === selectedSubjectFilter;
+      return matchesSearch && matchesSubject;
+    });
+
+    filtered.forEach(s => {
+      const date = new Date(s.updatedAt || s.createdAt);
+      if (date >= today) {
+        grouped['Today'].push(s);
+      } else if (date >= yesterday) {
+        grouped['Yesterday'].push(s);
+      } else if (date >= sevenDaysAgo) {
+        grouped['Previous 7 Days'].push(s);
+      } else {
+        grouped['Older Discussions'].push(s);
+      }
+    });
+
+    return grouped;
+  }, [sessions, searchHistoryQuery, selectedSubjectFilter]);
+
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] lg:h-[calc(100vh-140px)] w-full max-w-5xl mx-auto rounded-[2rem] lg:rounded-[3rem] overflow-hidden border border-white/15 shadow-[0_0_50px_rgba(34,211,238,0.12)] bg-gradient-to-b from-[#070b19] via-[#0d1330] to-[#120721] text-white relative">
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-100px)] w-full rounded-3xl overflow-hidden border border-white/10 bg-gradient-to-br from-[#070b19] to-[#120721] text-white shadow-[0_0_50px_rgba(34,211,238,0.12)] relative">
+      
+      {/* Time limit blocker overlay */}
       {isTimeLimitReached() && (
-        <div className="absolute inset-0 bg-[#0F172A]/95 backdrop-blur-md z-55 flex flex-col items-center justify-center text-center p-8 space-y-6">
-          <div className="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-455">
+        <div className="absolute inset-0 bg-[#070b19]/95 backdrop-blur-md z-50 flex flex-col items-center justify-center text-center p-8 space-y-6">
+          <div className="w-16 h-16 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.3)]">
             <Clock size={32} className="animate-pulse" />
           </div>
-          <div className="space-y-2 max-w-md">
-            <h2 className="text-2xl font-bold font-hand text-white">⏳ Study Time Is Complete!</h2>
+          <div className="space-y-3 max-w-md">
+            <h2 className="text-2xl font-black text-white">⏳ Study Time Complete!</h2>
             <p className="text-sm text-slate-300 leading-relaxed font-sans">
-              You've reached your daily AI Tutoring limit of <span className="text-indigo-400 font-bold font-sans">{studentData?.parentControls?.timeLimitMinutes} minutes</span> set by your parent.
+              You've reached your daily AI Tutoring limit of <span className="text-brand-cyan font-bold font-sans">{studentData?.parentControls?.timeLimitMinutes} minutes</span> set by your parents.
             </p>
             <p className="text-xs text-slate-400 leading-relaxed font-sans">
-              Awesome work completing your studies today! Rest your eyes, go enjoy some offline playtime, and return tomorrow to continue learning together!
+              Terrific work completing your studies! Rest your eyes, go enjoy some offline play, and return tomorrow to continue learning together!
             </p>
           </div>
+          {onBack && (
+            <button 
+              onClick={onBack}
+              className="bg-white/5 hover:bg-white/10 text-white border border-white/10 px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all mt-4"
+            >
+              <ArrowLeft size={14} /> Exit to Dashboard
+            </button>
+          )}
         </div>
       )}
-      {/* Header matching Image 1 layout & design */}
-      <div className="flex items-center justify-between p-4 lg:p-5 bg-gradient-to-r from-[#070b19] to-[#0c1228] border-b border-white/15 shrink-0 backdrop-blur-md relative z-30">
-        {/* Back Button capsule */}
-        <button 
-          onClick={() => {}} 
-          className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 transition-all cursor-pointer active:scale-95"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
 
-        {/* Centered Title */}
-        <div className="text-center">
-          <h1 className="text-lg lg:text-xl font-black tracking-tight text-white flex items-center justify-center gap-2">
-            AI Tutor
-          </h1>
-          <p className="text-[10px] text-brand-cyan uppercase tracking-widest font-extrabold">
-            Robbie Active
-          </p>
+      {/* LEFT SIDEBAR: NEW CHAT, FOLDERS & CHAT CHRONOLOGICAL HISTORY */}
+      <div className="w-full lg:w-80 shrink-0 bg-[#070b19]/90 border-b lg:border-b-0 lg:border-r border-white/10 flex flex-col h-[300px] lg:h-full relative z-40">
+        {/* Sidebar Header Banner */}
+        <div className="p-4 border-b border-white/10 flex items-center justify-between gap-3 bg-[#0B1122]/30">
+          <div className="flex items-center gap-2">
+            <Brain className="text-brand-cyan icon-glow-cyan" size={20} />
+            <span className="font-display font-black text-sm tracking-tight">AI Robbie</span>
+          </div>
+          <button 
+            onClick={handleNewChat}
+            className="flex items-center gap-1 bg-brand-cyan hover:bg-cyan-500 text-slate-950 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all shadow-[0_0_10px_rgba(34,211,238,0.25)] hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Plus size={12} strokeWidth={3.5} /> New Chat
+          </button>
         </div>
 
-        {/* Settings Gear Button */}
-        <button 
-          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-          title="Tutor Customization"
-          className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
-            isSettingsOpen 
-              ? 'bg-brand-cyan/25 text-brand-cyan border-brand-cyan/40 shadow-[0_0_12px_rgba(34,211,238,0.3)]' 
-              : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'
-          }`}
-        >
-          <svg className={`w-5 h-5 ${isSettingsOpen ? 'rotate-90' : 'rotate-0'} transition-transform duration-300`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        </button>
-      </div>
+        {/* Dynamic Filter Search Box */}
+        <div className="p-3 border-b border-white/10 relative">
+          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+          <input 
+            type="text"
+            placeholder="Search discussion history..."
+            value={searchHistoryQuery}
+            onChange={e => setSearchHistoryQuery(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-brand-cyan transition-all"
+          />
+        </div>
 
-      {/* Collapsible Settings Panel (Preserves Grade, Topic, Language, Voice) */}
-      <AnimatePresence>
-        {isSettingsOpen && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="bg-[#090e1d]/95 border-b border-white/10 p-5 shrink-0 overflow-hidden backdrop-blur-xl relative z-20 shadow-xl"
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="flex flex-col">
-                <label className="text-[10px] uppercase font-black text-brand-cyan mb-1.5 tracking-wider">Target Grade</label>
-                <select 
-                  value={studentGrade} 
-                  onChange={e => setStudentGrade(e.target.value)}
-                  className="bg-white/5 border border-white/10 outline-none text-white text-xs lg:text-sm font-medium py-2 px-3 rounded-xl [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 hover:border-white/15 transition-all"
-                >
-                  <option value="Grades R-12">Grades R-12 (Adaptive)</option>
-                  <option value="Grade R">Grade R</option>
-                  <option value="Grade 1">Grade 1</option>
-                  <option value="Grade 2">Grade 2</option>
-                  <option value="Grade 3">Grade 3</option>
-                  <option value="Grade 4">Grade 4</option>
-                  <option value="Grade 5">Grade 5</option>
-                  <option value="Grade 6">Grade 6</option>
-                  <option value="Grade 7">Grade 7</option>
-                  <option value="Grade 8">Grade 8</option>
-                  <option value="Grade 9">Grade 9</option>
-                  <option value="Grade 10">Grade 10</option>
-                  <option value="Grade 11">Grade 11</option>
-                  <option value="Grade 12">Grade 12</option>
-                </select>
-              </div>
-              <div className="flex flex-col">
-                <label className="text-[10px] uppercase font-black text-brand-cyan mb-1.5 tracking-wider">Priority Topic</label>
-                <select 
-                  value={['General', 'Mathematics', 'Physical Sciences', 'Life Sciences', 'History', 'Geography', 'Languages'].includes(priorityTopic) ? priorityTopic : 'Other'} 
-                  onChange={e => {
-                    if (e.target.value === 'Other') setPriorityTopic('');
-                    else setPriorityTopic(e.target.value);
-                  }}
-                  className="bg-white/5 border border-white/10 outline-none text-white text-xs lg:text-sm font-medium py-2 px-3 rounded-xl [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 hover:border-white/15 transition-all"
-                >
-                  <option value="General">General</option>
-                  <option value="Mathematics">Mathematics</option>
-                  <option value="Physical Sciences">Physical Sciences</option>
-                  <option value="Life Sciences">Life Sciences</option>
-                  <option value="History">History</option>
-                  <option value="Geography">Geography</option>
-                  <option value="Languages">Languages</option>
-                  <option value="Other">Other...</option>
-                </select>
-                {!['General', 'Mathematics', 'Physical Sciences', 'Life Sciences', 'History', 'Geography', 'Languages'].includes(priorityTopic) && priorityTopic !== 'General' && (
-                  <input 
-                    type="text" 
-                    placeholder="Type topic..." 
-                    value={priorityTopic}
-                    onChange={e => setPriorityTopic(e.target.value)}
-                    className="bg-white/10 border border-white/15 outline-none text-white text-xs font-medium py-2 px-3 mt-2 rounded-xl placeholder:text-slate-400"
-                    autoFocus
-                  />
-                )}
-              </div>
-              <div className="flex flex-col">
-                <label className="text-[10px] uppercase font-black text-brand-cyan mb-1.5 tracking-wider">Language</label>
-                <select 
-                  value={language} 
-                  onChange={e => setLanguage(e.target.value)}
-                  className="bg-white/5 border border-white/10 outline-none text-white text-xs lg:text-sm font-medium py-2 px-3 rounded-xl [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 hover:border-white/15 transition-all"
-                >
-                  {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-                </select>
-              </div>
-              <div className="flex flex-col">
-                <label className="text-[10px] uppercase font-black text-brand-cyan mb-1.5 tracking-wider">Voice</label>
-                <select 
-                  value={voice} 
-                  onChange={e => setVoice(e.target.value)}
-                  className="bg-white/5 border border-white/10 outline-none text-white text-xs lg:text-sm font-medium py-2 px-3 rounded-xl [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 hover:border-white/15 transition-all"
-                >
-                  {allVoices.map((v, index) => <option key={`${v.value}-${index}`} value={v.value}>{v.label}</option>)}
-                </select>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Chat Window */}
-      <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-4 lg:space-y-6 bg-[#0a0f21]/60">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-slate-400 px-6 relative overflow-hidden">
-            {/* Ambient Circuit Board Backing SVG */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] pointer-events-none opacity-20">
-              <svg className="w-full h-full text-cyan-500" viewBox="0 0 500 500" fill="none">
-                {/* Circuit lines */}
-                <path d="M 250 250 L 250 50 L 100 50" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3,3" />
-                <path d="M 250 250 L 100 250" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M 250 250 L 400 250" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M 250 250 L 250 450 L 400 450" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3,3" />
-                <path d="M 250 250 L 120 120 L 50 120" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M 250 250 L 380 380 L 450 380" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M 250 250 L 380 120 L 450 120" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M 250 250 L 120 380 L 50 380" stroke="currentColor" strokeWidth="1.5" />
-                {/* Nodes */}
-                <circle cx="100" cy="50" r="4" fill="currentColor" />
-                <circle cx="100" cy="250" r="4" fill="currentColor" />
-                <circle cx="400" cy="250" r="4" fill="currentColor" />
-                <circle cx="400" cy="450" r="4" fill="currentColor" />
-                <circle cx="50" cy="120" r="4" fill="currentColor" />
-                <circle cx="450" cy="380" r="4" fill="currentColor" />
-                <circle cx="450" cy="120" r="4" fill="currentColor" />
-                <circle cx="50" cy="380" r="4" fill="currentColor" />
-              </svg>
-            </div>
-
-            <div className="relative z-10 flex flex-col items-center">
-              {/* Center-staged Glowing Robbie Avatar */}
-              <div className="w-24 h-24 rounded-full bg-cyan-950/40 border-2 border-cyan-400 p-1 shadow-[0_0_30px_rgba(34,211,238,0.5)] flex items-center justify-center mb-5 animate-bounce" style={{ animationDuration: '4s' }}>
-                <RobbieFace className="w-20 h-20" />
-              </div>
-              <h2 className="text-2xl lg:text-3xl font-black text-white text-center mb-2">
-                Robbie, your AI Tutor
-              </h2>
-              <p className="text-center text-sm lg:text-base text-slate-300 max-w-md font-sans leading-relaxed mb-6">
-                Ask me anything about your school subjects, or upload a picture of your homework to solve it together! 🚀
-              </p>
-            </div>
-          </div>
-        ) : (
-          messages.map((msg, i) => (
-            <div key={i} className={`flex items-end gap-2 lg:gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-              {msg.role === 'model' && (
+        {/* Folders and History Listings Area */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar text-left">
+          
+          {/* Section: Subject Folders */}
+          <div className="space-y-1.5">
+            <button 
+              onClick={() => setIsFoldersOpen(!isFoldersOpen)}
+              className="w-full flex items-center justify-between py-1 px-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all"
+            >
+              <span className="flex items-center gap-1.5">
+                <Folder size={12} className="text-brand-cyan" />
+                Subject Folders
+              </span>
+              {isFoldersOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            </button>
+            
+            <AnimatePresence>
+              {isFoldersOpen && (
                 <motion.div 
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  className="w-10 h-10 flex flex-col items-center justify-center shrink-0 shadow-[0_0_12px_rgba(34,211,238,0.4)] border border-[#22d3ee]/50 rounded-full overflow-hidden bg-[#1E293B] mb-1"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="space-y-0.5 overflow-hidden pl-1.5"
                 >
-                  <RobbieFace className="w-8 h-8" />
+                  {/* "All Subjects" selector pill */}
+                  <button 
+                    onClick={() => setSelectedSubjectFilter('All')}
+                    className={cn(
+                      "w-full text-left py-1.5 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors",
+                      selectedSubjectFilter === 'All' 
+                        ? 'bg-white/10 text-white font-black' 
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      <FolderOpen size={11} className="text-slate-500" />
+                      All Subjects
+                    </span>
+                    <span className="bg-white/5 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-slate-500">{sessions.length}</span>
+                  </button>
+
+                  {/* Individual folders */}
+                  {folders.map(sub => {
+                    const count = sessions.filter(s => s.subject === sub).length;
+                    return (
+                      <button 
+                        key={sub}
+                        onClick={() => setSelectedSubjectFilter(sub)}
+                        className={cn(
+                          "w-full text-left py-1.5 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors",
+                          selectedSubjectFilter === sub 
+                            ? 'bg-brand-cyan/15 text-brand-cyan font-black border border-brand-cyan/25' 
+                            : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        )}
+                      >
+                        <span className="flex items-center gap-2 truncate">
+                          <Folder size={11} className={selectedSubjectFilter === sub ? "text-brand-cyan" : "text-slate-500"} />
+                          <span className="truncate">{sub}</span>
+                        </span>
+                        <span className="bg-white/5 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-slate-500 shrink-0">{count}</span>
+                      </button>
+                    );
+                  })}
                 </motion.div>
               )}
-              
-              <motion.div 
-                initial={{ scale: 0.95, opacity: 0, y: 10 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                className={`p-4.5 lg:p-5 max-w-[82%] lg:max-w-[75%] shadow-2xl ${
-                msg.role === 'user' 
-                  ? 'bg-[#d946ef]/10 border-2 border-[#d946ef]/60 shadow-[0_0_15px_rgba(217,70,239,0.25)] text-white rounded-[24px] rounded-br-[4px] font-sans font-medium' 
-                  : 'bg-[#22d3ee]/10 border-2 border-[#22d3ee]/60 shadow-[0_0_15px_rgba(34,211,238,0.25)] text-white rounded-[24px] rounded-bl-[4px] font-sans'
-              }`}>
-                {msg.role === 'model' ? (
-                  <div className="flex flex-col gap-4">
-                    <div className="prose prose-xs lg:prose-sm max-w-none prose-p:leading-relaxed prose-invert markdown-body"
-                      dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(marked.parse(msg.text) as string) }}
-                    />
-                    {visuals[i] && (
-                      <div className="pt-2 border-t border-white/5">
-                        <AiImage prompt={`Educational illustration showing: ${msg.text.substring(0, 300)}`} aspectRatio="video" className="w-full max-w-md" />
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {msg.image && (
-                      <img src={msg.image} alt="Uploaded" className="max-w-[200px] lg:max-w-[250px] rounded-xl object-contain mb-2 border border-white/10 shadow-md" />
-                    )}
-                    <p className="text-sm lg:text-[15px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                  </div>
-                )} 
-              </motion.div>
-              
-              {msg.role === 'model' && (
-                <div className="flex flex-col gap-2 shrink-0 mb-1">
-                  <button
-                    className={`w-8 h-8 lg:w-9 lg:h-9 rounded-xl flex items-center justify-center transition-colors border ${
-                      isAudioPlaying === i && !isAudioPaused 
-                        ? 'bg-brand-cyan/20 border-brand-cyan text-brand-cyan shadow-lg shadow-brand-cyan/10' 
-                        : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
-                    }`}
-                    onClick={() => handlePlayAudio(msg.text, i)}
-                    disabled={isTtsLoading === i}
-                    title={isAudioPlaying === i && !isAudioPaused ? "Pause" : "Play"}
-                  >
-                    {isTtsLoading === i ? <Loader2 className="w-3 h-3 lg:w-4 lg:h-4 animate-spin text-brand-cyan" /> : isAudioPlaying === i && !isAudioPaused ? <Pause className="w-3 h-3 lg:w-4 lg:h-4" /> : <Play className="w-3 h-3 lg:w-4 lg:h-4 ml-0.5 lg:ml-1" />}
-                  </button>
-                  {isAudioPlaying === i && (
-                    <button
-                      className="w-8 h-8 lg:w-9 lg:h-9 rounded-xl flex items-center justify-center transition-colors bg-red-500/20 text-red-200 border border-red-500/30 hover:bg-red-500/30"
-                      onClick={handleStopAudio}
-                      title="Stop"
-                    >
-                      <Square className="w-3 h-3 lg:w-4 lg:h-4" />
-                    </button>
-                  )}
-                  <button
-                    className={`w-8 h-8 lg:w-9 lg:h-9 rounded-xl flex items-center justify-center transition-colors border ${
-                      visuals[i] 
-                        ? 'bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-lg shadow-purple-500/10' 
-                        : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
-                    }`}
-                    onClick={() => setVisuals(prev => ({...prev, [i]: !prev[i]}))}
-                    title="Generate Visual Aid"
-                  >
-                    <ImageIcon className="w-3 h-3 lg:w-4 lg:h-4" />
-                  </button>
-                </div>
-              )}
-              
-              {msg.role === 'user' && (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#d946ef] to-[#a21caf] border border-[#d946ef]/50 p-0.5 flex items-center justify-center shrink-0 text-white shadow-[0_0_12px_rgba(217,70,239,0.4)] mb-1">
-                  <User className="w-5 h-5 text-white" />
-                </div>
-              )}
-            </div>
-          ))
-        )}
-        {isLoading && (
-          <div className="flex items-start gap-2 lg:gap-4">
-            <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center justify-center shrink-0 shadow-sm text-brand-cyan animate-pulse">
-               <Sparkles className="w-4 h-4 lg:w-5 lg:h-5" />
-            </div>
-            <div className="bg-[#1E293B] border border-white/10 rounded-2xl lg:rounded-3xl rounded-tl-none px-5 py-4 flex flex-col gap-2 min-w-[200px] shadow-sm">
-               <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400">
-                 <span>Tutor is thinking...</span>
-                 <span>{generationProgress}%</span>
-               </div>
-               <div className="w-full h-1.5 rounded-full overflow-hidden bg-white/10">
-                 <div 
-                   className="h-full bg-brand-cyan transition-all duration-300"
-                   style={{ width: `${generationProgress}%` }}
-                 />
-               </div>
-            </div>
+            </AnimatePresence>
           </div>
-        )}
-        <div ref={messagesEndRef} />
+
+          {/* Section: Chat History Grouped Chronologically */}
+          <div className="space-y-3 pt-2">
+            <span className="block text-[10px] font-black uppercase tracking-widest text-slate-500 px-1">Discussions</span>
+            
+            {Object.entries(groupedSessions).map(([groupTitle, list]) => {
+              if (list.length === 0) return null;
+              return (
+                <div key={groupTitle} className="space-y-1">
+                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest px-2.5">{groupTitle}</span>
+                  <div className="space-y-0.5">
+                    {list.map(s => {
+                      const isActive = s.id === activeSessionId;
+                      return (
+                        <div
+                          key={s.id}
+                          onClick={() => setActiveSessionId(s.id)}
+                          className={cn(
+                            "w-full group/item text-left py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all cursor-pointer relative",
+                            isActive 
+                              ? "bg-brand-cyan/10 border border-brand-cyan/20 text-white shadow-[0_2px_10px_rgba(34,211,238,0.05)]" 
+                              : "text-slate-400 hover:text-white hover:bg-white/[0.03]"
+                          )}
+                        >
+                          <div className="min-w-0 flex-1 pr-2">
+                            <p className="truncate font-bold leading-snug">{s.title || 'New Discussion'}</p>
+                            <span className="text-[9px] opacity-60 tracking-wider font-medium font-mono block mt-0.5 uppercase">{s.subject}</span>
+                          </div>
+                          <button 
+                            onClick={(e) => handleDeleteChat(s.id, e)}
+                            className="opacity-0 group-hover/item:opacity-100 p-1 rounded hover:bg-white/10 hover:text-rose-400 transition-all text-slate-500 shrink-0"
+                            title="Delete discussion"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+
+            {sessions.length === 0 && (
+              <p className="text-[10px] text-slate-500 text-center font-bold py-6">No discussions saved.</p>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Input Bar */}
-      <div className="p-4 lg:p-5 bg-gradient-to-b from-[#070b19]/90 to-[#030611]/95 border-t border-white/15 shrink-0 flex flex-col items-center z-25 relative">
-        {isTopicRestricted() ? (
-          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-center text-red-400 text-xs font-semibold max-w-xl mx-auto w-full flex items-center justify-center gap-2 font-sans py-5 h-14">
-            <AlertCircle size={14} className="shrink-0" />
-            <span>🔒 Access Restricted: <span className="font-bold underline">{priorityTopic}</span> has been locked by your parents.</span>
+      {/* RIGHT CHAT WINDOW CONTAINER */}
+      <div className="flex-1 flex flex-col h-full bg-[#0a0f21]/65 relative">
+        
+        {/* Header bar */}
+        <div className="flex items-center justify-between p-4 bg-[#070b19]/70 border-b border-white/10 shrink-0 backdrop-blur-md relative z-30">
+          <div className="flex items-center gap-3">
+            {/* Back Button properly wired */}
+            {onBack && (
+              <button 
+                onClick={onBack} 
+                className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 transition-all cursor-pointer active:scale-95 shrink-0"
+                title="Exit to main portal"
+              >
+                <ArrowLeft size={16} strokeWidth={2.5} />
+              </button>
+            )}
+
+            <div className="text-left">
+              <h1 className="text-sm lg:text-base font-black tracking-tight text-white leading-tight">
+                {activeSession ? activeSession.title : 'Robbie AI Tutor'}
+              </h1>
+              {activeSession && (
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                  {/* Folder Selector Dropdown inside header */}
+                  <select
+                    value={activeSession.subject}
+                    onChange={(e) => handleMoveSessionToFolder(e.target.value)}
+                    className="bg-transparent text-[10px] font-black uppercase tracking-wider text-brand-cyan focus:outline-none cursor-pointer hover:underline border-0 p-0 [&>option]:bg-[#070b19] [&>option]:text-white"
+                  >
+                    {folders.map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
-        ) : isCustomChatRestricted() ? (
-          <div className="p-4 rounded-xl bg-slate-800/25 border border-slate-700/50 text-center text-indigo-400 text-xs font-semibold max-w-xl mx-auto w-full flex items-center justify-center gap-2 font-sans py-5 h-14">
-            <GraduationCap size={14} className="shrink-0 text-brand-cyan" />
-            <span>🔒 Syllabus Focus Active: General conversation is restricted by parents. Choose a subject above.</span>
+
+          <div className="flex items-center gap-2">
+            {/* Settings Gear Button */}
+            <button 
+              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+              title="Tutor Customization Parameters"
+              className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer active:scale-95 shrink-0 ${
+                isSettingsOpen 
+                  ? 'bg-brand-cyan/20 text-brand-cyan border-brand-cyan/35 shadow-[0_0_12px_rgba(34,211,238,0.35)]' 
+                  : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              <Settings size={16} className={isSettingsOpen ? 'rotate-45 transition-transform' : 'transition-transform'} />
+            </button>
           </div>
-        ) : (
+        </div>
+
+        {/* Collapsible settings details */}
+        <AnimatePresence>
+          {isSettingsOpen && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="bg-[#090e1d]/95 border-b border-white/10 p-4 shrink-0 overflow-hidden backdrop-blur-xl relative z-20 shadow-2xl"
+            >
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
+                <div className="flex flex-col">
+                  <label className="text-[9px] uppercase font-black text-brand-cyan mb-1 tracking-wider">Target Grade</label>
+                  <select 
+                    value={studentGrade} 
+                    onChange={e => setStudentGrade(e.target.value)}
+                    className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 transition-all"
+                  >
+                    <option value="Grades R-12">Grades R-12 (Adaptive)</option>
+                    <option value="Grade R">Grade R</option>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map(num => (
+                      <option key={num} value={`Grade ${num}`}>{`Grade ${num}`}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col">
+                  <label className="text-[9px] uppercase font-black text-brand-cyan mb-1 tracking-wider">Subject Folder</label>
+                  <select 
+                    value={activeSession?.subject || 'General'}
+                    onChange={e => handleMoveSessionToFolder(e.target.value)}
+                    className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 transition-all"
+                  >
+                    {folders.map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col">
+                  <label className="text-[9px] uppercase font-black text-brand-cyan mb-1 tracking-wider">Language</label>
+                  <select 
+                    value={language} 
+                    onChange={e => setLanguage(e.target.value)}
+                    className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 transition-all"
+                  >
+                    {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col">
+                  <label className="text-[9px] uppercase font-black text-brand-cyan mb-1 tracking-wider">Voice Character</label>
+                  <select 
+                    value={voice} 
+                    onChange={e => setVoice(e.target.value)}
+                    className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 transition-all"
+                  >
+                    {allVoices.map((v, i) => <option key={`${v.value}-${i}`} value={v.value}>{v.label}</option>)}
+                  </select>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Message scroll list */}
+        <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 bg-[#0a0f21]/30 custom-scrollbar">
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-slate-400 px-6 relative overflow-hidden">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full pointer-events-none opacity-5">
+                <svg className="w-full h-full text-cyan-500" viewBox="0 0 500 500" fill="none">
+                  <path d="M 250 250 L 250 50 L 100 50" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3,3" />
+                  <path d="M 250 250 L 100 250" stroke="currentColor" strokeWidth="1.5" />
+                  <path d="M 250 250 L 400 250" stroke="currentColor" strokeWidth="1.5" />
+                  <path d="M 250 250 L 250 450 L 400 450" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3,3" />
+                </svg>
+              </div>
+
+              <div className="relative z-10 flex flex-col items-center">
+                <div className="w-20 h-20 rounded-full bg-cyan-950/40 border border-cyan-400/40 p-1 shadow-[0_0_20px_rgba(34,211,238,0.3)] flex items-center justify-center mb-5 animate-bounce" style={{ animationDuration: '4s' }}>
+                  <RobbieFace className="w-16 h-16" />
+                </div>
+                <h2 className="text-xl lg:text-2xl font-black text-white text-center mb-1">
+                  Hi, I'm Robbie! 🤖
+                </h2>
+                <p className="text-center text-xs lg:text-sm text-slate-300 max-w-sm font-semibold leading-relaxed mb-6 font-sans">
+                  Choose a subject folder, start a new chat, or ask me anything regarding your CAPS syllabus or homework challenges!
+                </p>
+              </div>
+            </div>
+          ) : (
+            messages.map((msg, i) => (
+              <div key={i} className={`flex items-end gap-2 lg:gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start text-left'}`}>
+                {msg.role === 'model' && (
+                  <motion.div 
+                    whileHover={{ scale: 1.05, rotate: 2 }}
+                    className="w-9 h-9 flex flex-col items-center justify-center shrink-0 shadow-[0_0_10px_rgba(34,211,238,0.3)] border border-[#22d3ee]/40 rounded-full overflow-hidden bg-[#1E293B] mb-1"
+                  >
+                    <RobbieFace className="w-7 h-7" />
+                  </motion.div>
+                )}
+                
+                <motion.div 
+                  initial={{ scale: 0.98, opacity: 0, y: 10 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  className={`p-4 lg:p-4.5 max-w-[85%] lg:max-w-[78%] shadow-xl ${
+                    msg.role === 'user' 
+                      ? 'bg-fuchsia-950/30 border border-fuchsia-500/50 shadow-[0_0_15px_rgba(217,70,239,0.15)] text-white rounded-[20px] rounded-br-[4px] font-sans font-medium' 
+                      : 'bg-cyan-950/30 border border-cyan-400/50 shadow-[0_0_15px_rgba(34,211,238,0.15)] text-white rounded-[20px] rounded-bl-[4px] font-sans'
+                  }`}
+                >
+                  {msg.role === 'model' ? (
+                    <div className="flex flex-col gap-3">
+                      <div className="prose prose-xs lg:prose-sm max-w-none prose-p:leading-relaxed prose-invert markdown-body"
+                        dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(marked.parse(msg.text) as string) }}
+                      />
+                      {visuals[i] && (
+                        <div className="pt-2 border-t border-white/5">
+                          <AiImage prompt={`Educational illustration showing: ${msg.text.substring(0, 300)}`} aspectRatio="video" className="w-full max-w-sm" />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {msg.image && (
+                        <img src={msg.image} alt="Uploaded" className="max-w-[180px] lg:max-w-[220px] rounded-xl object-contain mb-1.5 border border-white/10 shadow-md" />
+                      )}
+                      <p className="text-xs lg:text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    </div>
+                  )} 
+                </motion.div>
+                
+                {msg.role === 'model' && (
+                  <div className="flex flex-col gap-1 shrink-0 mb-1">
+                    <button
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors border ${
+                        isAudioPlaying === i && !isAudioPaused 
+                          ? 'bg-brand-cyan/20 border-brand-cyan text-brand-cyan shadow-lg shadow-brand-cyan/10' 
+                          : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
+                      }`}
+                      onClick={() => handlePlayAudio(msg.text, i)}
+                      disabled={isTtsLoading === i}
+                      title={isAudioPlaying === i && !isAudioPaused ? "Pause" : "Play Voice"}
+                    >
+                      {isTtsLoading === i ? <Loader2 className="w-3 h-3 animate-spin text-brand-cyan" /> : isAudioPlaying === i && !isAudioPaused ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
+                    </button>
+                    {isAudioPlaying === i && (
+                      <button
+                        className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors bg-red-500/10 text-red-300 border border-red-500/20 hover:bg-red-500/20"
+                        onClick={handleStopAudio}
+                        title="Stop Voice"
+                      >
+                        <Square className="w-3 h-3" />
+                      </button>
+                    )}
+                    <button
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors border ${
+                        visuals[i] 
+                          ? 'bg-purple-500/20 text-purple-300 border-purple-500/30 shadow-lg shadow-purple-500/10' 
+                          : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
+                      }`}
+                      onClick={() => setVisuals(prev => ({...prev, [i]: !prev[i]}))}
+                      title="Request Visual Diagram"
+                    >
+                      <ImageIcon className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+                
+                {msg.role === 'user' && (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#d946ef] to-[#a21caf] border border-[#d946ef]/50 p-0.5 flex items-center justify-center shrink-0 text-white shadow-[0_0_10px_rgba(217,70,239,0.3)] mb-1">
+                    <User className="w-4 h-4 text-white" />
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+          {isLoading && (
+            <div className="flex items-start gap-2 lg:gap-4 text-left">
+              <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex flex-col items-center justify-center shrink-0 text-brand-cyan animate-pulse">
+                 <Sparkles className="w-4 h-4" />
+              </div>
+              <div className="bg-[#1E293B] border border-white/10 rounded-2xl rounded-tl-none px-4 py-3 flex flex-col gap-1.5 min-w-[180px] shadow-sm">
+                 <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-slate-400">
+                   <span>Robbie is formulating...</span>
+                   <span>{generationProgress}%</span>
+                 </div>
+                 <div className="w-full h-1 rounded-full overflow-hidden bg-white/10">
+                   <div 
+                     className="h-full bg-brand-cyan transition-all duration-300"
+                     style={{ width: `${generationProgress}%` }}
+                   />
+                 </div>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Dynamic chat inputs */}
+        <div className="p-4 bg-[#070b19]/90 border-t border-white/10 shrink-0 flex flex-col items-center z-25 relative">
+          
           <div className="w-full max-w-2xl flex flex-col items-center">
-            {/* Suggestions Sparks Row - Shown when no messages */}
+            
+            {/* Suggestions Row */}
             {!isLoading && !selectedImage && messages.length === 0 && (
-              <div className="flex flex-wrap items-center justify-center gap-2 mb-4 w-full">
+              <div className="flex flex-wrap items-center justify-center gap-1.5 mb-3 w-full">
                 {SUGGESTIONS.map((s) => (
                   <button
                     key={s.text}
                     disabled={isLoading}
                     onClick={() => handleSend(s.text)}
-                    className={`px-4.5 py-1.5 rounded-full text-xs font-black border transition-all duration-300 cursor-pointer active:scale-95 ${s.color}`}
+                    className={`px-3 py-1 rounded-full text-[10px] font-black border transition-all duration-300 cursor-pointer active:scale-95 ${s.color}`}
                   >
                     ✨ {s.text}
                   </button>
@@ -804,18 +1122,18 @@ export default function AITutorPage() {
             )}
 
             {selectedImage && (
-              <div className="relative inline-block self-start ml-2 lg:ml-4 mb-2">
-                <img src={selectedImage} alt="Preview" className="h-16 lg:h-20 rounded-lg object-contain border border-white/10 shadow-sm" />
+              <div className="relative inline-block self-start ml-2 mb-2">
+                <img src={selectedImage} alt="Preview" className="h-14 rounded-lg object-contain border border-white/10 shadow-md" />
                 <button 
                   onClick={() => setSelectedImage(null)}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 scale-75 cursor-pointer"
+                  className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 shadow-md hover:bg-red-600 scale-75 cursor-pointer"
                 >
-                  <Pause className="w-4 h-4 rotate-45" />
+                  <X size={10} />
                 </button>
               </div>
             )}
 
-            <div className="relative flex items-center gap-2 lg:gap-3 w-full">
+            <div className="relative flex items-center gap-2 w-full">
               <input 
                 type="file" 
                 ref={fileInputRef} 
@@ -824,36 +1142,33 @@ export default function AITutorPage() {
                 className="hidden" 
               />
               
-              {/* Attachment Button */}
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-12 h-12 rounded-full bg-white/5 text-slate-300 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:text-white transition-all shrink-0 cursor-pointer active:scale-95"
-                title="Upload Homework Picture"
+                className="w-10 h-10 rounded-full bg-white/5 text-slate-300 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:text-white transition-all shrink-0 cursor-pointer active:scale-95"
+                title="Attach Homework Photo"
               >
-                <ImageIcon className="w-5 h-5 text-brand-cyan" />
+                <ImageIcon className="w-4 h-4 text-brand-cyan animate-pulse" />
               </button>
 
-              {/* Centered Pill Input */}
               <div className="relative flex-1">
                 <input
                   type="text"
-                  placeholder={isRecording ? "Listening..." : "Ask me anything..."}
+                  placeholder={isRecording ? "Listening to your voice..." : "Ask your school subject or homework query..."}
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && !isLoading && (input.trim() || selectedImage) && handleSend()}
-                  className="w-full pl-5 pr-5 h-12 rounded-full border border-white/10 focus:border-brand-cyan focus:outline-none bg-white/5 transition-all font-sans text-white text-sm lg:text-base placeholder:text-slate-500"
+                  className="w-full pl-4 pr-4 h-10 rounded-full border border-white/10 focus:border-brand-cyan focus:outline-none bg-white/5 transition-all font-sans text-white text-xs lg:text-sm placeholder:text-slate-500"
                   disabled={isLoading}
                 />
               </div>
 
-              {/* Send Button */}
               <button 
                 onClick={() => handleSend()} 
                 disabled={isLoading || (!input.trim() && !selectedImage)} 
-                className="w-12 h-12 rounded-full bg-brand-cyan text-slate-950 shadow-[0_0_15px_rgba(34,211,238,0.4)] flex items-center justify-center hover:scale-105 active:scale-95 disabled:opacity-50 transition-all shrink-0 font-black cursor-pointer"
-                title="Send Question"
+                className="w-10 h-10 rounded-full bg-brand-cyan text-slate-950 shadow-[0_0_10px_rgba(34,211,238,0.3)] flex items-center justify-center hover:scale-105 active:scale-95 disabled:opacity-50 transition-all shrink-0 font-black cursor-pointer"
+                title="Send query"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                 </svg>
               </button>
@@ -861,35 +1176,34 @@ export default function AITutorPage() {
               {isAudioPlaying !== null && (
                 <button 
                   onClick={handleStopAudio} 
-                  className="w-12 h-12 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all shrink-0 cursor-pointer shadow-red-500/20"
+                  className="w-10 h-10 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all shrink-0 cursor-pointer shadow-red-500/10"
                 >
-                  <Square className="w-4 h-4 lg:w-5 lg:h-5" />
+                  <Square className="w-3 h-3" />
                 </button>
               )}
             </div>
 
-            {/* Giant Centered Voice Microphone Button */}
-            <div className="flex flex-col items-center justify-center mt-4">
+            {/* Micro voice record trigger */}
+            <div className="flex items-center gap-2 mt-3 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full">
               <button
                 onClick={handleMicClick}
                 disabled={isLoading}
-                className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer border-2 ${
+                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer ${
                   isRecording 
-                    ? 'bg-gradient-to-tr from-red-500 to-rose-600 text-white border-red-400 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.7)] scale-110' 
-                    : 'bg-gradient-to-tr from-[#22d3ee] to-[#3b82f6] text-slate-950 border-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.6)] hover:shadow-[0_0_25px_rgba(34,211,238,0.9)] hover:scale-105 active:scale-95'
+                    ? 'bg-red-500 text-white animate-pulse' 
+                    : 'bg-brand-cyan text-slate-950 hover:scale-105'
                 }`}
-                title={isRecording ? "Stop Recording" : "Speak to Robbie"}
+                title="Speak question"
               >
-                <Mic className="w-7 h-7" />
+                <Mic className="w-3.5 h-3.5" />
               </button>
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">
-                {isRecording ? "Listening Active" : "Speak to Robbie"}
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                {isRecording ? "Speech Listening" : "Speak to Robbie"}
               </span>
             </div>
           </div>
-        )}
+        </div>
       </div>
-      <audio ref={audioRef} className="hidden" />
     </div>
   );
 }

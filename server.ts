@@ -143,7 +143,7 @@ VISUAL STYLING DOCTRINE (Follow these for all HTML output):
 `;
 
   const IMAGE_PROMPT_GOLDEN_RULE = `
-Ultra-detailed digital illustration, professional educational graphic design, vibrant colors, perfect composition, sharp focus, 300 DPI print quality, award-winning children’s non-fiction book style, no text overlays (text will be added separately), no borders, no frames, no watermarks, no emojis, no cartoonish exaggeration, suitable for South African classroom display, museum-quality detail
+World-class masterpiece work of art, crisp render, sharp focus, charmingly aesthetic design, 4k, soft lighting, masterpiece emoji-style figurine 3D render, 3D Disney Character render, pure white background, natural beauty, ultra-detailed 3D digital asset, vibrant colors, perfect composition, no text overlays (text will be added separately), no borders, no frames, no watermarks, museum-quality detail
 `;
 
   const repairTruncatedJson = (jsonStr: string): string => {
@@ -968,7 +968,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
       // Fallback Strategy: Pollinations (FLUX) so image generation NEVER fails!
       console.warn("All Gemini image generation attempts failed. Falling back to Pollinations in the backend.");
-      const enhancedPrompt = `${prompt}, professional children's educational book illustration style, pencil sketch and clean watercolor painting blend, rich vibrant colors, high detail, no text overlays, South African classroom display, 300 DPI`;
+      const enhancedPrompt = `${prompt}, masterpiece emoji-style figurine 3D render, 3D Disney Character render, pure white background, natural beauty, ultra-detailed 3D digital asset, vibrant colors, perfect composition, no text overlays, museum-quality detail`;
       const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 100000)}`;
       return res.json({ url: fallbackUrl, isFallback: true });
     }

@@ -86,32 +86,65 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
     }
   };
 
+  const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-700">
       {/* Header card */}
-      <div className="bg-gradient-to-br from-slate-700 to-slate-900 p-10 rounded-[36px] text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between min-h-[200px] gap-6">
-        <div className="relative z-10">
-          <h2 className="text-4xl font-hand mb-2 tracking-wide text-white">System Administration</h2>
-          <p className="text-lg text-slate-300 font-medium">Manage deployment, system health, and school configurations.</p>
+      <div className={cn(
+        "relative rounded-[40px] p-8 lg:p-12 overflow-hidden text-white flex flex-col md:flex-row md:items-center md:justify-between min-h-[260px] border shadow-2xl gap-6 transition-all duration-300",
+        isDarkMode ? "glass-neon-card animate-neon-pulse-cyan border-brand-cyan/20 bg-slate-950/45" : "bg-slate-900 border-slate-800"
+      )}>
+        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none hidden md:block">
+           <ShieldAlert size={200} className={cn(isDarkMode && "icon-glow-pink text-brand-pink")} />
         </div>
+        {isDarkMode && (
+          <>
+            <div className="absolute -left-10 -bottom-10 w-40 h-40 rounded-full bg-brand-cyan/10 blur-3xl pointer-events-none" />
+            <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-brand-pink/10 blur-3xl pointer-events-none" />
+          </>
+        )}
+        
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-slate-900/10 to-transparent pointer-events-none" />
+        
+        <div className="relative z-10 max-w-xl">
+           <div className={cn(
+             "inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-bold mb-6 shadow-sm",
+             isDarkMode ? "border-brand-green/30 bg-brand-green/10 text-brand-green animate-pulse" : "border-white/20 bg-white/10 text-emerald-300"
+           )}>
+             <Server size={16} className={cn(isDarkMode ? "text-brand-green" : "text-emerald-400")} /> Admin Suite
+           </div>
+           <h1 className={cn(
+             "text-4xl lg:text-6xl font-hand tracking-wide leading-tight mb-4 drop-shadow-md",
+             isDarkMode ? "text-white text-glow-cyan" : "text-white"
+           )}>
+             System <span className="text-brand-cyan text-glow-cyan">Administration</span>
+           </h1>
+           <p className="text-slate-300 font-medium text-sm lg:text-base leading-relaxed">
+             Manage system health, deployment configurations, and diagnostic error trace lists.
+           </p>
+        </div>
+
         <div className="relative z-10 flex flex-wrap gap-3">
           <button 
             onClick={() => setActiveTab('system')}
-            className={`px-5 py-3 rounded-full font-bold text-sm transition-all flex items-center gap-2 border shadow-lg ${
-              activeTab === 'system'
-                ? 'bg-brand-cyan text-slate-900 border-brand-cyan scale-105'
-                : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
-            }`}
+            className={cn(
+              "px-5 py-3 rounded-full font-bold text-sm transition-all flex items-center gap-2 shadow-lg cursor-pointer hover:scale-105 active:scale-95 border-none",
+              isDarkMode 
+                ? (activeTab === 'system' ? 'primary-neon-btn-cyan text-slate-950 font-black' : 'glass-neon-btn border-brand-cyan/20')
+                : (activeTab === 'system' ? 'bg-brand-cyan text-slate-950 border-brand-cyan' : 'bg-white/10 hover:bg-white/20 text-white border-white/20')
+            )}
           >
             <Activity size={16} /> System Operations
           </button>
           <button 
             onClick={() => setActiveTab('debug')}
-            className={`px-5 py-3 rounded-full font-bold text-sm transition-all flex items-center gap-2 border shadow-lg ${
-              activeTab === 'debug'
-                ? 'bg-brand-cyan text-slate-900 border-brand-cyan scale-105'
-                : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
-            }`}
+            className={cn(
+              "px-5 py-3 rounded-full font-bold text-sm transition-all flex items-center gap-2 shadow-lg cursor-pointer hover:scale-105 active:scale-95 border-none",
+              isDarkMode
+                ? (activeTab === 'debug' ? 'primary-neon-btn-pink text-white font-black' : 'glass-neon-btn border-brand-pink/20')
+                : (activeTab === 'debug' ? 'bg-brand-cyan text-slate-950 border-brand-cyan' : 'bg-white/10 hover:bg-white/20 text-white border-white/20')
+            )}
           >
             <Terminal size={16} /> Debug Console
             {errors.length > 0 && (
@@ -133,7 +166,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
               { label: 'Classes', value: '86', icon: School, color: 'text-indigo-400' },
               { label: 'API Status', value: errors.length > 0 ? 'Errors Buffered' : 'Optimal', icon: Server, color: errors.length > 0 ? 'text-amber-500' : 'text-brand-cyan' }
             ].map((stat, i) => (
-              <div key={i} className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-6 rounded-[28px] shadow-sm`}>
+              <div key={i} className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-6 rounded-[36px] shadow-sm hover:-translate-y-1 transition-transform duration-300`}>
                 <div className="flex justify-between items-start mb-2">
                   <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-100'}`}>
                     <stat.icon size={20} className={stat.color} />
@@ -147,7 +180,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
 
           {/* Recharts System Metrics */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm flex flex-col`}>
+            <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm flex flex-col`}>
               <h3 className={`text-xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>User Growth Trends</h3>
               <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height={300}>
@@ -176,7 +209,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
               </div>
             </div>
 
-            <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm flex flex-col`}>
+            <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm flex flex-col`}>
               <h3 className={`text-xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Resource Utilization</h3>
               <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height={300}>
@@ -207,7 +240,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
           {/* Recent Logs & Quick Actions */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-6">
-              <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
+              <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
                 <h3 className={`text-2xl font-hand mb-6 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}><ShieldAlert className="text-rose-500" /> Recent Security & Admin Logs</h3>
                 <div className="space-y-4">
                   {[
@@ -230,16 +263,16 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
               </div>
             </div>
             <div className="lg:col-span-4 space-y-6">
-              <div className={`p-8 rounded-[36px] shadow-lg ${isDarkMode ? 'bg-slate-800 border border-slate-700' : 'bg-slate-800' } text-white h-full`}>
+              <div className={`p-8 rounded-[36px] shadow-lg ${isDarkMode ? 'bg-[#0B1122]/90 border border-white/10' : 'bg-slate-800' } text-white h-full`}>
                 <h3 className="text-xl font-bold mb-4">Quick Actions</h3>
                 <div className="space-y-3">
-                  <button className="w-full bg-slate-700 hover:bg-slate-600 transition-colors p-4 rounded-2xl text-left font-medium text-sm flex justify-between items-center">
+                  <button className="w-full bg-slate-700 hover:bg-slate-600 transition-colors p-4 rounded-2xl text-left font-medium text-sm flex justify-between items-center cursor-pointer">
                     Manage Roles <Users size={16}/>
                   </button>
-                  <button className="w-full bg-slate-700 hover:bg-slate-600 transition-colors p-4 rounded-2xl text-left font-medium text-sm flex justify-between items-center">
+                  <button className="w-full bg-slate-700 hover:bg-slate-600 transition-colors p-4 rounded-2xl text-left font-medium text-sm flex justify-between items-center cursor-pointer">
                     School Academic Calendar <Calendar size={16}/>
                   </button>
-                  <button className="w-full bg-slate-700 hover:bg-slate-600 transition-colors p-4 rounded-2xl text-left font-medium text-sm flex justify-between items-center">
+                  <button className="w-full bg-slate-700 hover:bg-slate-600 transition-colors p-4 rounded-2xl text-left font-medium text-sm flex justify-between items-center cursor-pointer">
                     Official Certificates <FileText size={16}/>
                   </button>
                 </div>
@@ -251,7 +284,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
         /* Debug Console Tab */
         <div className="space-y-6">
           {/* Explanation panel */}
-          <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm space-y-2`}>
+          <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm space-y-2`}>
             <div className="flex items-center gap-3">
               <div className="p-3 bg-rose-500/10 rounded-2xl text-rose-500">
                 <Bug size={24} />
@@ -267,7 +300,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
 
           {/* Quick Metrics Bar */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-6 rounded-[28px]`}>
+            <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-6 rounded-[28px]`}>
               <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Captured Errors</p>
               <h3 className={`text-2xl font-bold mt-1 ${isDarkMode ? 'text-white' : 'text-slate-800'} flex items-center gap-2`}>
                 <AlertTriangle size={20} className={errors.length > 0 ? "text-amber-500 animate-bounce" : "text-emerald-500"} />
@@ -275,20 +308,20 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
               </h3>
             </div>
             
-            <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-6 rounded-[28px]`}>
+            <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-6 rounded-[28px]`}>
               <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Current Filter</p>
               <h3 className={`text-2xl font-bold mt-1 ${isDarkMode ? 'text-white' : 'text-slate-800'} uppercase font-mono`}>
                 {providerFilter}
               </h3>
             </div>
 
-            <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-6 rounded-[28px] flex flex-col justify-between`}>
+            <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-6 rounded-[28px] flex flex-col justify-between`}>
               <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Diagnostic Actions</p>
               <div className="flex gap-2 mt-1">
                 <button 
                   onClick={fetchErrors}
                   disabled={loading}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-brand-cyan hover:bg-brand-cyan/80 text-slate-900 transition-all disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-brand-cyan hover:bg-brand-cyan/80 text-slate-900 transition-all disabled:opacity-50 cursor-pointer"
                 >
                   <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
                   Refresh
@@ -297,13 +330,13 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                   <div className="flex gap-1.5 items-center">
                     <button 
                       onClick={clearErrors} 
-                      className="px-3 py-2 rounded-xl text-xs font-bold bg-red-600 text-white hover:bg-red-700 transition"
+                      className="px-3 py-2 rounded-xl text-xs font-bold bg-red-600 text-white hover:bg-red-700 transition cursor-pointer"
                     >
                       Confirm Clear
                     </button>
                     <button 
                       onClick={() => setConfirmClear(false)} 
-                      className="px-2 py-2 rounded-xl text-xs font-medium border border-slate-300 dark:border-white/10 text-slate-500 hover:text-slate-700 dark:text-slate-300 transition"
+                      className="px-2 py-2 rounded-xl text-xs font-medium border border-slate-300 dark:border-white/10 text-slate-500 hover:text-slate-700 dark:text-slate-300 transition cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -312,7 +345,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                   <button 
                     onClick={() => setConfirmClear(true)}
                     disabled={errors.length === 0}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-white/5 border border-white/10 hover:bg-white/10 dark:text-white text-slate-700 hover:text-slate-900 dark:hover:text-white transition-all disabled:opacity-50 disabled:pointer-events-none"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-white/5 border border-white/10 hover:bg-white/10 dark:text-white text-slate-700 hover:text-slate-900 dark:hover:text-white transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
                   >
                     <Trash2 size={13} />
                     Clear Buffer
@@ -332,7 +365,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                 <button
                   key={prov}
                   onClick={() => setProviderFilter(prov)}
-                  className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all border ${
+                  className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all border cursor-pointer ${
                     providerFilter === prov
                       ? 'bg-brand-cyan text-slate-900 border-brand-cyan'
                       : isDarkMode 
@@ -349,7 +382,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
           {/* Main Error Log output */}
           <div className="space-y-4">
             {filteredErrors.length === 0 ? (
-              <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-12 rounded-[36px] text-center space-y-4`}>
+              <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-12 rounded-[36px] text-center space-y-4`}>
                 <div className="inline-flex p-4 rounded-full bg-emerald-500/10 text-emerald-400 mb-2">
                   <CheckCircle size={36} />
                 </div>
@@ -359,7 +392,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                 </p>
                 <button
                   onClick={fetchErrors}
-                  className="px-5 py-2.5 rounded-full bg-brand-cyan hover:bg-brand-cyan/80 text-slate-900 font-bold text-xs shadow transition-all"
+                  className="px-5 py-2.5 rounded-full bg-brand-cyan hover:bg-brand-cyan/80 text-slate-900 font-bold text-xs shadow transition-all cursor-pointer"
                 >
                   Check Live Status
                 </button>
@@ -383,7 +416,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                         className="p-5 flex items-center justify-between cursor-pointer select-none gap-4 hover:bg-slate-500/5 transition-colors"
                       >
                         <div className="flex items-center gap-4 min-w-0">
-                          <div className={`p-2 rounded-2xl border text-xs font-mono font-bold tracking-wide uppercase ${getProviderBadgeStyle(err.provider)}`}>
+                          <div className={`p-2 rounded-2xl border text-xs font-mono font-bold tracking-wide uppercase shrink-0 ${getProviderBadgeStyle(err.provider)}`}>
                             {err.provider}
                           </div>
                           <div className="min-w-0">
@@ -402,13 +435,13 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 shrink-0">
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
                               handleCopy(err.id, err);
                             }}
-                            className={`p-2.5 rounded-xl border transition-all ${
+                            className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
                               copiedId === err.id 
                                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
                                 : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
@@ -462,7 +495,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                               <span className="text-[10px] uppercase font-black tracking-wider text-slate-400">Raw Stack / JSON Response</span>
                               <button
                                 onClick={() => handleCopy(err.id, err.rawResponse)}
-                                className="text-xs text-brand-cyan hover:underline hover:text-brand-cyan/80 flex items-center gap-1 font-bold"
+                                className="text-xs text-brand-cyan hover:underline hover:text-brand-cyan/80 flex items-center gap-1 font-bold cursor-pointer"
                               >
                                 <Copy size={12} /> Copy Raw Output
                               </button>

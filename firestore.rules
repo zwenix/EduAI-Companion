@@ -154,15 +154,17 @@ service cloud.firestore {
     }
 
     function isValidMessage(data) {
-      return data.keys().size() >= 4 && data.keys().size() <= 5
+      return data.keys().size() >= 4 && data.keys().size() <= 7
         && data.senderId is string && data.senderId == request.auth.uid
         && data.senderName is string && data.senderName.size() <= 100
         && data.text is string && data.text.size() <= 2000
-        && data.createdAt is timestamp;
+        && data.createdAt is timestamp
+        && (!('recipientId' in data) || data.recipientId is string && data.recipientId.size() <= 128)
+        && (!('deliveryStatus' in data) || data.deliveryStatus is string && data.deliveryStatus.size() <= 20);
     }
     match /communicator_messages/{messageId} {
-      allow get: if isSignedIn() && isValidId(messageId);
-      allow list: if isSignedIn();
+      allow get: if isSignedIn() && isValidId(messageId) && (existing().senderId == request.auth.uid || existing().recipientId == request.auth.uid);
+      allow list: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
       allow create: if isSignedIn() && isValidId(messageId) && isValidMessage(incoming()) && incoming().createdAt == request.time;
     }
 

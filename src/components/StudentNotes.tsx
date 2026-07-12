@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { BookOpen, Loader2, FileText, BrainCircuit, Download, History, ArrowRight, Eye } from 'lucide-react';
+import { BookOpen, Loader2, FileText, BrainCircuit, Download, History, ArrowRight, Eye, Printer, Award, Trophy } from 'lucide-react';
+import { motion } from 'motion/react';
 import { generateEducationalContent } from '../services/geminiService';
 import { marked } from 'marked';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
@@ -10,6 +11,9 @@ import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import ReaderModeModal from './ReaderModeModal';
+import PrintPreviewModal from './PrintPreviewModal';
+
+const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
 export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
   const [grade, setGrade] = useState('10');
@@ -25,6 +29,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
   const [history, setHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [isReaderOpen, setIsReaderOpen] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   // Fetch student study guides history from Firestore
   useEffect(() => {
@@ -176,15 +181,35 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
 
   
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-12">
-      <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
-        <h2 className={`text-3xl font-hand mb-2 flex items-center gap-3 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}><BookOpen className="text-brand-cyan"/> Study Notes & Revision</h2>
-        <p className={`${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Generate personalized, CAPS-aligned study notes, flashcards, mind-map outlines, and revision packs.</p>
+    <div className="max-w-6xl mx-auto space-y-8 pb-12 animate-in fade-in duration-700">
+      {/* Hero Section */}
+      <div className={cn(
+        "relative rounded-[36px] p-8 lg:p-12 overflow-hidden text-white flex flex-col justify-end min-h-[300px] border shadow-2xl",
+        isDarkMode ? "bg-[#0B1122] border-white/10" : "bg-slate-900 border-slate-800"
+      )}>
+        <div className="absolute top-0 right-0 p-8 opacity-20 pointer-events-none">
+           <BookOpen size={200} />
+        </div>
+        
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none mix-blend-overlay" />
+        
+        <div className="relative z-10 max-w-3xl">
+           <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-4 py-1.5 text-sm font-bold text-emerald-300 mb-6 shadow-sm">
+             <Trophy size={16} className="text-emerald-400" /> Syllabus Materials
+           </motion.div>
+           <h1 className="text-4xl lg:text-6xl font-hand tracking-wide leading-tight mb-4 drop-shadow-md">
+             Syllabus <span className="text-brand-cyan">Mastery Keys</span>
+           </h1>
+           <p className="text-slate-300 font-medium text-sm lg:text-base leading-relaxed max-w-lg">
+             Generate beautiful, high-retention study guides, flashcards, and outlines fully aligned strictly to South African CAPS curriculum standards.
+           </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="space-y-6 lg:col-span-1 border-0">
-          <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-6 rounded-[24px] space-y-4 shadow-sm h-fit`}>
+          <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-6 rounded-[24px] space-y-4 shadow-sm h-fit`}>
             <h3 className={`font-bold ${isDarkMode ? 'text-white' : 'text-slate-700'}`}>Setup Parameters</h3>
             
             <div className="space-y-2">
@@ -248,7 +273,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
           </div>
 
           {/* Historical Saved Study Material Archive */}
-          <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-6 rounded-[24px] shadow-sm space-y-4`}>
+          <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-6 rounded-[24px] shadow-sm space-y-4`}>
             <h3 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-700'}`}>
               <History size={16} className="text-brand-cyan" />
               Syllabus Notes Archive
@@ -270,7 +295,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
                     }}
                     className={`w-full text-left p-3 rounded-xl border text-xs transition-colors flex items-center justify-between group cursor-pointer ${
                       isDarkMode
-                        ? 'bg-white/5 border-white/5 hover:border-white/10 hover:bg-white/10 text-slate-300'
+                        ? 'bg-slate-950/40 border-white/10 hover:border-white/20 hover:bg-slate-950/60 text-slate-300'
                         : 'bg-slate-50 border-slate-100 hover:border-slate-200 hover:bg-slate-100 text-slate-700'
                     }`}
                   >
@@ -291,21 +316,27 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
         <div className="lg:col-span-2">
           {result ? (
             <div className="space-y-4">
-              <div className="flex gap-2 justify-end">
+              <div className="flex gap-2 justify-end flex-wrap">
                 <button 
                   onClick={() => setIsReaderOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all bg-cyan-500 hover:bg-cyan-600 text-white cursor-pointer hover:scale-105 active:scale-95 shadow-md shadow-cyan-500/20"
+                  className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all bg-cyan-500 hover:bg-cyan-600 text-white cursor-pointer hover:scale-105 active:scale-95 shadow-md shadow-cyan-500/20"
                 >
                   <Eye size={16} /> 📖 Read in Reader Mode
                 </button>
                 <button 
+                  onClick={() => setShowPrintModal(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer hover:scale-105 active:scale-95 shadow-md shadow-indigo-500/20"
+                >
+                  <Printer size={16} /> Print / Preview (A4)
+                </button>
+                <button 
                   onClick={handleExportPDF}
-                  className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${isDarkMode ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-slate-150 hover:bg-slate-200 text-slate-700'}`}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${isDarkMode ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-slate-150 hover:bg-slate-200 text-slate-700'}`}
                 >
                   <Download size={16} /> Export to PDF
                 </button>
               </div>
-              <div ref={printRef} className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} p-8 rounded-[24px] border shadow-sm`}>
+              <div ref={printRef} className={`${isDarkMode ? 'bg-slate-900/60 border-white/10 text-slate-200' : 'bg-white text-slate-900 border-slate-200'} p-8 rounded-[36px] border shadow-sm`}>
                 <div 
                   dangerouslySetInnerHTML={{ 
                     __html: (result.content || result).trim().startsWith('<') 
@@ -317,7 +348,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
               </div>
             </div>
           ) : (
-             <div className={`${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'} p-12 rounded-[24px] border border-dashed text-center flex flex-col items-center justify-center opacity-70`}>
+             <div className={`${isDarkMode ? 'bg-slate-900/60 border-white/10' : 'bg-slate-50 border-slate-200'} p-12 rounded-[36px] border border-dashed text-center flex flex-col items-center justify-center opacity-70`}>
                <FileText size={48} className={`${isDarkMode ? 'text-slate-500' : 'text-slate-300'} mb-4`} />
                <p className={`font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Your generated study materials will appear here.</p>
              </div>
@@ -334,6 +365,23 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
           content={result.content || result}
           subject={subject}
           grade={grade}
+        />
+      )}
+
+      {/* Interactive A4 Print Preview Modal */}
+      {result && (
+        <PrintPreviewModal
+          isOpen={showPrintModal}
+          onClose={() => setShowPrintModal(false)}
+          title={topic || format || 'Syllabus study Guide'}
+          content={result.content || result}
+          options={{
+            subject: subject || 'General',
+            grade: grade || 'All',
+            contentType: format || 'Study Notes',
+            title: topic || 'Syllabus notes'
+          }}
+          isDarkMode={isDarkMode}
         />
       )}
     </div>

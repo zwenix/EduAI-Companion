@@ -17,11 +17,13 @@ import { collection, query, where, onSnapshot, updateDoc, doc, setDoc, deleteDoc
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 
+const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
+
 import { StudentDoc, Subject, Assessment, MilestoneTask, IdpModel } from '../types';
 import { MOCK_STUDENTS, PRELOADED_PLANS } from '../data/mockStudents';
 import LoadingMascot from './LoadingMascot';
 
-export default function ProgressReports() {
+export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: boolean }) {
   const [activeTab, setActiveTab] = useState<'overview' | 'idp'>('overview');
   
   // Mobile UI adjustments
@@ -622,18 +624,27 @@ export default function ProgressReports() {
       </AnimatePresence>
 
       {/* Header Block with Tab Navigator */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 shrink-0 bg-white/5 p-6 md:p-8 rounded-[36px] border border-white/5">
-        <div>
+      <div className={cn(
+        "relative rounded-[36px] p-8 overflow-hidden text-white flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border shadow-2xl",
+        isDarkMode ? "bg-[#0B1122] border-white/10" : "bg-slate-900 border-slate-800"
+      )}>
+        <div className="absolute top-0 right-0 p-8 opacity-20 pointer-events-none hidden md:block">
+          <TrendingUp size={160} />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none mix-blend-overlay" />
+
+        <div className="relative z-10">
           <p className="text-[10px] text-brand-cyan font-black uppercase tracking-[0.3em] mb-2 font-sans flex items-center gap-1.5">
             <Activity size={12} className="text-brand-cyan animate-pulse" /> 
             Analytics Cognitive Centre
           </p>
           <h2 className="text-3xl md:text-4xl font-hand text-white">Learner Progress & IDP Lab</h2>
-          <p className="text-slate-400 text-xs mt-1">Audit class academic stats and produce personalized AI-driven Development Plans (ILDP).</p>
+          <p className="text-slate-300 text-xs mt-1">Audit class academic stats and produce personalized AI-driven Development Plans (ILDP).</p>
         </div>
 
         {/* Workspace Switcher */}
-        <div className="bg-white/5 p-1 rounded-2xl flex gap-1 border border-white/5 shadow-inner grow md:grow-0 w-full md:w-auto">
+        <div className="relative z-10 bg-white/5 p-1 rounded-2xl flex gap-1 border border-white/5 shadow-inner grow md:grow-0 w-full md:w-auto">
           <button 
             onClick={() => setActiveTab('overview')}
             className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${

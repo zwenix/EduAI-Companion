@@ -12,6 +12,8 @@ import {
   CartesianGrid, Tooltip, BarChart, Bar 
 } from 'recharts';
 
+const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
+
 export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean }) {
   const [children, setChildren] = useState<any[]>([]);
   const [selectedChildIndex, setSelectedChildIndex] = useState(0);
@@ -801,33 +803,56 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
 
 
       {/* Hero card */}
-      <div className="bg-gradient-to-br from-brand-cyan to-indigo-700 p-8 sm:p-10 rounded-[38px] text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-end min-h-[220px] gap-6">
-        <div className="absolute top-0 right-0 p-8 opacity-10">
-          <GraduationCap size={200} />
+      <div className={cn(
+        "p-8 sm:p-10 rounded-[40px] text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-end min-h-[220px] gap-6 border transition-all duration-300",
+        isDarkMode 
+          ? "glass-neon-card animate-neon-pulse-pink border-brand-pink/20 bg-slate-950/45" 
+          : "bg-gradient-to-br from-brand-cyan to-indigo-700"
+      )}>
+        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+          <GraduationCap size={200} className={cn(isDarkMode && "icon-glow-cyan text-brand-cyan")} />
         </div>
+        {isDarkMode && (
+          <>
+            <div className="absolute -left-10 -bottom-10 w-40 h-40 rounded-full bg-brand-pink/10 blur-3xl pointer-events-none" />
+            <div className="absolute right-1/4 top-0 w-40 h-40 rounded-full bg-brand-cyan/10 blur-3xl pointer-events-none" />
+          </>
+        )}
         <div className="relative z-10 space-y-3">
-          <div className="w-12 h-12 bg-white/15 rounded-2xl flex items-center justify-center text-lg font-bold font-hand text-brand-cyan uppercase leading-none shadow-md">
+          <div className={cn(
+            "w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold font-hand uppercase leading-none shadow-md border",
+            isDarkMode ? "bg-slate-950 border-brand-cyan/40 text-brand-cyan text-glow-cyan" : "bg-white/15 border-white/25 text-brand-cyan"
+          )}>
             {activeChild.name.split(' ').map((n: string) => n.charAt(0)).join('')}
           </div>
           <div>
-            <span className="inline-block bg-white/20 border border-white/25 text-white px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider mb-2">
+            <span className={cn(
+              "inline-block border px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider mb-2",
+              isDarkMode ? "bg-brand-pink/10 border-brand-pink/30 text-brand-pink text-glow-pink" : "bg-white/20 border-white/25 text-white"
+            )}>
               Grade {activeChild.grade}
             </span>
-            <h2 className="text-3xl font-black tracking-tight">{activeChild.name}</h2>
-            <p className="text-sm text-cyan-100 font-medium">{activeChild.email}</p>
+            <h2 className={cn("text-3xl font-black tracking-tight font-hand", isDarkMode ? "text-white text-glow-cyan" : "text-white")}>{activeChild.name}</h2>
+            <p className="text-sm text-cyan-150 font-medium">{activeChild.email}</p>
           </div>
         </div>
 
-        <div className="relative z-10 flex gap-4 shrink-0 bg-black/15 p-4 rounded-2xl backdrop-blur-sm border border-white/5 w-full md:w-auto">
+        <div className={cn(
+          "relative z-10 flex gap-4 shrink-0 p-4 rounded-2xl backdrop-blur-sm border w-full md:w-auto",
+          isDarkMode ? "bg-slate-950/60 border-white/10" : "bg-black/15 border-white/5"
+        )}>
           <div>
-            <span className="block text-[8px] font-black uppercase text-slate-300 tracking-wider">Overall GPA</span>
-            <span className="text-2xl font-black text-brand-cyan">
+            <span className="block text-[8px] font-black uppercase text-slate-400 tracking-wider">Overall GPA</span>
+            <span className={cn("text-2xl font-black", isDarkMode ? "text-brand-green text-glow-green" : "text-brand-cyan")}>
               {Math.round((activeChild.subjects?.reduce((acc: number, item: any) => acc + item.mark, 0) || 0) / (activeChild.subjects?.length || 1))}%
             </span>
           </div>
           <div className="border-l border-white/10 pl-4">
-            <span className="block text-[8px] font-black uppercase text-slate-300 tracking-wider">Status</span>
-            <span className="text-xs font-black uppercase flex items-center gap-1 mt-1 text-emerald-300">
+            <span className="block text-[8px] font-black uppercase text-slate-400 tracking-wider">Status</span>
+            <span className={cn(
+              "text-xs font-black uppercase flex items-center gap-1 mt-1",
+              isDarkMode ? "text-brand-cyan text-glow-cyan" : "text-emerald-300"
+            )}>
               <CheckCircle2 size={12} /> Live
             </span>
           </div>

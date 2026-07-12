@@ -33,7 +33,7 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
 `;
 
 export const IMAGE_PROMPT_GOLDEN_RULE = `
-Ultra-detailed digital illustration, professional educational graphic design, vibrant colors, perfect composition, sharp focus, 300 DPI print quality, award-winning children’s non-fiction book style, no text overlays (text will be added separately), no borders, no frames, no watermarks, no emojis, no cartoonish exaggeration, suitable for South African classroom display, museum-quality detail
+World-class masterpiece work of art, crisp render, sharp focus, charmingly aesthetic design, 4k, soft lighting, masterpiece emoji-style figurine 3D render, 3D Disney Character render, pure white background, natural beauty, ultra-detailed 3D digital asset, vibrant colors, perfect composition, no text overlays (text will be added separately), no borders, no frames, no watermarks, museum-quality detail
 `;
 
 const repairTruncatedJson = (jsonStr: string): string => {

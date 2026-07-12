@@ -1,20 +1,66 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# EduAI Companion 🚀
+> **An intelligent CAPS-aligned educational platform for personalized learning plans, lesson generation, auto-grading, and AI-powered tutoring.**
 
-# Run and deploy your AI Studio app
+EduAI Companion is a premium, full-stack educational workspace designed to address critical resource and preparation challenges in South African education. By fully aligning with the **National Curriculum and Assessment Policy Statement (CAPS)**, WCED ePortal guidelines, and Annual Teaching Plans (ATPs), the system equips educators, learners, parents, and administrators with a suite of AI-assisted authoring, analysis, and tutoring modules.
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/816109df-d3ec-4c24-b9b9-bc4f18f1e4c2
+## 🎨 Visual Identity & Styling Language
 
-## Run Locally
+The visual layer is defined by an energetic, high-contrast, playful yet modern theme ("Learning is an Adventure") optimized for both teachers (focus and structure) and children (cognitive focus and reduced anxiety).
 
-**Prerequisites:**  Node.js
+*   **Primary Fonts**: 
+    *   `sans` (UI & Body): `"Quicksand"`, `"Plus Jakarta Sans"`, `"Fredoka"`, `"Nunito"`
+    *   `hand` / `comic` (Accents & Primary Grades): `"Patrick Hand"`, `"Comic Neue"`, cursive
+*   **Color Tokens**:
+    *   🌐 **Cyan (Accent/Action)**: `#06b6d4` (`--color-brand-cyan`)
+    *   ⚡ **Yellow (Joy/Highlight)**: `#ffdf40` (`--color-brand-yellow`)
+    *   🌸 **Pink (Warmth/Creative)**: `#FF69B4` (`--color-brand-pink`)
+    *   🌱 **Green (Positive/Correct)**: `#2ed573` (`--color-brand-green`)
+    *   🔮 **Purple (Discovery/AI)**: `#9b59b6` (`--color-brand-purple`)
+    *   🌌 **Navy Dark (Dark Theme Base)**: `#0a0f21` (`--color-navy-dark`)
+    *   ⬛ **Navy Deep (Terminal/Deep Base)**: `#030611` (`--color-navy-deep`)
+*   **Key Styling Classes**:
+    *   `.glass`: Semi-transparent background with a high-contrast backdrop-blur layout, custom shadow bounds, and thin borders.
+    *   `.gradient-mesh`: Custom radial color distributions for soft lighting.
+    *   `.animate-float`: Custom looping floating translation for key visual assets.
 
+---
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 🏗️ System Architecture & Critical Files
+
+EduAI Companion is built using a secure full-stack model (Express + Vite + React 19 + TypeScript) to shield sensitive API tokens (such as Gemini and Groq) from client-side execution contexts.
+
+### 🔌 Backend Engine (`server.ts` & `/api`)
+*   **`server.ts`**: The main application entry point. Serves API endpoints, handles server-side proxy requests for OCR and model completions, registers the OmniHuman-1 Gradio-streaming video job tracker, and serves Vite's dev middleware.
+*   **`/api/index.ts`**: API router handling secure endpoints for AI model proxies, video generation requests, and general microservices.
+
+### 🖥️ Frontend Architecture (`src/App.tsx` & `/src/components`)
+*   **`src/App.tsx`**: The main application routing and frame controller. Governs four major user workflows depending on selected role:
+    1.  **Educators/Teachers**: Advanced dashboards, CAPS Curriculum generators, class registers, real-time student analytics, and auto-grading matrices.
+    2.  **Students/Learners**: AI Tutor bubbles, study revision guides, interactive practice spaces, notes, and progress portfolios.
+    3.  **Parents**: Student-link status controls, school report feedback loops, and customized accessibility indicators.
+    4.  **Administrators**: Platform token metrics, active user registrations, and system configurations.
+*   **`src/components/ContentCreator.tsx`**: Generates lesson plans, worksheets, study guides, exams/rubrics, and infographics with strict alignment guidelines.
+*   **`src/components/AutoGrading.tsx` & `OCRScanner.tsx`**: Conducts automatic diagnostic grading on handwritten homework or assignments using optical character recognition, producing marked rubrics and formative feedback scores.
+*   **`src/components/AITutorPage.tsx` & `StudentAITutorBubble.tsx`**: Real-time interactive text and speech tutoring system equipped with a voice synthesizer.
+*   **`src/components/CurriculumSuite.tsx`**: Interactive Annual Teaching Plan (ATP) progression maps and term planner grids.
+
+### 🧠 Intelligence Services (`src/services`)
+*   **`src/services/unifiedAiService.ts`**: Core dispatch engine for grading, fallback logic, and CAPS structure enforcement.
+*   **`src/services/multiAiService.ts`**: Handles routing to designated Groq and Gemini models.
+*   **`src/services/ocrService.ts`**: Translates uploaded images into text structures.
+*   **`src/services/ttsService.ts`**: Generates synthetic spoken text-to-speech feedback for student reading helper modules.
+*   **`src/services/lessonPlanService.ts`**: Automates multi-phase lesson structuring (Introduction, Input, Guided, Independent, Consolidation).
+
+---
+
+## 🎯 Primary Project Goals
+
+1.  **100% CAPS Compliance**: Ensure all generated lesson plans, diagnostic worksheets, report comments, and formal assessments strictly adhere to WCED ATPs, Bloom's cognitive taxonomy levels, and time allocations.
+2.  **Zero-Placeholder Integrity**: Content generated by the AI modules must be completely realized, containing extensive scripts, inclusive adaptations, complete marking keys (memos), and fully formed rubrics without truncation.
+3.  **Accessible & Inclusive Education**: Mitigate cognitive, visual, and physical learning barriers via:
+    *   *Dyslexia Reader Mode*: Enlarged tracking, heavy character bases, and high-contrast styling.
+    *   *Dyscalculia Number Wrapping*: Multi-colored rainbow numeric outputs to minimize cognitive stress during calculations.
+    *   *TTS Integration*: Voice narration for learners with reading challenges.
+4.  **Resilient Execution**: Utilize fail-safe streaming and local fallback pools (such as local educational video matching for Gradio OmniHuman-1 queues) to maintain a stellar user experience.

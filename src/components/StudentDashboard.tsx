@@ -12,6 +12,8 @@ import StudentAITutorBubble from './StudentAITutorBubble';
 import { runTextGrade, runOCRAndGrade } from '../services/unifiedAiService';
 import { marked } from 'marked';
 
+const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
+
 
 export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }) {
   const [student, setStudent] = useState<StudentDoc | null>(null);
@@ -609,31 +611,60 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-700">
       {/* Banner */}
-      <div className="bg-gradient-to-br from-indigo-600 to-cyan-500 p-6 sm:p-10 rounded-[28px] sm:rounded-[36px] text-white shadow-xl relative overflow-hidden flex flex-col justify-end min-h-[260px] sm:min-h-[350px]">
-         <div className="absolute top-0 right-0 p-8 opacity-20 hidden sm:block">
-           <Brain size={250} />
+      <div className={cn(
+        "relative rounded-[40px] p-8 lg:p-12 overflow-hidden text-white flex flex-col justify-end min-h-[300px] border shadow-2xl transition-all duration-300",
+        isDarkMode ? "glass-neon-card animate-neon-pulse-cyan border-brand-cyan/20 bg-slate-950/45" : "bg-slate-900 border-slate-800"
+      )}>
+         <div className="absolute top-0 right-0 p-8 opacity-10 hidden sm:block pointer-events-none">
+           <Brain size={250} className={cn(isDarkMode && "icon-glow-cyan text-brand-cyan")} />
          </div>
+         {isDarkMode && (
+           <>
+             <div className="absolute -left-10 -top-10 w-40 h-40 rounded-full bg-brand-cyan/10 blur-3xl pointer-events-none" />
+             <div className="absolute right-1/4 bottom-0 w-40 h-40 rounded-full bg-brand-pink/10 blur-3xl pointer-events-none" />
+           </>
+         )}
+         
+         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-slate-900/10 to-transparent pointer-events-none" />
+
          <div className="relative z-10">
-            <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-4 py-1.5 text-xs sm:text-sm font-bold text-yellow-300 mb-4 shadow-sm">
-              <Star size={16} className="animate-pulse text-brand-yellow" /> Welcome back, {student?.name || 'Discovery Cadet'}! 🚀
+            <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className={cn(
+              "inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs sm:text-sm font-bold mb-6 shadow-sm",
+              isDarkMode ? "border-brand-green/30 bg-brand-green/10 text-brand-green" : "border-white/20 bg-white/10 text-emerald-300"
+            )}>
+              <Star size={16} className={cn("animate-pulse", isDarkMode ? "text-brand-yellow icon-glow-yellow" : "text-brand-yellow")} /> Welcome back, {student?.name || 'Discovery Cadet'}! 🚀
             </motion.div>
-            <h2 className="text-3xl sm:text-5xl lg:text-7xl font-hand mb-2 tracking-wide text-white drop-shadow-lg leading-tight">Ready for your <br/> next mission?</h2>
+            <h1 className={cn(
+              "text-3xl sm:text-5xl lg:text-7xl font-hand tracking-wide leading-tight mb-4 drop-shadow-md",
+              isDarkMode ? "text-white text-glow-cyan" : "text-white"
+            )}>
+              Ready for your <span className="text-brand-cyan text-glow-cyan">next mission?</span>
+            </h1>
             
-            <div className="flex items-center gap-4 mt-4 sm:mt-6">
-              <div className="flex-1 bg-white/20 h-3 sm:h-4 rounded-full overflow-hidden border border-white/10">
+            <div className="flex items-center gap-4 mt-4 sm:mt-6 max-w-lg">
+              <div className={cn(
+                "flex-1 h-3 sm:h-4 rounded-full overflow-hidden border",
+                isDarkMode ? "bg-slate-950/60 border-white/10" : "bg-white/20 border-white/10"
+              )}>
                  <motion.div 
                    initial={{ width: 0 }} 
                    animate={{ width: `${stats.xp}%` }}
                    transition={{ duration: 1.5, type: 'spring' }}
-                   className="h-full bg-yellow-400 shadow-[0_0_15px_#facc15]" 
+                   className={cn(
+                     "h-full rounded-full",
+                     isDarkMode ? "bg-brand-yellow shadow-[0_0_15px_rgba(255,223,64,0.7)]" : "bg-yellow-400 shadow-[0_0_15px_#facc15]"
+                   )}
                  />
               </div>
               <span className="text-[9px] sm:text-[10px] font-black text-white whitespace-nowrap uppercase tracking-widest">Level {stats.level} • {stats.xp}%</span>
             </div>
-            <p className="text-sm sm:text-lg text-blue-100 font-medium mt-3 sm:mt-4">
-              Your learning path is glowing! <span className="text-yellow-400 font-black inline-block animate-bounce ml-1">{stats.streak} Day Streak! 🔥</span>
+            <p className="text-sm sm:text-lg text-slate-300 font-medium mt-3 sm:mt-4">
+              Your learning path is glowing! <span className={cn(
+                "font-black inline-block animate-bounce ml-1",
+                isDarkMode ? "text-brand-pink text-glow-pink" : "text-yellow-400"
+              )}>{stats.streak} Day Streak! 🔥</span>
             </p>
           </div>
       </div>
@@ -641,33 +672,56 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
       {/* Numerical Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
          {[
-           { label: 'Mastery Score', value: stats.masteryScore, icon: Target, color: 'text-emerald-500' },
-           { label: 'Modules Complete', value: stats.modulesComplete, icon: CheckCircle, color: 'text-indigo-500' },
-           { label: 'Current Streak', value: stats.streak, icon: Flame, color: 'text-yellow-500' }
+           { label: 'Mastery Score', value: stats.masteryScore, icon: Target, color: 'text-brand-green', glow: 'green', border: 'hover-neon-green hover:shadow-[0_0_15px_rgba(0,255,159,0.25)]' },
+           { label: 'Modules Complete', value: stats.modulesComplete, icon: CheckCircle, color: 'text-brand-cyan', glow: 'cyan', border: 'hover-neon-cyan hover:shadow-[0_0_15px_rgba(0,179,255,0.25)]' },
+           { label: 'Current Streak', value: stats.streak, icon: Flame, color: 'text-brand-pink', glow: 'pink', border: 'hover-neon-pink hover:shadow-[0_0_15px_rgba(255,0,212,0.25)]' }
          ].map((stat, i) => (
-           <div key={i} className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] shadow-sm flex items-center justify-between hover:scale-[1.02] transition-all`}>
+           <div 
+             key={i} 
+             className={cn(
+               "p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] flex items-center justify-between transition-all border duration-300",
+               isDarkMode 
+                 ? `glass-neon-card border-white/5 ${stat.border}` 
+                 : "bg-white border-slate-200 shadow-sm hover:scale-[1.02]"
+             )}
+           >
               <div>
-                <p className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{stat.label}</p>
-                <h3 className={`text-2xl sm:text-3xl font-hand mt-0.5 sm:mt-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stat.value}</h3>
+                <p className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-400'}`}>{stat.label}</p>
+                <h3 className={cn(
+                  "text-2xl sm:text-3xl font-hand mt-0.5 sm:mt-1",
+                  isDarkMode ? `text-white text-glow-${stat.glow}` : "text-slate-900"
+                )}>{stat.value}</h3>
               </div>
-              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-100'} border flex flex-col items-center justify-center ${stat.color}`}>
-                <stat.icon size={20} />
+              <div className={cn(
+                "w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl border flex flex-col items-center justify-center",
+                isDarkMode 
+                  ? "bg-slate-950/45 border-white/10" 
+                  : "bg-slate-50 border-slate-100",
+                stat.color
+              )}>
+                <stat.icon size={20} className={isDarkMode ? `icon-glow-${stat.glow}` : ""} />
               </div>
            </div>
          ))}
       </div>
 
       {/* Dashboard Customization Control Panel */}
-      <div className={`p-4 rounded-[24px] border ${isDarkMode ? 'bg-slate-900/40 border-white/5' : 'bg-slate-50 border-slate-200'} flex flex-col sm:flex-row justify-between items-center gap-4`}>
+      <div className={cn(
+        "p-4 rounded-[24px] border flex flex-col sm:flex-row justify-between items-center gap-4",
+        isDarkMode ? "glass-neon-card border-white/5" : "bg-slate-50 border-slate-200"
+      )}>
         <div className="flex items-center gap-2">
           <Move className="text-indigo-500 shrink-0" size={16} />
-          <span className="text-xs font-bold text-slate-500">
+          <span className={cn("text-xs font-bold", isDarkMode ? "text-slate-300" : "text-slate-500")}>
             Customize Dashboard: Drag-and-drop the headers or use the <ArrowUp className="inline" size={12}/> <ArrowDown className="inline" size={12}/> buttons to arrange widgets!
           </span>
         </div>
         <button
           onClick={handleResetWidgetOrder}
-          className="text-[10px] font-black uppercase tracking-wider px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition-colors border-0 cursor-pointer shadow-sm"
+          className={cn(
+            "text-[10px] font-black uppercase tracking-wider px-3.5 py-2 rounded-xl transition-all border-0 cursor-pointer shadow-sm",
+            isDarkMode ? "primary-neon-btn-cyan text-slate-950 font-black" : "bg-indigo-600 hover:bg-indigo-500 text-white"
+          )}
         >
           Reset Layout
         </button>
@@ -699,39 +753,42 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
             ];
 
             widgetContent = (
-              <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm space-y-4`}>
+              <div className={cn(
+                "p-8 rounded-[36px] shadow-sm space-y-4 border",
+                isDarkMode ? "glass-neon-card animate-neon-pulse-green border-brand-green/15" : "bg-white border border-slate-200"
+              )}>
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className={`text-2xl font-hand ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Academic Growth Charts</h3>
+                    <h3 className={cn("text-2xl font-hand", isDarkMode ? "text-white text-glow-cyan" : "text-slate-900")}>Academic Growth Charts</h3>
                     <p className="text-xs text-slate-400 mt-1">Live subject performance trends over the academic terms</p>
                   </div>
-                  <Activity className="text-indigo-500 animate-pulse" size={24} />
+                  <Activity className={cn("text-brand-green animate-pulse", isDarkMode && "icon-glow-green")} size={24} />
                 </div>
                 <div className="h-[280px] w-full pt-2">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={performanceData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorMath" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#818cf8" stopOpacity={0.4}/>
-                          <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#00B3FF" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#00B3FF" stopOpacity={0}/>
                         </linearGradient>
                         <linearGradient id="colorPhys" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4}/>
-                          <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#00FF9F" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#00FF9F" stopOpacity={0}/>
                         </linearGradient>
                         <linearGradient id="colorEng" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4}/>
-                          <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#FF00D4" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#FF00D4" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} />
-                      <XAxis dataKey="name" stroke={isDarkMode ? '#64748b' : '#94a3b8'} fontSize={10} tickLine={false} />
-                      <YAxis stroke={isDarkMode ? '#64748b' : '#94a3b8'} fontSize={10} tickLine={false} domain={[50, 100]} />
+                      <XAxis dataKey="name" stroke={isDarkMode ? '#94a3b8' : '#94a3b8'} fontSize={10} tickLine={false} />
+                      <YAxis stroke={isDarkMode ? '#94a3b8' : '#94a3b8'} fontSize={10} tickLine={false} domain={[50, 100]} />
                       <Tooltip contentStyle={{ backgroundColor: isDarkMode ? '#0f172a' : '#ffffff', borderColor: isDarkMode ? '#1e293b' : '#e2e8f0', borderRadius: '12px' }} />
                       <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
-                      <Area type="monotone" dataKey="Mathematics" stroke="#818cf8" strokeWidth={2.5} fillOpacity={1} fill="url(#colorMath)" />
-                      <Area type="monotone" dataKey="Physical Sciences" stroke="#06b6d4" strokeWidth={2.5} fillOpacity={1} fill="url(#colorPhys)" />
-                      <Area type="monotone" dataKey="English" stroke="#f59e0b" strokeWidth={2.5} fillOpacity={1} fill="url(#colorEng)" />
+                      <Area type="monotone" dataKey="Mathematics" stroke="#00B3FF" strokeWidth={2.5} fillOpacity={1} fill="url(#colorMath)" />
+                      <Area type="monotone" dataKey="Physical Sciences" stroke="#00FF9F" strokeWidth={2.5} fillOpacity={1} fill="url(#colorPhys)" />
+                      <Area type="monotone" dataKey="English" stroke="#FF00D4" strokeWidth={2.5} fillOpacity={1} fill="url(#colorEng)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -870,63 +927,98 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
               </div>
             );
           } else if (widgetId === 'upcoming-missions') {
+            const QUEST_THEMES = [
+              { name: "Galaxy Guardians", tag: "Mathematics", icon: "🌌", gradient: "from-fuchsia-500 to-purple-600", glow: "shadow-[0_0_15px_rgba(217,70,239,0.5)]", baseProgress: 70 },
+              { name: "Code Wizards", tag: "Physical Sciences", icon: "🔮", gradient: "from-cyan-400 to-blue-500", glow: "shadow-[0_0_15px_rgba(34,211,238,0.5)]", baseProgress: 45 },
+              { name: "Dino Discoveries", tag: "English EFAL", icon: "🦖", gradient: "from-yellow-400 to-amber-500", glow: "shadow-[0_0_15px_rgba(234,179,8,0.5)]", baseProgress: 15 },
+              { name: "Planet Pioneers", tag: "Social Sciences", icon: "🌍", gradient: "from-emerald-400 to-green-500", glow: "shadow-[0_0_15px_rgba(16,185,129,0.5)]", baseProgress: 0 }
+            ];
+
             widgetContent = (
-              <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
+              <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
                  <div className="flex justify-between items-center mb-6">
-                    <h3 className={`text-2xl font-hand ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>My Upcoming Tasks & Missions</h3>
-                    <span className="text-xs font-black uppercase tracking-widest text-[#06b6d4] bg-cyan-100 dark:bg-cyan-950 px-3 py-1 rounded-full animate-pulse">Personalized Map</span>
+                    <h3 className={`text-2xl font-hand ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Active Quests</h3>
+                    <span className="text-xs font-black uppercase tracking-widest text-[#06b6d4] bg-cyan-100 dark:bg-cyan-950/50 px-3 py-1 rounded-full animate-pulse">Personalized Map</span>
                  </div>
                  
-                 <div className="space-y-4">
+                 <div className="space-y-6">
                     {stats.missions.map((m, i) => {
                       const completed = m.status === 'Completed';
+                      const theme = QUEST_THEMES[i % QUEST_THEMES.length];
+                      const progressValue = completed ? 100 : theme.baseProgress;
+
                       return (
                         <div 
                           key={i} 
                           onClick={() => handleToggleMission(i)}
-                          className={`p-4 rounded-2xl border transition-all flex items-center justify-between group cursor-pointer shadow-sm relative overflow-hidden ${
+                          className={`p-5 rounded-[24px] border transition-all duration-300 group cursor-pointer relative overflow-hidden ${
                             completed
-                            ? (isDarkMode ? 'border-emerald-500/30 bg-emerald-505/10 bg-white/5 opacity-75' : 'border-emerald-200 bg-emerald-50/50 opacity-75')
-                            : (isDarkMode ? 'border-white/10 bg-white/5 hover:border-brand-cyan' : 'border-slate-100 bg-slate-50 hover:border-brand-cyan')
-                          }`}
+                            ? (isDarkMode ? 'border-emerald-500/30 bg-emerald-950/10 opacity-80' : 'border-emerald-200 bg-emerald-50/50 opacity-80')
+                            : (isDarkMode ? 'border-white/15 bg-slate-950/40 hover:border-brand-cyan/60 hover:bg-slate-950/60' : 'border-slate-150 bg-slate-50 hover:border-brand-cyan/40 hover:bg-slate-50/80')
+                          } shadow-sm`}
                         >
                            {celebrateTaskId === i && (
                              <div className="absolute inset-0 bg-emerald-500/20 pointer-events-none animate-ping"></div>
                            )}
                            
-                           <div className="flex items-center gap-4">
-                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner transition-colors ${
-                                completed 
-                                ? 'bg-emerald-100 text-emerald-600'
-                                : 'bg-indigo-100 text-indigo-500'
-                              }`}>
-                                {completed ? <CheckCircle size={20}/> : <BookOpen size={20}/>}
-                              </div>
-                              <div>
-                                <h4 className={`font-bold transition-all ${
-                                  completed 
-                                  ? 'line-through text-slate-400' 
-                                  : (isDarkMode ? 'text-white' : 'text-slate-700')
-                                }`}>{m.task}</h4>
-                                <p className={`text-xs font-medium ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                                  Target: <span className="font-bold underline text-cyan-500">{m.milestone}</span> • <span className="uppercase tracking-wider font-extrabold text-[10px]">{m.status}</span>
-                                </p>
-                              </div>
+                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                             <div className="flex items-start gap-4 flex-1">
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl bg-white/5 border ${isDarkMode ? 'border-white/10' : 'border-slate-200'} shrink-0`}>
+                                  {theme.icon}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                    <h4 className={`font-black text-lg ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                                      {theme.name}
+                                    </h4>
+                                    <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                                      {theme.tag}
+                                    </span>
+                                  </div>
+                                  <p className={`text-sm font-bold mb-3 ${completed ? 'line-through text-slate-400' : (isDarkMode ? 'text-slate-200' : 'text-slate-700')}`}>
+                                    {m.task}
+                                  </p>
+                                  
+                                  {/* Progress bar container */}
+                                  <div className="space-y-1.5 w-full">
+                                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                      <span>Quest Progress</span>
+                                      <span className={completed ? 'text-emerald-400 font-black' : ''}>
+                                        {progressValue}%
+                                      </span>
+                                    </div>
+                                    <div className="w-full bg-slate-200 dark:bg-white/10 h-2.5 rounded-full overflow-hidden">
+                                      <motion.div 
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${progressValue}%` }}
+                                        transition={{ duration: 0.8 }}
+                                        className={`h-full rounded-full bg-gradient-to-r ${completed ? 'from-emerald-400 to-green-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : `${theme.gradient} ${theme.glow}`}`}
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                             </div>
+                             
+                             <div className="flex items-center justify-end shrink-0 gap-3">
+                               <div className="text-right hidden md:block">
+                                 <span className="text-[10px] uppercase font-black tracking-widest text-slate-400 block">Milestone</span>
+                                 <span className="text-xs font-bold underline text-brand-cyan">{m.milestone}</span>
+                               </div>
+                               <button 
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   handleToggleMission(i);
+                                 }}
+                                 className={`shadow-lg border p-2.5 rounded-full transition-all group-hover:scale-110 active:scale-95 ${
+                                   completed
+                                   ? 'bg-emerald-500 border-emerald-600 text-white'
+                                   : 'bg-indigo-600 hover:bg-indigo-500 border-indigo-500 text-white shadow-indigo-600/20'
+                                 }`}
+                               >
+                                 {completed ? <Check size={18} className="stroke-[3.5]" /> : <Play size={18} className="fill-current ml-0.5"/>}
+                               </button>
+                             </div>
                            </div>
-                           
-                           <button 
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               handleToggleMission(i);
-                             }}
-                             className={`shadow-lg border p-2.5 rounded-full transition-all group-hover:scale-110 active:scale-95 ${
-                               completed
-                               ? 'bg-emerald-500 border-emerald-600 text-white'
-                               : (isDarkMode ? 'bg-white/10 border-white/20 text-slate-300 hover:text-brand-cyan hover:border-brand-cyan' : 'bg-white border-slate-200 text-slate-400 hover:text-brand-cyan hover:border-brand-cyan')
-                             }`}
-                           >
-                             {completed ? <Check size={20} className="stroke-[3.5]" /> : <Play size={20} className="fill-current"/>}
-                           </button>
                         </div>
                       );
                     })}
