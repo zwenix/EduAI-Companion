@@ -741,7 +741,7 @@ export default function App() {
     
     return [
       { id: 'teacher-dashboard-menu', label: firstLabel, icon: GraduationCap },
-      { id: 'lesson-planning', label: 'Teachers Magic', icon: Blocks },
+      { id: 'lesson-planning', label: 'Teachers Magic', icon: BookOpen },
       { id: 'intelligence-ai', label: 'Intelligence AI', icon: Sparkles },
       { id: 'class-analytics', label: 'Analytics & Reports', icon: Award },
       { id: 'class-management', label: 'Class management', icon: Users },
@@ -780,7 +780,7 @@ export default function App() {
           ];
         case 'student-class-management':
           return [
-            { id: 'student-practice', label: 'Practice Zone', icon: Blocks },
+            { id: 'student-practice', label: 'Practice Zone', icon: Brain },
             { id: 'collaborative-workspace', label: 'Collaborative Workspace', icon: Users },
             { id: 'messenger', label: 'Chat & Friends', icon: MessageSquare }
           ];
@@ -808,7 +808,7 @@ export default function App() {
         case 'class-analytics':
           return [
             { id: 'reports', label: "My Child's Progress", icon: Award },
-            { id: 'portfolios', label: 'Assignments & Portfolios', icon: Blocks }
+            { id: 'portfolios', label: 'Assignments & Portfolios', icon: FileText }
           ];
         case 'class-management':
           return [
@@ -872,7 +872,7 @@ export default function App() {
           ];
         case 'lesson-planning':
           return [
-            { id: 'teaching', label: 'Content Creator Studio', icon: Blocks },
+            { id: 'teaching', label: 'Content Creator Studio', icon: FlaskConical },
             { id: 'archive', label: 'Content Archive Storage', icon: Sprout },
             { id: 'illustrations', label: 'Illustration Library', icon: Palette }
           ];
@@ -1163,15 +1163,15 @@ export default function App() {
 
       {/* Sidebar Base Placeholder on Desktop to prevent page content starting at 0 */}
       {!isMobile && (
-        <div className="w-20 shrink-0 transition-all duration-300" />
+        <div className={cn("shrink-0 transition-all duration-300", isSidebarOpen ? "w-[240px]" : "w-[72px]")} />
       )}
 
       {/* Sidebar */}
       <motion.aside 
         initial={false}
         animate={{ 
-          width: isMobile ? 280 : (isSidebarOpen ? 280 : 80),
-          x: isMobile ? (isMobileSidebarOpen ? 0 : -280) : 0
+          width: isMobile ? 240 : (isSidebarOpen ? 240 : 72),
+          x: isMobile ? (isMobileSidebarOpen ? 0 : -240) : 0
         }}
         transition={{ type: "spring", bounce: 0, duration: 0.3 }}
         className={cn(
@@ -2400,6 +2400,7 @@ export default function App() {
             initialTab={activeCreatorTab}
             onClose={() => setActiveCreatorTab(null)} 
             isDarkMode={isDarkMode}
+            isSidebarOpen={isSidebarOpen}
           />
         )}
       </AnimatePresence>

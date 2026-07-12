@@ -701,7 +701,7 @@ const downloadBlobFile = (content: string, filename: string, contentType: string
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching', isDarkMode = true }: { isOpen: boolean, onClose: () => void, initialTab?: string, isDarkMode?: boolean }) {
+export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching', isDarkMode = true, isSidebarOpen = false }: { isOpen: boolean, onClose: () => void, initialTab?: string, isDarkMode?: boolean, isSidebarOpen?: boolean }) {
   const { provider } = useAi();
   const [activeTab, setActiveTab] = useState(() => {
     if (initialTab === 'teaching' || !initialTab) {
@@ -1325,11 +1325,16 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [t_customSubject, setT_CustomSubject] = useState('');
   const [t_topic, setT_Topic] = useState('');
   const [t_customTopic, setT_CustomTopic] = useState('');
-  const [t_term, setT_Term] = useState('');
+  const [t_term, setT_Term] = useState(() => {
+    const month = new Date().getMonth();
+    if (month >= 0 && month <= 2) return 'Term 1';
+    if (month >= 3 && month <= 5) return 'Term 2';
+    if (month >= 6 && month <= 8) return 'Term 3';
+    return 'Term 4';
+  });
   const [t_language, setT_Language] = useState('English');
   const [t_difficulty, setT_Difficulty] = useState('');
-  const [t_duration, setT_Duration] = useState('');
-  const [t_items, setT_Items] = useState('');
+  const [t_lengthAndDuration, setT_LengthAndDuration] = useState('');
   const [t_objective, setT_Objective] = useState('');
   const [t_profile, setT_Profile] = useState('');
   const [t_differentiation, setT_Differentiation] = useState('');
@@ -1626,8 +1631,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
         (t_extraInstructions ? t_extraInstructions + '\n' : '') +
         (t_dependencies ? `TASK DEPENDENCIES / PRE-REQUISITES:\n${t_dependencies}\n` : '') +
         (t_difficulty ? `Difficulty Level: ${t_difficulty}\n` : '') +
-        (t_duration ? `Expected Duration: ${t_duration}\n` : '') +
-        (t_items ? `Number of questions/items: ${t_items}\n` : '') +
+        (t_lengthAndDuration ? `Length and Duration (questions/items and duration): ${t_lengthAndDuration}\n` : '') +
         (t_differentiation ? `Learner Study Profile Differentiation Strategy: ${t_differentiation}\n` : '') +
         (t_type === 'Lesson Plan' ? `Generate Student Exercise / Worksheet At End: ${t_includeWorksheet ? 'Yes' : 'No'}\n` : '') +
         `Include Memorandum/Answer Sheet: ${t_memo ? 'Yes' : 'No'}\n` +
@@ -1756,33 +1760,38 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
       {/* Backdrop for click away dismiss - placed below header (top-20) and z-[40] */}
       <div 
         onClick={onClose}
-        className="fixed top-20 inset-x-0 bottom-0 bg-[#070b13]/80 backdrop-blur-md z-[40] cursor-pointer"
+        className={cn(
+          "fixed top-20 right-0 bottom-0 bg-[#070b13]/80 backdrop-blur-md z-[40] cursor-pointer",
+          isSidebarOpen ? "left-0 lg:left-[240px]" : "left-0 lg:left-[72px]"
+        )}
       />
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="fixed top-20 inset-x-0 bottom-0 sm:top-24 sm:inset-x-4 sm:bottom-4 lg:top-28 lg:inset-x-10 lg:bottom-10 z-[45] backdrop-blur-3xl bg-[#0B1122]/95 sm:glass sm:bg-transparent rounded-none sm:rounded-[32px] lg:rounded-[48px] shadow-[0_40px_120px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden border-t sm:border border-white/10"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 10 }}
+        className={cn(
+          "fixed top-20 right-0 bottom-0 z-[45] backdrop-blur-3xl bg-[#0B1122]/95 flex flex-col overflow-hidden border-t border-l border-white/10 shadow-[0_40px_120px_rgba(0,0,0,0.6)]",
+          isSidebarOpen ? "left-0 lg:left-[240px]" : "left-0 lg:left-[72px]"
+        )}
       >
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between p-4 lg:p-8 border-b border-white/5 bg-white/5 px-4 lg:px-10 gap-4 shrink-0">
+        {/* Header - Compact and modern */}
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between py-3 px-4 lg:py-4 lg:px-8 border-b border-white/5 bg-white/5 gap-3 shrink-0">
           <div className="flex items-center justify-between w-full lg:w-auto">
             <div className="flex items-center gap-3 lg:gap-4 font-sans">
-              <div className="bg-brand-cyan/20 p-2 lg:p-2.5 rounded-xl lg:rounded-2xl border border-brand-cyan/20 text-brand-cyan font-sans">
-                 <FlaskConical size={20} className="lg:w-6 lg:h-6" />
+              <div className="bg-brand-cyan/20 p-2 rounded-xl border border-brand-cyan/20 text-brand-cyan font-sans">
+                 <FlaskConical size={18} className="lg:w-5 lg:h-5" />
               </div>
               <div className="font-sans">
-                <h2 className="text-xl md:text-2xl lg:text-3xl font-hand text-white">Content Creator Studio</h2>
-                <p className="hidden lg:block text-xs text-slate-400 font-medium mt-1 font-sans">Select a specialized intelligence lab to begin orchestrating high-quality, CAPS-aligned educational material.</p>
+                <h2 className="text-lg md:text-xl lg:text-2xl font-hand text-white">Content Creator Studio</h2>
               </div>
             </div>
             {/* Always visible Close Button on Mobile/Tablet right in row 1 */}
             <button 
               type="button" 
               onClick={onClose} 
-              className="lg:hidden flex p-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-200 hover:text-white rounded-xl border border-red-500/30 transition-all font-sans font-black uppercase tracking-widest text-[9px] items-center gap-1 hover:scale-105 active:scale-95 shadow-md shadow-red-500/10"
+              className="lg:hidden flex p-2 bg-red-500/20 hover:bg-red-500/30 text-red-200 hover:text-white rounded-xl border border-red-500/30 transition-all font-sans font-black uppercase tracking-widest text-[9px] items-center gap-1 hover:scale-105 active:scale-95 shadow-md shadow-red-500/10"
             >
-              <X size={16} strokeWidth={3} />
+              <X size={14} strokeWidth={3} />
               <span>Close</span>
             </button>
           </div>
@@ -1793,9 +1802,9 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
               <button 
                 type="button"
                 onClick={() => setActiveTab('overview')}
-                className="flex items-center gap-2 px-4 lg:px-6 py-2.5 lg:py-3 rounded-[18px] text-[10px] lg:text-xs font-black uppercase tracking-widest transition-all font-sans bg-white/5 hover:bg-white/10 text-brand-cyan border border-brand-cyan/30 shadow-md hover:scale-105 active:scale-95 cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all font-sans bg-white/5 hover:bg-white/10 text-brand-cyan border border-brand-cyan/20 shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
               >
-                <span>← Back to Labs Menu</span>
+                <span>← Labs</span>
               </button>
             )}
 
@@ -1804,10 +1813,10 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
               <button
                 type="button"
                 onClick={() => setShowPrintPreviewModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 lg:py-3 bg-brand-yellow hover:bg-yellow-400 text-navy-dark rounded-xl lg:rounded-2xl font-sans font-black uppercase tracking-widest text-[10px] shrink-0 hover:scale-105 active:scale-95 shadow-lg shadow-brand-yellow/20 cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-yellow hover:bg-yellow-400 text-navy-dark rounded-xl font-sans font-black uppercase tracking-wider text-[10px] shrink-0 hover:scale-105 active:scale-95 shadow-md shadow-brand-yellow/15 cursor-pointer"
                 title="A4 Print Simulation"
               >
-                <Printer size={15} strokeWidth={2.5} />
+                <Printer size={13} strokeWidth={2.5} />
                 <span>Print Preview</span>
               </button>
             )}
@@ -1816,10 +1825,10 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
             <button 
               type="button" 
               onClick={onClose} 
-              className="hidden lg:flex p-3 bg-red-500/20 hover:bg-red-500/30 text-red-100 hover:text-white rounded-2xl border border-red-500/30 transition-all font-sans font-black uppercase tracking-widest text-[10px] items-center gap-1.5 shrink-0 hover:scale-105 active:scale-95 shadow-lg shadow-red-500/10"
+              className="hidden lg:flex p-2 bg-red-500/20 hover:bg-red-500/30 text-red-100 hover:text-white rounded-xl border border-red-500/30 transition-all font-sans font-black uppercase tracking-widest text-[10px] items-center gap-1.5 shrink-0 hover:scale-105 active:scale-95 shadow-md shadow-red-500/10"
               title="Close Studio"
             >
-              <X size={18} strokeWidth={3} />
+              <X size={15} strokeWidth={3} />
               <span>Close</span>
             </button>
           </div>
@@ -1873,7 +1882,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
           <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
             {/* Left Parameter Panel Sidebar */}
             <div className={cn(
-              "border-b lg:border-b-0 lg:border-r border-white/10 lg:w-[380px] xl:w-[420px] shrink-0 transition-all duration-300 relative z-20 flex flex-col justify-between",
+              "border-b lg:border-b-0 lg:border-r border-white/10 lg:w-[320px] xl:w-[350px] shrink-0 transition-all duration-300 relative z-20 flex flex-col justify-between",
               isDarkMode ? "bg-[#0b1122]/95" : "bg-white border-slate-200",
               isFullscreenPreview 
                 ? "w-0 h-0 p-0 overflow-hidden opacity-0 hidden lg:hidden" 
@@ -1905,23 +1914,13 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                           <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Curriculum Context</span>
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Grade</label>
-                            <Select value={t_grade} onValueChange={setT_Grade} placeholder="Grade" isDarkMode={isDarkMode}>
-                              {(close: any) => Object.keys(educationalData).map(g => (
-                                <SelectItem key={g} onClick={() => { setT_Grade(g); setT_Subject(''); setT_Topic(''); close(); }} active={t_grade === g} isDarkMode={isDarkMode}>Grade {g}</SelectItem>
-                              ))}
-                            </Select>
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Term</label>
-                            <Select value={t_term} onValueChange={setT_Term} placeholder="Term" isDarkMode={isDarkMode}>
-                              {(close: any) => TERMS.map(term => (
-                                <SelectItem key={term} onClick={() => { setT_Term(term); close(); }} active={t_term === term} isDarkMode={isDarkMode}>{term}</SelectItem>
-                              ))}
-                            </Select>
-                          </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Grade</label>
+                          <Select value={t_grade} onValueChange={setT_Grade} placeholder="Grade" isDarkMode={isDarkMode}>
+                            {(close: any) => Object.keys(educationalData).map(g => (
+                              <SelectItem key={g} onClick={() => { setT_Grade(g); setT_Subject(''); setT_Topic(''); close(); }} active={t_grade === g} isDarkMode={isDarkMode}>Grade {g}</SelectItem>
+                            ))}
+                          </Select>
                         </div>
 
                         <div className="space-y-1">
@@ -2016,15 +2015,15 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                           </Select>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Duration</label>
-                            <Input placeholder="45 min" value={t_duration} onChange={(e: any) => setT_Duration(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs px-3" />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Questions</label>
-                            <Input placeholder="15" value={t_items} onChange={(e: any) => setT_Items(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs px-3" />
-                          </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Length & Duration</label>
+                          <Input 
+                            placeholder="45 minutes and 15 questions" 
+                            value={t_lengthAndDuration} 
+                            onChange={(e: any) => setT_LengthAndDuration(e.target.value)} 
+                            isDarkMode={isDarkMode} 
+                            className="h-9 text-xs px-3" 
+                          />
                         </div>
                       </div>
 
