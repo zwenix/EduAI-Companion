@@ -127,7 +127,7 @@ const categoryIconsMap: Record<string, string> = {
 
 const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDarkMode, themeMode }: { id?: string, icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean, isDarkMode?: boolean, themeMode?: string }) => {
   const imageUrl = id ? categoryIconsMap[id] : undefined;
-  const displayLabel = id === 'teacher-dashboard-menu' ? 'Home' : label;
+  const displayLabel = id === 'teacher-dashboard-menu' ? 'Teachers Office' : label;
   const [imgFailed, setImgFailed] = useState(false);
 
   return (
@@ -724,11 +724,12 @@ export default function App() {
     const r = role || 'teacher';
     if (r === 'teacher') {
       return [
-        { id: 'teacher-dashboard-menu', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'teacher-dashboard-menu', label: 'Teachers Office', icon: LayoutDashboard },
         { id: 'class-management', label: 'Classrooms', icon: Users },
         { id: 'lesson-planning', label: 'Curriculum', icon: BookOpen },
+        { id: 'intelligence-ai', label: 'Intelligent AI', icon: Sparkles },
         { id: 'class-analytics', label: 'Analytics', icon: Award },
-        { id: 'student-class-management', label: 'Assignments', icon: Blocks },
+        { id: 'student-class-management', label: 'Message & Collaborate', icon: MessageSquare },
         { id: 'system-support', label: 'Settings', icon: Settings },
       ];
     }
@@ -1189,12 +1190,13 @@ export default function App() {
         <div className="flex flex-col mb-6 relative shrink-0">
           <div className="flex items-center justify-between w-full relative px-2">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-cyan-500/10 text-brand-cyan rounded-xl border border-brand-cyan/20 flex items-center justify-center shrink-0">
-                <GraduationCap size={24} className="icon-glow-cyan" />
-              </div>
+              <Logo className="w-8 h-8" />
               {(isSidebarOpen || isMobile) && (
                 <div className="flex flex-col text-left">
-                  <span className="text-sm font-display font-black tracking-tight text-white text-glow-cyan leading-none">EduQuest</span>
+                  <span className={cn(
+                    "text-sm font-display font-black tracking-tight leading-none",
+                    isDarkMode ? "text-white text-glow-cyan" : "text-slate-900"
+                  )}>EduAI</span>
                   <span className="text-[10px] font-bold text-slate-400 mt-1 leading-none">Lead Navigator</span>
                 </div>
               )}
@@ -1527,7 +1529,7 @@ export default function App() {
                 setActiveCategory('teacher-dashboard-menu');
               }}
               className={`p-2 rounded-xl ${isDarkMode ? 'hover:bg-white/10 text-white' : 'hover:bg-slate-200 text-slate-600'} transition-all`}
-              title="Home"
+              title="Teachers Office"
             >
               <Home size={18} />
             </button>

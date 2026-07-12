@@ -604,8 +604,11 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
     };
     
     rec.onerror = (e: any) => { 
-      console.error('Speech recognition error:', e);
+      console.warn('Speech recognition status notification:', e?.error || e);
       setIsRecording(false); 
+      if (e?.error === 'not-allowed') {
+        console.info('Speech recognition info: Microphone permission denied or blocked by iframe parent context.');
+      }
     };
     
     rec.onend = () => {
@@ -618,7 +621,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
       rec.start(); 
       setIsRecording(true); 
     } catch (e) { 
-      console.error('Mic error:', e); 
+      console.warn('Mic start failed:', e); 
       setIsRecording(false);
     }
   }, [isRecording, language, handleSend]);
