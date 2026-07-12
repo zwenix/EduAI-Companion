@@ -1870,740 +1870,1031 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col overflow-y-auto lg:overflow-hidden relative">
-            {/* Top Selection Panel */}
+          <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
+            {/* Left Parameter Panel Sidebar */}
             <div className={cn(
-              "bg-[#0B1122] border-b border-white/10 lg:max-h-[35%] lg:overflow-y-auto scrollbar-hide shrink-0 transition-all duration-300 relative z-20",
+              "border-b lg:border-b-0 lg:border-r border-white/10 lg:w-[380px] xl:w-[420px] shrink-0 transition-all duration-300 relative z-20 flex flex-col justify-between",
+              isDarkMode ? "bg-[#0b1122]/95" : "bg-white border-slate-200",
               isFullscreenPreview 
-                ? "h-0 p-0 overflow-hidden opacity-0 hidden lg:hidden" 
-                : "w-full p-4 lg:px-8 lg:py-5 opacity-100 block"
+                ? "w-0 h-0 p-0 overflow-hidden opacity-0 hidden lg:hidden" 
+                : "w-full p-5 lg:p-6 opacity-100 block lg:h-full"
             )}>
-              <AnimatePresence mode="wait">
-                {activeTab === 'teaching' && (
-                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4">
-                    {/* Header info */}
-                    <div className="flex flex-wrap justify-between items-center gap-2 border-b border-white/5 pb-2">
-                      <div>
-                        <p className="text-[10px] text-brand-cyan font-black uppercase tracking-[0.2em]">🎓 Curriculum Architects</p>
-                        <p className="text-[11px] text-slate-500">Lesson plans, worksheets, and rubrics — perfectly CAPS-aligned.</p>
+              <div className="flex-1 overflow-y-auto pr-1 space-y-6 custom-scrollbar lg:h-full">
+                <AnimatePresence mode="wait">
+                  {activeTab === 'teaching' && (
+                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-5">
+                      {/* Lab segment header */}
+                      <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-teal-500/5 border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.05)] relative overflow-hidden">
+                        <div className="absolute -top-10 -right-10 w-24 h-24 bg-emerald-500/10 blur-2xl rounded-full" />
+                        <div className="relative z-10">
+                          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-400 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">🎓 Lab Segment</span>
+                          <h3 className="text-base font-hand text-white mt-1.5 flex items-center gap-1.5 font-bold">
+                            <FlaskConical size={18} className="text-emerald-400 animate-pulse" /> Content Studio
+                          </h3>
+                          <p className="text-[10px] text-slate-400 mt-1 leading-relaxed font-sans">Lesson plans, worksheets, tests, and rubrics — perfectly CAPS-aligned.</p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setExamTimerExpanded(!examTimerExpanded);
-                            if (!examPaperTitle) {
-                              setExamPaperTitle(t_topic || t_type || "Classroom Examination Paper");
-                            }
-                            if (!examSubjectName) {
-                              setExamSubjectName(t_subject || "General Study");
-                            }
-                          }}
-                          className={cn(
-                            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all",
-                            isDarkMode 
-                              ? "bg-white/5 border-white/10 text-slate-400 hover:text-white"
-                              : "bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-900"
-                          )}
-                        >
-                          <Timer size={12} className="text-brand-cyan" />
-                          <span>Exam Timer {isExamRunning ? "• Active" : ""}</span>
-                        </button>
-                      </div>
-                    </div>
 
-                    {/* Horizontal row of selectors */}
-                    <div className="flex flex-wrap items-end gap-3 lg:gap-4">
-                      <div className="min-w-[120px] flex-1 sm:flex-none space-y-1">
-                        <Label className="text-[10px]">Category</Label>
-                        <Select value={t_category} onValueChange={setT_Category} placeholder="Pick Lab" isDarkMode={isDarkMode}>
-                          {(close: any) => Object.keys(TEACHING_CATEGORIES).map(cat => (
-                            <SelectItem key={cat} onClick={() => { setT_Category(cat); setT_Type(''); close(); }} active={t_category === cat} isDarkMode={isDarkMode}>{cat}</SelectItem>
-                          ))}
-                        </Select>
-                      </div>
-                      <div className="min-w-[130px] flex-1 sm:flex-none space-y-1">
-                        <Label className="text-[10px]">Document Type</Label>
-                        <Select value={t_type} onValueChange={setT_Type} placeholder="Select Type" disabled={!t_category} isDarkMode={isDarkMode}>
-                          {(close: any) => TEACHING_CATEGORIES[t_category]?.map(type => (
-                            <SelectItem key={type} onClick={() => { setT_Type(type); close(); }} active={t_type === type} isDarkMode={isDarkMode}>{type}</SelectItem>
-                          ))}
-                        </Select>
-                      </div>
-                      <div className="min-w-[90px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Grade</Label>
-                        <Select value={t_grade} onValueChange={setT_Grade} placeholder="Grade" isDarkMode={isDarkMode}>
-                          {(close: any) => Object.keys(educationalData).map(g => <SelectItem key={g} onClick={() => { setT_Grade(g); setT_Subject(''); setT_Topic(''); close(); }} active={t_grade === g} isDarkMode={isDarkMode}>Grade {g}</SelectItem>)}
-                        </Select>
-                      </div>
-                      <div className="min-w-[100px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Term</Label>
-                        <Select value={t_term} onValueChange={setT_Term} placeholder="Select Term" isDarkMode={isDarkMode}>
-                          {(close: any) => TERMS.map(term => <SelectItem key={term} onClick={() => { setT_Term(term); close(); }} active={t_term === term} isDarkMode={isDarkMode}>{term}</SelectItem>)}
-                        </Select>
-                      </div>
-                      <div className="min-w-[110px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Language</Label>
-                        <Select value={t_language} onValueChange={setT_Language} placeholder="Language" isDarkMode={isDarkMode}>
-                          {(close: any) => LANGUAGES.map(l => <SelectItem key={l} onClick={() => { setT_Language(l); close(); }} active={t_language === l} isDarkMode={isDarkMode}>{l}</SelectItem>)}
-                        </Select>
-                      </div>
-                      <div className="min-w-[110px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Difficulty</Label>
-                        <Select value={t_difficulty} onValueChange={setT_Difficulty} placeholder="Select Difficulty" isDarkMode={isDarkMode}>
-                          {(close: any) => DIFFICULTIES.map(diff => <SelectItem key={diff} onClick={() => { setT_Difficulty(diff); close(); }} active={t_difficulty === diff} isDarkMode={isDarkMode}>{diff}</SelectItem>)}
-                        </Select>
-                      </div>
-                      <div className="min-w-[140px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Subject</Label>
-                        <Select value={t_subject} onValueChange={setT_Subject} placeholder="Neural Topic" disabled={!t_grade} isDarkMode={isDarkMode}>
-                          {(close: any) => (
-                            <>
-                              {t_subjects.map(s => <SelectItem key={s} onClick={() => { setT_Subject(s); setT_Topic(''); close(); }} active={t_subject === s} isDarkMode={isDarkMode}>{s}</SelectItem>)}
-                              <SelectItem key="Other" onClick={() => { setT_Subject('Other'); setT_Topic(''); close(); }} active={t_subject === 'Other'} isDarkMode={isDarkMode}>Other...</SelectItem>
-                            </>
-                          )}
-                        </Select>
-                      </div>
-                      <div className="min-w-[140px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Topic / Strand</Label>
-                        <Select value={t_topic} onValueChange={setT_Topic} placeholder="Specific Area" disabled={!t_subject} isDarkMode={isDarkMode}>
-                          {(close: any) => (
-                            <>
-                              {t_topics.map(t => <SelectItem key={t} onClick={() => { setT_Topic(t); close(); }} active={t_topic === t} isDarkMode={isDarkMode}>{t}</SelectItem>)}
-                              <SelectItem key="Other" onClick={() => { setT_Topic('Other'); close(); }} active={t_topic === 'Other'} isDarkMode={isDarkMode}>Other...</SelectItem>
-                            </>
-                          )}
-                        </Select>
-                      </div>
-                      <div className="min-w-[80px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Duration</Label>
-                        <Input placeholder="45 min" value={t_duration} onChange={(e: any) => setT_Duration(e.target.value)} isDarkMode={isDarkMode} className="h-10 text-xs px-3" />
-                      </div>
-                      <div className="min-w-[70px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Questions</Label>
-                        <Input placeholder="15" value={t_items} onChange={(e: any) => setT_Items(e.target.value)} isDarkMode={isDarkMode} className="h-10 text-xs px-3" />
-                      </div>
-                    </div>
-
-                    {/* Conditional custom inputs inside first section if "Other" is selected */}
-                    {(t_subject === 'Other' || t_topic === 'Other') && (
-                      <div className="flex flex-wrap gap-4 items-end bg-white/5 p-3 rounded-2xl border border-white/5">
-                        {t_subject === 'Other' && (
-                          <div className="min-w-[200px] flex-1 space-y-1">
-                            <Label className="text-[10px]">Custom Subject Name</Label>
-                            <Input placeholder="Type custom subject" value={t_customSubject} onChange={(e: any) => setT_CustomSubject(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs" />
+                      {/* Card 1: Curriculum Setup */}
+                      <div className={cn(
+                        "rounded-2xl border p-4 space-y-3.5 shadow-md transition-all",
+                        isDarkMode ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-100"
+                      )}>
+                        <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
+                          <GraduationCap size={14} className="text-emerald-400" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Curriculum Context</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Grade</label>
+                            <Select value={t_grade} onValueChange={setT_Grade} placeholder="Grade" isDarkMode={isDarkMode}>
+                              {(close: any) => Object.keys(educationalData).map(g => (
+                                <SelectItem key={g} onClick={() => { setT_Grade(g); setT_Subject(''); setT_Topic(''); close(); }} active={t_grade === g} isDarkMode={isDarkMode}>Grade {g}</SelectItem>
+                              ))}
+                            </Select>
                           </div>
-                        )}
-                        {t_topic === 'Other' && (
-                          <div className="min-w-[200px] flex-1 space-y-1">
-                            <Label className="text-[10px]">Custom Topic / Strand</Label>
-                            <Input placeholder="Type custom topic" value={t_customTopic} onChange={(e: any) => setT_CustomTopic(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs" />
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Term</label>
+                            <Select value={t_term} onValueChange={setT_Term} placeholder="Term" isDarkMode={isDarkMode}>
+                              {(close: any) => TERMS.map(term => (
+                                <SelectItem key={term} onClick={() => { setT_Term(term); close(); }} active={t_term === term} isDarkMode={isDarkMode}>{term}</SelectItem>
+                              ))}
+                            </Select>
                           </div>
-                        )}
-                      </div>
-                    )}
+                        </div>
 
-                    {/* Secondary row for options, switches, and action button */}
-                    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/5 pt-2">
-                      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
-                        <div className="flex items-center gap-2">
-                          <Switch checked={t_memo} onCheckedChange={setT_Memo} id="t-memo" isDarkMode={isDarkMode} />
-                          <Label className={cn("text-[11px]", isDarkMode ? "text-slate-300" : "text-slate-600")}>Include Memo</Label>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Subject</label>
+                          <Select value={t_subject} onValueChange={setT_Subject} placeholder="Choose Subject" disabled={!t_grade} isDarkMode={isDarkMode}>
+                            {(close: any) => (
+                              <>
+                                {t_subjects.map(s => (
+                                  <SelectItem key={s} onClick={() => { setT_Subject(s); setT_Topic(''); close(); }} active={t_subject === s} isDarkMode={isDarkMode}>{s}</SelectItem>
+                                ))}
+                                <SelectItem key="Other" onClick={() => { setT_Subject('Other'); setT_Topic(''); close(); }} active={t_subject === 'Other'} isDarkMode={isDarkMode}>Other...</SelectItem>
+                              </>
+                            )}
+                          </Select>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Switch checked={t_rubric} onCheckedChange={setT_Rubric} id="t-rubric" isDarkMode={isDarkMode} />
-                          <Label className={cn("text-[11px]", isDarkMode ? "text-slate-300" : "text-slate-600")}>Include Rubric</Label>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Topic / Strand</label>
+                          <Select value={t_topic} onValueChange={setT_Topic} placeholder="Specific Area" disabled={!t_subject} isDarkMode={isDarkMode}>
+                            {(close: any) => (
+                              <>
+                                {t_topics.map(t => (
+                                  <SelectItem key={t} onClick={() => { setT_Topic(t); close(); }} active={t_topic === t} isDarkMode={isDarkMode}>{t}</SelectItem>
+                                ))}
+                                <SelectItem key="Other" onClick={() => { setT_Topic('Other'); close(); }} active={t_topic === 'Other'} isDarkMode={isDarkMode}>Other...</SelectItem>
+                              </>
+                            )}
+                          </Select>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Switch checked={t_generateImage} onCheckedChange={setT_GenerateImage} id="t-generateImage" isDarkMode={isDarkMode} />
-                          <Label className={cn("text-[11px]", isDarkMode ? "text-slate-300" : "text-slate-600")}>Visual Aid</Label>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Language</label>
+                          <Select value={t_language} onValueChange={setT_Language} placeholder="Language" isDarkMode={isDarkMode}>
+                            {(close: any) => LANGUAGES.map(l => (
+                              <SelectItem key={l} onClick={() => { setT_Language(l); close(); }} active={t_language === l} isDarkMode={isDarkMode}>{l}</SelectItem>
+                            ))}
+                          </Select>
                         </div>
-                        {t_type === 'Lesson Plan' && (
-                          <div className="flex items-center gap-2">
-                            <Switch checked={t_includeWorksheet} onCheckedChange={setT_IncludeWorksheet} id="t-include-worksheet" isDarkMode={isDarkMode} />
-                            <Label className={cn("text-[11px]", isDarkMode ? "text-slate-300" : "text-slate-600")}>Student Worksheet</Label>
+                        
+                        {(t_subject === 'Other' || t_topic === 'Other') && (
+                          <div className="space-y-3 bg-white/5 p-3 rounded-xl border border-white/5 mt-2">
+                            {t_subject === 'Other' && (
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Custom Subject Name</label>
+                                <Input placeholder="Type custom subject" value={t_customSubject} onChange={(e: any) => setT_CustomSubject(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs" />
+                              </div>
+                            )}
+                            {t_topic === 'Other' && (
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Custom Topic / Strand</label>
+                                <Input placeholder="Type custom topic" value={t_customTopic} onChange={(e: any) => setT_CustomTopic(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs" />
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      {/* Card 2: Material Design */}
+                      <div className={cn(
+                        "rounded-2xl border p-4 space-y-3.5 shadow-md transition-all",
+                        isDarkMode ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-100"
+                      )}>
+                        <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
+                          <FileText size={14} className="text-emerald-400" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Material Config</span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Category</label>
+                          <Select value={t_category} onValueChange={setT_Category} placeholder="Pick Lab" isDarkMode={isDarkMode}>
+                            {(close: any) => Object.keys(TEACHING_CATEGORIES).map(cat => (
+                              <SelectItem key={cat} onClick={() => { setT_Category(cat); setT_Type(''); close(); }} active={t_category === cat} isDarkMode={isDarkMode}>{cat}</SelectItem>
+                            ))}
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Document Type</label>
+                          <Select value={t_type} onValueChange={setT_Type} placeholder="Select Type" disabled={!t_category} isDarkMode={isDarkMode}>
+                            {(close: any) => TEACHING_CATEGORIES[t_category]?.map(type => (
+                              <SelectItem key={type} onClick={() => { setT_Type(type); close(); }} active={t_type === type} isDarkMode={isDarkMode}>{type}</SelectItem>
+                            ))}
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Difficulty</label>
+                          <Select value={t_difficulty} onValueChange={setT_Difficulty} placeholder="Select Difficulty" isDarkMode={isDarkMode}>
+                            {(close: any) => DIFFICULTIES.map(diff => (
+                              <SelectItem key={diff} onClick={() => { setT_Difficulty(diff); close(); }} active={t_difficulty === diff} isDarkMode={isDarkMode}>{diff}</SelectItem>
+                            ))}
+                          </Select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Duration</label>
+                            <Input placeholder="45 min" value={t_duration} onChange={(e: any) => setT_Duration(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs px-3" />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Questions</label>
+                            <Input placeholder="15" value={t_items} onChange={(e: any) => setT_Items(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs px-3" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card 3: Features & Objectives */}
+                      <div className={cn(
+                        "rounded-2xl border p-4 space-y-4 shadow-md transition-all",
+                        isDarkMode ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-100"
+                      )}>
+                        <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
+                          <Zap size={14} className="text-emerald-400" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Features & Objective</span>
+                        </div>
+
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
+                            <label className="text-[10px] font-bold text-slate-300">Include marking memo</label>
+                            <Switch checked={t_memo} onCheckedChange={setT_Memo} id="t-memo" isDarkMode={isDarkMode} />
+                          </div>
+                          <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
+                            <label className="text-[10px] font-bold text-slate-300">Include rubrics matrix</label>
+                            <Switch checked={t_rubric} onCheckedChange={setT_Rubric} id="t-rubric" isDarkMode={isDarkMode} />
+                          </div>
+                          <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
+                            <label className="text-[10px] font-bold text-slate-300">Generate Hero Visual Aid</label>
+                            <Switch checked={t_generateImage} onCheckedChange={setT_GenerateImage} id="t-generateImage" isDarkMode={isDarkMode} />
+                          </div>
+                          {t_type === 'Lesson Plan' && (
+                            <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
+                              <label className="text-[10px] font-bold text-slate-300">Add Student Worksheet</label>
+                              <Switch checked={t_includeWorksheet} onCheckedChange={setT_IncludeWorksheet} id="t-include-worksheet" isDarkMode={isDarkMode} />
+                            </div>
+                          )}
+                        </div>
+
                         {(t_type === 'Lesson Plan' || t_type === 'Unit Plan') && (
-                          <Input placeholder="Task Dependencies (Optional)" value={t_dependencies} onChange={(e: any) => setT_Dependencies(e.target.value)} isDarkMode={isDarkMode} className="w-[180px] h-9 py-1 px-3 text-xs rounded-xl" />
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Task Dependencies (Optional)</label>
+                            <Input placeholder="What concepts precede this task?" value={t_dependencies} onChange={(e: any) => setT_Dependencies(e.target.value)} isDarkMode={isDarkMode} className="h-9 py-1 px-3 text-xs rounded-xl" />
+                          </div>
                         )}
 
-                        <AdvancedSection label="Objective" isDarkMode={isDarkMode}>
-                          <div className="space-y-3 p-4 min-w-[280px]">
-                            <Label className={isDarkMode ? "text-slate-400" : "text-slate-500"}>Learning Objective</Label>
-                            <Textarea placeholder="What is the learning goal?" value={t_objective} onChange={(e: any) => setT_Objective(e.target.value)} isDarkMode={isDarkMode} className="h-20 text-xs" />
-                          </div>
-                        </AdvancedSection>
-
-                        <button 
-                          type="button"
-                          onClick={handleGenerateTeaching}
-                          disabled={isLoading}
-                          className="bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-6 h-9 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/10 active:scale-95 transition-all"
-                        >
-                          {isLoading ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : <Zap size={12} />}
-                          <span>{isLoading ? "Fabricating..." : `Generate`}</span>
-                        </button>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Learning Objective <span className="opacity-50">(Optional)</span></label>
+                          <Textarea placeholder="Define specific instructional outcome or milestones..." value={t_objective} onChange={(e: any) => setT_Objective(e.target.value)} isDarkMode={isDarkMode} className="h-20 text-xs rounded-xl" />
+                        </div>
                       </div>
-                    </div>
 
+                      {/* Card 4: Collapsible Exam Timer Config */}
+                      {examTimerExpanded && (
+                        <div className={cn(
+                          "rounded-2xl border p-4 space-y-4 shadow-md transition-all text-left",
+                          isDarkMode ? "bg-white/5 border-amber-500/20" : "bg-amber-50/50 border-amber-200"
+                        )}>
+                          <div className="flex items-center gap-1.5 border-b border-amber-500/10 pb-2">
+                            <Timer size={14} className="text-amber-400 animate-pulse" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Countdown Configuration</span>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div className="space-y-1">
+                              <Label className="text-[9px]">Exam/Test Title</Label>
+                              <Input 
+                                placeholder="e.g. Term 2 Mathematics Controlled Test" 
+                                value={examPaperTitle} 
+                                onChange={(e: any) => setExamPaperTitle(e.target.value)} 
+                                isDarkMode={isDarkMode} 
+                                className="h-9 text-xs"
+                              />
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-[9px]">Duration (Mins)</Label>
+                                <Input 
+                                  type="number" 
+                                  min="1" 
+                                  max="300"
+                                  value={examTimerDuration} 
+                                  onChange={(e: any) => setExamTimerDuration(Math.max(1, parseInt(e.target.value) || 1))} 
+                                  isDarkMode={isDarkMode} 
+                                  className="h-9 text-xs"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[9px]">Warning (Mins)</Label>
+                                <Input 
+                                  type="number" 
+                                  min="1" 
+                                  max={examTimerDuration - 1}
+                                  value={examWarningMinutes} 
+                                  onChange={(e: any) => setExamWarningMinutes(Math.max(1, Math.min(examTimerDuration - 1, parseInt(e.target.value) || 1)))} 
+                                  isDarkMode={isDarkMode} 
+                                  className="h-9 text-xs"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setExamSoundEnabled(!examSoundEnabled)}
+                                  className={cn(
+                                    "p-1.5 rounded-lg border transition-all",
+                                    isDarkMode 
+                                      ? (examSoundEnabled ? "bg-white/5 border-brand-cyan/30 text-brand-cyan" : "bg-white/5 border-white/5 text-slate-500") 
+                                      : (examSoundEnabled ? "bg-cyan-50 border-cyan-200 text-cyan-600" : "bg-slate-50 border-slate-200 text-slate-400")
+                                  )}
+                                >
+                                  {examSoundEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
+                                </button>
+                                <span className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                  Sound Chimes {examSoundEnabled ? "On" : "Muted"}
+                                </span>
+                              </div>
+                              {isExamRunning && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setExamTimerAlertTriggered(true);
+                                    setExamAlertMessage("🔊 Visual Alert: This is a manual teacher alert chime test. Please keep silent.");
+                                    setShowExamAlertOverlay(true);
+                                    
+                                    if (examSoundEnabled && typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
+                                      try {
+                                        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+                                        const ctx = new AudioContextClass();
+                                        const osc = ctx.createOscillator();
+                                        const gain = ctx.createGain();
+                                        osc.type = 'sine';
+                                        osc.frequency.setValueAtTime(880, ctx.currentTime);
+                                        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                                        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                                        osc.connect(gain);
+                                        gain.connect(ctx.destination);
+                                        osc.start();
+                                        osc.stop(ctx.currentTime + 0.5);
+                                      } catch (_) {}
+                                    }
+                                  }}
+                                  className="text-[9px] uppercase font-black tracking-widest text-brand-cyan hover:underline flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Bell size={10} /> Test Chime
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="pt-2 border-t border-white/5">
+                              {!isExamRunning && !examCompleted ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setExamTimeRemaining(examTimerDuration * 60);
+                                    setIsExamRunning(true);
+                                    setIsExamPaused(false);
+                                    setExamTimerAlertTriggered(false);
+                                    setExamCompleted(false);
+                                    setExamAlertMessage(`⏰ The Exam (${examPaperTitle}) has started! Total duration: ${examTimerDuration} minutes.`);
+                                    setShowExamAlertOverlay(true);
+                                    if (examSoundEnabled) {
+                                      try {
+                                        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+                                        const ctx = new AudioContextClass();
+                                        const osc = ctx.createOscillator();
+                                        const gain = ctx.createGain();
+                                        osc.type = 'triangle';
+                                        osc.frequency.setValueAtTime(440, ctx.currentTime);
+                                        osc.frequency.setValueAtTime(554.37, ctx.currentTime + 0.15);
+                                        osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.3);
+                                        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                                        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+                                        osc.connect(gain);
+                                        gain.connect(ctx.destination);
+                                        osc.start();
+                                        osc.stop(ctx.currentTime + 0.6);
+                                      } catch (_) {}
+                                    }
+                                  }}
+                                  className="w-full py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-[9px] uppercase tracking-widest rounded-lg transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                                >
+                                  <Timer size={12} /> Start Countdown
+                                </button>
+                              ) : (
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="text-xs font-mono font-black text-brand-cyan bg-black/30 px-3 py-1.5 rounded-lg border border-white/5">
+                                    {Math.floor(examTimeRemaining / 60).toString().padStart(2, '0')}:
+                                    {(examTimeRemaining % 60).toString().padStart(2, '0')}
+                                  </div>
+                                  <div className="flex gap-1.5">
+                                    {!examCompleted && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setIsExamPaused(!isExamPaused)}
+                                        className={cn(
+                                          "py-1 px-2.5 rounded-lg font-bold text-[9px] uppercase tracking-wider text-white transition-all cursor-pointer",
+                                          isExamPaused ? "bg-emerald-500 hover:bg-emerald-600" : "bg-amber-500 hover:bg-amber-600"
+                                        )}
+                                      >
+                                        {isExamPaused ? "Resume" : "Pause"}
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setIsExamRunning(false);
+                                        setIsExamPaused(false);
+                                        setExamTimeRemaining(0);
+                                        setExamCompleted(false);
+                                      }}
+                                      className="py-1 px-2.5 bg-rose-500 hover:bg-rose-600 font-bold text-[9px] uppercase tracking-wider text-white rounded-lg transition-all cursor-pointer"
+                                    >
+                                      Reset
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+
+                  {activeTab === 'visual' && (
+                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-5">
+                      {/* Lab segment header */}
+                      <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-500/15 to-indigo-500/5 border border-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.05)] relative overflow-hidden">
+                        <div className="absolute -top-10 -right-10 w-24 h-24 bg-purple-500/10 blur-2xl rounded-full" />
+                        <div>
+                          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-purple-400 px-2 py-0.5 bg-purple-500/10 border border-purple-500/20 rounded-full">🎓 Lab Segment</span>
+                          <h3 className="text-base font-hand text-white mt-1.5 flex items-center gap-1.5 font-bold">
+                            <Palette size={18} className="text-purple-400 animate-pulse" /> Visual Lab
+                          </h3>
+                          <p className="text-[10px] text-slate-400 mt-1 leading-relaxed font-sans">AI-enhanced posters, printable flashcards, process flow charts, and classroom mind maps.</p>
+                        </div>
+                      </div>
+
+                      {/* Card 1: Curriculum Setup */}
+                      <div className={cn(
+                        "rounded-2xl border p-4 space-y-3.5 shadow-md transition-all",
+                        isDarkMode ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-100"
+                      )}>
+                        <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
+                          <GraduationCap size={14} className="text-purple-400" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Curriculum Setup</span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Grade</label>
+                            <Select value={v_grade} onValueChange={setV_Grade} placeholder="Grade" isDarkMode={isDarkMode}>
+                              {(close: any) => Object.keys(educationalData).map(g => (
+                                <SelectItem key={g} onClick={() => { setV_Grade(g); setV_Subject(''); setV_Topic(''); close(); }} active={v_grade === g} isDarkMode={isDarkMode}>Grade {g}</SelectItem>
+                              ))}
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Language</label>
+                            <Select value={v_language} onValueChange={setV_Language} placeholder="Language" isDarkMode={isDarkMode}>
+                              {(close: any) => LANGUAGES.map(l => (
+                                <SelectItem key={l} onClick={() => { setV_Language(l); close(); }} active={v_language === l} isDarkMode={isDarkMode}>{l}</SelectItem>
+                              ))}
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Subject</label>
+                          <Select value={v_subject} onValueChange={setV_Subject} placeholder="Neural Topic" disabled={!v_grade} isDarkMode={isDarkMode}>
+                            {(close: any) => (
+                              <>
+                                {v_subjects.map(s => (
+                                  <SelectItem key={s} onClick={() => { setV_Subject(s); setV_Topic(''); close(); }} active={v_subject === s} isDarkMode={isDarkMode}>{s}</SelectItem>
+                                ))}
+                                <SelectItem key="Other" onClick={() => { setV_Subject('Other'); setV_Topic(''); close(); }} active={v_subject === 'Other'} isDarkMode={isDarkMode}>Other...</SelectItem>
+                              </>
+                            )}
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Topic / Strand</label>
+                          <Select value={v_topic} onValueChange={setV_Topic} placeholder="Specific Area" disabled={!v_subject} isDarkMode={isDarkMode}>
+                            {(close: any) => (
+                              <>
+                                {v_topics.map(t => (
+                                  <SelectItem key={t} onClick={() => { setV_Topic(t); close(); }} active={v_topic === t} isDarkMode={isDarkMode}>{t}</SelectItem>
+                                ))}
+                                <SelectItem key="Other" onClick={() => { setV_Topic('Other'); close(); }} active={v_topic === 'Other'} isDarkMode={isDarkMode}>Other...</SelectItem>
+                              </>
+                            )}
+                          </Select>
+                        </div>
+                        
+                        {(v_subject === 'Other' || v_topic === 'Other') && (
+                          <div className="space-y-3 bg-white/5 p-3 rounded-xl border border-white/5 mt-2">
+                            {v_subject === 'Other' && (
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Custom Subject Name</label>
+                                <Input placeholder="Type custom subject" value={v_customSubject} onChange={(e: any) => setV_CustomSubject(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs" />
+                              </div>
+                            )}
+                            {v_topic === 'Other' && (
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Custom Topic / Strand</label>
+                                <Input placeholder="Type custom topic" value={v_customTopic} onChange={(e: any) => setV_CustomTopic(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Card 2: Aesthetic Details */}
+                      <div className={cn(
+                        "rounded-2xl border p-4 space-y-3.5 shadow-md transition-all",
+                        isDarkMode ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-100"
+                      )}>
+                        <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
+                          <Palette size={14} className="text-purple-400" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Aesthetics & Form</span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Visual Category</label>
+                          <Select value={v_category} onValueChange={setV_Category} placeholder="Pick Lab" isDarkMode={isDarkMode}>
+                            {(close: any) => Object.keys(VISUAL_TYPES).map(cat => (
+                              <SelectItem key={cat} onClick={() => { setV_Category(cat); setV_Type(''); close(); }} active={v_category === cat} isDarkMode={isDarkMode}>{cat}</SelectItem>
+                            ))}
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Visual Type</label>
+                          <Select value={v_type} onValueChange={setV_Type} placeholder="Select Type" disabled={!v_category} isDarkMode={isDarkMode}>
+                            {(close: any) => VISUAL_TYPES[v_category]?.map(type => (
+                              <SelectItem key={type} onClick={() => { setV_Type(type); close(); }} active={v_type === type} isDarkMode={isDarkMode}>{type}</SelectItem>
+                            ))}
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Color Scheme</label>
+                          <Select value={v_colorScheme} onValueChange={setV_ColorScheme} placeholder="Pick Colors" isDarkMode={isDarkMode}>
+                            {(close: any) => COLOR_SCHEMES.map(c => (
+                              <SelectItem key={c} onClick={() => { setV_ColorScheme(c); close(); }} active={v_colorScheme === c} isDarkMode={isDarkMode}>{c}</SelectItem>
+                            ))}
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Visual Style</label>
+                          <Select value={v_style} onValueChange={setV_Style} placeholder="Select Style" isDarkMode={isDarkMode}>
+                            {(close: any) => VISUAL_STYLES.map(s => (
+                              <SelectItem key={s} onClick={() => { setV_Style(s); close(); }} active={v_style === s} isDarkMode={isDarkMode}>{s}</SelectItem>
+                            ))}
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Layout Variations</label>
+                          <div className="flex gap-1.5 h-9 bg-white/5 border border-white/10 rounded-xl p-1">
+                            {[1, 2, 3].map(n => (
+                              <button
+                                key={n}
+                                type="button"
+                                onClick={() => setV_Variations(n)}
+                                className={cn(
+                                  "flex-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer",
+                                  v_variations === n 
+                                    ? "bg-purple-500 text-white shadow" 
+                                    : "text-slate-400 hover:text-white"
+                                )}
+                              >
+                                {n} {n === 1 ? 'Var' : 'Vars'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card 3: Graphic details */}
+                      <div className={cn(
+                        "rounded-2xl border p-4 space-y-3.5 shadow-md transition-all",
+                        isDarkMode ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-100"
+                      )}>
+                        <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
+                          <ImageIcon size={14} className="text-purple-400" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Rendering details</span>
+                        </div>
+
+                        <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
+                          <label className="text-[10px] font-bold text-slate-300">Generate Hero Image</label>
+                          <Switch checked={v_generateImage} onCheckedChange={setV_GenerateImage} isDarkMode={isDarkMode} />
+                        </div>
+
+                        {v_generateImage && (
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Image Prompt Override</label>
+                            <Input placeholder="Image prompt override..." value={v_extraInstructions} onChange={(e: any) => setV_ExtraInstructions(e.target.value)} isDarkMode={isDarkMode} className="h-9 py-1 text-xs rounded-xl" />
+                          </div>
+                        )}
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Concepts/Keywords to include</label>
+                          <Input placeholder="Specific words/concepts to include..." value={v_specificContent} onChange={(e: any) => setV_SpecificContent(e.target.value)} isDarkMode={isDarkMode} className="h-9 py-1 text-xs rounded-xl" />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {activeTab === 'admin' && (
+                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-5">
+                      {/* Lab segment header */}
+                      <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500/15 to-indigo-500/5 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.05)] relative overflow-hidden">
+                        <div className="absolute -top-10 -right-10 w-24 h-24 bg-blue-500/10 blur-2xl rounded-full" />
+                        <div>
+                          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-400 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full">📋 Lab Segment</span>
+                          <h3 className="text-base font-hand text-white mt-1.5 flex items-center gap-1.5 font-bold">
+                            <ClipboardList size={18} className="text-blue-400 animate-pulse" /> Admin Lab
+                          </h3>
+                          <p className="text-[10px] text-slate-400 mt-1 leading-relaxed font-sans">Draft letters to parents, general school notices, achievement certificates, or report comments.</p>
+                        </div>
+                      </div>
+
+                      {/* Card 1: Context & Parameters */}
+                      <div className={cn(
+                        "rounded-2xl border p-4 space-y-3.5 shadow-md transition-all",
+                        isDarkMode ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-100"
+                      )}>
+                        <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
+                          <GraduationCap size={14} className="text-blue-400" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Context Setup</span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Grade</label>
+                            <Select value={a_grade} onValueChange={setA_Grade} placeholder="Grade" isDarkMode={isDarkMode}>
+                              {(close: any) => Object.keys(educationalData).map(g => (
+                                <SelectItem key={g} onClick={() => { setA_Grade(g); setA_Subject(''); close(); }} active={a_grade === g} isDarkMode={isDarkMode}>Grade {g}</SelectItem>
+                              ))}
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Language</label>
+                            <Select value={a_language} onValueChange={setA_Language} placeholder="Language" isDarkMode={isDarkMode}>
+                              {(close: any) => LANGUAGES.map(l => (
+                                <SelectItem key={l} onClick={() => { setA_Language(l); close(); }} active={a_language === l} isDarkMode={isDarkMode}>{l}</SelectItem>
+                              ))}
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Subject <span className="opacity-50">(Optional)</span></label>
+                          <Select value={a_subject} onValueChange={setA_Subject} placeholder="Neural Topic" disabled={!a_grade} isDarkMode={isDarkMode}>
+                            {(close: any) => (
+                              <>
+                                {a_subjects.map(s => (
+                                  <SelectItem key={s} onClick={() => { setA_Subject(s); close(); }} active={a_subject === s} isDarkMode={isDarkMode}>{s}</SelectItem>
+                                ))}
+                                <SelectItem key="Other" onClick={() => { setA_Subject('Other'); close(); }} active={a_subject === 'Other'} isDarkMode={isDarkMode}>Other...</SelectItem>
+                              </>
+                            )}
+                          </Select>
+                        </div>
+
+                        {a_subject === 'Other' && (
+                          <div className="space-y-1 bg-white/5 p-2 rounded-xl border border-white/5">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Custom Subject Name</label>
+                            <Input placeholder="Type custom subject" value={a_customSubject} onChange={(e: any) => setA_CustomSubject(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Card 2: Document Config */}
+                      <div className={cn(
+                        "rounded-2xl border p-4 space-y-3.5 shadow-md transition-all",
+                        isDarkMode ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-100"
+                      )}>
+                        <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
+                          <FileText size={14} className="text-blue-400" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Document Config</span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Document Type</label>
+                          <Select value={a_type} onValueChange={setA_Type} placeholder="Select Doc" isDarkMode={isDarkMode}>
+                            {(close: any) => Object.entries(ADMIN_TYPES).map(([cat, items]) => (
+                              <div key={cat} className="space-y-1">
+                                <p className={`text-[8px] font-black px-4 py-2 uppercase tracking-widest ${isDarkMode ? "text-brand-cyan/50" : "text-slate-600"}`}>{cat}</p>
+                                {items.map(item => (
+                                  <SelectItem key={item} onClick={() => { setA_Type(item); close(); }} active={a_type === item} isDarkMode={isDarkMode}>{item}</SelectItem>
+                                ))}
+                              </div>
+                            ))}
+                          </Select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Tone</label>
+                            <Select value={a_tone} onValueChange={setA_Tone} placeholder="Tone" isDarkMode={isDarkMode}>
+                              {(close: any) => TONES.map(t => (
+                                <SelectItem key={t} onClick={() => { setA_Tone(t); close(); }} active={a_tone === t} isDarkMode={isDarkMode}>{t}</SelectItem>
+                              ))}
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Date</label>
+                            <Input placeholder="15 Oct 2026" value={a_date} onChange={(e: any) => setA_Date(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs px-3" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card 3: Render and Objectives */}
+                      <div className={cn(
+                        "rounded-2xl border p-4 space-y-3.5 shadow-md transition-all",
+                        isDarkMode ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-100"
+                      )}>
+                        <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
+                          <Zap size={14} className="text-blue-400" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Content Features</span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Message Purpose / Objective</label>
+                          <Input placeholder="Message Purpose: What is the main goal?" value={a_purpose} onChange={(e: any) => setA_Purpose(e.target.value)} isDarkMode={isDarkMode} className="h-9 py-1 text-xs rounded-xl animate-fade-in" />
+                        </div>
+
+                        <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
+                          <label className="text-[10px] font-bold text-slate-300">Generate Seal / Illustration</label>
+                          <Switch checked={a_generateImage} onCheckedChange={setA_GenerateImage} isDarkMode={isDarkMode} />
+                        </div>
+
+                        {a_generateImage && (
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Illustration prompt override</label>
+                            <Input placeholder="Illustration prompt override..." value={a_extraInstructions} onChange={(e: any) => setA_ExtraInstructions(e.target.value)} isDarkMode={isDarkMode} className="h-9 py-1 text-xs rounded-xl" />
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {activeTab === 'video' && (
+                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} id="video-generator-form" className="space-y-5">
+                      {/* Lab segment header */}
+                      <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-500/15 to-purple-500/5 border border-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.05)] relative overflow-hidden">
+                        <div className="absolute -top-10 -right-10 w-24 h-24 bg-indigo-500/10 blur-2xl rounded-full" />
+                        <div className="flex justify-between items-start relative z-10 gap-3">
+                          <div>
+                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-400 px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full">🎬 Lab Segment</span>
+                            <h3 className="text-base font-hand text-white mt-1.5 flex items-center gap-1.5 font-bold">
+                              <Video size={18} className="text-indigo-400 animate-pulse" /> Video Lab
+                            </h3>
+                            <p className="text-[10px] text-slate-400 mt-1 leading-relaxed font-sans">Create captivating AI teacher avatars, lesson explainer animations, or slideshow templates.</p>
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={handleEnhancePrompt} 
+                            disabled={isEnhancingPrompt || !vid_prompt} 
+                            className="text-[9px] font-black uppercase tracking-widest bg-indigo-500 hover:bg-indigo-600 disabled:bg-slate-850 disabled:text-slate-500 disabled:border-transparent text-white px-2.5 py-1.5 rounded-xl border border-indigo-400/30 transition-all flex items-center gap-1 shrink-0 shadow-lg shadow-indigo-500/10 cursor-pointer"
+                          >
+                            {isEnhancingPrompt ? <Loader2 size={10} className="animate-spin" /> : "🌟"} Enhance
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Card 1: Configuration */}
+                      <div className={cn(
+                        "rounded-2xl border p-4 space-y-3.5 shadow-md transition-all",
+                        isDarkMode ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-100"
+                      )}>
+                        <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
+                          <Settings2 size={14} className="text-indigo-400" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Video Engine</span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Video Model Engine</label>
+                          <Select value={vid_model} onValueChange={setVid_Model} placeholder="Video Model" isDarkMode={isDarkMode}>
+                            {(close: any) => (
+                              <>
+                                <SelectItem onClick={() => { setVid_Model('omnihuman-1'); close(); }} active={vid_model === 'omnihuman-1'} isDarkMode={isDarkMode}>Omnihuman-1 (Gradio Streaming)</SelectItem>
+                                <SelectItem onClick={() => { setVid_Model('replicate-minimax'); close(); }} active={vid_model === 'replicate-minimax'} isDarkMode={isDarkMode}>Minimax Video</SelectItem>
+                                <SelectItem onClick={() => { setVid_Model('replicate-luma'); close(); }} active={vid_model === 'replicate-luma'} isDarkMode={isDarkMode}>Luma Ray</SelectItem>
+                              </>
+                            )}
+                          </Select>
+                        </div>
+
+                        {vid_model === 'omnihuman-1' && (
+                          <div className="grid grid-cols-2 gap-3.5 pt-2 border-t border-white/5 border-dashed">
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1 mb-1 block">Seed</label>
+                              <Input 
+                                type="number" 
+                                value={vid_seed} 
+                                onChange={(e: any) => setVid_Seed(Number(e.target.value))} 
+                                isDarkMode={isDarkMode}
+                                className="h-9 text-xs rounded-xl"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1 mb-1 block">Playback FPS ({vid_fps})</label>
+                              <input 
+                                type="range" 
+                                min="1" 
+                                max="30" 
+                                value={vid_fps} 
+                                onChange={(e: any) => setVid_Fps(Number(e.target.value))} 
+                                className="w-full accent-indigo-500 py-2 cursor-pointer"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Card 2: Prompt Script */}
+                      <div className={cn(
+                        "rounded-2xl border p-4 space-y-3.5 shadow-md transition-all",
+                        isDarkMode ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-100"
+                      )}>
+                        <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
+                          <FileCode size={14} className="text-indigo-400" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Action Script</span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Video Prompt Prompt</label>
+                          <Textarea 
+                            placeholder="E.g., A cinematic shot of a lion roaring in the African savanna during golden hour..." 
+                            value={vid_prompt} 
+                            onChange={(e: any) => setVid_Prompt(e.target.value)} 
+                            isDarkMode={isDarkMode}
+                            className="h-24 text-xs rounded-xl"
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {activeTab === 'grade1' && (
+                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-5">
+                      {/* Lab segment header */}
+                      <div className="p-4 rounded-2xl bg-gradient-to-br from-pink-500/15 to-rose-500/5 border border-pink-500/20 shadow-[0_0_20px_rgba(236,72,153,0.05)] relative overflow-hidden">
+                        <div className="absolute -top-10 -right-10 w-24 h-24 bg-pink-500/10 blur-2xl rounded-full" />
+                        <div>
+                          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-pink-400 px-2 py-0.5 bg-pink-500/10 border border-pink-500/20 rounded-full">🎈 Lab Segment</span>
+                          <h3 className="text-base font-hand text-white mt-1.5 flex items-center gap-1.5 font-bold">
+                            <BookOpen size={18} className="text-pink-400 animate-pulse" /> Foundation Hub
+                          </h3>
+                          <p className="text-[10px] text-slate-400 mt-1 leading-relaxed font-sans">Foundational literacy, phonics activities, spelling tables, and early reading comprehension.</p>
+                        </div>
+                      </div>
+
+                      {/* Card 1: Grade Selection */}
+                      <div className={cn(
+                        "rounded-2xl border p-4 space-y-3.5 shadow-md transition-all",
+                        isDarkMode ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-100"
+                      )}>
+                        <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
+                          <Users size={14} className="text-pink-400" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Target Learners</span>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Grade Level</label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {['1', '2', '3'].map(num => (
+                              <button
+                                key={num}
+                                type="button"
+                                onClick={() => setF_Grade(num)}
+                                className={cn(
+                                  "py-2 px-1 rounded-xl text-xs font-bold border transition-all cursor-pointer",
+                                  f_grade === num
+                                    ? "bg-pink-500 border-pink-500 text-white shadow-lg shadow-pink-500/10"
+                                    : (isDarkMode ? "bg-white/5 border-white/5 text-slate-300 hover:border-white/10" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50")
+                                )}
+                              >
+                                Grade {num}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card 2: Literacy & Numeracy focus */}
+                      <div className={cn(
+                        "rounded-2xl border p-4 space-y-3.5 shadow-md transition-all",
+                        isDarkMode ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-100"
+                      )}>
+                        <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
+                          <ClipboardList size={14} className="text-pink-400" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Pedagogical focus</span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Focus Area</label>
+                          <Select value={f_topic} onValueChange={setF_Topic} placeholder="Select Focus" isDarkMode={isDarkMode}>
+                            {(close: any) => (
+                              <>
+                                <SelectItem onClick={() => { setF_Topic('Phonics'); close(); }} active={f_topic === 'Phonics'} isDarkMode={isDarkMode}>Phonics Instruction</SelectItem>
+                                <SelectItem onClick={() => { setF_Topic('Sight Words'); close(); }} active={f_topic === 'Sight Words'} isDarkMode={isDarkMode}>Sight Words Table</SelectItem>
+                                <SelectItem onClick={() => { setF_Topic('Reading Comprehension'); close(); }} active={f_topic === 'Reading Comprehension'} isDarkMode={isDarkMode}>Reading Comprehension</SelectItem>
+                                <SelectItem onClick={() => { setF_Topic('Handwriting Practice'); close(); }} active={f_topic === 'Handwriting Practice'} isDarkMode={isDarkMode}>Handwriting Tracers</SelectItem>
+                              </>
+                            )}
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Language</label>
+                          <Select value={f_language} onValueChange={setF_Language} placeholder="Language" isDarkMode={isDarkMode}>
+                            {(close: any) => (
+                              <>
+                                <SelectItem onClick={() => { setF_Language('English HL'); close(); }} active={f_language === 'English HL'} isDarkMode={isDarkMode}>English HL</SelectItem>
+                                <SelectItem onClick={() => { setF_Language('English FAL'); close(); }} active={f_language === 'English FAL'} isDarkMode={isDarkMode}>English FAL</SelectItem>
+                                <SelectItem onClick={() => { setF_Language('Afrikaans HT'); close(); }} active={f_language === 'Afrikaans HT'} isDarkMode={isDarkMode}>Afrikaans HT</SelectItem>
+                              </>
+                            )}
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Card 3: Custom specifications */}
+                      <div className={cn(
+                        "rounded-2xl border p-4 space-y-3.5 shadow-md transition-all",
+                        isDarkMode ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-100"
+                      )}>
+                        <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
+                          <Sparkles size={14} className="text-pink-400" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Immersive theme</span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Specific Target / Sound</label>
+                          <Input placeholder="e.g. 'sh' and 'ch' sounds..." value={f_specific} onChange={(e: any) => setF_Specific(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs rounded-xl" />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Topic Theme / Lesson Context</label>
+                          <Input placeholder="e.g. Animals, Space, Ocean..." value={f_theme} onChange={(e: any) => setF_Theme(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs rounded-xl" />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Sidebar Footer Operations */}
+              <div className="pt-4 border-t border-white/10 bg-[#0B1122]/50 shrink-0 space-y-3.5">
+                {activeTab === 'teaching' && (
+                  <div className="space-y-3.5">
                     {isLoading && (
-                      <div className="px-1 border-t border-white/5 pt-2">
-                         <div className="flex justify-between text-[10px] mb-1 font-black uppercase tracking-widest">
-                           <span className={isDarkMode ? 'text-brand-cyan' : 'text-slate-600'}>Compiling Curriculum</span>
-                           <span className={isDarkMode ? 'text-brand-cyan' : 'text-slate-600'}>{generationProgress}%</span>
+                      <div className="p-1 space-y-1.5">
+                         <div className="flex justify-between text-[9px] font-black uppercase tracking-widest">
+                           <span className="text-emerald-400">Compiling Curriculum</span>
+                           <span className="text-emerald-400">{generationProgress}%</span>
                          </div>
-                         <div className={`w-full h-1 rounded-full overflow-hidden ${isDarkMode ? 'bg-white/10' : 'bg-slate-200'}`}>
+                         <div className="w-full h-1.5 rounded-full overflow-hidden bg-white/10">
                            <div 
-                             className="h-full bg-brand-cyan transition-all duration-300"
+                             className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300 shadow-[0_0_8px_rgba(52,211,153,0.5)]"
                              style={{ width: `${generationProgress}%` }}
                            />
                          </div>
                       </div>
                     )}
 
-                    {/* Exam Mode Timer Control Card (Inline collapsible) */}
-                    {examTimerExpanded && (
-                      <div className={cn("border-t pt-3 mt-1 space-y-3 text-left", isDarkMode ? "border-white/5" : "border-slate-200")}>
-                        <div className="flex flex-wrap gap-4">
-                          <div className="flex-1 min-w-[200px] space-y-1">
-                            <Label className="text-[10px]">Exam/Test Title</Label>
-                            <Input 
-                              placeholder="e.g. Term 2 Mathematics Controlled Test" 
-                              value={examPaperTitle} 
-                              onChange={(e: any) => setExamPaperTitle(e.target.value)} 
-                              isDarkMode={isDarkMode} 
-                              className="h-9 text-xs"
-                            />
-                          </div>
-                          <div className="min-w-[100px] space-y-1">
-                            <Label className="text-[10px]">Duration (Mins)</Label>
-                            <Input 
-                              type="number" 
-                              min="1" 
-                              max="300"
-                              value={examTimerDuration} 
-                              onChange={(e: any) => setExamTimerDuration(Math.max(1, parseInt(e.target.value) || 1))} 
-                              isDarkMode={isDarkMode} 
-                              className="h-9 text-xs"
-                            />
-                          </div>
-                          <div className="min-w-[100px] space-y-1">
-                            <Label className="text-[10px]">Warning At (Mins)</Label>
-                            <Input 
-                              type="number" 
-                              min="1" 
-                              max={examTimerDuration - 1}
-                              value={examWarningMinutes} 
-                              onChange={(e: any) => setExamWarningMinutes(Math.max(1, Math.min(examTimerDuration - 1, parseInt(e.target.value) || 1)))} 
-                              isDarkMode={isDarkMode} 
-                              className="h-9 text-xs"
-                            />
-                          </div>
-                        </div>
+                    <div className="flex gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExamTimerExpanded(!examTimerExpanded);
+                          if (!examPaperTitle) {
+                            setExamPaperTitle(t_topic || t_type || "Classroom Examination Paper");
+                          }
+                          if (!examSubjectName) {
+                            setExamSubjectName(t_subject || "General Study");
+                          }
+                        }}
+                        className={cn(
+                          "flex items-center justify-center gap-1.5 px-3 py-3 rounded-xl border text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                          isDarkMode 
+                            ? "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
+                            : "bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-900"
+                        )}
+                        title="Show Exam Countdown Tool"
+                      >
+                        <Timer size={13} className="text-brand-cyan" />
+                        <span>Timer {isExamRunning ? "• Active" : ""}</span>
+                      </button>
 
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setExamSoundEnabled(!examSoundEnabled)}
-                              className={cn(
-                                "p-2 rounded-xl border transition-all",
-                                isDarkMode 
-                                  ? (examSoundEnabled ? "bg-white/5 border-brand-cyan/30 text-brand-cyan" : "bg-white/5 border-white/5 text-slate-500") 
-                                  : (examSoundEnabled ? "bg-cyan-50 border-cyan-200 text-cyan-600" : "bg-slate-50 border-slate-200 text-slate-400")
-                              )}
-                            >
-                              {examSoundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
-                            </button>
-                            <span className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                              Sound Chimes {examSoundEnabled ? "Enabled" : "Muted"}
-                            </span>
-                            
-                            {isExamRunning && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setExamTimerAlertTriggered(true);
-                                  setExamAlertMessage("🔊 Visual Alert: This is a manual teacher alert chime test. Please keep silent.");
-                                  setShowExamAlertOverlay(true);
-                                  
-                                  if (examSoundEnabled && typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
-                                    try {
-                                      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-                                      const ctx = new AudioContextClass();
-                                      const osc = ctx.createOscillator();
-                                      const gain = ctx.createGain();
-                                      osc.type = 'sine';
-                                      osc.frequency.setValueAtTime(880, ctx.currentTime);
-                                      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                                      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-                                      osc.connect(gain);
-                                      gain.connect(ctx.destination);
-                                      osc.start();
-                                      osc.stop(ctx.currentTime + 0.5);
-                                    } catch (_) {}
-                                  }
-                                }}
-                                className="text-[10px] uppercase font-black tracking-widest text-brand-cyan hover:underline flex items-center gap-1 cursor-pointer ml-3"
-                              >
-                                <Bell size={10} /> Test Chime
-                              </button>
-                            )}
-                          </div>
-
-                          <div className="flex gap-2">
-                            {!isExamRunning && !examCompleted ? (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setExamTimeRemaining(examTimerDuration * 60);
-                                  setIsExamRunning(true);
-                                  setIsExamPaused(false);
-                                  setExamTimerAlertTriggered(false);
-                                  setExamCompleted(false);
-                                  setExamAlertMessage(`⏰ The Exam (${examPaperTitle}) has started! Total duration: ${examTimerDuration} minutes.`);
-                                  setShowExamAlertOverlay(true);
-                                  if (examSoundEnabled) {
-                                    try {
-                                      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-                                      const ctx = new AudioContextClass();
-                                      const osc = ctx.createOscillator();
-                                      const gain = ctx.createGain();
-                                      osc.type = 'triangle';
-                                      osc.frequency.setValueAtTime(440, ctx.currentTime);
-                                      osc.frequency.setValueAtTime(554.37, ctx.currentTime + 0.15);
-                                      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.3);
-                                      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                                      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
-                                      osc.connect(gain);
-                                      gain.connect(ctx.destination);
-                                      osc.start();
-                                      osc.stop(ctx.currentTime + 0.6);
-                                    } catch (_) {}
-                                  }
-                                }}
-                                className="py-1.5 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-[10px] uppercase tracking-widest rounded-lg transition-all shadow-md shadow-emerald-500/10 flex items-center justify-center gap-1.5 cursor-pointer"
-                              >
-                                <Timer size={12} /> Start Countdown
-                              </button>
-                            ) : (
-                              <div className="flex items-center gap-3">
-                                <div className="text-xs font-mono font-black text-brand-cyan bg-black/30 px-3 py-1.5 rounded-lg border border-white/5">
-                                  {Math.floor(examTimeRemaining / 60).toString().padStart(2, '0')}:
-                                  {(examTimeRemaining % 60).toString().padStart(2, '0')}
-                                </div>
-                                {!examCompleted && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setIsExamPaused(!isExamPaused)}
-                                    className={cn(
-                                      "py-1 px-3 rounded-lg font-bold text-[10px] uppercase tracking-wider text-white transition-all cursor-pointer",
-                                      isExamPaused ? "bg-emerald-500 hover:bg-emerald-600" : "bg-amber-500 hover:bg-amber-600"
-                                    )}
-                                  >
-                                    {isExamPaused ? "Resume" : "Pause"}
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setIsExamRunning(false);
-                                    setIsExamPaused(false);
-                                    setExamTimeRemaining(0);
-                                    setExamCompleted(false);
-                                  }}
-                                  className="py-1 px-3 bg-rose-500 hover:bg-rose-600 font-bold text-[10px] uppercase tracking-wider text-white rounded-lg transition-all cursor-pointer"
-                                >
-                                  Stop / Reset
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
+                      <button 
+                        type="button"
+                        onClick={handleGenerateTeaching}
+                        disabled={isLoading}
+                        className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 h-11 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 active:scale-95 transition-all cursor-pointer"
+                      >
+                        {isLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <Zap size={13} />}
+                        <span>{isLoading ? "Fabricating..." : "Generate Materials"}</span>
+                      </button>
+                    </div>
+                  </div>
                 )}
 
                 {activeTab === 'visual' && (
-                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4">
-                    {/* Header info */}
-                    <div className="flex flex-wrap justify-between items-center gap-2 border-b border-white/5 pb-2">
-                      <div>
-                        <p className="text-[10px] text-purple-400 font-black uppercase tracking-[0.2em]">🎓 Visual Architects</p>
-                        <p className="text-[11px] text-slate-500">AI-enhanced posters, flashcards, and diagrams for the modern classroom.</p>
-                      </div>
-                    </div>
-
-                    {/* Horizontal row of selectors */}
-                    <div className="flex flex-wrap items-end gap-3 lg:gap-4">
-                      <div className="min-w-[130px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Visual Category</Label>
-                        <Select value={v_category} onValueChange={setV_Category} placeholder="Pick Lab" isDarkMode={isDarkMode}>
-                          {(close: any) => Object.keys(VISUAL_TYPES).map(cat => (
-                            <SelectItem key={cat} onClick={() => { setV_Category(cat); setV_Type(''); close(); }} active={v_category === cat} isDarkMode={isDarkMode}>{cat}</SelectItem>
-                          ))}
-                        </Select>
-                      </div>
-                      <div className="min-w-[130px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Visual Type</Label>
-                        <Select value={v_type} onValueChange={setV_Type} placeholder="Select Type" disabled={!v_category} isDarkMode={isDarkMode}>
-                          {(close: any) => VISUAL_TYPES[v_category]?.map(type => (
-                            <SelectItem key={type} onClick={() => { setV_Type(type); close(); }} active={v_type === type} isDarkMode={isDarkMode}>{type}</SelectItem>
-                          ))}
-                        </Select>
-                      </div>
-                      <div className="min-w-[100px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Language</Label>
-                        <Select value={v_language} onValueChange={setV_Language} placeholder="Language" isDarkMode={isDarkMode}>
-                          {(close: any) => LANGUAGES.map(l => <SelectItem key={l} onClick={() => { setV_Language(l); close(); }} active={v_language === l} isDarkMode={isDarkMode}>{l}</SelectItem>)}
-                        </Select>
-                      </div>
-                      <div className="min-w-[100px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Grade</Label>
-                        <Select value={v_grade} onValueChange={setV_Grade} placeholder="Grade" isDarkMode={isDarkMode}>
-                          {(close: any) => Object.keys(educationalData).map(g => <SelectItem key={g} onClick={() => { setV_Grade(g); setV_Subject(''); setV_Topic(''); close(); }} active={v_grade === g} isDarkMode={isDarkMode}>Grade {g}</SelectItem>)}
-                        </Select>
-                      </div>
-                      <div className="min-w-[140px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Subject</Label>
-                        <Select value={v_subject} onValueChange={setV_Subject} placeholder="Neural Topic" disabled={!v_grade} isDarkMode={isDarkMode}>
-                          {(close: any) => (
-                            <>
-                              {v_subjects.map(s => <SelectItem key={s} onClick={() => { setV_Subject(s); setV_Topic(''); close(); }} active={v_subject === s} isDarkMode={isDarkMode}>{s}</SelectItem>)}
-                              <SelectItem key="Other" onClick={() => { setV_Subject('Other'); setV_Topic(''); close(); }} active={v_subject === 'Other'} isDarkMode={isDarkMode}>Other...</SelectItem>
-                            </>
-                          )}
-                        </Select>
-                      </div>
-                      <div className="min-w-[140px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Topic / Strand</Label>
-                        <Select value={v_topic} onValueChange={setV_Topic} placeholder="Specific Area" disabled={!v_subject} isDarkMode={isDarkMode}>
-                          {(close: any) => (
-                            <>
-                              {v_topics.map(t => <SelectItem key={t} onClick={() => { setV_Topic(t); close(); }} active={v_topic === t} isDarkMode={isDarkMode}>{t}</SelectItem>)}
-                              <SelectItem key="Other" onClick={() => { setV_Topic('Other'); close(); }} active={v_topic === 'Other'} isDarkMode={isDarkMode}>Other...</SelectItem>
-                            </>
-                          )}
-                        </Select>
-                      </div>
-                      <div className="min-w-[110px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Color Scheme</Label>
-                        <Select value={v_colorScheme} onValueChange={setV_ColorScheme} placeholder="Pick Colors" isDarkMode={isDarkMode}>
-                          {(close: any) => COLOR_SCHEMES.map(c => <SelectItem key={c} onClick={() => { setV_ColorScheme(c); close(); }} active={v_colorScheme === c} isDarkMode={isDarkMode}>{c}</SelectItem>)}
-                        </Select>
-                      </div>
-                      <div className="min-w-[110px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Visual Style</Label>
-                        <Select value={v_style} onValueChange={setV_Style} placeholder="Select Style" isDarkMode={isDarkMode}>
-                          {(close: any) => VISUAL_STYLES.map(s => <SelectItem key={s} onClick={() => { setV_Style(s); close(); }} active={v_style === s} isDarkMode={isDarkMode}>{s}</SelectItem>)}
-                        </Select>
-                      </div>
-                      <div className="min-w-[90px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Variations</Label>
-                        <div className="flex gap-1 h-10 bg-white/5 border border-white/10 rounded-xl p-1">
-                          {[1, 2, 3].map(n => (
-                            <button
-                              key={n}
-                              type="button"
-                              onClick={() => setV_Variations(n)}
-                              className={cn(
-                                "flex-1 px-3 rounded-lg text-xs font-bold transition-all",
-                                v_variations === n 
-                                  ? "bg-purple-500 text-white shadow" 
-                                  : "text-slate-400 hover:text-white"
-                              )}
-                            >
-                              {n}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Conditional inputs */}
-                    {(v_subject === 'Other' || v_topic === 'Other') && (
-                      <div className="flex flex-wrap gap-4 items-end bg-white/5 p-3 rounded-2xl border border-white/5">
-                        {v_subject === 'Other' && (
-                          <div className="min-w-[200px] flex-1 space-y-1">
-                            <Label className="text-[10px]">Custom Subject Name</Label>
-                            <Input placeholder="Type custom subject" value={v_customSubject} onChange={(e: any) => setV_CustomSubject(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs" />
-                          </div>
-                        )}
-                        {v_topic === 'Other' && (
-                          <div className="min-w-[200px] flex-1 space-y-1">
-                            <Label className="text-[10px]">Custom Topic / Strand</Label>
-                            <Input placeholder="Type custom topic" value={v_customTopic} onChange={(e: any) => setV_CustomTopic(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs" />
-                          </div>
-                        )}
+                  <div className="space-y-3">
+                    {isLoading && (
+                      <div className="p-1 space-y-1.5">
+                         <div className="flex justify-between text-[9px] font-black uppercase tracking-widest">
+                           <span className="text-purple-400">Rendering visual grid</span>
+                           <span className="text-purple-400">In Progress</span>
+                         </div>
+                         <div className="w-full h-1.5 rounded-full overflow-hidden bg-white/10">
+                           <div className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 transition-all duration-300 shadow-[0_0_8px_rgba(168,85,247,0.5)] animate-pulse w-[80%]" />
+                         </div>
                       </div>
                     )}
 
-                    {/* Secondary row for options and action button */}
-                    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/5 pt-2">
-                      <div className="flex flex-wrap items-center gap-4 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Switch checked={v_generateImage} onCheckedChange={setV_GenerateImage} isDarkMode={isDarkMode} />
-                          <Label className={cn("text-[11px]", isDarkMode ? "text-slate-300" : "text-slate-600")}>Generate Hero Image</Label>
-                        </div>
-                        {v_generateImage && (
-                          <Input placeholder="Image prompt override..." value={v_extraInstructions} onChange={(e: any) => setV_ExtraInstructions(e.target.value)} isDarkMode={isDarkMode} className="max-w-xs h-9 py-1 text-xs rounded-xl" />
-                        )}
-                        <Input placeholder="Specific words/concepts to include..." value={v_specificContent} onChange={(e: any) => setV_SpecificContent(e.target.value)} isDarkMode={isDarkMode} className="max-w-md h-9 py-1 text-xs rounded-xl" />
-                      </div>
-
-                      <button type="button" onClick={handleGenerateVisual} disabled={isLoading} className="bg-purple-500 hover:bg-purple-600 text-white px-6 h-9 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 shadow-lg shadow-purple-500/10 active:scale-95 transition-all">
-                        {isLoading ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : <Palette size={12} />}
-                        <span>{isLoading ? "Designing..." : "Create Visual Aid"}</span>
-                      </button>
-                    </div>
-                  </motion.div>
+                    <button 
+                      type="button" 
+                      onClick={handleGenerateVisual} 
+                      disabled={isLoading} 
+                      className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white h-11 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 shadow-lg shadow-purple-500/10 active:scale-95 transition-all cursor-pointer"
+                    >
+                      {isLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <Palette size={13} />}
+                      <span>{isLoading ? "Designing..." : "Create Visual Aid"}</span>
+                    </button>
+                  </div>
                 )}
 
                 {activeTab === 'admin' && (
-                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4">
-                    {/* Header info */}
-                    <div className="flex flex-wrap justify-between items-center gap-2 border-b border-white/5 pb-2">
-                      <div>
-                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">📋 Admin Architects</p>
-                        <p className="text-[11px] text-slate-500">Professional school documentation made instant.</p>
-                      </div>
-                    </div>
-
-                    {/* Horizontal row of selectors */}
-                    <div className="flex flex-wrap items-end gap-3 lg:gap-4">
-                      <div className="min-w-[160px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Document Type</Label>
-                        <Select value={a_type} onValueChange={setA_Type} placeholder="Select Doc" isDarkMode={isDarkMode}>
-                          {(close: any) => Object.entries(ADMIN_TYPES).map(([cat, items]) => (
-                            <div key={cat} className="space-y-1">
-                              <p className={`text-[8px] font-black px-4 py-2 uppercase tracking-widest ${isDarkMode ? "text-brand-cyan/50" : "text-slate-600"}`}>{cat}</p>
-                              {items.map(item => <SelectItem key={item} onClick={() => { setA_Type(item); close(); }} active={a_type === item} isDarkMode={isDarkMode}>{item}</SelectItem>)}
-                            </div>
-                          ))}
-                        </Select>
-                      </div>
-                      <div className="min-w-[110px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Language</Label>
-                        <Select value={a_language} onValueChange={setA_Language} placeholder="Language" isDarkMode={isDarkMode}>
-                          {(close: any) => LANGUAGES.map(l => <SelectItem key={l} onClick={() => { setA_Language(l); close(); }} active={a_language === l} isDarkMode={isDarkMode}>{l}</SelectItem>)}
-                        </Select>
-                      </div>
-                      <div className="min-w-[100px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Grade</Label>
-                        <Select value={a_grade} onValueChange={setA_Grade} placeholder="Grade" isDarkMode={isDarkMode}>
-                          {(close: any) => Object.keys(educationalData).map(g => <SelectItem key={g} onClick={() => { setA_Grade(g); setA_Subject(''); close(); }} active={a_grade === g} isDarkMode={isDarkMode}>Grade {g}</SelectItem>)}
-                        </Select>
-                      </div>
-                      <div className="min-w-[150px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Subject <span className="opacity-50">(Optional)</span></Label>
-                        <Select value={a_subject} onValueChange={setA_Subject} placeholder="Neural Topic" disabled={!a_grade} isDarkMode={isDarkMode}>
-                          {(close: any) => (
-                            <>
-                              {a_subjects.map(s => <SelectItem key={s} onClick={() => { setA_Subject(s); close(); }} active={a_subject === s} isDarkMode={isDarkMode}>{s}</SelectItem>)}
-                              <SelectItem key="Other" onClick={() => { setA_Subject('Other'); close(); }} active={a_subject === 'Other'} isDarkMode={isDarkMode}>Other...</SelectItem>
-                            </>
-                          )}
-                        </Select>
-                      </div>
-                      <div className="min-w-[120px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Tone</Label>
-                        <Select value={a_tone} onValueChange={setA_Tone} placeholder="Select Tone" isDarkMode={isDarkMode}>
-                          {(close: any) => TONES.map(t => <SelectItem key={t} onClick={() => { setA_Tone(t); close(); }} active={a_tone === t} isDarkMode={isDarkMode}>{t}</SelectItem>)}
-                        </Select>
-                      </div>
-                      <div className="min-w-[120px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Date <span className="opacity-50">(Optional)</span></Label>
-                        <Input placeholder="e.g. 15 October 2026" value={a_date} onChange={(e: any) => setA_Date(e.target.value)} isDarkMode={isDarkMode} className="h-10 text-xs px-3" />
-                      </div>
-                    </div>
-
-                    {/* Conditional inputs */}
-                    {a_subject === 'Other' && (
-                      <div className="flex flex-wrap gap-4 items-end bg-white/5 p-3 rounded-2xl border border-white/5">
-                        <div className="min-w-[200px] flex-1 space-y-1">
-                          <Label className="text-[10px]">Custom Subject Name</Label>
-                          <Input placeholder="Type custom subject" value={a_customSubject} onChange={(e: any) => setA_CustomSubject(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs" />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Secondary row for options, inputs, and action button */}
-                    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/5 pt-2">
-                      <div className="flex flex-wrap items-center gap-4 flex-1">
-                        <Input placeholder="Message Purpose: What is the main goal?" value={a_purpose} onChange={(e: any) => setA_Purpose(e.target.value)} isDarkMode={isDarkMode} className="max-w-md h-9 py-1 text-xs rounded-xl" />
-                        <div className="flex items-center gap-2">
-                          <Switch checked={a_generateImage} onCheckedChange={setA_GenerateImage} isDarkMode={isDarkMode} />
-                          <Label className={cn("text-[11px]", isDarkMode ? "text-slate-300" : "text-slate-600")}>Generate Seal / Illustration</Label>
-                        </div>
-                        {a_generateImage && (
-                          <Input placeholder="Illustration prompt override..." value={a_extraInstructions} onChange={(e: any) => setA_ExtraInstructions(e.target.value)} isDarkMode={isDarkMode} className="max-w-xs h-9 py-1 text-xs rounded-xl" />
-                        )}
-                      </div>
-
-                      <button type="button" onClick={handleGenerateAdmin} disabled={isLoading} className="bg-slate-700 hover:bg-slate-600 text-white px-6 h-9 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 shadow-lg shadow-slate-700/10 active:scale-95 transition-all">
-                        {isLoading ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : <ClipboardList size={12} />}
-                        <span>{isLoading ? "Drafting..." : "Generate Admin Doc"}</span>
-                      </button>
-                    </div>
-                  </motion.div>
+                  <button 
+                    type="button" 
+                    onClick={handleGenerateAdmin} 
+                    disabled={isLoading} 
+                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 text-white h-11 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 shadow-lg shadow-blue-500/10 active:scale-95 transition-all cursor-pointer"
+                  >
+                    {isLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <ClipboardList size={13} />}
+                    <span>{isLoading ? "Drafting Document..." : "Generate Admin Doc"}</span>
+                  </button>
                 )}
 
                 {activeTab === 'video' && (
-                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} id="video-generator-form" className="flex flex-col gap-4">
-                    {/* Header info */}
-                    <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/10 p-3.5 rounded-2xl flex items-center justify-between gap-4">
-                      <div>
-                        <h3 className={cn("text-sm font-black uppercase tracking-widest flex items-center gap-2", isDarkMode ? "text-indigo-400" : "text-indigo-600")}>
-                          <Video size={16} /> Cinematic Generator
-                        </h3>
-                        <p className={cn("text-[10px] font-bold", isDarkMode ? "text-slate-400" : "text-slate-500")}>Generate dynamic, cinematic motion frames instantly (Video APIs are currently replaced by motion frames for stability).</p>
-                      </div>
-                      <button 
-                        type="button"
-                        onClick={handleEnhancePrompt} 
-                        disabled={isEnhancingPrompt || !vid_prompt} 
-                        className="text-[10px] font-black uppercase tracking-widest bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-50 transition-all flex items-center gap-1 shrink-0"
-                      >
-                        {isEnhancingPrompt ? <Loader2 size={10} className="animate-spin" /> : "🌟"} Enhance Prompt
-                      </button>
-                    </div>
-
-                    {/* Horizontal row of selectors */}
-                    <div className="flex flex-wrap items-end gap-3 lg:gap-4">
-                      <div className="min-w-[180px] flex-1 sm:flex-none space-y-1">
-                        <label className={cn("text-[10px] font-black uppercase tracking-widest ml-1 mb-1 block", isDarkMode ? "text-slate-400" : "text-slate-500")}>Model</label>
-                        <Select value={vid_model} onValueChange={setVid_Model} placeholder="Video Model" isDarkMode={isDarkMode}>
-                          {(close: any) => (
-                            <>
-                              <SelectItem onClick={() => { setVid_Model('omnihuman-1'); close(); }} active={vid_model === 'omnihuman-1'} isDarkMode={isDarkMode}>Omnihuman-1 (Gradio Streaming)</SelectItem>
-                              <SelectItem onClick={() => { setVid_Model('replicate-minimax'); close(); }} active={vid_model === 'replicate-minimax'} isDarkMode={isDarkMode}>Minimax Video</SelectItem>
-                              <SelectItem onClick={() => { setVid_Model('replicate-luma'); close(); }} active={vid_model === 'replicate-luma'} isDarkMode={isDarkMode}>Luma Ray</SelectItem>
-                            </>
-                          )}
-                        </Select>
-                      </div>
-
-                      <div className="flex-1 min-w-[250px] space-y-1">
-                        <label className={cn("text-[10px] font-black uppercase tracking-widest ml-1 block", isDarkMode ? "text-slate-400" : "text-slate-500")}>Video Prompt</label>
-                        <Input 
-                          placeholder="E.g., A cinematic shot of a lion roaring in the African savanna..." 
-                          value={vid_prompt} 
-                          onChange={(e: any) => setVid_Prompt(e.target.value)} 
-                          isDarkMode={isDarkMode}
-                          className="h-10 text-xs rounded-xl"
-                        />
-                      </div>
-
-                      {vid_model === 'omnihuman-1' && (
-                        <>
-                          <div className="min-w-[100px] flex-1 sm:flex-none space-y-1">
-                            <label className={cn("text-[10px] font-black uppercase tracking-widest mb-1 block", isDarkMode ? "text-slate-400" : "text-slate-500")}>Seed</label>
-                            <Input 
-                              type="number" 
-                              value={vid_seed} 
-                              onChange={(e: any) => setVid_Seed(Number(e.target.value))} 
-                              isDarkMode={isDarkMode}
-                              className="h-10 text-xs rounded-xl"
-                            />
-                          </div>
-                          <div className="min-w-[120px] flex-1 sm:flex-none space-y-1">
-                            <label className={cn("text-[10px] font-black uppercase tracking-widest mb-1 block", isDarkMode ? "text-slate-400" : "text-slate-500")}>Playback FPS ({vid_fps})</label>
-                            <input 
-                              type="range" 
-                              min="1" 
-                              max="30" 
-                              value={vid_fps} 
-                              onChange={(e: any) => setVid_Fps(Number(e.target.value))} 
-                              className="w-full accent-indigo-500 py-2.5"
-                            />
-                          </div>
-                        </>
-                      )}
-
-                      <button 
-                        onClick={handleGenerateVideo}
-                        disabled={isLoading || !vid_prompt}
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 h-10 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 active:scale-95"
-                      >
-                        {isLoading ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : <Video size={14} />}
-                        <span>{isLoading ? 'Synthesizing...' : 'Generate Video'}</span>
-                      </button>
-                    </div>
-                  </motion.div>
+                  <button 
+                    type="button" 
+                    onClick={handleGenerateVideo}
+                    disabled={isLoading || !vid_prompt}
+                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white h-11 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 active:scale-95 cursor-pointer"
+                  >
+                    {isLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <Video size={13} />}
+                    <span>{isLoading ? 'Synthesizing loop...' : 'Generate Video'}</span>
+                  </button>
                 )}
 
                 {activeTab === 'grade1' && (
-                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4">
-                    {/* Header info */}
-                    <div className="flex flex-wrap justify-between items-center gap-2 border-b border-white/5 pb-2">
-                      <div>
-                        <p className="text-[10px] text-pink-500 font-black uppercase tracking-[0.2em]">🎈 Early Learners</p>
-                        <p className="text-[11px] text-slate-500">Phonics, sight words, and reading comprehension specifically mapped for Grades 1 - 3.</p>
-                      </div>
-                    </div>
-
-                    {/* Horizontal row of selectors */}
-                    <div className="flex flex-wrap items-end gap-3 lg:gap-4">
-                      <div className="min-w-[110px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Grade Level</Label>
-                        <Select value={f_grade} onValueChange={setF_Grade} placeholder="Grade" isDarkMode={isDarkMode}>
-                          {(close: any) => (
-                            <>
-                              <SelectItem onClick={() => { setF_Grade('1'); close(); }} active={f_grade === '1'} isDarkMode={isDarkMode}>Grade 1</SelectItem>
-                              <SelectItem onClick={() => { setF_Grade('2'); close(); }} active={f_grade === '2'} isDarkMode={isDarkMode}>Grade 2</SelectItem>
-                              <SelectItem onClick={() => { setF_Grade('3'); close(); }} active={f_grade === '3'} isDarkMode={isDarkMode}>Grade 3</SelectItem>
-                            </>
-                          )}
-                        </Select>
-                      </div>
-                      <div className="min-w-[160px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Focus Area</Label>
-                        <Select value={f_topic} onValueChange={setF_Topic} placeholder="Select Focus" isDarkMode={isDarkMode}>
-                          {(close: any) => (
-                            <>
-                              <SelectItem onClick={() => { setF_Topic('Phonics'); close(); }} active={f_topic === 'Phonics'} isDarkMode={isDarkMode}>Phonics</SelectItem>
-                              <SelectItem onClick={() => { setF_Topic('Sight Words'); close(); }} active={f_topic === 'Sight Words'} isDarkMode={isDarkMode}>Sight Words</SelectItem>
-                              <SelectItem onClick={() => { setF_Topic('Reading Comprehension'); close(); }} active={f_topic === 'Reading Comprehension'} isDarkMode={isDarkMode}>Reading Comp</SelectItem>
-                              <SelectItem onClick={() => { setF_Topic('Handwriting Practice'); close(); }} active={f_topic === 'Handwriting Practice'} isDarkMode={isDarkMode}>Handwriting</SelectItem>
-                            </>
-                          )}
-                        </Select>
-                      </div>
-                      <div className="min-w-[180px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Specific Target</Label>
-                        <Input placeholder="e.g. 'sh' and 'ch' sounds..." value={f_specific} onChange={(e: any) => setF_Specific(e.target.value)} isDarkMode={isDarkMode} className="h-10 text-xs rounded-xl" />
-                      </div>
-                      <div className="min-w-[150px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Theme / Context</Label>
-                        <Input placeholder="e.g. Space, Animals..." value={f_theme} onChange={(e: any) => setF_Theme(e.target.value)} isDarkMode={isDarkMode} className="h-10 text-xs rounded-xl" />
-                      </div>
-                      <div className="min-w-[130px] flex-1 sm:flex-none space-y-1">
-                        <Label className={cn("text-[10px]", isDarkMode ? "text-slate-400" : "text-slate-500")}>Language</Label>
-                        <Select value={f_language} onValueChange={setF_Language} placeholder="Language" isDarkMode={isDarkMode}>
-                          {(close: any) => (
-                            <>
-                              <SelectItem onClick={() => { setF_Language('English HL'); close(); }} active={f_language === 'English HL'} isDarkMode={isDarkMode}>English HL</SelectItem>
-                              <SelectItem onClick={() => { setF_Language('English FAL'); close(); }} active={f_language === 'English FAL'} isDarkMode={isDarkMode}>English FAL</SelectItem>
-                              <SelectItem onClick={() => { setF_Language('Afrikaans HT'); close(); }} active={f_language === 'Afrikaans HT'} isDarkMode={isDarkMode}>Afrikaans HT</SelectItem>
-                            </>
-                          )}
-                        </Select>
-                      </div>
-
-                      <button type="button" onClick={handleGenerateFoundation} disabled={isLoading} className="bg-pink-500 hover:bg-pink-600 text-white px-6 h-9 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 shadow-lg shadow-pink-500/10 active:scale-95 transition-all">
-                        {isLoading ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : <BookOpen size={12} />}
-                        <span>{isLoading ? "Designing..." : "Create Reading Pack"}</span>
-                      </button>
-                    </div>
-                  </motion.div>
+                  <button 
+                    type="button" 
+                    onClick={handleGenerateFoundation} 
+                    disabled={isLoading} 
+                    className="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white h-11 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 shadow-lg shadow-pink-500/10 active:scale-95 transition-all cursor-pointer"
+                  >
+                    {isLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <BookOpen size={13} />}
+                    <span>{isLoading ? "Designing Reading Pack..." : "Create Reading Pack"}</span>
+                  </button>
                 )}
-              </AnimatePresence>
+              </div>
             </div>
 
         {/* Right Preview Panel */}
