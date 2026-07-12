@@ -5,7 +5,7 @@ import './index.css';
 
 import { AiProvider } from './contexts/AiContext.tsx';
 
-// Register Service Worker for Offline access
+// Register Service Worker for Offline access in production only
 if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
@@ -16,14 +16,16 @@ if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
       .catch(err => console.error('Service Worker registration failed:', err));
   });
 } else if ('serviceWorker' in navigator) {
-  // Also register in dev mode if needed, which provides offline simulation capability
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(reg => {
-        console.log('Service Worker registered in Dev Mode:', reg);
-        reg.update();
-      })
-      .catch(err => console.error('Service Worker registration failed:', err));
+  // Unregister service worker in development to prevent aggressive local caching
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    for (const registration of registrations) {
+      registration.unregister().then((success) => {
+        if (success) {
+          console.log('Successfully unregistered stale service worker in Dev Mode');
+          window.location.reload();
+        }
+      });
+    }
   });
 }
 

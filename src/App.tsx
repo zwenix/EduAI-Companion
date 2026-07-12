@@ -90,6 +90,7 @@ import StudentPractice from './components/StudentPractice';
 import StudentNotes from './components/StudentNotes';
 import CollaborativeWorkspace from './components/CollaborativeWorkspace';
 import StudentDashboard from './components/StudentDashboard';
+import TeacherDashboard from './components/TeacherDashboard';
 import StudentPortfolio from './components/StudentPortfolio';
 import CurriculumSuite from './components/CurriculumSuite';
 import ParentDashboard from './components/ParentDashboard';
@@ -721,6 +722,17 @@ export default function App() {
 
   const getSidebarCategories = (role: string | null) => {
     const r = role || 'teacher';
+    if (r === 'teacher') {
+      return [
+        { id: 'teacher-dashboard-menu', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'class-management', label: 'Classrooms', icon: Users },
+        { id: 'lesson-planning', label: 'Curriculum', icon: BookOpen },
+        { id: 'class-analytics', label: 'Analytics', icon: Award },
+        { id: 'student-class-management', label: 'Assignments', icon: Blocks },
+        { id: 'system-support', label: 'Settings', icon: Settings },
+      ];
+    }
+    
     let firstLabel = 'Teacher Dashboard';
     if (r === 'student') firstLabel = 'Student Dashboard';
     else if (r === 'parent') firstLabel = 'Parent Dashboard';
@@ -1174,16 +1186,24 @@ export default function App() {
         {isDarkMode && <div className="sidebar-glow-highlight" />}
 
         {/* Center-aligned Animated Logo & Compact Header */}
-        <div className="flex flex-col items-center justify-center mb-6 relative shrink-0">
-          <div className="flex items-center justify-center w-full relative">
-            <div className="flex justify-center flex-1">
-              <Logo className="w-12 h-12" />
+        <div className="flex flex-col mb-6 relative shrink-0">
+          <div className="flex items-center justify-between w-full relative px-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-cyan-500/10 text-brand-cyan rounded-xl border border-brand-cyan/20 flex items-center justify-center shrink-0">
+                <GraduationCap size={24} className="icon-glow-cyan" />
+              </div>
+              {(isSidebarOpen || isMobile) && (
+                <div className="flex flex-col text-left">
+                  <span className="text-sm font-display font-black tracking-tight text-white text-glow-cyan leading-none">EduQuest</span>
+                  <span className="text-[10px] font-bold text-slate-400 mt-1 leading-none">Lead Navigator</span>
+                </div>
+              )}
             </div>
             {isMobile && (
               <button 
                 onClick={() => setMobileSidebarOpen(false)} 
                 className={cn(
-                  "absolute right-1 p-1.5 rounded-lg transition-all",
+                  "p-1.5 rounded-lg transition-all",
                   isDarkMode ? "text-slate-400 hover:text-white hover:bg-white/10" : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
                 )}
               >
@@ -1511,15 +1531,59 @@ export default function App() {
             >
               <Home size={18} />
             </button>
+
+            {/* Page/Branding Title */}
+            {userRole === 'teacher' && (
+              <div className="hidden sm:flex items-center ml-2 border-l border-white/10 pl-4 py-1">
+                <span className={cn(
+                  "font-display font-black tracking-tight text-base lg:text-lg",
+                  isDarkMode ? "text-white text-glow-cyan animate-fade-in" : "text-slate-800"
+                )}>
+                  Adventure HQ
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Right Side: Profile dropdown, notifications, day/night & settings drawer */}
           <div className="flex items-center gap-2 lg:gap-3">
-            <div className="hidden md:flex items-center mr-1">
-              <span className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-white/30' : 'text-slate-400'}`}>
-                EduAI Space
-              </span>
-            </div>
+            {userRole === 'teacher' ? (
+              <>
+                {/* Search the galaxy */}
+                <div className="hidden md:flex items-center relative mr-2">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search the galaxy..."
+                    className={cn(
+                      "pl-10 pr-4 py-2 rounded-full text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-500/50 w-40 lg:w-48 border transition-all",
+                      isDarkMode 
+                        ? "bg-[#0b1122]/80 border-white/5 text-white" 
+                        : "bg-slate-100 border-slate-200 text-slate-800"
+                    )}
+                  />
+                </div>
+
+                {/* + New Mission button */}
+                <button
+                  onClick={() => {
+                    setActiveCategory('content-creator-menu');
+                    setActiveCreatorTab('teaching');
+                    setActiveTab('teaching');
+                  }}
+                  className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-full font-display font-black text-xs tracking-wide bg-gradient-to-r from-cyan-500 to-indigo-500 hover:to-indigo-600 shadow-md shadow-cyan-500/10 active:scale-95 transition-all text-white border-none cursor-pointer outline-none mr-2"
+                >
+                  <Plus size={14} strokeWidth={3} />
+                  <span>New Mission</span>
+                </button>
+              </>
+            ) : (
+              <div className="hidden md:flex items-center mr-1">
+                <span className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-white/30' : 'text-slate-400'}`}>
+                  EduAI Space
+                </span>
+              </div>
+            )}
 
             {/* Accessibility Helpers Expandable Bar Button */}
             <button
@@ -1634,17 +1698,46 @@ export default function App() {
 
             {/* Profile Dropdown */}
             <div className="relative">
-              <button 
-                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className={`w-8 h-8 lg:w-10 lg:h-10 rounded-[10px] lg:rounded-[14px] ${isDarkMode ? 'bg-slate-800 border border-white/5 shadow-2xl hover:border-brand-cyan/50' : 'bg-white shadow-xl hover:border-brand-cyan'} flex items-center justify-center text-xs lg:text-sm font-black text-brand-cyan shrink-0 overflow-hidden transition-all`}
-                title="Profile Settings"
-              >
-                {localStorage.getItem('eduai_user_photo') ? (
-                  <img src={localStorage.getItem('eduai_user_photo')!} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  (localStorage.getItem('eduai_user_name') || 'SM').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-                )}
-              </button>
+              {userRole === 'teacher' ? (
+                <button 
+                  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                  className={cn(
+                    "flex items-center gap-2.5 px-3 py-1.5 rounded-2xl transition-all border shrink-0",
+                    isDarkMode 
+                      ? "bg-[#0b1122]/80 border-white/5 hover:border-brand-cyan/30 shadow-2xl" 
+                      : "bg-white border-slate-200 hover:border-brand-cyan shadow-sm"
+                  )}
+                  title="Profile Settings"
+                >
+                  <div className="w-8 h-8 rounded-full border border-brand-cyan/20 overflow-hidden shrink-0 flex items-center justify-center bg-[#00d2ff]/10 text-[#00d2ff] font-black text-xs">
+                    {localStorage.getItem('eduai_user_photo') ? (
+                      <img src={localStorage.getItem('eduai_user_photo')!} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      (localStorage.getItem('eduai_user_name') || 'Commander Sarah').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+                    )}
+                  </div>
+                  <div className="hidden lg:flex flex-col text-left">
+                    <span className={cn("text-xs font-black tracking-tight leading-none", isDarkMode ? "text-white" : "text-slate-900")}>
+                      {localStorage.getItem('eduai_user_name') || 'Commander Sarah'}
+                    </span>
+                    <span className={cn("text-[9px] font-bold mt-1 tracking-wider uppercase leading-none", isDarkMode ? "text-cyan-400 text-glow-cyan" : "text-cyan-600")}>
+                      GRADE 5 SPECIALIST
+                    </span>
+                  </div>
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                  className={`w-8 h-8 lg:w-10 lg:h-10 rounded-[10px] lg:rounded-[14px] ${isDarkMode ? 'bg-slate-800 border border-white/5 shadow-2xl hover:border-brand-cyan/50' : 'bg-white shadow-xl hover:border-brand-cyan'} flex items-center justify-center text-xs lg:text-sm font-black text-brand-cyan shrink-0 overflow-hidden transition-all`}
+                  title="Profile Settings"
+                >
+                  {localStorage.getItem('eduai_user_photo') ? (
+                    <img src={localStorage.getItem('eduai_user_photo')!} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    (localStorage.getItem('eduai_user_name') || 'SM').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+                  )}
+                </button>
+              )}
 
               <AnimatePresence>
                 {isProfileDropdownOpen && (
@@ -2135,449 +2228,23 @@ export default function App() {
               ) : userRole === 'admin' ? (
                 <AdminDashboard isDarkMode={isDarkMode} />
               ) : (
-                <>
-                  {/* Action Bar */}
-                  <div className={cn(
-                    "relative rounded-[40px] p-8 lg:p-12 overflow-hidden text-white flex flex-col lg:flex-row lg:items-center lg:justify-between min-h-[260px] border shadow-2xl gap-8 mb-6 transition-all duration-300",
-                    isDarkMode 
-                      ? "glass-neon-card bg-[#0b1122]/75 border-brand-cyan/25" 
-                      : themeMode === 'peach'
-                        ? "bg-[#efe8d9]/95 border-[#dcd4c3] text-[#431407]"
-                        : "bg-slate-900 border-slate-800 text-white"
-                  )}>
-                    {/* Decorative Elements */}
-                    <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none hidden md:block">
-                      <GraduationCap size={200} className={cn(isDarkMode && "icon-glow-cyan text-brand-cyan")} />
-                    </div>
-                    {isDarkMode && (
-                      <>
-                        <div className="absolute -left-10 -bottom-10 w-40 h-40 rounded-full bg-brand-cyan/15 blur-3xl pointer-events-none" />
-                        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-brand-pink/15 blur-3xl pointer-events-none" />
-                      </>
-                    )}
-                    
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-slate-900/10 to-transparent pointer-events-none" />
-                    
-                    <div className="relative z-10 max-w-xl">
-                      <div className={cn(
-                        "inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-black uppercase tracking-widest mb-6 shadow-sm",
-                        isDarkMode 
-                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 animate-pulse" 
-                          : "border-[#dcd4c3] bg-[#efe8d9] text-[#431407]"
-                      )}>
-                        <Plus size={12} className="animate-pulse shrink-0" /> Localized South Africa DBE & CAPS
-                      </div>
-                      <h1 className={cn(
-                        "text-3.5xl lg:text-5.5xl font-display font-black tracking-tight leading-tight mb-4 drop-shadow-md",
-                        isDarkMode 
-                          ? "text-white text-glow-cyan" 
-                          : themeMode === 'peach' ? "text-[#431407]" : "text-white"
-                      )}>
-                        Teacher <span className={isDarkMode ? "text-brand-cyan text-glow-cyan" : "text-cyan-500"}>Console</span> 👩‍🏫
-                      </h1>
-                      <p className={cn(
-                        "font-medium text-sm lg:text-base leading-relaxed",
-                        isDarkMode ? "text-slate-300" : themeMode === 'peach' ? "text-[#431407]/80" : "text-slate-300"
-                      )}>
-                        Manage localized DBE classrooms, track continuous school-based assessments (SBA), and generate magic CAPS lesson templates in seconds.
-                      </p>
-                    </div>
-                    
-                    <div className="relative z-10 flex flex-col sm:flex-row gap-4 w-full lg:w-auto shrink-0">
-                      <button 
-                        onClick={() => {
-                          setActiveCategory('content-creator-menu');
-                          setActiveCreatorTab('teaching');
-                          setActiveTab('teaching');
-                        }}
-                        className={cn(
-                          "px-8 py-4 rounded-[30px] font-display font-black text-sm lg:text-base flex items-center justify-center gap-2 transition-all active:scale-95 w-full sm:w-auto cursor-pointer border-none outline-none shadow-lg",
-                          isDarkMode 
-                            ? "bg-emerald-500 hover:bg-emerald-400 text-[#0c1424] shadow-emerald-500/15" 
-                            : "bg-[#00d2ff] hover:bg-cyan-400 text-slate-900 shadow-cyan-500/15"
-                        )}
-                      >
-                        <Plus size={20} strokeWidth={3} /> Create Content!
-                      </button>
-                      <button 
-                        onClick={() => setActiveTab('archive')}
-                        className={cn(
-                          "px-8 py-4 rounded-[30px] font-display font-bold text-sm lg:text-base transition-all w-full sm:w-auto flex justify-center items-center gap-2 cursor-pointer border",
-                          isDarkMode 
-                            ? "bg-white/5 hover:bg-white/10 border-white/10 text-white" 
-                            : "bg-slate-800 hover:bg-slate-700 text-white border-transparent"
-                        )}
-                      >
-                        View Archive
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Dynamic Stats Panel & Live Progress Area */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch pt-2 mb-8">
-                    {/* Left: Dynamic Stats Panel */}
-                    <div className="lg:col-span-4 h-full flex flex-col gap-4 justify-between">
-                      {[
-                        { label: 'Active Learners', value: '38', change: 'DBE Class 7-A', icon: Users, color: 'text-brand-cyan', bg: 'bg-cyan-500/10', displayColor: isDarkMode ? 'text-brand-cyan text-glow-cyan' : 'text-cyan-600', border: 'hover-neon-cyan' },
-                        { label: 'SBA Grade Sheets', value: '142', change: 'Term 1 Complete', icon: ClipboardCheck, color: 'text-brand-pink', bg: 'bg-pink-500/10', displayColor: isDarkMode ? 'text-brand-pink text-glow-pink' : 'text-rose-600', border: 'hover-neon-pink' },
-                        { label: 'CAPS Drafted', value: '47', change: '+12 This Week', icon: FileText, color: 'text-brand-yellow', bg: 'bg-yellow-500/10', displayColor: isDarkMode ? 'text-brand-yellow' : 'text-amber-600', border: 'hover-neon-yellow' },
-                        { label: 'Active Tutoring', value: '24h', change: 'Continuous Sync', icon: MessageSquare, color: 'text-brand-green', bg: 'bg-green-500/10', displayColor: isDarkMode ? 'text-brand-green text-glow-green' : 'text-emerald-600', border: 'hover-neon-green' }
-                      ].map((stat, i) => (
-                        <div 
-                          key={`stat-${i}`} 
-                          className={cn(
-                            "p-4 lg:p-5 rounded-[30px] transition-all duration-300 h-full flex items-center gap-3.5 border",
-                            isDarkMode 
-                              ? `glass-neon-card border-white/5 ${stat.border}` 
-                              : "bg-white border-slate-200 shadow-sm hover:shadow-md"
-                          )}
-                        >
-                          <div className={cn(stat.color, `p-3 rounded-2xl ${stat.bg} shadow-md shrink-0`)}>
-                            <stat.icon size={22} strokeWidth={2.5} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-1.5">
-                              <p className={cn(
-                                "text-[10px] uppercase font-black tracking-[0.15em] truncate",
-                                isDarkMode ? "text-slate-400" : "text-slate-500"
-                              )}>
-                                {stat.label}
-                              </p>
-                              <span className={cn(
-                                "text-[9px] font-black uppercase px-2 py-0.5 rounded-lg shrink-0",
-                                isDarkMode ? "bg-white/5 text-slate-400" : "bg-slate-100 text-slate-600"
-                              )}>
-                                {stat.change}
-                              </span>
-                            </div>
-                            <h3 className={`text-xl lg:text-2xl font-display font-black mt-0.5 tracking-tight ${stat.displayColor}`}>
-                              {stat.value}
-                            </h3>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Right: Live Recharts Classroom progress tracker */}
-                    <div className={cn(
-                      "p-6 lg:p-8 rounded-[36px] shadow-sm lg:col-span-8 h-full flex flex-col justify-between border",
-                      isDarkMode ? "glass-neon-card border-brand-green/15 bg-[#0b1122]/50" : "bg-white border-slate-200"
-                    )}>
-                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                        <div>
-                          <span className={cn(
-                            "text-[10px] uppercase font-black tracking-widest px-2.5 py-1 rounded-lg",
-                            isDarkMode ? 'bg-brand-cyan/20 text-brand-cyan text-glow-cyan' : 'bg-cyan-100 text-cyan-700'
-                          )}>
-                            SBA Progress Trends (Term-over-Term)
-                          </span>
-                          <h4 className={cn(
-                            "text-xl lg:text-2.5xl font-display font-black mt-2",
-                            isDarkMode ? "text-white text-glow-cyan" : "text-slate-800"
-                          )}>
-                            Classroom Subject Aggregates
-                          </h4>
-                          <p className={cn(
-                            "text-xs font-semibold mt-1",
-                            isDarkMode ? "text-slate-400" : "text-slate-500"
-                          )}>
-                            Real-time average marks aggregated directly from student SBA scores (Mathematics, Natural Sciences, Languages).
-                          </p>
-                        </div>
-                        <div className={cn(
-                          "flex items-center gap-3 p-1.5 rounded-2xl border",
-                          isDarkMode ? "bg-slate-950/40 border-white/5" : "bg-slate-50 border-slate-200 shadow-sm"
-                        )}>
-                          <span className={cn(
-                            "text-xs font-black px-3 py-1 rounded-xl",
-                            isDarkMode ? "bg-emerald-500/10 text-emerald-400 text-glow-green" : "bg-emerald-50/10 text-emerald-600"
-                          )}>
-                            Term 1 SBA View
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-                        {/* Term-over-Term Trend Chart */}
-                        <div className="lg:col-span-2 min-h-[300px]">
-                          <ResponsiveContainer width="100%" height={300}>
-                            <AreaChart data={dashboardTermProgress} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                              <defs>
-                                <linearGradient id="colorMath" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#00d2ff" stopOpacity={0.4}/>
-                                  <stop offset="95%" stopColor="#00d2ff" stopOpacity={0}/>
-                                </linearGradient>
-                                <linearGradient id="colorSci" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#2ed573" stopOpacity={0.4}/>
-                                  <stop offset="95%" stopColor="#2ed573" stopOpacity={0}/>
-                                </linearGradient>
-                                <linearGradient id="colorLang" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#9b59b6" stopOpacity={0.4}/>
-                                  <stop offset="95%" stopColor="#9b59b6" stopOpacity={0}/>
-                                </linearGradient>
-                              </defs>
-                              <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} />
-                              <XAxis 
-                                dataKey="name" 
-                                stroke={isDarkMode ? '#94a3b8' : '#64748b'} 
-                                fontSize={11} 
-                                fontWeight="bold" 
-                              />
-                              <YAxis 
-                                stroke={isDarkMode ? '#94a3b8' : '#64748b'} 
-                                fontSize={11} 
-                                fontWeight="bold" 
-                                domain={[0, 100]} 
-                              />
-                              <Tooltip 
-                                contentStyle={{ 
-                                  backgroundColor: isDarkMode ? '#0f172a' : '#ffffff', 
-                                  borderColor: isDarkMode ? '#1e293b' : '#e2e8f0',
-                                  borderRadius: '16px',
-                                  color: isDarkMode ? '#ffffff' : '#0f172a',
-                                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                                  fontWeight: 'bold'
-                                }} 
-                              />
-                              <Legend wrapperStyle={{ fontSize: 11, fontWeight: 'bold', paddingTop: 10 }} />
-                              <Area type="monotone" dataKey="Mathematics" stroke="#00d2ff" strokeWidth={3} fillOpacity={1} fill="url(#colorMath)" />
-                              <Area type="monotone" dataKey="Sciences" stroke="#2ed573" strokeWidth={3} fillOpacity={1} fill="url(#colorSci)" />
-                              <Area type="monotone" dataKey="Languages" stroke="#9b59b6" strokeWidth={3} fillOpacity={1} fill="url(#colorLang)" />
-                            </AreaChart>
-                          </ResponsiveContainer>
-                        </div>
-
-                        {/* Current Term Subjects Average Performance List */}
-                        <div className={cn(
-                          "p-4 rounded-[28px] border flex flex-col justify-between",
-                          isDarkMode ? "bg-slate-950/40 border-white/5" : "bg-slate-50 border-slate-100"
-                        )}>
-                          <div>
-                            <h5 className={cn(
-                              "text-sm font-display font-black mb-4",
-                              isDarkMode ? "text-white" : "text-slate-700"
-                            )}>
-                              Subject Averages
-                            </h5>
-                            <div className="space-y-4">
-                              {dashboardSubjectAverages.map((sub, idx) => {
-                                const colors = [
-                                  { text: isDarkMode ? 'text-brand-cyan text-glow-cyan' : 'text-brand-cyan', bg: 'bg-[#00d2ff]/10', bar: 'bg-[#00d2ff]' },
-                                  { text: isDarkMode ? 'text-brand-green text-glow-green' : 'text-brand-green', bg: 'bg-[#2ed573]/10', bar: 'bg-[#2ed573]' },
-                                  { text: isDarkMode ? 'text-[#9b59b6] text-glow-pink' : 'text-[#9b59b6]', bg: 'bg-[#9b59b6]/10', bar: 'bg-[#9b59b6]' }
-                                ];
-                                const itemColor = colors[idx % colors.length];
-
-                                return (
-                                  <div key={`subavg-${idx}`} className="space-y-1.5">
-                                    <div className="flex justify-between items-center text-xs font-bold">
-                                      <span className={isDarkMode ? 'text-slate-300' : 'text-slate-600'}>{sub.name}</span>
-                                      <span className={cn("px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider", itemColor.bg, itemColor.text)}>{sub.average}%</span>
-                                    </div>
-                                    <div className={`h-2.5 w-full rounded-full ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200'} overflow-hidden`}>
-                                      <div 
-                                        className={`h-full rounded-full ${itemColor.bar} transition-all duration-1000`} 
-                                        style={{ width: `${sub.average}%` }}
-                                      ></div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          <div className={`mt-6 pt-4 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-200'}`}>
-                            <div className="flex items-center gap-2">
-                              <span className="flex h-2.5 w-2.5 relative">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                              </span>
-                              <p className={cn(
-                                "text-[10px] font-black uppercase tracking-wider",
-                                isDarkMode ? "text-emerald-400" : "text-emerald-700"
-                              )}>
-                                DBE Synced
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* DBE South African Student Class Roster Section */}
-                  <div className={cn(
-                    "p-6 lg:p-8 rounded-[36px] border mb-8",
-                    isDarkMode ? "glass-neon-card bg-[#0b1122]/50 border-white/5" : "bg-white border-slate-200 shadow-sm"
-                  )}>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                      <div>
-                        <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-cyan-500/10 text-[#00d2ff] rounded-lg">
-                          Class List
-                        </span>
-                        <h3 className={cn("text-xl lg:text-2xl font-display font-black mt-1", isDarkMode ? "text-white" : "text-slate-900")}>
-                          Continuous Assessment Grade Sheet
-                        </h3>
-                        <p className="text-xs text-slate-500 mt-0.5 font-bold">
-                          Monitor individual pupil marks, Term SBA sheets, and assign diagnostic remedial worksheets instantly.
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => setActiveTab('class-management')}
-                          className={cn(
-                            "px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer",
-                            isDarkMode ? "bg-white/5 hover:bg-white/10 border-white/10 text-white" : "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700"
-                          )}
-                        >
-                          Manage Class
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className={cn("border-b text-[10px] uppercase font-black tracking-wider", isDarkMode ? "border-white/5 text-slate-400" : "border-slate-100 text-slate-500")}>
-                            <th className="py-3 px-4">Learner</th>
-                            <th className="py-3 px-4">Class</th>
-                            <th className="py-3 px-4">Mathematics</th>
-                            <th className="py-3 px-4">Natural Sciences</th>
-                            <th className="py-3 px-4">Languages</th>
-                            <th className="py-3 px-4 text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className={cn("text-xs font-semibold", isDarkMode ? "text-slate-300" : "text-slate-700")}>
-                          {[
-                            { name: "Sipho Nkosi", class: "Grade 7-A", math: "88%", sci: "84%", lang: "91%", color: "text-emerald-500 bg-emerald-500/10" },
-                            { name: "Liezel de Wet", class: "Grade 7-A", math: "94%", sci: "92%", lang: "89%", color: "text-[#00d2ff] bg-[#00d2ff]/10" },
-                            { name: "Thabo Mbeki", class: "Grade 7-B", math: "72%", sci: "78%", lang: "81%", color: "text-amber-500 bg-amber-500/10" },
-                            { name: "Chantal Naidoo", class: "Grade 7-A", math: "64%", sci: "70%", lang: "75%", color: "text-rose-500 bg-rose-500/10" },
-                            { name: "Muhammad Cassim", class: "Grade 7-B", math: "81%", sci: "85%", lang: "88%", color: "text-emerald-500 bg-emerald-500/10" }
-                          ].map((stu, i) => (
-                            <tr key={`stu-${i}`} className={cn("border-b hover:bg-slate-50/50 transition-all", isDarkMode ? "border-white/5 hover:bg-white/5" : "border-slate-100")}>
-                              <td className="py-4 px-4 font-bold flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-black text-slate-600 border border-slate-300">
-                                  {stu.name.split(' ').map(n=>n[0]).join('')}
-                                </div>
-                                <span className={isDarkMode ? "text-white" : "text-slate-900"}>{stu.name}</span>
-                              </td>
-                              <td className="py-4 px-4">
-                                <span className="px-2.5 py-1 bg-slate-100 dark:bg-white/5 rounded-lg text-[10px] font-black uppercase">
-                                  {stu.class}
-                                </span>
-                              </td>
-                              <td className="py-4 px-4">
-                                <span className="font-mono font-black">{stu.math}</span>
-                              </td>
-                              <td className="py-4 px-4">
-                                <span className="font-mono font-black">{stu.sci}</span>
-                              </td>
-                              <td className="py-4 px-4">
-                                <span className="font-mono font-black">{stu.lang}</span>
-                              </td>
-                              <td className="py-4 px-4 text-right">
-                                <div className="flex justify-end gap-2">
-                                  <button 
-                                    onClick={() => {
-                                      setActiveCategory('content-creator-menu');
-                                      setActiveCreatorTab('teaching');
-                                      setActiveTab('teaching');
-                                      triggerToast(`Generating target CAPS lesson plan for ${stu.name}! 📚`, "info");
-                                    }}
-                                    className="px-2.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-500 rounded-lg text-[10px] font-black uppercase border-none cursor-pointer transition-all"
-                                  >
-                                    Custom Lesson
-                                  </button>
-                                  <button 
-                                    onClick={() => {
-                                      setActiveTab('reports');
-                                      triggerToast(`Opening portfolio files for ${stu.name}! 📁`, "info");
-                                    }}
-                                    className="px-2.5 py-1.5 bg-[#00d2ff]/10 hover:bg-[#00d2ff]/25 text-[#00d2ff] rounded-lg text-[10px] font-black uppercase border-none cursor-pointer transition-all"
-                                  >
-                                    Portfolio
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* Feature Cards Grid */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-                    <div className="lg:col-span-12">
-                      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-                        {[
-                          { title: "Content Creator Studio", desc: "Lessons, Plans & Assessments.", color: 'text-brand-cyan', bg20: 'bg-cyan-500/20', border30: 'border-brand-cyan/20 hover:border-brand-cyan/70 hover:shadow-[0_0_15px_rgba(0,179,255,0.25)]', bg10: 'bg-cyan-500/10', icon: FlaskConical, id: 'teaching', glow: 'cyan' },
-                          { title: "Content Archive", desc: "Posters, Cards & Displays.", color: 'text-[#9b59b6]', bg20: 'bg-purple-500/20', border30: 'border-brand-purple/20 hover:border-brand-purple/70 hover:shadow-[0_0_15px_rgba(155,89,182,0.25)]', bg10: 'bg-purple-500/10', icon: Archive, id: 'archive', glow: 'purple' },
-                          { title: "Illustration Library", desc: "Store & reuse graphics.", color: 'bg-gradient-to-tr from-pink-400 to-rose-400 bg-clip-text text-transparent', bg20: 'bg-pink-500/20', border30: 'border-brand-pink/20 hover:border-brand-pink/70 hover:shadow-[0_0_15px_rgba(255,0,212,0.25)]', bg10: 'bg-pink-500/10', icon: Image, id: 'illustrations', glow: 'pink' },
-                          { title: "AI Tutor", desc: "Interactive intelligence.", color: 'text-brand-yellow', bg20: 'bg-yellow-500/20', border30: 'border-brand-yellow/20 hover:border-brand-yellow/70 hover:shadow-[0_0_15px_rgba(250,204,21,0.25)]', bg10: 'bg-yellow-500/10', icon: Brain, id: 'ai-tutor', glow: 'yellow' },
-                          { title: "Scan & Autograde", desc: "Automated vision grading.", color: 'text-brand-pink', bg20: 'bg-pink-500/20', border30: 'border-brand-pink/20 hover:border-brand-pink/70 hover:shadow-[0_0_15px_rgba(255,0,212,0.25)]', bg10: 'bg-pink-500/10', icon: Scan, id: 'ocr', glow: 'pink' },
-                          { title: "Progress Reports", desc: "Track student performance.", color: 'text-orange-400', bg20: 'bg-orange-500/20', border30: 'border-orange-500/20 hover:border-orange-500/70 hover:shadow-[0_0_15px_rgba(249,115,22,0.25)]', bg10: 'bg-orange-500/10', icon: TrendingUp, id: 'reports', glow: 'yellow' },
-                          { title: "Communicator & Messenger", desc: "School connection hub.", color: 'text-indigo-400', bg20: 'bg-indigo-500/20', border30: 'border-indigo-500/20 hover:border-indigo-500/70 hover:shadow-[0_0_15px_rgba(99,102,241,0.25)]', bg10: 'bg-indigo-500/10', icon: MessageSquare, id: 'messenger', glow: 'cyan' },
-                          { title: "Collaborative Workspace", desc: "Multiplayer workspace labs.", color: 'text-violet-400', bg20: 'bg-violet-500/20', border30: 'border-violet-500/20 hover:border-violet-500/70 hover:shadow-[0_0_15px_rgba(139,92,246,0.25)]', bg10: 'bg-violet-500/10', icon: Users, id: 'collaborative-workspace', glow: 'purple' },
-                          { title: "Portfolios", desc: "Student work portfolio.", color: 'text-emerald-400', bg20: 'bg-emerald-500/20', border30: 'border-brand-green/20 hover:border-brand-green/70 hover:shadow-[0_0_15px_rgba(0,255,159,0.25)]', bg10: 'bg-emerald-500/10', icon: UserCircle, id: 'portfolios', glow: 'green' },
-                          { title: "Class & Student Management", desc: "Manage your learners.", color: 'text-blue-400', bg20: 'bg-blue-500/20', border30: 'border-blue-500/20 hover:border-blue-500/70 hover:shadow-[0_0_15px_rgba(59,130,246,0.25)]', bg10: 'bg-blue-500/10', icon: Users, id: 'class-management', glow: 'cyan' },
-                          { title: "Settings", desc: "Account & App preferences.", color: 'text-slate-400', bg20: 'bg-slate-500/20', border30: 'border-slate-500/20 hover:border-slate-400/70 hover:shadow-[0_0_15px_rgba(148,163,184,0.25)]', bg10: 'bg-slate-500/10', icon: Settings, id: 'settings', glow: 'cyan' },
-                          { title: "Helpdesk", desc: "Technical Support & FAQ.", color: 'text-indigo-300', bg20: 'bg-indigo-400/20', border30: 'border-indigo-400/20 hover:border-indigo-400/70 hover:shadow-[0_0_15px_rgba(129,140,248,0.25)]', bg10: 'bg-indigo-400/10', icon: HelpCircle, id: 'helpdesk', glow: 'purple' },
-                        ].map((item, i) => (
-                          <button 
-                            key={`feature-${item.id}-${i}`} 
-                            onClick={() => {
-                              if (['teaching', 'grade1'].includes(item.id)) {
-                                setActiveCategory('content-creator-menu');
-                                setActiveCreatorTab('teaching');
-                                setActiveTab('teaching');
-                              } else {
-                                // Map feature key correctly to active categories
-                                if (['reports', 'class-management', 'portfolios'].includes(item.id)) {
-                                  setActiveCategory('teacher-dashboard-menu');
-                                } else if (['archive', 'illustrations'].includes(item.id)) {
-                                  setActiveCategory('content-archive-menu');
-                                } else if (['ai-tutor', 'collaborative-workspace'].includes(item.id)) {
-                                  setActiveCategory('tutoring-workspace-menu');
-                                } else if (['ocr'].includes(item.id)) {
-                                  setActiveCategory('autograde-vision-menu');
-                                } else if (['settings', 'helpdesk'].includes(item.id)) {
-                                  setActiveCategory('settings-menu');
-                                }
-                                setActiveTab(item.id);
-                              }
-                            }}
-                            className={cn(
-                              "group p-3.5 sm:p-6 lg:p-8 rounded-[20px] sm:rounded-[40px] transition-all text-left relative overflow-hidden backdrop-blur-xl hover:-translate-y-2 flex flex-col items-center sm:items-start text-center sm:text-left cursor-pointer border",
-                              isDarkMode 
-                                ? `glass-neon-card ${item.border30}` 
-                                : "bg-white border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-1"
-                            )}
-                          >
-                            <div className={`w-11 h-11 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-[12px] sm:rounded-[24px] lg:rounded-[28px] flex items-center justify-center mb-2.5 sm:mb-4 lg:mb-6 ${item.bg20} border-2 sm:border-4 ${isDarkMode ? 'border-white/10' : 'border-slate-100'} ${item.color} group-hover:scale-110 transition-transform shadow-inner`}>
-                              <item.icon size={18} className={cn("sm:w-[32px] sm:h-[32px] lg:w-[40px] lg:h-[40px]", isDarkMode && `icon-glow-${item.glow}`)} strokeWidth={2} />
-                            </div>
-                            <h4 className={cn(
-                              "text-xs sm:text-xl lg:text-2xl font-display font-black line-clamp-1 sm:line-clamp-none",
-                              isDarkMode ? "text-white group-hover:text-glow-cyan" : "text-slate-800"
-                            )}>{item.title}</h4>
-                            <p className={`text-[10px] sm:text-xs lg:text-sm font-medium sm:font-bold leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mt-1 sm:mt-2 line-clamp-2 sm:line-clamp-none`}>{item.desc}</p>
-                            
-                            <div className={cn(
-                              "absolute top-4 right-4 sm:top-6 sm:right-6 opacity-0 sm:group-hover:opacity-100 transition-all p-1.5 sm:p-2 rounded-full hidden sm:block",
-                              item.color,
-                              item.bg10
-                            )}>
-                              <ChevronRight size={16} strokeWidth={3} className="sm:w-[24px] sm:h-[24px]" />
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </>
+                <TeacherDashboard 
+                  isDarkMode={isDarkMode} 
+                  onNavigate={(tabId, categoryId) => {
+                    if (categoryId) {
+                      setActiveCategory(categoryId);
+                    }
+                    if (tabId === 'teaching') {
+                      setActiveCreatorTab('teaching');
+                      setActiveTab('teaching');
+                    } else {
+                      changeTab(tabId);
+                    }
+                  }}
+                  triggerToast={triggerToast}
+                />
               )
+
                 ) : activeTab === 'messenger' ? (
                   <Messenger />
                 ) : activeTab === 'reports' ? (
