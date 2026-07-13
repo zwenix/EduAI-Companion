@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Settings as SettingsIcon, Bell, Shield, Key, Moon, Sun, 
+  Bell, Shield, Key, Moon, Sun, 
   Monitor, Save, AlertCircle, User, CreditCard, 
   Database, Activity, Lock, Mail, Phone, Globe,
-  LogOut, Trash2, Plus, Smartphone, Download, Palette, Link as LinkIcon
+  Trash2, Plus, Smartphone, Download, Palette, Link as LinkIcon
 } from 'lucide-react';
+import { IconSettings, IconLogout } from './LocalIcons';
 import { useAi } from '../contexts/AiContext';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
+import ProfileSettings from './ProfileSettings';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
@@ -245,7 +247,7 @@ export default function Settings({
   };
 
   const subTabs = [
-    { id: 'personal', label: 'Personal', icon: User },
+    { id: 'personal', label: 'Profile Settings', icon: User },
     { id: 'accessibility', label: 'Accessibility', icon: Palette },
     { id: 'security', label: 'Security', icon: Lock },
     { id: 'ai', label: 'AI Configuration', icon: Activity },
@@ -264,7 +266,7 @@ export default function Settings({
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 p-2">
         <div className="flex items-center gap-4">
           <div className={cn("p-4 rounded-3xl transition-colors", isDarkMode ? "bg-white/5 border border-white/10" : "bg-white border border-slate-200 shadow-sm")}>
-            <SettingsIcon className={cn("w-8 h-8", isDarkMode ? "text-brand-cyan" : "text-brand-cyan/80")} />
+            <IconSettings className={cn("w-8 h-8", isDarkMode ? "text-brand-cyan" : "text-brand-cyan/80")} />
           </div>
           <div>
             <h1 className={cn("text-3xl lg:text-4xl font-hand", isDarkMode ? "text-white" : "text-slate-900")}>System Configuration</h1>
@@ -297,11 +299,11 @@ export default function Settings({
               Switch Role
             </button>
             <button onClick={onSwitchUser} className="w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-500/10 transition-all">
-              <SettingsIcon size={18} />
+              <IconSettings size={18} />
               Switch User
             </button>
             <button onClick={onLogout} className="w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest text-red-500 hover:bg-red-500/10 transition-all">
-              <LogOut size={18} />
+              <IconLogout size={18} />
               Logout Session
             </button>
           </div>
@@ -310,128 +312,30 @@ export default function Settings({
         {/* Content Area */}
         <div className="lg:col-span-3 space-y-8">
           {activeSubTab === 'personal' && (
-            <div className={cn("rounded-[48px] p-8 lg:p-12 space-y-10", isDarkMode ? "glass" : "bg-white border border-slate-200 shadow-sm")}>
-              <div className="flex items-center gap-6">
-                <div className="relative cursor-pointer" onClick={triggerImageUpload}>
-                  {photoUrl ? (
-                    <img src={photoUrl} alt="Profile" className="w-24 h-24 rounded-full object-cover border-2 border-brand-cyan/30 shadow-lg" />
-                  ) : (
-                    <div className="w-24 h-24 rounded-full bg-brand-cyan/20 flex items-center justify-center text-4xl text-brand-cyan font-hand border-2 border-brand-cyan/30">
-                      {fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'SM'}
-                    </div>
-                  )}
-                  <button className="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow-lg border border-slate-100 text-slate-600 hover:bg-slate-50">
-                    <Plus size={16} />
-                  </button>
-                </div>
-                <div>
-                  <h2 className={cn("text-2xl font-bold", isDarkMode ? "text-white" : "text-slate-900")}>{fullName}</h2>
-                  <p className="text-slate-500">{jobTitle} • {school}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Full Name</label>
-                  <input 
-                    type="text" 
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className={cn("w-full px-5 py-4 rounded-2xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">
-                    {userRole === 'student' ? 'School Name' : userRole === 'parent' ? "Children's School" : 'Institution'}
-                  </label>
-                  <input 
-                    type="text" 
-                    value={school}
-                    onChange={(e) => setSchool(e.target.value)}
-                    className={cn("w-full px-5 py-4 rounded-2xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">
-                    {userRole === 'student' ? 'Grade & Class' : userRole === 'parent' ? 'Occupation / Relationship' : 'Job Title'}
-                  </label>
-                  <div className="relative">
-                    <input 
-                      type="text" 
-                      value={jobTitle}
-                      onChange={(e) => setJobTitle(e.target.value)}
-                      className={cn("w-full px-5 py-4 rounded-2xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")} 
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Contact Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                    <input 
-                      type="email" 
-                      value={profileEmail}
-                      onChange={(e) => setProfileEmail(e.target.value)}
-                      placeholder="teacher@school.com"
-                      className={cn("w-full pl-12 pr-5 py-4 rounded-2xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")} 
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2 lg:col-span-2">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Phone Matrix</label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                    <input 
-                      type="tel" 
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+27 72 000 0000"
-                      className={cn("w-full pl-12 pr-5 py-4 rounded-2xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")} 
-                    />
-                  </div>
-                </div>
-
-                {/* Adaptive Profile Fields (Student Mode) */}
-                {(userRole === 'student' || userRole === 'learner') && (
-                  <>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Academic Grade Level Selector</label>
-                      <select 
-                        value={gradeLevel}
-                        onChange={(e) => setGradeLevel(e.target.value)}
-                        className={cn("w-full px-5 py-4 rounded-2xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-slate-800 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
-                      >
-                        {['Grade R', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'].map(g => (
-                          <option key={g} value={g}>{g}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Adaptive Learning style Preference</label>
-                      <select 
-                        value={learningPreference}
-                        onChange={(e) => setLearningPreference(e.target.value)}
-                        className={cn("w-full px-5 py-4 rounded-2xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-slate-800 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
-                      >
-                        <option value="Visual">🎨 Visual Mode (Images & Graphic Bento Charts)</option>
-                        <option value="Auditory">🗣️ Auditory Mode (Active Reads & TTS Synthesizer)</option>
-                        <option value="Kinesthetic">🧠 Kinesthetic Mode (Active Multiple Choice Workbook Challenges)</option>
-                      </select>
-                    </div>
-                  </>
-                )}
-              </div>
-              
-              <div className="flex justify-end pt-4">
-                <button onClick={handleSavePersonal} className="flex items-center gap-2 bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-cyan-500/25 transition-all">
-                  <Save size={16} /> Save Changes & Personal profile
-                </button>
-              </div>
+            <div className="space-y-8">
+              <ProfileSettings
+                fullName={fullName}
+                setFullName={setFullName}
+                photoUrl={photoUrl}
+                setPhotoUrl={setPhotoUrl}
+                gradeLevel={gradeLevel}
+                setGradeLevel={setGradeLevel}
+                school={school}
+                setSchool={setSchool}
+                jobTitle={jobTitle}
+                setJobTitle={setJobTitle}
+                phone={phone}
+                setPhone={setPhone}
+                profileEmail={profileEmail}
+                setProfileEmail={setProfileEmail}
+                userRole={userRole || 'teacher'}
+                isDarkMode={isDarkMode}
+                onSave={handleSavePersonal}
+              />
 
               {/* Linking Child form (Parent Mode) */}
               {(userRole === 'parent' || userRole === 'Parent') && (
-                <div className={cn("mt-8 pt-8 border-t border-dashed", isDarkMode ? "border-white/10" : "border-slate-200")}>
+                <div className={cn("rounded-[48px] p-8 lg:p-12 space-y-10", isDarkMode ? "glass" : "bg-white border border-slate-200 shadow-sm")}>
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-2 bg-brand-cyan/10 rounded-xl text-brand-cyan">
                       <LinkIcon size={20} />

@@ -1,5 +1,17 @@
 import { motion } from 'motion/react';
-import { ChevronRight } from 'lucide-react';
+import { 
+  ChevronRight, 
+  Telescope, 
+  Sparkles, 
+  BookOpen, 
+  GraduationCap,
+  FlaskConical,
+  FileText,
+  Palette,
+  Video,
+  Archive,
+  Database
+} from 'lucide-react';
 
 interface SubTabItem {
   id: string;
@@ -23,6 +35,371 @@ export default function CategoryOverview({
   onSelect,
   isDarkMode,
 }: CategoryOverviewProps) {
+  // Custom Edu-Tools Hub UI that matches the screenshot exactly
+  if (categoryLabel === 'Edu-Tools Hub' || categoryLabel === 'Curriculum' || categoryLabel === 'Teachers Magic') {
+    return (
+      <div className="space-y-8 relative p-6 lg:p-12 overflow-hidden rounded-[40px] border border-cyan-500/20 bg-slate-950/80 min-h-[750px]">
+        {/* Retro Neon Grid Background & Waves */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0d1225] via-[#0d1225] to-[#030611] overflow-hidden -z-10 rounded-[40px]">
+          {/* Grid Perspective */}
+          <div 
+            className="absolute inset-0 opacity-20 pointer-events-none"
+            style={{
+              backgroundImage: `
+                linear-gradient(0deg, transparent 24%, rgba(6, 182, 212, .25) 25%, rgba(6, 182, 212, .25) 26%, transparent 27%, transparent 74%, rgba(6, 182, 212, .25) 75%, rgba(6, 182, 212, .25) 76%, transparent 77%, transparent),
+                linear-gradient(90deg, transparent 24%, rgba(6, 182, 212, .25) 25%, rgba(6, 182, 212, .25) 26%, transparent 27%, transparent 74%, rgba(6, 182, 212, .25) 75%, rgba(6, 182, 212, .25) 76%, transparent 77%, transparent)
+              `,
+              backgroundSize: '50px 50px',
+              transform: 'perspective(400px) rotateX(60deg) translateY(-80px) scale(2)',
+              transformOrigin: 'top center',
+            }}
+          />
+          {/* Sinuating light energy wave vectors using simple absolute circles & blurs */}
+          <div className="absolute top-1/3 -left-1/4 w-[150%] h-48 bg-gradient-to-r from-cyan-500/20 via-emerald-400/20 to-indigo-500/10 blur-[120px] rounded-full transform -rotate-12 pointer-events-none" />
+          <div className="absolute bottom-10 -right-1/4 w-[150%] h-48 bg-gradient-to-r from-emerald-500/10 via-cyan-500/15 to-purple-500/25 blur-[100px] rounded-full transform rotate-6 pointer-events-none" />
+        </div>
+
+        {/* Mock Navigation Header - Matching screenshot exactly */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-8 border-b border-white/5 relative z-10">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]">
+              <GraduationCap size={22} />
+            </div>
+            <span className="text-xl font-black tracking-tight text-white font-display bg-clip-text text-transparent bg-gradient-to-r from-white to-cyan-200">EduAI</span>
+          </div>
+
+          <div className="flex items-center gap-6 text-xs font-bold text-slate-300">
+            <button className="hover:text-cyan-400 transition-colors cursor-pointer bg-transparent border-0 outline-none">Home</button>
+            <button className="px-3.5 py-1.5 rounded-full border border-cyan-400/30 bg-cyan-400/10 text-cyan-300 shadow-[0_0_8px_rgba(6,182,212,0.15)] cursor-pointer outline-none">Features</button>
+            <button className="hover:text-cyan-400 transition-colors cursor-pointer bg-transparent border-0 outline-none">Pricing</button>
+            <button className="hover:text-cyan-400 transition-colors cursor-pointer bg-transparent border-0 outline-none">About</button>
+          </div>
+
+          <div>
+            <button className="px-5 py-2 rounded-full border border-cyan-400 text-cyan-300 text-xs font-bold uppercase tracking-wider hover:bg-cyan-400/10 shadow-[0_0_12px_rgba(6,182,212,0.15)] transition-all cursor-pointer">
+              Sign In
+            </button>
+          </div>
+        </div>
+
+        {/* Main Content Area: Column Split */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10 pt-6">
+          
+          {/* LEFT: 3D Slanted Tablet Mockup */}
+          <div className="lg:col-span-5 flex justify-center">
+            <div className="relative group [perspective:1000px]">
+              <motion.div
+                initial={{ rotateY: 15, rotateX: 5, scale: 0.95 }}
+                animate={{ rotateY: 10, rotateX: 3, scale: 1 }}
+                whileHover={{ rotateY: 0, rotateX: 0, scale: 1.03 }}
+                transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                className="w-full max-w-[420px] bg-slate-900 border-[6px] border-slate-700/80 rounded-[32px] shadow-2xl p-6 relative overflow-hidden text-left cursor-pointer border-r-[12px] border-b-[8px]"
+              >
+                {/* Tablet Ambient Glow */}
+                <div className="absolute top-0 left-0 w-32 h-32 bg-cyan-400/10 rounded-full blur-2xl pointer-events-none" />
+                
+                {/* Inner Screen */}
+                <div className="space-y-6">
+                  {/* Tablet Header */}
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="text-cyan-400 text-sm font-black uppercase tracking-wider">AI Magic Lesson Plan</h4>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Grade 6 Science: Space Exploration</p>
+                    </div>
+                    <span className="text-[9px] font-black px-2.5 py-1 rounded-full border border-cyan-400/30 text-cyan-300 uppercase tracking-widest bg-cyan-950/40">
+                      Preview Active
+                    </span>
+                  </div>
+
+                  {/* Timeline representation */}
+                  <div className="space-y-4 pl-2 relative">
+                    {/* Vertical Timeline Guide Line */}
+                    <div className="absolute left-[17px] top-4 bottom-4 w-[2px] bg-gradient-to-b from-cyan-400/60 via-emerald-400/60 to-cyan-500/10" />
+
+                    {/* Timeline Node 1 */}
+                    <div 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect('teaching');
+                      }}
+                      className="flex items-center gap-4 group/item hover:bg-white/5 p-2 rounded-xl transition-all"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-cyan-950 border-2 border-cyan-400 flex items-center justify-center text-cyan-400 z-10 shadow-[0_0_8px_rgba(6,182,212,0.3)] group-hover/item:scale-110 transition-transform">
+                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h5 className="text-xs font-black text-white">Engage: Interactive Quiz</h5>
+                        <p className="text-[10px] text-slate-400 truncate mt-0.5">Preview science Space Exploration</p>
+                      </div>
+                      <ChevronRight size={12} className="text-slate-500 group-hover/item:text-cyan-400 transition-colors" />
+                    </div>
+
+                    {/* Timeline Node 2 */}
+                    <div 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect('teaching');
+                      }}
+                      className="flex items-center gap-4 group/item hover:bg-white/5 p-2 rounded-xl transition-all"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-emerald-950 border-2 border-emerald-400 flex items-center justify-center text-emerald-400 z-10 shadow-[0_0_8px_rgba(16,185,129,0.3)] group-hover/item:scale-110 transition-transform">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h5 className="text-xs font-black text-white">Explore: VR Journey</h5>
+                        <p className="text-[10px] text-slate-400 truncate mt-0.5">Preview with modules and website</p>
+                      </div>
+                      <ChevronRight size={12} className="text-slate-500 group-hover/item:text-emerald-400 transition-colors" />
+                    </div>
+
+                    {/* Timeline Node 3 */}
+                    <div 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect('teaching');
+                      }}
+                      className="flex items-center gap-4 group/item hover:bg-white/5 p-2 rounded-xl transition-all"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-cyan-950 border-2 border-cyan-400 flex items-center justify-center text-cyan-400 z-10 shadow-[0_0_8px_rgba(6,182,212,0.3)] group-hover/item:scale-110 transition-transform">
+                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h5 className="text-xs font-black text-white">Evaluate: AI Assessment</h5>
+                        <p className="text-[10px] text-slate-400 truncate mt-0.5">Preview & evaluate AI Assessment</p>
+                      </div>
+                      <ChevronRight size={12} className="text-slate-500 group-hover/item:text-cyan-400 transition-colors" />
+                    </div>
+                  </div>
+
+                  {/* Tablet Footer Buttons */}
+                  <div className="pt-2 flex justify-between items-center text-[10px] text-slate-500">
+                    <span>Power: 100%</span>
+                    <span>Click steps to explore modules</span>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+
+          {/* RIGHT: Header, Subtitle and 3 Glowing Cards */}
+          <div className="lg:col-span-7 space-y-10">
+            {/* Title & Sub */}
+            <div className="text-center lg:text-left space-y-4">
+              <h1 className="text-5xl lg:text-7xl font-black font-display tracking-tight leading-none text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-400 drop-shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+                Teacher Magic
+              </h1>
+              <p className="text-sm sm:text-base text-slate-300 max-w-xl leading-relaxed">
+                Unlock AI-powered tools for effortless planning, insights, and resources.
+              </p>
+            </div>
+
+            {/* Three Vertical Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+              
+              {/* Card 1: AI Edu-Tools Architect */}
+              <motion.div
+                whileHover={{ y: -6, scale: 1.01 }}
+                className="p-5 rounded-3xl border-2 border-emerald-500/30 bg-[#0d1225]/80 shadow-[0_0_20px_rgba(16,185,129,0.1)] text-left flex flex-col justify-between h-full group hover:border-emerald-400 transition-all duration-300"
+              >
+                <div className="space-y-4 w-full">
+                  {/* Custom Icon Wrapper */}
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.15)] group-hover:scale-105 transition-transform">
+                    <Sparkles size={22} className="animate-pulse" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-base font-black text-white font-display group-hover:text-emerald-300 transition-colors leading-tight">
+                      AI Edu-Tools Architect
+                    </h3>
+                    <p className="text-[10px] text-slate-400 leading-snug">
+                      CAPS-aligned curriculum planning & school administration.
+                    </p>
+                  </div>
+                  
+                  {/* Submenu Options */}
+                  <div className="space-y-2 pt-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect('teaching');
+                      }}
+                      className="w-full p-2 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/30 transition-all text-left flex items-start gap-2.5 group/opt cursor-pointer outline-none"
+                    >
+                      <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover/opt:scale-105 transition-transform shrink-0">
+                        <FlaskConical size={14} />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-[11px] font-bold text-white group-hover/opt:text-emerald-300 transition-colors leading-tight">Content Studio</h4>
+                        <p className="text-[9px] text-slate-400 truncate mt-0.5">Lesson & worksheet builder</p>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect('grade1');
+                      }}
+                      className="w-full p-2 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/30 transition-all text-left flex items-start gap-2.5 group/opt cursor-pointer outline-none"
+                    >
+                      <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover/opt:scale-105 transition-transform shrink-0">
+                        <Sparkles size={14} />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-[11px] font-bold text-white group-hover/opt:text-emerald-300 transition-colors leading-tight">Foundation Hub</h4>
+                        <p className="text-[9px] text-slate-400 truncate mt-0.5">Literacy & numeracy tools (Grades R-3)</p>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect('admin');
+                      }}
+                      className="w-full p-2 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/30 transition-all text-left flex items-start gap-2.5 group/opt cursor-pointer outline-none"
+                    >
+                      <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover/opt:scale-105 transition-transform shrink-0">
+                        <FileText size={14} />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-[11px] font-bold text-white group-hover/opt:text-emerald-300 transition-colors leading-tight">Admin Lab</h4>
+                        <p className="text-[9px] text-slate-400 truncate mt-0.5">Parent notices & newsletters</p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Card 2: AI Media Wizard */}
+              <motion.div
+                whileHover={{ y: -6, scale: 1.01 }}
+                className="p-5 rounded-3xl border-2 border-cyan-500/30 bg-[#0d1225]/80 shadow-[0_0_20px_rgba(6,182,212,0.1)] text-left flex flex-col justify-between h-full group hover:border-cyan-400 transition-all duration-300"
+              >
+                <div className="space-y-4 w-full">
+                  {/* Custom Icon Wrapper */}
+                  <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)] group-hover:scale-105 transition-transform">
+                    <Telescope size={22} />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-base font-black text-white font-display group-hover:text-cyan-300 transition-colors leading-tight">
+                      AI Media Wizard
+                    </h3>
+                    <p className="text-[10px] text-slate-400 leading-snug">
+                      Design rich diagrams, illustrations and audio-visual assets.
+                    </p>
+                  </div>
+
+                  {/* Submenu Options */}
+                  <div className="space-y-2 pt-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect('visual');
+                      }}
+                      className="w-full p-2 rounded-xl bg-white/5 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-500/30 transition-all text-left flex items-start gap-2.5 group/opt cursor-pointer outline-none"
+                    >
+                      <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 group-hover/opt:scale-105 transition-transform shrink-0">
+                        <Palette size={14} />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-[11px] font-bold text-white group-hover/opt:text-cyan-300 transition-colors leading-tight">Visual Lab</h4>
+                        <p className="text-[9px] text-slate-400 truncate mt-0.5">Flashcards, charts & posters</p>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect('video');
+                      }}
+                      className="w-full p-2 rounded-xl bg-white/5 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-500/30 transition-all text-left flex items-start gap-2.5 group/opt cursor-pointer outline-none"
+                    >
+                      <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 group-hover/opt:scale-105 transition-transform shrink-0">
+                        <Video size={14} />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-[11px] font-bold text-white group-hover/opt:text-cyan-300 transition-colors leading-tight">Video Lab</h4>
+                        <p className="text-[9px] text-slate-400 truncate mt-0.5">AI teacher avatar video animations</p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Card 3: Resource Vault */}
+              <motion.div
+                whileHover={{ y: -6, scale: 1.01 }}
+                className="p-5 rounded-3xl border-2 border-emerald-500/30 bg-[#0d1225]/80 shadow-[0_0_20px_rgba(16,185,129,0.1)] text-left flex flex-col justify-between h-full group hover:border-emerald-400 transition-all duration-300"
+              >
+                <div className="space-y-4 w-full">
+                  {/* Custom Icon Wrapper */}
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.15)] group-hover:scale-105 transition-transform">
+                    <Database size={22} />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-base font-black text-white font-display group-hover:text-emerald-300 transition-colors leading-tight">
+                      Resource Vault
+                    </h3>
+                    <p className="text-[10px] text-slate-400 leading-snug">
+                      Manage generated worksheets, materials and illustrations.
+                    </p>
+                  </div>
+
+                  {/* Submenu Options */}
+                  <div className="space-y-2 pt-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect('archive');
+                      }}
+                      className="w-full p-2 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/30 transition-all text-left flex items-start gap-2.5 group/opt cursor-pointer outline-none"
+                    >
+                      <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover/opt:scale-105 transition-transform shrink-0">
+                        <Archive size={14} />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-[11px] font-bold text-white group-hover/opt:text-emerald-300 transition-colors leading-tight">Content Archive</h4>
+                        <p className="text-[9px] text-slate-400 truncate mt-0.5">Retrieve lesson notes & exams</p>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect('illustrations');
+                      }}
+                      className="w-full p-2 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/30 transition-all text-left flex items-start gap-2.5 group/opt cursor-pointer outline-none"
+                    >
+                      <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover/opt:scale-105 transition-transform shrink-0">
+                        <BookOpen size={14} />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-[11px] font-bold text-white group-hover/opt:text-emerald-300 transition-colors leading-tight">Illustration Library</h4>
+                        <p className="text-[9px] text-slate-400 truncate mt-0.5">Browse book visuals & assets</p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+
+            </div>
+
+            {/* Bottom links matching screenshot */}
+            <div className="flex flex-wrap justify-center lg:justify-end items-center gap-6 text-sm font-black text-cyan-400 uppercase tracking-widest pt-4">
+              <button 
+                onClick={() => onSelect('teaching')}
+                className="hover:text-emerald-400 transition-colors cursor-pointer flex items-center gap-1.5 bg-transparent border-0 outline-none font-bold"
+              >
+                <span>Get Started for Free</span>
+                <ChevronRight size={14} strokeWidth={2.5} />
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
   // Rich descriptions dynamically matched to IDs
   const getRichDescription = (id: string, label: string) => {
     switch (id) {

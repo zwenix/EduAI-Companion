@@ -98,6 +98,23 @@ import ReaderModeModal from './components/ReaderModeModal';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { patchOklchForHtml2canvas } from './lib/pdfHelper';
+import {
+  IconHome,
+  IconClassrooms,
+  IconCurriculum,
+  SmartBotTutorIcon,
+  IconAnalytics,
+  IconSettings,
+  IconHelpSupport,
+  IconLogout,
+  IconMagicPlanner,
+  IconResources,
+  MagicLessonsIcon,
+  ProgressTrophiesIcon,
+  QuizQuestsIcon,
+  SuperWorksheetsIcon,
+  CreativeCanvasIcon
+} from './components/LocalIcons';
 import AdminDashboard from './components/AdminDashboard';
 import SettingsPage from './components/Settings';
 import Helpdesk from './components/Helpdesk';
@@ -118,79 +135,54 @@ import {
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
-const categoryIconsMap: Record<string, string> = {
-  'teacher-dashboard-menu': 'https://lh3.googleusercontent.com/aida-public/AB6AXuAGGuKWRly4nhnBYri8gDVnI3-wO6fOy2YvyxVYw33oY9TQIieHaugj35F8COMT0VgMDYSMyL6U1C8dsfqDYSG4H6SmMg_OzpeIOehNE412TwoFHPF2hdVRbTeVisi7zS0K2knn6fuv0oL08FFj3LAUOX_EcTEC_Cu40ngevo0bYf_qUwDWmcmTvrUH1TmHfsqWKUyuMhvv9uOLoUM6jceHwZV__Fsbe4stb8WeyexqKUUobimeBQGg5w',
-  'lesson-planning': 'https://lh3.googleusercontent.com/aida-public/AB6AXuANc3c_lgt81zqEC4B1u8RrslxLMjp9n7ONiPBTG_bJgHibibQ14DlWaP50jgDoZ-dmljIdt1u23bGmxiAL4Wtj7R8clreqp9lsZHHuGrXYiVoUyGSYGyGX8APIFfXPkL0DHgKEPxl5QEEzj3bmrEs4eoRfC7GUstEWpTJADLReGSq1YHPHPVWLm02d9d7jKMGqpTeYObz7ElOwrjlCSVecgMLrC0RUjdMHzEbOclXApXLJ-y5b12kdeA',
-  'intelligence-ai': 'https://lh3.googleusercontent.com/aida-public/AB6AXuDOucOGfvc7dNNfUMza0gqBNI5tD56aSYNC2qA0NwhEc9bbhlaQ0vmgAI6HCiu4TpSgrGSj94Yjb1tz443tMfNY6NXFggvHYnBX7CT2IUgMum_jwYp-FLBmxHA11G0lN2Px6jgYi-i0oO6jMvlLbloiqeopJ0jHQkGZx5ygwE7Z-9mH6NL__69-YUUd2DBrXUdE2oRQJrh3bttyYuhkOSm4E4AT9wedtJWoB51oiqOd4zCo96pFHM3KSA',
-  'class-management': 'https://lh3.googleusercontent.com/aida-public/AB6AXuArUcKc1czBA3RvnErre7vSOMptRHVJu1GRUaQnmMS7nRCRZCuVI1KznUhgkHXRQBKehRk53Yxw2kg8WsOL_ANari75xDgn6PR91KgyMSj-iwhxuvJeq5q9dCxHdu0u7RoNPVLIs7fFpxBtfYtW3Csmbz4c00N7Nl41yVLIMdB6u4kW045EDQWanBq1QF6QpPXoHzTbVbi55UaGBJz3xH4rUfxH7F2NXZyXXJHlFVhFSeFvHMyaIn9a4Q'
-};
-
 const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDarkMode, themeMode }: { id?: string, icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean, isDarkMode?: boolean, themeMode?: string }) => {
-  const imageUrl = id ? categoryIconsMap[id] : undefined;
   const displayLabel = id === 'teacher-dashboard-menu' ? 'Teachers Office' : label;
-  const [imgFailed, setImgFailed] = useState(false);
 
   return (
     <button
       onClick={onClick}
       title={collapsed ? displayLabel : undefined}
       className={cn(
-        "flex items-center w-full gap-4 transition-all duration-300 relative cursor-pointer border outline-none group",
-        collapsed ? "justify-center p-2 rounded-2xl border-transparent" : "p-3 rounded-2xl mb-1.5 border-transparent/5",
+        "flex items-center w-full gap-3 transition-all duration-300 relative cursor-pointer border outline-none group",
+        collapsed ? "justify-center p-1.5 rounded-xl border-transparent" : "p-2 rounded-xl mb-1 border-transparent/5",
         active 
           ? isDarkMode 
-            ? "bg-brand-cyan/20 text-brand-cyan font-black border-brand-cyan/30 shadow-[0_0_15px_rgba(0,179,255,0.25)] text-glow-cyan" 
-            : "bg-brand-cyan/15 text-brand-cyan font-black border-brand-cyan/20"
+            ? "bg-cyan-500/15 text-cyan-400 font-black border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.25)] text-glow-cyan" 
+            : "bg-cyan-500/10 text-cyan-600 font-black border-cyan-500/20"
           : isDarkMode 
-            ? "text-slate-300 hover:text-white hover:bg-white/5 font-medium" 
+            ? "text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/5 hover:border-cyan-500/10 font-medium" 
             : themeMode === 'peach'
               ? "text-[#431407]/75 hover:text-[#431407] hover:bg-[#431407]/5 font-medium"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
+              : "text-slate-500 hover:text-cyan-600 hover:bg-cyan-500/5 font-medium"
       )}
     >
       <div className={cn(
         "shrink-0 flex items-center justify-center transition-all duration-300",
         collapsed 
-          ? isDarkMode ? "w-10 h-10 bg-white/5 rounded-xl border border-white/5" : "w-10 h-10 bg-slate-100 rounded-xl border border-slate-200"
-          : isDarkMode ? "w-11 h-11 bg-white/10 rounded-xl border border-white/10 group-hover:scale-105" : "w-11 h-11 bg-slate-100 rounded-xl border border-slate-200 group-hover:scale-105"
+          ? isDarkMode ? "w-9 h-9 bg-white/5 rounded-lg border border-white/5" : "w-9 h-9 bg-slate-100 rounded-lg border border-slate-200"
+          : isDarkMode ? "w-9 h-9 bg-white/10 rounded-lg border border-white/10 group-hover:scale-105" : "w-9 h-9 bg-slate-100 rounded-lg border border-slate-200 group-hover:scale-105"
       )}>
-        {(imageUrl && !imgFailed) ? (
-          <img 
-            src={imageUrl} 
-            alt={displayLabel} 
-            className={cn(
-              "object-contain",
-              collapsed ? "w-6 h-6" : "w-7 h-7",
-              id === 'lesson-planning' ? "filter drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]" : ""
-            )} 
-            referrerPolicy="no-referrer"
-            onError={() => {
-              setImgFailed(true);
-            }}
-          />
-        ) : (
-          <Icon 
-            size={collapsed ? 20 : 22} 
-            className={cn(
-              active 
-                ? "text-brand-cyan" 
-                : isDarkMode 
-                  ? "text-slate-300 group-hover:text-white" 
-                  : themeMode === 'peach'
-                    ? "text-[#431407]/75 group-hover:text-[#431407]"
-                    : "text-slate-600 group-hover:text-slate-900"
-            )} 
-          />
-        )}
+        <Icon 
+          size={collapsed ? 18 : 19} 
+          className={cn(
+            active 
+              ? isDarkMode ? "text-cyan-400" : "text-cyan-600" 
+              : isDarkMode 
+                ? "text-slate-400 group-hover:text-cyan-300" 
+                : themeMode === 'peach'
+                  ? "text-[#431407]/75 group-hover:text-[#431407]"
+                  : "text-slate-500 group-hover:text-cyan-600"
+          )} 
+        />
       </div>
       
       {!collapsed && (
-        <span className="font-sans text-[11px] font-black uppercase tracking-wider text-left leading-none flex-1 flex items-center justify-between gap-2 overflow-hidden truncate">
+        <span className="font-sans text-[8.5px] font-bold uppercase tracking-wider text-left leading-none flex-1 flex items-center justify-between gap-2 overflow-hidden truncate">
           <span className="truncate">{displayLabel}</span>
           
           {/* Class Management Badge */}
           {id === 'class-management' && (
-            <div className="w-5 h-5 bg-red-600 rounded-full flex items-center justify-center text-[10px] font-black shadow-[0_0_10px_rgba(220,38,38,0.8)] border border-white/20 text-white shrink-0">
+            <div className="w-4.5 h-4.5 bg-red-600 rounded-full flex items-center justify-center text-[9px] font-black shadow-[0_0_8px_rgba(220,38,38,0.8)] border border-white/20 text-white shrink-0">
               3
             </div>
           )}
@@ -200,9 +192,9 @@ const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDark
       {/* Animated Sparkles for Intelligence AI */}
       {!collapsed && id === 'intelligence-ai' && (
         <>
-          <span className="sparkle-twinkle text-[10px]" style={{ top: '6px', right: '14px' }}>✦</span>
-          <span className="sparkle-twinkle text-[14px]" style={{ top: '16px', right: '-2px' }}>✧</span>
-          <span className="sparkle-twinkle text-[8px]" style={{ bottom: '8px', right: '8px' }}>✦</span>
+          <span className="sparkle-twinkle text-[9px]" style={{ top: '6px', right: '14px' }}>✦</span>
+          <span className="sparkle-twinkle text-[12px]" style={{ top: '16px', right: '-2px' }}>✧</span>
+          <span className="sparkle-twinkle text-[7px]" style={{ bottom: '8px', right: '8px' }}>✦</span>
         </>
       )}
     </button>
@@ -724,13 +716,13 @@ export default function App() {
     const r = role || 'teacher';
     if (r === 'teacher') {
       return [
-        { id: 'teacher-dashboard-menu', label: 'Teachers Office', icon: LayoutDashboard },
-        { id: 'class-management', label: 'Classrooms', icon: Users },
-        { id: 'lesson-planning', label: 'Curriculum', icon: BookOpen },
-        { id: 'intelligence-ai', label: 'Intelligent AI', icon: Sparkles },
-        { id: 'class-analytics', label: 'Analytics', icon: Award },
-        { id: 'student-class-management', label: 'Message & Collaborate', icon: MessageSquare },
-        { id: 'system-support', label: 'Settings', icon: Settings },
+        { id: 'teacher-dashboard-menu', label: 'Teachers Office', icon: IconHome },
+        { id: 'class-management', label: 'Classrooms', icon: IconClassrooms },
+        { id: 'lesson-planning', label: 'Edu-Tools Hub', icon: IconCurriculum },
+        { id: 'intelligence-ai', label: 'Intelligent AI', icon: SmartBotTutorIcon },
+        { id: 'class-analytics', label: 'Analytics', icon: IconAnalytics },
+        { id: 'student-class-management', label: 'Message & Collaborate', icon: IconClassrooms },
+        { id: 'system-support', label: 'Settings', icon: IconSettings },
       ];
     }
     
@@ -740,13 +732,13 @@ export default function App() {
     else if (r === 'admin') firstLabel = 'Admin Dashboard';
     
     return [
-      { id: 'teacher-dashboard-menu', label: firstLabel, icon: GraduationCap },
-      { id: 'lesson-planning', label: 'Teachers Magic', icon: BookOpen },
-      { id: 'intelligence-ai', label: 'Intelligence AI', icon: Sparkles },
-      { id: 'class-analytics', label: 'Analytics & Reports', icon: Award },
-      { id: 'class-management', label: 'Class management', icon: Users },
-      { id: 'student-class-management', label: 'Chat & Messenger', icon: MessageSquare },
-      { id: 'system-support', label: 'System support', icon: Settings },
+      { id: 'teacher-dashboard-menu', label: firstLabel, icon: IconHome },
+      { id: 'lesson-planning', label: 'Edu-Tools Hub', icon: IconCurriculum },
+      { id: 'intelligence-ai', label: 'Intelligence AI', icon: SmartBotTutorIcon },
+      { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
+      { id: 'class-management', label: 'Class management', icon: IconClassrooms },
+      { id: 'student-class-management', label: 'Chat & Messenger', icon: IconClassrooms },
+      { id: 'system-support', label: 'System support', icon: IconSettings },
     ];
   };
 
@@ -758,37 +750,37 @@ export default function App() {
       switch (catId) {
         case 'teacher-dashboard-menu':
           return [
-            { id: 'dashboard', label: 'Student Dashboard', icon: LayoutDashboard }
+            { id: 'dashboard', label: 'Student Dashboard', icon: IconHome }
           ];
         case 'lesson-planning':
           return [
-            { id: 'student-notes', label: 'Study & Revision Notes', icon: GraduationCap }
+            { id: 'student-notes', label: 'Study & Revision Notes', icon: IconCurriculum }
           ];
         case 'intelligence-ai':
           return [
-            { id: 'ai-tutor', label: 'AI Tutor Helpers', icon: Sparkles }
+            { id: 'ai-tutor', label: 'AI Tutor Helpers', icon: SmartBotTutorIcon }
           ];
         case 'class-analytics':
           return [
-            { id: 'reports', label: 'My Progress Analytics', icon: Award },
-            { id: 'portfolios', label: 'My Portfolio', icon: ClipboardCheck },
-            { id: 'curriculum', label: 'CAPS & Gamification Hub', icon: Puzzle }
+            { id: 'reports', label: 'My Progress Analytics', icon: ProgressTrophiesIcon },
+            { id: 'portfolios', label: 'My Portfolio', icon: SuperWorksheetsIcon },
+            { id: 'curriculum', label: 'CAPS & Gamification Hub', icon: QuizQuestsIcon }
           ];
         case 'class-management':
           return [
-            { id: 'dashboard', label: 'Class Overview', icon: Users }
+            { id: 'dashboard', label: 'Class Overview', icon: IconClassrooms }
           ];
         case 'student-class-management':
           return [
-            { id: 'student-practice', label: 'Practice Zone', icon: Brain },
-            { id: 'collaborative-workspace', label: 'Collaborative Workspace', icon: Users },
-            { id: 'messenger', label: 'Chat & Friends', icon: MessageSquare }
+            { id: 'student-practice', label: 'Practice Zone', icon: SmartBotTutorIcon },
+            { id: 'collaborative-workspace', label: 'Collaborative Workspace', icon: IconClassrooms },
+            { id: 'messenger', label: 'Chat & Friends', icon: IconClassrooms }
           ];
         case 'system-support':
           return [
-            { id: 'settings', label: 'Settings', icon: Settings },
-            { id: 'helpdesk', label: 'Help', icon: HelpCircle },
-            { id: 'faq', label: 'Support', icon: HelpCircle }
+            { id: 'settings', label: 'Settings', icon: IconSettings },
+            { id: 'helpdesk', label: 'Help', icon: IconHelpSupport },
+            { id: 'faq', label: 'Support', icon: IconHelpSupport }
           ];
         default:
           return [];
@@ -797,32 +789,32 @@ export default function App() {
       switch (catId) {
         case 'teacher-dashboard-menu':
           return [
-            { id: 'dashboard', label: 'Parent Dashboard Hub', icon: LayoutDashboard }
+            { id: 'dashboard', label: 'Parent Dashboard Hub', icon: IconHome }
           ];
         case 'lesson-planning':
           return [];
         case 'intelligence-ai':
           return [
-            { id: 'dashboard', label: 'AI Classroom Updates', icon: Sparkles }
+            { id: 'dashboard', label: 'AI Classroom Updates', icon: SmartBotTutorIcon }
           ];
         case 'class-analytics':
           return [
-            { id: 'reports', label: "My Child's Progress", icon: Award },
-            { id: 'portfolios', label: 'Assignments & Portfolios', icon: FileText }
+            { id: 'reports', label: "My Child's Progress", icon: ProgressTrophiesIcon },
+            { id: 'portfolios', label: 'Assignments & Portfolios', icon: SuperWorksheetsIcon }
           ];
         case 'class-management':
           return [
-            { id: 'dashboard', label: 'Class Overview', icon: Users }
+            { id: 'dashboard', label: 'Class Overview', icon: IconClassrooms }
           ];
         case 'student-class-management':
           return [
-            { id: 'messenger', label: 'Teacher Chat & Contacts', icon: MessageSquare }
+            { id: 'messenger', label: 'Teacher Chat & Contacts', icon: IconClassrooms }
           ];
         case 'system-support':
           return [
-            { id: 'settings', label: 'Settings', icon: Settings },
-            { id: 'helpdesk', label: 'Help', icon: HelpCircle },
-            { id: 'faq', label: 'Support', icon: HelpCircle }
+            { id: 'settings', label: 'Settings', icon: IconSettings },
+            { id: 'helpdesk', label: 'Help', icon: IconHelpSupport },
+            { id: 'faq', label: 'Support', icon: IconHelpSupport }
           ];
         default:
           return [];
@@ -831,34 +823,34 @@ export default function App() {
       switch (catId) {
         case 'teacher-dashboard-menu':
           return [
-            { id: 'dashboard', label: 'Admin Dashboard Hub', icon: LayoutDashboard }
+            { id: 'dashboard', label: 'Admin Dashboard Hub', icon: IconHome }
           ];
         case 'lesson-planning':
           return [
-            { id: 'archive', label: 'Database Content Archive', icon: Sprout }
+            { id: 'archive', label: 'Database Content Archive', icon: IconResources }
           ];
         case 'intelligence-ai':
           return [
-            { id: 'ai-tutor', label: 'AI System Controls', icon: Sparkles },
-            { id: 'ocr', label: 'OCR Grading Logs', icon: Puzzle }
+            { id: 'ai-tutor', label: 'AI System Controls', icon: SmartBotTutorIcon },
+            { id: 'ocr', label: 'OCR Grading Logs', icon: QuizQuestsIcon }
           ];
         case 'class-analytics':
           return [
-            { id: 'reports', label: 'School Analytics & Stats', icon: Award }
+            { id: 'reports', label: 'School Analytics & Stats', icon: ProgressTrophiesIcon }
           ];
         case 'class-management':
           return [
-            { id: 'class-management', label: 'Classrooms Manager', icon: Users }
+            { id: 'class-management', label: 'Classrooms Manager', icon: IconClassrooms }
           ];
         case 'student-class-management':
           return [
-            { id: 'dashboard', label: 'Students Overview', icon: Users }
+            { id: 'dashboard', label: 'Students Overview', icon: IconClassrooms }
           ];
         case 'system-support':
           return [
-            { id: 'settings', label: 'Settings', icon: Settings },
-            { id: 'helpdesk', label: 'Help', icon: HelpCircle },
-            { id: 'faq', label: 'Support', icon: HelpCircle }
+            { id: 'settings', label: 'Settings', icon: IconSettings },
+            { id: 'helpdesk', label: 'Help', icon: IconHelpSupport },
+            { id: 'faq', label: 'Support', icon: IconHelpSupport }
           ];
         default:
           return [];
@@ -868,38 +860,38 @@ export default function App() {
       switch (catId) {
         case 'teacher-dashboard-menu':
           return [
-            { id: 'dashboard', label: 'Teacher Dashboard', icon: LayoutDashboard }
+            { id: 'dashboard', label: 'Teacher Dashboard', icon: IconHome }
           ];
         case 'lesson-planning':
           return [
-            { id: 'teaching', label: 'Content Creator Studio', icon: FlaskConical },
-            { id: 'archive', label: 'Content Archive Storage', icon: Sprout },
-            { id: 'illustrations', label: 'Illustration Library', icon: Palette }
+            { id: 'teaching', label: 'Content Creator Studio', icon: CreativeCanvasIcon },
+            { id: 'archive', label: 'Content Archive Storage', icon: IconResources },
+            { id: 'illustrations', label: 'Illustration Library', icon: CreativeCanvasIcon }
           ];
         case 'intelligence-ai':
           return [
-            { id: 'ai-tutor', label: 'AI Tutor Support', icon: Sparkles },
-            { id: 'ocr', label: "Teacher's Auto-Grading Lab", icon: ClipboardCheck }
+            { id: 'ai-tutor', label: 'AI Tutor Support', icon: SmartBotTutorIcon },
+            { id: 'ocr', label: "Teacher's Auto-Grading Lab", icon: SuperWorksheetsIcon }
           ];
         case 'class-analytics':
           return [
-            { id: 'reports', label: 'Progress Reports', icon: Award },
-            { id: 'portfolios', label: 'Learner Personal Portfolios', icon: ClipboardCheck },
-            { id: 'curriculum', label: 'CAPS & Gamification Hub', icon: Puzzle }
+            { id: 'reports', label: 'Progress Reports', icon: ProgressTrophiesIcon },
+            { id: 'portfolios', label: 'Learner Personal Portfolios', icon: SuperWorksheetsIcon },
+            { id: 'curriculum', label: 'CAPS & Gamification Hub', icon: QuizQuestsIcon }
           ];
         case 'class-management':
           return [
-            { id: 'class-management', label: 'Class Management', icon: Users }
+            { id: 'class-management', label: 'Class Management', icon: IconClassrooms }
           ];
         case 'student-class-management':
           return [
-            { id: 'messenger', label: 'Communicator Hub Chat', icon: MessageSquare }
+            { id: 'messenger', label: 'Communicator Hub Chat', icon: IconClassrooms }
           ];
         case 'system-support':
           return [
-            { id: 'settings', label: 'Settings', icon: Settings },
-            { id: 'helpdesk', label: 'Help', icon: HelpCircle },
-            { id: 'faq', label: 'Support', icon: HelpCircle }
+            { id: 'settings', label: 'Settings', icon: IconSettings },
+            { id: 'helpdesk', label: 'Help', icon: IconHelpSupport },
+            { id: 'faq', label: 'Support', icon: IconHelpSupport }
           ];
         default:
           return [];
@@ -1531,7 +1523,7 @@ export default function App() {
               className={`p-2 rounded-xl ${isDarkMode ? 'hover:bg-white/10 text-white' : 'hover:bg-slate-200 text-slate-600'} transition-all`}
               title="Teachers Office"
             >
-              <Home size={18} />
+              <IconHome size={18} />
             </button>
 
             {/* Page/Branding Title */}
@@ -1766,7 +1758,7 @@ export default function App() {
                         onClick={() => { changeTab('settings'); setIsProfileDropdownOpen(false); }}
                         className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors text-left ${isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-50 text-slate-700'}`}
                       >
-                        <Settings size={16} /> My Settings
+                        <IconSettings size={16} /> My Settings
                       </button>
                       <button 
                         onClick={() => { setNeedsRoleSetup(true); setIsProfileDropdownOpen(false); }}
@@ -1785,7 +1777,7 @@ export default function App() {
                         onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors text-left hover:bg-red-500/10 text-red-500"
                       >
-                        <LogOut size={16} /> Log Out
+                        <IconLogout size={16} /> Log Out
                       </button>
                     </div>
                   </motion.div>
@@ -2191,8 +2183,8 @@ export default function App() {
                   isDarkMode={isDarkMode}
                   onSelect={(tabId) => {
                     setCategoryOverviewActive(null);
-                    if (tabId === 'teaching') {
-                      setActiveCreatorTab('teaching');
+                    if (['teaching', 'grade1', 'admin', 'visual', 'video'].includes(tabId)) {
+                      setActiveCreatorTab(tabId);
                       setActiveTab('teaching');
                     } else {
                       changeTab(tabId);

@@ -26,6 +26,14 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Logo from './Logo';
+import {
+  MagicLessonsIcon,
+  SuperWorksheetsIcon,
+  SmartBotTutorIcon,
+  QuizQuestsIcon,
+  ProgressTrophiesIcon,
+  CreativeCanvasIcon
+} from './LocalIcons';
 
 interface LandingPageProps {
   onEnter: () => void;
@@ -637,12 +645,12 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {[
-            { title: "Magic Lessons", desc: "Create amazing lesson plans in a flash! Perfect for any subject or grade band.", icon: Blocks, glow: "hover-neon-pink border-brand-pink/20", iconBg: "text-brand-pink icon-glow-pink" },
-            { title: "Super Worksheets", desc: "Fun interactive worksheets and exercises that you'll actually love solving!", icon: Palette, glow: "hover-neon-green border-brand-green/20", iconBg: "text-brand-green icon-glow-green" },
-            { title: "Smart Bot Tutor", desc: "Ask your friendly AI astronaut tutor anything, anytime! It has answers for everything.", icon: Smile, glow: "hover-neon-cyan border-brand-cyan/20", iconBg: "text-brand-cyan icon-glow-cyan" },
-            { title: "Instant Grades", desc: "Get diagnostic grading scores and feedback tips instantly. No more waiting!", icon: Award, glow: "hover-neon-pink border-brand-pink/20", iconBg: "text-brand-pink icon-glow-pink" },
-            { title: "Skill Tracker", desc: "Watch your knowledge level grow like a rocket ship! Reach the top scores.", icon: ToyBrick, glow: "hover-neon-green border-brand-green/20", iconBg: "text-brand-green icon-glow-green" },
-            { title: "Cool Posters", desc: "Produce beautifully illustrated study summary posters for your bedroom or classroom.", icon: Sparkles, glow: "hover-neon-cyan border-brand-cyan/20", iconBg: "text-brand-cyan icon-glow-cyan" },
+            { title: "Magic Lessons", desc: "Create amazing lesson plans in a flash! Perfect for any subject or grade band.", icon: MagicLessonsIcon, glow: "hover-neon-pink border-brand-pink/20", iconBg: "text-brand-pink icon-glow-pink" },
+            { title: "Super Worksheets", desc: "Fun interactive worksheets and exercises that you'll actually love solving!", icon: SuperWorksheetsIcon, glow: "hover-neon-green border-brand-green/20", iconBg: "text-brand-green icon-glow-green" },
+            { title: "Smart Bot Tutor", desc: "Ask your friendly AI astronaut tutor anything, anytime! It has answers for everything.", icon: SmartBotTutorIcon, glow: "hover-neon-cyan border-brand-cyan/20", iconBg: "text-brand-cyan icon-glow-cyan" },
+            { title: "Instant Grades", desc: "Get diagnostic grading scores and feedback tips instantly. No more waiting!", icon: QuizQuestsIcon, glow: "hover-neon-pink border-brand-pink/20", iconBg: "text-brand-pink icon-glow-pink" },
+            { title: "Skill Tracker", desc: "Watch your knowledge level grow like a rocket ship! Reach the top scores.", icon: ProgressTrophiesIcon, glow: "hover-neon-green border-brand-green/20", iconBg: "text-brand-green icon-glow-green" },
+            { title: "Cool Posters", desc: "Produce beautifully illustrated study summary posters for your bedroom or classroom.", icon: CreativeCanvasIcon, glow: "hover-neon-cyan border-brand-cyan/20", iconBg: "text-brand-cyan icon-glow-cyan" },
           ].map((feature, i) => (
             <motion.div 
               key={i}
