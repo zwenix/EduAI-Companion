@@ -96,7 +96,7 @@ export default function RoleSelection({ onComplete, onBack }: RoleSelectionProps
         />
       ))}
 
-      <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-6 relative z-10">
+      <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 relative z-10">
         
         <AnimatePresence mode="wait">
           {step === 'role' ? (
@@ -123,152 +123,190 @@ export default function RoleSelection({ onComplete, onBack }: RoleSelectionProps
                 Select your designated portal coordinate to enter the immersive EduAI Companion environment.
               </p>
 
-              {/* Primary Side-by-side Portals (Screenshot 4: Student & Teacher) */}
-              <section className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl px-4">
+              {/* Comprehensive 4-Column Responsive Grid Portals */}
+              <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full px-4">
                 
-                {/* Student Portal Orb */}
+                {/* 1. Student Portal Orb */}
                 <motion.div
                   whileHover={{ scale: 1.03, y: -4 }}
                   onClick={() => handleRoleSelect('student')}
-                  className={`group rounded-[40px] p-8 border cursor-pointer transition-all duration-300 backdrop-blur-md relative overflow-hidden flex flex-col items-center justify-between text-center min-h-[420px] ${
+                  className={`group rounded-[40px] p-6 border cursor-pointer transition-all duration-300 backdrop-blur-md relative overflow-hidden flex flex-col items-center justify-between text-center min-h-[410px] ${
                     selectedRole === 'student'
-                      ? 'bg-brand-pink/10 border-brand-pink shadow-[0_0_40px_rgba(255,0,212,0.45),inset_0_0_15px_rgba(255,0,212,0.2)]'
+                      ? 'bg-brand-pink/15 border-brand-pink shadow-[0_0_40px_rgba(255,0,212,0.45),inset_0_0_15px_rgba(255,0,212,0.2)]'
                       : 'bg-white/[0.02] border-white/10 hover:border-brand-pink/40 hover:bg-white/[0.05] hover:shadow-[0_0_25px_rgba(255,0,212,0.25)]'
                   }`}
                 >
-                  {/* Swirling double orbital ring around student */}
-                  <div className="absolute w-56 h-56 rounded-full border border-brand-pink/15 animate-spin-slow scale-110 top-6 pointer-events-none" />
-                  <div className="absolute w-44 h-44 rounded-full border-2 border-dashed border-brand-cyan/15 animate-reverse-spin scale-100 top-12 pointer-events-none" />
+                  {/* Swirling double orbital rings */}
+                  <div className="absolute w-48 h-48 rounded-full border border-brand-pink/15 animate-spin-slow scale-110 top-5 pointer-events-none" />
+                  <div className="absolute w-36 h-36 rounded-full border border-dashed border-brand-cyan/15 animate-reverse-spin scale-100 top-10 pointer-events-none" />
 
                   {/* Mascot Sphere */}
-                  <div className="w-32 h-32 rounded-full bg-slate-900/60 border border-white/15 flex items-center justify-center mb-6 relative overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300">
+                  <div className="w-28 h-28 rounded-full bg-slate-900/60 border border-white/15 flex items-center justify-center mb-5 relative overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300 shrink-0">
                     <div className="absolute inset-0 bg-gradient-to-tr from-brand-pink/20 to-transparent pointer-events-none" />
-                    <ToyBrick className="w-14 h-14 text-brand-pink icon-glow-pink" />
-                    {/* Floating mascot astronaut text */}
-                    <span className="absolute bottom-2 text-[9px] font-mono font-bold uppercase tracking-wider text-brand-pink bg-brand-pink/10 px-2 py-0.5 rounded border border-brand-pink/20">
-                      ASTRONAUT
+                    <ToyBrick className="w-12 h-12 text-brand-pink icon-glow-pink" />
+                    {/* Mascot character emoji floating inside */}
+                    <span className="absolute text-2xl top-4 right-4 animate-bounce">👩‍🚀</span>
+                    <span className="absolute bottom-2 text-[8px] font-mono font-bold uppercase tracking-wider text-brand-pink bg-brand-pink/10 px-2 py-0.5 rounded border border-brand-pink/20">
+                      CADET
                     </span>
                   </div>
 
                   <div className="relative z-10 flex-grow flex flex-col justify-center">
-                    <h2 className="font-display text-2xl font-black mb-2 text-white group-hover:text-glow-pink transition-all">
+                    <h2 className="font-display text-xl font-black mb-1.5 text-white group-hover:text-glow-pink transition-all">
                       Student Portal
                     </h2>
-                    <p className="text-xs text-slate-300 font-sans max-w-xs leading-relaxed">
+                    <p className="text-[11px] text-slate-300 font-sans max-w-xs leading-relaxed">
                       Start your learning adventure! Play curriculum levels, chat with your friendly AI tutor, and solve galaxy quizzes.
                     </p>
                   </div>
 
                   {/* Portal Button */}
-                  <div className={`mt-8 w-full py-4 rounded-2xl font-display font-black text-sm uppercase tracking-wider transition-all border flex items-center justify-center gap-1.5 ${
+                  <div className={`mt-6 w-full py-3.5 rounded-2xl font-display font-black text-xs uppercase tracking-wider transition-all border flex items-center justify-center gap-1.5 shrink-0 ${
                     selectedRole === 'student'
                       ? 'primary-neon-btn-pink border-transparent'
                       : 'border-brand-pink/35 text-brand-pink bg-brand-pink/5 hover:bg-brand-pink/10'
                   }`}>
-                    <Rocket size={16} className="animate-bounce" />
+                    <Rocket size={14} className="animate-bounce" />
                     <span>I am a Student</span>
                   </div>
                 </motion.div>
 
-                {/* Teacher Portal Orb */}
+                {/* 2. Teacher Portal Orb */}
                 <motion.div
                   whileHover={{ scale: 1.03, y: -4 }}
                   onClick={() => handleRoleSelect('teacher')}
-                  className={`group rounded-[40px] p-8 border cursor-pointer transition-all duration-300 backdrop-blur-md relative overflow-hidden flex flex-col items-center justify-between text-center min-h-[420px] ${
+                  className={`group rounded-[40px] p-6 border cursor-pointer transition-all duration-300 backdrop-blur-md relative overflow-hidden flex flex-col items-center justify-between text-center min-h-[410px] ${
                     selectedRole === 'teacher'
-                      ? 'bg-brand-green/10 border-brand-green shadow-[0_0_40px_rgba(0,255,159,0.45),inset_0_0_15px_rgba(0,255,159,0.2)]'
+                      ? 'bg-brand-green/15 border-brand-green shadow-[0_0_40px_rgba(0,255,159,0.45),inset_0_0_15px_rgba(0,255,159,0.2)]'
                       : 'bg-white/[0.02] border-white/10 hover:border-brand-green/40 hover:bg-white/[0.05] hover:shadow-[0_0_25px_rgba(0,255,159,0.25)]'
                   }`}
                 >
-                  {/* Swirling double orbital ring around teacher */}
-                  <div className="absolute w-56 h-56 rounded-full border border-brand-green/15 animate-spin-slow scale-110 top-6 pointer-events-none" />
-                  <div className="absolute w-44 h-44 rounded-full border-2 border-dashed border-brand-yellow/15 animate-reverse-spin scale-100 top-12 pointer-events-none" />
+                  {/* Swirling double orbital rings */}
+                  <div className="absolute w-48 h-48 rounded-full border border-brand-green/15 animate-spin-slow scale-110 top-5 pointer-events-none" />
+                  <div className="absolute w-36 h-36 rounded-full border border-dashed border-brand-yellow/15 animate-reverse-spin scale-100 top-10 pointer-events-none" />
 
                   {/* Mascot Sphere */}
-                  <div className="w-32 h-32 rounded-full bg-slate-900/60 border border-white/15 flex items-center justify-center mb-6 relative overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300">
+                  <div className="w-28 h-28 rounded-full bg-slate-900/60 border border-white/15 flex items-center justify-center mb-5 relative overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300 shrink-0">
                     <div className="absolute inset-0 bg-gradient-to-tr from-brand-green/20 to-transparent pointer-events-none" />
-                    <GraduationCap className="w-14 h-14 text-brand-green icon-glow-green" />
-                    {/* Floating mascot wizard text */}
-                    <span className="absolute bottom-2 text-[9px] font-mono font-bold uppercase tracking-wider text-brand-green bg-brand-green/10 px-2.5 py-0.5 rounded border border-brand-green/20">
+                    <GraduationCap className="w-12 h-12 text-brand-green icon-glow-green" />
+                    {/* Mascot character emoji floating inside */}
+                    <span className="absolute text-2xl top-4 right-4 animate-pulse">🧙‍♀️</span>
+                    <span className="absolute bottom-2 text-[8px] font-mono font-bold uppercase tracking-wider text-brand-green bg-brand-green/10 px-2 py-0.5 rounded border border-brand-green/20">
                       WIZARD
                     </span>
                   </div>
 
                   <div className="relative z-10 flex-grow flex flex-col justify-center">
-                    <h2 className="font-display text-2xl font-black mb-2 text-white group-hover:text-glow-green transition-all">
+                    <h2 className="font-display text-xl font-black mb-1.5 text-white group-hover:text-glow-green transition-all">
                       Teacher Portal
                     </h2>
-                    <p className="text-xs text-slate-300 font-sans max-w-xs leading-relaxed">
-                      Design magic lesson plans, generate diagnostic print-ready worksheets, track classroom marks, and summon learning slides.
+                    <p className="text-[11px] text-slate-300 font-sans max-w-xs leading-relaxed">
+                      Design magic lesson plans, generate diagnostic print worksheets, track classroom marks, and summon slides.
                     </p>
                   </div>
 
                   {/* Portal Button */}
-                  <div className={`mt-8 w-full py-4 rounded-2xl font-display font-black text-sm uppercase tracking-wider transition-all border flex items-center justify-center gap-1.5 ${
+                  <div className={`mt-6 w-full py-3.5 rounded-2xl font-display font-black text-xs uppercase tracking-wider transition-all border flex items-center justify-center gap-1.5 shrink-0 ${
                     selectedRole === 'teacher'
                       ? 'primary-neon-btn-green border-transparent'
                       : 'border-brand-green/35 text-brand-green bg-brand-green/5 hover:bg-brand-green/10'
                   }`}>
-                    <Sparkles size={16} />
+                    <Sparkles size={14} />
                     <span>I am a Teacher</span>
                   </div>
                 </motion.div>
 
-              </section>
-
-              {/* Slide-down switch for Parent & Admin Alternative Portals */}
-              <div className="mt-10 text-center select-none w-full max-w-md px-4">
-                <button
-                  type="button"
-                  onClick={() => setShowAltPortals(!showAltPortals)}
-                  className="px-6 py-2.5 rounded-full bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] text-xs font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all flex items-center justify-center gap-2 mx-auto"
+                {/* 3. Parent Portal Orb */}
+                <motion.div
+                  whileHover={{ scale: 1.03, y: -4 }}
+                  onClick={() => handleRoleSelect('parent')}
+                  className={`group rounded-[40px] p-6 border cursor-pointer transition-all duration-300 backdrop-blur-md relative overflow-hidden flex flex-col items-center justify-between text-center min-h-[410px] ${
+                    selectedRole === 'parent'
+                      ? 'bg-brand-cyan/15 border-brand-cyan shadow-[0_0_40px_rgba(0,179,255,0.45),inset_0_0_15px_rgba(0,179,255,0.2)]'
+                      : 'bg-white/[0.02] border-white/10 hover:border-brand-cyan/40 hover:bg-white/[0.05] hover:shadow-[0_0_25px_rgba(0,179,255,0.25)]'
+                  }`}
                 >
-                  <Users size={14} className="text-brand-cyan" />
-                  <span>{showAltPortals ? "Hide Alternative Ports" : "Unlock Parent & Admin Ports"}</span>
-                </button>
+                  {/* Swirling double orbital rings */}
+                  <div className="absolute w-48 h-48 rounded-full border border-brand-cyan/15 animate-spin-slow scale-110 top-5 pointer-events-none" />
+                  <div className="absolute w-36 h-36 rounded-full border border-dashed border-brand-pink/15 animate-reverse-spin scale-100 top-10 pointer-events-none" />
 
-                <AnimatePresence>
-                  {showAltPortals && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0, y: -10 }}
-                      animate={{ opacity: 1, height: 'auto', y: 0 }}
-                      exit={{ opacity: 0, height: 0, y: -10 }}
-                      transition={{ duration: 0.3 }}
-                      className="overflow-hidden mt-4"
-                    >
-                      <div className="grid grid-cols-2 gap-4 pt-2">
-                        {/* Parent Option Card */}
-                        <div 
-                          onClick={() => handleRoleSelect('parent')}
-                          className={`p-4 rounded-2xl border text-center cursor-pointer transition-all ${
-                            selectedRole === 'parent'
-                              ? 'bg-brand-cyan/10 border-brand-cyan shadow-[0_0_15px_rgba(0,179,255,0.25)]'
-                              : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.05] hover:border-brand-cyan/20'
-                          }`}
-                        >
-                          <Heart size={20} className="mx-auto text-brand-cyan mb-2" />
-                          <h4 className="font-display font-bold text-sm text-white">Parent Portal</h4>
-                          <p className="text-[10px] text-slate-400 mt-0.5">Track growth</p>
-                        </div>
+                  {/* Mascot Sphere */}
+                  <div className="w-28 h-28 rounded-full bg-slate-900/60 border border-white/15 flex items-center justify-center mb-5 relative overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300 shrink-0">
+                    <div className="absolute inset-0 bg-gradient-to-tr from-brand-cyan/20 to-transparent pointer-events-none" />
+                    <Heart className="w-12 h-12 text-brand-cyan icon-glow-cyan" />
+                    {/* Mascot character emoji floating inside */}
+                    <span className="absolute text-2xl top-4 right-4 animate-pulse">👼</span>
+                    <span className="absolute bottom-2 text-[8px] font-mono font-bold uppercase tracking-wider text-brand-cyan bg-brand-cyan/10 px-2 py-0.5 rounded border border-brand-cyan/20">
+                      GUARDIAN
+                    </span>
+                  </div>
 
-                        {/* Admin Option Card */}
-                        <div 
-                          onClick={() => handleRoleSelect('admin')}
-                          className={`p-4 rounded-2xl border text-center cursor-pointer transition-all ${
-                            selectedRole === 'admin'
-                              ? 'bg-brand-yellow/10 border-brand-yellow shadow-[0_0_15px_rgba(255,223,64,0.25)]'
-                              : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.05] hover:border-brand-yellow/20'
-                          }`}
-                        >
-                          <Settings size={20} className="mx-auto text-brand-yellow mb-2" />
-                          <h4 className="font-display font-bold text-sm text-white">Admin Portal</h4>
-                          <p className="text-[10px] text-slate-400 mt-0.5">Manage academy</p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                  <div className="relative z-10 flex-grow flex flex-col justify-center">
+                    <h2 className="font-display text-xl font-black mb-1.5 text-white group-hover:text-glow-cyan transition-all">
+                      Parent Portal
+                    </h2>
+                    <p className="text-[11px] text-slate-300 font-sans max-w-xs leading-relaxed">
+                      Monitor learning journeys, track real-time milestone completions, check diagnostic reports, and guide development.
+                    </p>
+                  </div>
+
+                  {/* Portal Button */}
+                  <div className={`mt-6 w-full py-3.5 rounded-2xl font-display font-black text-xs uppercase tracking-wider transition-all border flex items-center justify-center gap-1.5 shrink-0 ${
+                    selectedRole === 'parent'
+                      ? 'primary-neon-btn-cyan border-transparent'
+                      : 'border-brand-cyan/35 text-brand-cyan bg-brand-cyan/5 hover:bg-brand-cyan/10'
+                  }`}>
+                    <ShieldCheck size={14} />
+                    <span>I am a Parent</span>
+                  </div>
+                </motion.div>
+
+                {/* 4. Admin Portal Orb */}
+                <motion.div
+                  whileHover={{ scale: 1.03, y: -4 }}
+                  onClick={() => handleRoleSelect('admin')}
+                  className={`group rounded-[40px] p-6 border cursor-pointer transition-all duration-300 backdrop-blur-md relative overflow-hidden flex flex-col items-center justify-between text-center min-h-[410px] ${
+                    selectedRole === 'admin'
+                      ? 'bg-brand-yellow/15 border-brand-yellow shadow-[0_0_40px_rgba(255,223,64,0.45),inset_0_0_15px_rgba(255,223,64,0.2)]'
+                      : 'bg-white/[0.02] border-white/10 hover:border-brand-yellow/40 hover:bg-white/[0.05] hover:shadow-[0_0_25px_rgba(255,223,64,0.25)]'
+                  }`}
+                >
+                  {/* Swirling double orbital rings */}
+                  <div className="absolute w-48 h-48 rounded-full border border-brand-yellow/15 animate-spin-slow scale-110 top-5 pointer-events-none" />
+                  <div className="absolute w-36 h-36 rounded-full border border-dashed border-brand-green/15 animate-reverse-spin scale-100 top-10 pointer-events-none" />
+
+                  {/* Mascot Sphere */}
+                  <div className="w-28 h-28 rounded-full bg-slate-900/60 border border-white/15 flex items-center justify-center mb-5 relative overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300 shrink-0">
+                    <div className="absolute inset-0 bg-gradient-to-tr from-brand-yellow/20 to-transparent pointer-events-none" />
+                    <Settings className="w-12 h-12 text-brand-yellow icon-glow-yellow" />
+                    {/* Mascot character emoji floating inside */}
+                    <span className="absolute text-2xl top-4 right-4 animate-bounce">👑</span>
+                    <span className="absolute bottom-2 text-[8px] font-mono font-bold uppercase tracking-wider text-brand-yellow bg-brand-yellow/10 px-2 py-0.5 rounded border border-brand-yellow/20">
+                      OVERSEER
+                    </span>
+                  </div>
+
+                  <div className="relative z-10 flex-grow flex flex-col justify-center">
+                    <h2 className="font-display text-xl font-black mb-1.5 text-white group-hover:text-glow-yellow transition-all">
+                      Admin Portal
+                    </h2>
+                    <p className="text-[11px] text-slate-300 font-sans max-w-xs leading-relaxed">
+                      Manage school coordinates, oversee teacher resources, inspect CAPS curriculum mapping, and configure academy nodes.
+                    </p>
+                  </div>
+
+                  {/* Portal Button */}
+                  <div className={`mt-6 w-full py-3.5 rounded-2xl font-display font-black text-xs uppercase tracking-wider transition-all border flex items-center justify-center gap-1.5 shrink-0 ${
+                    selectedRole === 'admin'
+                      ? 'bg-brand-yellow text-slate-950 font-black border-transparent shadow-[0_0_15px_rgba(255,223,64,0.5)] hover:shadow-[0_0_25px_rgba(255,223,64,0.75)] hover:bg-yellow-300'
+                      : 'border-brand-yellow/35 text-brand-yellow bg-brand-yellow/5 hover:bg-brand-yellow/10'
+                  }`}>
+                    <UserCheck size={14} />
+                    <span>I am an Admin</span>
+                  </div>
+                </motion.div>
+
+              </section>
 
             </motion.div>
           ) : (

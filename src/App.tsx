@@ -91,6 +91,7 @@ import StudentNotes from './components/StudentNotes';
 import CollaborativeWorkspace from './components/CollaborativeWorkspace';
 import StudentDashboard from './components/StudentDashboard';
 import TeacherDashboard from './components/TeacherDashboard';
+import AlertsPage from './components/AlertsPage';
 import StudentPortfolio from './components/StudentPortfolio';
 import CurriculumSuite from './components/CurriculumSuite';
 import ParentDashboard from './components/ParentDashboard';
@@ -523,6 +524,58 @@ export default function App() {
     window.addEventListener('trigger-edit-content', onTriggerEdit);
     return () => window.removeEventListener('trigger-edit-content', onTriggerEdit);
   }, []);
+
+  // Global keyboard listener for Ctrl+1 through Ctrl+7 navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if Ctrl key is pressed (or Meta/Cmd key for macOS) and NOT Shift/Alt/Option
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+        // Only run if the active element is not a text input or editor
+        const activeElement = document.activeElement;
+        if (activeElement) {
+          const tagName = activeElement.tagName.toLowerCase();
+          const isEditable = activeElement.getAttribute('contenteditable') === 'true';
+          if (
+            tagName === 'input' ||
+            tagName === 'textarea' ||
+            isEditable
+          ) {
+            return;
+          }
+        }
+
+        const num = parseInt(e.key, 10);
+        if (num >= 1 && num <= 7) {
+          e.preventDefault();
+          const targetIndex = num - 1;
+          const categories = getSidebarCategories(userRole);
+          if (categories && categories[targetIndex]) {
+            const cat = categories[targetIndex];
+            setActiveCategory(cat.id);
+            const subTabs = getSubTabsForCategory(cat.id, userRole);
+            if (subTabs.length <= 1 || cat.id === 'teacher-dashboard-menu') {
+              setCategoryOverviewActive(null);
+              if (subTabs.length > 0) {
+                const targetSubTab = subTabs[0].id;
+                if (targetSubTab === 'teaching') {
+                  setActiveCreatorTab('teaching');
+                  setActiveTab('teaching');
+                } else {
+                  changeTab(targetSubTab);
+                }
+              }
+            } else {
+              setCategoryOverviewActive(cat.id);
+            }
+            triggerToast(`Navigated to ${cat.label}`, "info");
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [userRole]);
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isAppInstallable, setIsAppInstallable] = useState(false);
@@ -2228,10 +2281,14 @@ export default function App() {
                     if (categoryId) {
                       setActiveCategory(categoryId);
                     }
-                    if (tabId === 'teaching') {
+                    if (tabId === 'edu-tools-hub' || tabId === 'lesson-planning-landing') {
+                      setActiveCategory('lesson-planning');
+                      setCategoryOverviewActive('lesson-planning');
+                    } else if (tabId === 'teaching') {
                       setActiveCreatorTab('teaching');
                       setActiveTab('teaching');
                     } else {
+                      setCategoryOverviewActive(null);
                       changeTab(tabId);
                     }
                   }}
@@ -2239,6 +2296,26 @@ export default function App() {
                 />
               )
 
+                ) : activeTab === 'alerts' ? (
+                  <AlertsPage 
+                    isDarkMode={isDarkMode} 
+                    onNavigate={(tabId, categoryId) => {
+                      if (categoryId) {
+                        setActiveCategory(categoryId);
+                      }
+                      if (tabId === 'edu-tools-hub' || tabId === 'lesson-planning-landing') {
+                        setActiveCategory('lesson-planning');
+                        setCategoryOverviewActive('lesson-planning');
+                      } else if (tabId === 'teaching') {
+                        setActiveCreatorTab('teaching');
+                        setActiveTab('teaching');
+                      } else {
+                        setCategoryOverviewActive(null);
+                        changeTab(tabId);
+                      }
+                    }}
+                    triggerToast={triggerToast}
+                  />
                 ) : activeTab === 'messenger' ? (
                   <Messenger />
                 ) : activeTab === 'reports' ? (
