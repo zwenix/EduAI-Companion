@@ -580,5 +580,21 @@ svg:not(.not-sketchy) {
   filter: drop-shadow(0 0 8px rgba(255, 223, 64, 0.7));
 }
 
+@keyframes border-flash-cyan {
+  0%, 100% {
+    border-color: rgba(6, 182, 212, 0.35);
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.1), inset 0 0 4px rgba(6, 182, 212, 0.05);
+  }
+  50% {
+    border-color: rgba(6, 182, 212, 0.9);
+    box-shadow: 0 0 22px rgba(6, 182, 212, 0.45), inset 0 0 10px rgba(6, 182, 212, 0.2);
+  }
+}
+
+.animate-border-flash-cyan {
+  animation: border-flash-cyan 2.5s ease-in-out infinite;
+}
+
+
 
 

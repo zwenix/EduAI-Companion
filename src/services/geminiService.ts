@@ -28,6 +28,7 @@ OUTPUT FORMATTING GOLDEN RULE:
 - If user requests **HTML**: Output a complete standalone HTML5 document with Tailwind CSS via CDN. Include beautiful @media print styles.
 - If user requests **JSON**: Follow the specified schemas precisely.
 - Never output raw Markdown (like # or ** in HTML values). Use correct bold/heading tags or tailwind classes instead.
+- STRICT BANNER & TEXT COLOR CONTRAST RULE: To guarantee perfect accessibility and readability, all generated text over any background or banner MUST have high visual contrast (ratio ≥ 4.5:1). If a banner uses light or highly vibrant colors (such as orange, amber, yellow, cyan, mint, lime, or any light pastel/accent color), you MUST use dark text (e.g. text-slate-900 or text-black). Do NOT use white text (text-white) over yellow, orange, cyan, mint, or light blue backgrounds. White text is strictly restricted to deep, dark background colors (such as dark royal blue, deep purple, forest green, or dark slate).
 - Include a formal, printable Header and Footer stating: "EduAI CAPS Aligned Worksheet".
 Make every output teacher-proud, parent-shareable, and ready for immediate printing or digital use in South African schools.
 `;
@@ -96,6 +97,24 @@ export const safeJsonParse = (text: string | null | undefined): any => {
   if (!text) return {};
   let processedText = text.trim();
   
+  const cleanMarkdownInValue = (val: any): any => {
+    if (typeof val === 'string') {
+      let clean = val.trim();
+      clean = clean.replace(/^```(?:html|xml|json|markdown)?\s*/i, "");
+      clean = clean.replace(/\s*```$/, "");
+      return clean.trim();
+    } else if (Array.isArray(val)) {
+      return val.map(cleanMarkdownInValue);
+    } else if (typeof val === 'object' && val !== null) {
+      const res: any = {};
+      for (const [k, v] of Object.entries(val)) {
+        res[k] = cleanMarkdownInValue(v);
+      }
+      return res;
+    }
+    return val;
+  };
+
   // 1. Strip reasoning thoughts if present (<think>...</think> or unclosed <think>)
   processedText = processedText.replace(/<think>[\s\S]*?<\/think>/gi, '');
   processedText = processedText.replace(/<think>[\s\S]*$/gi, '');
@@ -126,15 +145,15 @@ export const safeJsonParse = (text: string | null | undefined): any => {
 
   try {
     // First try normal JSON parse on extracted JSON
-    return JSON.parse(extractedJson);
+    return cleanMarkdownInValue(JSON.parse(extractedJson));
   } catch (err) {
     try {
       // Try parsing the original text directly if extraction was somehow off
-      return JSON.parse(processedText);
+      return cleanMarkdownInValue(JSON.parse(processedText));
     } catch (errOrig) {
       try {
         const repaired = repairTruncatedJson(extractedJson);
-        return JSON.parse(repaired);
+        return cleanMarkdownInValue(JSON.parse(repaired));
       } catch (errRep) {
         console.warn("safeJsonParse: Standard and repaired JSON parse failed, trying regex fallback...", errRep);
 
@@ -143,11 +162,11 @@ export const safeJsonParse = (text: string | null | undefined): any => {
           try {
             const repaired = repairTruncatedJson(extractedJson);
             const evaluated = new Function('return ' + repaired)();
-            if (typeof evaluated === 'object' && evaluated !== null) return evaluated;
+            if (typeof evaluated === 'object' && evaluated !== null) return cleanMarkdownInValue(evaluated);
           } catch(e4) {}
           try {
             const evaluated = new Function('return ' + extractedJson)();
-            if (typeof evaluated === 'object' && evaluated !== null) return evaluated;
+            if (typeof evaluated === 'object' && evaluated !== null) return cleanMarkdownInValue(evaluated);
           } catch(e5) {}
         }
       }
@@ -256,7 +275,7 @@ export const safeJsonParse = (text: string | null | undefined): any => {
 
     if (fallbackObj.content || fallbackObj.extractedText || fallbackObj.feedback || fallbackObj.description) {
       console.warn("safeJsonParse: Reconstructed truncated JSON response successfully via fallback regex extraction!");
-      return fallbackObj;
+      return cleanMarkdownInValue(fallbackObj);
     }
 
     console.warn("Failed to parse AI response as JSON:", processedText);

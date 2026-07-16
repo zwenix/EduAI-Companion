@@ -564,10 +564,13 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
       case "llama-primary":
       case "llama-secondary":
       case "groq-vision":
-      case "groq-gpt-oss":
-      case "groq-qwen":
         client = groq;
         apiKey = process.env.GROQ_API_KEY || "";
+        break;
+      case "groq-gpt-oss":
+      case "groq-qwen":
+        client = openrouter;
+        apiKey = resolveOpenRouterKey();
         break;
       case "alibaba-qwen":
       case "alibaba-deepseek":
@@ -577,7 +580,9 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     }
 
     if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-      const neededKey = (provider.startsWith('groq') || provider.startsWith('llama'))
+      const neededKey = (provider === 'groq-gpt-oss' || provider === 'groq-qwen')
+        ? 'OPENROUTER_API_KEY'
+        : (provider.startsWith('groq') || provider.startsWith('llama'))
         ? 'GROQ_API_KEY'
         : provider.startsWith('alibaba')
         ? 'ALIBABA_API_KEY'
@@ -612,8 +617,13 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         temperature,
       };
       
-      // Only set max_tokens for non-Groq providers, as Groq returns 422 if max_tokens exceeds context window
-      if (!provider.startsWith('groq') && !provider.startsWith('llama')) {
+      // Force JSON mode for alternative models to ensure they output valid JSON values
+      if (provider === "groq-gpt-oss" || provider === "groq-qwen") {
+        payload.response_format = { type: "json_object" };
+      }
+      
+      // Only set max_tokens for non-Groq/llama providers (but include alternative openrouter-routed models)
+      if ((!provider.startsWith('groq') && !provider.startsWith('llama')) || provider === "groq-gpt-oss" || provider === "groq-qwen") {
         payload.max_tokens = 4000;
       }
 

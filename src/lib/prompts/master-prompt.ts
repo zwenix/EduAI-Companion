@@ -215,6 +215,7 @@ PRINT OPTIMIZATION:
    • Ensure strong contrast: dark text on light backgrounds
    • Maintain consistent padding throughout
    • Use shadow-lg or shadow-xl for elevation
+   • STRICT BANNER & TEXT COLOR CONTRAST: To guarantee perfect accessibility and readability, all generated text over any background or banner MUST have high visual contrast (ratio >= 4.5:1). If a banner uses light or highly vibrant colors (such as orange, amber, yellow, cyan, mint, lime, or any light pastel/accent color), you MUST use dark text (e.g. text-slate-900 or text-black). Do NOT use white text (text-white) over yellow, orange, cyan, mint, or light blue backgrounds. White text is strictly restricted to deep, dark background colors (such as dark royal blue, deep purple, forest green, or dark slate).
 
 6. GRID & FLEXBOX BEST PRACTICES:
    • Use grid-cols-1 md:grid-cols-2 lg:grid-cols-3 for responsive layouts

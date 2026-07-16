@@ -243,10 +243,16 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
       animate="show"
       className="space-y-10 relative select-none p-2 md:p-4 min-h-screen pb-24"
     >
-      {/* 1. Daily Overview Header & Cards */}
-      <motion.div variants={itemVariants} className="space-y-4">
+      {/* 1. Teaching Command Center Header & Cards */}
+      <motion.div 
+        variants={itemVariants} 
+        className={cn(
+          "p-6 md:p-8 rounded-[36px] border-2 space-y-6 animate-border-flash-cyan relative overflow-hidden",
+          isDarkMode ? "bg-[#0d1225]/45 backdrop-blur-md" : "bg-white/60 backdrop-blur-md shadow-xl"
+        )}
+      >
         <h2 className="text-xl font-display font-black tracking-widest text-cyan-400 uppercase flex items-center gap-2">
-          <span>Daily Overview</span>
+          <span>TEACHING COMMAND CENTER</span>
           <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
         </h2>
 
@@ -275,7 +281,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 leading-snug font-medium">
-                Address critical CAPS curriculum warnings and active student learning flags in real-time.
+                Track critical CAPS alerts & flags in real-time.
               </p>
             </div>
           </motion.div>
@@ -301,7 +307,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
                 <span className="h-2 w-2 rounded-full bg-purple-500 animate-ping shrink-0" />
               </div>
               <p className="text-[11px] text-slate-400 leading-snug font-medium">
-                Access the Edu-Tools Hub to generate customized CAPS-aligned lesson plans, rubrics, and diagnostic materials.
+                Generate custom CAPS lesson plans & booklets.
               </p>
             </div>
           </motion.div>
@@ -324,10 +330,395 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
                 Magic Library
               </h3>
               <p className="text-[11px] text-slate-400 leading-snug font-medium">
-                Curate and explore your stored history of CAPS-compliant classroom activities and lesson guides.
+                Deploy curated CAPS activities from archives.
               </p>
             </div>
           </motion.div>
+        </div>
+
+        {/* Quick Functions Deck (Icon-based & Interactive) */}
+        <div className="pt-6 border-t border-white/5 space-y-4">
+          <div className="flex items-center gap-2">
+            <Zap size={16} className="text-amber-400 animate-pulse" />
+            <h4 className="text-xs font-black tracking-widest text-slate-300 uppercase">
+              ⚡ Quick Functions Deck
+            </h4>
+          </div>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+            
+            {/* Action 1: Create Lesson */}
+            <motion.button 
+              whileHover={{ y: -4, scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => onNavigate('teaching', 'lesson-planning')}
+              className="p-3.5 rounded-[20px] bg-slate-950/40 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-400/25 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(6,182,212,0.15)]">
+                <Plus size={18} />
+              </div>
+              <span className="text-[10px] font-black uppercase text-slate-300 tracking-wider group-hover:text-cyan-300 transition-colors">
+                New Lesson
+              </span>
+            </motion.button>
+
+            {/* Action 2: Scan Worksheets */}
+            <motion.button 
+              whileHover={{ y: -4, scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => onNavigate('ocr', 'intelligence-ai')}
+              className="p-3.5 rounded-[20px] bg-slate-950/40 hover:bg-purple-500/10 border border-white/5 hover:border-purple-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-full bg-purple-500/10 border border-purple-400/25 text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(168,85,247,0.15)]">
+                <Scan size={18} />
+              </div>
+              <span className="text-[10px] font-black uppercase text-slate-300 tracking-wider group-hover:text-purple-300 transition-colors">
+                Scan Worksheets
+              </span>
+            </motion.button>
+
+            {/* Action 3: Broadcast Memo */}
+            <motion.button 
+              whileHover={{ y: -4, scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setIsBroadcastModalOpen(true)}
+              className="p-3.5 rounded-[20px] bg-slate-950/40 hover:bg-pink-500/10 border border-white/5 hover:border-pink-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-full bg-pink-500/10 border border-pink-400/25 text-pink-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(236,72,153,0.15)]">
+                <Bell size={18} />
+              </div>
+              <span className="text-[10px] font-black uppercase text-slate-300 tracking-wider group-hover:text-pink-300 transition-colors">
+                Broadcast Memo
+              </span>
+            </motion.button>
+
+            {/* Action 4: Class Management */}
+            <motion.button 
+              whileHover={{ y: -4, scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => onNavigate('class-management', 'class-management')}
+              className="p-3.5 rounded-[20px] bg-slate-950/40 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-400/25 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(16,185,129,0.15)]">
+                <UserCheck size={18} />
+              </div>
+              <span className="text-[10px] font-black uppercase text-slate-300 tracking-wider group-hover:text-emerald-300 transition-colors">
+                Manage Class
+              </span>
+            </motion.button>
+
+            {/* Action 5: Performance Stats */}
+            <motion.button 
+              whileHover={{ y: -4, scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => onNavigate('reports', 'class-analytics')}
+              className="p-3.5 rounded-[20px] bg-slate-950/40 hover:bg-amber-500/10 border border-white/5 hover:border-amber-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-400/25 text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(245,158,11,0.15)]">
+                <TrendingUp size={18} />
+              </div>
+              <span className="text-[10px] font-black uppercase text-slate-300 tracking-wider group-hover:text-amber-300 transition-colors">
+                Performance Stats
+              </span>
+            </motion.button>
+
+          </div>
+        </div>
+      </motion.div>
+
+      {/* 2.5. Academic Command Center & Insights (Moved to position below TEACHING command center) */}
+      <motion.div variants={itemVariants} className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
+          <h2 className="text-xl font-display font-black tracking-widest text-cyan-400 uppercase flex items-center gap-2">
+            <span>Academic Command Center & Insights</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[9px] font-black uppercase text-cyan-300 font-mono tracking-wider">
+              Live Metrics
+            </span>
+          </h2>
+          <p className="text-slate-400 text-xs font-semibold">
+            Track real-time CAPS milestones and syllabus pacing metrics.
+          </p>
+        </div>
+
+        {/* Graphs Container Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* Chart 1: CAPS Performance Trends */}
+          <div className="p-6 rounded-[32px] border border-white/10 bg-[#0d1225]/70 backdrop-blur-md shadow-xl flex flex-col gap-4">
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                <h3 className="text-sm font-black text-white font-display uppercase tracking-wide flex items-center gap-2">
+                  <TrendingUp size={16} className="text-cyan-400" />
+                  <span>Syllabus Performance Trends</span>
+                </h3>
+                <p className="text-[11px] text-slate-400 font-medium">
+                  Average grade achievements across active learning domains.
+                </p>
+              </div>
+              <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-400/10 px-2 py-0.5 rounded border border-cyan-400/20">
+                CAPS Compliant
+              </span>
+            </div>
+
+            {/* Recharts AreaChart */}
+            <div className="h-[260px] w-full text-xs">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={capsPerformanceData}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="colorMath" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorScience" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity="0.4"/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorLanguage" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ec4899" stopOpacity="0.4"/>
+                      <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff" opacity={0.05} />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="#94a3b8" 
+                    tickLine={false} 
+                    axisLine={false}
+                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                  />
+                  <YAxis 
+                    stroke="#94a3b8" 
+                    tickLine={false} 
+                    axisLine={false}
+                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                    domain={[50, 100]}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#0c1225', 
+                      borderColor: 'rgba(255,255,255,0.1)', 
+                      borderRadius: '16px',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      fontWeight: 'bold'
+                    }} 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="Mathematics" 
+                    stroke="#06b6d4" 
+                    strokeWidth={2.5}
+                    fillOpacity={1} 
+                    fill="url(#colorMath)" 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="Natural Sciences" 
+                    stroke="#10b981" 
+                    strokeWidth={2.5}
+                    fillOpacity={1} 
+                    fill="url(#colorScience)" 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="Languages" 
+                    stroke="#ec4899" 
+                    strokeWidth={2.5}
+                    fillOpacity={1} 
+                    fill="url(#colorLanguage)" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Chart Legend Labels */}
+            <div className="flex items-center justify-center gap-5 pt-1.5 border-t border-white/5 text-[10px] font-black uppercase tracking-wider">
+              <div className="flex items-center gap-1.5 text-cyan-400">
+                <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                <span>Mathematics</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>Natural Sciences</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-pink-400">
+                <span className="w-2 h-2 rounded-full bg-pink-400" />
+                <span>Languages</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Chart 2: Student Quest Engagement Metrics */}
+          <div className="p-6 rounded-[32px] border border-white/10 bg-[#0d1225]/70 backdrop-blur-md shadow-xl flex flex-col gap-4">
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                <h3 className="text-sm font-black text-white font-display uppercase tracking-wide flex items-center gap-2">
+                  <UserCheck size={16} className="text-purple-400" />
+                  <span>Cadet Milestone Pacing</span>
+                </h3>
+                <p className="text-[11px] text-slate-400 font-medium">
+                  Count of completed missions versus active quests per cadet.
+                </p>
+              </div>
+              <span className="text-[10px] font-mono font-bold text-purple-400 bg-purple-400/10 px-2 py-0.5 rounded border border-purple-400/20">
+                Engagement Sync
+              </span>
+            </div>
+
+            {/* Recharts BarChart */}
+            <div className="h-[260px] w-full text-xs">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={studentEngagementData}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff" opacity={0.05} />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="#94a3b8" 
+                    tickLine={false} 
+                    axisLine={false}
+                    tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 'bold' }}
+                  />
+                  <YAxis 
+                    stroke="#94a3b8" 
+                    tickLine={false} 
+                    axisLine={false}
+                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#0c1225', 
+                      borderColor: 'rgba(255,255,255,0.1)', 
+                      borderRadius: '16px',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      fontWeight: 'bold'
+                    }} 
+                  />
+                  <Bar dataKey="completed" fill="#10b981" radius={[4, 4, 0, 0]} name="Completed" />
+                  <Bar dataKey="active" fill="#ec4899" radius={[4, 4, 0, 0]} name="Active" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Chart Legend Labels */}
+            <div className="flex items-center justify-center gap-5 pt-1.5 border-t border-white/5 text-[10px] font-black uppercase tracking-wider">
+              <div className="flex items-center gap-1.5 text-emerald-400">
+                <span className="w-2.5 h-2.5 rounded bg-emerald-500" />
+                <span>Completed Missions</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-pink-400">
+                <span className="w-2.5 h-2.5 rounded bg-pink-500" />
+                <span>Active Quests</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </motion.div>
+
+      {/* Teacher Shortcuts Deck (Moved & Upgraded) */}
+      <motion.div variants={itemVariants} className="space-y-4">
+        <h2 className="text-xl font-display font-black tracking-widest text-cyan-400 uppercase flex items-center gap-2">
+          <span>Teacher Shortcuts Deck</span>
+          <span className="h-1.5 w-1.5 rounded-full bg-[#00ff9f] animate-pulse" />
+        </h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+          
+          {/* CAPS Creator Studio */}
+          <motion.div 
+            whileHover={{ y: -6, scale: 1.02 }}
+            onClick={() => {
+              onNavigate('teaching', 'lesson-planning');
+              triggerToast('Opening CAPS Lesson Creator Studio...', 'info');
+            }}
+            className="p-6 rounded-[32px] border-2 border-cyan-500/50 bg-[#0c1225]/85 shadow-[0_0_20px_rgba(6,182,212,0.15)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden"
+          >
+            <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-cyan-500/10 blur-xl rounded-full" />
+            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border-2 border-cyan-400 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)] shrink-0 group-hover:scale-105 transition-all">
+              <Sparkles size={24} className="drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
+            </div>
+            <div className="space-y-1 mt-4">
+              <h4 className="text-sm font-black text-white font-display leading-tight group-hover:text-cyan-300 transition-colors">
+                CAPS Creator Studio
+              </h4>
+              <p className="text-[10px] text-slate-400 leading-snug font-medium">
+                Design magical, fully-aligned unit maps and step-by-step CAPS lessons.
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Classroom Manager */}
+          <motion.div 
+            whileHover={{ y: -6, scale: 1.02 }}
+            onClick={() => {
+              onNavigate('class-management', 'class-management');
+              triggerToast('Opening Classrooms Manager...', 'info');
+            }}
+            className="p-6 rounded-[32px] border-2 border-emerald-500/50 bg-[#0c1225]/85 shadow-[0_0_20px_rgba(16,185,129,0.15)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden"
+          >
+            <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-emerald-500/10 blur-xl rounded-full" />
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border-2 border-emerald-400 flex items-center justify-center text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.25)] shrink-0 group-hover:scale-105 transition-all">
+              <UserCheck size={24} className="drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+            </div>
+            <div className="space-y-1 mt-4">
+              <h4 className="text-sm font-black text-white font-display leading-tight group-hover:text-emerald-300 transition-colors">
+                Classroom Manager
+              </h4>
+              <p className="text-[10px] text-slate-400 leading-snug font-medium">
+                Manage portfolios, reward achievements, and track active pupil marks.
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Grading Lab */}
+          <motion.div 
+            whileHover={{ y: -6, scale: 1.02 }}
+            onClick={() => {
+              onNavigate('ocr', 'intelligence-ai');
+              triggerToast('Launching Teacher\'s Auto-Grading Lab...', 'info');
+            }}
+            className="p-6 rounded-[32px] border-2 border-pink-500/50 bg-[#0c1225]/85 shadow-[0_0_20px_rgba(236,72,153,0.15)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden"
+          >
+            <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-pink-500/10 blur-xl rounded-full" />
+            <div className="w-14 h-14 rounded-2xl bg-pink-500/10 border-2 border-pink-400 flex items-center justify-center text-pink-400 shadow-[0_0_15px_rgba(236,72,153,0.25)] shrink-0 group-hover:scale-105 transition-all">
+              <Scan size={24} className="drop-shadow-[0_0_8px_rgba(236,72,153,0.6)]" />
+            </div>
+            <div className="space-y-1 mt-4">
+              <h4 className="text-sm font-black text-white font-display leading-tight group-hover:text-pink-300 transition-colors">
+                Grading Lab (OCR)
+              </h4>
+              <p className="text-[10px] text-slate-400 leading-snug font-medium">
+                Scan physical assessment worksheets with instant smart grading.
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Orbital Broadcast */}
+          <motion.div 
+            whileHover={{ y: -6, scale: 1.02 }}
+            onClick={() => setIsBroadcastModalOpen(true)}
+            className="p-6 rounded-[32px] border-2 border-purple-500/50 bg-[#0c1225]/85 shadow-[0_0_20px_rgba(168,85,247,0.15)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden"
+          >
+            <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-purple-500/10 blur-xl rounded-full" />
+            <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border-2 border-purple-400 flex items-center justify-center text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.25)] shrink-0 group-hover:scale-105 transition-all">
+              <Bell size={24} className="drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
+            </div>
+            <div className="space-y-1 mt-4">
+              <h4 className="text-sm font-black text-white font-display leading-tight group-hover:text-purple-300 transition-colors">
+                Orbital Broadcast
+              </h4>
+              <p className="text-[10px] text-slate-400 leading-snug font-medium">
+                Send live CAPS announcements directly to student dashboard models.
+              </p>
+            </div>
+          </motion.div>
+
         </div>
       </motion.div>
 
@@ -536,293 +927,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         </div>
       </motion.div>
 
-      {/* 2.5. Academic Command Center & Insights */}
-      <motion.div variants={itemVariants} className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
-          <h2 className="text-xl font-display font-black tracking-widest text-cyan-400 uppercase flex items-center gap-2">
-            <span>Academic Command Center & Insights</span>
-            <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[9px] font-black uppercase text-cyan-300 font-mono tracking-wider">
-              Live Metrics
-            </span>
-          </h2>
-          <p className="text-slate-400 text-xs font-semibold">
-            Track real-time CAPS milestones and syllabus pacing metrics.
-          </p>
-        </div>
 
-        {/* Graphs Container Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* Chart 1: CAPS Performance Trends */}
-          <div className="p-6 rounded-[32px] border border-white/10 bg-[#0d1225]/70 backdrop-blur-md shadow-xl flex flex-col gap-4">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <h3 className="text-sm font-black text-white font-display uppercase tracking-wide flex items-center gap-2">
-                  <TrendingUp size={16} className="text-cyan-400" />
-                  <span>Syllabus Performance Trends</span>
-                </h3>
-                <p className="text-[11px] text-slate-400 font-medium">
-                  Average grade achievements across active learning domains.
-                </p>
-              </div>
-              <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-400/10 px-2 py-0.5 rounded border border-cyan-400/20">
-                CAPS Compliant
-              </span>
-            </div>
-
-            {/* Recharts AreaChart */}
-            <div className="h-[260px] w-full text-xs">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={capsPerformanceData}
-                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="colorMath" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorScience" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity="0.4"/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorLanguage" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ec4899" stopOpacity="0.4"/>
-                      <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff" opacity={0.05} />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke="#94a3b8" 
-                    tickLine={false} 
-                    axisLine={false}
-                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
-                  />
-                  <YAxis 
-                    stroke="#94a3b8" 
-                    tickLine={false} 
-                    axisLine={false}
-                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
-                    domain={[50, 100]}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#0c1225', 
-                      borderColor: 'rgba(255,255,255,0.1)', 
-                      borderRadius: '16px',
-                      color: '#ffffff',
-                      fontSize: '11px',
-                      fontWeight: 'bold'
-                    }} 
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="Mathematics" 
-                    stroke="#06b6d4" 
-                    strokeWidth={2.5}
-                    fillOpacity={1} 
-                    fill="url(#colorMath)" 
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="Natural Sciences" 
-                    stroke="#10b981" 
-                    strokeWidth={2.5}
-                    fillOpacity={1} 
-                    fill="url(#colorScience)" 
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="Languages" 
-                    stroke="#ec4899" 
-                    strokeWidth={2.5}
-                    fillOpacity={1} 
-                    fill="url(#colorLanguage)" 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Chart Legend Labels */}
-            <div className="flex items-center justify-center gap-5 pt-1.5 border-t border-white/5 text-[10px] font-black uppercase tracking-wider">
-              <div className="flex items-center gap-1.5 text-cyan-400">
-                <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                <span>Mathematics</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span>Natural Sciences</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-pink-400">
-                <span className="w-2 h-2 rounded-full bg-pink-400" />
-                <span>Languages</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Chart 2: Student Quest Engagement Metrics */}
-          <div className="p-6 rounded-[32px] border border-white/10 bg-[#0d1225]/70 backdrop-blur-md shadow-xl flex flex-col gap-4">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <h3 className="text-sm font-black text-white font-display uppercase tracking-wide flex items-center gap-2">
-                  <UserCheck size={16} className="text-purple-400" />
-                  <span>Cadet Milestone Pacing</span>
-                </h3>
-                <p className="text-[11px] text-slate-400 font-medium">
-                  Count of completed missions versus active quests per cadet.
-                </p>
-              </div>
-              <span className="text-[10px] font-mono font-bold text-purple-400 bg-purple-400/10 px-2 py-0.5 rounded border border-purple-400/20">
-                Engagement Sync
-              </span>
-            </div>
-
-            {/* Recharts BarChart */}
-            <div className="h-[260px] w-full text-xs">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={studentEngagementData}
-                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff" opacity={0.05} />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke="#94a3b8" 
-                    tickLine={false} 
-                    axisLine={false}
-                    tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 'bold' }}
-                  />
-                  <YAxis 
-                    stroke="#94a3b8" 
-                    tickLine={false} 
-                    axisLine={false}
-                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#0c1225', 
-                      borderColor: 'rgba(255,255,255,0.1)', 
-                      borderRadius: '16px',
-                      color: '#ffffff',
-                      fontSize: '11px',
-                      fontWeight: 'bold'
-                    }} 
-                  />
-                  <Bar dataKey="completed" fill="#10b981" radius={[4, 4, 0, 0]} name="Completed" />
-                  <Bar dataKey="active" fill="#ec4899" radius={[4, 4, 0, 0]} name="Active" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Chart Legend Labels */}
-            <div className="flex items-center justify-center gap-5 pt-1.5 border-t border-white/5 text-[10px] font-black uppercase tracking-wider">
-              <div className="flex items-center gap-1.5 text-emerald-400">
-                <span className="w-2.5 h-2.5 rounded bg-emerald-500" />
-                <span>Completed Missions</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-pink-400">
-                <span className="w-2.5 h-2.5 rounded bg-pink-500" />
-                <span>Active Quests</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        {/* Shortcuts Action Deck Grid */}
-        <div className="space-y-4 pt-4">
-          <h3 className="text-sm font-display font-black tracking-widest text-purple-400 uppercase flex items-center gap-1.5">
-            <Zap size={14} className="animate-bounce" />
-            <span>Teacher Shortcuts Deck</span>
-          </h3>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            
-            {/* Shortcut 1: CAPS Creator Studio */}
-            <button
-              onClick={() => {
-                onNavigate('teaching', 'lesson-planning');
-                triggerToast('Opening CAPS Lesson Creator Studio...', 'info');
-              }}
-              className="p-5 rounded-2xl bg-slate-900/60 border border-white/5 hover:border-cyan-500/35 hover:bg-[#0c1225]/80 transition-all text-left flex flex-col justify-between h-32 group cursor-pointer"
-            >
-              <div className="p-2 bg-cyan-500/10 text-cyan-400 rounded-xl border border-cyan-500/15 group-hover:scale-105 transition-transform shrink-0 self-start">
-                <Sparkles size={18} />
-              </div>
-              <div className="space-y-0.5">
-                <h4 className="text-xs font-black text-white group-hover:text-cyan-300 transition-colors">
-                  CAPS Creator Studio
-                </h4>
-                <p className="text-[10px] text-slate-400 leading-tight">
-                  Design magical, fully-aligned unit maps and step guides.
-                </p>
-              </div>
-            </button>
-
-            {/* Shortcut 2: Classroom Manager */}
-            <button
-              onClick={() => {
-                onNavigate('class-management', 'class-management');
-                triggerToast('Opening Classrooms Manager...', 'info');
-              }}
-              className="p-5 rounded-2xl bg-slate-900/60 border border-white/5 hover:border-emerald-500/35 hover:bg-[#0c1225]/80 transition-all text-left flex flex-col justify-between h-32 group cursor-pointer"
-            >
-              <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/15 group-hover:scale-105 transition-transform shrink-0 self-start">
-                <UserCheck size={18} />
-              </div>
-              <div className="space-y-0.5">
-                <h4 className="text-xs font-black text-white group-hover:text-emerald-300 transition-colors">
-                  Classroom Manager
-                </h4>
-                <p className="text-[10px] text-slate-400 leading-tight">
-                  Manage portfolios, reward achievements, and track marks.
-                </p>
-              </div>
-            </button>
-
-            {/* Shortcut 3: Grading Lab */}
-            <button
-              onClick={() => {
-                onNavigate('ocr', 'intelligence-ai');
-                triggerToast('Launching Teacher\'s Auto-Grading Lab...', 'info');
-              }}
-              className="p-5 rounded-2xl bg-slate-900/60 border border-white/5 hover:border-pink-500/35 hover:bg-[#0c1225]/80 transition-all text-left flex flex-col justify-between h-32 group cursor-pointer"
-            >
-              <div className="p-2 bg-pink-500/10 text-pink-400 rounded-xl border border-pink-500/15 group-hover:scale-105 transition-transform shrink-0 self-start">
-                <Scan size={18} />
-              </div>
-              <div className="space-y-0.5">
-                <h4 className="text-xs font-black text-white group-hover:text-pink-300 transition-colors">
-                  Grading Lab (OCR)
-                </h4>
-                <p className="text-[10px] text-slate-400 leading-tight">
-                  Scan physical assessments with immediate digital scores.
-                </p>
-              </div>
-            </button>
-
-            {/* Shortcut 4: Orbital Broadcast */}
-            <button
-              onClick={() => setIsBroadcastModalOpen(true)}
-              className="p-5 rounded-2xl bg-slate-900/60 border border-white/5 hover:border-purple-500/35 hover:bg-[#0c1225]/80 transition-all text-left flex flex-col justify-between h-32 group cursor-pointer"
-            >
-              <div className="p-2 bg-purple-500/10 text-purple-400 rounded-xl border border-purple-500/15 group-hover:scale-105 transition-transform shrink-0 self-start">
-                <Bell size={18} />
-              </div>
-              <div className="space-y-0.5">
-                <h4 className="text-xs font-black text-white group-hover:text-purple-300 transition-colors">
-                  Orbital Broadcast
-                </h4>
-                <p className="text-[10px] text-slate-400 leading-tight">
-                  Send live announcements directly to all cadet modules.
-                </p>
-              </div>
-            </button>
-
-          </div>
-        </div>
-      </motion.div>
 
       {/* Futuristic glowing wave curves at the bottom of the landing page */}
       <div className="absolute bottom-0 left-0 w-full h-40 pointer-events-none overflow-hidden -z-20">

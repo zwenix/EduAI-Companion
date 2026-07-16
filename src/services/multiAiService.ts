@@ -7,28 +7,51 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
   let url = "https://api.groq.com/openai/v1/chat/completions";
   let apiKey = ((process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
   let selectedModel = model;
+  const isAltModel = provider === 'groq-gpt-oss' || provider === 'groq-qwen';
 
-  if (provider === 'groq-gpt-oss') {
-    if (!selectedModel || selectedModel === 'groq-gpt-oss') {
-      selectedModel = "openai/gpt-oss-120b";
+  if (isAltModel) {
+    url = "https://openrouter.ai/api/v1/chat/completions";
+    apiKey = ((process.env as any).OPENROUTER_API_KEY || (import.meta as any).env?.VITE_OPENROUTER_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+    
+    if (provider === 'groq-gpt-oss') {
+      if (!selectedModel || selectedModel === 'groq-gpt-oss') {
+        selectedModel = "openai/gpt-oss-120b";
+      }
+    } else if (provider === 'groq-qwen') {
+      if (!selectedModel || selectedModel === 'groq-qwen') {
+        selectedModel = "qwen/qwen3.6-27b";
+      }
     }
-  } else if (provider === 'groq-qwen') {
-    if (!selectedModel || selectedModel === 'groq-qwen') {
-      selectedModel = "qwen/qwen3.6-27b";
+  } else {
+    if (provider === 'groq-gpt-oss') {
+      if (!selectedModel || selectedModel === 'groq-gpt-oss') {
+        selectedModel = "openai/gpt-oss-120b";
+      }
+    } else if (provider === 'groq-qwen') {
+      if (!selectedModel || selectedModel === 'groq-qwen') {
+        selectedModel = "qwen/qwen3.6-27b";
+      }
     }
   }
 
   if (!apiKey) {
-    throw new Error(`API key for ${provider} is not configured in settings or environment. Please add it.`);
+    const keyName = isAltModel ? 'OPENROUTER_API_KEY' : 'GROQ_API_KEY';
+    throw new Error(`API key (${keyName}) for ${provider} is not configured in settings or environment. Please add it.`);
+  }
+
+  const payload: any = {
+    model: selectedModel,
+    messages,
+    temperature: 0.7,
+  };
+
+  if (isAltModel) {
+    payload.response_format = { type: "json_object" };
   }
 
   const response = await axios.post(
     url,
-    {
-      model: selectedModel,
-      messages,
-      temperature: 0.7,
-    },
+    payload,
     {
       headers: {
         "Content-Type": "application/json",

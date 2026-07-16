@@ -299,6 +299,13 @@ function ContentPreview({
   
   let processedHtml = typeof html === 'object' ? '' : String(html);
 
+  if (typeof html === 'string') {
+    processedHtml = processedHtml.trim();
+    processedHtml = processedHtml.replace(/^```(?:html|xml|json|markdown)?\s*/i, "");
+    processedHtml = processedHtml.replace(/\s*```$/, "");
+    processedHtml = processedHtml.trim();
+  }
+
   if (typeof html === 'object' && html !== null) {
     const formatObjectToHtml = (obj: any, depth = 1): string => {
       let result = '';

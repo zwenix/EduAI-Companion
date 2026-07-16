@@ -50,6 +50,7 @@ import {
   Zap,
   School,
   Home,
+  Calendar,
   ArrowLeft,
   LogOut,
   RefreshCcw,
@@ -137,48 +138,42 @@ import {
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
 const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDarkMode, themeMode }: { id?: string, icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean, isDarkMode?: boolean, themeMode?: string }) => {
-  const displayLabel = id === 'teacher-dashboard-menu' ? 'Teachers Office' : label;
+  const displayLabel = id === 'teacher-dashboard-menu' && label !== 'Home' ? 'Teachers Office' : label;
 
   return (
     <button
       onClick={onClick}
       title={collapsed ? displayLabel : undefined}
       className={cn(
-        "flex items-center w-full gap-3 transition-all duration-300 relative cursor-pointer border outline-none group",
-        collapsed ? "justify-center p-1.5 rounded-xl border-transparent" : "p-2 rounded-xl mb-1 border-transparent/5",
+        "flex items-center w-full gap-3.5 transition-all duration-300 relative cursor-pointer border-0 outline-none group",
+        collapsed ? "justify-center p-2 rounded-xl" : "p-3 px-4 rounded-2xl mb-1.5",
         active 
-          ? isDarkMode 
-            ? "bg-cyan-500/15 text-cyan-400 font-black border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.25)] text-glow-cyan" 
-            : "bg-cyan-500/10 text-cyan-600 font-black border-cyan-500/20"
+          ? isDarkMode
+            ? "bg-white/[0.08] text-cyan-400 font-black border-l-4 border-cyan-400 rounded-l-none rounded-r-2xl shadow-[inset_1px_0_0_rgba(255,255,255,0.05)] text-glow-cyan"
+            : "bg-cyan-500/10 text-cyan-700 font-black border-l-4 border-cyan-500 rounded-l-none rounded-r-2xl"
           : isDarkMode 
-            ? "text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/5 hover:border-cyan-500/10 font-medium" 
+            ? "text-slate-400 hover:text-white hover:bg-white/[0.03] rounded-2xl font-semibold" 
             : themeMode === 'peach'
-              ? "text-[#431407]/75 hover:text-[#431407] hover:bg-[#431407]/5 font-medium"
-              : "text-slate-500 hover:text-cyan-600 hover:bg-cyan-500/5 font-medium"
+              ? "text-[#431407]/75 hover:text-[#431407] hover:bg-[#431407]/5 rounded-2xl font-semibold"
+              : "text-slate-500 hover:text-cyan-600 hover:bg-cyan-500/5 rounded-2xl font-semibold"
       )}
     >
-      <div className={cn(
-        "shrink-0 flex items-center justify-center transition-all duration-300",
-        collapsed 
-          ? isDarkMode ? "w-9 h-9 bg-white/5 rounded-lg border border-white/5" : "w-9 h-9 bg-slate-100 rounded-lg border border-slate-200"
-          : isDarkMode ? "w-9 h-9 bg-white/10 rounded-lg border border-white/10 group-hover:scale-105" : "w-9 h-9 bg-slate-100 rounded-lg border border-slate-200 group-hover:scale-105"
-      )}>
-        <Icon 
-          size={collapsed ? 18 : 19} 
-          className={cn(
-            active 
-              ? isDarkMode ? "text-cyan-400" : "text-cyan-600" 
-              : isDarkMode 
-                ? "text-slate-400 group-hover:text-cyan-300" 
-                : themeMode === 'peach'
-                  ? "text-[#431407]/75 group-hover:text-[#431407]"
-                  : "text-slate-500 group-hover:text-cyan-600"
-          )} 
-        />
-      </div>
+      <Icon 
+        size={collapsed ? 18 : 19} 
+        className={cn(
+          "shrink-0 transition-transform duration-300 group-hover:scale-110",
+          active 
+            ? isDarkMode ? "text-cyan-400 filter drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" : "text-cyan-600" 
+            : isDarkMode 
+              ? "text-slate-400 group-hover:text-slate-200" 
+              : themeMode === 'peach'
+                ? "text-[#431407]/75 group-hover:text-[#431407]"
+                : "text-slate-500 group-hover:text-cyan-600"
+        )} 
+      />
       
       {!collapsed && (
-        <span className="font-sans text-[8.5px] font-bold uppercase tracking-wider text-left leading-none flex-1 flex items-center justify-between gap-2 overflow-hidden truncate">
+        <span className="font-sans text-xs font-semibold text-left flex-1 flex items-center justify-between gap-2 overflow-hidden truncate">
           <span className="truncate">{displayLabel}</span>
           
           {/* Class Management Badge */}
@@ -767,6 +762,11 @@ export default function App() {
 
   const getSidebarCategories = (role: string | null) => {
     const r = role || 'teacher';
+    let firstLabel = 'Teacher Dashboard';
+    if (r === 'student') firstLabel = 'Student Dashboard';
+    else if (r === 'parent') firstLabel = 'Parent Dashboard';
+    else if (r === 'admin') firstLabel = 'Admin Dashboard';
+    
     if (r === 'teacher') {
       return [
         { id: 'teacher-dashboard-menu', label: 'Teachers Office', icon: IconHome },
@@ -778,11 +778,6 @@ export default function App() {
         { id: 'system-support', label: 'Settings', icon: IconSettings },
       ];
     }
-    
-    let firstLabel = 'Teacher Dashboard';
-    if (r === 'student') firstLabel = 'Student Dashboard';
-    else if (r === 'parent') firstLabel = 'Parent Dashboard';
-    else if (r === 'admin') firstLabel = 'Admin Dashboard';
     
     return [
       { id: 'teacher-dashboard-menu', label: firstLabel, icon: IconHome },
@@ -969,6 +964,43 @@ export default function App() {
       }
     }
     return 'teacher-dashboard-menu';
+  };
+
+  const getPageTitle = () => {
+    if (categoryOverviewActive) {
+      const cat = sidebarCategories.find(c => c.id === categoryOverviewActive);
+      if (cat) return cat.label;
+    }
+
+    switch (activeTab) {
+      case 'dashboard':
+        return userRole === 'teacher' ? 'Home' : userRole === 'student' ? 'Student Dashboard' : userRole === 'parent' ? 'Parent Dashboard' : 'Admin Dashboard';
+      case 'teaching':
+        return activeCreatorTab === 'teaching' ? 'Lesson Planner' : 'Magic Planner';
+      case 'alerts':
+        return 'New Alerts';
+      case 'archive':
+        return 'Content Archive';
+      case 'reports':
+        return 'Galaxy Analytics';
+      case 'class-management':
+        return 'Classroom';
+      case 'settings':
+        return 'Settings';
+      case 'ai-tutor':
+        return 'Intelligent AI';
+      case 'ocr':
+        return "Teacher's Auto-Grading Lab";
+      case 'messenger':
+        return 'Message & Collaborate';
+      default:
+        for (const cat of sidebarCategories) {
+          const subTabs = getSubTabsForCategory(cat.id, userRole);
+          const tab = subTabs.find(t => t.id === activeTab);
+          if (tab) return tab.label;
+        }
+        return activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
+    }
   };
 
   useEffect(() => {
@@ -1208,22 +1240,22 @@ export default function App() {
 
       {/* Sidebar Base Placeholder on Desktop to prevent page content starting at 0 */}
       {!isMobile && (
-        <div className={cn("shrink-0 transition-all duration-300", isSidebarOpen ? "w-[240px]" : "w-[72px]")} />
+        <div className={cn("shrink-0 transition-all duration-300", isSidebarOpen ? "w-[256px]" : "w-[100px]")} />
       )}
 
       {/* Sidebar */}
       <motion.aside 
         initial={false}
         animate={{ 
-          width: isMobile ? 240 : (isSidebarOpen ? 240 : 72),
+          width: isMobile ? 240 : (isSidebarOpen ? 240 : 84),
           x: isMobile ? (isMobileSidebarOpen ? 0 : -240) : 0
         }}
         transition={{ type: "spring", bounce: 0, duration: 0.3 }}
         className={cn(
-          "h-full flex flex-col py-6 px-3 lg:px-4 fixed left-0 top-0 shrink-0 z-[60] shadow-2xl transition-all duration-300 border-r",
+          "flex flex-col py-8 px-4 fixed left-4 top-4 bottom-4 shrink-0 z-[60] shadow-2xl transition-all duration-300 border rounded-[32px] h-[calc(100vh-2rem)] overflow-x-hidden",
           isSidebarOpen ? "overflow-y-auto" : "overflow-hidden",
           isDarkMode 
-            ? "bg-[#050a18]/75 border-white/5 text-white backdrop-blur-2xl" 
+            ? "bg-[#0d1225]/45 border-white/10 text-white backdrop-blur-2xl" 
             : themeMode === 'peach'
               ? "bg-[#efe8d9]/75 border-[#dcd4c3] text-[#431407] backdrop-blur-2xl"
               : "bg-white/75 border-slate-200 text-slate-800 backdrop-blur-2xl"
@@ -1232,16 +1264,37 @@ export default function App() {
         {isDarkMode && <div className="sidebar-glow-highlight" />}
 
         {/* Center-aligned Animated Logo & Compact Header */}
-        <div className="flex flex-col mb-6 relative shrink-0">
-          <div className="flex items-center justify-between w-full relative px-2">
-            <div className="flex items-center gap-3">
+        <div className="flex flex-col mb-8 relative shrink-0">
+          <div className="flex items-center justify-between w-full relative px-1">
+            <div className="flex items-center gap-2">
+              {/* Collapse button on the left of EduAI / Logo */}
+              {!isMobile && (
+                <button
+                  onClick={() => setSidebarOpen(!isSidebarOpen)}
+                  className={cn(
+                    "p-1 rounded-lg transition-all border outline-none cursor-pointer flex items-center justify-center shrink-0",
+                    isDarkMode
+                      ? "bg-white/5 border-white/10 hover:bg-white/10 hover:border-cyan-400/30 text-slate-300 hover:text-cyan-400"
+                      : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-600 hover:text-slate-900"
+                  )}
+                  title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+                >
+                  {isSidebarOpen ? (
+                    <ChevronLeft size={14} strokeWidth={3} />
+                  ) : (
+                    <ChevronRight size={14} strokeWidth={3} />
+                  )}
+                </button>
+              )}
+              
+              {/* Animated Logo */}
               <Logo className="w-8 h-8" />
+              
               {(isSidebarOpen || isMobile) && (
-                <div className="flex flex-col text-left">
+                <div className="flex flex-col text-left animate-fadeIn">
                   <span className={cn(
-                    "text-sm font-display font-black tracking-tight leading-none",
-                    isDarkMode ? "text-white text-glow-cyan" : "text-slate-900"
-                  )}>EduAI</span>
+                    "text-xl font-display font-black tracking-tight leading-none text-white drop-shadow-[0_0_15px_rgba(0,225,255,0.4)]"
+                  )}>Edu<span className="text-[#00ff9f]">AI</span></span>
                   <span className="text-[10px] font-bold text-slate-400 mt-1 leading-none">Lead Navigator</span>
                 </div>
               )}
@@ -1258,53 +1311,7 @@ export default function App() {
               </button>
             )}
           </div>
-          
-          {/* Prominent Sidebar Maximizer/Minimizer button at the top */}
-          {!isMobile && (
-            <button
-              onClick={() => setSidebarOpen(!isSidebarOpen)}
-              className={cn(
-                "mt-3 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border outline-none cursor-pointer",
-                isDarkMode
-                  ? "bg-white/5 border-white/10 hover:bg-white/10 hover:border-[#00d2ff]/30 text-slate-300 hover:text-[#00d2ff]"
-                  : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-600 hover:text-slate-900"
-              )}
-              title={isSidebarOpen ? "Minimize Sidebar" : "Maximize Sidebar"}
-            >
-              {isSidebarOpen ? (
-                <>
-                  <ChevronLeft size={10} strokeWidth={3} />
-                  <span>Collapse</span>
-                </>
-              ) : (
-                <ChevronRight size={10} strokeWidth={3} />
-              )}
-            </button>
-          )}
         </div>
-
-        {/* Real-time Digital Clock Widget */}
-        {(isSidebarOpen || isMobile) && (
-          <div className={cn(
-            "mb-4 px-3 py-2 rounded-2xl flex items-center justify-between border select-none shrink-0",
-            isDarkMode 
-              ? "bg-slate-950/40 border-white/5 text-slate-400" 
-              : themeMode === 'peach'
-                ? "bg-[#efe8d9]/50 border-[#dcd4c3] text-[#431407]/70"
-                : "bg-slate-50 border-slate-100 text-slate-500"
-          )}>
-            <div className="flex flex-col text-left">
-              <span className="text-[8px] font-black uppercase tracking-wider opacity-60 leading-none">System Time</span>
-              <span className="text-xs font-mono font-black mt-0.5 tracking-tight leading-none">
-                {currentTime || '00:00:00'}
-              </span>
-            </div>
-            <div className="flex items-center gap-1 bg-emerald-500/10 text-emerald-500 rounded-lg px-2 py-0.5 text-[8px] font-black uppercase tracking-wider">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-              <span>Active</span>
-            </div>
-          </div>
-        )}
 
         <nav className="flex-1 min-h-0 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar pr-1 relative z-10">
           {sidebarCategories.map((cat) => {
@@ -1471,64 +1478,77 @@ export default function App() {
           </div>
         )}
 
-        {/* BEGIN: User Profile Section */}
-        {(isSidebarOpen || isMobile) ? (
-          <div className={cn(
-            "p-3 mt-auto flex items-center gap-3 mb-4 shrink-0 mx-1 border rounded-[22px]",
-            isDarkMode 
-              ? "bg-white/5 border-white/10 text-white" 
-              : themeMode === 'peach'
-                ? "bg-[#efe8d9]/50 border-[#dcd4c3] text-[#431407]"
-                : "bg-slate-50 border-slate-200 text-slate-800"
-          )} data-purpose="user-profile-card">
-            <div className="relative shrink-0">
-              <div className="w-12 h-12 rounded-full border-2 border-emerald-500 overflow-hidden bg-slate-800">
-                <img 
-                  alt="Profile" 
-                  className="w-full h-full object-cover" 
-                  referrerPolicy="no-referrer"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuC84-NEFvwZ7DJM6n9YadrglDB8eRZh5QhtpIKevJPmkMBaZ3RkjJ9cIZKMDhDdhi3Fm2vPK5KwuuIpM9M0T1QWfIrr9FYQZDoWaA5vG-P0gwhFLuHvW-kHBMutdlciDTTSzWc4OgZqI2wnPR8TKZEQ2JwrAhN01mVbao5KXaNjC2TkVtzJ_KpaSWV8kvi3RcI2ij0P6uiU4J4MCueD2QLas3WSqTUUAQPuhOnbmyer0gb5k78eHF-Eew" 
-                  onError={(e) => {
-                    e.currentTarget.src = `https://placehold.co/100/10b981/ffffff?text=${encodeURIComponent((userName || 'ZH').substring(0,2).toUpperCase())}`;
-                  }}
-                />
-              </div>
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#1a1b3a]"></div>
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className={cn(
-                "font-sans font-bold text-sm leading-tight truncate",
-                isDarkMode ? "text-white" : "text-slate-900"
-              )}>
-                {userName || 'Zwelakhe Hsuthu'}
-              </span>
-              <span className={cn(
-                "text-[10px] font-bold font-sans truncate opacity-60",
-                isDarkMode ? "text-white/60" : "text-slate-500"
-              )}>
-                {userRole === 'student' ? 'Level 12: Explorer' : userRole === 'parent' ? 'Level 24: Guardian' : 'Level 94: Master Tutor'}
-              </span>
-            </div>
-          </div>
-        ) : (
-          /* Compact Avatar for Collapsed Sidebar */
-          <div className="mt-auto flex justify-center shrink-0 mb-4">
-            <div className="relative group cursor-pointer" title={`${userName || 'Zwelakhe Hsuthu'} (${userRole})`}>
-              <div className="w-12 h-12 rounded-full border-2 border-emerald-500 overflow-hidden bg-slate-800 hover:scale-105 transition-all duration-300">
-                <img 
-                  alt="Profile" 
-                  className="w-full h-full object-cover" 
-                  referrerPolicy="no-referrer"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuC84-NEFvwZ7DJM6n9YadrglDB8eRZh5QhtpIKevJPmkMBaZ3RkjJ9cIZKMDhDdhi3Fm2vPK5KwuuIpM9M0T1QWfIrr9FYQZDoWaA5vG-P0gwhFLuHvW-kHBMutdlciDTTSzWc4OgZqI2wnPR8TKZEQ2JwrAhN01mVbao5KXaNjC2TkVtzJ_KpaSWV8kvi3RcI2ij0P6uiU4J4MCueD2QLas3WSqTUUAQPuhOnbmyer0gb5k78eHF-Eew" 
-                  onError={(e) => {
-                    e.currentTarget.src = `https://placehold.co/100/10b981/ffffff?text=${encodeURIComponent((userName || 'ZH').substring(0,2).toUpperCase())}`;
-                  }}
-                />
-              </div>
-              <span className="absolute bottom-0 right-0 h-3.5 w-3.5 bg-emerald-500 border border-[#1a1b3a] rounded-full animate-pulse" />
-            </div>
+        {/* Sliding Pill Theme Toggle at the bottom */}
+        {(isSidebarOpen || isMobile) && (
+          <div className="mt-auto px-4 mb-4 shrink-0 flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Night Vision</span>
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="w-11 h-6 rounded-full bg-slate-950/80 border border-white/15 p-0.5 relative cursor-pointer transition-colors duration-300 flex items-center shrink-0"
+              title="Toggle Dark/Light Mode"
+            >
+              <div 
+                className={cn(
+                  "w-4.5 h-4.5 rounded-full bg-[#00ff9f] shadow-[0_0_10px_rgba(0,255,159,0.8)] transition-all duration-300 transform",
+                  isDarkMode ? "translate-x-5" : "translate-x-0"
+                )} 
+              />
+            </button>
           </div>
         )}
+
+        {/* BEGIN: User Profile Section */}
+        <div className="mt-auto shrink-0 mb-4 px-1" data-purpose="user-profile-card">
+          <button
+            onClick={() => {
+              setActiveCategory('system-support');
+              const subTabs = getSubTabsForCategory('system-support', userRole);
+              if (subTabs.length > 0) {
+                changeTab('settings');
+              }
+              if (isMobile) setMobileSidebarOpen(false);
+            }}
+            title={(!isSidebarOpen && !isMobile) ? (userName || 'Profile') : undefined}
+            className={cn(
+              "flex items-center w-full gap-3 transition-all duration-300 relative cursor-pointer border-0 outline-none group",
+              (!isSidebarOpen && !isMobile) ? "justify-center p-2 rounded-xl" : "p-3 px-4 rounded-2xl",
+              activeCategory === 'system-support' && activeTab === 'settings'
+                ? isDarkMode
+                  ? "bg-white/[0.08] text-cyan-400 font-black border-l-4 border-cyan-400 rounded-l-none rounded-r-2xl text-glow-cyan"
+                  : "bg-cyan-500/10 text-cyan-700 font-black border-l-4 border-cyan-500 rounded-l-none rounded-r-2xl"
+                : isDarkMode 
+                  ? "text-slate-400 hover:text-white hover:bg-white/[0.03] rounded-2xl font-semibold" 
+                  : themeMode === 'peach'
+                    ? "text-[#431407]/75 hover:text-[#431407] hover:bg-[#431407]/5 rounded-2xl font-semibold"
+                    : "text-slate-500 hover:text-cyan-600 hover:bg-cyan-500/5 rounded-2xl font-semibold"
+            )}
+          >
+            <div className="relative shrink-0 w-6 h-6 rounded-full overflow-hidden border border-emerald-500 shadow-sm">
+              <img 
+                alt="Profile" 
+                className="w-full h-full object-cover" 
+                referrerPolicy="no-referrer"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuC84-NEFvwZ7DJM6n9YadrglDB8eRZh5QhtpIKevJPmkMBaZ3RkjJ9cIZKMDhDdhi3Fm2vPK5KwuuIpM9M0T1QWfIrr9FYQZDoWaA5vG-P0gwhFLuHvW-kHBMutdlciDTTSzWc4OgZqI2wnPR8TKZEQ2JwrAhN01mVbao5KXaNjC2TkVtzJ_KpaSWV8kvi3RcI2ij0P6uiU4J4MCueD2QLas3WSqTUUAQPuhOnbmyer0gb5k78eHF-Eew" 
+                onError={(e) => {
+                  e.currentTarget.src = `https://placehold.co/100/10b981/ffffff?text=${encodeURIComponent((userName || 'ZH').substring(0,2).toUpperCase())}`;
+                }}
+              />
+              <span className="absolute bottom-0 right-0 h-1.5 w-1.5 bg-emerald-500 rounded-full" />
+            </div>
+            
+            {(isSidebarOpen || isMobile) && (
+              <span className="font-sans text-xs font-semibold text-left flex-1 flex flex-col justify-center min-w-0">
+                <span className={cn(
+                  "truncate font-bold leading-tight",
+                  isDarkMode ? "text-white" : "text-slate-900"
+                )}>{userName || 'Zwelakhe Hsuthu'}</span>
+                <span className="text-[9px] text-slate-400 font-medium truncate leading-none mt-0.5">
+                  {userRole === 'student' ? 'Explorer' : userRole === 'parent' ? 'Guardian' : 'Master Tutor'}
+                </span>
+              </span>
+            )}
+          </button>
+        </div>
         {/* END: User Profile Section */}
       </motion.aside>
 
@@ -1586,7 +1606,7 @@ export default function App() {
                   "font-display font-black tracking-tight text-base lg:text-lg",
                   isDarkMode ? "text-white text-glow-cyan animate-fade-in" : "text-slate-800"
                 )}>
-                  Adventure HQ
+                  {getPageTitle()}
                 </span>
               </div>
             )}
