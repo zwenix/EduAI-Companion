@@ -704,10 +704,7 @@ const downloadBlobFile = (content: string, filename: string, contentType: string
 export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching', isDarkMode = true, isSidebarOpen = false }: { isOpen: boolean, onClose: () => void, initialTab?: string, isDarkMode?: boolean, isSidebarOpen?: boolean }) {
   const { provider } = useAi();
   const [activeTab, setActiveTab] = useState(() => {
-    if (initialTab === 'teaching' || !initialTab) {
-      return 'overview';
-    }
-    return initialTab;
+    return initialTab || 'teaching';
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

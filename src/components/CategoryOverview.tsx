@@ -38,7 +38,7 @@ export default function CategoryOverview({
   // Custom Edu-Tools Hub UI that matches the screenshot exactly
   if (categoryLabel === 'Edu-Tools Hub' || categoryLabel === 'Curriculum' || categoryLabel === 'Teachers Magic') {
     return (
-      <div className="space-y-8 relative p-6 lg:p-12 overflow-hidden rounded-[40px] border border-cyan-500/20 bg-slate-950/80 min-h-[750px]">
+      <div className="relative p-6 lg:p-12 overflow-hidden rounded-[40px] border border-cyan-500/20 bg-slate-950/80">
         {/* Retro Neon Grid Background & Waves */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#0d1225] via-[#0d1225] to-[#030611] overflow-hidden -z-10 rounded-[40px]">
           {/* Grid Perspective */}
@@ -59,31 +59,8 @@ export default function CategoryOverview({
           <div className="absolute bottom-10 -right-1/4 w-[150%] h-48 bg-gradient-to-r from-emerald-500/10 via-cyan-500/15 to-purple-500/25 blur-[100px] rounded-full transform rotate-6 pointer-events-none" />
         </div>
 
-        {/* Mock Navigation Header - Matching screenshot exactly */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-8 border-b border-white/5 relative z-10">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]">
-              <GraduationCap size={22} />
-            </div>
-            <span className="text-xl font-black tracking-tight text-white font-display bg-clip-text text-transparent bg-gradient-to-r from-white to-cyan-200">EduAI</span>
-          </div>
-
-          <div className="flex items-center gap-6 text-xs font-bold text-slate-300">
-            <button className="hover:text-cyan-400 transition-colors cursor-pointer bg-transparent border-0 outline-none">Home</button>
-            <button className="px-3.5 py-1.5 rounded-full border border-cyan-400/30 bg-cyan-400/10 text-cyan-300 shadow-[0_0_8px_rgba(6,182,212,0.15)] cursor-pointer outline-none">Features</button>
-            <button className="hover:text-cyan-400 transition-colors cursor-pointer bg-transparent border-0 outline-none">Pricing</button>
-            <button className="hover:text-cyan-400 transition-colors cursor-pointer bg-transparent border-0 outline-none">About</button>
-          </div>
-
-          <div>
-            <button className="px-5 py-2 rounded-full border border-cyan-400 text-cyan-300 text-xs font-bold uppercase tracking-wider hover:bg-cyan-400/10 shadow-[0_0_12px_rgba(6,182,212,0.15)] transition-all cursor-pointer">
-              Sign In
-            </button>
-          </div>
-        </div>
-
         {/* Main Content Area: Column Split */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10 pt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10">
           
           {/* LEFT: 3D Slanted Tablet Mockup */}
           <div className="lg:col-span-5 flex justify-center">
