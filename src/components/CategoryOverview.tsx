@@ -12,6 +12,7 @@ import {
   Archive,
   Database
 } from 'lucide-react';
+import ContentSlideshow from './ContentSlideshow';
 
 interface SubTabItem {
   id: string;
@@ -65,96 +66,7 @@ export default function CategoryOverview({
           {/* LEFT: 3D Slanted Tablet Mockup */}
           <div className="lg:col-span-5 flex justify-center">
             <div className="relative group [perspective:1000px]">
-              <motion.div
-                initial={{ rotateY: 15, rotateX: 5, scale: 0.95 }}
-                animate={{ rotateY: 10, rotateX: 3, scale: 1 }}
-                whileHover={{ rotateY: 0, rotateX: 0, scale: 1.03 }}
-                transition={{ type: "spring", stiffness: 100, damping: 20 }}
-                className="w-full max-w-[420px] bg-slate-900 border-[6px] border-slate-700/80 rounded-[32px] shadow-2xl p-6 relative overflow-hidden text-left cursor-pointer border-r-[12px] border-b-[8px]"
-              >
-                {/* Tablet Ambient Glow */}
-                <div className="absolute top-0 left-0 w-32 h-32 bg-cyan-400/10 rounded-full blur-2xl pointer-events-none" />
-                
-                {/* Inner Screen */}
-                <div className="space-y-6">
-                  {/* Tablet Header */}
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="text-cyan-400 text-sm font-black uppercase tracking-wider">AI Magic Lesson Plan</h4>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Grade 6 Science: Space Exploration</p>
-                    </div>
-                    <span className="text-[9px] font-black px-2.5 py-1 rounded-full border border-cyan-400/30 text-cyan-300 uppercase tracking-widest bg-cyan-950/40">
-                      Preview Active
-                    </span>
-                  </div>
-
-                  {/* Timeline representation */}
-                  <div className="space-y-4 pl-2 relative">
-                    {/* Vertical Timeline Guide Line */}
-                    <div className="absolute left-[17px] top-4 bottom-4 w-[2px] bg-gradient-to-b from-cyan-400/60 via-emerald-400/60 to-cyan-500/10" />
-
-                    {/* Timeline Node 1 */}
-                    <div 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelect('teaching');
-                      }}
-                      className="flex items-center gap-4 group/item hover:bg-white/5 p-2 rounded-xl transition-all"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-cyan-950 border-2 border-cyan-400 flex items-center justify-center text-cyan-400 z-10 shadow-[0_0_8px_rgba(6,182,212,0.3)] group-hover/item:scale-110 transition-transform">
-                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h5 className="text-xs font-black text-white">Engage: Interactive Quiz</h5>
-                        <p className="text-[10px] text-slate-400 truncate mt-0.5">Preview science Space Exploration</p>
-                      </div>
-                      <ChevronRight size={12} className="text-slate-500 group-hover/item:text-cyan-400 transition-colors" />
-                    </div>
-
-                    {/* Timeline Node 2 */}
-                    <div 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelect('teaching');
-                      }}
-                      className="flex items-center gap-4 group/item hover:bg-white/5 p-2 rounded-xl transition-all"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-emerald-950 border-2 border-emerald-400 flex items-center justify-center text-emerald-400 z-10 shadow-[0_0_8px_rgba(16,185,129,0.3)] group-hover/item:scale-110 transition-transform">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h5 className="text-xs font-black text-white">Explore: VR Journey</h5>
-                        <p className="text-[10px] text-slate-400 truncate mt-0.5">Preview with modules and website</p>
-                      </div>
-                      <ChevronRight size={12} className="text-slate-500 group-hover/item:text-emerald-400 transition-colors" />
-                    </div>
-
-                    {/* Timeline Node 3 */}
-                    <div 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelect('teaching');
-                      }}
-                      className="flex items-center gap-4 group/item hover:bg-white/5 p-2 rounded-xl transition-all"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-cyan-950 border-2 border-cyan-400 flex items-center justify-center text-cyan-400 z-10 shadow-[0_0_8px_rgba(6,182,212,0.3)] group-hover/item:scale-110 transition-transform">
-                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h5 className="text-xs font-black text-white">Evaluate: AI Assessment</h5>
-                        <p className="text-[10px] text-slate-400 truncate mt-0.5">Preview & evaluate AI Assessment</p>
-                      </div>
-                      <ChevronRight size={12} className="text-slate-500 group-hover/item:text-cyan-400 transition-colors" />
-                    </div>
-                  </div>
-
-                  {/* Tablet Footer Buttons */}
-                  <div className="pt-2 flex justify-between items-center text-[10px] text-slate-500">
-                    <span>Power: 100%</span>
-                    <span>Click steps to explore modules</span>
-                  </div>
-                </div>
-              </motion.div>
+<ContentSlideshow />
             </div>
           </div>
 
