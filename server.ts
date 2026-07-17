@@ -516,7 +516,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         const systemMessages = messages?.filter((m: any) => m.role === 'system');
         const systemInstruction = systemMessages?.map((m: any) => m.content).join("\n\n");
 
-        const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+        const modelsToTry = ["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash-lite"];
         let lastError: any = null;
         let response: any = null;
 
@@ -617,14 +617,14 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         temperature,
       };
       
-      // Force JSON mode for alternative models to ensure they output valid JSON values
-      if (provider === "groq-gpt-oss" || provider === "groq-qwen") {
-        payload.response_format = { type: "json_object" };
-      }
+      // JSON mode is handled by prompt instruction
       
-      // Only set max_tokens for non-Groq/llama providers (but include alternative openrouter-routed models)
-      if ((!provider.startsWith('groq') && !provider.startsWith('llama')) || provider === "groq-gpt-oss" || provider === "groq-qwen") {
+      // Set max_tokens to 800 for openrouter models to avoid credit limit 402s, 4000 for others
+      if (!provider.startsWith('groq') && !provider.startsWith('llama')) {
         payload.max_tokens = 4000;
+      }
+      if (provider === "groq-gpt-oss" || provider === "groq-qwen") {
+        payload.max_tokens = 350;
       }
 
       const response = await client.chat.completions.create(payload);
@@ -912,72 +912,69 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     
     if (provider === "gemini-imagen") {
       const apiKey = resolveGeminiKey();
-      if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-        return res.status(400).json({ error: "GEMINI_API_KEY missing" });
+      if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
+        try {
+          console.log("Attempting image generation with Gemini...");
+          const response = await geminiAi.models.generateContent({
+            model: 'gemini-2.5-flash-image', // Assuming this model is still intended
+            contents: {
+              parts: [
+                { text: prompt }
+              ]
+            },
+            config: {
+              imageConfig: {
+                aspectRatio: "1:1"
+              }
+            }
+          });
+
+          let foundBase64 = null;
+          if (response.candidates && response.candidates[0]?.content?.parts) {
+            for (const part of response.candidates[0].content.parts) {
+              if (part.inlineData && part.inlineData.data) {
+                foundBase64 = part.inlineData.data;
+                break;
+              }
+            }
+          }
+
+          if (foundBase64) {
+            console.log("Image successfully generated with Gemini!");
+            return res.json({ url: `data:image/jpeg;base64,${foundBase64}` });
+          }
+        } catch (err1: any) {
+          console.warn("Gemini generation failed, falling back to Perchance:", err1.message);
+        }
       }
 
-      // Try 1: gemini-2.5-flash-image (The designated Flash Image model)
+      // Fallback 1: Perchance
       try {
-        console.log("Attempting image generation with 'gemini-2.5-flash-image'...");
-        const response = await geminiAi.models.generateContent({
-          model: 'gemini-2.5-flash-image',
-          contents: {
-            parts: [
-              { text: prompt }
-            ]
+        console.log("Attempting image generation with Perchance AI...");
+        const seed = Math.floor(Math.random() * 100000);
+        const perchanceUrl = `https://perchance.org/imageapi?prompt=${encodeURIComponent(prompt)}&width=1024&height=1024&seed=${seed}`;
+        
+        const response = await fetch(perchanceUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'image/png, image/jpeg',
           },
-          config: {
-            imageConfig: {
-              aspectRatio: "1:1"
-            }
-          }
         });
-
-        let foundBase64 = null;
-        if (response.candidates && response.candidates[0]?.content?.parts) {
-          for (const part of response.candidates[0].content.parts) {
-            if (part.inlineData && part.inlineData.data) {
-              foundBase64 = part.inlineData.data;
-              break;
-            }
-          }
+        
+        if (!response.ok) {
+          throw new Error(`Perchance API error: ${response.status}`);
         }
-
-        if (foundBase64) {
-          console.log("Image successfully generated with 'gemini-2.5-flash-image'!");
-          return res.json({ url: `data:image/jpeg;base64,${foundBase64}` });
-        }
-      } catch (err1: any) {
-        console.warn("gemini-2.5-flash-image failed:", err1.message);
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+        console.log("Image successfully generated with Perchance AI!");
+        return res.json({ url: `data:image/jpeg;base64,${base64}` });
+      } catch (error: any) {
+        console.warn("Perchance generation failed, falling back to Pollinations:", error.message);
       }
 
-      // Try 2: imagen-3.0-generate-002
-      try {
-        console.log("Attempting image generation with 'imagen-3.0-generate-002'...");
-        const response = await geminiAi.models.generateImages({
-          model: 'imagen-3.0-generate-002',
-          prompt: prompt,
-          config: {
-            numberOfImages: 1,
-            outputMimeType: 'image/jpeg',
-            aspectRatio: '1:1'
-          }
-        });
-
-        if (response.generatedImages && response.generatedImages.length > 0) {
-          const image = response.generatedImages[0];
-          const base64 = image.image.imageBytes;
-          if (base64) {
-            console.log("Image successfully generated with 'imagen-3.0-generate-002'!");
-            return res.json({ url: `data:image/jpeg;base64,${base64}` });
-          }
-        }
-      } catch (err2: any) {
-        console.warn("imagen-3.0-generate-002 failed:", err2.message);
-      }
-
-      // Fallback Strategy: Pollinations (FLUX) so image generation NEVER fails!
-      console.warn("All Gemini image generation attempts failed. Falling back to Pollinations in the backend.");
+      // Fallback 2: Pollinations
+      console.warn("All image generation attempts failed. Falling back to Pollinations.");
       const enhancedPrompt = `${prompt}, masterpiece emoji-style figurine 3D render, 3D Disney Character render, pure white background, natural beauty, ultra-detailed 3D digital asset, vibrant colors, perfect composition, no text overlays, museum-quality detail`;
       const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 100000)}`;
       return res.json({ url: fallbackUrl, isFallback: true });
@@ -1088,7 +1085,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         Make sure your recommendations are encouraging and specifically reference their low/high subjects. Align suggestions with South African CAPS-standards (e.g. SBA, formative tests). Do not format the response with markdown formatting (no backticks, no text like 'json' or explanations), only output a parseable JSON block.
       `;
       const response = await geminiAi.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -1117,8 +1114,8 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
 
       const generateContentWithFallback = async (options: { model: string, contents: any, config?: any }) => {
         const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
-          : ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.1-pro", "gemini-3-flash"]
+          : ["gemini-3.5-flash", "gemini-3.1-pro", "gemini-3-flash"];
         
         let lastError: any = null;
         for (const candidate of modelsToTry) {
@@ -1571,7 +1568,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         timestamp: new Date().toISOString(),
         provider: 'gemini',
         endpoint: `/api/gemini/action`,
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.5-flash',
         error: errMsg,
         rawResponse: error.response?.data || error.stack || error.message || String(error),
         requestPayload: {

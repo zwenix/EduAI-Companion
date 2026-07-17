@@ -4,14 +4,32 @@ import { parsePosterHtml } from '../lib/posterParser';
 
 interface PosterPreviewProps {
   html: string;
+  grade?: string;
 }
 
-export function PosterPreview({ html }: PosterPreviewProps) {
+export function PosterPreview({ html, grade }: PosterPreviewProps) {
   const parsed = React.useMemo(() => parsePosterHtml(html), [html]);
+
+  const isFoundation = React.useMemo(() => {
+    if (!grade) return false;
+    const clean = String(grade).toLowerCase().trim();
+    return clean === 'r' || clean === '1' || clean === '2' || clean === '3' || 
+           clean.includes('grade r') || clean.includes('grade 1') || clean.includes('grade 2') || clean.includes('grade 3') ||
+           clean.includes('foundation');
+  }, [grade]);
 
   if (!parsed.isPoster) {
     // If it is not parsed as a poster layout, fallback to simple rendering
-    return <div dangerouslySetInnerHTML={{ __html: html }} />;
+    return (
+      <div 
+        style={isFoundation ? {
+          fontFamily: '"Patrick Hand", "Comic Neue", cursive, sans-serif',
+          fontSize: '1.25rem',
+          lineHeight: '1.6'
+        } : undefined}
+        dangerouslySetInnerHTML={{ __html: html }} 
+      />
+    );
   }
 
   // Framer Motion layout configurations
@@ -56,7 +74,14 @@ export function PosterPreview({ html }: PosterPreviewProps) {
   };
 
   return (
-    <div className={parsed.outerClasses || "poster-container max-w-4xl mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden border border-slate-100"}>
+    <div 
+      className={parsed.outerClasses || "poster-container max-w-4xl mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden border border-slate-100"}
+      style={isFoundation ? {
+        fontFamily: '"Patrick Hand", "Comic Neue", cursive, sans-serif',
+        fontSize: '1.25rem',
+        lineHeight: '1.6'
+      } : undefined}
+    >
       
       {/* Banner Section */}
       {parsed.bannerHtml && (

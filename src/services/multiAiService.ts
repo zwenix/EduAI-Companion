@@ -45,9 +45,7 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
     temperature: 0.7,
   };
 
-  if (isAltModel) {
-    payload.response_format = { type: "json_object" };
-  }
+  // Let the prompt dictate JSON mode, do not force it which causes issues with certain models on openrouter
 
   const response = await axios.post(
     url,

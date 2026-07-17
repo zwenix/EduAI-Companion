@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  LineChart, Line, AreaChart, Area, Legend
+  LineChart, Line, AreaChart, Area, Legend, Cell
 } from 'recharts';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, updateDoc, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
@@ -47,6 +47,10 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
   // Selection
   const [selectedStudentId, setSelectedStudentId] = useState<string>('mock-1');
   const [selectedSubjectName, setSelectedSubjectName] = useState<string>('');
+  
+  // Marks and Assessment distribution chart state
+  const [distributionSubject, setDistributionSubject] = useState('All');
+  const [distributionType, setDistributionType] = useState<'subject' | 'assessment'>('subject');
 
   // Firebase lists
   const [firebaseStudents, setFirebaseStudents] = useState<any[]>([]);
@@ -351,6 +355,68 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
     });
     return Array.from(classSet).sort();
   }, [allStudents]);
+
+  // Extract distinct subjects for the filtered class distribution chart
+  const distributionSubjects = useMemo(() => {
+    const subjectsSet = new Set<string>();
+    allStudents.forEach(student => {
+      if (selectedClassFilter === 'All' || student.grade === selectedClassFilter) {
+        student.subjects?.forEach(s => subjectsSet.add(s.name));
+      }
+    });
+    return ['All', ...Array.from(subjectsSet).sort()];
+  }, [allStudents, selectedClassFilter]);
+
+  // Keep distributionSubject valid if class filter changes and subject is no longer in list
+  useEffect(() => {
+    if (distributionSubject !== 'All' && !distributionSubjects.includes(distributionSubject)) {
+      setDistributionSubject('All');
+    }
+  }, [distributionSubjects, distributionSubject]);
+
+  // Dynamic distribution of marks for selected class/subject and mode
+  const marksDistributionData = useMemo(() => {
+    const brackets = [
+      { range: '0-49%', label: 'Needs Support (L1-2)', count: 0, color: '#f43f5e' },
+      { range: '50-59%', label: 'Developing (L3-4)', count: 0, color: '#f59e0b' },
+      { range: '60-69%', label: 'Satisfactory (L5)', count: 0, color: '#3b82f6' },
+      { range: '70-79%', label: 'Highly Competent (L6)', count: 0, color: '#06b6d4' },
+      { range: '80-100%', label: 'Outstanding (L7)', count: 0, color: '#10b981' },
+    ];
+
+    allStudents.forEach(student => {
+      // Apply class filter
+      if (selectedClassFilter !== 'All' && student.grade !== selectedClassFilter) return;
+
+      if (!student.subjects) return;
+
+      student.subjects.forEach(sub => {
+        // Apply subject filter if not 'All'
+        if (distributionSubject !== 'All' && sub.name !== distributionSubject) return;
+
+        if (distributionType === 'subject') {
+          const mark = sub.mark;
+          if (mark < 50) brackets[0].count++;
+          else if (mark < 60) brackets[1].count++;
+          else if (mark < 70) brackets[2].count++;
+          else if (mark < 80) brackets[3].count++;
+          else brackets[4].count++;
+        } else {
+          if (!sub.assessments) return;
+          sub.assessments.forEach(ass => {
+            const score = ass.score;
+            if (score < 50) brackets[0].count++;
+            else if (score < 60) brackets[1].count++;
+            else if (score < 70) brackets[2].count++;
+            else if (score < 80) brackets[3].count++;
+            else brackets[4].count++;
+          });
+        }
+      });
+    });
+
+    return brackets;
+  }, [allStudents, selectedClassFilter, distributionSubject, distributionType]);
 
   // AI recommendations plan state query
   const studentPlan = useMemo(() => {
@@ -763,6 +829,134 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Dynamic Marks Distribution Card (Bar Chart) */}
+          <div className="glass bg-[#0d1527]/40 p-6 sm:p-8 rounded-[40px] border border-white/5 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                  <Percent size={16} className="text-brand-cyan" />
+                  CAPS Marks & Assessment Distribution
+                </h3>
+                <h4 className="text-xl font-hand text-white">Learner Mark Brackets Analysis</h4>
+                <p className="text-slate-400 text-xs mt-1">
+                  Distribution of {distributionType === 'subject' ? 'Term Subject Marks' : 'Individual Assessments'} for <span className="text-brand-cyan font-semibold">{selectedClassFilter === 'All' ? 'All Classes' : selectedClassFilter}</span>
+                  {distributionSubject !== 'All' && <span> in <span className="text-brand-cyan font-semibold">{distributionSubject}</span></span>}.
+                </p>
+              </div>
+
+              {/* Chart Controls */}
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Mode Selector */}
+                <div className="bg-white/5 p-1 rounded-xl flex gap-1 border border-white/5">
+                  <button
+                    onClick={() => setDistributionType('subject')}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                      distributionType === 'subject'
+                        ? 'bg-brand-cyan text-navy-dark shadow-md font-bold'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Term Mark
+                  </button>
+                  <button
+                    onClick={() => setDistributionType('assessment')}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                      distributionType === 'assessment'
+                        ? 'bg-brand-cyan text-navy-dark shadow-md font-bold'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Assessments
+                  </button>
+                </div>
+
+                {/* Subject Selector */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Subject:</span>
+                  <select
+                    value={distributionSubject}
+                    onChange={(e) => setDistributionSubject(e.target.value)}
+                    className="bg-[#0D1527] border border-white/10 hover:border-white/20 transition-all rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white focus:outline-none cursor-pointer"
+                  >
+                    {distributionSubjects.map((sub) => (
+                      <option key={sub} value={sub}>
+                        {sub === 'All' ? 'All Subjects' : sub}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Bar Chart Container */}
+            <div className="h-[280px] sm:h-[320px] w-full text-xs">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={marksDistributionData}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff" opacity={0.05} vertical={false} />
+                  <XAxis
+                    dataKey="range"
+                    stroke="#94a3b8"
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                  />
+                  <YAxis
+                    stroke="#94a3b8"
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
+                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                    label={{ value: 'Number of Records', angle: -90, position: 'insideLeft', offset: -5, fill: '#64748b', fontSize: 10, fontWeight: 'bold' }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: 'rgba(255, 255, 255, 0.02)', radius: 12 }}
+                    contentStyle={{
+                      backgroundColor: '#0c1225',
+                      borderColor: 'rgba(255,255,255,0.1)',
+                      borderRadius: '16px',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      fontWeight: 'bold'
+                    }}
+                    formatter={(value: any, name: any, props: any) => {
+                      return [value, `${props.payload.label}`];
+                    }}
+                  />
+                  <Bar
+                    dataKey="count"
+                    radius={[10, 10, 0, 0]}
+                    maxBarSize={60}
+                  >
+                    {marksDistributionData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Custom Legend Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-3 border-t border-white/5">
+              {marksDistributionData.map((bracket, i) => (
+                <div key={i} className="bg-white/5 p-3 rounded-2xl border border-white/5 flex flex-col justify-between items-start">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: bracket.color }} />
+                    <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider truncate max-w-[120px]">
+                      {bracket.range}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-baseline justify-between w-full">
+                    <span className="text-lg font-bold text-white leading-none">{bracket.count}</span>
+                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Records</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

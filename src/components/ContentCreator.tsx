@@ -25,6 +25,8 @@ import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 import PrintPreviewModal from './PrintPreviewModal';
 import { PosterPreview } from './PosterPreview';
+import VideoLabConsole from './VideoLabConsole';
+import FoundationPhaseArchitect from './FoundationPhaseArchitect';
 import { db, auth } from '../lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
@@ -263,6 +265,14 @@ const Switch = ({ checked, onCheckedChange, id, isDarkMode }: any) => (
   </button>
 );
 
+const isFoundationPhase = (g?: string | number) => {
+  if (!g) return false;
+  const clean = String(g).toLowerCase().trim();
+  return clean === 'r' || clean === '1' || clean === '2' || clean === '3' || 
+         clean.includes('grade r') || clean.includes('grade 1') || clean.includes('grade 2') || clean.includes('grade 3') ||
+         clean.includes('foundation');
+};
+
 // ─── Preview Component ────────────────────────────────────────────────────────
 
 function ContentPreview({ 
@@ -409,6 +419,27 @@ function ContentPreview({
 </style>
 `;
   
+  const isFoundation = isFoundationPhase(grade);
+  const foundationIframeStyles = isFoundation ? `
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
+  
+  body, p, li, div, h1, h2, h3, h4, h5, h6, span, strong, section, article {
+    font-family: "Patrick Hand", "Comic Neue", cursive, sans-serif !important;
+  }
+  body {
+    font-size: 1.3rem !important;
+    line-height: 1.6 !important;
+  }
+  p, li, td, th {
+    font-size: 1.25rem !important;
+  }
+  h1 { font-size: 2.75rem !important; }
+  h2 { font-size: 2.25rem !important; }
+  h3 { font-size: 1.75rem !important; }
+</style>
+` : '';
+  
   let finalIframeContent = renderMathInHtml(processedHtml);
   // Always strip AI-generated tailwind CDN
   finalIframeContent = finalIframeContent.replace(/<script[^>]*src=["'][^>]*cdn\.tailwindcss\.com[^>]*>[\s\S]*?<\/script>/gi, '');
@@ -416,9 +447,9 @@ function ContentPreview({
   if (useIframe) {
       if (isFullHtmlDoc) {
           if (finalIframeContent.includes('<head>')) {
-              finalIframeContent = finalIframeContent.replace('<head>', `<head>\n${getParentStyles()}\n${customVisualStyles}`);
+              finalIframeContent = finalIframeContent.replace('<head>', `<head>\n${getParentStyles()}\n${customVisualStyles}\n${foundationIframeStyles}`);
           } else if (finalIframeContent.includes('<html')) {
-              finalIframeContent = finalIframeContent.replace(/<html[^>]*>/i, `$&<head>\n${getParentStyles()}\n${customVisualStyles}</head>`);
+              finalIframeContent = finalIframeContent.replace(/<html[^>]*>/i, `$&<head>\n${getParentStyles()}\n${customVisualStyles}\n${foundationIframeStyles}</head>`);
           }
       } else if (isHtmlFragment) {
           // Wrap fragment with Tailwind CSS
@@ -427,6 +458,7 @@ function ContentPreview({
 <head>
     ${getParentStyles()}
     ${customVisualStyles}
+    ${foundationIframeStyles}
     <style>body { margin: 0; padding: 1rem; }</style>
 </head>
 <body class="bg-white text-slate-900">
@@ -603,7 +635,7 @@ function ContentPreview({
 
       <div className={`${isDarkMode ? 'bg-slate-800 text-slate-200 border-white/10' : 'bg-white text-slate-900 border-slate-200'} border rounded-[32px] overflow-hidden p-4 lg:p-8 shadow-2xl relative min-h-[400px]`}>
         {processedHtml.includes('poster-container') || processedHtml.includes('content-card') ? (
-          <PosterPreview html={processedHtml} />
+          <PosterPreview html={processedHtml} grade={grade} />
         ) : useIframe ? (
           <iframe 
             srcDoc={finalIframeContent} 
@@ -614,6 +646,11 @@ function ContentPreview({
           <div ref={contentRef} className="space-y-6">
             <div 
               className={cn("prose prose-sm max-w-none markdown-body", isDarkMode ? "prose-invert" : "")}
+              style={isFoundation ? {
+                fontFamily: '"Patrick Hand", "Comic Neue", cursive, sans-serif',
+                fontSize: '1.25rem',
+                lineHeight: '1.6'
+              } : undefined}
               dangerouslySetInnerHTML={{ __html: processedHtml.trim().startsWith('<') ? processedHtml : rawMarkup }} 
             />
           </div>
@@ -1349,6 +1386,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
   const [t_extraInstructions, setT_ExtraInstructions] = useState('');
   const [t_generateImage, setT_GenerateImage] = useState(true);
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [advancedSettingsExpanded, setAdvancedSettingsExpanded] = useState(false);
 
   const t_subjects = useMemo(() => {
     if (!t_grade) return [];
@@ -1668,10 +1706,15 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
     const finalSubject = v_subject === 'Other' ? v_customSubject : v_subject;
     const finalTopic = v_topic === 'Other' ? v_customTopic : v_topic;
     setIsLoading(true);
+    setGenerationProgress(0);
     setError(null);
     setVisualResults([]);
     setVisualResult(null);
     setV_CurrentVariation(0);
+    
+    const progressInterval = setInterval(() => {
+      setGenerationProgress(prev => Math.min(prev + Math.floor(Math.random() * 8) + 2, 95));
+    }, 400);
     
     try {
       const results = [];
@@ -1696,9 +1739,9 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
         }, provider);
         
         results.push({
-           ...result,
-           shouldGenerateImage: v_generateImage,
-           userImagePrompt: v_extraInstructions
+          ...result,
+          shouldGenerateImage: v_generateImage,
+          userImagePrompt: v_extraInstructions
         });
         
         // Show the first one immediately if we're doing multiple
@@ -1708,39 +1751,62 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
         }
       }
       
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
       setVisualResults(results);
       setVisualResult(results[0]);
     } catch (err: any) { 
       console.error(err); 
+      clearInterval(progressInterval);
       setError(err.message || "Failed to design visual asset.");
-    } finally { setIsLoading(false); }
+    } finally { 
+      setIsLoading(false); 
+    }
   };
 
   const handleGenerateFoundation = async () => {
     setCurrentDocId(null);
     setIsLoading(true);
+    setGenerationProgress(0);
     setError(null);
     setTeachingResult(null); // Reusing teaching result panel
     setActivePreviewTab('content');
+
+    const progressInterval = setInterval(() => {
+      setGenerationProgress(prev => Math.min(prev + Math.floor(Math.random() * 8) + 2, 95));
+    }, 400);
+
     try {
       const result = await generateCAPSContent({
         category: 'Foundation Phase Pack', contentType: `${f_topic} Pack`, grade: f_grade, subject: f_language,
         topic: f_topic, term: 'Any', language: f_language, objective: `Focus on ${f_specific} with a ${f_theme} theme.`,
         learnerProfile: 'Foundation Phase Learners (Grade 1-3)', additionalInstructions: ''
       }, provider);
+      
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
       setTeachingResult(result);
     } catch (err: any) { 
       console.error(err); 
+      clearInterval(progressInterval);
       setError(err.message || "Failed to generate Foundation Phase reading pack.");
-    } finally { setIsLoading(false); }
+    } finally { 
+      setIsLoading(false); 
+    }
   };
 
   const handleGenerateAdmin = async () => {
     setCurrentDocId(null);
     const finalSubject = a_subject === 'Other' ? a_customSubject : a_subject;
     setIsLoading(true);
+    setGenerationProgress(0);
     setError(null);
     setAdminResult(null);
+
+    const progressInterval = setInterval(() => {
+      setGenerationProgress(prev => Math.min(prev + Math.floor(Math.random() * 8) + 2, 95));
+    }, 400);
+
     try {
       const result = await generateAdminDoc({
         documentType: a_type, schoolName: a_schoolName, principalName: a_principalName,
@@ -1748,11 +1814,17 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
         date: a_date, language: a_language, purpose: a_purpose, keyPoints: a_keyPoints,
         tone: a_tone, includeReplySlip: a_replySlip, additionalInstructions: a_extraInstructions
       }, provider);
+      
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
       setAdminResult({ ...result, shouldGenerateImage: a_generateImage, userImagePrompt: a_extraInstructions });
     } catch (err: any) { 
       console.error(err); 
+      clearInterval(progressInterval);
       setError(err.message || "Failed to draft official correspondence.");
-    } finally { setIsLoading(false); }
+    } finally { 
+      setIsLoading(false); 
+    }
   };
 
   if (!isOpen) return null;
@@ -1786,7 +1858,10 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                  <FlaskConical size={18} className="lg:w-5 lg:h-5" />
               </div>
               <div className="font-sans">
-                <h2 className="text-lg md:text-xl lg:text-2xl font-hand text-white">Content Creator Studio</h2>
+                <div className="flex flex-col">
+                  <h2 className="text-lg md:text-xl lg:text-2xl font-hand font-bold text-white leading-tight">Lesson Architect</h2>
+                  <span className="text-[8px] font-black uppercase tracking-[0.2em] text-indigo-400">Intelligence Engine</span>
+                </div>
               </div>
             </div>
             {/* Always visible Close Button on Mobile/Tablet right in row 1 */}
@@ -1841,8 +1916,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
       <div className="flex-1 flex flex-col overflow-y-auto lg:overflow-hidden relative">
         {activeTab === 'overview' ? (
           <div className="flex-1 overflow-y-auto p-6 md:p-10 lg:p-14 custom-scrollbar bg-[#0B1122]">
-
-
             {/* Grid of Generation Groups */}
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 animate-fade-in pb-12">
               {GENERATOR_GROUPS.map((item, idx) => {
@@ -1882,6 +1955,24 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
               })}
             </div>
           </div>
+        ) : activeTab === 'video' ? (
+          <VideoLabConsole 
+            isDarkMode={isDarkMode} 
+            videoResult={videoResult} 
+            isLoading={isLoading} 
+            onGenerate={handleGenerateVideo} 
+          />
+        ) : activeTab === 'grade1' ? (
+          <FoundationPhaseArchitect 
+            isDarkMode={isDarkMode} 
+            teachingResult={teachingResult} 
+            isLoading={isLoading} 
+            onGenerate={handleGenerateTeaching}
+            grade={f_grade}
+            onGradeChange={setF_Grade}
+            language={f_language}
+            onLanguageChange={setF_Language}
+          />
         ) : (
           <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
             {/* Left Parameter Panel Sidebar */}
@@ -1896,357 +1987,174 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                 <AnimatePresence mode="wait">
                   {activeTab === 'teaching' && (
                     <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-5">
-                      {/* Lab segment header */}
-                      <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-teal-500/5 border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.05)] relative overflow-hidden">
-                        <div className="absolute -top-10 -right-10 w-24 h-24 bg-emerald-500/10 blur-2xl rounded-full" />
-                        <div className="relative z-10">
-                          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-400 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">🎓 Lab Segment</span>
-                          <h3 className="text-base font-hand text-white mt-1.5 flex items-center gap-1.5 font-bold">
-                            <FlaskConical size={18} className="text-emerald-400 animate-pulse" /> Content Studio
-                          </h3>
-                          <p className="text-[10px] text-slate-400 mt-1 leading-relaxed font-sans">Lesson plans, worksheets, tests, and rubrics — perfectly CAPS-aligned.</p>
+                      {isLoading && (
+                        <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 mb-4 animate-pulse">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs font-bold text-indigo-300">Assembling Lesson...</span>
+                            <span className="text-xs font-mono text-indigo-400">{generationProgress}%</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-[#0B1122] rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-indigo-500 transition-all duration-300 ease-out"
+                              style={{ width: `${generationProgress}%` }}
+                            />
+                          </div>
+                          <div className="mt-2 text-[10px] text-indigo-300/60 uppercase tracking-widest font-black">
+                            Synthesizing core objectives...
+                          </div>
                         </div>
+                      )}
+
+                      <div className="flex items-center gap-2 mb-2">
+                        <Settings2 size={16} className="text-indigo-400" />
+                        <span className="text-sm font-black uppercase tracking-widest text-slate-200">Lab Parameters</span>
                       </div>
 
-                      {/* Card 1: Curriculum Setup */}
-                      <div className={cn(
-                        "rounded-2xl border p-4 space-y-3.5 shadow-md transition-all",
-                        isDarkMode ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-100"
-                      )}>
-                        <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
-                          <GraduationCap size={14} className="text-emerald-400" />
-                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Curriculum Context</span>
+                      <div className="space-y-5">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Document Type</label>
+                            <Select value={t_type} onValueChange={setT_Type} placeholder="Select Type" isDarkMode={isDarkMode}>
+                              {(close: any) => ['Lesson Plan', 'Unit Plan', 'Assessment', 'Study Guide'].map(type => (
+                                <SelectItem key={type} onClick={() => { setT_Type(type); close(); }} active={t_type === type} isDarkMode={isDarkMode}>{type}</SelectItem>
+                              ))}
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Language</label>
+                            <Select value={t_language || 'English'} onValueChange={setT_Language} placeholder="Language" isDarkMode={isDarkMode}>
+                                {(close: any) => LANGUAGES.map(l => (
+                                  <SelectItem key={l} onClick={() => { setT_Language(l); close(); }} active={t_language === l} isDarkMode={isDarkMode}>{l}</SelectItem>
+                                ))}
+                            </Select>
+                          </div>
                         </div>
-                        
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Grade</label>
-                          <Select value={t_grade} onValueChange={setT_Grade} placeholder="Grade" isDarkMode={isDarkMode}>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Target Audience</label>
+                          <Select value={t_grade} onValueChange={setT_Grade} placeholder="Select Grade" isDarkMode={isDarkMode}>
                             {(close: any) => Object.keys(educationalData).map(g => (
-                              <SelectItem key={g} onClick={() => { setT_Grade(g); setT_Subject(''); setT_Topic(''); close(); }} active={t_grade === g} isDarkMode={isDarkMode}>Grade {g}</SelectItem>
+                              <SelectItem key={g} onClick={() => { setT_Grade(g); setT_Subject(''); setT_Topic(''); close(); }} active={t_grade === g} isDarkMode={isDarkMode}>{g.includes('Grade') ? g : `${g} Grade`}</SelectItem>
                             ))}
                           </Select>
                         </div>
 
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Subject</label>
-                          <Select value={t_subject} onValueChange={setT_Subject} placeholder="Choose Subject" disabled={!t_grade} isDarkMode={isDarkMode}>
-                            {(close: any) => (
-                              <>
-                                {t_subjects.map(s => (
-                                  <SelectItem key={s} onClick={() => { setT_Subject(s); setT_Topic(''); close(); }} active={t_subject === s} isDarkMode={isDarkMode}>{s}</SelectItem>
-                                ))}
-                                <SelectItem key="Other" onClick={() => { setT_Subject('Other'); setT_Topic(''); close(); }} active={t_subject === 'Other'} isDarkMode={isDarkMode}>Other...</SelectItem>
-                              </>
-                            )}
-                          </Select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Topic / Strand</label>
-                          <Select value={t_topic} onValueChange={setT_Topic} placeholder="Specific Area" disabled={!t_subject} isDarkMode={isDarkMode}>
-                            {(close: any) => (
-                              <>
-                                {t_topics.map(t => (
-                                  <SelectItem key={t} onClick={() => { setT_Topic(t); close(); }} active={t_topic === t} isDarkMode={isDarkMode}>{t}</SelectItem>
-                                ))}
-                                <SelectItem key="Other" onClick={() => { setT_Topic('Other'); close(); }} active={t_topic === 'Other'} isDarkMode={isDarkMode}>Other...</SelectItem>
-                              </>
-                            )}
-                          </Select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Language</label>
-                          <Select value={t_language} onValueChange={setT_Language} placeholder="Language" isDarkMode={isDarkMode}>
-                            {(close: any) => LANGUAGES.map(l => (
-                              <SelectItem key={l} onClick={() => { setT_Language(l); close(); }} active={t_language === l} isDarkMode={isDarkMode}>{l}</SelectItem>
-                            ))}
-                          </Select>
-                        </div>
-                        
-                        {(t_subject === 'Other' || t_topic === 'Other') && (
-                          <div className="space-y-3 bg-white/5 p-3 rounded-xl border border-white/5 mt-2">
-                            {t_subject === 'Other' && (
-                              <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Custom Subject Name</label>
-                                <Input placeholder="Type custom subject" value={t_customSubject} onChange={(e: any) => setT_CustomSubject(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs" />
-                              </div>
-                            )}
-                            {t_topic === 'Other' && (
-                              <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Custom Topic / Strand</label>
-                                <Input placeholder="Type custom topic" value={t_customTopic} onChange={(e: any) => setT_CustomTopic(e.target.value)} isDarkMode={isDarkMode} className="h-9 text-xs" />
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Card 2: Material Design */}
-                      <div className={cn(
-                        "rounded-2xl border p-4 space-y-3.5 shadow-md transition-all",
-                        isDarkMode ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-100"
-                      )}>
-                        <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
-                          <FileText size={14} className="text-emerald-400" />
-                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Material Config</span>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Category</label>
-                          <Select value={t_category} onValueChange={setT_Category} placeholder="Pick Lab" isDarkMode={isDarkMode}>
-                            {(close: any) => Object.keys(TEACHING_CATEGORIES).map(cat => (
-                              <SelectItem key={cat} onClick={() => { setT_Category(cat); setT_Type(''); close(); }} active={t_category === cat} isDarkMode={isDarkMode}>{cat}</SelectItem>
-                            ))}
-                          </Select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Document Type</label>
-                          <Select value={t_type} onValueChange={setT_Type} placeholder="Select Type" disabled={!t_category} isDarkMode={isDarkMode}>
-                            {(close: any) => TEACHING_CATEGORIES[t_category]?.map(type => (
-                              <SelectItem key={type} onClick={() => { setT_Type(type); close(); }} active={t_type === type} isDarkMode={isDarkMode}>{type}</SelectItem>
-                            ))}
-                          </Select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Difficulty</label>
-                          <Select value={t_difficulty} onValueChange={setT_Difficulty} placeholder="Select Difficulty" isDarkMode={isDarkMode}>
-                            {(close: any) => DIFFICULTIES.map(diff => (
-                              <SelectItem key={diff} onClick={() => { setT_Difficulty(diff); close(); }} active={t_difficulty === diff} isDarkMode={isDarkMode}>{diff}</SelectItem>
-                            ))}
-                          </Select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Length & Duration</label>
-                          <Input 
-                            placeholder="45 minutes and 15 questions" 
-                            value={t_lengthAndDuration} 
-                            onChange={(e: any) => setT_LengthAndDuration(e.target.value)} 
-                            isDarkMode={isDarkMode} 
-                            className="h-9 text-xs px-3" 
-                          />
-                        </div>
-                      </div>
-
-                      {/* Card 3: Features & Objectives */}
-                      <div className={cn(
-                        "rounded-2xl border p-4 space-y-4 shadow-md transition-all",
-                        isDarkMode ? "bg-white/5 border-white/5 hover:border-white/10" : "bg-slate-50 border-slate-100"
-                      )}>
-                        <div className="flex items-center gap-1.5 border-b border-white/5 pb-2">
-                          <Zap size={14} className="text-emerald-400" />
-                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Features & Objective</span>
-                        </div>
-
-                        <div className="space-y-2.5">
-                          <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
-                            <label className="text-[10px] font-bold text-slate-300">Include marking memo</label>
-                            <Switch checked={t_memo} onCheckedChange={setT_Memo} id="t-memo" isDarkMode={isDarkMode} />
-                          </div>
-                          <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
-                            <label className="text-[10px] font-bold text-slate-300">Include rubrics matrix</label>
-                            <Switch checked={t_rubric} onCheckedChange={setT_Rubric} id="t-rubric" isDarkMode={isDarkMode} />
-                          </div>
-                          <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
-                            <label className="text-[10px] font-bold text-slate-300">Generate Hero Visual Aid</label>
-                            <Switch checked={t_generateImage} onCheckedChange={setT_GenerateImage} id="t-generateImage" isDarkMode={isDarkMode} />
-                          </div>
-                          {t_type === 'Lesson Plan' && (
-                            <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
-                              <label className="text-[10px] font-bold text-slate-300">Add Student Worksheet</label>
-                              <Switch checked={t_includeWorksheet} onCheckedChange={setT_IncludeWorksheet} id="t-include-worksheet" isDarkMode={isDarkMode} />
-                            </div>
-                          )}
-                        </div>
-
-                        {(t_type === 'Lesson Plan' || t_type === 'Unit Plan') && (
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Task Dependencies (Optional)</label>
-                            <Input placeholder="What concepts precede this task?" value={t_dependencies} onChange={(e: any) => setT_Dependencies(e.target.value)} isDarkMode={isDarkMode} className="h-9 py-1 px-3 text-xs rounded-xl" />
-                          </div>
-                        )}
-
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Learning Objective <span className="opacity-50">(Optional)</span></label>
-                          <Textarea placeholder="Define specific instructional outcome or milestones..." value={t_objective} onChange={(e: any) => setT_Objective(e.target.value)} isDarkMode={isDarkMode} className="h-20 text-xs rounded-xl" />
-                        </div>
-                      </div>
-
-                      {/* Card 4: Collapsible Exam Timer Config */}
-                      {examTimerExpanded && (
-                        <div className={cn(
-                          "rounded-2xl border p-4 space-y-4 shadow-md transition-all text-left",
-                          isDarkMode ? "bg-white/5 border-amber-500/20" : "bg-amber-50/50 border-amber-200"
-                        )}>
-                          <div className="flex items-center gap-1.5 border-b border-amber-500/10 pb-2">
-                            <Timer size={14} className="text-amber-400 animate-pulse" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Countdown Configuration</span>
-                          </div>
-
-                          <div className="space-y-3">
-                            <div className="space-y-1">
-                              <Label className="text-[9px]">Exam/Test Title</Label>
-                              <Input 
-                                placeholder="e.g. Term 2 Mathematics Controlled Test" 
-                                value={examPaperTitle} 
-                                onChange={(e: any) => setExamPaperTitle(e.target.value)} 
-                                isDarkMode={isDarkMode} 
-                                className="h-9 text-xs"
-                              />
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="space-y-1">
-                                <Label className="text-[9px]">Duration (Mins)</Label>
-                                <Input 
-                                  type="number" 
-                                  min="1" 
-                                  max="300"
-                                  value={examTimerDuration} 
-                                  onChange={(e: any) => setExamTimerDuration(Math.max(1, parseInt(e.target.value) || 1))} 
-                                  isDarkMode={isDarkMode} 
-                                  className="h-9 text-xs"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-[9px]">Warning (Mins)</Label>
-                                <Input 
-                                  type="number" 
-                                  min="1" 
-                                  max={examTimerDuration - 1}
-                                  value={examWarningMinutes} 
-                                  onChange={(e: any) => setExamWarningMinutes(Math.max(1, Math.min(examTimerDuration - 1, parseInt(e.target.value) || 1)))} 
-                                  isDarkMode={isDarkMode} 
-                                  className="h-9 text-xs"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
-                              <div className="flex items-center gap-2">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Subject Area</label>
+                          <div className="flex flex-wrap gap-2">
+                            {t_subjects.length > 0 ? (
+                              t_subjects.slice(0, 6).map(s => (
                                 <button
+                                  key={s}
                                   type="button"
-                                  onClick={() => setExamSoundEnabled(!examSoundEnabled)}
+                                  onClick={() => setT_Subject(s)}
                                   className={cn(
-                                    "p-1.5 rounded-lg border transition-all",
-                                    isDarkMode 
-                                      ? (examSoundEnabled ? "bg-white/5 border-brand-cyan/30 text-brand-cyan" : "bg-white/5 border-white/5 text-slate-500") 
-                                      : (examSoundEnabled ? "bg-cyan-50 border-cyan-200 text-cyan-600" : "bg-slate-50 border-slate-200 text-slate-400")
+                                    "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all border",
+                                    t_subject === s 
+                                      ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300" 
+                                      : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200"
                                   )}
                                 >
-                                  {examSoundEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
+                                  {s}
                                 </button>
-                                <span className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                                  Sound Chimes {examSoundEnabled ? "On" : "Muted"}
-                                </span>
+                              ))
+                            ) : (
+                              <div className="text-[10px] text-slate-500">Select audience first</div>
+                            )}
+                            {t_subjects.length > 6 && (
+                              <div className="w-full">
+                                <Select value={t_subject} onValueChange={setT_Subject} placeholder="More..." isDarkMode={isDarkMode}>
+                                  {(close: any) => t_subjects.slice(6).map(s => (
+                                    <SelectItem key={s} onClick={() => { setT_Subject(s); setT_Topic(''); close(); }} active={t_subject === s} isDarkMode={isDarkMode}>{s}</SelectItem>
+                                  ))}
+                                </Select>
                               </div>
-                              {isExamRunning && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setExamTimerAlertTriggered(true);
-                                    setExamAlertMessage("🔊 Visual Alert: This is a manual teacher alert chime test. Please keep silent.");
-                                    setShowExamAlertOverlay(true);
-                                    
-                                    if (examSoundEnabled && typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
-                                      try {
-                                        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-                                        const ctx = new AudioContextClass();
-                                        const osc = ctx.createOscillator();
-                                        const gain = ctx.createGain();
-                                        osc.type = 'sine';
-                                        osc.frequency.setValueAtTime(880, ctx.currentTime);
-                                        gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                                        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-                                        osc.connect(gain);
-                                        gain.connect(ctx.destination);
-                                        osc.start();
-                                        osc.stop(ctx.currentTime + 0.5);
-                                      } catch (_) {}
-                                    }
-                                  }}
-                                  className="text-[9px] uppercase font-black tracking-widest text-brand-cyan hover:underline flex items-center gap-1 cursor-pointer"
-                                >
-                                  <Bell size={10} /> Test Chime
-                                </button>
-                              )}
-                            </div>
-
-                            <div className="pt-2 border-t border-white/5">
-                              {!isExamRunning && !examCompleted ? (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setExamTimeRemaining(examTimerDuration * 60);
-                                    setIsExamRunning(true);
-                                    setIsExamPaused(false);
-                                    setExamTimerAlertTriggered(false);
-                                    setExamCompleted(false);
-                                    setExamAlertMessage(`⏰ The Exam (${examPaperTitle}) has started! Total duration: ${examTimerDuration} minutes.`);
-                                    setShowExamAlertOverlay(true);
-                                    if (examSoundEnabled) {
-                                      try {
-                                        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-                                        const ctx = new AudioContextClass();
-                                        const osc = ctx.createOscillator();
-                                        const gain = ctx.createGain();
-                                        osc.type = 'triangle';
-                                        osc.frequency.setValueAtTime(440, ctx.currentTime);
-                                        osc.frequency.setValueAtTime(554.37, ctx.currentTime + 0.15);
-                                        osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.3);
-                                        gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                                        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
-                                        osc.connect(gain);
-                                        gain.connect(ctx.destination);
-                                        osc.start();
-                                        osc.stop(ctx.currentTime + 0.6);
-                                      } catch (_) {}
-                                    }
-                                  }}
-                                  className="w-full py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-[9px] uppercase tracking-widest rounded-lg transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
-                                >
-                                  <Timer size={12} /> Start Countdown
-                                </button>
-                              ) : (
-                                <div className="flex items-center justify-between gap-3">
-                                  <div className="text-xs font-mono font-black text-brand-cyan bg-black/30 px-3 py-1.5 rounded-lg border border-white/5">
-                                    {Math.floor(examTimeRemaining / 60).toString().padStart(2, '0')}:
-                                    {(examTimeRemaining % 60).toString().padStart(2, '0')}
-                                  </div>
-                                  <div className="flex gap-1.5">
-                                    {!examCompleted && (
-                                      <button
-                                        type="button"
-                                        onClick={() => setIsExamPaused(!isExamPaused)}
-                                        className={cn(
-                                          "py-1 px-2.5 rounded-lg font-bold text-[9px] uppercase tracking-wider text-white transition-all cursor-pointer",
-                                          isExamPaused ? "bg-emerald-500 hover:bg-emerald-600" : "bg-amber-500 hover:bg-amber-600"
-                                        )}
-                                      >
-                                        {isExamPaused ? "Resume" : "Pause"}
-                                      </button>
-                                    )}
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setIsExamRunning(false);
-                                        setIsExamPaused(false);
-                                        setExamTimeRemaining(0);
-                                        setExamCompleted(false);
-                                      }}
-                                      className="py-1 px-2.5 bg-rose-500 hover:bg-rose-600 font-bold text-[9px] uppercase tracking-wider text-white rounded-lg transition-all cursor-pointer"
-                                    >
-                                      Reset
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
+                            )}
                           </div>
                         </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Core Concept / Topic</label>
+                          <div className="flex flex-wrap gap-2">
+                            {t_topics.length > 0 ? (
+                              t_topics.slice(0, 4).map((t: string) => (
+                                <button
+                                  key={t}
+                                  type="button"
+                                  onClick={() => setT_Topic(t)}
+                                  className={cn(
+                                    "px-3 py-1.5 rounded-full text-[10px] font-black tracking-wide transition-all border text-left",
+                                    t_topic === t 
+                                      ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300" 
+                                      : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200"
+                                  )}
+                                >
+                                  {t}
+                                </button>
+                              ))
+                            ) : (
+                              <div className="text-[10px] text-slate-500">Select subject first</div>
+                            )}
+                            {t_topics.length > 4 && (
+                              <div className="w-full">
+                                <Select value={t_topics.includes(t_topic) ? t_topic : ""} onValueChange={setT_Topic} placeholder="More topics..." isDarkMode={isDarkMode}>
+                                  {(close: any) => t_topics.slice(4).map((t: string) => (
+                                    <SelectItem key={t} onClick={() => { setT_Topic(t); close(); }} active={t_topic === t} isDarkMode={isDarkMode}>{t}</SelectItem>
+                                  ))}
+                                </Select>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="mt-3">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Or Custom Topic</label>
+                            <Textarea 
+                              placeholder="e.g. Discuss the role of ATP in cellular processes and how it relates to broader energy cycles in ecosystems." 
+                              value={t_topics.includes(t_topic) ? '' : t_topic} 
+                              onChange={(e: any) => setT_Topic(e.target.value)} 
+                              isDarkMode={isDarkMode} 
+                              className="h-20 text-xs resize-none w-full" 
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => setAdvancedSettingsExpanded(!advancedSettingsExpanded)}
+                            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-200 transition-colors"
+                          >
+                            <Settings2 size={12} className={advancedSettingsExpanded ? "text-indigo-400" : ""} />
+                            <span>Advanced Settings</span>
+                            <ChevronDown size={12} className={cn("transition-transform", advancedSettingsExpanded ? "rotate-180" : "")} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {advancedSettingsExpanded && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 pt-2 border-t border-white/5">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Length & Duration</label>
+                            <Input 
+                              placeholder="45 minutes" 
+                              value={t_lengthAndDuration} 
+                              onChange={(e: any) => setT_LengthAndDuration(e.target.value)} 
+                              isDarkMode={isDarkMode} 
+                              className="h-9 text-xs px-3" 
+                            />
+                          </div>
+                          
+                          <div className="space-y-2.5">
+                            <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
+                              <label className="text-[10px] font-bold text-slate-300">Include marking memo</label>
+                              <Switch checked={t_memo} onCheckedChange={setT_Memo} id="t-memo" isDarkMode={isDarkMode} />
+                            </div>
+                            <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
+                              <label className="text-[10px] font-bold text-slate-300">Include rubrics matrix</label>
+                              <Switch checked={t_rubric} onCheckedChange={setT_Rubric} id="t-rubric" isDarkMode={isDarkMode} />
+                            </div>
+                          </div>
+                        </motion.div>
                       )}
                     </motion.div>
                   )}
@@ -2901,7 +2809,23 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
             </div>
 
         {/* Right Preview Panel */}
-        <div id="preview-panel" className="w-full lg:flex-1 bg-navy-dark/40 lg:overflow-y-auto p-4 sm:p-8 lg:p-12 scrollbar-hide relative lg:h-full">
+        <div id="preview-panel" className={cn("w-full lg:flex-1 lg:overflow-y-auto p-4 sm:p-6 lg:p-10 scrollbar-hide relative lg:h-full flex flex-col", isDarkMode ? "bg-navy-dark/40" : "bg-slate-50")}>
+          {/* Persistent Right Panel Header */}
+          <div className={cn("flex justify-between items-center mb-6 pb-4 border-b shrink-0", isDarkMode ? "border-white/10" : "border-slate-200")}>
+            <h3 className={cn("text-xl font-hand font-bold flex items-center gap-2", isDarkMode ? "text-white" : "text-slate-800")}>
+              <Eye size={20} className="text-indigo-500" />
+              Live Preview Board
+            </h3>
+            <div className={cn("flex items-center gap-2 px-3 py-1 rounded-full shadow-sm border", isDarkMode ? "bg-white/5 border-white/10" : "bg-white border-slate-200")}>
+              <span className={cn("w-2 h-2 rounded-full animate-pulse", isLoading ? "bg-amber-400" : hasResult ? "bg-emerald-400" : (isDarkMode ? "bg-slate-600" : "bg-slate-300"))} />
+              <span className={cn("text-[10px] font-black uppercase tracking-widest", isDarkMode ? "text-slate-400" : "text-slate-500")}>
+                {isLoading ? "Streaming Generation" : hasResult ? "Generation Complete" : "Awaiting Parameters"}
+              </span>
+            </div>
+          </div>
+          
+          <div className="flex-1 relative">
+
           <AnimatePresence>
             {error && (
               <motion.div 
@@ -3424,16 +3348,61 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                 </div>
              </motion.div>
            ) : (
-             <div className="h-full flex flex-col items-center justify-center text-center space-y-8 opacity-20">
-               <div className="bg-white/5 p-10 rounded-[48px] border border-white/5">
-                 <Eye size={100} className="text-slate-600" />
-               </div>
-               <div>
-                  <h3 className="text-5xl font-hand text-slate-800">Neural Preview</h3>
-                  <p className="text-slate-700 mt-4 max-w-sm mx-auto font-medium">Synchronize parameters on the left to initialize the preview stream.</p>
+             <div className="w-full h-full flex flex-col pt-4">
+               <div className={cn("max-w-4xl w-full mx-auto p-8 lg:p-12 rounded-[32px] border shadow-sm flex flex-col gap-8 transition-all duration-500", isDarkMode ? "bg-white/5 border-white/5 shadow-none" : "bg-white border-slate-200")}>
+                 
+                 {/* Header Area */}
+                 <div className="space-y-4">
+                   <div className="flex flex-wrap gap-2">
+                     <span className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest", t_grade ? "bg-indigo-500/10 text-indigo-500" : "bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-slate-500")}>
+                       {t_grade || "Grade Pending"}
+                     </span>
+                     <span className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest", t_subject ? "bg-indigo-500/10 text-indigo-500" : "bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-slate-500")}>
+                       {t_subject || "Subject Pending"}
+                     </span>
+                     <span className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest", t_type ? "bg-indigo-500/10 text-indigo-500" : "bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-slate-500")}>
+                       {t_type || "Lesson Plan"}
+                     </span>
+                   </div>
+                   
+                   <h1 className={cn("text-3xl lg:text-5xl font-bold font-hand leading-tight transition-colors duration-500", t_topic ? "text-slate-900 dark:text-white" : "text-slate-300 dark:text-slate-700")}>
+                     {t_topic ? (t_topics.includes(t_topic) ? t_topic : t_topic) : "Awaiting Topic Configuration..."}
+                   </h1>
+                 </div>
+
+                 {/* Skeleton Body */}
+                 <div className="space-y-6 opacity-60">
+                    <div className="flex flex-col gap-3">
+                      <div className={cn("h-4 w-3/4 rounded-full", isDarkMode ? "bg-white/5" : "bg-slate-100")} />
+                      <div className={cn("h-4 w-full rounded-full", isDarkMode ? "bg-white/5" : "bg-slate-100")} />
+                      <div className={cn("h-4 w-5/6 rounded-full", isDarkMode ? "bg-white/5" : "bg-slate-100")} />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-100 dark:border-white/5">
+                       <div className={cn("h-24 rounded-2xl flex flex-col justify-center items-center text-center p-4", isDarkMode ? "bg-white/5" : "bg-slate-50")}>
+                          <span className={cn("text-[10px] font-black uppercase tracking-widest mb-2", isDarkMode ? "text-slate-600" : "text-slate-400")}>Objectives</span>
+                          <div className={cn("h-2 w-1/2 rounded-full", isDarkMode ? "bg-white/10" : "bg-slate-200")} />
+                       </div>
+                       <div className={cn("h-24 rounded-2xl flex flex-col justify-center items-center text-center p-4", isDarkMode ? "bg-white/5" : "bg-slate-50")}>
+                          <span className={cn("text-[10px] font-black uppercase tracking-widest mb-2", isDarkMode ? "text-slate-600" : "text-slate-400")}>Materials</span>
+                          <div className={cn("h-2 w-1/2 rounded-full", isDarkMode ? "bg-white/10" : "bg-slate-200")} />
+                       </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 pt-6">
+                      <div className={cn("h-4 w-1/4 rounded-full mb-2", isDarkMode ? "bg-white/5" : "bg-slate-100")} />
+                      <div className={cn("h-4 w-full rounded-full", isDarkMode ? "bg-white/5" : "bg-slate-100")} />
+                      <div className={cn("h-4 w-11/12 rounded-full", isDarkMode ? "bg-white/5" : "bg-slate-100")} />
+                    </div>
+                 </div>
+
+                 <div className={cn("mt-auto pt-10 text-center text-xs font-medium", isDarkMode ? "text-slate-500" : "text-slate-400")}>
+                   {t_topic && t_grade && t_subject ? "Configuration complete. Ready to generate." : "Please complete the configuration in the left panel to begin."}
+                 </div>
                </div>
              </div>
            )}
+          </div>
         </div>
       </div>
     )}

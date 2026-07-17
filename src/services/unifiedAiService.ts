@@ -99,6 +99,7 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
     const response = await callMultiAi(provider as AIProvider, messages);
     const parsed = safeJsonParse(response);
     if (Object.keys(parsed).length === 0) {
+      console.warn("safeJsonParse returned empty object for response:", response);
       return { content: response, imagePrompt: "Educational classroom scene" };
     }
     return parsed;

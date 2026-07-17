@@ -128,7 +128,7 @@ Visual Hierarchy:
 - METADATA/BADGE: Circular Grade badge. Underlined Name, Date, and Score cards.
 - QUESTIONS: Bold questions, numbered circle headers. Pill-shaped answer containers matching subject color.
 Phase Rules:
-- Foundation Phase (R-3): Rounded sans-serif (min 16pt), high-contrast, simple icons, generous padding (min 1.5rem).
+- Foundation Phase (R-3): Use Patrick's Hand or similar child-friendly handwritten font (font-hand class, 'Patrick Hand' font-family), increased font sizes (min 18pt or text-lg/xl), high-contrast, simple icons, generous padding (min 1.5rem).
 - Intermediate Phase (4-6): Sans-serif (min 14pt), bold key terms, simple labeled diagrams, "Challenge Corner".
 - Senior Phase (7-9): Professional sans-serif (min 12pt), multi-column layout, formulas, "Think Deeper" boxes.
 - FET Phase (10-12): Academic layout, visible marks, margin notes area, formula boxes.

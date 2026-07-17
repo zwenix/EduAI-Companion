@@ -32,6 +32,14 @@ export default function ReaderModeModal({
   subject = 'Educational Resource', 
   grade 
 }: ReaderModeModalProps) {
+  const isFoundation = useMemo(() => {
+    if (!grade) return false;
+    const clean = String(grade).toLowerCase().trim();
+    return clean === 'r' || clean === '1' || clean === '2' || clean === '3' || 
+           clean.includes('grade r') || clean.includes('grade 1') || clean.includes('grade 2') || clean.includes('grade 3') ||
+           clean.includes('foundation');
+  }, [grade]);
+
   // Read choices from local storage or defaults
   const [theme, setTheme] = useState<ReaderTheme>(() => {
     return (localStorage.getItem('eduai_reader_theme') as ReaderTheme) || 'sepia';
@@ -525,9 +533,11 @@ export default function ReaderModeModal({
                     font === 'dyslexic' ? 'font-comic tracking-wide lg:word-spacing-0.12' : ''
                   }`}
                   style={{
-                    fontSize: 'inherit',
+                    fontSize: isFoundation ? '1.35rem' : 'inherit',
                     lineHeight: 'inherit',
-                    fontFamily: 'inherit'
+                    fontFamily: isFoundation 
+                      ? '"Patrick Hand", "Comic Neue", cursive, sans-serif'
+                      : 'inherit'
                   }}
                   dangerouslySetInnerHTML={{ __html: activeHTML }}
                 />

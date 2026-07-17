@@ -11,24 +11,24 @@ Generate a highly descriptive, CAPS-aligned primary student activity worksheet. 
 HEADER SECTION (Most Important Visual Element):
 • Full-width gradient banner with subject-specific colors (use exact hex codes from Color System)
 • Glassmorphism effect: backdrop-blur-md, bg-white/10, border border-white/20
-• Title: text-4xl md:text-5xl font-black tracking-tight leading-tight text-white
-• Subtitle: text-xl text-white/90 font-medium
+• Title: text-4xl md:text-5xl font-black tracking-tight leading-tight text-slate-950
+• Subtitle: text-xl text-slate-900/90 font-medium
 • Grade badge: Circular design with shadow-lg, positioned top-right
   <div class="absolute top-6 right-6 bg-white/20 backdrop-blur-md rounded-full w-20 h-20 flex flex-col items-center justify-center shadow-xl border-2 border-white/30">
-    <span class="text-xs font-bold uppercase tracking-wider text-white/80 font-mono">Grade</span>
-    <span class="text-3xl font-black text-white">\${grade}</span>
+    <span class="text-xs font-bold uppercase tracking-wider text-slate-700 font-mono">Grade</span>
+    <span class="text-3xl font-black text-slate-950">\${grade}</span>
   </div>
 • Metadata strip below header:
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/20">
-    <div class="flex items-center gap-2 text-white/90">
+    <div class="flex items-center gap-2 text-slate-900/90">
       <span class="text-lg">📚</span>
       <span class="font-semibold">Subject:</span> \subGrade \${subject}
     </div>
-    <div class="flex items-center gap-2 text-white/90 font-mono">
+    <div class="flex items-center gap-2 text-slate-900/90 font-mono">
       <span class="text-lg">📅</span>
       <span class="font-semibold">Term:</span> Term \${term}
     </div>
-    <div class="flex items-center gap-2 text-white/90">
+    <div class="flex items-center gap-2 text-slate-900/90">
       <span class="text-lg">🎯</span>
       <span class="font-semibold">Total Marks:</span> \${totalMarks}
     </div>
@@ -261,7 +261,7 @@ TOP BANNER (Hero Section):
 • Glassmorphism effects for metadata
 • Large, impactful title
 • Decorative elements (subtle patterns, icons)
-  <div class="banner bg-gradient-to-br from-[subject-start] via-[subject-mid] to-[subject-end] p-8 md:p-12 text-white relative overflow-hidden" style="background: linear-gradient(135deg, \${primary}, \${dark});">
+  <div class="banner bg-gradient-to-br from-[subject-start] via-[subject-mid] to-[subject-end] p-8 md:p-12 text-slate-950 relative overflow-hidden" style="background: linear-gradient(135deg, \${primary}, \${dark});">
     <!-- Decorative background pattern -->
     <div class="absolute inset-0 opacity-10">
       <div class="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -translate-y-32 translate-x-32"></div>
@@ -277,7 +277,7 @@ TOP BANNER (Hero Section):
           <h1 class="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-tight mb-3">
             \${title}
           </h1>
-          <p class="text-xl md:text-2xl text-white/90 font-medium">
+          <p class="text-xl md:text-2xl text-slate-900/90 font-medium">
             \${subtitle}
           </p>
         </div>
@@ -440,7 +440,7 @@ COVER SECTION:
 • Large title with professional typography
 • Subject icon and badges
 • Professional layout
-  <header class="cover text-white p-12 md:p-16 text-center relative overflow-hidden" style="background: linear-gradient(135deg, \${primary}, \${dark});">
+  <header class="cover text-slate-950 p-12 md:p-16 text-center relative overflow-hidden" style="background: linear-gradient(135deg, \${primary}, \${dark});">
     <!-- Decorative elements -->
     <div class="absolute inset-0 opacity-10">
       <div class="absolute top-10 left-10 w-32 h-32 border-4 border-white rounded-full"></div>

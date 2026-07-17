@@ -50,15 +50,15 @@ Every piece of content you create must be:
    • Line heights: leading-tight for headings, leading-relaxed for body
    • Font weights: 400 (body), 600 (semibold), 700 (bold), 800-900 (headings)
 
-5. COLOR SYSTEM (Subject-Specific Palettes):
-   • Mathematics: Deep blue (#1e40af) → Sky blue (#0ea5e9) → Cyan (#06b6d4)
-   • Languages: Royal purple (#7c3aed) → Violet (#8b5cf6) → Lavender (#a78bfa)
-   • Life Skills: Warm orange (#ea580c) → Amber (#f59e0b) → Yellow (#fbbf24)
-   • Natural Sciences: Forest green (#059669) → Emerald (#10b981) → Mint (#34d399)
-   • Social Sciences: Rich brown (#92400e) → Terracotta (#dc2626) → Coral (#f87171)
-   • Arts & Culture: Magenta (#db2777) → Pink (#ec4899) → Rose (#f472b6)
-   • Technology: Slate gray (#334155) → Steel blue (#475569) → Silver (#94a3b8)
-   • Business/EMS: Gold (#ca8a04) → Bronze (#b45309) → Copper (#d97706)
+5. COLOR SYSTEM (Subject-Specific Tailwind Palettes):
+   • Mathematics: bg-blue-600 to bg-cyan-500
+   • Languages: bg-purple-600 to bg-violet-400
+   • Life Skills: bg-orange-500 to bg-amber-400 (Always use text-slate-900 on these banners)
+   • Natural Sciences: bg-emerald-600 to bg-teal-400
+   • Social Sciences: bg-red-600 to bg-rose-400
+   • Arts & Culture: bg-pink-600 to bg-fuchsia-400
+   • Technology: bg-slate-700 to bg-slate-500
+   • Business/EMS: bg-amber-600 to bg-yellow-400 (Always use text-slate-900 on these banners)
 
 6. SPACING & LAYOUT SYSTEM:
    • Container max-width: max-w-5xl to max-w-6xl
@@ -72,7 +72,8 @@ Every piece of content you create must be:
 
 FOUNDATION PHASE (Grade R-3):
 • Colors: Bright, saturated primaries with high contrast
-• Typography: Large, rounded fonts (min 18pt equivalent, font-weight: 700+)
+• Typography: MANDATORY Patrick's Hand or other similar friendly handwritten fonts suitable for young children. All generated text MUST use the "font-hand" class or include 'font-family: "Patrick Hand", "Comic Neue", cursive, sans-serif' styling.
+• Font Size: Increased font sizes for super-high readability (body text MUST be at least 18pt equivalent, e.g. text-lg or text-xl classes, and headings must be text-2xl or text-3xl).
 • Icons: Simple, friendly illustrations with thick outlines
 • Spacing: Extra generous (min 2rem padding, 1.5rem gaps)
 • Visual elements: Large emoji, colorful shapes, playful patterns
@@ -215,7 +216,13 @@ PRINT OPTIMIZATION:
    • Ensure strong contrast: dark text on light backgrounds
    • Maintain consistent padding throughout
    • Use shadow-lg or shadow-xl for elevation
-   • STRICT BANNER & TEXT COLOR CONTRAST: To guarantee perfect accessibility and readability, all generated text over any background or banner MUST have high visual contrast (ratio >= 4.5:1). If a banner uses light or highly vibrant colors (such as orange, amber, yellow, cyan, mint, lime, or any light pastel/accent color), you MUST use dark text (e.g. text-slate-900 or text-black). Do NOT use white text (text-white) over yellow, orange, cyan, mint, or light blue backgrounds. White text is strictly restricted to deep, dark background colors (such as dark royal blue, deep purple, forest green, or dark slate).
+   • Maintain consistent padding throughout
+   • Use shadow-lg or shadow-xl for elevation
+
+6. STRICT BANNER & TEXT COLOR CONTRAST (MANDATORY):
+   • If a background or banner is light or vibrant (bg-orange-*, bg-amber-*, bg-yellow-*, bg-cyan-*, bg-teal-300, bg-pink-300, bg-white, bg-slate-50): YOU MUST USE text-slate-900.
+   • NEVER use text-white on orange, amber, yellow, or white backgrounds.
+   • text-white is ONLY allowed on deep backgrounds (bg-blue-800, bg-purple-800, bg-slate-900).
 
 6. GRID & FLEXBOX BEST PRACTICES:
    • Use grid-cols-1 md:grid-cols-2 lg:grid-cols-3 for responsive layouts

@@ -40,6 +40,14 @@ export default function PrintPreviewModal({
   const [selectedSection, setSelectedSection] = useState<'content' | 'memo' | 'rubric'>('content');
   const paperRef = useRef<HTMLDivElement>(null);
 
+  const isFoundation = useMemo(() => {
+    if (!options.grade) return false;
+    const clean = String(options.grade).toLowerCase().trim();
+    return clean === 'r' || clean === '1' || clean === '2' || clean === '3' || 
+           clean.includes('grade r') || clean.includes('grade 1') || clean.includes('grade 2') || clean.includes('grade 3') ||
+           clean.includes('foundation');
+  }, [options.grade]);
+
   // Subject color palette coding based on our South African CAPS visual styling guidelines
   const subjectStyling = useMemo(() => {
     const s = (options.subject || "").toLowerCase();
@@ -304,7 +312,11 @@ export default function PrintPreviewModal({
               className="w-full max-w-[210mm] min-h-[297mm] bg-white text-slate-800 p-[20mm] shadow-2xl rounded-sm border border-slate-200 text-left relative flex flex-col shrink-0 overflow-visible select-text"
               style={{
                 boxSizing: 'border-box',
-                fontFamily: "'Inter', system-ui, -apple-system, sans-serif"
+                fontFamily: isFoundation 
+                  ? '"Patrick Hand", "Comic Neue", cursive, sans-serif'
+                  : "'Inter', system-ui, -apple-system, sans-serif",
+                fontSize: isFoundation ? '1.25rem' : undefined,
+                lineHeight: isFoundation ? '1.6' : undefined
               }}
             >
               {/* Paper Top Branding Header (on-screen 1/2 line watermark) */}
@@ -317,7 +329,12 @@ export default function PrintPreviewModal({
 
               {/* Dynamic generated content inside paper wrapper */}
               <div 
-                className="prose max-w-none text-slate-800 text-sm leading-relaxed flex-1"
+                className={`prose max-w-none text-slate-800 flex-1 ${isFoundation ? 'text-lg font-medium' : 'text-sm leading-relaxed'}`}
+                style={isFoundation ? {
+                  fontFamily: '"Patrick Hand", "Comic Neue", cursive, sans-serif',
+                  fontSize: '1.2rem',
+                  lineHeight: '1.6'
+                } : undefined}
                 dangerouslySetInnerHTML={{ __html: activeHTML }}
               />
 

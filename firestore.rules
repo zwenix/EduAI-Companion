@@ -41,7 +41,7 @@ service cloud.firestore {
                      );
     }
 
-    function isValidStudent(data) {
+    function isValidStudentCreate(data) {
       return data.keys().size() >= 6 && data.keys().size() <= 15
         && data.name is string && data.name.size() <= 100
         && data.grade is string && data.grade.size() <= 50
@@ -56,6 +56,21 @@ service cloud.firestore {
         && (!('id' in data) || data.id is string && data.id.size() <= 128)
         && (!('parentId' in data) || data.parentId == null || (data.parentId is string && data.parentId.size() <= 128));
     }
+    
+    function isValidStudentUpdate(data, existingData) {
+      return data.name is string && data.name.size() <= 100
+        && data.grade is string && data.grade.size() <= 50
+        && data.email is string && data.email.size() <= 150
+        && data.status is string && data.status in ['Active', 'Inactive']
+        && data.teacherId is string
+        && (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp)
+        && (!('parentEmail' in data) || data.parentEmail is string && data.parentEmail.size() <= 150)
+        && (!('parentPhone' in data) || data.parentPhone is string && data.parentPhone.size() <= 30)
+        && (!('parentName' in data) || data.parentName is string && data.parentName.size() <= 100)
+        && (!('id' in data) || data.id is string && data.id.size() <= 128)
+        && (!('parentId' in data) || data.parentId == null || (data.parentId is string && data.parentId.size() <= 128));
+    }
+    
     match /students/{studentId} {
       allow get: if isSignedIn() && isValidId(studentId) && (
         existing().teacherId == request.auth.uid ||
@@ -69,13 +84,13 @@ service cloud.firestore {
         (resource.data.parentId is string && resource.data.parentId == request.auth.uid) ||
         (resource.data.parentEmail is string && resource.data.parentEmail == request.auth.token.email)
       );
-      allow create: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming()) && incoming().createdAt == request.time;
+      allow create: if isSignedIn() && isValidId(studentId) && isValidStudentCreate(incoming()) && incoming().createdAt == request.time;
       allow update: if isSignedIn() && isValidId(studentId) && (
                       existing().teacherId == request.auth.uid ||
                       existing().email == request.auth.token.email ||
                       (existing().parentId is string && existing().parentId == request.auth.uid) ||
                       (existing().parentEmail is string && existing().parentEmail == request.auth.token.email)
-                    ) && isValidStudent(incoming())
+                    ) 
                      && incoming().createdAt == existing().createdAt
                      && incoming().updatedAt == request.time
                      && (
