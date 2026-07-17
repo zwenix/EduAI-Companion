@@ -35,7 +35,7 @@ export default function ContentSlideshow() {
   }, []);
 
   return (
-    <div className="w-full max-w-[420px] bg-slate-900 border-[6px] border-slate-700/80 rounded-[32px] shadow-2xl p-2 relative overflow-hidden text-left border-r-[12px] border-b-[8px] h-[360px]">
+    <div className="w-full max-w-[420px] bg-slate-900 border-[6px] border-slate-700/80 rounded-[32px] shadow-2xl p-2 relative overflow-hidden text-left border-r-[12px] border-b-[8px] h-[360px] min-h-[360px]">
       <AnimatePresence mode="wait">
         <motion.div
           key={index}
