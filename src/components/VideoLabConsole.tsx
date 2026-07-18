@@ -9,7 +9,8 @@ import {
   MoreHorizontal,
   ChevronRight,
   Plus,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
@@ -72,13 +73,33 @@ interface VideoLabConsoleProps {
   videoResult?: any;
   isLoading?: boolean;
   onGenerate?: () => void;
+  vid_model?: string;
+  setVid_Model?: (val: string) => void;
+  vid_prompt?: string;
+  setVid_Prompt?: (val: string) => void;
+  vid_seed?: number;
+  setVid_Seed?: (val: number) => void;
+  vid_fps?: number;
+  setVid_Fps?: (val: number) => void;
+  onBack?: () => void;
+  onClose?: () => void;
 }
 
 export default function VideoLabConsole({ 
   isDarkMode = true, 
   videoResult, 
   isLoading, 
-  onGenerate 
+  onGenerate,
+  vid_model = "omnihuman-1",
+  setVid_Model,
+  vid_prompt = "",
+  setVid_Prompt,
+  vid_seed = -1,
+  setVid_Seed,
+  vid_fps = 12,
+  setVid_Fps,
+  onBack,
+  onClose
 }: VideoLabConsoleProps) {
   const [recordingProgress, setRecordingProgress] = useState(videoResult ? 100 : 0);
   const [currentTime, setCurrentTime] = useState("14:42:09:12");
@@ -103,10 +124,10 @@ export default function VideoLabConsole({
   }, []);
 
   return (
-    <div className="flex flex-col gap-6 p-6 font-sans overflow-y-auto lg:overflow-hidden h-full">
+    <div className="flex flex-col gap-6 p-6 font-sans overflow-y-auto h-full w-full custom-scrollbar pb-12">
       {/* Header Area */}
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-1">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col gap-1 text-left">
           <h1 className="text-2xl font-black text-white tracking-tight">Video Lab Console</h1>
           <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
             <span>Session ID: #VL-8924</span>
@@ -115,13 +136,36 @@ export default function VideoLabConsole({
           </div>
         </div>
         
-        <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-full">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
-            <span className="text-[10px] font-black text-white uppercase tracking-widest">SYS REC</span>
+        <div className="flex items-center gap-3 self-end md:self-auto">
+          {/* Back Button */}
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/5 hover:bg-white/10 text-brand-cyan border border-brand-cyan/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
+            >
+              <span>← Labs</span>
+            </button>
+          )}
+
+          <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-full">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
+              <span className="text-[10px] font-black text-white uppercase tracking-widest">SYS REC</span>
+            </div>
+            <div className="w-px h-3 bg-white/10" />
+            <span className="text-[11px] font-mono font-bold text-slate-400">{currentTime}</span>
           </div>
-          <div className="w-px h-3 bg-white/10" />
-          <span className="text-[11px] font-mono font-bold text-slate-400">{currentTime}</span>
+
+          {/* Close Button */}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-200 hover:text-white rounded-full border border-red-500/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
+              title="Close"
+            >
+              <X size={14} strokeWidth={3} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -199,10 +243,62 @@ export default function VideoLabConsole({
               <span>Control Board</span>
             </div>
 
-            <div className="flex flex-col gap-6 flex-1 justify-center px-2">
+            <div className="flex flex-col gap-5 flex-1 justify-center px-2 overflow-y-auto">
+              {/* Model Engine Selector */}
+              <div className="space-y-1.5 text-left">
+                <label className="text-[9px] font-black uppercase tracking-widest text-cyan-400 block ml-1">Video Model Engine</label>
+                <select 
+                  value={vid_model} 
+                  onChange={(e) => setVid_Model?.(e.target.value)}
+                  className="w-full bg-[#0b1122]/80 border border-white/10 text-slate-200 text-xs font-semibold rounded-xl p-2.5 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.05)]"
+                >
+                  <option value="omnihuman-1" className="bg-slate-900">Omnihuman-1 (Gradio Streaming)</option>
+                  <option value="replicate-minimax" className="bg-slate-900">Minimax Video</option>
+                  <option value="replicate-luma" className="bg-slate-900">Luma Ray</option>
+                </select>
+              </div>
+
+              {/* Prompt Entry Box */}
+              <div className="space-y-1.5 text-left">
+                <label className="text-[9px] font-black uppercase tracking-widest text-purple-400 block ml-1">Action Prompt Script</label>
+                <textarea 
+                  placeholder="Type your prompt here... E.g., A cinematic shot of a lion roaring in the African savanna..." 
+                  value={vid_prompt} 
+                  onChange={(e) => setVid_Prompt?.(e.target.value)} 
+                  className="w-full h-20 bg-[#0b1122]/80 border border-white/10 text-slate-200 text-xs font-medium rounded-xl p-2.5 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all resize-none shadow-[0_0_15px_rgba(168,85,247,0.05)]"
+                />
+              </div>
+
+              {/* Seed and FPS */}
+              {vid_model === 'omnihuman-1' && (
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block ml-1">Seed</label>
+                    <input 
+                      type="number" 
+                      value={vid_seed} 
+                      onChange={(e) => setVid_Seed?.(Number(e.target.value))} 
+                      className="w-full h-9 bg-[#0b1122]/80 border border-white/10 text-slate-250 text-xs font-medium rounded-xl px-3 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                    />
+                  </div>
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block ml-1">FPS ({vid_fps})</label>
+                    <input 
+                      type="range" 
+                      min="1" 
+                      max="30" 
+                      value={vid_fps} 
+                      onChange={(e) => setVid_Fps?.(Number(e.target.value))} 
+                      className="w-full h-9 accent-cyan-400 bg-transparent cursor-pointer"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="h-px bg-white/10 my-1" />
+
               <RadialDial label="Script Tone" subLabel="Academic - Casual" value={72} color="text-cyan-400" />
               <RadialDial label="Avatar Speed" subLabel="Multiplier: 1.2x" value={45} color="text-purple-400" />
-              <RadialDial label="Background Vibe" subLabel="Intensity" value={88} color="text-slate-400" />
             </div>
 
             <div className="mt-auto space-y-3 pt-6 border-t border-white/5">

@@ -26,6 +26,8 @@ interface FoundationPhaseArchitectProps {
   onGradeChange?: (g: string) => void;
   language?: string;
   onLanguageChange?: (l: string) => void;
+  onBack?: () => void;
+  onClose?: () => void;
 }
 
 export default function FoundationPhaseArchitect({ 
@@ -36,7 +38,9 @@ export default function FoundationPhaseArchitect({
   grade = "Grade 2",
   onGradeChange,
   language = "English",
-  onLanguageChange
+  onLanguageChange,
+  onBack,
+  onClose
 }: FoundationPhaseArchitectProps) {
   const [difficulty, setDifficulty] = useState<'linear' | 'adaptive' | 'stepped'>('adaptive');
   const [goals, setGoals] = useState(['Phonetic Blending', 'Sight Words', 'CVC Patterns']);
@@ -63,10 +67,10 @@ export default function FoundationPhaseArchitect({
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6 font-sans">
+    <div className="flex flex-col gap-6 p-6 font-sans overflow-y-auto h-full w-full custom-scrollbar pb-12">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-1">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col gap-1 text-left">
           <div className="flex items-center gap-2 text-[10px] font-black text-cyan-400 uppercase tracking-widest">
             <BookOpen size={12} />
             <span>CURRICULUM ARCHITECT</span>
@@ -74,27 +78,52 @@ export default function FoundationPhaseArchitect({
           <h1 className="text-3xl font-black text-white tracking-tight">Core Mechanics</h1>
         </div>
 
-        <div className="flex items-center gap-4">
-           <div className="flex items-center gap-2">
-              <div className={cn("w-2 h-2 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.6)]", isLoading ? "bg-amber-400 animate-pulse" : "bg-cyan-400")} />
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                {isLoading ? 'Architecting Logic...' : 'Draft Auto-Saved'}
-              </span>
-           </div>
-           <button 
-             onClick={onGenerate}
-             disabled={isLoading}
-             className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all group disabled:opacity-50"
-           >
-              {isLoading ? (
-                <Loader2 size={14} className="text-cyan-400 animate-spin" />
-              ) : (
-                <Play size={14} className="text-slate-400 group-hover:text-cyan-400 fill-current group-hover:scale-110 transition-all" />
-              )}
-              <span className="text-[10px] font-black text-white uppercase tracking-widest">
-                {isLoading ? 'Generating' : 'Test Game'}
-              </span>
-           </button>
+        <div className="flex items-center gap-3 self-end md:self-auto">
+          {/* Back Button */}
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/5 hover:bg-white/10 text-brand-cyan border border-brand-cyan/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
+            >
+              <span>← Labs</span>
+            </button>
+          )}
+
+          <div className="flex items-center gap-4">
+             <div className="flex items-center gap-2">
+                <div className={cn("w-2 h-2 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.6)]", isLoading ? "bg-amber-400 animate-pulse" : "bg-cyan-400")} />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  {isLoading ? 'Architecting Logic...' : 'Draft Auto-Saved'}
+                </span>
+             </div>
+             <button 
+               onClick={onGenerate}
+               disabled={isLoading}
+               className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all group disabled:opacity-50 cursor-pointer"
+             >
+                {isLoading ? (
+                  <Loader2 size={14} className="text-cyan-400 animate-spin" />
+                ) : (
+                  <Play size={14} className="text-slate-400 group-hover:text-cyan-400 fill-current group-hover:scale-110 transition-all" />
+                )}
+                <span className="text-[10px] font-black text-white uppercase tracking-widest">
+                  {isLoading ? 'Generating' : 'Test Game'}
+                </span>
+             </button>
+          </div>
+
+          {/* Close Button */}
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-200 hover:text-white rounded-full border border-red-500/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
+              title="Close"
+            >
+              <X size={14} strokeWidth={3} />
+            </button>
+          )}
         </div>
       </div>
 

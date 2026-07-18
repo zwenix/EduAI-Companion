@@ -258,7 +258,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
-          {/* Card 1: New Alerts */}
+          {/* Card 1: Alerts & Reminders */}
           <motion.div 
             whileHover={{ y: -6, scale: 1.015 }}
             onClick={() => onNavigate('alerts')}
@@ -274,7 +274,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             <div className="space-y-1">
               <div className="flex items-center gap-1.5">
                 <h3 className="text-base font-black text-white font-display leading-tight">
-                  New Alerts
+                  Alerts & Reminders
                 </h3>
                 <span className="px-1.5 py-0.5 rounded bg-pink-500/20 text-[9px] text-pink-300 font-bold animate-pulse">
                   ATP Warn
@@ -312,25 +312,25 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             </div>
           </motion.div>
 
-          {/* Card 3: Magic Library */}
+          {/* Card 3: Planner & Diary */}
           <motion.div 
             whileHover={{ y: -6, scale: 1.015 }}
-            onClick={() => onNavigate('archive', 'lesson-planning')}
-            className="relative p-6 rounded-[32px] border-2 border-cyan-500/50 bg-[#0c1225]/85 shadow-[0_0_20px_rgba(6,182,212,0.25)] flex items-center gap-5 overflow-hidden transition-all duration-300 cursor-pointer group"
+            onClick={() => onNavigate('planner')}
+            className="relative p-6 rounded-[32px] border-2 border-emerald-500/50 bg-[#0c1225]/85 shadow-[0_0_20px_rgba(16,185,129,0.25)] flex items-center gap-5 overflow-hidden transition-all duration-300 cursor-pointer group"
           >
-            <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-cyan-500/10 blur-xl rounded-full" />
+            <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-emerald-500/10 blur-xl rounded-full" />
             
-            {/* Neon Cyan Icon Wrapper */}
-            <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border-2 border-cyan-400 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)] shrink-0 group-hover:rotate-6 transition-transform">
-              <BookOpen size={28} className="drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
+            {/* Neon Emerald Icon Wrapper */}
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border-2 border-emerald-400 flex items-center justify-center text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.25)] shrink-0 group-hover:rotate-6 transition-transform">
+              <Calendar size={28} className="drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
             </div>
             
             <div className="space-y-1">
               <h3 className="text-base font-black text-white font-display leading-tight">
-                Magic Library
+                Planner & Diary
               </h3>
               <p className="text-[11px] text-slate-400 leading-snug font-medium">
-                Deploy curated CAPS activities from archives.
+                Manage your CAPS schedules, lessons & reminders.
               </p>
             </div>
           </motion.div>
@@ -345,7 +345,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             </h4>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
             
             {/* Action 1: Create Lesson */}
             <motion.button 
@@ -419,6 +419,21 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               </div>
               <span className="text-[10px] font-black uppercase text-slate-300 tracking-wider group-hover:text-amber-300 transition-colors">
                 Performance Stats
+              </span>
+            </motion.button>
+
+            {/* Action 6: Magic Library */}
+            <motion.button 
+              whileHover={{ y: -4, scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => onNavigate('archive', 'lesson-planning')}
+              className="p-3.5 rounded-[20px] bg-slate-950/40 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-400/25 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(6,182,212,0.15)]">
+                <BookOpen size={18} />
+              </div>
+              <span className="text-[10px] font-black uppercase text-slate-300 tracking-wider group-hover:text-cyan-300 transition-colors">
+                Magic Library
               </span>
             </motion.button>
 

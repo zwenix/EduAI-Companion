@@ -1851,63 +1851,65 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
         )}
       >
         {/* Header - Compact and modern */}
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between py-3 px-4 lg:py-4 lg:px-8 border-b border-white/5 bg-white/5 gap-3 shrink-0">
-          <div className="flex items-center justify-between w-full lg:w-auto">
-            <div className="flex items-center gap-3 lg:gap-4 font-sans">
-              <div className="bg-brand-cyan/20 p-2 rounded-xl border border-brand-cyan/20 text-brand-cyan font-sans">
-                 <FlaskConical size={18} className="lg:w-5 lg:h-5" />
+        {activeTab === 'overview' && (
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between py-3 px-4 lg:py-4 lg:px-8 border-b border-white/5 bg-white/5 gap-3 shrink-0">
+            <div className="flex items-center justify-between w-full lg:w-auto">
+              <div className="flex items-center gap-3 lg:gap-4 font-sans">
+                <div className="bg-brand-cyan/20 p-2 rounded-xl border border-brand-cyan/20 text-brand-cyan font-sans">
+                   <FlaskConical size={18} className="lg:w-5 lg:h-5" />
+                </div>
+                <div className="font-sans">
+                </div>
               </div>
-              <div className="font-sans">
-              </div>
-            </div>
-            {/* Always visible Close Button on Mobile/Tablet right in row 1 */}
-            <button 
-              type="button" 
-              onClick={onClose} 
-              className="lg:hidden flex p-2 bg-red-500/20 hover:bg-red-500/30 text-red-200 hover:text-white rounded-xl border border-red-500/30 transition-all font-sans font-black uppercase tracking-widest text-[9px] items-center gap-1 hover:scale-105 active:scale-95 shadow-md shadow-red-500/10"
-            >
-              <X size={14} strokeWidth={3} />
-              <span>Close</span>
-            </button>
-          </div>
-          
-          <div className="flex items-center justify-between lg:justify-end gap-2 lg:gap-4 overflow-x-auto scrollbar-hide pb-2 lg:pb-0">
-            {/* Back to Studio Menu button */}
-            {activeTab !== 'overview' && (
+              {/* Always visible Close Button on Mobile/Tablet right in row 1 */}
               <button 
-                type="button"
-                onClick={() => setActiveTab('overview')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all font-sans bg-white/5 hover:bg-white/10 text-brand-cyan border border-brand-cyan/20 shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+                type="button" 
+                onClick={onClose} 
+                className="lg:hidden flex p-2 bg-red-500/20 hover:bg-red-500/30 text-red-200 hover:text-white rounded-xl border border-red-500/30 transition-all font-sans font-black uppercase tracking-widest text-[9px] items-center gap-1 hover:scale-105 active:scale-95 shadow-md shadow-red-500/10"
               >
-                <span>← Labs</span>
+                <X size={14} strokeWidth={3} />
+                <span>Close</span>
               </button>
-            )}
+            </div>
+            
+            <div className="flex items-center justify-between lg:justify-end gap-2 lg:gap-4 overflow-x-auto scrollbar-hide pb-2 lg:pb-0">
+              {/* Back to Studio Menu button */}
+              {activeTab !== 'overview' && (
+                <button 
+                  type="button"
+                  onClick={() => setActiveTab('overview')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all font-sans bg-white/5 hover:bg-white/10 text-brand-cyan border border-brand-cyan/20 shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+                >
+                  <span>← Labs</span>
+                </button>
+              )}
 
-            {/* A4 Print Simulation Button */}
-            {hasResult && (
-              <button
-                type="button"
-                onClick={() => setShowPrintPreviewModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-yellow hover:bg-yellow-400 text-navy-dark rounded-xl font-sans font-black uppercase tracking-wider text-[10px] shrink-0 hover:scale-105 active:scale-95 shadow-md shadow-brand-yellow/15 cursor-pointer"
-                title="A4 Print Simulation"
+              {/* A4 Print Simulation Button */}
+              {hasResult && (
+                <button
+                  type="button"
+                  onClick={() => setShowPrintPreviewModal(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-yellow hover:bg-yellow-400 text-navy-dark rounded-xl font-sans font-black uppercase tracking-wider text-[10px] shrink-0 hover:scale-105 active:scale-95 shadow-md shadow-brand-yellow/15 cursor-pointer"
+                  title="A4 Print Simulation"
+                >
+                  <Printer size={13} strokeWidth={2.5} />
+                  <span>Print Preview</span>
+                </button>
+              )}
+
+              {/* Highly visible unified close button on Desktop */}
+              <button 
+                type="button" 
+                onClick={onClose} 
+                className="hidden lg:flex p-2 bg-red-500/20 hover:bg-red-500/30 text-red-100 hover:text-white rounded-xl border border-red-500/30 transition-all font-sans font-black uppercase tracking-widest text-[10px] items-center gap-1.5 shrink-0 hover:scale-105 active:scale-95 shadow-md shadow-red-500/10"
+                title="Close Studio"
               >
-                <Printer size={13} strokeWidth={2.5} />
-                <span>Print Preview</span>
+                <X size={15} strokeWidth={3} />
+                <span>Close</span>
               </button>
-            )}
-
-            {/* Highly visible unified close button on Desktop */}
-            <button 
-              type="button" 
-              onClick={onClose} 
-              className="hidden lg:flex p-2 bg-red-500/20 hover:bg-red-500/30 text-red-100 hover:text-white rounded-xl border border-red-500/30 transition-all font-sans font-black uppercase tracking-widest text-[10px] items-center gap-1.5 shrink-0 hover:scale-105 active:scale-95 shadow-md shadow-red-500/10"
-              title="Close Studio"
-            >
-              <X size={15} strokeWidth={3} />
-              <span>Close</span>
-            </button>
+            </div>
           </div>
-        </div>
+        )}
 
       <div className="flex-1 flex flex-col overflow-y-auto lg:overflow-hidden relative">
         {activeTab === 'overview' ? (
@@ -1957,6 +1959,16 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
             videoResult={videoResult} 
             isLoading={isLoading} 
             onGenerate={handleGenerateVideo} 
+            vid_model={vid_model}
+            setVid_Model={setVid_Model}
+            vid_prompt={vid_prompt}
+            setVid_Prompt={setVid_Prompt}
+            vid_seed={vid_seed}
+            setVid_Seed={setVid_Seed}
+            vid_fps={vid_fps}
+            setVid_Fps={setVid_Fps}
+            onBack={() => setActiveTab('overview')}
+            onClose={onClose}
           />
         ) : activeTab === 'grade1' ? (
           <FoundationPhaseArchitect 
@@ -1968,18 +1980,109 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
             onGradeChange={setF_Grade}
             language={f_language}
             onLanguageChange={setF_Language}
+            onBack={() => setActiveTab('overview')}
+            onClose={onClose}
           />
         ) : (
-          <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
-            {/* Left Parameter Panel Sidebar */}
-            <div className={cn(
-              "border-b lg:border-b-0 lg:border-r border-white/10 lg:w-[320px] xl:w-[350px] shrink-0 transition-all duration-300 relative z-20 flex flex-col justify-between",
-              isDarkMode ? "bg-[#0b1122]/95" : "bg-white border-slate-200",
-              isFullscreenPreview 
-                ? "w-0 h-0 p-0 overflow-hidden opacity-0 hidden lg:hidden" 
-                : "w-full p-5 lg:p-6 opacity-100 block lg:h-full"
-            )}>
-              <div className="flex-1 overflow-y-auto pr-1 space-y-6 custom-scrollbar lg:h-full">
+          <div className="flex-1 flex flex-col overflow-y-auto lg:overflow-hidden relative bg-[#070b13] p-4 lg:p-6 select-none">
+            {/* Holographic style injectors */}
+            <style>{`
+              @keyframes grid-slide {
+                0% { transform: perspective(250px) rotateX(70deg) translateY(0); }
+                100% { transform: perspective(250px) rotateX(70deg) translateY(40px); }
+              }
+              .perspective-grid-container {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 220px;
+                overflow: hidden;
+                pointer-events: none;
+                opacity: 0.18;
+                z-index: 1;
+              }
+              .perspective-grid {
+                width: 200%;
+                height: 400px;
+                margin-left: -50%;
+                background-image: 
+                  linear-gradient(rgba(0, 210, 255, 0.3) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(0, 210, 255, 0.3) 1px, transparent 1px);
+                background-size: 40px 40px;
+                transform: perspective(250px) rotateX(70deg);
+                transform-origin: top center;
+                animation: grid-slide 18s linear infinite;
+              }
+              .text-glow-cyan {
+                text-shadow: 0 0 10px rgba(0, 210, 255, 0.8), 0 0 25px rgba(0, 210, 255, 0.4);
+              }
+              .text-glow-purple {
+                text-shadow: 0 0 10px rgba(168, 85, 247, 0.8), 0 0 25px rgba(168, 85, 247, 0.4);
+              }
+            `}</style>
+
+            {/* Holographic grid overlay */}
+            <div className="perspective-grid-container">
+              <div className="perspective-grid" />
+            </div>
+
+            {/* Top Centered Futuristic Header with Glow Title */}
+            <div className="text-center py-4 lg:py-6 shrink-0 z-10 relative">
+              <h1 className="text-2xl sm:text-4xl font-display font-black uppercase tracking-widest text-white text-glow-cyan">
+                3D Holo-Forge
+              </h1>
+              <p className="text-[10px] text-[#00f0ff] uppercase tracking-widest font-black mt-1 flex items-center justify-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#00f0ff] animate-ping" />
+                <span>{activeTab === 'teaching' ? 'Content Studio' : activeTab === 'visual' ? 'Visual Lab' : activeTab === 'video' ? 'Video Lab' : activeTab === 'admin' ? 'Admin Lab' : 'Foundation Hub'} Active</span>
+              </p>
+            </div>
+
+            <div className="flex-1 flex flex-col lg:flex-row gap-6 lg:overflow-hidden relative z-10 max-w-[1600px] mx-auto w-full">
+              {/* Left Parameter Panel Sidebar / Lesson Creation Card */}
+              <div className={cn(
+                "border shrink-0 transition-all duration-300 relative z-20 flex flex-col justify-between rounded-[32px] overflow-hidden",
+                isDarkMode 
+                  ? "bg-[#070e1e]/85 border-[#00d2ff]/20 shadow-[0_0_30px_rgba(0,210,255,0.05)] hover:border-[#00d2ff]/30" 
+                  : "bg-white border-slate-200 shadow-md",
+                isFullscreenPreview 
+                  ? "w-0 h-0 p-0 overflow-hidden opacity-0 hidden lg:hidden" 
+                  : "w-full lg:w-[420px] xl:w-[450px] p-5 lg:p-6 opacity-100 block lg:h-full"
+              )}>
+                <div className="flex-1 overflow-y-auto pr-1 space-y-6 custom-scrollbar lg:h-full">
+                {/* Compact Back/Close Bar for Lab parameters */}
+                <div className="flex items-center justify-between pb-4 border-b border-white/5 mb-4 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('overview')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider bg-white/5 hover:bg-white/10 text-brand-cyan border border-brand-cyan/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
+                  >
+                    <span>← Back to Labs</span>
+                  </button>
+                  
+                  {/* A4 Print Simulation Button inside sidebar */}
+                  {hasResult && (
+                    <button
+                      type="button"
+                      onClick={() => setShowPrintPreviewModal(true)}
+                      className="flex items-center gap-1 px-2.5 py-1 bg-brand-yellow hover:bg-yellow-400 text-navy-dark rounded-xl font-sans font-black uppercase tracking-wider text-[9px] shrink-0 hover:scale-105 active:scale-95 shadow-md shadow-brand-yellow/15 cursor-pointer"
+                      title="Print Preview"
+                    >
+                      <Printer size={11} strokeWidth={2.5} />
+                      <span>Print</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="p-1.5 bg-red-500/15 hover:bg-red-500/25 text-red-200 rounded-xl border border-red-500/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
+                    title="Close"
+                  >
+                    <X size={12} strokeWidth={2.5} />
+                  </button>
+                </div>
+
                 <AnimatePresence mode="wait">
                   {activeTab === 'teaching' && (
                     <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-5">
@@ -2804,13 +2907,18 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
               </div>
             </div>
 
-        {/* Right Preview Panel */}
-        <div id="preview-panel" className={cn("w-full lg:flex-1 lg:overflow-y-auto p-4 sm:p-6 lg:p-10 scrollbar-hide relative lg:h-full flex flex-col", isDarkMode ? "bg-navy-dark/40" : "bg-slate-50")}>
+        {/* Right Preview Panel / Magic Preview Card */}
+        <div id="preview-panel" className={cn(
+          "w-full lg:flex-1 p-5 lg:p-8 scrollbar-hide relative lg:h-full flex flex-col rounded-[32px] border transition-all duration-300",
+          isDarkMode 
+            ? "bg-[#070e1e]/85 border-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.05)] hover:border-purple-500/30 lg:overflow-y-auto" 
+            : "bg-white border-slate-200 shadow-md lg:overflow-y-auto"
+        )}>
           {/* Persistent Right Panel Header */}
-          <div className={cn("flex justify-between items-center mb-6 pb-4 border-b shrink-0", isDarkMode ? "border-white/10" : "border-slate-200")}>
-            <h3 className={cn("text-xl font-hand font-bold flex items-center gap-2", isDarkMode ? "text-white" : "text-slate-800")}>
-              <Eye size={20} className="text-indigo-500" />
-              Live Preview Board
+          <div className={cn("flex justify-between items-center mb-6 pb-4 border-b shrink-0", isDarkMode ? "border-purple-500/10" : "border-slate-200")}>
+            <h3 className={cn("text-xl font-display font-black uppercase tracking-wider flex items-center gap-2", isDarkMode ? "text-white text-glow-purple" : "text-slate-800")}>
+              <Eye size={20} className="text-purple-400" />
+              Magic Preview
             </h3>
             <div className={cn("flex items-center gap-2 px-3 py-1 rounded-full shadow-sm border", isDarkMode ? "bg-white/5 border-white/10" : "bg-white border-slate-200")}>
               <span className={cn("w-2 h-2 rounded-full animate-pulse", isLoading ? "bg-amber-400" : hasResult ? "bg-emerald-400" : (isDarkMode ? "bg-slate-600" : "bg-slate-300"))} />
@@ -3401,6 +3509,7 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
           </div>
         </div>
       </div>
+    </div>
     )}
   </div>
 

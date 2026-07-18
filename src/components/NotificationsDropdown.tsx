@@ -65,7 +65,9 @@ export default function NotificationsDropdown({ isDarkMode }: { isDarkMode: bool
       </button>
 
       {isOpen && (
-        <div className={`absolute right-0 mt-2 w-80 sm:w-96 rounded-[24px] shadow-2xl z-50 overflow-hidden border ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className={`absolute right-0 mt-2 w-80 sm:w-96 rounded-[24px] shadow-2xl z-50 overflow-hidden border ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
           <div className={`flex justify-between items-center p-4 border-b ${isDarkMode ? 'border-white/10' : 'border-slate-100'}`}>
             <h4 className={`font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Notifications</h4>
             {unreadCount > 0 && (
@@ -112,6 +114,7 @@ export default function NotificationsDropdown({ isDarkMode }: { isDarkMode: bool
             )}
           </div>
         </div>
+        </>
       )}
     </div>
   );

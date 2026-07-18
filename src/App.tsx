@@ -97,6 +97,7 @@ import StudentPortfolio from './components/StudentPortfolio';
 import CurriculumSuite from './components/CurriculumSuite';
 import ParentDashboard from './components/ParentDashboard';
 import ReaderModeModal from './components/ReaderModeModal';
+import { TeacherPlanner } from './components/TeacherPlanner';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { patchOklchForHtml2canvas } from './lib/pdfHelper';
@@ -146,7 +147,7 @@ const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDark
       title={collapsed ? displayLabel : undefined}
       className={cn(
         "flex items-center w-full gap-3.5 transition-all duration-300 relative cursor-pointer border-0 outline-none group",
-        collapsed ? "justify-center p-2 rounded-xl" : "p-3 px-4 rounded-2xl mb-1.5",
+        collapsed ? "justify-center p-1.5 rounded-xl" : "p-2 px-3.5 rounded-xl mb-1",
         active 
           ? isDarkMode
             ? "bg-white/[0.08] text-cyan-400 font-black border-l-4 border-cyan-400 rounded-l-none rounded-r-2xl shadow-[inset_1px_0_0_rgba(255,255,255,0.05)] text-glow-cyan"
@@ -175,13 +176,6 @@ const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDark
       {!collapsed && (
         <span className="font-sans text-xs font-semibold text-left flex-1 flex items-center justify-between gap-2 overflow-hidden truncate">
           <span className="truncate">{displayLabel}</span>
-          
-          {/* Class Management Badge */}
-          {id === 'class-management' && (
-            <div className="w-4.5 h-4.5 bg-red-600 rounded-full flex items-center justify-center text-[9px] font-black shadow-[0_0_8px_rgba(220,38,38,0.8)] border border-white/20 text-white shrink-0">
-              3
-            </div>
-          )}
         </span>
       )}
 
@@ -770,9 +764,9 @@ export default function App() {
     if (r === 'teacher') {
       return [
         { id: 'teacher-dashboard-menu', label: 'Teachers Office', icon: IconHome },
-        { id: 'class-management', label: 'Classrooms', icon: IconClassrooms },
         { id: 'lesson-planning', label: 'Edu-Tools Hub', icon: IconCurriculum },
         { id: 'intelligence-ai', label: 'Intelligent AI', icon: SmartBotTutorIcon },
+        { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
         { id: 'class-analytics', label: 'Analytics', icon: IconAnalytics },
         { id: 'student-class-management', label: 'Message & Collaborate', icon: IconClassrooms },
         { id: 'system-support', label: 'Settings', icon: IconSettings },
@@ -783,8 +777,8 @@ export default function App() {
       { id: 'teacher-dashboard-menu', label: firstLabel, icon: IconHome },
       { id: 'lesson-planning', label: 'Edu-Tools Hub', icon: IconCurriculum },
       { id: 'intelligence-ai', label: 'Intelligence AI', icon: SmartBotTutorIcon },
+      { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
       { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
-      { id: 'class-management', label: 'Class management', icon: IconClassrooms },
       { id: 'student-class-management', label: 'Chat & Messenger', icon: IconClassrooms },
       { id: 'system-support', label: 'System support', icon: IconSettings },
     ];
@@ -995,13 +989,15 @@ export default function App() {
       case 'teaching':
         return 'Lesson Planner';
       case 'alerts':
-        return 'New Alerts';
+        return 'Alerts & Reminders';
       case 'archive':
         return 'Content Archive';
+      case 'planner':
+        return "Teacher's Planner & Diary";
       case 'reports':
         return 'Galaxy Analytics';
       case 'class-management':
-        return 'Classroom';
+        return 'Classes & Learners';
       case 'settings':
         return 'Settings';
       case 'ai-tutor':
@@ -1284,8 +1280,7 @@ export default function App() {
         }}
         transition={{ type: "spring", bounce: 0, duration: 0.3 }}
         className={cn(
-          "flex flex-col py-8 px-4 fixed left-4 top-4 bottom-4 shrink-0 z-[60] shadow-2xl transition-all duration-300 border rounded-[32px] h-[calc(100vh-2rem)] overflow-x-hidden",
-          isSidebarOpen ? "overflow-y-auto" : "overflow-hidden",
+          "flex flex-col py-8 px-4 fixed left-4 top-4 bottom-4 shrink-0 z-[60] shadow-2xl transition-all duration-300 border rounded-[32px] h-[calc(100vh-2rem)] overflow-hidden",
           isDarkMode 
             ? "bg-[#0d1225]/45 border-white/10 text-white backdrop-blur-2xl" 
             : themeMode === 'peach'
@@ -1298,29 +1293,9 @@ export default function App() {
         {/* Center-aligned Animated Logo & Compact Header */}
         <div className="flex flex-col mb-8 relative shrink-0">
           <div className="flex items-center justify-between w-full relative px-1">
-            <div className="flex items-center gap-2">
-              {/* Collapse button on the left of EduAI / Logo */}
-              {!isMobile && (
-                <button
-                  onClick={() => setSidebarOpen(!isSidebarOpen)}
-                  className={cn(
-                    "p-1 rounded-lg transition-all border outline-none cursor-pointer flex items-center justify-center shrink-0",
-                    isDarkMode
-                      ? "bg-white/5 border-white/10 hover:bg-white/10 hover:border-cyan-400/30 text-slate-300 hover:text-cyan-400"
-                      : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-600 hover:text-slate-900"
-                  )}
-                  title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
-                >
-                  {isSidebarOpen ? (
-                    <ChevronLeft size={14} strokeWidth={3} />
-                  ) : (
-                    <ChevronRight size={14} strokeWidth={3} />
-                  )}
-                </button>
-              )}
-              
+            <div className="flex items-center gap-2.5">
               {/* Animated Logo */}
-              <Logo className="w-8 h-8" />
+              <Logo className="w-8 h-8 shrink-0" />
               
               {(isSidebarOpen || isMobile) && (
                 <div className="flex flex-col text-left animate-fadeIn">
@@ -1331,6 +1306,27 @@ export default function App() {
                 </div>
               )}
             </div>
+
+            {/* Collapse button on the right hand side of logo/name */}
+            {!isMobile && (
+              <button
+                onClick={() => setSidebarOpen(!isSidebarOpen)}
+                className={cn(
+                  "p-1 rounded-lg transition-all border outline-none cursor-pointer flex items-center justify-center shrink-0 ml-1.5",
+                  isDarkMode
+                    ? "bg-white/5 border-white/10 hover:bg-white/10 hover:border-cyan-400/30 text-slate-300 hover:text-cyan-400"
+                    : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-600 hover:text-slate-900"
+                )}
+                title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+              >
+                {isSidebarOpen ? (
+                  <ChevronLeft size={14} strokeWidth={3} />
+                ) : (
+                  <ChevronRight size={14} strokeWidth={3} />
+                )}
+              </button>
+            )}
+
             {isMobile && (
               <button 
                 onClick={() => setMobileSidebarOpen(false)} 
@@ -1838,12 +1834,14 @@ export default function App() {
 
               <AnimatePresence>
                 {isProfileDropdownOpen && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className={`absolute right-0 mt-3 w-56 rounded-2xl shadow-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'} z-50`}
-                  >
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsProfileDropdownOpen(false)} />
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className={`absolute right-0 mt-3 w-56 rounded-2xl shadow-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'} z-50`}
+                    >
                     <div className={`p-4 border-b ${isDarkMode ? 'border-white/10' : 'border-slate-100'}`}>
                       <p className={`font-semibold text-sm truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                         {localStorage.getItem('eduai_user_name') || 'Student Member'}
@@ -1884,6 +1882,7 @@ export default function App() {
                       </button>
                     </div>
                   </motion.div>
+                  </>
                 )}
               </AnimatePresence>
             </div>
@@ -2380,6 +2379,8 @@ export default function App() {
                   <AutoGrading />
                 ) : activeTab === 'archive' ? (
                   <ContentArchive />
+                ) : activeTab === 'planner' ? (
+                  <TeacherPlanner isDarkMode={isDarkMode} onBack={() => setActiveTab('dashboard')} />
                 ) : activeTab === 'illustrations' ? (
                   <IllustrationLibrary isDarkMode={isDarkMode} />
                 ) : activeTab === 'ai-tutor' ? (
