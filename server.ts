@@ -54,6 +54,19 @@ function resolveOpenRouterKey(): string {
   return "";
 }
 
+function resolveNvidiaKey(): string {
+  const keys = [
+    process.env.NVIDIA_API_KEY,
+    process.env.VITE_NVIDIA_API_KEY,
+  ];
+  for (const key of keys) {
+    if (key && key !== "dummy" && key !== "undefined" && key.trim() !== "") {
+      return key.trim().replace(/^['"\s]+|['"\s]+$/g, "");
+    }
+  }
+  return "";
+}
+
 function resolveGeminiKey(): string {
   const keys = [
     process.env.GEMINI_API_KEY,
@@ -462,6 +475,33 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     }
   });
 
+  let cachedNvidiaClient: OpenAI | null = null;
+  let cachedNvidiaKey: string | null = null;
+
+  function getNvidiaClient(): OpenAI {
+    const currentKey = resolveNvidiaKey();
+    if (cachedNvidiaClient && cachedNvidiaKey === currentKey) {
+      return cachedNvidiaClient;
+    }
+    cachedNvidiaKey = currentKey;
+    cachedNvidiaClient = new OpenAI({
+      apiKey: currentKey || "dummy",
+      baseURL: "https://integrate.api.nvidia.com/v1",
+    });
+    return cachedNvidiaClient;
+  }
+
+  const nvidia = new Proxy({} as OpenAI, {
+    get(target, prop) {
+      const client = getNvidiaClient();
+      const value = Reflect.get(client, prop);
+      if (typeof value === 'function') {
+        return value.bind(client);
+      }
+      return value;
+    }
+  });
+
   // --- API Routes ---
 
   app.get("/api/health", (req, res) => {
@@ -567,7 +607,10 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         client = groq;
         apiKey = process.env.GROQ_API_KEY || "";
         break;
-      case "groq-gpt-oss":
+      case "nvidia-nemotron":
+        client = nvidia;
+        apiKey = resolveNvidiaKey();
+        break;
       case "groq-qwen":
         client = openrouter;
         apiKey = resolveOpenRouterKey();
@@ -580,7 +623,9 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     }
 
     if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-      const neededKey = (provider === 'groq-gpt-oss' || provider === 'groq-qwen')
+      const neededKey = (provider === 'nvidia-nemotron')
+        ? 'NVIDIA_API_KEY'
+        : (provider === 'groq-qwen')
         ? 'OPENROUTER_API_KEY'
         : (provider.startsWith('groq') || provider.startsWith('llama'))
         ? 'GROQ_API_KEY'
@@ -591,8 +636,8 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     }
 
     let finalModel = model;
-    if (finalModel === "groq-gpt-oss") {
-      finalModel = "openai/gpt-oss-120b";
+    if (finalModel === "nvidia-nemotron" || finalModel === "groq-gpt-oss") {
+      finalModel = "nvidia/nemotron-3-ultra-550b-a55b";
     } else if (finalModel === "groq-qwen") {
       finalModel = "qwen/qwen3.6-27b";
     }
@@ -604,7 +649,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         provider === "alibaba-qwen" ? "qwen-plus" :
         provider === "alibaba-deepseek" ? "deepseek-v3" :
         provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
-        provider === "groq-gpt-oss" ? "openai/gpt-oss-120b" : 
+        provider === "nvidia-nemotron" ? "nvidia/nemotron-3-ultra-550b-a55b" : 
         provider === "groq-qwen" ? "qwen/qwen3.6-27b" :
         ""
       );
@@ -623,8 +668,15 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
       if (!provider.startsWith('groq') && !provider.startsWith('llama')) {
         payload.max_tokens = 4000;
       }
-      if (provider === "groq-gpt-oss" || provider === "groq-qwen") {
+      if (provider === "groq-qwen") {
         payload.max_tokens = 350;
+      }
+      if (provider === "nvidia-nemotron") {
+        payload.max_tokens = 16384;
+        payload.temperature = 1;
+        payload.top_p = 0.95;
+        payload.reasoning_budget = 16384;
+        payload.chat_template_kwargs = { "enable_thinking": true };
       }
 
       const response = await client.chat.completions.create(payload);

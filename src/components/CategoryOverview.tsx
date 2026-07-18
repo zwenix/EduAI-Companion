@@ -66,7 +66,9 @@ export default function CategoryOverview({
           {/* LEFT: 3D Slanted Tablet Mockup */}
           <div className="lg:col-span-5 flex justify-center">
             <div className="relative group">
-<ContentSlideshow />
+              <div className="w-full">
+                <ContentSlideshow />
+              </div>
             </div>
           </div>
 

@@ -1,31 +1,32 @@
 import axios from 'axios';
 import { checkAndReportApiError } from '../lib/apiErrorHelper';
 
-export type AIProvider = 'groq-gpt-oss' | 'groq-qwen';
+export type AIProvider = 'nvidia-nemotron' | 'groq-qwen';
 
 const executeClientMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
   let url = "https://api.groq.com/openai/v1/chat/completions";
   let apiKey = ((process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
   let selectedModel = model;
-  const isAltModel = provider === 'groq-gpt-oss' || provider === 'groq-qwen';
+  const isAltModel = provider === 'nvidia-nemotron' || provider === 'groq-qwen';
 
   if (isAltModel) {
-    url = "https://openrouter.ai/api/v1/chat/completions";
-    apiKey = ((process.env as any).OPENROUTER_API_KEY || (import.meta as any).env?.VITE_OPENROUTER_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
-    
-    if (provider === 'groq-gpt-oss') {
-      if (!selectedModel || selectedModel === 'groq-gpt-oss') {
-        selectedModel = "openai/gpt-oss-120b";
+    if (provider === 'nvidia-nemotron') {
+      url = "https://integrate.api.nvidia.com/v1/chat/completions";
+      apiKey = ((process.env as any).NVIDIA_API_KEY || (import.meta as any).env?.VITE_NVIDIA_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+      if (!selectedModel || selectedModel === 'nvidia-nemotron' || selectedModel === 'groq-gpt-oss') {
+        selectedModel = "nvidia/nemotron-3-ultra-550b-a55b";
       }
     } else if (provider === 'groq-qwen') {
+      url = "https://openrouter.ai/api/v1/chat/completions";
+      apiKey = ((process.env as any).OPENROUTER_API_KEY || (import.meta as any).env?.VITE_OPENROUTER_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
       if (!selectedModel || selectedModel === 'groq-qwen') {
         selectedModel = "qwen/qwen3.6-27b";
       }
     }
   } else {
-    if (provider === 'groq-gpt-oss') {
-      if (!selectedModel || selectedModel === 'groq-gpt-oss') {
-        selectedModel = "openai/gpt-oss-120b";
+    if (provider === 'nvidia-nemotron') {
+      if (!selectedModel || selectedModel === 'nvidia-nemotron' || selectedModel === 'groq-gpt-oss') {
+        selectedModel = "nvidia/nemotron-3-ultra-550b-a55b";
       }
     } else if (provider === 'groq-qwen') {
       if (!selectedModel || selectedModel === 'groq-qwen') {
@@ -35,7 +36,7 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
   }
 
   if (!apiKey) {
-    const keyName = isAltModel ? 'OPENROUTER_API_KEY' : 'GROQ_API_KEY';
+    const keyName = provider === 'nvidia-nemotron' ? 'NVIDIA_API_KEY' : provider === 'groq-qwen' ? 'OPENROUTER_API_KEY' : 'GROQ_API_KEY';
     throw new Error(`API key (${keyName}) for ${provider} is not configured in settings or environment. Please add it.`);
   }
 
@@ -44,6 +45,14 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
     messages,
     temperature: 0.7,
   };
+
+  if (provider === 'nvidia-nemotron') {
+    payload.temperature = 1;
+    payload.top_p = 0.95;
+    payload.max_tokens = 16384;
+    payload.reasoning_budget = 16384;
+    payload.chat_template_kwargs = { "enable_thinking": true };
+  }
 
   // Let the prompt dictate JSON mode, do not force it which causes issues with certain models on openrouter
 

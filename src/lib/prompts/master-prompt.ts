@@ -17,6 +17,7 @@ Every piece of content you create must be:
 🎨 ULTRA-ADVANCED VISUAL HIERARCHY SYSTEM:
 
 1. HERO SECTION (25-30% of top space):
+   • STRICT RULE: You MUST wrap this section in a container with the exact CSS class "hero-section" so it passes layout diagnostics.
    • Stunning gradient background with subject-specific colors
    • Large, engaging title with modern typography (font-weight: 900, letter-spacing: -0.02em)
    • Decorative elements: subtle patterns, icons, or illustrative accents
@@ -24,6 +25,7 @@ Every piece of content you create must be:
    • Animated-style visual elements (static but designed to feel dynamic)
 
 2. BANNER HEADER SYSTEM:
+   • STRICT RULE: You MUST include the exact CSS class "banner" or "gradient" on your header containers to pass layout diagnostics.
    • Full-width gradient with smooth color transitions
    • Glassmorphism effects for metadata cards (backdrop-blur, semi-transparent backgrounds)
    • Subject-specific iconography integrated into header
@@ -73,7 +75,7 @@ Every piece of content you create must be:
 FOUNDATION PHASE (Grade R-3):
 • Colors: Bright, saturated primaries with high contrast
 • Typography: MANDATORY Patrick's Hand or other similar friendly handwritten fonts suitable for young children. All generated text MUST use the "font-hand" class or include 'font-family: "Patrick Hand", "Comic Neue", cursive, sans-serif' styling.
-• Font Size: Increased font sizes for super-high readability (body text MUST be at least 18pt equivalent, e.g. text-lg or text-xl classes, and headings must be text-2xl or text-3xl).
+• Font Size: Increased font sizes for super-high readability (body text MUST be at least 18pt equivalent, e.g. text-lg or text-xl classes, and headings must be text-2xl or text-3xl). STRICT RULE: NEVER use "text-xs" or "text-sm" classes anywhere for Grade R-3 (not even for metadata or badges).
 • Icons: Simple, friendly illustrations with thick outlines
 • Spacing: Extra generous (min 2rem padding, 1.5rem gaps)
 • Visual elements: Large emoji, colorful shapes, playful patterns

@@ -1858,10 +1858,6 @@ export default function ContentCreator({ isOpen, onClose, initialTab = 'teaching
                  <FlaskConical size={18} className="lg:w-5 lg:h-5" />
               </div>
               <div className="font-sans">
-                <div className="flex flex-col">
-                  <h2 className="text-lg md:text-xl lg:text-2xl font-hand font-bold text-white leading-tight">Lesson Architect</h2>
-                  <span className="text-[8px] font-black uppercase tracking-[0.2em] text-indigo-400">Intelligence Engine</span>
-                </div>
               </div>
             </div>
             {/* Always visible Close Button on Mobile/Tablet right in row 1 */}

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type AIProvider = 'gemini' | 'groq-gpt-oss' | 'groq-qwen';
+export type AIProvider = 'gemini' | 'nvidia-nemotron' | 'groq-qwen';
 export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
 export type OCRProvider = 'gemini' | 'ocrspace';
 export type ImageProvider = 'gemini-imagen' | 'perchance' | 'pollinations';
@@ -18,7 +18,7 @@ interface AiContextType {
 
 const AiContext = createContext<AiContextType | undefined>(undefined);
 
-const VALID_PROVIDERS: AIProvider[] = ['gemini', 'groq-gpt-oss', 'groq-qwen'];
+const VALID_PROVIDERS: AIProvider[] = ['gemini', 'nvidia-nemotron', 'groq-qwen'];
 const VALID_TTS: TTSProvider[] = ['browser', 'groq-whisper', 'huggingface', 'google-tts'];
 const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace'];
 const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'perchance', 'pollinations'];

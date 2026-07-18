@@ -25,8 +25,8 @@ export const generateEducationalContent = async (type: string, details: string, 
       return await geminiGenerateContent(type, details);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to groq-gpt-oss...");
-        provider = 'groq-gpt-oss';
+        console.warn("Gemini limit hit, auto-falling back to nvidia-nemotron...");
+        provider = 'nvidia-nemotron';
       } else {
         throw err;
       }
@@ -60,8 +60,8 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
       return await geminiGenerateCAPS(input);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to groq-gpt-oss...");
-        provider = 'groq-gpt-oss';
+        console.warn("Gemini limit hit, auto-falling back to nvidia-nemotron...");
+        provider = 'nvidia-nemotron';
       } else {
         throw err;
       }
@@ -118,8 +118,8 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini')
       return await geminiGenerateVisual(input);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to groq-gpt-oss...");
-        provider = 'groq-gpt-oss';
+        console.warn("Gemini limit hit, auto-falling back to nvidia-nemotron...");
+        provider = 'nvidia-nemotron';
       } else {
         throw err;
       }
@@ -252,8 +252,8 @@ export const generateAdminDoc = async (input: any, provider: string = 'gemini') 
       return await geminiGenerateAdmin(input);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to groq-gpt-oss...");
-        provider = 'groq-gpt-oss';
+        console.warn("Gemini limit hit, auto-falling back to nvidia-nemotron...");
+        provider = 'nvidia-nemotron';
       } else {
         throw err;
       }
@@ -344,8 +344,8 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
       return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to groq-gpt-oss for grading and ocrspace for scanning...");
-        provider = 'groq-gpt-oss';
+        console.warn("Gemini limit hit, auto-falling back to nvidia-nemotron for grading and ocrspace for scanning...");
+        provider = 'nvidia-nemotron';
         ocrProvider = 'ocrspace';
       } else {
         throw err;
@@ -375,7 +375,7 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
       return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
     } catch(err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        provider = 'groq-gpt-oss';
+        provider = 'nvidia-nemotron';
       } else {
         throw err;
       }
@@ -383,7 +383,7 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
   }
 
   try {
-    let model = provider === 'groq-gpt-oss' ? 'openai/gpt-oss-120b' : 'qwen/qwen3.6-27b';
+    let model = provider === 'nvidia-nemotron' ? 'nvidia/nemotron-3-ultra-550b-a55b' : 'qwen/qwen3.6-27b';
     
     const grading = await callMultiAi(provider as AIProvider, messages, model);
     
@@ -417,7 +417,7 @@ export const chatWithTutor = async (messages: any[], provider: string = 'gemini'
          if (hasImage) {
            throw new Error("Cannot fallback, Image context requires Gemini API, but quota is exceeded.");
          }
-         provider = 'groq-gpt-oss';
+         provider = 'nvidia-nemotron';
        } else {
          throw err;
        }

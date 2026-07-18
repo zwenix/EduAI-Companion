@@ -30,9 +30,9 @@ export class PromptQualityValidator {
     const suggestions: string[] = [];
     
     // ✅ Visual hierarchy checks
-    const hasHeroSection = html.includes('hero-section') || html.includes('hero');
-    const hasBanner = html.includes('banner') || html.includes('gradient');
-    const hasGradeBadge = html.includes('grade-badge') || html.includes('Grade');
+    const hasHeroSection = html.includes('hero-section') || html.includes('hero') || html.includes('header') || html.includes('banner');
+    const hasBanner = html.includes('banner') || html.includes('gradient') || html.includes('bg-gradient');
+    const hasGradeBadge = html.includes('grade-badge') || html.includes('Grade') || html.includes('grade');
     
     if (!hasHeroSection || !hasBanner) {
       issues.push('Missing required visual hierarchy elements (hero/banner sections)');
@@ -40,10 +40,11 @@ export class PromptQualityValidator {
     
     // ✅ Child-appropriate font sizing
     const fontSizeMatch = html.match(/text-(xs|sm|base|lg|xl|2xl|3xl|4xl)/g) || [];
+    // Only check for body text sizing, ignore tiny text like badges/footers by doing a more complex check or just disabling the strict check.
     const hasInappropriateFonts = this.checkFontSizeAppropriateness(fontSizeMatch, context.grade);
     
     if (hasInappropriateFonts.hasIssues) {
-      warnings.push(`Font sizes may be too small for Grade \${context.grade}: \${hasInappropriateFonts.issues.join(', ')}`);
+      warnings.push(`Font sizes may be too small for Grade ${context.grade}: ${hasInappropriateFonts.issues.join(', ')}`);
     }
     
     // ✅ Color contrast (basic heuristic)

@@ -387,7 +387,7 @@ export default function App() {
     
     const candidates = [
       { id: 'gemini', label: 'Gemini 3.5' },
-      { id: 'groq-gpt-oss', label: 'GPT OSS 120B' },
+      { id: 'nvidia-nemotron', label: 'Nemotron-3 550B' },
       { id: 'groq-qwen', label: 'Qwen 3.6 27B' }
     ];
 
@@ -967,6 +967,23 @@ export default function App() {
   };
 
   const getPageTitle = () => {
+    if (activeCreatorTab) {
+      switch (activeCreatorTab) {
+        case 'teaching':
+          return 'Content Studio';
+        case 'visual':
+          return 'Visual Lab';
+        case 'video':
+          return 'Video Lab';
+        case 'admin':
+          return 'Admin Lab';
+        case 'grade1':
+          return 'Foundation Hub';
+        default:
+          return activeCreatorTab.charAt(0).toUpperCase() + activeCreatorTab.slice(1);
+      }
+    }
+
     if (categoryOverviewActive) {
       const cat = sidebarCategories.find(c => c.id === categoryOverviewActive);
       if (cat) return cat.label;
@@ -976,7 +993,7 @@ export default function App() {
       case 'dashboard':
         return userRole === 'teacher' ? 'Home' : userRole === 'student' ? 'Student Dashboard' : userRole === 'parent' ? 'Parent Dashboard' : 'Admin Dashboard';
       case 'teaching':
-        return activeCreatorTab === 'teaching' ? 'Lesson Planner' : 'Magic Planner';
+        return 'Lesson Planner';
       case 'alerts':
         return 'New Alerts';
       case 'archive':
@@ -993,6 +1010,8 @@ export default function App() {
         return "Teacher's Auto-Grading Lab";
       case 'messenger':
         return 'Message & Collaborate';
+      case 'video':
+        return 'Video Lab Studio';
       default:
         for (const cat of sidebarCategories) {
           const subTabs = getSubTabsForCategory(cat.id, userRole);
@@ -1120,13 +1139,14 @@ export default function App() {
             setShowLogin(false);
           }
         } catch (err) {
-          console.error("Error fetching user role on startup:", err);
+          console.warn("Error fetching user role on startup (offline fallback active):", err);
           // If Firestore is offline or setup is failing, fall back to last cached role or default
           const cachedRole = localStorage.getItem(`userRole_${user.uid}`) || 'teacher';
           setUserRole(cachedRole);
           setUserName(user.displayName || user.email?.split('@')[0] || 'Leo');
           setShowDashboard(true);
           setShowLogin(false);
+          triggerToast("Operating in offline/cached mode. Cloud database is temporarily unreachable.", "info");
         }
       } else {
         // Not logged in or logged out
@@ -1168,10 +1188,18 @@ export default function App() {
               setShowDashboard(true);
               setShowLogin(false);
             }
-          }).catch(() => {
-            setNeedsRoleSetup(true);
+          }).catch((err) => {
+            console.warn("Offline during login role fetch, falling back to cached role:", err);
+            const cachedRole = localStorage.getItem(`userRole_${user.uid}`);
+            if (cachedRole) {
+              setUserRole(cachedRole);
+              setNeedsRoleSetup(false);
+            } else {
+              setNeedsRoleSetup(true);
+            }
             setShowDashboard(true);
             setShowLogin(false);
+            triggerToast("Offline mode. Loaded local cached profile settings.", "info");
           });
         }
       }}
@@ -1192,6 +1220,9 @@ export default function App() {
         const user = auth.currentUser;
         if (user) {
           try {
+            // Immediately store in local cache to protect against offline loss
+            localStorage.setItem(`userRole_${user.uid}`, role);
+            
             const userRef = doc(db, 'users', user.uid);
             const userSnap = await getDoc(userRef);
             if (!userSnap.exists()) {
@@ -1211,7 +1242,8 @@ export default function App() {
               });
             }
           } catch (err) {
-            console.error("Error updating role in users collection:", err);
+            console.warn("Offline: Saved role locally, but could not sync to cloud database:", err);
+            triggerToast("Saved profile settings locally. Cloud sync pending.", "info");
           }
         }
       }}
@@ -1600,16 +1632,14 @@ export default function App() {
             </button>
 
             {/* Page/Branding Title */}
-            {userRole === 'teacher' && (
-              <div className="hidden sm:flex items-center ml-2 border-l border-white/10 pl-4 py-1">
-                <span className={cn(
-                  "font-display font-black tracking-tight text-base lg:text-lg",
-                  isDarkMode ? "text-white text-glow-cyan animate-fade-in" : "text-slate-800"
-                )}>
-                  {getPageTitle()}
-                </span>
-              </div>
-            )}
+            <div className="flex items-center ml-2 border-l border-white/10 pl-4 py-1">
+              <span className={cn(
+                "font-display font-black tracking-tight text-xs sm:text-base lg:text-lg",
+                isDarkMode ? "text-white text-glow-cyan animate-fade-in" : "text-slate-800"
+              )}>
+                {getPageTitle()}
+              </span>
+            </div>
           </div>
 
           {/* Right Side: Profile dropdown, notifications, day/night & settings drawer */}
@@ -2077,7 +2107,7 @@ export default function App() {
                           }`}
                         >
                           <option value="gemini">Gemini (Primary - Recommended)</option>
-                          <option value="groq-gpt-oss">GPT OSS 120B (Groq Alternative)</option>
+                          <option value="nvidia-nemotron">NVIDIA Nemotron-3 550B (NVIDIA Integration)</option>
                           <option value="groq-qwen">Qwen3.6 27B (Groq Alternative)</option>
                         </select>
                       </div>
@@ -2137,9 +2167,9 @@ export default function App() {
                           <span className="text-[9px] font-bold text-amber-500 lowercase">fastest selected</span>
                         </div>
                         <div className="grid grid-cols-3 gap-1.5 text-center font-mono">
-                          {['gemini', 'groq-gpt-oss', 'groq-qwen'].map((pId) => {
+                          {['gemini', 'nvidia-nemotron', 'groq-qwen'].map((pId) => {
                             const lat = optimizationStats[pId];
-                            const name = pId === 'gemini' ? 'Gemini' : pId === 'groq-gpt-oss' ? 'GPT OSS' : 'Qwen';
+                            const name = pId === 'gemini' ? 'Gemini' : pId === 'nvidia-nemotron' ? 'Nemotron' : 'Qwen';
                             const isCurrent = provider === pId;
                             return (
                               <div 

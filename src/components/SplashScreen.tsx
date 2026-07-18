@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import splashVideo from '../assets/splash.mp4';
 
 interface SplashScreenProps {
   onVideoEnd?: () => void;
@@ -59,13 +60,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
         <div className="relative w-full h-full flex items-center justify-center">
           <video
             ref={videoRef}
-            src="/splash.mp4"
+            src={splashVideo}
             autoPlay
             playsInline
             muted
             onEnded={handleEnded}
             onError={() => {
-              console.error("Error loading public/splash.mp4, calling fallback");
+              console.error("Error loading splash.mp4, calling fallback");
               setVideoError(true);
               if (onVideoEnd) onVideoEnd();
             }}
