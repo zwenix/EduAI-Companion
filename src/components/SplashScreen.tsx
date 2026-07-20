@@ -62,7 +62,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
         <div className="relative w-full h-full flex items-center justify-center bg-[#92cbfa]">
           <video
             ref={videoRef}
-            src="/splash.mp4"
+            src={splashVideo}
             autoPlay
             loop
             playsInline

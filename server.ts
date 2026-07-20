@@ -1000,30 +1000,14 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         }
       }
 
-      // Fallback 1: Perchance
+      // Fallback 1: Perchance (Now mapped to Pollinations Turbo due to 403s)
       try {
-        console.log("Attempting image generation with Perchance AI...");
+        console.log("Attempting image generation with Secondary Provider (Pollinations Turbo)...");
         const seed = Math.floor(Math.random() * 100000);
-        const perchanceUrl = `https://perchance.org/imageapi?prompt=${encodeURIComponent(prompt)}&width=1024&height=1024&seed=${seed}`;
-        
-        const response = await fetch(perchanceUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'image/png, image/jpeg',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-          },
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Perchance API error: ${response.status}`);
-        }
-        
-        const arrayBuffer = await response.arrayBuffer();
-        const base64 = Buffer.from(arrayBuffer).toString('base64');
-        console.log("Image successfully generated with Perchance AI!");
-        return res.json({ url: `data:image/jpeg;base64,${base64}` });
+        const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&enhance=true&seed=${seed}`;
+        return res.json({ url: fallbackUrl, isFallback: true });
       } catch (error: any) {
-        console.warn("Perchance generation failed, falling back to Pollinations:", error.message);
+        console.warn("Secondary generation failed, falling back to Tertiary:", error.message);
       }
 
       // Fallback 2: Pollinations
@@ -1035,30 +1019,12 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
 
     if (provider === "perchance") {
       try {
-        console.log("Attempting image generation with Perchance AI...");
+        console.log("Attempting image generation with Secondary Provider (Pollinations Turbo)...");
         const seed = Math.floor(Math.random() * 100000);
-        // Approach 1 direct API url (Fetch on backend to avoid CORS)
-        const perchanceUrl = `https://perchance.org/imageapi?prompt=${encodeURIComponent(prompt)}&width=1024&height=1024&seed=${seed}`;
-        
-        const response = await fetch(perchanceUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'image/png, image/jpeg',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-          },
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Perchance API error: ${response.status}`);
-        }
-        
-        const arrayBuffer = await response.arrayBuffer();
-        const base64 = Buffer.from(arrayBuffer).toString('base64');
-        console.log("Image successfully generated with Perchance AI!");
-        return res.json({ url: `data:image/jpeg;base64,${base64}` });
+        const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&enhance=true&seed=${seed}`;
+        return res.json({ url: fallbackUrl });
       } catch (error: any) {
-        console.warn("Perchance generation failed, falling back to Pollinations:", error.message);
-        // Fallback to pollinations to guarantee successful render
+        console.warn("Secondary generation failed, falling back to Tertiary:", error.message);
         const seed = Math.floor(Math.random() * 100000);
         const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&enhance=true&seed=${seed}`;
         return res.json({ url: fallbackUrl, isFallback: true });
@@ -1233,21 +1199,9 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             }
             throw new Error("No image data returned from model");
           } catch (err: any) {
-            console.warn("Gemini action image generation failed, trying Perchance...");
+            console.warn("Gemini action image generation failed, trying Pollinations Turbo...");
             const seed = Math.floor(Math.random() * 100000);
-            const perchanceUrl = `https://perchance.org/imageapi?prompt=${encodeURIComponent(imagePrompt)}&width=${width || 1024}&height=${height || 1024}&seed=${seed}`;
-            const perchanceResponse = await fetch(perchanceUrl, {
-              headers: {
-                'Accept': 'image/png, image/jpeg',
-                'User-Agent': 'Mozilla/5.0'
-              }
-            });
-            if (perchanceResponse.ok) {
-              const arrayBuffer = await perchanceResponse.arrayBuffer();
-              const base64 = Buffer.from(arrayBuffer).toString('base64');
-              return res.json({ imageUrl: `data:image/jpeg;base64,${base64}` });
-            }
-            const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=${width || 1024}&height=${height || 1024}&nologo=true&model=flux&seed=${seed}`;
+            const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=${width || 1024}&height=${height || 1024}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
             return res.json({ imageUrl: fallbackUrl });
           }
         }

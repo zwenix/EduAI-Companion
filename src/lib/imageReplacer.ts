@@ -129,9 +129,9 @@ export function replaceImagePlaceholders(html: string, allowImages: boolean = tr
     
     let imageUrl = '';
     if (provider === 'perchance') {
-      imageUrl = `https://perchance.org/imageapi?prompt=${encodeURIComponent(enhancedPrompt)}&width=800&height=600&seed=${seedCounter}`;
+      imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=600&nologo=true&model=turbo&enhance=true&seed=${seedCounter}`;
     } else {
-      imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=600&nologo=true&model=flux&seed=${seedCounter}`;
+      imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=600&nologo=true&model=flux&enhance=true&seed=${seedCounter}`;
     }
 
     // Async save to firestore in background (non-blocking)
