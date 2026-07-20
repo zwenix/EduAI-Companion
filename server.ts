@@ -959,6 +959,48 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     }
   });
 
+  // --- Image Proxy Route for src tags ---
+  app.get("/api/image-proxy", async (req, res) => {
+    try {
+      const prompt = req.query.prompt as string;
+      const seed = req.query.seed || Math.floor(Math.random() * 100000);
+      const width = req.query.width || 800;
+      const height = req.query.height || 600;
+      
+      if (!prompt) {
+        return res.status(400).send("Prompt is required");
+      }
+      
+      // Use pollinations as the stable backend proxy
+      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width}&height=${height}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
+      
+      const response = await fetch(pollinationsUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'image/png, image/jpeg',
+          'User-Agent': 'Mozilla/5.0'
+        }
+      });
+      
+      if (!response.ok) {
+        return res.status(response.status).send(`Failed to fetch image`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (contentType) {
+        res.setHeader('Content-Type', contentType);
+      }
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      return res.send(buffer);
+    } catch (error) {
+      console.error("Image proxy error:", error);
+      return res.status(500).send("Image proxy failed");
+    }
+  });
+
   app.post("/api/images/generate", async (req, res) => {
     const { prompt, provider } = req.body;
     
@@ -1005,16 +1047,52 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         console.log("Attempting image generation with Secondary Provider (Pollinations Turbo)...");
         const seed = Math.floor(Math.random() * 100000);
         const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&enhance=true&seed=${seed}`;
-        return res.json({ url: fallbackUrl, isFallback: true });
+        
+        const response = await fetch(fallbackUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'image/png, image/jpeg',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Secondary API error: ${response.status}`);
+        }
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+        console.log("Image successfully generated with Secondary Provider!");
+        return res.json({ url: `data:image/jpeg;base64,${base64}` });
       } catch (error: any) {
         console.warn("Secondary generation failed, falling back to Tertiary:", error.message);
       }
 
       // Fallback 2: Pollinations
       console.warn("All image generation attempts failed. Falling back to Pollinations.");
-      const enhancedPrompt = `${prompt}, masterpiece emoji-style figurine 3D render, 3D Disney Character render, pure white background, natural beauty, ultra-detailed 3D digital asset, vibrant colors, perfect composition, no text overlays, museum-quality detail`;
-      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 100000)}`;
-      return res.json({ url: fallbackUrl, isFallback: true });
+      try {
+        const enhancedPrompt = `${prompt}, masterpiece emoji-style figurine 3D render, 3D Disney Character render, pure white background, natural beauty, ultra-detailed 3D digital asset, vibrant colors, perfect composition, no text overlays, museum-quality detail`;
+        const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 100000)}`;
+        const response = await fetch(fallbackUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'image/png, image/jpeg',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Pollinations API error: ${response.status}`);
+        }
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+        console.log("Image successfully generated with Pollinations!");
+        return res.json({ url: `data:image/jpeg;base64,${base64}`, isFallback: true });
+      } catch (error: any) {
+         console.warn("Pollinations generation failed:", error.message);
+         return res.status(500).json({ error: "All image generation attempts failed" });
+      }
     }
 
     if (provider === "perchance") {
@@ -1022,12 +1100,46 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         console.log("Attempting image generation with Secondary Provider (Pollinations Turbo)...");
         const seed = Math.floor(Math.random() * 100000);
         const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&enhance=true&seed=${seed}`;
-        return res.json({ url: fallbackUrl });
+        
+        const response = await fetch(fallbackUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'image/png, image/jpeg',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Secondary API error: ${response.status}`);
+        }
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+        console.log("Image successfully generated with Secondary Provider!");
+        return res.json({ url: `data:image/jpeg;base64,${base64}` });
       } catch (error: any) {
         console.warn("Secondary generation failed, falling back to Tertiary:", error.message);
-        const seed = Math.floor(Math.random() * 100000);
-        const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&enhance=true&seed=${seed}`;
-        return res.json({ url: fallbackUrl, isFallback: true });
+        try {
+          const seed = Math.floor(Math.random() * 100000);
+          const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&enhance=true&seed=${seed}`;
+          const response = await fetch(fallbackUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'image/png, image/jpeg',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+            },
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Pollinations API error: ${response.status}`);
+          }
+          
+          const arrayBuffer = await response.arrayBuffer();
+          const base64 = Buffer.from(arrayBuffer).toString('base64');
+          return res.json({ url: `data:image/jpeg;base64,${base64}`, isFallback: true });
+        } catch (err: any) {
+           return res.status(500).json({ error: "All image generation attempts failed" });
+        }
       }
     }
 
@@ -1035,9 +1147,24 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
       try {
         console.log("Attempting image generation with Pollinations AI...");
         const seed = Math.floor(Math.random() * 100000);
-        // Approach 2 Recommended direct URL return (super fast, CORS-friendly)
         const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&enhance=true&seed=${seed}`;
-        return res.json({ url: pollinationsUrl });
+        
+        const response = await fetch(pollinationsUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'image/png, image/jpeg',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Pollinations API error: ${response.status}`);
+        }
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+        console.log("Image successfully generated with Pollinations!");
+        return res.json({ url: `data:image/jpeg;base64,${base64}` });
       } catch (error: any) {
         console.warn("Pollinations generation failed:", error.message);
         return res.status(500).json({ error: "Pollinations image generation failed" });
@@ -1200,9 +1327,28 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             throw new Error("No image data returned from model");
           } catch (err: any) {
             console.warn("Gemini action image generation failed, trying Pollinations Turbo...");
-            const seed = Math.floor(Math.random() * 100000);
-            const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=${width || 1024}&height=${height || 1024}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
-            return res.json({ imageUrl: fallbackUrl });
+            try {
+              const seed = Math.floor(Math.random() * 100000);
+              const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=${width || 1024}&height=${height || 1024}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
+              
+              const fetchResponse = await fetch(fallbackUrl, {
+                method: 'GET',
+                headers: {
+                  'Accept': 'image/png, image/jpeg',
+                  'User-Agent': 'Mozilla/5.0'
+                }
+              });
+              
+              if (fetchResponse.ok) {
+                const arrayBuffer = await fetchResponse.arrayBuffer();
+                const base64 = Buffer.from(arrayBuffer).toString('base64');
+                return res.json({ imageUrl: `data:image/jpeg;base64,${base64}` });
+              }
+              throw new Error(`Pollinations API error: ${fetchResponse.status}`);
+            } catch (fallbackErr) {
+              console.warn("Pollinations failed:", fallbackErr);
+              return res.status(500).json({ error: "All image generation attempts failed" });
+            }
           }
         }
 

@@ -117,8 +117,36 @@ export const generateImagePollinations = async (
   height: number = 1024,
   seed: number = Math.floor(Math.random() * 10000)
 ): Promise<string> => {
-  const encodedPrompt = encodeURIComponent(prompt);
-  return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&model=flux&seed=${seed}&enhance=true`;
+  try {
+    const encodedPrompt = encodeURIComponent(prompt);
+    // Use backend proxy to avoid CORS
+    const response = await fetch('/api/images/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt,
+        provider: 'pollinations',
+        width,
+        height,
+        seed
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Pollinations API failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.url) {
+      throw new Error('No image URL returned from Pollinations');
+    }
+
+    return data.url;
+  } catch (error) {
+    console.error('Pollinations image generation failed:', error);
+    throw error;
+  }
 };
 
 /**

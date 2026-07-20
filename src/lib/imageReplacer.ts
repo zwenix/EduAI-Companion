@@ -127,12 +127,8 @@ export function replaceImagePlaceholders(html: string, allowImages: boolean = tr
 
     const enhancedPrompt = `${cleanPrompt}, World-class masterpiece work of art, crisp render, sharp focus, charmingly aesthetic design, 4k, soft lighting, masterpiece emoji-style figurine 3D render, 3D Disney Character render, pure white background, natural beauty`;
     
-    let imageUrl = '';
-    if (provider === 'perchance') {
-      imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=600&nologo=true&model=turbo&enhance=true&seed=${seedCounter}`;
-    } else {
-      imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=600&nologo=true&model=flux&enhance=true&seed=${seedCounter}`;
-    }
+    // Use the backend proxy to bypass school network firewalls blocking external generation sites
+    const imageUrl = `/api/image-proxy?prompt=${encodeURIComponent(enhancedPrompt)}&width=800&height=600&seed=${seedCounter}`;
 
     // Async save to firestore in background (non-blocking)
     IllustrationCache.save(cleanPrompt, imageUrl);
