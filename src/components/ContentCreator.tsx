@@ -1485,39 +1485,191 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                 </h2>
 
                 {/* Preview Area */}
-                <div className={cn(
-                  "flex-1 rounded-2xl border-2 border-dashed p-6 min-h-[280px] flex items-center justify-center relative overflow-hidden",
-                  isDarkMode 
-                    ? "bg-[#0d1221]/50 border-white/10" 
-                    : "bg-slate-50 border-slate-300"
-                )}>
-                  {isGenerating ? (
-                    <div className="text-center z-10">
-                      <Loader2 className="animate-spin mx-auto mb-3 text-cyan-400" size={40} />
-                      <p className={cn(
-                        "text-sm font-medium",
-                        isDarkMode ? "text-slate-300" : "text-slate-700"
+                {(() => {
+                  const hasContent = (activeTab === 'teaching' && (teachingResult.content || teachingResult.memo || teachingResult.rubric)) ||
+                                     (activeTab === 'visual' && visualResult?.content) ||
+                                     (activeTab === 'admin' && adminResult?.content);
+                  
+                  const activeHtml = activeTab === 'teaching' 
+                    ? (activePreviewTab === 'content' ? teachingResult.content : activePreviewTab === 'memo' ? teachingResult.memo : teachingResult.rubric)
+                    : activeTab === 'visual'
+                    ? visualResult?.content
+                    : adminResult?.content;
+
+                  const currentSubject = activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject;
+                  const currentGrade = activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade;
+                  const currentTopic = activeTab === 'teaching' ? t_topic : activeTab === 'visual' ? v_topic : a_topic;
+                  const currentType = activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : a_type;
+
+                  if (isGenerating) {
+                    return (
+                      <div className={cn(
+                        "flex-1 rounded-2xl border-2 border-dashed p-6 min-h-[420px] flex flex-col items-center justify-center relative overflow-hidden",
+                        isDarkMode 
+                          ? "bg-[#0d1221]/50 border-white/10" 
+                          : "bg-slate-50 border-slate-300"
                       )}>
-                        Forging your CAPS content...
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">Applying pedagogic rules & diagnostics...</p>
-                    </div>
-                  ) : (
-                    <div className="text-center opacity-50 z-10">
-                      <Layers size={48} className={cn(
-                        "mx-auto mb-3",
-                        isDarkMode ? "text-slate-600" : "text-slate-400"
-                      )} />
-                      <p className={cn(
-                        "text-sm font-bold uppercase tracking-wider",
-                        isDarkMode ? "text-slate-400" : "text-slate-600"
+                        {/* Scanning Laser Line */}
+                        <motion.div
+                          className="absolute left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_15px_rgba(34,211,238,0.9)] z-20"
+                          animate={{
+                            top: ["4%", "96%", "4%"]
+                          }}
+                          transition={{
+                            duration: 3,
+                            ease: "easeInOut",
+                            repeat: Infinity
+                          }}
+                        />
+
+                        {/* Scanning Sweep Overlay */}
+                        <motion.div
+                          className="absolute left-0 right-0 w-full bg-gradient-to-b from-cyan-400/0 via-cyan-400/10 to-cyan-400/0 h-28 pointer-events-none z-10"
+                          animate={{
+                            top: ["-10%", "90%", "-10%"]
+                          }}
+                          transition={{
+                            duration: 3,
+                            ease: "easeInOut",
+                            repeat: Infinity
+                          }}
+                        />
+
+                        {/* Skeleton A4 page being scanned */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none scale-[0.8] origin-center opacity-40 z-0">
+                          <div className="w-[300px] aspect-[1/1.41] bg-white rounded-lg border border-slate-200/50 p-5 space-y-4 shadow-inner relative">
+                            {/* Header layout */}
+                            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+                              <div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse" />
+                              <div className="space-y-1.5 flex-1">
+                                <div className="h-3 bg-slate-200 rounded w-2/3 animate-pulse" />
+                                <div className="h-2 bg-slate-200 rounded w-1/3 animate-pulse" />
+                              </div>
+                            </div>
+                            {/* Title block */}
+                            <div className="h-4 bg-slate-200 rounded w-1/2 animate-pulse mx-auto" />
+                            {/* Paragraph blocks */}
+                            <div className="space-y-2 pt-2">
+                              <div className="h-2 bg-slate-200 rounded w-full animate-pulse" />
+                              <div className="h-2 bg-slate-200 rounded w-5/6 animate-pulse" />
+                              <div className="h-2 bg-slate-200 rounded w-4/5 animate-pulse" />
+                            </div>
+                            {/* Graphic block */}
+                            <div className="h-24 bg-slate-100 rounded-lg flex items-center justify-center animate-pulse">
+                              <Sparkles className="text-slate-300" size={24} />
+                            </div>
+                            {/* Bullet blocks */}
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-slate-200 animate-pulse" />
+                                <div className="h-2 bg-slate-200 rounded w-2/3 animate-pulse" />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-slate-200 animate-pulse" />
+                                <div className="h-2 bg-slate-200 rounded w-3/4 animate-pulse" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Scanner Stats Overlay */}
+                        <div className="text-center z-10 bg-[#070b19]/80 backdrop-blur-md p-4 rounded-xl border border-cyan-500/20 max-w-[240px] shadow-lg">
+                          <Loader2 className="animate-spin mx-auto mb-3 text-cyan-400" size={32} />
+                          <p className="text-xs font-black uppercase tracking-widest text-cyan-400">
+                            Forging Content
+                          </p>
+                          <p className="text-[10px] text-slate-400 mt-1 font-sans">Applying pedagogic rules & South African CAPS standards...</p>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (hasContent && activeHtml) {
+                    return (
+                      <div className={cn(
+                        "flex-1 rounded-2xl border p-4 min-h-[420px] max-h-[500px] flex flex-col relative overflow-hidden",
+                        isDarkMode 
+                          ? "bg-[#0d1221]/50 border-white/10" 
+                          : "bg-slate-50 border-slate-300"
                       )}>
-                        Preview Stage
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">Configure options on the left and click FORGE to begin.</p>
+                        {/* Interactive Page Viewport */}
+                        <div className="flex-1 overflow-y-auto scrollbar-thin pr-1">
+                          <div className="bg-white text-slate-800 shadow-xl rounded-xl p-6 border border-slate-200 min-h-[500px] relative font-sans text-xs leading-relaxed select-text">
+                            {/* Official South African Document Emblem Header Mockup */}
+                            <div className="mb-6 border-b-2 border-slate-800 pb-4 flex flex-col items-center text-center">
+                              <div className="text-[9px] tracking-[0.25em] font-black text-slate-500 uppercase">
+                                Department of Basic Education
+                              </div>
+                              <div className="text-[7px] tracking-[0.2em] text-slate-400 uppercase mt-0.5">
+                                Republic of South Africa
+                              </div>
+                              
+                              <div className="mt-2.5 px-3 py-1 bg-slate-900 text-white rounded-md text-[8px] font-black tracking-[0.15em] uppercase shadow-sm">
+                                {activeTab === 'teaching' 
+                                  ? `CAPS ${currentType || 'Lesson Material'}` 
+                                  : activeTab === 'visual' 
+                                  ? `VISUAL AID: ${currentType}` 
+                                  : `ADMIN CORRESPONDENCE`}
+                              </div>
+                            </div>
+
+                            {/* Metadata Block */}
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 bg-slate-50 p-2.5 rounded-lg border border-slate-100 mb-4 text-[9px] font-mono text-slate-600">
+                              <div><strong className="text-slate-800 uppercase">Grade:</strong> {currentGrade || 'N/A'}</div>
+                              <div><strong className="text-slate-800 uppercase">Subject:</strong> {currentSubject || 'General'}</div>
+                              <div className="col-span-2"><strong className="text-slate-800 uppercase">Topic:</strong> {currentTopic || 'Untitled'}</div>
+                            </div>
+
+                            {/* Rendered HTML */}
+                            <div 
+                              className="prose prose-sm max-w-none text-slate-800 text-[11px] leading-relaxed select-text"
+                              dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(activeHtml) }}
+                            />
+
+                            {/* PDF/A4 Indicator Badge */}
+                            <div className="mt-8 border-t border-slate-100 pt-3 flex justify-between items-center text-[8px] text-slate-400 font-mono">
+                              <span>Page 1 of 1 (PREVIEW)</span>
+                              <span>EduAI CAPS Studio</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Indicator banner overlay */}
+                        <div className="mt-2.5 flex items-center justify-between text-[10px] text-slate-400 font-medium px-1 bg-cyan-950/20 py-1.5 rounded-lg border border-cyan-500/10">
+                          <span className="flex items-center gap-1.5 text-cyan-400">
+                            <Sparkles size={12} className="animate-pulse" />
+                            Live Sheet Preview
+                          </span>
+                          <span className="text-slate-500 font-mono">Scroll to preview document</span>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Fallback: Default Placeholder when not generating and no content has been generated yet
+                  return (
+                    <div className={cn(
+                      "flex-1 rounded-2xl border-2 border-dashed p-6 min-h-[420px] flex items-center justify-center relative overflow-hidden",
+                      isDarkMode 
+                        ? "bg-[#0d1221]/50 border-white/10" 
+                        : "bg-slate-50 border-slate-300"
+                    )}>
+                      <div className="text-center opacity-50 z-10">
+                        <Layers size={48} className={cn(
+                          "mx-auto mb-3 animate-pulse",
+                          isDarkMode ? "text-slate-600" : "text-slate-400"
+                        )} />
+                        <p className={cn(
+                          "text-sm font-bold uppercase tracking-wider",
+                          isDarkMode ? "text-slate-400" : "text-slate-600"
+                        )}>
+                          Preview Stage
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">Configure options on the left and click FORGE to begin.</p>
+                      </div>
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
 
                 {/* FORGE Button */}
                 <button
