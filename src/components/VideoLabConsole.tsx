@@ -124,7 +124,7 @@ export default function VideoLabConsole({
   }, []);
 
   return (
-    <div className="flex flex-col gap-6 p-6 font-sans overflow-y-auto h-full w-full custom-scrollbar pb-12">
+    <div className="flex flex-col gap-6 p-4 sm:p-6 font-sans w-full pb-12">
       {/* Header Area */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col gap-1 text-left">
@@ -172,7 +172,7 @@ export default function VideoLabConsole({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
         {/* Main Viewport */}
         <div className="lg:col-span-2 flex flex-col gap-4">
-          <div className="flex-1 bg-white/5 border border-white/10 rounded-[32px] overflow-hidden relative group">
+          <div className="w-full aspect-video bg-white/5 border border-white/10 rounded-2xl sm:rounded-[32px] overflow-hidden relative group min-h-[220px] max-h-[480px]">
             {/* Viewport Header */}
             <div className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between z-10">
               <div className="flex items-center gap-2 text-[10px] font-black text-cyan-400 uppercase tracking-widest bg-cyan-400/10 px-3 py-1.5 rounded-lg border border-cyan-400/20">

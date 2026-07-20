@@ -1200,11 +1200,11 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
 
         case "generate-image": {
           const { prompt: imagePrompt, width, height } = input || {};
-          const apiKey = resolveGeminiKey();
-          if (!apiKey || apiKey === "" || apiKey === "dummy" || apiKey === "undefined") {
-            return res.status(400).json({ error: "GEMINI_API_KEY is not configured." });
-          }
           try {
+            const apiKey = resolveGeminiKey();
+            if (!apiKey || apiKey === "" || apiKey === "dummy" || apiKey === "undefined") {
+              throw new Error("GEMINI_API_KEY is not configured.");
+            }
             console.log("Generating image with Gemini action:", imagePrompt);
             const response = await geminiAi.models.generateContent({
               model: 'imagen-3.0-generate-002',
@@ -1289,9 +1289,16 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             includeWorksheet: !!input.includeWorksheet
           });
 
+          let finalUserPrompt = user;
+          if (input.generateImage) {
+            finalUserPrompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 2-3 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of an educational graphic depicting the topic in South African context>]. Place them strategically inside the HTML to visually break up the text. The system will replace them with actual AI generated images.`;
+          } else {
+            finalUserPrompt += `\n\n⚠️ CRITICAL: DO NOT include any illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
+          }
+
           const response = await generateContentWithFallback({
             model,
-            contents: user,
+            contents: finalUserPrompt,
             config: {
               systemInstruction: system,
               responseMimeType: "application/json",
@@ -1395,7 +1402,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             visualPrompt = `Create a highly visual display, not a worksheet, for Grade ${input.grade} ${input.subject} on topic ${input.topic}. Ensure it is styled beautifully.`;
           }
 
-          const prompt = `
+          let prompt = `
             ${visualPrompt}
             Language: ${input.language}
             Style: ${input.style}
@@ -1404,6 +1411,11 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             Quantity: ${input.quantity}
             Additional Info: ${IMAGE_PROMPT_GOLDEN_RULE}
           `;
+          if (input.generateImage) {
+            prompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 2-3 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of an educational graphic depicting the topic in South African context>]. Place them strategically inside the HTML to visually break up the text. The system will replace them with actual AI generated images.`;
+          } else {
+            prompt += `\n\n⚠️ CRITICAL: DO NOT include any illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
+          }
 
           const response = await generateContentWithFallback({
             model,
@@ -1430,13 +1442,19 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
           const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate a formal ${input.documentType} for ${input.schoolName}.
           The tone should be ${input.tone}.
           IMPORTANT: The 'content' field MUST be formatted as visually pleasing HTML string styled with Tailwind CSS classes. DO NOT use generic Markdown.`;
-          const prompt = `
+          let prompt = `
             Type: ${input.documentType}
             Purpose: ${input.purpose}
             Key Points: ${input.keyPoints}
             Include Reply Slip: ${input.includeReplySlip}
             Language: ${input.language}
           `;
+          if (input.generateImage) {
+            prompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 1-2 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of a professional school stamp, document seal, or graphic depicting the topic in South African context>]. Place them strategically inside the HTML. The system will replace them with actual AI generated images.`;
+          } else {
+            prompt += `\n\n⚠️ CRITICAL: DO NOT include any illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
+          }
+
           const response = await generateContentWithFallback({
             model,
             contents: prompt,

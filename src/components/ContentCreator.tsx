@@ -775,7 +775,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
 
   // ─── Render Helpers ───────────────────────────────────────────────────────
   
-  const ContentPreview = ({ html, label, isDarkMode, imagePrompt, grade, subject, contentType, qualityRating, isAssessing, onViewReport }: any) => {
+  const ContentPreview = ({ html, label, isDarkMode, imagePrompt, grade, subject, contentType, qualityRating, isAssessing, onViewReport, allowImages = false }: any) => {
     const getScoreColor = (score: number) => {
       if (score >= 85) return 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10';
       if (score >= 70) return 'text-cyan-400 border-cyan-400/20 bg-cyan-400/10';
@@ -850,7 +850,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
         
         <div 
           className="prose prose-sm max-w-none text-slate-300"
-          dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(html) }}
+          dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(html, allowImages) }}
         />
         
         {imagePrompt && (
@@ -866,44 +866,44 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   
   return (
     <div className={cn(
-      "fixed inset-0 z-40 flex overflow-hidden transition-all duration-300",
+      "fixed inset-0 z-40 flex flex-col overflow-hidden transition-all duration-300",
       isDarkMode ? "bg-[#0a0f21]" : "bg-slate-50",
       isSidebarOpen ? "lg:pl-[240px]" : "lg:pl-[84px]"
     )}>
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col h-full max-h-screen overflow-hidden">
         {/* Top Navigation Bar */}
         <header className={cn(
-          "sticky top-0 z-40 border-b backdrop-blur-xl",
+          "sticky top-0 z-40 border-b backdrop-blur-xl shrink-0",
           isDarkMode 
             ? "bg-[#0d1221]/80 border-white/10" 
             : "bg-white/80 border-slate-200"
         )}>
-          <div className="flex items-center justify-between px-8 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 px-4 sm:px-8 py-3 sm:py-4">
             {/* Top Tabs & Exit Button */}
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
               {onClose && (
                 <button
                   onClick={onClose}
                   className={cn(
-                    "p-2 px-3 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-widest border cursor-pointer",
+                    "p-2 px-3 rounded-xl transition-all flex items-center gap-1.5 text-[10px] sm:text-xs font-black uppercase tracking-widest border cursor-pointer shrink-0",
                     isDarkMode 
                       ? "border-white/10 hover:bg-white/5 text-slate-300 hover:text-white"
                       : "border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-slate-900"
                   )}
                 >
                   <ArrowLeft size={14} />
-                  Exit Studio
+                  <span className="hidden sm:inline">Exit Studio</span>
                 </button>
               )}
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto">
                 {TOP_TABS.map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTopTab(tab)}
                     className={cn(
-                      "px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                      "px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap",
                       activeTopTab === tab
                         ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/25"
                         : isDarkMode
@@ -918,46 +918,46 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
             </div>
 
             {/* User Profile & Notifications */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4 ml-auto sm:ml-0">
               <button className={cn(
-                "relative p-2.5 rounded-xl transition-all",
+                "relative p-2 rounded-xl transition-all shrink-0",
                 isDarkMode ? "hover:bg-white/5 text-slate-400" : "hover:bg-slate-100 text-slate-600"
               )}>
-                <Bell size={20} />
+                <Bell size={18} />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
               </button>
               
               <div className={cn(
-                "flex items-center gap-3 px-4 py-2.5 rounded-xl border",
+                "flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-xl border shrink-0",
                 isDarkMode 
                   ? "bg-white/5 border-white/10" 
                   : "bg-slate-100 border-slate-200"
               )}>
-                <UserCircle size={28} className="text-cyan-400" />
+                <UserCircle size={24} className="text-cyan-400" />
                 <span className={cn(
-                  "text-sm font-bold",
+                  "text-xs sm:text-sm font-bold hidden md:inline",
                   isDarkMode ? "text-white" : "text-slate-900"
                 )}>
                   Commander {userName}
                 </span>
-                <ChevronDown size={16} className="text-slate-400" />
+                <ChevronDown size={14} className="text-slate-400" />
               </div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-8 overflow-y-auto">
-          {/* 3D Holo-Forge Title */}
-          <div className="text-center mb-10">
+        <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
+          {/* Content Factory Title */}
+          <div className="text-center mb-6 sm:mb-10">
             <h1 className={cn(
-              "text-5xl font-bold mb-3 tracking-tight",
+              "text-3xl sm:text-5xl font-black mb-2 sm:mb-3 tracking-tight uppercase",
               isDarkMode ? "text-white" : "text-slate-900"
             )}>
-              3D Holo-Forge
+              Content Factory
             </h1>
             <p className={cn(
-              "text-sm",
+              "text-xs sm:text-sm",
               isDarkMode ? "text-slate-400" : "text-slate-600"
             )}>
               Create immersive educational content with AI-powered precision
@@ -965,13 +965,13 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
           </div>
 
           {/* Studio Selector Tabs */}
-          <div className="flex flex-wrap justify-center gap-3 mb-8">
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-6 sm:mb-8">
             {GENERATOR_GROUPS.map((group) => (
               <button
                 key={group.id}
                 onClick={() => setActiveTab(group.id)}
                 className={cn(
-                  "flex items-center gap-2 px-5 py-3 rounded-2xl border transition-all cursor-pointer",
+                  "flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl border transition-all cursor-pointer",
                   activeTab === group.id
                     ? (isDarkMode 
                       ? "bg-cyan-500/10 border-cyan-400 text-cyan-300 font-bold shadow-lg shadow-cyan-500/10" 
@@ -981,8 +981,8 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                       : "bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50")
                 )}
               >
-                <group.icon size={16} />
-                <span className="text-xs font-black uppercase tracking-wider">{group.label}</span>
+                <group.icon size={14} className="sm:size-4" />
+                <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider">{group.label}</span>
               </button>
             ))}
           </div>
@@ -1623,7 +1623,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                             {/* Rendered HTML */}
                             <div 
                               className="prose prose-sm max-w-none text-slate-800 text-[11px] leading-relaxed select-text"
-                              dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(activeHtml) }}
+                              dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(activeHtml, activeTab === 'teaching' ? t_generateImage : activeTab === 'visual' ? v_generateImage : a_generateImage) }}
                             />
 
                             {/* PDF/A4 Indicator Badge */}
@@ -1665,13 +1665,13 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                         )}>
                           Preview Stage
                         </p>
-                        <p className="text-xs text-slate-500 mt-1">Configure options on the left and click FORGE to begin.</p>
+                        <p className="text-xs text-slate-500 mt-1">Configure options on the left and click Generate to begin.</p>
                       </div>
                     </div>
                   );
                 })()}
 
-                {/* FORGE Button */}
+                {/* GENERATE Button */}
                 <button
                   onClick={handleForge}
                   disabled={
@@ -1693,12 +1693,12 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                   {isGenerating ? (
                     <>
                       <Loader2 size={18} className="animate-spin" />
-                      Forging...
+                      Generating...
                     </>
                   ) : (
                     <>
                       <Sparkles size={18} className="group-hover:animate-pulse" />
-                      FORGE CONTENT
+                      GENERATE
                     </>
                   )}
                 </button>
@@ -1968,7 +1968,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                               html={teachingResult.content}
                               label="Integrated CAPS Classroom Material"
                               isDarkMode={isDarkMode}
-                              imagePrompt={t_generateImage ? (teachingResult.imagePrompt || teachingResult.userImagePrompt) : undefined}
+                              imagePrompt={t_generateImage ? (teachingResult.imagePrompt || teachingResult.userImagePrompt || `Professional educational illustration for South African Grade ${t_grade} ${t_subject}: ${t_topic}`) : undefined}
                               grade={t_grade}
                               subject={t_subject === 'Other' ? t_customSubject : t_subject}
                               contentType={t_type}
@@ -1978,6 +1978,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                                 setQualityRating(rating);
                                 setShowQualityCheck(true);
                               }}
+                              allowImages={t_generateImage}
                             />
                           )}
                           {activePreviewTab === 'memo' && teachingResult.memo && (
@@ -1988,6 +1989,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                               grade={t_grade}
                               subject={t_subject === 'Other' ? t_customSubject : t_subject}
                               contentType="memo"
+                              allowImages={false}
                             />
                           )}
                           {activePreviewTab === 'rubric' && teachingResult.rubric && (
@@ -1998,6 +2000,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                               grade={t_grade}
                               subject={t_subject === 'Other' ? t_customSubject : t_subject}
                               contentType="rubric"
+                              allowImages={false}
                             />
                           )}
                         </div>
@@ -2008,7 +2011,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                           html={visualResult.content}
                           label="Print-Ready Digital Visual Display"
                           isDarkMode={isDarkMode}
-                          imagePrompt={v_generateImage ? (visualResult.imagePrompt || visualResult.userImagePrompt) : undefined}
+                          imagePrompt={v_generateImage ? (visualResult.imagePrompt || visualResult.userImagePrompt || `Professional educational illustration for South African Grade ${v_grade} ${v_subject}: ${v_topic}`) : undefined}
                           grade={v_grade}
                           subject={v_subject === 'Other' ? v_customSubject : v_subject}
                           contentType={v_type}
@@ -2018,6 +2021,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                             setQualityRating(rating);
                             setShowQualityCheck(true);
                           }}
+                          allowImages={v_generateImage}
                         />
                       )}
                       
@@ -2026,7 +2030,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                           html={adminResult.content}
                           label="Official School Administration Document"
                           isDarkMode={isDarkMode}
-                          imagePrompt={a_generateImage ? (adminResult.imagePrompt || adminResult.userImagePrompt) : undefined}
+                          imagePrompt={a_generateImage ? (adminResult.imagePrompt || adminResult.userImagePrompt || `Professional educational illustration for South African Grade ${a_grade || 'R'} ${a_subject}: ${a_topic}`) : undefined}
                           grade={a_grade || 'N/A'}
                           subject={a_subject === 'Other' ? a_customSubject : a_subject}
                           contentType={a_type}
@@ -2036,6 +2040,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                             setQualityRating(rating);
                             setShowQualityCheck(true);
                           }}
+                          allowImages={a_generateImage}
                         />
                       )}
                     </>

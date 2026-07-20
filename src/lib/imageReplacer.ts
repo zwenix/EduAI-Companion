@@ -77,7 +77,7 @@ class IllustrationCache {
   }
 }
 
-export function replaceImagePlaceholders(html: string): string {
+export function replaceImagePlaceholders(html: string, allowImages: boolean = true): string {
   if (!html) return '';
 
   // Matches various placeholder formats like [Illustration: ...], [Image: ...], [Diagram: ...]
@@ -88,6 +88,14 @@ export function replaceImagePlaceholders(html: string): string {
   return html.replace(regex, (match, p1) => {
     const cleanPrompt = p1.trim();
     seedCounter += 1;
+
+    if (!allowImages) {
+      return `
+<div class="my-4 p-4 border border-dashed border-slate-300 rounded-2xl bg-slate-50 text-center text-slate-500 font-medium text-xs">
+  📸 Illustration Placeholder: ${cleanPrompt.slice(0, 80)}${cleanPrompt.length > 80 ? '...' : ''}
+</div>
+      `;
+    }
 
     // Check Firestore reactive cache
     const cachedUrl = IllustrationCache.get(cleanPrompt);

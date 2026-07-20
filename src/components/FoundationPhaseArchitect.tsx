@@ -67,7 +67,7 @@ export default function FoundationPhaseArchitect({
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6 font-sans overflow-y-auto h-full w-full custom-scrollbar pb-12">
+    <div className="flex flex-col gap-6 p-4 sm:p-6 font-sans w-full pb-12">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col gap-1 text-left">
@@ -237,7 +237,7 @@ export default function FoundationPhaseArchitect({
 
         {/* Right Column: Preview Area */}
         <div className="lg:col-span-3 flex flex-col gap-4">
-           <div className="flex-1 bg-white/5 border border-white/10 rounded-[32px] p-1 flex flex-col overflow-hidden shadow-2xl relative">
+           <div className="w-full bg-white/5 border border-white/10 rounded-2xl sm:rounded-[32px] p-1 flex flex-col overflow-hidden shadow-2xl relative min-h-[350px] sm:min-h-[500px]">
               {/* Header */}
               <div className="flex items-center justify-between p-4 px-6 border-b border-white/5">
                  <div className="flex items-center gap-2 text-[10px] font-black text-white uppercase tracking-widest">

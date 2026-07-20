@@ -906,7 +906,7 @@ export default function App() {
           ];
         case 'lesson-planning':
           return [
-            { id: 'teaching', label: 'Content Creator Studio', icon: CreativeCanvasIcon },
+            { id: 'teaching', label: 'Content Factory', icon: CreativeCanvasIcon },
             { id: 'archive', label: 'Content Archive Storage', icon: IconResources },
             { id: 'illustrations', label: 'Illustration Library', icon: CreativeCanvasIcon }
           ];
@@ -2420,7 +2420,7 @@ export default function App() {
                     <div className="w-20 h-20 rounded-[28px] bg-brand-cyan/20 text-[#00d2ff] flex items-center justify-center animate-bounce">
                       <FlaskConical size={40} />
                     </div>
-                    <h3 className={`text-2xl font-black font-display ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Content Creator Studio</h3>
+                    <h3 className={`text-2xl font-black font-display ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Content Factory</h3>
                     <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} max-w-sm leading-relaxed font-semibold`}>
                       The CAPS-aligned AI curriculum content editor is open in a workspace hub overlay. Rubrics, worksheets, and exams are active inside the studio.
                     </p>

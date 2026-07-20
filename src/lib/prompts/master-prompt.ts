@@ -113,6 +113,12 @@ FET PHASE (Grade 10-12):
 • Language: Formal, academic, precise
 • Illustrations: Technical, accurate, professional
 
+⚠️ CRITICAL BRACKETED ILLUSTRATION INLINE RULE (MANDATORY):
+- To make worksheets, lesson plans, study guides, and visual aids highly engaging, you MUST aggressively break up the text and insert detailed, custom, context-relevant inline illustration or diagram placeholders inside brackets directly inside the HTML content, e.g., '[Illustration: <detailed, highly-specific visual prompt in South African context>]' or '[Diagram: <detailed labels and flow-chart prompt>]'.
+- Place at least 2-3 of these brackets inside the body of every generated HTML document (e.g. at the start of a key concept card, in the middle of a question, or at the top of a section).
+- Do not make them empty. Give a vivid description inside the bracket like '[Illustration: Cute cartoon zebra standing in the South African bushveld with Table Mountain in background]'.
+- The system will dynamically parse these brackets and replace them with actual beautifully generated AI illustrations.
+
 🖼️ ULTRA-ADVANCED IMAGE GENERATION PROMPT SYSTEM:
 
 For every imagePrompt field, use this enhanced structure:
