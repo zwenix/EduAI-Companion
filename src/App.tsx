@@ -1551,17 +1551,22 @@ export default function App() {
                     : "text-slate-500 hover:text-cyan-600 hover:bg-cyan-500/5 rounded-2xl font-semibold"
             )}
           >
-            <div className="relative shrink-0 w-6 h-6 rounded-full overflow-hidden border border-emerald-500 shadow-sm">
-              <img 
-                alt="Profile" 
-                className="w-full h-full object-cover" 
-                referrerPolicy="no-referrer"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuC84-NEFvwZ7DJM6n9YadrglDB8eRZh5QhtpIKevJPmkMBaZ3RkjJ9cIZKMDhDdhi3Fm2vPK5KwuuIpM9M0T1QWfIrr9FYQZDoWaA5vG-P0gwhFLuHvW-kHBMutdlciDTTSzWc4OgZqI2wnPR8TKZEQ2JwrAhN01mVbao5KXaNjC2TkVtzJ_KpaSWV8kvi3RcI2ij0P6uiU4J4MCueD2QLas3WSqTUUAQPuhOnbmyer0gb5k78eHF-Eew" 
-                onError={(e) => {
-                  e.currentTarget.src = `https://placehold.co/100/10b981/ffffff?text=${encodeURIComponent((userName || 'ZH').substring(0,2).toUpperCase())}`;
-                }}
-              />
-              <span className="absolute bottom-0 right-0 h-1.5 w-1.5 bg-emerald-500 rounded-full" />
+            <div className="relative shrink-0 w-6 h-6">
+              <div className="w-full h-full rounded-full overflow-hidden border border-emerald-500 shadow-sm">
+                <img 
+                  alt="Profile" 
+                  className="w-full h-full object-cover" 
+                  referrerPolicy="no-referrer"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuC84-NEFvwZ7DJM6n9YadrglDB8eRZh5QhtpIKevJPmkMBaZ3RkjJ9cIZKMDhDdhi3Fm2vPK5KwuuIpM9M0T1QWfIrr9FYQZDoWaA5vG-P0gwhFLuHvW-kHBMutdlciDTTSzWc4OgZqI2wnPR8TKZEQ2JwrAhN01mVbao5KXaNjC2TkVtzJ_KpaSWV8kvi3RcI2ij0P6uiU4J4MCueD2QLas3WSqTUUAQPuhOnbmyer0gb5k78eHF-Eew" 
+                  onError={(e) => {
+                    e.currentTarget.src = `https://placehold.co/100/10b981/ffffff?text=${encodeURIComponent((userName || 'ZH').substring(0,2).toUpperCase())}`;
+                  }}
+                />
+              </div>
+              <span className="absolute bottom-0 right-0 flex h-2.5 w-2.5 translate-x-1/4 translate-y-1/4 items-center justify-center">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75"></span>
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+              </span>
             </div>
             
             {(isSidebarOpen || isMobile) && (
