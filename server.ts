@@ -556,7 +556,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         const systemMessages = messages?.filter((m: any) => m.role === 'system');
         const systemInstruction = systemMessages?.map((m: any) => m.content).join("\n\n");
 
-        const modelsToTry = ["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash-lite"];
+        const modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite"];
         let lastError: any = null;
         let response: any = null;
 
@@ -968,7 +968,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         try {
           console.log("Attempting image generation with Gemini...");
           const response = await geminiAi.models.generateContent({
-            model: 'gemini-2.5-flash-image', // Assuming this model is still intended
+            model: 'imagen-3.0-generate-002',
             contents: {
               parts: [
                 { text: prompt }
@@ -1010,6 +1010,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
           method: 'GET',
           headers: {
             'Accept': 'image/png, image/jpeg',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
           },
         });
         
@@ -1043,6 +1044,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
           method: 'GET',
           headers: {
             'Accept': 'image/png, image/jpeg',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
           },
         });
         
@@ -1162,12 +1164,12 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     }
 
     try {
-      const model = "gemini-3.5-flash";
+      const model = "gemini-2.5-flash";
 
       const generateContentWithFallback = async (options: { model: string, contents: any, config?: any }) => {
         const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.1-pro", "gemini-3-flash"]
-          : ["gemini-3.5-flash", "gemini-3.1-pro", "gemini-3-flash"];
+          ? [cachedWorkingModel, "gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.5-pro", "gemini-1.5-pro"]
+          : ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.5-pro", "gemini-1.5-pro"];
         
         let lastError: any = null;
         for (const candidate of modelsToTry) {
@@ -1187,6 +1189,69 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
       };
 
       switch (action) {
+        case "quality-check": {
+          const { prompt: qualityPrompt } = input || {};
+          const response = await generateContentWithFallback({
+            model,
+            contents: qualityPrompt || "Evaluate CAPS compliance and provide educational feedback",
+          });
+          return res.json({ text: response.text });
+        }
+
+        case "generate-image": {
+          const { prompt: imagePrompt, width, height } = input || {};
+          const apiKey = resolveGeminiKey();
+          if (!apiKey || apiKey === "" || apiKey === "dummy" || apiKey === "undefined") {
+            return res.status(400).json({ error: "GEMINI_API_KEY is not configured." });
+          }
+          try {
+            console.log("Generating image with Gemini action:", imagePrompt);
+            const response = await geminiAi.models.generateContent({
+              model: 'imagen-3.0-generate-002',
+              contents: {
+                parts: [{ text: imagePrompt }]
+              },
+              config: {
+                imageConfig: {
+                  aspectRatio: (width || 1024) > (height || 1024) ? "16:9" : (width || 1024) < (height || 1024) ? "9:16" : "1:1"
+                }
+              }
+            });
+
+            let foundBase64 = null;
+            if (response.candidates && response.candidates[0]?.content?.parts) {
+              for (const part of response.candidates[0].content.parts) {
+                if (part.inlineData && part.inlineData.data) {
+                  foundBase64 = part.inlineData.data;
+                  break;
+                }
+              }
+            }
+
+            if (foundBase64) {
+              return res.json({ imageUrl: `data:image/jpeg;base64,${foundBase64}` });
+            }
+            throw new Error("No image data returned from model");
+          } catch (err: any) {
+            console.warn("Gemini action image generation failed, trying Perchance...");
+            const seed = Math.floor(Math.random() * 100000);
+            const perchanceUrl = `https://perchance.org/imageapi?prompt=${encodeURIComponent(imagePrompt)}&width=${width || 1024}&height=${height || 1024}&seed=${seed}`;
+            const perchanceResponse = await fetch(perchanceUrl, {
+              headers: {
+                'Accept': 'image/png, image/jpeg',
+                'User-Agent': 'Mozilla/5.0'
+              }
+            });
+            if (perchanceResponse.ok) {
+              const arrayBuffer = await perchanceResponse.arrayBuffer();
+              const base64 = Buffer.from(arrayBuffer).toString('base64');
+              return res.json({ imageUrl: `data:image/jpeg;base64,${base64}` });
+            }
+            const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=${width || 1024}&height=${height || 1024}&nologo=true&model=flux&seed=${seed}`;
+            return res.json({ imageUrl: fallbackUrl });
+          }
+        }
+
         case "generate-educational": {
           const { type, details } = input;
           const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN. NEVER INJECT <script src="https://cdn.tailwindcss.com"></script>. The app already has Tailwind.`;

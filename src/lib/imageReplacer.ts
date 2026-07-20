@@ -113,8 +113,18 @@ export function replaceImagePlaceholders(html: string): string {
     }
 
     // Fallback/First-generation flow
+    const provider = typeof window !== 'undefined'
+      ? window.localStorage.getItem('eduai_image_provider') || 'pollinations'
+      : 'pollinations';
+
     const enhancedPrompt = `${cleanPrompt}, World-class masterpiece work of art, crisp render, sharp focus, charmingly aesthetic design, 4k, soft lighting, masterpiece emoji-style figurine 3D render, 3D Disney Character render, pure white background, natural beauty`;
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=600&nologo=true&model=flux&seed=${seedCounter}`;
+    
+    let imageUrl = '';
+    if (provider === 'perchance') {
+      imageUrl = `https://perchance.org/imageapi?prompt=${encodeURIComponent(enhancedPrompt)}&width=800&height=600&seed=${seedCounter}`;
+    } else {
+      imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=600&nologo=true&model=flux&seed=${seedCounter}`;
+    }
 
     // Async save to firestore in background (non-blocking)
     IllustrationCache.save(cleanPrompt, imageUrl);

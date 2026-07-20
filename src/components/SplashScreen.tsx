@@ -10,23 +10,15 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
   const [videoError, setVideoError] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
 
-  // Fallback timer: if the browser blocks autoplay and the user is totally idle,
-  // we transition after several seconds so the app remains perfectly functional.
+  // Splendid 10-second timer that guarantees the splash screen stays active 
+  // for exactly 10 seconds to allow assets and services to prepare,
+  // showing either the premium video or the beautifully animated fallback.
   useEffect(() => {
-    let fallbackTimer: NodeJS.Timeout;
-    if (videoError) {
-      fallbackTimer = setTimeout(() => {
-        if (onVideoEnd) {
-          onVideoEnd();
-        }
-      }, 3000);
-    }
-
     const timer = setTimeout(() => {
-      if (onVideoEnd && !videoError) {
+      if (onVideoEnd) {
         onVideoEnd();
       }
-    }, 6000);
+    }, 10000); // Set to play/display for exactly 10 seconds
 
     // Try to trigger video play on mount
     const video = videoRef.current;
@@ -38,14 +30,12 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
 
     return () => {
       clearTimeout(timer);
-      if (fallbackTimer) clearTimeout(fallbackTimer);
     };
-  }, [onVideoEnd, videoError]);
+  }, [onVideoEnd]);
 
   const handleEnded = () => {
-    if (onVideoEnd) {
-      onVideoEnd();
-    }
+    // If the video ended naturally but we want to play for 10 seconds, 
+    // let loop handle the visual, and let the timer handle the transition.
   };
 
   const toggleMute = (e: React.MouseEvent) => {
@@ -72,14 +62,21 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
         <div className="relative w-full h-full flex items-center justify-center bg-[#92cbfa]">
           <video
             ref={videoRef}
-            src={splashVideo}
+            src="/splash.mp4"
             autoPlay
+            loop
             playsInline
             muted
+            preload="auto"
             onEnded={handleEnded}
-            onError={() => {
-              console.error("Error loading splash.mp4, calling fallback");
-              setVideoError(true);
+            onError={(e) => {
+              const err = e.currentTarget.error;
+              console.warn("Video loading warning/error:", err?.code, err?.message);
+              // Only fallback if the error is a real, fatal error (network or decoding issue)
+              if (err && (err.code === 2 || err.code === 3 || err.code === 4)) {
+                console.error("Fatal error loading splash.mp4, calling fallback:", err.message);
+                setVideoError(true);
+              }
             }}
             className="w-full h-full object-contain max-w-full max-h-full cursor-pointer"
             onClick={() => {

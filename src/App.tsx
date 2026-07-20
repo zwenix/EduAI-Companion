@@ -2521,6 +2521,8 @@ export default function App() {
             onClose={() => setActiveCreatorTab(null)} 
             isDarkMode={isDarkMode}
             isSidebarOpen={isSidebarOpen}
+            userName={userName}
+            userRole={userRole}
           />
         )}
       </AnimatePresence>

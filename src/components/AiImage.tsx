@@ -1,145 +1,172 @@
 import React, { useState, useEffect } from 'react';
 import { ImageIcon, Loader2, RefreshCw, Download } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { useAi } from '../contexts/AiContext';
+import { generateImageWithFallback, enhanceEducationalImagePrompt } from '../lib/imageGeneration';
 
 interface AiImageProps {
   prompt: string;
   className?: string;
-  aspectRatio?: 'square' | 'video' | 'portrait';
+  aspectRatio?: 'square' | 'video' | 'portrait' | 'landscape';
+  grade?: string;
+  subject?: string;
+  topic?: string;
+  isDarkMode?: boolean;
 }
 
-export default function AiImage({ prompt, className = '', aspectRatio = 'square' }: AiImageProps) {
-  const { imageProvider } = useAi();
+export default function AiImage({ 
+  prompt, 
+  className = '', 
+  aspectRatio = 'square',
+  grade,
+  subject,
+  topic,
+  isDarkMode = true
+}: AiImageProps) {
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState('');
+  const [provider, setProvider] = useState<string>('');
   const [retryCount, setRetryCount] = useState(0);
-  const [imageUrl, setImageUrl] = useState<string>('');
 
-  const encodedPrompt = encodeURIComponent(prompt);
+  // Enhance the prompt if educational context is provided
+  const enhancedPrompt = (grade && subject && topic) 
+    ? enhanceEducationalImagePrompt(topic, grade, subject, prompt)
+    : prompt;
 
   useEffect(() => {
     let active = true;
-    const fetchImage = async () => {
+    
+    const generateImage = async () => {
       setIsLoading(true);
-      setError(false);
+      setError(null);
       
       try {
-        const res = await fetch('/api/images/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, provider: imageProvider })
+        const result = await generateImageWithFallback({
+          prompt: enhancedPrompt,
+          aspectRatio,
+          seed: retryCount
         });
         
-        if (!res.ok) {
-          throw new Error(`Server returned ${res.status}`);
-        }
-        
-        const text = await res.text();
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch (e) {
-          throw new Error('Invalid JSON response');
-        }
-        
-        if (data.url && active) {
-          setImageUrl(data.url);
-        } else if (active) {
-          throw new Error(data.error || 'Failed to generate image');
+        if (active) {
+          setImageUrl(result.url);
+          setProvider(result.provider);
+          setIsLoading(false);
         }
       } catch (err: any) {
-        console.warn(`${imageProvider} Image Warn:`, err.message);
-        
+        console.error('Image generation failed:', err);
         if (active) {
-          console.warn("Falling back to Pollinations...");
-          const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&model=flux&seed=${retryCount + 1}`;
-          setImageUrl(url);
+          setError(err.message || 'Failed to generate image');
+          setIsLoading(false);
         }
       }
     };
-    
-    fetchImage();
-    return () => { active = false; };
-  }, [prompt, encodedPrompt, imageProvider, retryCount]);
 
-  const aspectClasses = {
-    square: 'aspect-square',
-    video: 'aspect-video',
-    portrait: 'aspect-[3/4]'
-  };
+    generateImage();
+    
+    return () => {
+      active = false;
+    };
+  }, [enhancedPrompt, aspectRatio, retryCount]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
   };
 
+  const handleDownload = async () => {
+    if (!imageUrl) return;
+    
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `eduai-image-${Date.now()}.png`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download failed:', error);
+    }
+  };
+
+  const aspectClasses = {
+    square: 'aspect-square',
+    video: 'aspect-video',
+    portrait: 'aspect-[3/4]',
+    landscape: 'aspect-[4/3]'
+  };
+
   return (
-    <div className={`relative overflow-hidden rounded-3xl bg-slate-100 border border-slate-200 group ${aspectClasses[aspectRatio]} ${className}`}>
-      <AnimatePresence mode="wait">
+    <div className={`relative ${className}`}>
+      <div className={`
+        relative rounded-2xl overflow-hidden border-2 border-dashed
+        ${aspectClasses[aspectRatio]}
+        ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-300'}
+      `}>
         {isLoading && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-50/80 backdrop-blur-sm"
-          >
-            <Loader2 className="w-8 h-8 text-brand-cyan animate-spin mb-2" />
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Generating Visual...</p>
-          </motion.div>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <Loader2 className="animate-spin text-cyan-400 mb-3" size={40} />
+            <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+              Generating Visual...
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              Using {provider || 'AI'} provider
+            </p>
+          </div>
         )}
-      </AnimatePresence>
 
-      {imageUrl && !error && (
-        <img 
-          src={imageUrl} 
-          alt={prompt}
-          className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
-          onLoad={() => setIsLoading(false)}
-          onError={() => {
-            setIsLoading(false);
-            setError(true);
-          }}
-          referrerPolicy="no-referrer"
-        />
-      )}
+        {imageUrl && !error && (
+          <img
+            src={imageUrl}
+            alt={prompt}
+            className="w-full h-full object-cover"
+            onLoad={() => setIsLoading(false)}
+            onError={() => {
+              setIsLoading(false);
+              setError('Failed to load image');
+            }}
+            referrerPolicy="no-referrer"
+          />
+        )}
 
-      <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex justify-between items-center z-20">
-        <p className="text-[10px] text-white/80 line-clamp-1 pr-4">{prompt}</p>
-        <div className="flex gap-2">
-          <button 
-            onClick={handleRetry}
-            className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white backdrop-blur-md transition-all"
-            title="Regenerate"
-          >
-            <RefreshCw size={14} />
-          </button>
-          {imageUrl && (
-            <a 
-              href={imageUrl} 
-              download="generated-image.jpg"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 bg-brand-cyan text-navy-dark rounded-lg transition-all"
-              title="Download"
+        {error && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+            <ImageIcon className={`mb-3 ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`} size={40} />
+            <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+              {error}
+            </p>
+            <button
+              onClick={handleRetry}
+              className="mt-3 flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl text-sm font-medium transition-all"
             >
-              <Download size={14} />
-            </a>
-          )}
-        </div>
+              <RefreshCw size={16} />
+              Try Again
+            </button>
+          </div>
+        )}
       </div>
 
-      {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100 text-slate-400 p-6 text-center z-20">
-          <ImageIcon size={32} className="mb-2 opacity-20" />
-          <p className="text-xs font-bold">Visualization Failed</p>
-          <button 
-            onClick={handleRetry}
-            className="mt-4 text-[10px] font-black uppercase tracking-widest text-brand-cyan hover:underline"
-          >
-            Try Again
-          </button>
+      {/* Provider Badge */}
+      {provider && !isLoading && !error && (
+        <div className="absolute top-3 right-3 px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-full text-xs text-white font-medium">
+          {provider.charAt(0).toUpperCase() + provider.slice(1)}
         </div>
       )}
+
+      {/* Download Button */}
+      {imageUrl && !isLoading && !error && (
+        <button
+          onClick={handleDownload}
+          className="absolute bottom-3 right-3 p-2 bg-black/60 backdrop-blur-sm hover:bg-black/80 text-white rounded-xl transition-all"
+          title="Download Image"
+        >
+          <Download size={18} />
+        </button>
+      )}
+
+      {/* Prompt Display */}
+      <div className={`mt-3 p-3 rounded-xl text-xs ${isDarkMode ? 'bg-white/5' : 'bg-slate-100'}`}>
+        <p className={isDarkMode ? 'text-slate-400' : 'text-slate-600'}>{prompt}</p>
+      </div>
     </div>
   );
 }
