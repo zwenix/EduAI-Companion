@@ -8,16 +8,21 @@ This file contains strict project-level constraints and instructions that MUST b
 
 Under no circumstances is any agent permitted to map the user's selected models to alternative models or fallbacks. The requested models exist, are official, and must be called directly and exactly as specified below:
 
-### Groq Model Mappings & Identifiers
-* **`groq-gpt-oss`**: This provider MUST map directly and exclusively to the model identifier:
-  `openai/gpt-oss-120b`
-  * *DO NOT map this to `llama-3.3-70b-versatile` or any other model.*
-* **`groq-qwen`**: This provider MUST map directly and exclusively to the model identifier:
+### Model Mappings & Identifiers
+* **`gemini`**: Primary model for all content generation, OCR, and reasoning. MUST map directly to:
+  `gemini-3.5-flash`
+  * *DO NOT map this to outdated models like `gemini-2.1`, `gemini-1.5`, or `gemini-2.0` as primary defaults.*
+* **`nvidia-nemotron`**: Secondary model provider MUST map directly and exclusively to:
+  `nvidia/llama-3.1-nemotron-70b-instruct`
+* **`groq-qwen`**: Tertiary model provider MUST map directly and exclusively to:
   `qwen/qwen3.6-27b`
-  * *DO NOT map this to `qwen-2.5-coder-32b` or any other model.*
+
+### Strictly Banned / Removed Models:
+* **`groq-gpt-oss`** (`openai/gpt-oss-120b`): REMOVED AND STRICTLY FORBIDDEN.
+* Outdated Gemini defaults (`gemini-2.1`, `gemini-1.5-flash` as primary): STRICTLY BANNED as primary defaults.
 
 ### Application Files Governing Models:
-* **`server.ts`**: The API proxy handling `/api/ai/:provider` must resolve `groq-gpt-oss` as `openai/gpt-oss-120b` and `groq-qwen` as `qwen/qwen3.6-27b` without intermediate translation or fallback.
+* **`server.ts`**: The API proxy handling `/api/ai/:provider` must resolve `gemini` as `gemini-3.5-flash`, `nvidia-nemotron` as `nvidia/llama-3.1-nemotron-70b-instruct`, and `groq-qwen` as `qwen/qwen3.6-27b`.
 * **`src/services/multiAiService.ts`**: The frontend service calling chat completions must use these exact model strings when constructing payload queries.
 * **`src/services/unifiedAiService.ts`**: The unified engine must dispatch OCR grading and fallback logic to these exact model strings.
 

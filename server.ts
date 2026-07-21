@@ -556,7 +556,9 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         const systemMessages = messages?.filter((m: any) => m.role === 'system');
         const systemInstruction = systemMessages?.map((m: any) => m.content).join("\n\n");
 
-        const modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite"];
+        const modelsToTry = cachedWorkingModel 
+          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.5-pro", "gemini-3.0-flash", "gemini-2.5-flash", "gemini-2.0-flash"]
+          : ["gemini-3.5-flash", "gemini-3.5-pro", "gemini-3.0-flash", "gemini-2.5-flash", "gemini-2.0-flash"];
         let lastError: any = null;
         let response: any = null;
 
@@ -568,6 +570,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
               config: systemInstruction ? { systemInstruction } : undefined
             });
             if (response) {
+              cachedWorkingModel = candidate;
               break;
             }
           } catch (err: any) {
@@ -597,6 +600,10 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
       }
     };
 
+    if (provider === "gemini") {
+      return await executeGeminiFallback("Direct Gemini Request");
+    }
+
     let client: OpenAI | null = null;
     let apiKey = "";
 
@@ -613,7 +620,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         break;
       case "groq-qwen":
         client = openrouter;
-        apiKey = resolveOpenRouterKey();
+        apiKey = resolveOpenRouterKey() || process.env.GROQ_API_KEY || "";
         break;
       case "alibaba-qwen":
       case "alibaba-deepseek":
@@ -636,11 +643,6 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     }
 
     let finalModel = model;
-    if (finalModel === "nvidia-nemotron" || finalModel === "groq-gpt-oss") {
-      finalModel = "nvidia/nemotron-3-ultra-550b-a55b";
-    } else if (finalModel === "groq-qwen") {
-      finalModel = "qwen/qwen3.6-27b";
-    }
 
     if (!finalModel) {
       finalModel = (
@@ -649,7 +651,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         provider === "alibaba-qwen" ? "qwen-plus" :
         provider === "alibaba-deepseek" ? "deepseek-v3" :
         provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
-        provider === "nvidia-nemotron" ? "nvidia/nemotron-3-ultra-550b-a55b" : 
+        provider === "nvidia-nemotron" ? "nvidia/llama-3.1-nemotron-70b-instruct" : 
         provider === "groq-qwen" ? "qwen/qwen3.6-27b" :
         ""
       );
@@ -971,8 +973,13 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         return res.status(400).send("Prompt is required");
       }
       
+      // Clean and truncate prompt to avoid URL length issues (safe limit ~1000 chars for prompt part)
+      const cleanPrompt = prompt.length > 1000 
+        ? prompt.substring(0, 997) + "..."
+        : prompt;
+      
       // Use pollinations as the stable backend proxy
-      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width}&height=${height}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
+      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=${width}&height=${height}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
       
       const response = await fetch(pollinationsUrl, {
         method: 'GET',
@@ -1011,18 +1018,9 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
           console.log("Attempting image generation with Gemini...");
           const response = await geminiAi.models.generateContent({
             model: 'imagen-3.0-generate-002',
-            contents: {
-              parts: [
-                { text: prompt }
-              ]
-            },
-            config: {
-              imageConfig: {
-                aspectRatio: "1:1"
-              }
-            }
+            contents: { parts: [{ text: prompt }] },
+            config: { imageConfig: { aspectRatio: "1:1" } }
           });
-
           let foundBase64 = null;
           if (response.candidates && response.candidates[0]?.content?.parts) {
             for (const part of response.candidates[0].content.parts) {
@@ -1032,143 +1030,28 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
               }
             }
           }
-
           if (foundBase64) {
             console.log("Image successfully generated with Gemini!");
             return res.json({ url: `data:image/jpeg;base64,${foundBase64}` });
           }
         } catch (err1: any) {
-          console.warn("Gemini generation failed, falling back to Perchance:", err1.message);
+          console.warn("Gemini generation failed, falling back to Pollinations Turbo:", err1.message);
         }
       }
 
-      // Fallback 1: Perchance (Now mapped to Pollinations Turbo due to 403s)
-      try {
-        console.log("Attempting image generation with Secondary Provider (Pollinations Turbo)...");
-        const seed = Math.floor(Math.random() * 100000);
-        const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&enhance=true&seed=${seed}`;
-        
-        const response = await fetch(fallbackUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'image/png, image/jpeg',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-          },
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Secondary API error: ${response.status}`);
-        }
-        
-        const arrayBuffer = await response.arrayBuffer();
-        const base64 = Buffer.from(arrayBuffer).toString('base64');
-        console.log("Image successfully generated with Secondary Provider!");
-        return res.json({ url: `data:image/jpeg;base64,${base64}` });
-      } catch (error: any) {
-        console.warn("Secondary generation failed, falling back to Tertiary:", error.message);
-      }
-
-      // Fallback 2: Pollinations
-      console.warn("All image generation attempts failed. Falling back to Pollinations.");
-      try {
-        const enhancedPrompt = `${prompt}, masterpiece emoji-style figurine 3D render, 3D Disney Character render, pure white background, natural beauty, ultra-detailed 3D digital asset, vibrant colors, perfect composition, no text overlays, museum-quality detail`;
-        const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 100000)}`;
-        const response = await fetch(fallbackUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'image/png, image/jpeg',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-          },
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Pollinations API error: ${response.status}`);
-        }
-        
-        const arrayBuffer = await response.arrayBuffer();
-        const base64 = Buffer.from(arrayBuffer).toString('base64');
-        console.log("Image successfully generated with Pollinations!");
-        return res.json({ url: `data:image/jpeg;base64,${base64}`, isFallback: true });
-      } catch (error: any) {
-         console.warn("Pollinations generation failed:", error.message);
-         return res.status(500).json({ error: "All image generation attempts failed" });
-      }
+      // Direct URL fallback for Pollinations (prevents server-side 429s)
+      const seed = Math.floor(Math.random() * 100000);
+      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&enhance=true&seed=${seed}`;
+      console.log("Returning direct fallback URL for Pollinations Turbo");
+      return res.json({ url: fallbackUrl, isFallback: true });
     }
 
-    if (provider === "perchance") {
-      try {
-        console.log("Attempting image generation with Secondary Provider (Pollinations Turbo)...");
-        const seed = Math.floor(Math.random() * 100000);
-        const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&enhance=true&seed=${seed}`;
-        
-        const response = await fetch(fallbackUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'image/png, image/jpeg',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-          },
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Secondary API error: ${response.status}`);
-        }
-        
-        const arrayBuffer = await response.arrayBuffer();
-        const base64 = Buffer.from(arrayBuffer).toString('base64');
-        console.log("Image successfully generated with Secondary Provider!");
-        return res.json({ url: `data:image/jpeg;base64,${base64}` });
-      } catch (error: any) {
-        console.warn("Secondary generation failed, falling back to Tertiary:", error.message);
-        try {
-          const seed = Math.floor(Math.random() * 100000);
-          const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&enhance=true&seed=${seed}`;
-          const response = await fetch(fallbackUrl, {
-            method: 'GET',
-            headers: {
-              'Accept': 'image/png, image/jpeg',
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-            },
-          });
-          
-          if (!response.ok) {
-            throw new Error(`Pollinations API error: ${response.status}`);
-          }
-          
-          const arrayBuffer = await response.arrayBuffer();
-          const base64 = Buffer.from(arrayBuffer).toString('base64');
-          return res.json({ url: `data:image/jpeg;base64,${base64}`, isFallback: true });
-        } catch (err: any) {
-           return res.status(500).json({ error: "All image generation attempts failed" });
-        }
-      }
-    }
-
-    if (provider === "pollinations") {
-      try {
-        console.log("Attempting image generation with Pollinations AI...");
-        const seed = Math.floor(Math.random() * 100000);
-        const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=flux&enhance=true&seed=${seed}`;
-        
-        const response = await fetch(pollinationsUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'image/png, image/jpeg',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-          },
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Pollinations API error: ${response.status}`);
-        }
-        
-        const arrayBuffer = await response.arrayBuffer();
-        const base64 = Buffer.from(arrayBuffer).toString('base64');
-        console.log("Image successfully generated with Pollinations!");
-        return res.json({ url: `data:image/jpeg;base64,${base64}` });
-      } catch (error: any) {
-        console.warn("Pollinations generation failed:", error.message);
-        return res.status(500).json({ error: "Pollinations image generation failed" });
-      }
+    if (provider === "perchance" || provider === "pollinations") {
+      const seed = Math.floor(Math.random() * 100000);
+      const model = provider === "perchance" ? "turbo" : "flux";
+      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=${model}&enhance=true&seed=${seed}`;
+      console.log(`Returning direct URL for ${provider} (${model})`);
+      return res.json({ url: fallbackUrl });
     }
     
     return res.status(400).json({ error: "Unsupported provider" });
@@ -1232,7 +1115,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         Make sure your recommendations are encouraging and specifically reference their low/high subjects. Align suggestions with South African CAPS-standards (e.g. SBA, formative tests). Do not format the response with markdown formatting (no backticks, no text like 'json' or explanations), only output a parseable JSON block.
       `;
       const response = await geminiAi.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -1257,12 +1140,12 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     }
 
     try {
-      const model = "gemini-2.5-flash";
+      const model = "gemini-3.5-flash";
 
       const generateContentWithFallback = async (options: { model: string, contents: any, config?: any }) => {
         const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.5-pro", "gemini-1.5-pro"]
-          : ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.5-pro", "gemini-1.5-pro"];
+          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.5-pro", "gemini-3.0-flash", "gemini-2.5-flash", "gemini-2.0-flash"]
+          : ["gemini-3.5-flash", "gemini-3.5-pro", "gemini-3.0-flash", "gemini-2.5-flash", "gemini-2.0-flash"];
         
         let lastError: any = null;
         for (const candidate of modelsToTry) {
@@ -1803,7 +1686,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         timestamp: new Date().toISOString(),
         provider: 'gemini',
         endpoint: `/api/gemini/action`,
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         error: errMsg,
         rawResponse: error.response?.data || error.stack || error.message || String(error),
         requestPayload: {

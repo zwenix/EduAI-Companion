@@ -13,8 +13,8 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
     if (provider === 'nvidia-nemotron') {
       url = "https://integrate.api.nvidia.com/v1/chat/completions";
       apiKey = ((process.env as any).NVIDIA_API_KEY || (import.meta as any).env?.VITE_NVIDIA_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
-      if (!selectedModel || selectedModel === 'nvidia-nemotron' || selectedModel === 'groq-gpt-oss') {
-        selectedModel = "nvidia/nemotron-3-ultra-550b-a55b";
+      if (!selectedModel || selectedModel === 'nvidia-nemotron') {
+        selectedModel = "nvidia/llama-3.1-nemotron-70b-instruct";
       }
     } else if (provider === 'groq-qwen') {
       url = "https://openrouter.ai/api/v1/chat/completions";
@@ -25,8 +25,8 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
     }
   } else {
     if (provider === 'nvidia-nemotron') {
-      if (!selectedModel || selectedModel === 'nvidia-nemotron' || selectedModel === 'groq-gpt-oss') {
-        selectedModel = "nvidia/nemotron-3-ultra-550b-a55b";
+      if (!selectedModel || selectedModel === 'nvidia-nemotron') {
+        selectedModel = "nvidia/llama-3.1-nemotron-70b-instruct";
       }
     } else if (provider === 'groq-qwen') {
       if (!selectedModel || selectedModel === 'groq-qwen') {

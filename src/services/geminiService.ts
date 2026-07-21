@@ -97,12 +97,64 @@ export const safeJsonParse = (text: string | null | undefined): any => {
   if (!text) return {};
   let processedText = text.trim();
   
+    const closeOpenHtmlTags = (html: string): string => {
+      if (!html) return '';
+      
+      // 1. Strip trailing partial tags (e.g. "<div cl", "<p", "</div")
+      let cleanHtml = html;
+      const lastTagStart = cleanHtml.lastIndexOf('<');
+      if (lastTagStart !== -1) {
+        const lastTagEnd = cleanHtml.indexOf('>', lastTagStart);
+        if (lastTagEnd === -1) {
+          // It's an unclosed tag fragment at the very end
+          cleanHtml = cleanHtml.substring(0, lastTagStart);
+        }
+      }
+
+      // 2. Standard tag closing
+      const tagRegex = /<\/?([a-z1-6]+)(?:\s+[^>]*?)?>/gi;
+      let match;
+      const openTags: string[] = [];
+      const voidTags = ['img', 'br', 'hr', 'input', 'meta', 'link', 'area', 'base', 'col', 'embed', 'keygen', 'param', 'source', 'track', 'wbr'];
+      
+      while ((match = tagRegex.exec(cleanHtml)) !== null) {
+        const fullTag = match[0];
+        const tagName = match[1].toLowerCase();
+        
+        if (fullTag.endsWith('/>') || voidTags.includes(tagName)) {
+          continue;
+        }
+        
+        if (fullTag.startsWith('</')) {
+          // If we see a closing tag, pop until we find matching open tag or run out
+          const lastIdx = openTags.lastIndexOf(tagName);
+          if (lastIdx !== -1) {
+            // Close all tags opened after this one
+            openTags.splice(lastIdx);
+          }
+        } else {
+          openTags.push(tagName);
+        }
+      }
+      
+      let closedHtml = cleanHtml;
+      while (openTags.length > 0) {
+        const tag = openTags.pop();
+        closedHtml += `</${tag}>`;
+      }
+      return closedHtml;
+    };
+
   const cleanMarkdownInValue = (val: any): any => {
     if (typeof val === 'string') {
       let clean = val.trim();
       clean = clean.replace(/^```(?:html|xml|json|markdown)?\s*/i, "");
       clean = clean.replace(/\s*```$/, "");
-      return clean.trim();
+      clean = clean.trim();
+      if (clean.includes('<') && clean.includes('>')) {
+        return closeOpenHtmlTags(clean);
+      }
+      return clean;
     } else if (Array.isArray(val)) {
       return val.map(cleanMarkdownInValue);
     } else if (typeof val === 'object' && val !== null) {
@@ -171,36 +223,6 @@ export const safeJsonParse = (text: string | null | undefined): any => {
         }
       }
     }
-
-    const closeOpenHtmlTags = (html: string): string => {
-      const tagRegex = /<\/?([a-z1-6]+)(?:\s+[^>]*?)?>/gi;
-      let match;
-      const openTags: string[] = [];
-      
-      while ((match = tagRegex.exec(html)) !== null) {
-        const fullTag = match[0];
-        const tagName = match[1].toLowerCase();
-        
-        if (fullTag.endsWith('/>') || ['img', 'br', 'hr', 'input', 'meta', 'link'].includes(tagName)) {
-          continue;
-        }
-        
-        if (fullTag.startsWith('</')) {
-          if (openTags.length > 0 && openTags[openTags.length - 1] === tagName) {
-            openTags.pop();
-          }
-        } else {
-          openTags.push(tagName);
-        }
-      }
-      
-      let closedHtml = html;
-      while (openTags.length > 0) {
-        const tag = openTags.pop();
-        closedHtml += `</${tag}>`;
-      }
-      return closedHtml;
-    };
 
     // Helper regex extractors
     const extractField = (source: string, field: string): string | null => {

@@ -1,4 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { motion } from 'motion/react';
+import { GraduationCap } from 'lucide-react';
 import splashVideo from '../assets/splash.mp4';
 
 interface SplashScreenProps {
@@ -18,18 +20,24 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
       if (onVideoEnd) {
         onVideoEnd();
       }
-    }, 10000); // Set to play/display for exactly 10 seconds
+    }, 5000); // Set to play/display for exactly 5 seconds
 
     // Try to trigger video play on mount
+    const loadTimer = setTimeout(() => {
+      if (!videoRef.current || videoRef.current.readyState < 3) {
+        console.warn("Video taking too long to load, but we'll wait for the element's error event.");
+      }
+    }, 5000);
+
     const video = videoRef.current;
     if (video) {
       video.play().catch((err) => {
-        console.warn("Autoplay block or delay:", err);
+        console.warn("Initial autoplay attempt:", err);
       });
     }
 
     return () => {
-      clearTimeout(timer);
+      clearTimeout(loadTimer);
     };
   }, [onVideoEnd]);
 
@@ -59,36 +67,27 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
       style={{ backgroundColor: '#0e152e' }} // Deep premium navy background matching the app's aesthetic
     >
       {!videoError ? (
-        <div className="relative w-full h-full flex items-center justify-center bg-[#92cbfa]">
+        <div className="relative w-full h-full flex items-center justify-center bg-[#0e152e]">
           <video
             ref={videoRef}
             src={splashVideo}
             autoPlay
             loop
             playsInline
-            muted
+            muted={isMuted}
             preload="auto"
-            onEnded={handleEnded}
-            onError={(e) => {
-              const err = e.currentTarget.error;
-              console.warn("Video loading warning/error:", err?.code, err?.message);
-              // Only fallback if the error is a real, fatal error (network or decoding issue)
-              if (err && (err.code === 2 || err.code === 3 || err.code === 4)) {
-                console.error("Fatal error loading splash.mp4, calling fallback:", err.message);
-                setVideoError(true);
+            onCanPlay={() => {
+              if (videoRef.current) {
+                videoRef.current.play().catch(() => {
+                  console.warn("Autoplay blocked, user interaction required");
+                });
               }
+            }}
+            onError={(e) => {
+              console.error("Splash video element fatal error:", e.currentTarget.error?.message);
+              setVideoError(true);
             }}
             className="w-full h-full object-contain max-w-full max-h-full cursor-pointer"
-            onClick={() => {
-              if (videoRef.current) {
-                if (videoRef.current.paused) {
-                  videoRef.current.play().catch(console.error);
-                } else {
-                  videoRef.current.muted = !videoRef.current.muted;
-                  setIsMuted(videoRef.current.muted);
-                }
-              }
-            }}
           />
 
           {/* Video Control Buttons Overlay */}
@@ -112,45 +111,73 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
       ) : (
         <div 
           id="splash_fallback_container"
-          className="w-full h-full flex flex-col items-center justify-center p-6 cursor-pointer text-center space-y-6"
+          className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden cursor-pointer"
+          style={{ backgroundColor: '#0e152e' }}
           onClick={() => onVideoEnd && onVideoEnd()}
         >
-          {/* Animated Logo Container */}
-          <div className="relative flex items-center justify-center w-28 h-28 rounded-[28px] bg-gradient-to-tr from-cyan-500 to-indigo-500 shadow-[0_0_50px_rgba(6,182,212,0.3)] animate-pulse">
-            <span className="text-white text-4xl font-sans font-black tracking-tighter">Edu</span>
-            <div className="absolute -inset-1.5 rounded-[32px] border-2 border-cyan-400/30 animate-spin [animation-duration:8s]" />
-          </div>
-
-          <div className="space-y-2">
-            <h1 className="text-2xl font-black text-white tracking-wide font-display uppercase">
-              EduAI Companion
-            </h1>
-            <p className="text-slate-400 font-mono text-xs tracking-widest uppercase">
-              South African CAPS Smart Suite
-            </p>
-          </div>
-
-          {/* Loading Indicator */}
-          <div className="flex flex-col items-center gap-2 pt-4">
-            <div className="flex gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce [animation-delay:-0.3s]" />
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce [animation-delay:-0.15s]" />
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" />
-            </div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
-              Optimizing Workspace Assets
-            </span>
-          </div>
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onVideoEnd) onVideoEnd();
-            }}
-            className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-cyan-400 border border-cyan-500/20 rounded-full font-mono text-xs uppercase tracking-wider transition-all"
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+            className="relative flex flex-col items-center"
           >
-            Enter Dashboard ➔
-          </button>
+            {/* Decorative ambient glow */}
+            <div className="absolute inset-0 bg-emerald-500/20 blur-[120px] rounded-full animate-pulse scale-150" />
+            
+            <div className="relative mb-10 p-8 bg-white/5 rounded-[40px] border border-white/10 backdrop-blur-md shadow-[0_0_80px_rgba(52,211,153,0.15)] ring-1 ring-white/10">
+              <GraduationCap className="w-28 h-28 text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]" />
+            </div>
+            
+            <div className="text-center space-y-5 relative z-10">
+              <h1 className="text-6xl font-black tracking-tighter text-white">
+                Edu<span className="text-emerald-400">AI</span>
+              </h1>
+              <div className="flex items-center justify-center gap-4">
+                <div className="h-0.5 w-16 bg-gradient-to-r from-transparent via-emerald-400/50 to-emerald-400 rounded-full" />
+                <p className="text-emerald-400 font-bold uppercase tracking-[0.4em] text-[10px]">
+                  Excellence Redefined
+                </p>
+                <div className="h-0.5 w-16 bg-gradient-to-l from-transparent via-emerald-400/50 to-emerald-400 rounded-full" />
+              </div>
+            </div>
+
+            <div className="mt-16 flex flex-col items-center gap-6">
+              <div className="flex gap-3">
+                {[0, 1, 2].map((i) => (
+                  <motion.div
+                    key={i}
+                    animate={{ 
+                      scale: [1, 1.4, 1],
+                      opacity: [0.3, 1, 0.3]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      delay: i * 0.3,
+                      ease: "easeInOut"
+                    }}
+                    className="w-2.5 h-2.5 bg-emerald-400 rounded-full shadow-[0_0_10px_rgba(52,211,153,0.8)]"
+                  />
+                ))}
+              </div>
+              
+              <motion.button
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.8 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onVideoEnd) onVideoEnd();
+                }}
+                className="group relative px-8 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full font-black text-xs uppercase tracking-widest transition-all duration-300 hover:scale-105 active:scale-95"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  Launch Environment <span className="group-hover:translate-x-1 transition-transform">➔</span>
+                </span>
+                <div className="absolute inset-0 rounded-full bg-emerald-400/20 blur-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+              </motion.button>
+            </div>
+          </motion.div>
         </div>
       )}
     </div>

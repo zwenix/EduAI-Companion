@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { db, auth } from '../lib/firebase';
+import { collection, query, where, onSnapshot, doc, updateDoc, orderBy } from 'firebase/firestore';
 import { 
   Bell, 
   ShieldAlert, 
@@ -58,18 +60,6 @@ const initialAlerts: AlertItem[] = [
     actionCategory: 'lesson-planning'
   },
   {
-    id: '3',
-    title: 'Automatic Grading Completed',
-    message: 'Batch of 15 Grade 11 Physics Papers scanned and graded successfully via OCR.',
-    timestamp: '2 hours ago',
-    severity: 'info',
-    category: 'system',
-    resolved: false,
-    actionLabel: 'View Graded Logs',
-    actionTab: 'ocr',
-    actionCategory: 'intelligence-ai'
-  },
-  {
     id: '4',
     title: 'CAPS Grade 4 Resource Outdated',
     message: 'The Natural Sciences "Indigenous Plants" lesson plan needs term verification against new CAPS curriculum guidelines.',
@@ -111,14 +101,70 @@ export default function AlertsPage({ isDarkMode, onNavigate, triggerToast }: Ale
   const [alerts, setAlerts] = useState<AlertItem[]>(initialAlerts);
   const [activeFilter, setActiveFilter] = useState<'all' | 'unread' | 'critical' | 'caps' | 'student'>('all');
 
-  const handleResolve = (id: string) => {
-    setAlerts(prev => prev.map(alert => alert.id === id ? { ...alert, resolved: true } : alert));
-    triggerToast('Alert marked as resolved.', 'success');
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const q = query(
+      collection(db, 'notifications'), 
+      where('userId', '==', user.uid)
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(d => {
+        const notif = d.data();
+        return {
+          id: d.id,
+          title: notif.title || 'System Notification',
+          message: notif.message || '',
+          timestamp: notif.createdAt ? new Date(notif.createdAt.seconds * 1000).toLocaleString() : 'Just now',
+          severity: (notif.message?.includes('manual learner assignment') ? 'critical' : 'info') as AlertItem['severity'],
+          category: 'system' as AlertItem['category'],
+          resolved: notif.read,
+          actionLabel: notif.message?.includes('manual learner assignment') ? 'Assign Learner' : 'View Logs',
+          actionTab: 'ocr',
+          actionCategory: 'intelligence-ai',
+          sortTime: notif.createdAt?.seconds || 0
+        };
+      });
+      
+      data.sort((a, b) => b.sortTime - a.sortTime);
+      
+      setAlerts(prev => {
+        // Merge with initial alerts to retain the showcase data
+        const initialFiltered = prev.filter(p => initialAlerts.some(i => i.id === p.id));
+        return [...data, ...initialFiltered];
+      });
+    }, (error) => console.error("Notifications snapshot fail:", error));
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleResolve = async (id: string) => {
+    try {
+      // If it's a firebase notification
+      if (id.startsWith('notif_')) {
+        await updateDoc(doc(db, 'notifications', id), { read: true });
+      }
+      setAlerts(prev => prev.map(alert => alert.id === id ? { ...alert, resolved: true } : alert));
+      triggerToast('Alert marked as resolved.', 'success');
+    } catch(e) {
+      console.warn(e);
+    }
   };
 
-  const handleClearAll = () => {
-    setAlerts(prev => prev.map(alert => ({ ...alert, resolved: true })));
-    triggerToast('All alerts cleared successfully.', 'success');
+  const handleClearAll = async () => {
+    try {
+      // Mark all firebase notifications as read
+      const unread = alerts.filter(a => !a.resolved && a.id.startsWith('notif_'));
+      for (const u of unread) {
+        await updateDoc(doc(db, 'notifications', u.id), { read: true });
+      }
+      setAlerts(prev => prev.map(alert => ({ ...alert, resolved: true })));
+      triggerToast('All alerts cleared successfully.', 'success');
+    } catch(e) {
+      console.warn(e);
+    }
   };
 
   const filteredAlerts = alerts.filter(alert => {

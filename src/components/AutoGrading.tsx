@@ -631,7 +631,28 @@ export default function AutoGrading() {
       const ocrSearchSpace = ((gradingResult.extractedText || '') + ' ' + (gradingResult.feedback || '')).toLowerCase();
       
       if (detectedStuId === 'unassigned') {
-        const matchStu = dbStudents.find(s => ocrSearchSpace.includes(s.name.toLowerCase()) || s.name.split(' ').some(part => part.length > 2 && ocrSearchSpace.includes(part.toLowerCase())));
+        // Advanced multi-pass fuzzy matching
+        const matchStu = dbStudents.find(s => {
+          const nameLower = s.name.toLowerCase();
+          const parts = nameLower.split(' ');
+          
+          // 1. Exact full name match
+          if (ocrSearchSpace.includes(nameLower)) return true;
+          
+          // 2. Parts match (Surname + First Name or vice versa)
+          if (parts.length >= 2) {
+            const first = parts[0];
+            const last = parts[parts.length - 1];
+            if (ocrSearchSpace.includes(first) && ocrSearchSpace.includes(last)) return true;
+          }
+          
+          // 3. Initials match (e.g. "J. Smith")
+          const initials = parts.map(p => p[0]).join('');
+          if (parts.length >= 2 && ocrSearchSpace.includes(`${parts[0][0]}. ${parts[parts.length-1]}`)) return true;
+          
+          return false;
+        });
+
         if (matchStu) {
           detectedStuId = matchStu.id;
         }
@@ -645,6 +666,7 @@ export default function AutoGrading() {
       const reportLogPayload = {
         id: repId,
         teacherId: auth.currentUser?.uid || 'guest_teacher',
+        teacherName: auth.currentUser?.displayName || 'Teacher',
         assignmentId: selectedAssignmentId || '',
         assignmentTitle: assTitle,
         studentId: detectedStuId,
@@ -665,29 +687,41 @@ export default function AutoGrading() {
         console.warn("Could not write record block to auto_grading_reports collection (handled):", logErr);
       }
 
-      // 2. Dispatch real-time server notification back to teacher accounts
+      // 2. Dispatch real-time server notification
       try {
         const notifId = 'notif_' + Date.now().toString();
         const baseMessage = `Auto-grading completed for ${reportLogPayload.fileName || 'submission'}. Achieved Score: ${reportLogPayload.totalScore}.`;
-        const actionMessage = detectedStuId === 'unassigned'
-          ? ` Report needs manual learner assignment.`
-          : ` Results assigned to ${reportLogPayload.studentName}.`;
-
+        
+        // Notify Teacher
         await setDoc(doc(db, 'notifications', notifId), {
           id: notifId,
           userId: auth.currentUser?.uid || 'guest_teacher',
           title: "Grading Task Completed 🎉",
-          message: baseMessage + actionMessage,
+          message: baseMessage + (detectedStuId === 'unassigned' ? ` Report needs manual learner assignment.` : ` Results assigned to ${reportLogPayload.studentName}.`),
           reportData: {
+            reportId: repId,
             extractedText: gradingResult.extractedText || '',
-            feedback: gradingResult.feedback || '',
-            marksPerQuestion: gradingResult.marksPerQuestion || []
+            feedback: gradingResult.feedback || ''
           },
           read: false,
           createdAt: serverTimestamp()
         });
+
+        // Notify Student (if detected)
+        if (detectedStuId && detectedStuId !== 'unassigned') {
+          const stuNotifId = 'notif_stu_' + Date.now().toString();
+          await setDoc(doc(db, 'notifications', stuNotifId), {
+            id: stuNotifId,
+            userId: detectedStuId,
+            title: "New Graded Assessment 📝",
+            message: `Your ${assTitle} has been graded by EduAI. Score: ${gradingResult.totalScore}. Check your portfolio for details.`,
+            reportId: repId,
+            read: false,
+            createdAt: serverTimestamp()
+          });
+        }
       } catch (notifErr) {
-        console.warn("Could not dispatch document alert notification (handled):", notifErr);
+        console.warn("Could not dispatch alert notifications (handled):", notifErr);
       }
 
       // 3. Dispatch gradebook changes back to matching student's active caps score sheet

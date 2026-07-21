@@ -101,14 +101,17 @@ export default function StudentPortfolio({ isDarkMode }: { isDarkMode: boolean }
   const featuredItems = items.filter(item => item.featured);
 
   useEffect(() => {
-    const fetchStudentProfile = async () => {
+    const fetchStudentProfileAndReports = async () => {
       if (auth.currentUser) {
         try {
           const email = auth.currentUser.email?.toLowerCase().trim() || '';
           const q = query(collection(db, 'students'), where('email', '==', email));
           const snap = await getDocs(q);
+          
+          let stuId = '';
           if (!snap.empty) {
             const sData = snap.docs[0].data();
+            stuId = snap.docs[0].id;
             setStudentProfile({
               name: sData.name || auth.currentUser.displayName || 'Learner',
               email: sData.email || email,
@@ -123,6 +126,35 @@ export default function StudentPortfolio({ isDarkMode }: { isDarkMode: boolean }
               school: 'EduAI Showcase Academy'
             });
           }
+
+          if (stuId) {
+            const reportsQuery = query(collection(db, 'auto_grading_reports'), where('studentId', '==', stuId));
+            const reportsSnap = await getDocs(reportsQuery);
+            const loadedReports: PortfolioItem[] = reportsSnap.docs.map(doc => {
+              const d = doc.data();
+              return {
+                id: doc.id,
+                title: d.assignmentTitle || d.fileName || 'AutoGraded Assessment',
+                type: 'assessment',
+                subject: d.assignmentTitle?.includes('Math') ? 'Mathematics' : 'General',
+                capsAlignment: 'Auto-Graded Submission',
+                date: new Date(d.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+                grade: d.totalScore || 'N/A',
+                feedback: d.feedback,
+                icon: Target,
+                color: 'from-emerald-400 to-teal-500',
+                featured: false
+              };
+            });
+            if (loadedReports.length > 0) {
+              setItems(prev => {
+                const existingIds = new Set(prev.map(p => p.id));
+                const newItems = loadedReports.filter(r => !existingIds.has(r.id));
+                return [...prev, ...newItems];
+              });
+            }
+          }
+
         } catch (error) {
           console.error("Error loading student profile for portfolio PDF:", error);
         }
@@ -136,7 +168,7 @@ export default function StudentPortfolio({ isDarkMode }: { isDarkMode: boolean }
       }
     };
 
-    fetchStudentProfile();
+    fetchStudentProfileAndReports();
   }, []);
 
   const generateParentReportPDF = async () => {

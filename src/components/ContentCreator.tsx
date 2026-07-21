@@ -192,22 +192,71 @@ const TOP_TABS = ['DASHBOARD', 'CLASSROOMS', 'ARCHIVE'];
 
 // ─── Shared UI Components (Simulating Shadcn) ───────────────────────────────
 
+const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "" }: { html: string; minHeight?: string; className?: string }) => {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const fullDocument = useMemo(() => {
+    if (!html) return '';
+    const isFullDoc = html.includes('<html') || html.includes('<!DOCTYPE');
+    if (isFullDoc) return html;
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <style>
+    body {
+      background-color: #ffffff;
+      color: #1e293b;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 1.5rem;
+      box-sizing: border-box;
+    }
+    @media print {
+      body { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  ${html}
+</body>
+</html>`;
+  }, [html]);
+
+  return (
+    <iframe
+      ref={iframeRef}
+      srcDoc={fullDocument}
+      title="CAPS Document Preview"
+      className={cn("w-full border-0 rounded-2xl bg-white shadow-inner transition-all", className)}
+      style={{ minHeight }}
+      sandbox="allow-scripts allow-same-origin"
+    />
+  );
+};
+
 const Label = ({ children, className }: { children: React.ReactNode, className?: string }) => (
-  className ? (
-    <label className={cn("block text-xs font-black uppercase tracking-widest mb-2", className)}>
-      {children}
-    </label>
-  ) : (
-    <label className="block text-xs font-black uppercase tracking-widest mb-2">
-      {children}
-    </label>
-  )
+  <label className={cn("block text-xs font-black uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1.5", className)}>
+    {children}
+  </label>
 );
+
+const getCurrentTerm = () => {
+  const month = new Date().getMonth() + 1;
+  if (month >= 1 && month <= 3) return 'Term 1';
+  if (month >= 4 && month <= 6) return 'Term 2';
+  if (month >= 7 && month <= 9) return 'Term 3';
+  if (month >= 10 && month <= 12) return 'Term 4';
+  return 'Term 1';
+};
 
 const Input = ({ className, isDarkMode, ...props }: any) => (
   <input
     className={cn(
-      "w-full px-4 py-3.5 rounded-xl border outline-none transition-all",
+      "w-full px-4 py-2.5 rounded-xl border outline-none text-xs transition-all",
       isDarkMode
         ? "bg-[#0d1221] border-white/10 text-white placeholder-slate-500 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
         : "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500",
@@ -220,7 +269,7 @@ const Input = ({ className, isDarkMode, ...props }: any) => (
 const Textarea = ({ className, isDarkMode, ...props }: any) => (
   <textarea
     className={cn(
-      "w-full px-4 py-3.5 rounded-xl border outline-none transition-all resize-y",
+      "w-full px-4 py-2.5 rounded-xl border outline-none text-xs transition-all resize-y",
       isDarkMode
         ? "bg-[#0d1221] border-white/10 text-white placeholder-slate-500 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
         : "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500",
@@ -233,7 +282,7 @@ const Textarea = ({ className, isDarkMode, ...props }: any) => (
 const Select = ({ className, isDarkMode, children, ...props }: any) => (
   <select
     className={cn(
-      "w-full px-4 py-3.5 rounded-xl border outline-none transition-all appearance-none cursor-pointer",
+      "w-full px-4 py-2.5 rounded-xl border outline-none text-xs font-bold transition-all appearance-none cursor-pointer",
       isDarkMode
         ? "bg-[#0d1221] border-white/10 text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
         : "bg-slate-50 border-slate-200 text-slate-900 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500",
@@ -248,7 +297,7 @@ const Select = ({ className, isDarkMode, children, ...props }: any) => (
 const Button = ({ className, children, ...props }: any) => (
   <button
     className={cn(
-      "px-4 py-2.5 rounded-xl font-medium transition-all flex items-center justify-center gap-2",
+      "px-4 py-2 rounded-xl font-medium transition-all flex items-center justify-center gap-2 cursor-pointer",
       className
     )}
     {...props}
@@ -262,22 +311,36 @@ const Button = ({ className, children, ...props }: any) => (
 function AdvancedSection({ children, label, isDarkMode }: { children: React.ReactNode; label: string; isDarkMode?: boolean }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className={cn("border-t pt-4", isDarkMode ? "border-white/5" : "border-slate-100")}>
+    <div className={cn("border-t pt-3 mt-3", isDarkMode ? "border-cyan-500/20" : "border-slate-200")}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          "w-full flex items-center justify-between text-xs font-black uppercase tracking-widest transition-colors",
-          isDarkMode ? "text-slate-500 hover:text-white" : "text-slate-400 hover:text-slate-900"
+          "w-full flex items-center justify-between text-[11px] font-black uppercase tracking-wider py-1.5 px-3 rounded-xl transition-all cursor-pointer border shadow-sm",
+          isDarkMode
+            ? "bg-gradient-to-r from-cyan-950/40 via-purple-950/20 to-slate-900 border-cyan-500/30 text-cyan-300 hover:border-cyan-400"
+            : "bg-gradient-to-r from-cyan-50 via-purple-50 to-slate-50 border-cyan-200 text-cyan-800 hover:border-cyan-300"
         )}
       >
         <span className="flex items-center gap-2">
-          <Settings2 size={14} />
+          <Wrench size={13} className="text-cyan-400" />
           {label}
         </span>
-        {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        {open ? <ChevronUp size={14} className="text-cyan-400" /> : <ChevronDown size={14} className="text-cyan-400" />}
       </button>
-      {open && <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 pt-6">{children}</motion.div>}
+      
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="space-y-3 pt-3 overflow-hidden"
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -328,7 +391,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   const [t_topics, setT_Topics] = useState<string[]>([]);
   const [t_language, setT_Language] = useState('English');
   const [t_difficulty, setT_Difficulty] = useState('Medium (Mixed)');
-  const [t_term, setT_Term] = useState('Term 1');
+  const [t_term, setT_Term] = useState(getCurrentTerm());
   const [t_duration, setT_Duration] = useState('45 minutes');
   const [t_learners, setT_Learners] = useState('30');
   const [t_capsAlignment, setT_CapsAlignment] = useState(true);
@@ -785,7 +848,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
 
     return (
       <div className={cn(
-        "rounded-2xl border p-6 space-y-4",
+        "rounded-2xl border p-6 space-y-4 overflow-hidden",
         isDarkMode ? "bg-white/5 border-white/10" : "bg-white border-slate-200"
       )}>
         {/* Inline Quality Assessment Status or Score Panel */}
@@ -849,7 +912,10 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
         </div>
         
         <div 
-          className="prose prose-sm max-w-none text-slate-300"
+          className={cn(
+            "prose prose-sm max-w-none overflow-x-auto",
+            isDarkMode ? "text-slate-300" : "text-slate-700"
+          )}
           dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(html, allowImages) }}
         />
         
@@ -1029,6 +1095,10 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                       <Select
                         isDarkMode={isDarkMode}
                         value={activeTab === 'teaching' ? t_grade : v_grade}
+                        className={cn(
+                          "py-2 text-[11px] font-bold transition-all",
+                          (activeTab === 'teaching' ? t_grade : v_grade) && (isDarkMode ? "border-cyan-500/50 bg-cyan-500/5 shadow-[0_0_15px_rgba(6,182,212,0.1)]" : "border-cyan-200 bg-cyan-50")
+                        )}
                         onChange={(e: any) => {
                           const val = e.target.value;
                           if (activeTab === 'teaching') {
@@ -1058,6 +1128,10 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                     <Select
                       isDarkMode={isDarkMode}
                       value={activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject}
+                      className={cn(
+                        "py-2 text-[11px] font-bold transition-all",
+                        (activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject) && (isDarkMode ? "border-purple-500/50 bg-purple-500/5 shadow-[0_0_15px_rgba(168,85,247,0.1)]" : "border-purple-200 bg-purple-50")
+                      )}
                       onChange={(e: any) => {
                         const val = e.target.value;
                         if (activeTab === 'teaching') {
@@ -1284,19 +1358,6 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                         </div>
 
                         <div>
-                          <Label>Term</Label>
-                          <Select
-                            isDarkMode={isDarkMode}
-                            value={t_term}
-                            onChange={(e: any) => setT_Term(e.target.value)}
-                          >
-                            {TERMS.map(term => (
-                              <option key={term} value={term}>{term}</option>
-                            ))}
-                          </Select>
-                        </div>
-
-                        <div>
                           <Label>Duration</Label>
                           <Input
                             isDarkMode={isDarkMode}
@@ -1469,207 +1530,123 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
                 className={cn(
-                  "rounded-3xl border p-6 backdrop-blur-xl flex flex-col",
+                  "rounded-3xl border p-6 backdrop-blur-xl flex flex-col justify-between",
                   isDarkMode
                     ? "bg-white/5 border-white/10 shadow-2xl shadow-black/20"
                     : "bg-white border-slate-200 shadow-xl shadow-slate-200/50"
                 )}
                 id="preview-panel"
               >
-                <h2 className={cn(
-                  "text-xl font-bold mb-6 flex items-center gap-2",
-                  isDarkMode ? "text-white" : "text-slate-900"
-                )}>
-                  <Sparkles size={20} className="text-purple-400" />
-                  Magic Preview
-                </h2>
-
-                {/* Preview Area */}
-                {(() => {
-                  const hasContent = (activeTab === 'teaching' && (teachingResult.content || teachingResult.memo || teachingResult.rubric)) ||
-                                     (activeTab === 'visual' && visualResult?.content) ||
-                                     (activeTab === 'admin' && adminResult?.content);
-                  
-                  const activeHtml = activeTab === 'teaching' 
-                    ? (activePreviewTab === 'content' ? teachingResult.content : activePreviewTab === 'memo' ? teachingResult.memo : teachingResult.rubric)
-                    : activeTab === 'visual'
-                    ? visualResult?.content
-                    : adminResult?.content;
-
-                  const currentSubject = activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject;
-                  const currentGrade = activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade;
-                  const currentTopic = activeTab === 'teaching' ? t_topic : activeTab === 'visual' ? v_topic : a_topic;
-                  const currentType = activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : a_type;
-
-                  if (isGenerating) {
-                    return (
-                      <div className={cn(
-                        "flex-1 rounded-2xl border-2 border-dashed p-6 min-h-[420px] flex flex-col items-center justify-center relative overflow-hidden",
-                        isDarkMode 
-                          ? "bg-[#0d1221]/50 border-white/10" 
-                          : "bg-slate-50 border-slate-300"
-                      )}>
-                        {/* Scanning Laser Line */}
-                        <motion.div
-                          className="absolute left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_15px_rgba(34,211,238,0.9)] z-20"
-                          animate={{
-                            top: ["4%", "96%", "4%"]
-                          }}
-                          transition={{
-                            duration: 3,
-                            ease: "easeInOut",
-                            repeat: Infinity
-                          }}
-                        />
-
-                        {/* Scanning Sweep Overlay */}
-                        <motion.div
-                          className="absolute left-0 right-0 w-full bg-gradient-to-b from-cyan-400/0 via-cyan-400/10 to-cyan-400/0 h-28 pointer-events-none z-10"
-                          animate={{
-                            top: ["-10%", "90%", "-10%"]
-                          }}
-                          transition={{
-                            duration: 3,
-                            ease: "easeInOut",
-                            repeat: Infinity
-                          }}
-                        />
-
-                        {/* Skeleton A4 page being scanned */}
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none scale-[0.8] origin-center opacity-40 z-0">
-                          <div className="w-[300px] aspect-[1/1.41] bg-white rounded-lg border border-slate-200/50 p-5 space-y-4 shadow-inner relative">
-                            {/* Header layout */}
-                            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                              <div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse" />
-                              <div className="space-y-1.5 flex-1">
-                                <div className="h-3 bg-slate-200 rounded w-2/3 animate-pulse" />
-                                <div className="h-2 bg-slate-200 rounded w-1/3 animate-pulse" />
-                              </div>
-                            </div>
-                            {/* Title block */}
-                            <div className="h-4 bg-slate-200 rounded w-1/2 animate-pulse mx-auto" />
-                            {/* Paragraph blocks */}
-                            <div className="space-y-2 pt-2">
-                              <div className="h-2 bg-slate-200 rounded w-full animate-pulse" />
-                              <div className="h-2 bg-slate-200 rounded w-5/6 animate-pulse" />
-                              <div className="h-2 bg-slate-200 rounded w-4/5 animate-pulse" />
-                            </div>
-                            {/* Graphic block */}
-                            <div className="h-24 bg-slate-100 rounded-lg flex items-center justify-center animate-pulse">
-                              <Sparkles className="text-slate-300" size={24} />
-                            </div>
-                            {/* Bullet blocks */}
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-slate-200 animate-pulse" />
-                                <div className="h-2 bg-slate-200 rounded w-2/3 animate-pulse" />
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-slate-200 animate-pulse" />
-                                <div className="h-2 bg-slate-200 rounded w-3/4 animate-pulse" />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Scanner Stats Overlay */}
-                        <div className="text-center z-10 bg-[#070b19]/80 backdrop-blur-md p-4 rounded-xl border border-cyan-500/20 max-w-[240px] shadow-lg">
-                          <Loader2 className="animate-spin mx-auto mb-3 text-cyan-400" size={32} />
-                          <p className="text-xs font-black uppercase tracking-widest text-cyan-400">
-                            Forging Content
-                          </p>
-                          <p className="text-[10px] text-slate-400 mt-1 font-sans">Applying pedagogic rules & South African CAPS standards...</p>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  if (hasContent && activeHtml) {
-                    return (
-                      <div className={cn(
-                        "flex-1 rounded-2xl border p-4 min-h-[420px] max-h-[500px] flex flex-col relative overflow-hidden",
-                        isDarkMode 
-                          ? "bg-[#0d1221]/50 border-white/10" 
-                          : "bg-slate-50 border-slate-300"
-                      )}>
-                        {/* Interactive Page Viewport */}
-                        <div className="flex-1 overflow-y-auto scrollbar-thin pr-1">
-                          <div className="bg-white text-slate-800 shadow-xl rounded-xl p-6 border border-slate-200 min-h-[500px] relative font-sans text-xs leading-relaxed select-text">
-                            {/* Official South African Document Emblem Header Mockup */}
-                            <div className="mb-6 border-b-2 border-slate-800 pb-4 flex flex-col items-center text-center">
-                              <div className="text-[9px] tracking-[0.25em] font-black text-slate-500 uppercase">
-                                Department of Basic Education
-                              </div>
-                              <div className="text-[7px] tracking-[0.2em] text-slate-400 uppercase mt-0.5">
-                                Republic of South Africa
-                              </div>
-                              
-                              <div className="mt-2.5 px-3 py-1 bg-slate-900 text-white rounded-md text-[8px] font-black tracking-[0.15em] uppercase shadow-sm">
-                                {activeTab === 'teaching' 
-                                  ? `CAPS ${currentType || 'Lesson Material'}` 
-                                  : activeTab === 'visual' 
-                                  ? `VISUAL AID: ${currentType}` 
-                                  : `ADMIN CORRESPONDENCE`}
-                              </div>
-                            </div>
-
-                            {/* Metadata Block */}
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 bg-slate-50 p-2.5 rounded-lg border border-slate-100 mb-4 text-[9px] font-mono text-slate-600">
-                              <div><strong className="text-slate-800 uppercase">Grade:</strong> {currentGrade || 'N/A'}</div>
-                              <div><strong className="text-slate-800 uppercase">Subject:</strong> {currentSubject || 'General'}</div>
-                              <div className="col-span-2"><strong className="text-slate-800 uppercase">Topic:</strong> {currentTopic || 'Untitled'}</div>
-                            </div>
-
-                            {/* Rendered HTML */}
-                            <div 
-                              className="prose prose-sm max-w-none text-slate-800 text-[11px] leading-relaxed select-text"
-                              dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(activeHtml, activeTab === 'teaching' ? t_generateImage : activeTab === 'visual' ? v_generateImage : a_generateImage) }}
-                            />
-
-                            {/* PDF/A4 Indicator Badge */}
-                            <div className="mt-8 border-t border-slate-100 pt-3 flex justify-between items-center text-[8px] text-slate-400 font-mono">
-                              <span>Page 1 of 1 (PREVIEW)</span>
-                              <span>EduAI CAPS Studio</span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Indicator banner overlay */}
-                        <div className="mt-2.5 flex items-center justify-between text-[10px] text-slate-400 font-medium px-1 bg-cyan-950/20 py-1.5 rounded-lg border border-cyan-500/10">
-                          <span className="flex items-center gap-1.5 text-cyan-400">
-                            <Sparkles size={12} className="animate-pulse" />
-                            Live Sheet Preview
-                          </span>
-                          <span className="text-slate-500 font-mono">Scroll to preview document</span>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  // Fallback: Default Placeholder when not generating and no content has been generated yet
-                  return (
-                    <div className={cn(
-                      "flex-1 rounded-2xl border-2 border-dashed p-6 min-h-[420px] flex items-center justify-center relative overflow-hidden",
-                      isDarkMode 
-                        ? "bg-[#0d1221]/50 border-white/10" 
-                        : "bg-slate-50 border-slate-300"
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className={cn(
+                      "text-xl font-bold flex items-center gap-2",
+                      isDarkMode ? "text-white" : "text-slate-900"
                     )}>
-                      <div className="text-center opacity-50 z-10">
-                        <Layers size={48} className={cn(
-                          "mx-auto mb-3 animate-pulse",
-                          isDarkMode ? "text-slate-600" : "text-slate-400"
-                        )} />
-                        <p className={cn(
-                          "text-sm font-bold uppercase tracking-wider",
-                          isDarkMode ? "text-slate-400" : "text-slate-600"
+                      <Sparkles size={20} className="text-purple-400" />
+                      Magic Preview
+                    </h2>
+
+                    {/* Fullscreen Button */}
+                    {((activeTab === 'teaching' && (teachingResult?.content || teachingResult?.memo || teachingResult?.rubric)) ||
+                      (activeTab === 'visual' && visualResult?.content) ||
+                      (activeTab === 'admin' && adminResult?.content)) && !isGenerating && (
+                      <button
+                        onClick={() => setIsFullscreenPreview(true)}
+                        className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <Maximize2 size={14} /> Fullscreen View
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Preview Area */}
+                  {(() => {
+                    const hasContent = (activeTab === 'teaching' && (teachingResult?.content || teachingResult?.memo || teachingResult?.rubric)) ||
+                                       (activeTab === 'visual' && visualResult?.content) ||
+                                       (activeTab === 'admin' && adminResult?.content);
+                    
+                    if (!hasContent && isGenerating) {
+                      return (
+                        <div className={cn(
+                          "rounded-3xl border shadow-2xl overflow-hidden flex flex-col min-h-[420px] items-center justify-center p-8 text-center relative",
+                          isDarkMode ? "bg-[#050a18] border-white/10" : "bg-slate-50 border-slate-200"
                         )}>
-                          Preview Stage
-                        </p>
-                        <p className="text-xs text-slate-500 mt-1">Configure options on the left and click Generate to begin.</p>
+                          {/* Scanning Sweep Overlay */}
+                          <motion.div
+                            className="absolute left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_15px_rgba(34,211,238,0.9)] z-20"
+                            animate={{ top: ["4%", "96%", "4%"] }}
+                            transition={{ duration: 3, ease: "easeInOut", repeat: Infinity }}
+                          />
+                          <div className="text-center z-10 bg-[#070b19]/80 backdrop-blur-md p-6 rounded-2xl border border-cyan-500/20 max-w-[280px] shadow-2xl">
+                            <Loader2 className="animate-spin mx-auto mb-3 text-cyan-400" size={40} />
+                            <p className="text-sm font-black uppercase tracking-widest text-cyan-400">Forging Content</p>
+                            <p className="text-[10px] text-slate-400 mt-2 font-sans">Applying South African CAPS pedagogic rules...</p>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (!hasContent) {
+                      return (
+                        <div className={cn(
+                          "rounded-3xl border-2 border-dashed flex flex-col items-center justify-center p-12 text-center min-h-[400px]",
+                          isDarkMode ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200"
+                        )}>
+                          <div className="w-16 h-16 rounded-2xl bg-cyan-400/10 flex items-center justify-center mb-4 text-cyan-400">
+                            <Zap size={32} />
+                          </div>
+                          <h3 className={cn("text-lg font-bold mb-2", isDarkMode ? "text-white" : "text-slate-900")}>Ready to Forge?</h3>
+                          <p className="text-sm text-slate-400 max-w-xs mx-auto">
+                            Select your CAPS parameters on the left and click "GENERATE" to witness AI education magic.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    const activeHtml = activeTab === 'teaching' 
+                      ? (activePreviewTab === 'content' ? (teachingResult?.content || '') : activePreviewTab === 'memo' ? (teachingResult?.memo || '') : (teachingResult?.rubric || ''))
+                      : activeTab === 'visual' ? (visualResult?.content || '')
+                      : (adminResult?.content || '');
+
+                    const currentGrade = activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade;
+                    const currentSubject = (activeTab === 'teaching' ? (t_subject === 'Other' ? t_customSubject : t_subject) : activeTab === 'visual' ? (v_subject === 'Other' ? v_customSubject : v_subject) : (a_subject === 'Other' ? a_customSubject : a_subject)) || 'General';
+                    const currentTopic = activeTab === 'teaching' ? t_topic : activeTab === 'visual' ? v_topic : a_topic;
+                    const currentType = activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : a_type;
+
+                    return (
+                      <div className="space-y-4">
+                        <div className={cn(
+                          "rounded-3xl border shadow-2xl overflow-hidden flex flex-col min-h-[550px]",
+                          isDarkMode ? "bg-[#050a18] border-white/10" : "bg-white border-slate-200"
+                        )}>
+                          {/* Document Viewer Frame */}
+                          <div className={cn(
+                            "p-1 flex items-center gap-2 border-b",
+                            isDarkMode ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200"
+                          )}>
+                            <div className="flex gap-1.5 ml-2">
+                              <div className="w-2.5 h-2.5 rounded-full bg-red-400/40" />
+                              <div className="w-2.5 h-2.5 rounded-full bg-amber-400/40" />
+                              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400/40" />
+                            </div>
+                            <div className="flex-1 text-center">
+                              <span className="text-[10px] font-mono text-slate-500 tracking-wider uppercase">eduai-preview-viewport.caps</span>
+                            </div>
+                          </div>
+
+                          {/* Interactive Page Viewport */}
+                          <div className="flex-1 max-h-[650px] overflow-y-auto scrollbar-thin p-3 sm:p-4">
+                            <HtmlPreviewFrame
+                              html={replaceImagePlaceholders(activeHtml, activeTab === 'teaching' ? t_generateImage : activeTab === 'visual' ? v_generateImage : a_generateImage)}
+                              minHeight="550px"
+                            />
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })()}
+                    );
+                  })()}
+                </div>
 
                 {/* GENERATE Button */}
                 <button
@@ -1681,13 +1658,13 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                     isGenerating
                   }
                   className={cn(
-                    "mt-6 w-full py-4 rounded-xl font-black uppercase tracking-widest text-sm transition-all flex items-center justify-center gap-2 group cursor-pointer",
+                    "mt-6 w-full py-4 rounded-xl font-black uppercase tracking-widest text-sm transition-all flex items-center justify-center gap-2 group cursor-pointer shadow-lg",
                     ((activeTab === 'teaching' && (!t_grade || !t_subject || !t_topic || !t_type)) ||
                     (activeTab === 'visual' && (!v_grade || !v_subject || !v_topic || !v_type)) ||
                     (activeTab === 'admin' && (!a_type || !a_topic)) ||
                     isGenerating)
                       ? "opacity-50 cursor-not-allowed bg-slate-700 text-slate-400"
-                      : "bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-[1.02] active:scale-[0.98]"
+                      : "bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-[1.02] active:scale-[0.98]"
                   )}
                 >
                   {isGenerating ? (
@@ -1706,15 +1683,15 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
             </div>
           )}
 
-          {/* Results Section - Show when content is generated */}
-          {((activeTab === 'teaching' && (teachingResult.content || teachingResult.memo || teachingResult.rubric)) ||
-            (activeTab === 'visual' && visualResult) ||
-            (activeTab === 'admin' && adminResult.content)) && (
+          {/* Results Section - RESTORED to the bottom */}
+          {((activeTab === 'teaching' && (teachingResult?.content || teachingResult?.memo || teachingResult?.rubric)) ||
+            (activeTab === 'visual' && visualResult?.content) ||
+            (activeTab === 'admin' && adminResult?.content)) && (
             <motion.div
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="max-w-6xl mx-auto mt-8"
+              className="max-w-6xl mx-auto mt-8 pb-12"
             >
               <div className={cn(
                 "rounded-3xl border p-8 backdrop-blur-xl",
@@ -1728,7 +1705,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                     <button
                       onClick={() => setActivePreviewTab('content')}
                       className={cn(
-                        "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
+                        "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
                         activePreviewTab === 'content'
                           ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
                           : "text-slate-400 hover:text-white"
@@ -1740,7 +1717,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                       <button
                         onClick={() => setActivePreviewTab('memo')}
                         className={cn(
-                          "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
+                          "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
                           activePreviewTab === 'memo'
                             ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
                             : "text-slate-400 hover:text-white"
@@ -1753,7 +1730,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                       <button
                         onClick={() => setActivePreviewTab('rubric')}
                         className={cn(
-                          "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
+                          "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
                           activePreviewTab === 'rubric'
                             ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
                             : "text-slate-400 hover:text-white"
@@ -1765,51 +1742,51 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                   </div>
                 )}
 
-                {/* Action Buttons */}
+                {/* Action Buttons Toolbar */}
                 <div className="flex flex-wrap gap-3 mb-6 pb-6 border-b border-white/5">
                   <Button
                     onClick={() => setIsFullscreenPreview(!isFullscreenPreview)}
                     className={cn(
-                      "border",
+                      "border text-[10px] font-black uppercase tracking-widest",
                       isDarkMode 
                         ? "bg-white/10 border-white/5 hover:bg-white/20 text-white"
                         : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-900"
                     )}
                   >
-                    {isFullscreenPreview ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                    {isFullscreenPreview ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                     {isFullscreenPreview ? 'Minimize' : 'Fullscreen'}
                   </Button>
                   
                   <Button
                     onClick={handlePrint}
                     className={cn(
-                      "border",
+                      "border text-[10px] font-black uppercase tracking-widest",
                       isDarkMode 
                         ? "bg-white/10 border-white/5 hover:bg-white/20 text-white"
                         : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-900"
                     )}
                   >
-                    <Printer size={16} />
+                    <Printer size={14} />
                     Print File
                   </Button>
                   
                   <Button
                     onClick={handleDownloadPDF}
                     className={cn(
-                      "border",
+                      "border text-[10px] font-black uppercase tracking-widest",
                       isDarkMode 
                         ? "bg-white/10 border-white/5 hover:bg-white/20 text-white"
                         : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-900"
                     )}
                   >
-                    <Download size={16} />
-                    Download PDF
+                    <Download size={14} />
+                    PDF Download
                   </Button>
                   
                   <Button
                     onClick={handleToggleEdit}
                     className={cn(
-                      "border",
+                      "border text-[10px] font-black uppercase tracking-widest",
                       isEditing
                         ? "bg-cyan-400 border-cyan-400/20 text-slate-900"
                         : isDarkMode
@@ -1817,14 +1794,14 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                         : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-900"
                     )}
                   >
-                    <Edit2 size={16} />
-                    {isEditing ? 'Exit Edit' : 'Edit Document'}
+                    <Edit2 size={14} />
+                    {isEditing ? 'Save Sandbox' : 'Edit Document'}
                   </Button>
 
                   <Button
                     onClick={handleQualityCheck}
                     className={cn(
-                      "border",
+                      "border text-[10px] font-black uppercase tracking-widest",
                       showQualityCheck && qualityRating
                         ? "bg-emerald-500 border-emerald-500 text-white"
                         : isDarkMode 
@@ -1832,44 +1809,30 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                         : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-900"
                     )}
                   >
-                    <ClipboardList size={16} />
+                    <ClipboardList size={14} />
                     Quality Check
                   </Button>
                   
                   <Button
                     onClick={() => setShowShareModal(true)}
                     className={cn(
-                      "border",
+                      "border text-[10px] font-black uppercase tracking-widest",
                       isDarkMode 
                         ? "bg-white/10 border-white/5 hover:bg-white/20 text-white"
                         : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-900"
                     )}
                   >
-                    <Share2 size={16} />
-                    Export / Share
-                  </Button>
-                  
-                  <Button
-                    onClick={handleAssign}
-                    className={cn(
-                      "border",
-                      assignSuccess
-                        ? "bg-emerald-500 border-emerald-500 text-white"
-                        : isDarkMode
-                        ? "bg-white/10 border-white/20 hover:bg-white/20 text-white"
-                        : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-900"
-                    )}
-                  >
-                    {assignSuccess ? <Check size={14} /> : <Users size={14} />}
-                    {assignSuccess ? 'Assigned ✅' : 'Assign to Class'}
+                    <Share2 size={14} />
+                    Export
                   </Button>
                   
                   <Button
                     onClick={handleArchive}
                     className={cn(
+                      "text-[10px] font-black uppercase tracking-widest ml-auto",
                       archiveSuccess
                         ? "bg-emerald-500 text-white border-0"
-                        : "bg-cyan-400 hover:bg-cyan-500 text-slate-900 border-0 font-bold"
+                        : "bg-cyan-400 hover:bg-cyan-500 text-slate-900 border-0 shadow-lg shadow-cyan-500/20"
                     )}
                   >
                     {archiveSuccess ? <Check size={14} /> : <Save size={14} />}
@@ -1877,178 +1840,163 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                   </Button>
                 </div>
 
-                {/* Content Display */}
-                <div ref={contentRef}>
-                  {isEditing ? (
-                    <div className="space-y-6">
-                      <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-4 border-dashed">
-                        <div>
-                          <h4 className="text-lg font-bold text-cyan-400">Collaborative Sandbox Editor</h4>
-                          <p className="text-xs text-slate-400">Modify output directly before printing or publishing.</p>
-                        </div>
-                        <Button
-                          onClick={handleSaveEdits}
-                          className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold"
-                        >
-                          <Save size={14} />
-                          Save Sandbox Changes
-                        </Button>
+                {/* Quality Badge if checked */}
+                {(teachingResult?.qualityRating || visualResult?.qualityRating || adminResult?.qualityRating) && (
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold mb-6">
+                    <span className="flex items-center gap-2">
+                      <Check className="text-emerald-400" size={16} />
+                      CAPS Quality Score: {((teachingResult?.qualityRating || visualResult?.qualityRating || adminResult?.qualityRating)?.capsAlignmentScore || 95)}% (CAPS Aligned)
+                    </span>
+                    <button
+                      onClick={() => {
+                        setQualityRating(teachingResult?.qualityRating || visualResult?.qualityRating || adminResult?.qualityRating);
+                        setShowQualityCheck(true);
+                      }}
+                      className="text-[10px] underline uppercase tracking-wider text-emerald-300 hover:text-white cursor-pointer"
+                    >
+                      View Full Breakdown
+                    </button>
+                  </div>
+                )}
+
+                {/* Editable Editor */}
+                {isEditing && (
+                  <div className="mb-8 p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-4">
+                      <div>
+                        <h4 className="text-sm font-bold text-cyan-400">Sandbox Editor</h4>
+                        <p className="text-[10px] text-slate-400">Modify the generation directly.</p>
                       </div>
-                      
-                      {activeTab === 'teaching' && activePreviewTab === 'content' && (
-                        <Textarea
-                          isDarkMode={isDarkMode}
-                          value={editContentText}
-                          onChange={(e: any) => setEditContentText(e.target.value)}
-                          className="h-96 font-mono text-xs text-slate-300"
-                        />
-                      )}
-
-                      {activeTab === 'teaching' && activePreviewTab === 'memo' && (
-                        <Textarea
-                          isDarkMode={isDarkMode}
-                          value={editMemoText}
-                          onChange={(e: any) => setEditMemoText(e.target.value)}
-                          className="h-96 font-mono text-xs text-slate-300"
-                        />
-                      )}
-
-                      {activeTab === 'teaching' && activePreviewTab === 'rubric' && (
-                        <Textarea
-                          isDarkMode={isDarkMode}
-                          value={editRubricText}
-                          onChange={(e: any) => setEditRubricText(e.target.value)}
-                          className="h-96 font-mono text-xs text-slate-300"
-                        />
-                      )}
-
-                      {activeTab !== 'teaching' && (
-                        <Textarea
-                          isDarkMode={isDarkMode}
-                          value={editContentText}
-                          onChange={(e: any) => setEditContentText(e.target.value)}
-                          className="h-96 font-mono text-xs text-slate-300"
-                        />
-                      )}
-                      
-                      {/* Version History */}
-                      <div className="mt-8 border-t border-white/5 pt-6">
-                        <h5 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-                          <History size={14} className="text-cyan-400" />
-                          Document Version History
-                        </h5>
-                        {versions[activeTab]?.length > 0 ? (
-                          <div className="space-y-2 max-h-48 overflow-y-auto">
-                            {versions[activeTab].map((ver: any, idx: number) => (
-                              <div key={idx} className="flex justify-between items-center bg-white/5 border border-white/10 p-3 rounded-xl text-xs">
-                                <div>
-                                  <span className="font-bold text-white">Version {versions[activeTab].length - idx}</span>
-                                  <span className="text-slate-400 text-[10px] ml-2 font-mono">({ver.timestamp})</span>
-                                </div>
-                                <button
-                                  onClick={() => handleRestoreVersion(ver)}
-                                  className="text-cyan-400 font-bold hover:underline"
-                                >
-                                  Restore Version
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-slate-500 italic">No previous revision states captured for this sandbox session.</p>
-                        )}
-                      </div>
+                      <Button
+                        onClick={handleSaveEdits}
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black py-2"
+                      >
+                        <Save size={12} />
+                        Apply Edits
+                      </Button>
                     </div>
-                  ) : (
-                    <>
-                      {activeTab === 'teaching' && (
-                        <div className="space-y-4">
-                          {activePreviewTab === 'content' && (
-                            <ContentPreview
-                              html={teachingResult.content}
-                              label="Integrated CAPS Classroom Material"
-                              isDarkMode={isDarkMode}
-                              imagePrompt={t_generateImage ? (teachingResult.imagePrompt || teachingResult.userImagePrompt || `Professional educational illustration for South African Grade ${t_grade} ${t_subject}: ${t_topic}`) : undefined}
-                              grade={t_grade}
-                              subject={t_subject === 'Other' ? t_customSubject : t_subject}
-                              contentType={t_type}
-                              qualityRating={teachingResult.qualityRating}
-                              isAssessing={isAssessingQuality}
-                              onViewReport={(rating: any) => {
-                                setQualityRating(rating);
-                                setShowQualityCheck(true);
-                              }}
-                              allowImages={t_generateImage}
-                            />
-                          )}
-                          {activePreviewTab === 'memo' && teachingResult.memo && (
-                            <ContentPreview
-                              html={teachingResult.memo}
-                              label="South African Curriculum Diagnostic Memo"
-                              isDarkMode={isDarkMode}
-                              grade={t_grade}
-                              subject={t_subject === 'Other' ? t_customSubject : t_subject}
-                              contentType="memo"
-                              allowImages={false}
-                            />
-                          )}
-                          {activePreviewTab === 'rubric' && teachingResult.rubric && (
-                            <ContentPreview
-                              html={teachingResult.rubric}
-                              label="Criterion-Referenced Assessment Rubric Matrix"
-                              isDarkMode={isDarkMode}
-                              grade={t_grade}
-                              subject={t_subject === 'Other' ? t_customSubject : t_subject}
-                              contentType="rubric"
-                              allowImages={false}
-                            />
-                          )}
-                        </div>
-                      )}
-                      
-                      {activeTab === 'visual' && visualResult && (
-                        <ContentPreview
-                          html={visualResult.content}
-                          label="Print-Ready Digital Visual Display"
-                          isDarkMode={isDarkMode}
-                          imagePrompt={v_generateImage ? (visualResult.imagePrompt || visualResult.userImagePrompt || `Professional educational illustration for South African Grade ${v_grade} ${v_subject}: ${v_topic}`) : undefined}
-                          grade={v_grade}
-                          subject={v_subject === 'Other' ? v_customSubject : v_subject}
-                          contentType={v_type}
-                          qualityRating={visualResult.qualityRating}
-                          isAssessing={isAssessingQuality}
-                          onViewReport={(rating: any) => {
-                            setQualityRating(rating);
-                            setShowQualityCheck(true);
-                          }}
-                          allowImages={v_generateImage}
-                        />
-                      )}
-                      
-                      {activeTab === 'admin' && adminResult.content && (
-                        <ContentPreview
-                          html={adminResult.content}
-                          label="Official School Administration Document"
-                          isDarkMode={isDarkMode}
-                          imagePrompt={a_generateImage ? (adminResult.imagePrompt || adminResult.userImagePrompt || `Professional educational illustration for South African Grade ${a_grade || 'R'} ${a_subject}: ${a_topic}`) : undefined}
-                          grade={a_grade || 'N/A'}
-                          subject={a_subject === 'Other' ? a_customSubject : a_subject}
-                          contentType={a_type}
-                          qualityRating={adminResult.qualityRating}
-                          isAssessing={isAssessingQuality}
-                          onViewReport={(rating: any) => {
-                            setQualityRating(rating);
-                            setShowQualityCheck(true);
-                          }}
-                          allowImages={a_generateImage}
-                        />
-                      )}
-                    </>
-                  )}
+                    
+                    <Textarea
+                      isDarkMode={isDarkMode}
+                      value={activeTab === 'teaching' ? (activePreviewTab === 'content' ? editContentText : activePreviewTab === 'memo' ? editMemoText : editRubricText) : editContentText}
+                      onChange={(e: any) => {
+                        const val = e.target.value;
+                        if (activeTab === 'teaching') {
+                          if (activePreviewTab === 'content') setEditContentText(val);
+                          else if (activePreviewTab === 'memo') setEditMemoText(val);
+                          else setEditRubricText(val);
+                        } else {
+                          setEditContentText(val);
+                        }
+                      }}
+                      className="h-64 font-mono text-[11px] leading-relaxed"
+                    />
+                  </div>
+                )}
+
+                <div className="text-center text-[10px] text-slate-500 font-mono italic">
+                  Use the tools above to print, download, edit, or archive your generated CAPS document.
                 </div>
               </div>
             </motion.div>
           )}
+
+          {/* Dedicated Fullscreen Preview Modal */}
+          <AnimatePresence>
+            {isFullscreenPreview && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[150] flex flex-col p-4 sm:p-8"
+              >
+                <div className="flex justify-between items-center bg-slate-900/80 border border-white/10 rounded-2xl p-4 mb-4 backdrop-blur-lg">
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="text-cyan-400" size={20} />
+                    <div>
+                      <h3 className="text-white font-bold text-sm">
+                        {activeTab === 'teaching' ? (t_topic || t_type || 'Lesson Material') : activeTab === 'visual' ? (v_topic || v_type) : a_topic}
+                      </h3>
+                      <p className="text-[10px] text-slate-400">
+                        Grade {activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade} • {activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Tab Switcher in Fullscreen */}
+                  {activeTab === 'teaching' && (
+                    <div className="flex gap-1.5 bg-white/5 p-1 rounded-xl border border-white/10">
+                      <button
+                        onClick={() => setActivePreviewTab('content')}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                          activePreviewTab === 'content' ? "bg-cyan-500 text-slate-950 font-bold" : "text-slate-400 hover:text-white"
+                        )}
+                      >
+                        Lesson Material
+                      </button>
+                      {teachingResult.memo && (
+                        <button
+                          onClick={() => setActivePreviewTab('memo')}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                            activePreviewTab === 'memo' ? "bg-cyan-500 text-slate-950 font-bold" : "text-slate-400 hover:text-white"
+                          )}
+                        >
+                          Memo
+                        </button>
+                      )}
+                      {teachingResult.rubric && (
+                        <button
+                          onClick={() => setActivePreviewTab('rubric')}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                            activePreviewTab === 'rubric' ? "bg-cyan-500 text-slate-950 font-bold" : "text-slate-400 hover:text-white"
+                          )}
+                        >
+                          Rubric
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handlePrint}
+                      className="p-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-700 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Printer size={14} /> Print
+                    </button>
+                    <button
+                      onClick={handleDownloadPDF}
+                      className="p-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Download size={14} /> PDF
+                    </button>
+                    <button
+                      onClick={() => setIsFullscreenPreview(false)}
+                      className="p-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 cursor-pointer"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto bg-slate-900/50 rounded-2xl p-4 border border-white/5 flex justify-center">
+                  <HtmlPreviewFrame
+                    html={replaceImagePlaceholders(
+                      activeTab === 'teaching' 
+                        ? (activePreviewTab === 'content' ? teachingResult.content : activePreviewTab === 'memo' ? teachingResult.memo : teachingResult.rubric)
+                        : activeTab === 'visual' ? visualResult?.content : adminResult.content,
+                      activeTab === 'teaching' ? t_generateImage : activeTab === 'visual' ? v_generateImage : a_generateImage
+                    )}
+                    minHeight="100%"
+                    className="w-full h-full max-w-5xl"
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </main>
       </div>
 

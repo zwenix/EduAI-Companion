@@ -24,8 +24,9 @@ import {
   VolumeX,
   Target
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Logo from './Logo';
+import ContentSlideshow from './ContentSlideshow';
 import {
   MagicLessonsIcon,
   SuperWorksheetsIcon,
@@ -288,13 +289,9 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
             <div className="absolute top-[45px] left-1/2 -translate-x-1/2 w-[120px] h-[100px] bg-brand-cyan/20 rounded-full blur-xl pointer-events-none" />
             
             {/* Mascot Image container */}
-            <div className="w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] rounded-[40px] overflow-hidden p-1.5 glass-neon-card shadow-[0_0_40px_rgba(0,179,255,0.25)] border-brand-cyan/35 relative">
+            <div className="w-[280px] h-[320px] sm:w-[320px] sm:h-[360px] rounded-[40px] overflow-hidden p-1.5 glass-neon-card shadow-[0_0_40px_rgba(0,179,255,0.25)] border-brand-cyan/35 relative">
               <div className="w-full h-full rounded-[34px] overflow-hidden bg-slate-950/40 relative flex items-center justify-center">
-                <img 
-                  src="https://i.ibb.co/CsvbkGYG/landing-image.jpg" 
-                  alt="Neon Mascot" 
-                  className="w-full h-full object-cover filter brightness-[0.85] contrast-[1.1] saturate-[1.1]"
-                />
+                <ContentSlideshow />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0b0e2c]/80 via-transparent to-brand-cyan/15 pointer-events-none" />
                 
                 {/* HUD Overlay elements */}

@@ -2569,7 +2569,7 @@ export default function App() {
       {/* Cloud & AI API Blockage Alert Warning */}
       <AnimatePresence>
         {apiBlockedAlert && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/20 z-[9999] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -2643,7 +2643,7 @@ export default function App() {
       {/* Offline Study Material Vault Modal */}
       <AnimatePresence>
         {isOfflineViewerOpen && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[80] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/20 z-[80] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}

@@ -862,7 +862,7 @@ export default function Settings({
                       },
                       {
                         title: "/AGENTS.md",
-                        desc: "Enforces strict project rules, model mapping identifiers (such as openai/gpt-oss-120b), and formatting criteria.",
+                        desc: "Enforces strict project rules, model mapping identifiers (Gemini 3.5, NVIDIA Nemotron, Qwen), and formatting criteria.",
                         badge: "System Rules",
                         color: "from-slate-500/10 to-transparent border-slate-500/20"
                       }
