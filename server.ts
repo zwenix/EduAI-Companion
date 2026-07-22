@@ -557,8 +557,8 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         const systemInstruction = systemMessages?.map((m: any) => m.content).join("\n\n");
 
         const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.5-pro", "gemini-3.0-flash", "gemini-2.5-flash", "gemini-2.0-flash"]
-          : ["gemini-3.5-flash", "gemini-3.5-pro", "gemini-3.0-flash", "gemini-2.5-flash", "gemini-2.0-flash"];
+          ? [cachedWorkingModel, "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-lite"]
+          : ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-lite"];
         let lastError: any = null;
         let response: any = null;
 
@@ -1115,7 +1115,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         Make sure your recommendations are encouraging and specifically reference their low/high subjects. Align suggestions with South African CAPS-standards (e.g. SBA, formative tests). Do not format the response with markdown formatting (no backticks, no text like 'json' or explanations), only output a parseable JSON block.
       `;
       const response = await geminiAi.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.0-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -1140,12 +1140,12 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     }
 
     try {
-      const model = "gemini-3.5-flash";
+      const model = "gemini-2.0-flash";
 
       const generateContentWithFallback = async (options: { model: string, contents: any, config?: any }) => {
         const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.5-pro", "gemini-3.0-flash", "gemini-2.5-flash", "gemini-2.0-flash"]
-          : ["gemini-3.5-flash", "gemini-3.5-pro", "gemini-3.0-flash", "gemini-2.5-flash", "gemini-2.0-flash"];
+          ? [cachedWorkingModel, "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-lite"]
+          : ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-lite"];
         
         let lastError: any = null;
         for (const candidate of modelsToTry) {
@@ -1686,7 +1686,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         timestamp: new Date().toISOString(),
         provider: 'gemini',
         endpoint: `/api/gemini/action`,
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.0-flash',
         error: errMsg,
         rawResponse: error.response?.data || error.stack || error.message || String(error),
         requestPayload: {

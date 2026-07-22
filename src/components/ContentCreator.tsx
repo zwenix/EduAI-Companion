@@ -280,39 +280,39 @@ const getCurrentTerm = () => {
   return 'Term 1';
 };
 
-const Input = ({ className, isDarkMode, ...props }: any) => (
+const Input = ({ className, isDarkMode = true, ...props }: any) => (
   <input
     className={cn(
       "w-full px-3.5 py-2.5 rounded-xl border outline-none text-xs font-semibold transition-all shadow-sm",
-      isDarkMode
+      isDarkMode !== false
         ? "bg-gradient-to-r from-[#0d152a] via-[#09152a] to-[#0d152a] border-cyan-500/30 text-white placeholder-slate-500 hover:border-cyan-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
-        : "bg-gradient-to-r from-slate-50 via-white to-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 hover:border-cyan-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20",
+        : "bg-[#0d152a] border-slate-700 text-white placeholder-slate-400 hover:border-cyan-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20",
       className
     )}
     {...props}
   />
 );
 
-const Textarea = ({ className, isDarkMode, ...props }: any) => (
+const Textarea = ({ className, isDarkMode = true, ...props }: any) => (
   <textarea
     className={cn(
       "w-full px-3.5 py-2.5 rounded-xl border outline-none text-xs font-medium transition-all resize-y shadow-sm",
-      isDarkMode
+      isDarkMode !== false
         ? "bg-gradient-to-r from-[#0d152a] via-[#09152a] to-[#0d152a] border-cyan-500/30 text-white placeholder-slate-500 hover:border-cyan-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
-        : "bg-gradient-to-r from-slate-50 via-white to-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 hover:border-cyan-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20",
+        : "bg-[#0d152a] border-slate-700 text-white placeholder-slate-400 hover:border-cyan-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20",
       className
     )}
     {...props}
   />
 );
 
-const Select = ({ className, isDarkMode, children, ...props }: any) => (
+const Select = ({ className, isDarkMode = true, children, ...props }: any) => (
   <select
     className={cn(
-      "w-full px-3.5 py-2.5 rounded-xl border outline-none text-xs font-bold transition-all appearance-none cursor-pointer shadow-sm",
-      isDarkMode
+      "w-full px-3.5 py-2.5 rounded-xl border outline-none text-xs font-bold transition-all appearance-none cursor-pointer shadow-sm [&>option]:bg-[#0d152a] [&>option]:text-slate-100 [&>optgroup]:bg-[#080d1a] [&>optgroup]:text-cyan-400",
+      isDarkMode !== false
         ? "bg-gradient-to-r from-[#0d152a] via-[#13203c] to-[#0d152a] border-cyan-500/30 text-cyan-100 hover:border-cyan-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
-        : "bg-gradient-to-r from-cyan-50/70 via-white to-purple-50/70 border-cyan-200 text-slate-800 hover:border-cyan-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20",
+        : "bg-[#0d152a] border-slate-700 text-cyan-100 hover:border-cyan-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20",
       className
     )}
     {...props}
