@@ -243,49 +243,6 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
       animate="show"
       className="space-y-10 relative select-none p-2 md:p-4 min-h-screen pb-24"
     >
-      {/* Quick Actions Row */}
-      <motion.div
-        variants={itemVariants}
-        className="flex flex-wrap items-center gap-4 pt-2"
-      >
-        <button 
-          onClick={() => triggerToast('Starting New Assessment...', 'info')}
-          className={cn(
-            "flex items-center gap-2 px-5 py-2.5 rounded-2xl border-2 transition-all duration-300 font-bold text-sm tracking-wide shadow-sm",
-            isDarkMode 
-              ? "bg-[#0c1225]/80 border-cyan-500/30 text-cyan-400 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:bg-[#0c1225]" 
-              : "bg-white border-cyan-200 text-cyan-600 hover:border-cyan-400 hover:bg-cyan-50"
-          )}
-        >
-          <ClipboardCheck size={18} />
-          Start New Assessment
-        </button>
-        <button 
-          onClick={() => triggerToast('Opening Calendar...', 'info')}
-          className={cn(
-            "flex items-center gap-2 px-5 py-2.5 rounded-2xl border-2 transition-all duration-300 font-bold text-sm tracking-wide shadow-sm",
-            isDarkMode 
-              ? "bg-[#0c1225]/80 border-indigo-500/30 text-indigo-400 hover:border-indigo-400 hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] hover:bg-[#0c1225]" 
-              : "bg-white border-indigo-200 text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50"
-          )}
-        >
-          <Calendar size={18} />
-          View Calendar
-        </button>
-        <button 
-          onClick={() => triggerToast('Connecting to Support...', 'info')}
-          className={cn(
-            "flex items-center gap-2 px-5 py-2.5 rounded-2xl border-2 transition-all duration-300 font-bold text-sm tracking-wide shadow-sm",
-            isDarkMode 
-              ? "bg-[#0c1225]/80 border-pink-500/30 text-pink-400 hover:border-pink-400 hover:shadow-[0_0_15px_rgba(236,72,153,0.3)] hover:bg-[#0c1225]" 
-              : "bg-white border-pink-200 text-pink-600 hover:border-pink-400 hover:bg-pink-50"
-          )}
-        >
-          <UserCheck size={18} />
-          Contact Support
-        </button>
-      </motion.div>
-
       {/* 1. Teaching Command Center Header & Cards */}
       <motion.div 
         variants={itemVariants} 

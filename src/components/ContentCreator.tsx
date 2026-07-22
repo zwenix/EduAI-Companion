@@ -195,8 +195,21 @@ const TOP_TABS = ['DASHBOARD', 'CLASSROOMS', 'ARCHIVE'];
 const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "" }: { html: string; minHeight?: string; className?: string }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  if (!html || !html.trim()) {
+    return (
+      <div className={cn("w-full h-full min-h-[450px] rounded-2xl flex flex-col items-center justify-center p-8 text-center border-2 border-dashed border-cyan-500/20 bg-slate-950/40", className)}>
+        <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-4 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+          <Sparkles size={28} className="animate-pulse" />
+        </div>
+        <h4 className="text-base font-bold text-slate-200 font-display">No Preview Document Available</h4>
+        <p className="text-xs text-slate-400 max-w-sm mt-2 leading-relaxed">
+          Select your CAPS curriculum parameters on the left and click <strong className="text-cyan-400">GENERATE</strong> to create your custom teaching material.
+        </p>
+      </div>
+    );
+  }
+
   const fullDocument = useMemo(() => {
-    if (!html) return '';
     const isFullDoc = html.includes('<html') || html.includes('<!DOCTYPE');
     if (isFullDoc) return html;
     return `<!DOCTYPE html>
@@ -207,14 +220,28 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "" }: { html:
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
   <style>
+    * { box-sizing: border-box; }
     body {
       background-color: #ffffff;
-      color: #1e293b;
+      color: #0f172a;
       font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       margin: 0;
       padding: 1.5rem;
-      box-sizing: border-box;
+      line-height: 1.6;
+      font-size: 14px;
     }
+    h1 { font-size: 1.75rem; font-weight: 800; color: #0f172a; border-bottom: 2px solid #0284c7; padding-bottom: 0.5rem; margin-top: 0; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: #0369a1; margin-top: 1.25rem; }
+    h3 { font-size: 1.1rem; font-weight: 700; color: #0284c7; margin-top: 1rem; }
+    p { margin-bottom: 0.75rem; font-size: 0.95rem; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 13px; }
+    th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; }
+    th { background-color: #f1f5f9; font-weight: 700; color: #1e293b; }
+    ul, ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+    li { margin-bottom: 0.35rem; }
+    img { max-width: 100%; height: auto; border-radius: 0.5rem; display: block; margin: 1rem 0; }
+    .score-badge { display: inline-block; padding: 4px 12px; border-radius: 8px; font-weight: 800; border: 2px solid #f59e0b; background: #fef3c7; color: #92400e; }
+    .header-badge { border: 1px solid #94a3b8; padding: 8px 12px; border-radius: 6px; font-weight: 600; background: #f8fafc; }
     @media print {
       body { padding: 0; }
     }
@@ -256,10 +283,10 @@ const getCurrentTerm = () => {
 const Input = ({ className, isDarkMode, ...props }: any) => (
   <input
     className={cn(
-      "w-full px-4 py-2.5 rounded-xl border outline-none text-xs transition-all",
+      "w-full px-3.5 py-2.5 rounded-xl border outline-none text-xs font-semibold transition-all shadow-sm",
       isDarkMode
-        ? "bg-[#0d1221] border-white/10 text-white placeholder-slate-500 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
-        : "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500",
+        ? "bg-gradient-to-r from-[#0d152a] via-[#09152a] to-[#0d152a] border-cyan-500/30 text-white placeholder-slate-500 hover:border-cyan-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
+        : "bg-gradient-to-r from-slate-50 via-white to-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 hover:border-cyan-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20",
       className
     )}
     {...props}
@@ -269,10 +296,10 @@ const Input = ({ className, isDarkMode, ...props }: any) => (
 const Textarea = ({ className, isDarkMode, ...props }: any) => (
   <textarea
     className={cn(
-      "w-full px-4 py-2.5 rounded-xl border outline-none text-xs transition-all resize-y",
+      "w-full px-3.5 py-2.5 rounded-xl border outline-none text-xs font-medium transition-all resize-y shadow-sm",
       isDarkMode
-        ? "bg-[#0d1221] border-white/10 text-white placeholder-slate-500 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
-        : "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500",
+        ? "bg-gradient-to-r from-[#0d152a] via-[#09152a] to-[#0d152a] border-cyan-500/30 text-white placeholder-slate-500 hover:border-cyan-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
+        : "bg-gradient-to-r from-slate-50 via-white to-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 hover:border-cyan-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20",
       className
     )}
     {...props}
@@ -282,10 +309,10 @@ const Textarea = ({ className, isDarkMode, ...props }: any) => (
 const Select = ({ className, isDarkMode, children, ...props }: any) => (
   <select
     className={cn(
-      "w-full px-4 py-2.5 rounded-xl border outline-none text-xs font-bold transition-all appearance-none cursor-pointer",
+      "w-full px-3.5 py-2.5 rounded-xl border outline-none text-xs font-bold transition-all appearance-none cursor-pointer shadow-sm",
       isDarkMode
-        ? "bg-[#0d1221] border-white/10 text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
-        : "bg-slate-50 border-slate-200 text-slate-900 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500",
+        ? "bg-gradient-to-r from-[#0d152a] via-[#13203c] to-[#0d152a] border-cyan-500/30 text-cyan-100 hover:border-cyan-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
+        : "bg-gradient-to-r from-cyan-50/70 via-white to-purple-50/70 border-cyan-200 text-slate-800 hover:border-cyan-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20",
       className
     )}
     {...props}
@@ -1088,243 +1115,290 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                 </h2>
 
                 <div className="space-y-4">
-                  {/* Grade Selector (only for teaching/visual) */}
+                  {/* Phase Quick-Select Pill Buttons (only for teaching/visual) */}
                   {activeTab !== 'admin' && (
-                    <div>
-                      <Label>Select Grade (R-12)</Label>
+                    <div className="space-y-1.5">
+                      <Label>Quick Phase Preset</Label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {[
+                          { label: 'Foundation (R-3)', grade: 'Grade 1', color: 'from-amber-500/20 to-orange-500/20 border-amber-500/40 text-amber-300' },
+                          { label: 'Intermediate (4-6)', grade: 'Grade 4', color: 'from-cyan-500/20 to-blue-500/20 border-cyan-500/40 text-cyan-300' },
+                          { label: 'Senior (7-9)', grade: 'Grade 8', color: 'from-purple-500/20 to-indigo-500/20 border-purple-500/40 text-purple-300' },
+                          { label: 'FET Phase (10-12)', grade: 'Grade 10', color: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/40 text-emerald-300' },
+                        ].map((phase) => {
+                          const currentGrade = activeTab === 'teaching' ? t_grade : v_grade;
+                          const isSelected = getPhaseForGrade(currentGrade) === (
+                            phase.grade === 'Grade 1' ? 'Foundation Phase' :
+                            phase.grade === 'Grade 4' ? 'Intermediate Phase' :
+                            phase.grade === 'Grade 8' ? 'Senior Phase' : 'FET Phase'
+                          );
+                          return (
+                            <button
+                              key={phase.label}
+                              type="button"
+                              onClick={() => {
+                                if (activeTab === 'teaching') {
+                                  setT_Grade(phase.grade);
+                                  setT_Subject('');
+                                  setT_Topic('');
+                                } else {
+                                  setV_Grade(phase.grade);
+                                  setV_Subject('');
+                                  setV_Topic('');
+                                }
+                              }}
+                              className={cn(
+                                "py-1.5 px-2.5 rounded-xl border text-[10px] font-bold tracking-tight transition-all text-center cursor-pointer bg-gradient-to-r shadow-xs hover:scale-[1.02] active:scale-95 truncate",
+                                phase.color,
+                                isSelected ? "ring-2 ring-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.3)] opacity-100" : "opacity-80 hover:opacity-100"
+                              )}
+                            >
+                              {phase.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Primary Parameters Grid: 2 Side-by-Side Controls per Row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {/* Grade Selector (only for teaching/visual) */}
+                    {activeTab !== 'admin' && (
+                      <div>
+                        <Label>Grade Level (R-12)</Label>
+                        <Select
+                          isDarkMode={isDarkMode}
+                          value={activeTab === 'teaching' ? t_grade : v_grade}
+                          className={cn(
+                            (activeTab === 'teaching' ? t_grade : v_grade) && (isDarkMode ? "border-cyan-400/60 bg-cyan-950/30 text-cyan-200" : "border-cyan-300 bg-cyan-50/80")
+                          )}
+                          onChange={(e: any) => {
+                            const val = e.target.value;
+                            if (activeTab === 'teaching') {
+                              setT_Grade(val);
+                              setT_Subject('');
+                              setT_Topic('');
+                            } else {
+                              setV_Grade(val);
+                              setV_Subject('');
+                              setV_Topic('');
+                            }
+                          }}
+                        >
+                          <option value="">Choose Grade</option>
+                          {['Reception', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 
+                            'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 
+                            'Grade 11', 'Grade 12'].map(grade => (
+                            <option key={grade} value={grade}>{grade}</option>
+                          ))}
+                        </Select>
+                      </div>
+                    )}
+
+                    {/* Subject Area */}
+                    <div className={activeTab === 'admin' ? "col-span-1" : ""}>
+                      <Label>Subject Area</Label>
                       <Select
                         isDarkMode={isDarkMode}
-                        value={activeTab === 'teaching' ? t_grade : v_grade}
+                        value={activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject}
                         className={cn(
-                          "py-2 text-[11px] font-bold transition-all",
-                          (activeTab === 'teaching' ? t_grade : v_grade) && (isDarkMode ? "border-cyan-500/50 bg-cyan-500/5 shadow-[0_0_15px_rgba(6,182,212,0.1)]" : "border-cyan-200 bg-cyan-50")
+                          (activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject) && (isDarkMode ? "border-purple-400/60 bg-purple-950/30 text-purple-200" : "border-purple-300 bg-purple-50/80")
                         )}
                         onChange={(e: any) => {
                           const val = e.target.value;
                           if (activeTab === 'teaching') {
-                            setT_Grade(val);
-                            setT_Subject('');
+                            setT_Subject(val);
                             setT_Topic('');
-                          } else {
-                            setV_Grade(val);
-                            setV_Subject('');
+                          } else if (activeTab === 'visual') {
+                            setV_Subject(val);
                             setV_Topic('');
+                          } else {
+                            setA_Subject(val);
+                            setA_Topic('');
                           }
                         }}
                       >
-                        <option value="">Choose Grade Level</option>
-                        {['Reception', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 
-                          'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 
-                          'Grade 11', 'Grade 12'].map(grade => (
-                          <option key={grade} value={grade}>{grade}</option>
-                        ))}
+                        <option value="">Choose Subject</option>
+                        {activeTab === 'admin' ? (
+                          ['Mathematics', 'Physical Sciences', 'Life Sciences', 'English', 
+                           'Afrikaans', 'History', 'Geography', 'Economic Management Sciences',
+                           'Natural Sciences', 'Technology', 'Creative Arts', 'Other'].map(subj => (
+                            <option key={subj} value={subj}>{subj}</option>
+                          ))
+                        ) : (
+                          (() => {
+                            const currentGrade = activeTab === 'teaching' ? t_grade : v_grade;
+                            const phase = getPhaseForGrade(currentGrade);
+                            const subjects = phase && (subjectsByGrade as any)[phase]
+                              ? (subjectsByGrade as any)[phase]
+                              : [];
+                            return [...subjects, 'Other'].map(subj => (
+                              <option key={subj} value={subj}>{subj}</option>
+                            ));
+                          })()
+                        )}
                       </Select>
                     </div>
-                  )}
 
-                  {/* Subject Area */}
-                  <div>
-                    <Label>Subject Area</Label>
-                    <Select
-                      isDarkMode={isDarkMode}
-                      value={activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject}
-                      className={cn(
-                        "py-2 text-[11px] font-bold transition-all",
-                        (activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject) && (isDarkMode ? "border-purple-500/50 bg-purple-500/5 shadow-[0_0_15px_rgba(168,85,247,0.1)]" : "border-purple-200 bg-purple-50")
-                      )}
-                      onChange={(e: any) => {
-                        const val = e.target.value;
-                        if (activeTab === 'teaching') {
-                          setT_Subject(val);
-                          setT_Topic('');
-                        } else if (activeTab === 'visual') {
-                          setV_Subject(val);
-                          setV_Topic('');
-                        } else {
-                          setA_Subject(val);
-                          setA_Topic('');
-                        }
-                      }}
-                    >
-                      <option value="">Choose Subject</option>
-                      {activeTab === 'admin' ? (
-                        ['Mathematics', 'Physical Sciences', 'Life Sciences', 'English', 
-                         'Afrikaans', 'History', 'Geography', 'Economic Management Sciences',
-                         'Natural Sciences', 'Technology', 'Creative Arts', 'Other'].map(subj => (
-                          <option key={subj} value={subj}>{subj}</option>
-                        ))
-                      ) : (
+                    {/* Custom Subject (if 'Other' is chosen) */}
+                    {((activeTab === 'teaching' && t_subject === 'Other') ||
+                      (activeTab === 'visual' && v_subject === 'Other') ||
+                      (activeTab === 'admin' && a_subject === 'Other')) && (
+                      <div className="col-span-1 sm:col-span-2">
+                        <Label>Specify Custom Subject</Label>
+                        <Input
+                          isDarkMode={isDarkMode}
+                          type="text"
+                          value={activeTab === 'teaching' ? t_customSubject : activeTab === 'visual' ? v_customSubject : a_customSubject}
+                          onChange={(e: any) => {
+                            if (activeTab === 'teaching') setT_CustomSubject(e.target.value);
+                            else if (activeTab === 'visual') setV_CustomSubject(e.target.value);
+                            else setA_CustomSubject(e.target.value);
+                          }}
+                          placeholder="Enter custom subject name..."
+                        />
+                      </div>
+                    )}
+
+                    {/* Content / Visual / Admin Type */}
+                    {activeTab === 'teaching' && (
+                      <div>
+                        <Label>Content Type</Label>
+                        <Select
+                          isDarkMode={isDarkMode}
+                          value={t_type}
+                          onChange={(e: any) => setT_Type(e.target.value)}
+                        >
+                          <option value="">Choose Type</option>
+                          {Object.entries(TEACHING_CATEGORIES).map(([cat, types]) => (
+                            <optgroup key={cat} label={cat}>
+                              {types.map(t => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </Select>
+                      </div>
+                    )}
+
+                    {activeTab === 'visual' && (
+                      <div>
+                        <Label>Visual Type</Label>
+                        <Select
+                          isDarkMode={isDarkMode}
+                          value={v_type}
+                          onChange={(e: any) => setV_Type(e.target.value)}
+                        >
+                          <option value="">Choose Type</option>
+                          {Object.entries(VISUAL_TYPES).map(([cat, types]) => (
+                            <optgroup key={cat} label={cat}>
+                              {types.map(t => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </Select>
+                      </div>
+                    )}
+
+                    {activeTab === 'admin' && (
+                      <div>
+                        <Label>Administration Type</Label>
+                        <Select
+                          isDarkMode={isDarkMode}
+                          value={a_type}
+                          onChange={(e: any) => setA_Type(e.target.value)}
+                        >
+                          <option value="">Choose Type</option>
+                          {Object.entries(ADMIN_TYPES).map(([cat, types]) => (
+                            <optgroup key={cat} label={cat}>
+                              {types.map(t => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </Select>
+                      </div>
+                    )}
+
+                    {/* Topic Field */}
+                    <div>
+                      <Label>Topic</Label>
+                      {activeTab !== 'admin' ? (
                         (() => {
                           const currentGrade = activeTab === 'teaching' ? t_grade : v_grade;
+                          const currentSubject = activeTab === 'teaching' ? t_subject : v_subject;
                           const phase = getPhaseForGrade(currentGrade);
-                          const subjects = phase && (subjectsByGrade as any)[phase]
-                            ? (subjectsByGrade as any)[phase]
+                          const topics = phase && currentSubject && (capsTopics as any)[phase] && (capsTopics as any)[phase][currentSubject]
+                            ? (capsTopics as any)[phase][currentSubject] as string[]
                             : [];
-                          return [...subjects, 'Other'].map(subj => (
-                            <option key={subj} value={subj}>{subj}</option>
-                          ));
-                        })()
-                      )}
-                    </Select>
-                  </div>
-
-                  {/* Custom Subject (if 'Other' is chosen) */}
-                  {((activeTab === 'teaching' && t_subject === 'Other') ||
-                    (activeTab === 'visual' && v_subject === 'Other') ||
-                    (activeTab === 'admin' && a_subject === 'Other')) && (
-                    <div>
-                      <Label>Specify Custom Subject</Label>
-                      <Input
-                        isDarkMode={isDarkMode}
-                        type="text"
-                        value={activeTab === 'teaching' ? t_customSubject : activeTab === 'visual' ? v_customSubject : a_customSubject}
-                        onChange={(e: any) => {
-                          if (activeTab === 'teaching') setT_CustomSubject(e.target.value);
-                          else if (activeTab === 'visual') setV_CustomSubject(e.target.value);
-                          else setA_CustomSubject(e.target.value);
-                        }}
-                        placeholder="Enter custom subject name..."
-                      />
-                    </div>
-                  )}
-
-                  {/* Specific select depending on generator type */}
-                  {activeTab === 'teaching' && (
-                    <div>
-                      <Label>Content Type</Label>
-                      <Select
-                        isDarkMode={isDarkMode}
-                        value={t_type}
-                        onChange={(e: any) => setT_Type(e.target.value)}
-                      >
-                        <option value="">Choose Content Type</option>
-                        {Object.entries(TEACHING_CATEGORIES).map(([cat, types]) => (
-                          <optgroup key={cat} label={cat}>
-                            {types.map(t => (
-                              <option key={t} value={t}>{t}</option>
-                            ))}
-                          </optgroup>
-                        ))}
-                      </Select>
-                    </div>
-                  )}
-
-                  {activeTab === 'visual' && (
-                    <div>
-                      <Label>Visual Type</Label>
-                      <Select
-                        isDarkMode={isDarkMode}
-                        value={v_type}
-                        onChange={(e: any) => setV_Type(e.target.value)}
-                      >
-                        <option value="">Choose Visual Type</option>
-                        {Object.entries(VISUAL_TYPES).map(([cat, types]) => (
-                          <optgroup key={cat} label={cat}>
-                            {types.map(t => (
-                              <option key={t} value={t}>{t}</option>
-                            ))}
-                          </optgroup>
-                        ))}
-                      </Select>
-                    </div>
-                  )}
-
-                  {activeTab === 'admin' && (
-                    <div>
-                      <Label>Administration Type</Label>
-                      <Select
-                        isDarkMode={isDarkMode}
-                        value={a_type}
-                        onChange={(e: any) => setA_Type(e.target.value)}
-                      >
-                        <option value="">Choose Administration Type</option>
-                        {Object.entries(ADMIN_TYPES).map(([cat, types]) => (
-                          <optgroup key={cat} label={cat}>
-                            {types.map(t => (
-                              <option key={t} value={t}>{t}</option>
-                            ))}
-                          </optgroup>
-                        ))}
-                      </Select>
-                    </div>
-                  )}
-
-                  {/* Topic field */}
-                  <div>
-                    <Label>Topic</Label>
-                    {activeTab !== 'admin' ? (
-                      (() => {
-                        const currentGrade = activeTab === 'teaching' ? t_grade : v_grade;
-                        const currentSubject = activeTab === 'teaching' ? t_subject : v_subject;
-                        const phase = getPhaseForGrade(currentGrade);
-                        const topics = phase && currentSubject && (capsTopics as any)[phase] && (capsTopics as any)[phase][currentSubject]
-                          ? (capsTopics as any)[phase][currentSubject] as string[]
-                          : [];
-                        
-                        const currentTopicValue = activeTab === 'teaching' ? t_topic : v_topic;
-                        
-                        if (topics.length > 0) {
-                          return (
-                            <div className="space-y-3">
-                              <Select
-                                isDarkMode={isDarkMode}
-                                value={topics.includes(currentTopicValue) ? currentTopicValue : (currentTopicValue ? "Other" : "")}
-                                onChange={(e: any) => {
-                                  const val = e.target.value;
-                                  if (val === 'Other') {
-                                    if (activeTab === 'teaching') setT_Topic('');
-                                    else setV_Topic('');
-                                  } else {
-                                    if (activeTab === 'teaching') setT_Topic(val);
-                                    else setV_Topic(val);
-                                  }
-                                }}
-                              >
-                                <option value="">Choose Topic</option>
-                                {topics.map(topic => (
-                                  <option key={topic} value={topic}>{topic}</option>
-                                ))}
-                                <option value="Other">Other (Custom Topic)</option>
-                              </Select>
-                              
-                              {(!topics.includes(currentTopicValue) || currentTopicValue === '') && (
-                                <Input
+                          
+                          const currentTopicValue = activeTab === 'teaching' ? t_topic : v_topic;
+                          
+                          if (topics.length > 0) {
+                            return (
+                              <div className="space-y-2">
+                                <Select
                                   isDarkMode={isDarkMode}
-                                  type="text"
-                                  value={currentTopicValue}
+                                  value={topics.includes(currentTopicValue) ? currentTopicValue : (currentTopicValue ? "Other" : "")}
                                   onChange={(e: any) => {
-                                    if (activeTab === 'teaching') setT_Topic(e.target.value);
-                                    else setV_Topic(e.target.value);
+                                    const val = e.target.value;
+                                    if (val === 'Other') {
+                                      if (activeTab === 'teaching') setT_Topic('');
+                                      else setV_Topic('');
+                                    } else {
+                                      if (activeTab === 'teaching') setT_Topic(val);
+                                      else setV_Topic(val);
+                                    }
                                   }}
-                                  placeholder="Type custom topic here..."
-                                />
-                              )}
-                            </div>
-                          );
-                        } else {
-                          return (
-                            <Input
-                              isDarkMode={isDarkMode}
-                              type="text"
-                              value={currentTopicValue}
-                              onChange={(e: any) => {
-                                if (activeTab === 'teaching') setT_Topic(e.target.value);
-                                else setV_Topic(e.target.value);
-                              }}
-                              placeholder="e.g., Fractions, Periodic Table"
-                            />
-                          );
-                        }
-                      })()
-                    ) : (
-                      <Input
-                        isDarkMode={isDarkMode}
-                        type="text"
-                        value={a_topic}
-                        onChange={(e: any) => setA_Topic(e.target.value)}
-                        placeholder="e.g., Parent Newsletter, Grade 4 Camp Notice"
-                      />
-                    )}
+                                >
+                                  <option value="">Choose Topic</option>
+                                  {topics.map(topic => (
+                                    <option key={topic} value={topic}>{topic}</option>
+                                  ))}
+                                  <option value="Other">Other (Custom)</option>
+                                </Select>
+                                
+                                {(!topics.includes(currentTopicValue) || currentTopicValue === '') && (
+                                  <Input
+                                    isDarkMode={isDarkMode}
+                                    type="text"
+                                    value={currentTopicValue}
+                                    onChange={(e: any) => {
+                                      if (activeTab === 'teaching') setT_Topic(e.target.value);
+                                      else setV_Topic(e.target.value);
+                                    }}
+                                    placeholder="Type custom topic..."
+                                  />
+                                )}
+                              </div>
+                            );
+                          } else {
+                            return (
+                              <Input
+                                isDarkMode={isDarkMode}
+                                type="text"
+                                value={currentTopicValue}
+                                onChange={(e: any) => {
+                                  if (activeTab === 'teaching') setT_Topic(e.target.value);
+                                  else setV_Topic(e.target.value);
+                                }}
+                                placeholder="e.g., Fractions, Periodic Table"
+                              />
+                            );
+                          }
+                        })()
+                      ) : (
+                        <Input
+                          isDarkMode={isDarkMode}
+                          type="text"
+                          value={a_topic}
+                          onChange={(e: any) => setA_Topic(e.target.value)}
+                          placeholder="e.g., Parent Newsletter"
+                        />
+                      )}
+                    </div>
                   </div>
 
                   {/* Embedded Advanced Section based on mode */}
