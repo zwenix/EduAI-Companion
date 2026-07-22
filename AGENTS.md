@@ -10,19 +10,24 @@ Under no circumstances is any agent permitted to map the user's selected models 
 
 ### Model Mappings & Identifiers
 * **`gemini`**: Primary model for all content generation, OCR, and reasoning. MUST map directly to:
-  `gemini-3.5-flash`
-  * *DO NOT map this to outdated models like `gemini-2.1`, `gemini-1.5`, or `gemini-2.0` as primary defaults.*
+  `gemini-3.6-flash` (or `gemini-3.5-flash`)
+  * *DO NOT map this to outdated models like `gemini-2.0-flash`, `gemini-1.5`, or `gemini-2.1` as primary defaults. EVER.*
+* **Supported Gemini 3 Series Models**:
+  - `gemini-3.6-flash` (Latest, balanced speed and intelligence)
+  - `gemini-3.5-flash` (Frontier performance on agentic and coding tasks)
+  - `gemini-3.5-flash-lite` (Fastest, cost-effective execution)
+  - `gemini-3.1-flash-lite` (High performance)
+  - `gemini-2.5-flash` (Low latency price-performance)
 * **`nvidia-nemotron`**: Secondary model provider MUST map directly and exclusively to:
   `nvidia/llama-3.1-nemotron-70b-instruct`
 * **`groq-qwen`**: Tertiary model provider MUST map directly and exclusively to:
   `qwen/qwen3.6-27b`
 
 ### Strictly Banned / Removed Models:
-* **`groq-gpt-oss`** (`openai/gpt-oss-120b`): REMOVED AND STRICTLY FORBIDDEN.
-* Outdated Gemini defaults (`gemini-2.1`, `gemini-1.5-flash` as primary): STRICTLY BANNED as primary defaults.
+* Outdated Gemini defaults (`gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-2.1`) MUST NOT be used as primary defaults.
 
 ### Application Files Governing Models:
-* **`server.ts`**: The API proxy handling `/api/ai/:provider` must resolve `gemini` as `gemini-3.5-flash`, `nvidia-nemotron` as `nvidia/llama-3.1-nemotron-70b-instruct`, and `groq-qwen` as `qwen/qwen3.6-27b`.
+* **`server.ts`**: The API proxy handling `/api/ai/:provider` must resolve `gemini` as `gemini-3.6-flash` / `gemini-3.5-flash` with fallback to `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`, `gemini-2.5-flash`.
 * **`src/services/multiAiService.ts`**: The frontend service calling chat completions must use these exact model strings when constructing payload queries.
 * **`src/services/unifiedAiService.ts`**: The unified engine must dispatch OCR grading and fallback logic to these exact model strings.
 
