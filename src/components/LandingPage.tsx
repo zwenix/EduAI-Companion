@@ -269,41 +269,17 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
           {/* Glowing Vertical Scan beam */}
           <div className="absolute w-40 h-[280px] bg-gradient-to-t from-brand-cyan/20 to-transparent -bottom-2 z-10 clip-path-beam animate-pulse pointer-events-none" />
 
-          {/* The Mascot */}
+          {/* Direct Interactive Showcase Display */}
           <motion.div
-            className="relative cursor-pointer z-10"
-            onMouseEnter={() => { setInteractiveMascotHover(true); playSfx('hover'); }}
-            onMouseLeave={() => setInteractiveMascotHover(false)}
-            animate={{
-              y: interactiveMascotHover ? [-25, -15, -25] : [0, -12, 0],
-              rotate: interactiveMascotHover ? [-3, 3, -3] : [0, 1.5, 0],
-              scale: interactiveMascotHover ? 1.06 : 1
-            }}
-            transition={{
-              repeat: Infinity,
-              duration: interactiveMascotHover ? 2.5 : 4.5,
-              ease: "easeInOut"
-            }}
+            className="relative z-10 w-full max-w-xl"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
           >
-            {/* Astronaut Mask Glowing Orb */}
-            <div className="absolute top-[45px] left-1/2 -translate-x-1/2 w-[120px] h-[100px] bg-brand-cyan/20 rounded-full blur-xl pointer-events-none" />
-            
-            {/* Mascot Image container */}
-            <div className="w-[280px] h-[320px] sm:w-[320px] sm:h-[360px] rounded-[40px] overflow-hidden p-1.5 glass-neon-card shadow-[0_0_40px_rgba(0,179,255,0.25)] border-brand-cyan/35 relative">
-              <div className="w-full h-full rounded-[34px] overflow-hidden bg-slate-950/40 relative flex items-center justify-center">
-                <ContentSlideshow />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0b0e2c]/80 via-transparent to-brand-cyan/15 pointer-events-none" />
-                
-                {/* HUD Overlay elements */}
-                <div className="absolute inset-4 border border-brand-cyan/20 rounded-[28px] pointer-events-none">
-                  {/* Four Corner Marks */}
-                  <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-brand-cyan" />
-                  <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-brand-cyan" />
-                  <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-brand-cyan" />
-                  <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-brand-cyan" />
-                </div>
-              </div>
+            <div className="w-full rounded-[32px] overflow-hidden glass-neon-card shadow-[0_0_50px_rgba(0,179,255,0.2)] border-brand-cyan/40 p-1.5 relative">
+              <ContentSlideshow />
             </div>
+          </motion.div>
 
             {/* Float Badge 1: Streaks */}
             <motion.div 
@@ -329,8 +305,7 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
               </span>
             </motion.div>
           </motion.div>
-        </motion.div>
-      </div>
+        </div>
 
       {/* Grade Galaxy Selection Section (3 Giant Planets) */}
       <div className="w-full max-w-7xl mx-auto px-6 lg:px-12 py-20 relative z-20 border-t border-white/5">

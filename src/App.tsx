@@ -197,7 +197,7 @@ import { useAi, AIProvider as AIProviderType } from './contexts/AiContext';
 
 export default function App() {
   const { provider, setProvider, ttsProvider, setTtsProvider, ocrProvider, setOcrProvider, imageProvider, setImageProvider } = useAi();
-  const [isRefreshing, setIsRefreshing] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [needsRoleSetup, setNeedsRoleSetup] = useState(false);
