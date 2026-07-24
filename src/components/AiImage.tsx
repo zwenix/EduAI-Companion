@@ -145,10 +145,11 @@ export default function AiImage({
         )}
       </div>
 
-      {/* Provider Badge */}
+      {/* Provider & AI Model Badge */}
       {provider && !isLoading && !error && (
-        <div className="absolute top-3 right-3 px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-full text-xs text-white font-medium">
-          {provider.charAt(0).toUpperCase() + provider.slice(1)}
+        <div className="absolute top-3 right-3 px-3 py-1.5 bg-slate-900/80 backdrop-blur-md rounded-full text-xs text-cyan-300 border border-cyan-500/30 font-bold flex items-center gap-1.5 shadow-lg">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          AI Model: {provider === 'gemini' ? 'Gemini Imagen-3' : provider === 'perchance' ? 'Perchance / Turbo' : 'Pollinations Flux/Turbo'}
         </div>
       )}
 

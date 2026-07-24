@@ -8,7 +8,7 @@ import { useAi } from '../contexts/AiContext';
 import { db, auth } from '../lib/firebase';
 import { collection, query, onSnapshot, where, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 
-import { printContent, downloadAsHTML } from '../lib/printUtils';
+import { printContent, downloadAsHTML, downloadAsPDF } from '../lib/printUtils';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
@@ -384,8 +384,8 @@ export default function AutoGrading() {
     printContent(contentRef, "EduAI-AutoGrading");
   };
 
-  const handleDownloadPDF = () => {
-    downloadAsHTML(contentRef, "EduAI-AutoGrading.html");
+  const handleDownloadPDF = async () => {
+    await downloadAsPDF(contentRef, "EduAI-AutoGrading-Report.pdf");
   };
 
   const handleArchive = async () => {

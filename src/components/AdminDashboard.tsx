@@ -31,6 +31,12 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
   const [providerFilter, setProviderFilter] = useState<string>('all');
   const [confirmClear, setConfirmClear] = useState(false);
 
+  // Quick Action Modals State
+  const [activeModal, setActiveModal] = useState<'roles' | 'calendar' | 'certificates' | null>(null);
+  const [certLearner, setCertLearner] = useState('Sibusiso Dlamini');
+  const [certTitle, setCertTitle] = useState('Excellence in CAPS Mathematics & Physical Sciences');
+  const [certGenerated, setCertGenerated] = useState(false);
+
   const fetchErrors = async () => {
     setLoading(true);
     try {
@@ -266,14 +272,23 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
               <div className={`p-8 rounded-[36px] shadow-lg ${isDarkMode ? 'bg-[#0B1122]/90 border border-white/10' : 'bg-slate-800' } text-white h-full`}>
                 <h3 className="text-xl font-bold mb-4">Quick Actions</h3>
                 <div className="space-y-3">
-                  <button className="w-full bg-slate-700 hover:bg-slate-600 transition-colors p-4 rounded-2xl text-left font-medium text-sm flex justify-between items-center cursor-pointer">
-                    Manage Roles <Users size={16}/>
+                  <button 
+                    onClick={() => setActiveModal('roles')}
+                    className="w-full bg-slate-700 hover:bg-slate-600 transition-colors p-4 rounded-2xl text-left font-medium text-sm flex justify-between items-center cursor-pointer"
+                  >
+                    Manage Roles & Access <Users size={16}/>
                   </button>
-                  <button className="w-full bg-slate-700 hover:bg-slate-600 transition-colors p-4 rounded-2xl text-left font-medium text-sm flex justify-between items-center cursor-pointer">
+                  <button 
+                    onClick={() => setActiveModal('calendar')}
+                    className="w-full bg-slate-700 hover:bg-slate-600 transition-colors p-4 rounded-2xl text-left font-medium text-sm flex justify-between items-center cursor-pointer"
+                  >
                     School Academic Calendar <Calendar size={16}/>
                   </button>
-                  <button className="w-full bg-slate-700 hover:bg-slate-600 transition-colors p-4 rounded-2xl text-left font-medium text-sm flex justify-between items-center cursor-pointer">
-                    Official Certificates <FileText size={16}/>
+                  <button 
+                    onClick={() => setActiveModal('certificates')}
+                    className="w-full bg-slate-700 hover:bg-slate-600 transition-colors p-4 rounded-2xl text-left font-medium text-sm flex justify-between items-center cursor-pointer"
+                  >
+                    Official Certificates & Awards <FileText size={16}/>
                   </button>
                 </div>
               </div>
@@ -513,6 +528,150 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {/* Quick Action Modals */}
+      {activeModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className={`w-full max-w-2xl rounded-[36px] p-8 border shadow-2xl space-y-6 ${
+            isDarkMode ? 'bg-[#0B1122] border-white/10 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+            {/* Modal Header */}
+            <div className="flex justify-between items-center pb-4 border-b border-slate-500/20">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-brand-cyan/10 text-brand-cyan rounded-2xl">
+                  {activeModal === 'roles' && <Users size={22} />}
+                  {activeModal === 'calendar' && <Calendar size={22} />}
+                  {activeModal === 'certificates' && <FileText size={22} />}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">
+                    {activeModal === 'roles' && 'Manage User Roles & System Permissions'}
+                    {activeModal === 'calendar' && 'School Academic Calendar & Term Dates'}
+                    {activeModal === 'certificates' && 'Official Award & Certificate Generator'}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {activeModal === 'roles' && 'Assign roles and configure institutional administrative access.'}
+                    {activeModal === 'calendar' && 'Configure terms, assessment cycles, and holidays.'}
+                    {activeModal === 'certificates' && 'Issue verified digital certificates for outstanding learners.'}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setActiveModal(null)}
+                className="p-2 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            {activeModal === 'roles' && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  {[
+                    { name: 'Sarah Ndlovu (Educator)', role: 'Teacher', email: 'sarah.ndlovu@school.edu.za', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+                    { name: 'Zwenix Admin', role: 'System Admin', email: 'Zwenix@gmail.com', color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' },
+                    { name: 'Sibusiso Dlamini', role: 'Learner (Grade 10A)', email: 'sibusiso@school.edu.za', color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' },
+                    { name: 'Parent Dlamini', role: 'Parent Guardian', email: 'parent.dlamini@mail.com', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+                  ].map((usr, k) => (
+                    <div key={k} className={`p-4 rounded-2xl border flex items-center justify-between ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-200'}`}>
+                      <div>
+                        <h4 className="font-bold text-sm">{usr.name}</h4>
+                        <p className="text-xs text-slate-400 font-mono">{usr.email}</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-xl text-xs font-bold border ${usr.color}`}>
+                        {usr.role}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <button 
+                  onClick={() => setActiveModal(null)}
+                  className="w-full py-3 rounded-2xl bg-brand-cyan text-slate-950 font-black text-xs uppercase tracking-wider hover:opacity-90 transition-opacity"
+                >
+                  Save Access Matrix
+                </button>
+              </div>
+            )}
+
+            {activeModal === 'calendar' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { term: 'Term 1 2026', dates: '14 Jan - 27 Mar', status: 'Completed', color: 'text-emerald-400' },
+                    { term: 'Term 2 2026', dates: '08 Apr - 26 Jun', status: 'Completed', color: 'text-emerald-400' },
+                    { term: 'Term 3 2026', dates: '21 Jul - 02 Oct', status: 'Active (Current)', color: 'text-brand-cyan' },
+                    { term: 'Term 4 2026', dates: '13 Oct - 09 Dec', status: 'Upcoming Exams', color: 'text-amber-400' },
+                  ].map((tm, idx) => (
+                    <div key={idx} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-200'}`}>
+                      <span className={`text-[10px] font-black uppercase tracking-wider ${tm.color}`}>{tm.status}</span>
+                      <h4 className="font-bold text-sm mt-1">{tm.term}</h4>
+                      <p className="text-xs text-slate-400 font-mono mt-0.5">{tm.dates}</p>
+                    </div>
+                  ))}
+                </div>
+                <button 
+                  onClick={() => setActiveModal(null)}
+                  className="w-full py-3 rounded-2xl bg-indigo-600 text-white font-black text-xs uppercase tracking-wider hover:opacity-90 transition-opacity"
+                >
+                  Update Academic Schedule
+                </button>
+              </div>
+            )}
+
+            {activeModal === 'certificates' && (
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Learner Name</label>
+                    <input 
+                      type="text" 
+                      value={certLearner} 
+                      onChange={(e) => setCertLearner(e.target.value)}
+                      className={`w-full p-3 rounded-xl text-xs font-semibold border focus:outline-none focus:ring-1 focus:ring-brand-cyan ${
+                        isDarkMode ? 'bg-slate-900 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Award Distinction / Citation</label>
+                    <input 
+                      type="text" 
+                      value={certTitle} 
+                      onChange={(e) => setCertTitle(e.target.value)}
+                      className={`w-full p-3 rounded-xl text-xs font-semibold border focus:outline-none focus:ring-1 focus:ring-brand-cyan ${
+                        isDarkMode ? 'bg-slate-900 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {certGenerated ? (
+                  <div className="p-6 rounded-2xl border-2 border-yellow-500/30 bg-yellow-500/5 text-center space-y-2">
+                    <div className="text-2xl">🏆</div>
+                    <h4 className="font-bold text-base text-yellow-400">Certificate Ready for Download!</h4>
+                    <p className="text-xs text-slate-300">
+                      Official Certificate of Distinction awarded to <strong>{certLearner}</strong> for "{certTitle}".
+                    </p>
+                    <button 
+                      onClick={() => alert(`Certificate downloaded for ${certLearner}`)}
+                      className="mt-2 py-2 px-6 rounded-xl bg-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wider hover:scale-105 transition-transform"
+                    >
+                      Download PDF Certificate
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => setCertGenerated(true)}
+                    className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider hover:opacity-90 transition-opacity shadow-lg"
+                  >
+                    Generate Official Certificate
+                  </button>
+                )}
               </div>
             )}
           </div>

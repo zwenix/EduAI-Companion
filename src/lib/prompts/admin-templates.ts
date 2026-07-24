@@ -152,15 +152,35 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
       </div>
     </div>
 
-    <!-- DIFFERENTIATION -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white rounded-3xl p-6 shadow-md border border-slate-100">
-      <div class="rounded-2xl p-5 border border-purple-100 bg-purple-50/50">
-        <h3 class="font-extrabold text-purple-900 mb-2 flex items-center gap-1.5">🧩 For Struggling Learners</h3>
-        <p class="text-purple-800 text-sm font-semibold leading-relaxed">\${strugglingStrategies}</p>
+    <!-- TEACHER NOTES & ASSESSMENT STRATEGY SECTION -->
+    <div class="bg-amber-50/90 rounded-3xl p-6 shadow-md border-l-4 border-amber-500">
+      <h3 class="font-extrabold text-amber-900 mb-3 flex items-center gap-2 text-lg">📌 Teacher Notes & Assessment Strategy</h3>
+      <p class="text-xs text-amber-800 font-semibold mb-2">⏱️ Total Lesson Time Allocation: \${duration} (Intro & Hook: 15 min | Concept Input: 30 min | Guided Practice: 25 min | Independent Work: 35 min | Closure & Exit Check: 15 min)</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 text-xs text-amber-950 font-medium">
+        <div class="bg-white/80 p-4 rounded-2xl border border-amber-200">
+          <strong class="font-bold text-amber-900 block mb-1">📋 Formal Assessment Guidelines:</strong>
+          <p>CAPS ATP alignment for \${subject} Grade \${grade}. Marks allocated per task with memorandum and rubric. Weighting aligned to Term \${term}.</p>
+        </div>
+        <div class="bg-white/80 p-4 rounded-2xl border border-amber-200">
+          <strong class="font-bold text-amber-900 block mb-1">🔍 Informal & Formative Assessment:</strong>
+          <p>Diagnostic observation checklists, peer-review feedback, oral questioning during guided practice, and quick exit ticket check-ins.</p>
+        </div>
       </div>
-      <div class="rounded-2xl p-5 border border-indigo-100 bg-indigo-50/50">
+    </div>
+
+    <!-- DIFFERENTIATION & INCLUSION STRATEGIES -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white rounded-3xl p-6 shadow-md border border-slate-100">
+      <div class="rounded-2xl p-5 border border-purple-200 bg-purple-50/60">
+        <h3 class="font-extrabold text-purple-900 mb-2 flex items-center gap-1.5">🗣️ EAL / FAL Learner Support</h3>
+        <p class="text-purple-900 text-xs font-semibold leading-relaxed">Bilingual terminology glossaries, visual word-bank sentence starters, key concept translation hints, and paired peer buddies.</p>
+      </div>
+      <div class="rounded-2xl p-5 border border-amber-200 bg-amber-50/60">
+        <h3 class="font-extrabold text-amber-900 mb-2 flex items-center gap-1.5">🧩 For Struggling Learners</h3>
+        <p class="text-amber-900 text-xs font-semibold leading-relaxed">\${strugglingStrategies}</p>
+      </div>
+      <div class="rounded-2xl p-5 border border-indigo-200 bg-indigo-50/60">
         <h3 class="font-extrabold text-indigo-900 mb-2 flex items-center gap-1.5">🚀 For Advanced Learners</h3>
-        <p class="text-indigo-800 text-sm font-semibold leading-relaxed">\${advancedStrategies}</p>
+        <p class="text-indigo-900 text-xs font-semibold leading-relaxed">\${advancedStrategies}</p>
       </div>
     </div>
 

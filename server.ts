@@ -479,16 +479,31 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
   let cachedNvidiaKey: string | null = null;
 
   function getNvidiaClient(): OpenAI {
-    const currentKey = resolveNvidiaKey();
-    if (cachedNvidiaClient && cachedNvidiaKey === currentKey) {
+    const nvidiaKey = resolveNvidiaKey();
+    if (nvidiaKey) {
+      if (cachedNvidiaClient && cachedNvidiaKey === nvidiaKey) {
+        return cachedNvidiaClient;
+      }
+      cachedNvidiaKey = nvidiaKey;
+      cachedNvidiaClient = new OpenAI({
+        apiKey: nvidiaKey,
+        baseURL: "https://integrate.api.nvidia.com/v1",
+      });
       return cachedNvidiaClient;
     }
-    cachedNvidiaKey = currentKey;
-    cachedNvidiaClient = new OpenAI({
-      apiKey: currentKey || "dummy",
-      baseURL: "https://integrate.api.nvidia.com/v1",
-    });
-    return cachedNvidiaClient;
+    const openRouterKey = resolveOpenRouterKey();
+    if (openRouterKey) {
+      if (cachedNvidiaClient && cachedNvidiaKey === openRouterKey) {
+        return cachedNvidiaClient;
+      }
+      cachedNvidiaKey = openRouterKey;
+      cachedNvidiaClient = new OpenAI({
+        apiKey: openRouterKey,
+        baseURL: "https://openrouter.ai/api/v1",
+      });
+      return cachedNvidiaClient;
+    }
+    return getOpenRouterClient();
   }
 
   const nvidia = new Proxy({} as OpenAI, {
@@ -615,8 +630,8 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         apiKey = process.env.GROQ_API_KEY || "";
         break;
       case "nvidia-nemotron":
-        client = nvidia;
-        apiKey = resolveNvidiaKey();
+        client = getNvidiaClient();
+        apiKey = resolveNvidiaKey() || resolveOpenRouterKey();
         break;
       case "groq-qwen":
         client = openrouter;
@@ -671,14 +686,12 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         payload.max_tokens = 4000;
       }
       if (provider === "groq-qwen") {
-        payload.max_tokens = 350;
+        payload.max_tokens = 4096;
       }
       if (provider === "nvidia-nemotron") {
-        payload.max_tokens = 16384;
-        payload.temperature = 1;
+        payload.max_tokens = 4096;
+        payload.temperature = 0.7;
         payload.top_p = 0.95;
-        payload.reasoning_budget = 16384;
-        payload.chat_template_kwargs = { "enable_thinking": true };
       }
 
       const response = await client.chat.completions.create(payload);
@@ -973,12 +986,12 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         return res.status(400).send("Prompt is required");
       }
       
-      // Clean and truncate prompt to avoid URL length issues (safe limit ~1000 chars for prompt part)
       const cleanPrompt = prompt.length > 1000 
         ? prompt.substring(0, 997) + "..."
         : prompt;
       
-      // Use pollinations as the stable backend proxy
+      console.log(`[IMAGE GEN LOG] Proxying image request -> Model: Pollinations Turbo | Width: ${width} | Height: ${height} | Seed: ${seed} | Prompt: "${cleanPrompt.slice(0, 80)}"`);
+
       const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=${width}&height=${height}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
       
       const response = await fetch(pollinationsUrl, {
@@ -990,6 +1003,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
       });
       
       if (!response.ok) {
+        console.warn(`[IMAGE GEN LOG] Image proxy upstream status ${response.status}`);
         return res.status(response.status).send(`Failed to fetch image`);
       }
       
@@ -1003,19 +1017,20 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
       const buffer = Buffer.from(arrayBuffer);
       return res.send(buffer);
     } catch (error) {
-      console.error("Image proxy error:", error);
+      console.error("[IMAGE GEN LOG] Image proxy error:", error);
       return res.status(500).send("Image proxy failed");
     }
   });
 
   app.post("/api/images/generate", async (req, res) => {
     const { prompt, provider } = req.body;
-    
+    console.log(`[IMAGE GEN LOG] Requested image generation -> Provider: ${provider} | Prompt: "${(prompt || '').slice(0, 80)}"`);
+
     if (provider === "gemini-imagen") {
       const apiKey = resolveGeminiKey();
       if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
         try {
-          console.log("Attempting image generation with Gemini...");
+          console.log("[IMAGE GEN LOG] Attempting primary image generation with Gemini Imagen (imagen-3.0-generate-002)...");
           const response = await geminiAi.models.generateContent({
             model: 'imagen-3.0-generate-002',
             contents: { parts: [{ text: prompt }] },
@@ -1031,27 +1046,26 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             }
           }
           if (foundBase64) {
-            console.log("Image successfully generated with Gemini!");
-            return res.json({ url: `data:image/jpeg;base64,${foundBase64}` });
+            console.log("[IMAGE GEN LOG] Image successfully generated with model: Gemini Imagen 3 (imagen-3.0-generate-002)");
+            return res.json({ url: `data:image/jpeg;base64,${foundBase64}`, provider: 'gemini', model: 'Imagen-3' });
           }
         } catch (err1: any) {
-          console.warn("Gemini generation failed, falling back to Pollinations Turbo:", err1.message);
+          console.warn("[IMAGE GEN LOG] Gemini generation failed, falling back to Pollinations Turbo:", err1.message);
         }
       }
 
-      // Direct URL fallback for Pollinations (prevents server-side 429s)
       const seed = Math.floor(Math.random() * 100000);
       const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&enhance=true&seed=${seed}`;
-      console.log("Returning direct fallback URL for Pollinations Turbo");
-      return res.json({ url: fallbackUrl, isFallback: true });
+      console.log("[IMAGE GEN LOG] Returning direct fallback URL -> Model: Pollinations Turbo");
+      return res.json({ url: fallbackUrl, isFallback: true, provider: 'pollinations', model: 'Pollinations-Turbo' });
     }
 
     if (provider === "perchance" || provider === "pollinations") {
       const seed = Math.floor(Math.random() * 100000);
       const model = provider === "perchance" ? "turbo" : "flux";
       const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=${model}&enhance=true&seed=${seed}`;
-      console.log(`Returning direct URL for ${provider} (${model})`);
-      return res.json({ url: fallbackUrl });
+      console.log(`[IMAGE GEN LOG] Returning direct URL -> Provider: ${provider} | Model: ${model}`);
+      return res.json({ url: fallbackUrl, provider, model });
     }
     
     return res.status(400).json({ error: "Unsupported provider" });
@@ -1273,6 +1287,12 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
           });
 
           let finalUserPrompt = user;
+          
+          finalUserPrompt += `\n\n📌 MANDATORY QUALITY ENHANCEMENTS:
+1. TEACHER NOTES & TIME ALLOCATIONS: Include a dedicated Teacher Notes section with formal/informal assessment recommendations (e.g. observation checklists, CAPS ATP mark weighting) and explicit minute-by-minute time allocations per phase.
+2. DIFFERENTIATION STRATEGIES: Include explicit built-in differentiation strategies (support for English Additional Language / EAL learners, extra time/scaffolding accommodations, and extension tasks for advanced learners).
+3. PRINTABLE ILLUSTRATION DESCRIPTIONS: Ensure every [Illustration: ...] placeholder has a vivid, self-contained description suitable as both an image generation prompt and a printable text description for print-only materials.`;
+
           if (input.generateImage) {
             finalUserPrompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 2-3 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of an educational graphic depicting the topic in South African context>]. Place them strategically inside the HTML to visually break up the text. The system will replace them with actual AI generated images.`;
           } else {
@@ -1726,9 +1746,9 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     }
 
     if (!process.env.VERCEL) {
-      const PORT = 3000;
+      const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
       app.listen(PORT, "0.0.0.0", () => {
-        console.log(`Server running on http://localhost:${PORT}`);
+        console.log(`Server running on port ${PORT}`);
       });
     }
   }

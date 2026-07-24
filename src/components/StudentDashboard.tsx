@@ -323,9 +323,13 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
   const myAssignments = useMemo(() => {
     if (!student) return [];
     return assignments.filter(item => {
+      if (item.assigneeType === 'all' || item.assigneeId === 'all') return true;
       if (item.assigneeType === 'student' && item.assigneeId === student.id) return true;
-      if (item.assigneeType === 'class' && item.assigneeId === student.grade) return true;
+      if (item.assigneeType === 'class' && (item.assigneeId === student.grade || item.grade === student.grade)) return true;
       if (item.assigneeType === 'group' && myStudyGroupIds.includes(item.assigneeId)) return true;
+      if (item.grade && (item.grade === student.grade || student.grade?.includes(item.grade))) return true;
+      // Default fallback if no specific target filtering prevents viewing
+      if (!item.assigneeType && !item.assigneeId) return true;
       return false;
     });
   }, [assignments, student, myStudyGroupIds]);

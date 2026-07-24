@@ -1,4 +1,5 @@
 import { replaceImagePlaceholders } from './imageReplacer';
+import { patchOklchForHtml2canvas } from './pdfHelper';
 
 export interface PrintOptions {
     subject?: string;
@@ -7,84 +8,6 @@ export interface PrintOptions {
     date?: string;
     title?: string;
 }
-
-const getSubjectStyles = (subject: string = "") => {
-    const s = subject.toLowerCase();
-    if (s.includes('math')) {
-        return {
-            gradient: "linear-gradient(135deg, #1e3a8a, #3b82f6)",
-            accentColor: "#2563eb",
-            textColor: "#1d4ed8",
-            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-                <line x1="4" y1="12" x2="20" y2="12"></line>
-              </svg>`,
-            badgeBg: "#dbeafe",
-            badgeText: "#1e40af",
-            category: "Mathematics"
-        };
-    } else if (s.includes('science') || s.includes('nature') || s.includes('biology') || s.includes('physics')) {
-        return {
-            gradient: "linear-gradient(135deg, #064e3b, #10b981)",
-            accentColor: "#059669",
-            textColor: "#047857",
-            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="3"></circle>
-                <circle cx="6" cy="18" r="3"></circle>
-                <circle cx="18" cy="18" r="3"></circle>
-                <line x1="12" y1="12" x2="6" y2="18"></line>
-                <line x1="12" y1="12" x2="18" y2="18"></line>
-                <path d="M12 2v7"></path>
-              </svg>`,
-            badgeBg: "#d1fae5",
-            badgeText: "#065f46",
-            category: "Natural Sciences"
-        };
-    } else if (s.includes('language') || s.includes('literacy') || s.includes('english') || s.includes('afrikaans') || s.includes('isi') || s.includes('read') || s.includes('write')) {
-        return {
-            gradient: "linear-gradient(135deg, #4c1d95, #8b5cf6)",
-            accentColor: "#7c3aed",
-            textColor: "#6d28d9",
-            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-              </svg>`,
-            badgeBg: "#f3e8ff",
-            badgeText: "#5b21b6",
-            category: "Languages & Literacy"
-        };
-    } else if (s.includes('life') || s.includes('skill') || s.includes('social') || s.trim() === '') {
-        return {
-            gradient: "linear-gradient(135deg, #7c2d12, #f97316)",
-            accentColor: "#f97316",
-            textColor: "#c2410c",
-            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
-              </svg>`,
-            badgeBg: "#ffedd5",
-            badgeText: "#9a3412",
-            category: "Life Skills"
-        };
-    } else {
-        // Fallback or Admin
-        return {
-            gradient: "linear-gradient(135deg, #0f172a, #475569)",
-            accentColor: "#475569",
-            textColor: "#334155",
-            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10 9 9 9 8 9"></polyline>
-              </svg>`,
-            badgeBg: "#f1f5f9",
-            badgeText: "#334155",
-            category: subject || "Administration"
-        };
-    }
-};
 
 const buildBrandedHeaderHTML = (title: string, options?: PrintOptions): string => {
     const subject = options?.subject || "Administration";
@@ -102,7 +25,6 @@ export function removeLegacyHeader(html: string): string {
     if (!html) return '';
     let cleaned = html;
 
-    // Strip legacy hardcoded text from the document body to prevent duplicate watermark headers
     cleaned = cleaned.replace(/EduAI\s+Companion(\s|<br\/?>|&nbsp;)*PRO\s+v2\.0(\s|<br\/?>|&nbsp;)*CAPS\s+Aligned\s+South\s+African\s+Educational\s+Resource/gi, '');
     cleaned = cleaned.replace(/Administration\s*(?:<br\s*\/?>)?\s*Gr\s*(?:<br\s*\/?>)?\s*All/gi, '');
     cleaned = cleaned.replace(/Administrative\s+Doc\s+Resource:\s*Notice\s*\|/gi, '');
@@ -113,17 +35,29 @@ export function removeLegacyHeader(html: string): string {
     return cleaned;
 }
 
+function extractHtmlString(input: React.RefObject<HTMLDivElement | null> | HTMLElement | string | null): string {
+    if (!input) return '';
+    if (typeof input === 'string') return input;
+    if ('current' in input && input.current) return input.current.innerHTML || '';
+    if (input instanceof HTMLElement) return input.innerHTML || '';
+    return '';
+}
+
 export const printContent = (
-    contentRef: React.RefObject<HTMLDivElement | null>, 
+    input: React.RefObject<HTMLDivElement | null> | HTMLElement | string | null, 
     title: string = "EduAI Print",
     options?: PrintOptions
 ) => {
     try {
-        if (!contentRef.current) return;
-        let html = replaceImagePlaceholders(contentRef.current.innerHTML);
+        let rawHtml = extractHtmlString(input);
+        if (!rawHtml.trim()) {
+            console.warn("printContent called with empty content");
+            return;
+        }
+
+        let html = replaceImagePlaceholders(rawHtml);
         html = removeLegacyHeader(html);
         
-        // Dynamically prepend our professional subject-specific branding header!
         const headerHtml = buildBrandedHeaderHTML(title, options);
         html = headerHtml + html;
 
@@ -138,61 +72,100 @@ export const printContent = (
                 })
                 .join('\n');
         };
-        const printWindow = window.open('', '_blank');
-        
+
+        const fullDocument = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>${title}</title>
+                ${getParentStyles()}
+                <style>
+                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono&display=swap');
+                    @media print {
+                        @page { margin: 15mm; }
+                        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                        .print\\:hidden { display: none !important; }
+                    }
+                    body {
+                        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+                        padding: 2rem;
+                        background-color: #ffffff;
+                        color: #0f172a;
+                    }
+                </style>
+            </head>
+            <body class="p-8 prose max-w-none text-slate-800 bg-white">
+                ${html}
+                <footer style="margin-top: 5rem; border-top: 1px dashed #e2e8f0; padding-top: 1rem; text-align: center; font-size: 0.55rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center; page-break-inside: avoid;">
+                  <span>EduAI Companion • CAPS Aligned • Developer & Owner: Z. Msuthu © 2026</span>
+                  <span>eduai-companion.vercel.app</span>
+                </footer>
+            </body>
+            </html>
+        `;
+
+        let printWindow: Window | null = null;
+        try {
+            printWindow = window.open('', '_blank');
+        } catch (e) {
+            printWindow = null;
+        }
+
         if (printWindow) {
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>${title}</title>
-                    ${getParentStyles()}
-                    <style>
-                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono&display=swap');
-                        @media print {
-                            @page { margin: 15mm; }
-                            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                            .print\\:hidden { display: none !important; }
-                        }
-                        body {
-                            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-                        }
-                    </style>
-                </head>
-                <body class="p-8 prose max-w-none text-slate-800 bg-white">
-                    ${html}
-                    
-                    <footer style="margin-top: 5rem; border-top: 1px dashed #e2e8f0; padding-top: 1rem; text-align: center; font-size: 0.55rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center; page-break-inside: avoid;">
-                      <span>EduAI Companion • CAPS Aligned • Developer & Owner: Z. Msuthu © 2026</span>
-                      <span>eduai-companion.vercel.app</span>
-                    </footer>
-                </body>
-                </html>
-            `);
+            printWindow.document.write(fullDocument);
             printWindow.document.close();
             printWindow.focus();
             setTimeout(() => {
-               printWindow.print();
-            }, 1000);
+                try {
+                    printWindow?.print();
+                } catch (e) {
+                    console.warn("Window print failed, using iframe fallback", e);
+                }
+            }, 600);
         } else {
-            console.warn("Print popup blocked by browser.");
-            try {
-               alert("Print popup blocked by browser. Please allow popups for this site, or open the app in a new window/tab.");
-            } catch(e) {}
+            // Invisible iframe fallback (bypasses browser popup blocks)
+            const iframe = document.createElement('iframe');
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            document.body.appendChild(iframe);
+            const doc = iframe.contentWindow?.document;
+            if (doc) {
+                doc.open();
+                doc.write(fullDocument);
+                doc.close();
+                setTimeout(() => {
+                    iframe.contentWindow?.focus();
+                    iframe.contentWindow?.print();
+                    setTimeout(() => {
+                        if (iframe.parentNode) {
+                            iframe.parentNode.removeChild(iframe);
+                        }
+                    }, 3000);
+                }, 500);
+            }
         }
     } catch (e) {
-        console.error("Print failed", e);
+        console.error("Print failed:", e);
     }
 };
 
 export const downloadAsHTML = (
-    contentRef: React.RefObject<HTMLDivElement | null>, 
+    input: React.RefObject<HTMLDivElement | null> | HTMLElement | string | null, 
     filename: string = "EduAI-Document.html",
     options?: PrintOptions
 ) => {
     try {
-        if (!contentRef.current) return;
-        let html = replaceImagePlaceholders(contentRef.current.innerHTML);
+        let rawHtml = extractHtmlString(input);
+        if (!rawHtml.trim()) {
+            console.warn("downloadAsHTML called with empty content");
+            return;
+        }
+
+        let html = replaceImagePlaceholders(rawHtml);
         html = removeLegacyHeader(html);
         
         const headerHtml = buildBrandedHeaderHTML(filename.replace(/\.html$/i, ''), options);
@@ -219,7 +192,6 @@ export const downloadAsHTML = (
             </head>
             <body>
                 ${html}
-                
                 <footer style="margin-top: 5rem; border-top: 1px dashed #e2e8f0; padding-top: 1rem; text-align: center; font-size: 0.55rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center;">
                   <span>EduAI Companion • CAPS Aligned • Developer & Owner: Z. Msuthu © 2026</span>
                   <span>eduai-companion.vercel.app</span>
@@ -231,12 +203,81 @@ export const downloadAsHTML = (
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = filename;
+        a.download = filename.endsWith('.html') ? filename : `${filename}.html`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     } catch (e) {
-        console.error("Download failed", e);
+        console.error("Download failed:", e);
     }
+};
+
+export const downloadAsPDF = async (
+    input: React.RefObject<HTMLDivElement | null> | HTMLElement | string | null,
+    filename: string = "EduAI-Document.pdf",
+    options?: PrintOptions
+) => {
+    try {
+        patchOklchForHtml2canvas();
+        let rawHtml = extractHtmlString(input);
+        if (!rawHtml.trim()) {
+            console.warn("downloadAsPDF called with empty content");
+            return;
+        }
+
+        let html = replaceImagePlaceholders(rawHtml);
+        html = removeLegacyHeader(html);
+        const headerHtml = buildBrandedHeaderHTML(filename, options);
+        html = headerHtml + html;
+
+        // Container element
+        const container = document.createElement('div');
+        container.className = 'p-8 bg-white text-slate-900 prose max-w-none';
+        container.style.width = '800px';
+        container.style.position = 'fixed';
+        container.style.left = '-9999px';
+        container.style.top = '-9999px';
+        container.innerHTML = html;
+        document.body.appendChild(container);
+
+        const pdfFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+
+        // Check if html2pdf is globally available
+        const win = window as any;
+        const html2pdfLib = win.html2pdf || (win.default ? win.default.html2pdf : null);
+
+        if (html2pdfLib) {
+            const opt = {
+                margin: 0.4,
+                filename: pdfFilename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            try {
+                await html2pdfLib().set(opt).from(container).save();
+            } catch (pdfErr) {
+                console.warn("html2pdf error, falling back to HTML download:", pdfErr);
+                downloadAsHTML(input, pdfFilename.replace(/\.pdf$/i, '.html'), options);
+            }
+        } else {
+            console.warn("html2pdf library not loaded, using HTML file download fallback");
+            downloadAsHTML(input, pdfFilename.replace(/\.pdf$/i, '.html'), options);
+        }
+
+        if (document.body.contains(container)) {
+            document.body.removeChild(container);
+        }
+    } catch (e) {
+        console.error("PDF Download failed:", e);
+        downloadAsHTML(input, filename.replace(/\.pdf$/i, '.html'), options);
+    }
+};
+
+export default {
+    printContent,
+    downloadAsHTML,
+    downloadAsPDF,
+    removeLegacyHeader
 };

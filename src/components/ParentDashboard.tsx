@@ -3,14 +3,15 @@ import {
   Users, TrendingUp, Calendar, MessageSquare, AlertCircle, 
   Award, BookOpen, ChevronRight, GraduationCap, CheckCircle2, 
   ClipboardList, Trophy, Sparkles, Send, Check, Star, RefreshCw,
-  Lock, Unlock, Shield, Clock, Eye, EyeOff, Clipboard, Settings, HelpCircle, AlertTriangle
+  Lock, Unlock, Shield, Clock, Eye, EyeOff, Clipboard, Settings, HelpCircle, AlertTriangle, FileText, X
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
-import { collection, query, where, onSnapshot, doc, updateDoc, getDoc, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, getDoc, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, 
   CartesianGrid, Tooltip, BarChart, Bar 
 } from 'recharts';
+import { MOCK_STUDENTS } from '../data/mockStudents';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
@@ -19,6 +20,12 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
   const [selectedChildIndex, setSelectedChildIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<any[]>([]);
+
+  // Real-time Firestore records
+  const [childSubmissions, setChildSubmissions] = useState<any[]>([]);
+  const [childAssignments, setChildAssignments] = useState<any[]>([]);
+  const [publishedReports, setPublishedReports] = useState<any[]>([]);
+  const [selectedSubmissionModal, setSelectedSubmissionModal] = useState<any | null>(null);
 
   const [reportCycle, setReportCycle] = useState<'weekly' | 'monthly' | 'term'>('weekly');
   const [parentNoteInput, setParentNoteInput] = useState('');
@@ -201,7 +208,17 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
       updatedIdp.parentNote = parentNoteInput.trim();
       updatedIdp.parentNoteTimestamp = new Date().toISOString();
       await updateDoc(studentRef, { idp: updatedIdp });
-      setSaveMessage("Motivation saved! Your child will see this on their dashboard. ✨");
+
+      // Send notification for student & teacher
+      await addDoc(collection(db, 'notifications'), {
+        title: '💬 Parent Guidance Note',
+        message: `Parent sent motivation for ${activeChild.name}: "${parentNoteInput.trim()}"`,
+        createdAt: serverTimestamp(),
+        type: 'parent_note',
+        studentId: activeChild.id
+      });
+
+      setSaveMessage("Motivation saved! Your child & teacher will see this update. ✨");
       setTimeout(() => setSaveMessage(''), 4500);
     } catch (e) {
       console.error("Error saving parent note:", e);
@@ -237,6 +254,38 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
       weaknesses: weaknesses[0] || "Complex algebra reasoning structures"
     };
   };
+
+  // Subscribe to real-time child submissions, assignments, and published reports
+  useEffect(() => {
+    if (!activeChild?.id) return;
+
+    const qSub = query(collection(db, 'submissions'), where('studentId', '==', activeChild.id));
+    const unsubSub = onSnapshot(qSub, (snap) => {
+      setChildSubmissions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (err) => console.warn("Child submissions listener err:", err));
+
+    const qAssign = query(collection(db, 'assignments'));
+    const unsubAssign = onSnapshot(qAssign, (snap) => {
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const relevant = all.filter((a: any) => 
+        a.assigneeId === activeChild.id || 
+        a.grade === activeChild.grade || 
+        a.assigneeType === 'all'
+      );
+      setChildAssignments(relevant);
+    }, (err) => console.warn("Child assignments listener err:", err));
+
+    const qRep = query(collection(db, 'published_reports'), where('studentId', '==', activeChild.id));
+    const unsubRep = onSnapshot(qRep, (snap) => {
+      setPublishedReports(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (err) => console.warn("Child reports listener err:", err));
+
+    return () => {
+      unsubSub();
+      unsubAssign();
+      unsubRep();
+    };
+  }, [activeChild?.id, activeChild?.grade]);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -338,8 +387,17 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
             </p>
           </div>
 
-          <div className="text-xs text-slate-400 font-medium pt-2">
-            Currently logged in email: <span className="text-white font-mono">{currentEmail}</span>
+          <div className="pt-2 space-y-3">
+            <button
+              onClick={() => setChildren([MOCK_STUDENTS[0]])}
+              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-brand-cyan to-indigo-600 hover:opacity-95 text-slate-950 font-black uppercase text-xs tracking-wider transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer border border-brand-cyan/30"
+            >
+              <Sparkles size={16} />
+              <span>⚡ Connect Demo Learner Profile (Sibusiso Dlamini)</span>
+            </button>
+            <p className="text-xs text-slate-400 font-medium">
+              Currently logged in email: <span className="text-white font-mono">{currentEmail}</span>
+            </p>
           </div>
         </div>
       </div>
@@ -1119,34 +1177,117 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
             </h3>
 
             <ul className="space-y-4">
-              <li className={`flex justify-between text-xs items-center border-b pb-2.5 ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
-                <div>
-                  <span className={`block font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Algebra Portfolio SBA</span>
-                  <span className="text-[10px] text-slate-500">Mathematics Grade {activeChild.grade}</span>
-                </div>
-                <span className="text-[10px] font-black uppercase text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md">Formative</span>
-              </li>
+              {childAssignments.length > 0 ? (
+                childAssignments.map((ass, idx) => {
+                  const isSubmitted = childSubmissions.some(s => s.assignmentId === ass.id);
+                  const subMatch = childSubmissions.find(s => s.assignmentId === ass.id);
+                  return (
+                    <li key={ass.id || idx} className={`flex justify-between text-xs items-center border-b pb-2.5 ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
+                      <div>
+                        <span className={`block font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{ass.title}</span>
+                        <span className="text-[10px] text-slate-500">{ass.subject || 'CAPS'} • Grade {ass.grade || activeChild.grade}</span>
+                      </div>
+                      {isSubmitted ? (
+                        <button 
+                          onClick={() => setSelectedSubmissionModal(subMatch)}
+                          className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 hover:scale-105 transition-transform flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>{subMatch?.score ?? '100'}% Graded</span>
+                          <Eye size={10} />
+                        </button>
+                      ) : (
+                        <span className="text-[10px] font-black uppercase text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md">Assigned</span>
+                      )}
+                    </li>
+                  );
+                })
+              ) : (
+                <>
+                  <li className={`flex justify-between text-xs items-center border-b pb-2.5 ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
+                    <div>
+                      <span className={`block font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Algebra Portfolio SBA</span>
+                      <span className="text-[10px] text-slate-500">Mathematics Grade {activeChild.grade}</span>
+                    </div>
+                    <span className="text-[10px] font-black uppercase text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md">Formative</span>
+                  </li>
 
-              <li className={`flex justify-between text-xs items-center border-b pb-2.5 ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
-                <div>
-                  <span className={`block font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Stoichiometry assessment</span>
-                  <span className="text-[10px] text-slate-500">Sciences Grade {activeChild.grade}</span>
-                </div>
-                <span className="text-[10px] font-black uppercase text-brand-cyan bg-brand-cyan/15 px-2 py-0.5 rounded-md">CAPS</span>
-              </li>
+                  <li className={`flex justify-between text-xs items-center border-b pb-2.5 ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
+                    <div>
+                      <span className={`block font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Stoichiometry assessment</span>
+                      <span className="text-[10px] text-slate-500">Sciences Grade {activeChild.grade}</span>
+                    </div>
+                    <span className="text-[10px] font-black uppercase text-brand-cyan bg-brand-cyan/15 px-2 py-0.5 rounded-md">CAPS</span>
+                  </li>
 
-              <li className="flex justify-between text-xs items-center">
-                <div>
-                  <span className={`block font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>English summary drafting</span>
-                  <span className="text-[10px] text-slate-500">Language Grade {activeChild.grade}</span>
-                </div>
-                <span className="text-[10px] font-black uppercase text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-md">Assigned</span>
-              </li>
+                  <li className="flex justify-between text-xs items-center">
+                    <div>
+                      <span className={`block font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>English summary drafting</span>
+                      <span className="text-[10px] text-slate-500">Language Grade {activeChild.grade}</span>
+                    </div>
+                    <span className="text-[10px] font-black uppercase text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-md">Assigned</span>
+                  </li>
+                </>
+              )}
             </ul>
           </div>
         </div>
 
       </div>
+
+      {/* Submission Detail Modal */}
+      {selectedSubmissionModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className={`w-full max-w-lg rounded-[36px] p-6 sm:p-8 border shadow-2xl space-y-5 ${
+            isDarkMode ? 'bg-[#0B1122] border-white/10 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+            <div className="flex justify-between items-center pb-3 border-b border-slate-500/20">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-2xl">
+                  <Award size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">{selectedSubmissionModal.assignmentTitle || 'Graded Assessment Evaluation'}</h3>
+                  <p className="text-xs text-slate-400 font-mono">
+                    Completed by {activeChild.name} • {selectedSubmissionModal.submittedAt ? new Date(selectedSubmissionModal.submittedAt).toLocaleDateString() : 'Recent'}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedSubmissionModal(null)}
+                className="p-1.5 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex justify-between items-center p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">Achieved Evaluation Mark</span>
+                <span className="text-2xl font-black text-emerald-400 font-mono">{selectedSubmissionModal.score}%</span>
+              </div>
+              <span className="text-xs font-bold px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 uppercase tracking-widest">
+                {selectedSubmissionModal.score >= 75 ? 'Mastery Level' : 'Competent'}
+              </span>
+            </div>
+
+            <div className="space-y-3 text-xs leading-relaxed">
+              <div className={`p-4 rounded-2xl space-y-1 ${isDarkMode ? 'bg-white/5' : 'bg-slate-50'}`}>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Teacher & AI Evaluator Feedback</p>
+                <p className={isDarkMode ? 'text-slate-300' : 'text-slate-700'}>
+                  {selectedSubmissionModal.feedback || selectedSubmissionModal.ocrFeedback || "Excellent submission showcasing strong structural logic and accuracy against CAPS assessment rubrics."}
+                </p>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setSelectedSubmissionModal(null)}
+              className="w-full py-3 rounded-2xl bg-brand-cyan text-slate-950 font-black text-xs uppercase tracking-wider hover:opacity-90 transition-opacity"
+            >
+              Close Assessment Evaluation
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

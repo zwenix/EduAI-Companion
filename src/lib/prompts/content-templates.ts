@@ -222,6 +222,35 @@ SUCCESS INDICATORS SECTION:
     </ul>
   </div>
 
+TEACHER NOTES & ASSESSMENT STRATEGY SECTION (MANDATORY):
+• Amber-themed card with explicit formal/informal assessment guidelines and time allocations:
+  <div class="bg-amber-50/90 border-l-4 border-amber-500 rounded-r-2xl p-6 my-8 shadow-md print:break-inside-avoid">
+    <h3 class="text-sm font-black uppercase tracking-wider text-amber-900 mb-2 flex items-center gap-2">
+      <span class="text-xl">📌</span> Teacher Notes & Assessment Strategy
+    </h3>
+    <p class="text-xs text-amber-800 font-semibold mb-2">⏱️ Recommended Time Allocation: Total 45-60 min (Intro & Setup: 10 min | Core Activity: 30 min | Formative Check & Review: 15 min)</p>
+    <div class="text-xs text-amber-900 space-y-1">
+      <p><strong>Formal Assessment:</strong> CAPS ATP aligned scoring (\${totalMarks} Marks total). Use attached Memorandum for mark allocation.</p>
+      <p><strong>Informal Assessment:</strong> Monitor learner progress via observation checklist, peer-checking during activity, and exit ticket summary.</p>
+    </div>
+  </div>
+
+BUILT-IN DIFFERENTIATION STRATEGIES SECTION (MANDATORY):
+• Indigo-themed card detailing multi-tier learning accommodations:
+  <div class="bg-indigo-50/90 border-l-4 border-indigo-500 rounded-r-2xl p-6 my-8 shadow-md print:break-inside-avoid">
+    <h3 class="text-sm font-black uppercase tracking-wider text-indigo-900 mb-2 flex items-center gap-2">
+      <span class="text-xl">💡</span> Differentiation & Inclusion Strategies
+    </h3>
+    <ul class="text-xs text-indigo-950 space-y-1.5 list-disc pl-4">
+      <li><strong>English Additional Language (EAL/FAL) Support:</strong> Provide bilingual terminology word banks, visual sentence starters, and peer buddy discussion before writing.</li>
+      <li><strong>Scaffolding & Extra Time:</strong> Allow extra 10-15 minutes, chunk multi-step questions, and provide visual manipulative models.</li>
+      <li><strong>Extension & Challenge:</strong> Encourage advanced learners to complete higher-order synthesis questions or create their own sample problem.</li>
+    </ul>
+  </div>
+
+ILLUSTRATION PLACEHOLDERS & PRINTABLE DESCRIPTIONS:
+• Include at least 2-3 inline illustration placeholders using the exact format: [Illustration: <vivid visual prompt in South African context>]. Ensure the prompt inside is detailed as it acts as both the AI image generator prompt and a printable text description for offline print-only usage.
+
 FOOTER:
 • Subtle design with branding
 • Print instructions

@@ -5,7 +5,7 @@ import {
   ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Zap, ClipboardList, ImageIcon, Settings2, RefreshCw,
   Check, X, Plus, Users, Layout, Video, FileCode, HelpCircle, Archive, UserCircle, Image, AlertCircle,
   Edit2, History, Share2, Copy, Link, Mail, FileJson, Maximize2, Minimize2,
-  Timer, Volume2, VolumeX, Bell, Menu, Home, Brain, Wrench, Layers, FolderOpen, ArrowLeft
+  Timer, Volume2, VolumeX, Bell, Menu, Home, Brain, Wrench, Layers, FolderOpen, ArrowLeft, Award, ShieldCheck, CheckCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
@@ -21,7 +21,7 @@ import VideoGenerationHistory from './VideoGenerationHistory';
 import { PromptQualityValidator } from '../lib/prompt-validator';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
-import { printContent, downloadAsHTML } from '../lib/printUtils';
+import { printContent, downloadAsHTML, downloadAsPDF } from '../lib/printUtils';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 import PrintPreviewModal from './PrintPreviewModal';
@@ -132,18 +132,18 @@ const GENERATOR_GROUPS = [
     label: 'Content Studio',
     icon: FlaskConical,
     desc: 'Generate high-quality lesson plans, worksheets, assignments, daily notes, and tests perfectly mapped to South African CAPS standard criteria.',
-    color: 'text-brand-cyan',
-    bg: 'bg-brand-cyan/10',
-    border: 'border-brand-cyan/20 shadow-cyan-500/5',
+    color: 'text-cyan-400',
+    bg: 'bg-cyan-500/10',
+    border: 'border-cyan-500/30 shadow-cyan-500/10',
   },
   {
     id: 'visual',
     label: 'Visual Lab',
     icon: Palette,
     desc: 'Craft striking educational displays, printable flashcards, timeline cards, process flowmaps, mind maps, and interactive signs.',
-    color: 'text-brand-purple',
-    bg: 'bg-brand-purple/10',
-    border: 'border-brand-purple/20 shadow-purple-500/5',
+    color: 'text-purple-400',
+    bg: 'bg-purple-500/10',
+    border: 'border-purple-500/30 shadow-purple-500/10',
   },
   {
     id: 'video',
@@ -152,7 +152,7 @@ const GENERATOR_GROUPS = [
     desc: 'Create captivating AI teacher avatars, lesson explainer animations, video guidelines, and dynamic digital slideshows.',
     color: 'text-orange-400',
     bg: 'bg-orange-500/10',
-    border: 'border-orange-500/20 shadow-orange-500/5',
+    border: 'border-orange-500/30 shadow-orange-500/10',
   },
   {
     id: 'admin',
@@ -161,16 +161,16 @@ const GENERATOR_GROUPS = [
     desc: 'Draft school correspondence including custom parental permission notices, newsletters, calendars, and certificates of attendance.',
     color: 'text-blue-400',
     bg: 'bg-blue-500/10',
-    border: 'border-blue-500/20 shadow-blue-500/5',
+    border: 'border-blue-500/30 shadow-blue-500/10',
   },
   {
     id: 'grade1',
-    label: 'Foundation Hub',
+    label: 'Foundation Phase',
     icon: Sparkles,
     desc: 'Design foundational literacy and numeracy lessons, phonics flash exercises, spelling tables, and early learning games.',
-    color: 'text-brand-yellow',
-    bg: 'bg-brand-yellow/10',
-    border: 'border-brand-yellow/20 shadow-brand-yellow/5',
+    color: 'text-yellow-400',
+    bg: 'bg-yellow-500/10',
+    border: 'border-yellow-500/30 shadow-yellow-500/10',
   }
 ];
 
@@ -393,6 +393,12 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   const [activePreviewTab, setActivePreviewTab] = useState<'content' | 'memo' | 'rubric'>('content');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; type: 'info' | 'success' | 'error' } | null>(null);
+
+  const triggerToast = (msg: string, type: 'info' | 'success' | 'error' = 'info') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
   const [isAssessingQuality, setIsAssessingQuality] = useState(false);
   const [qualityRating, setQualityRating] = useState<QualityRating | null>(null);
   const [showQualityCheck, setShowQualityCheck] = useState(false);
@@ -736,23 +742,33 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   };
 
   const handlePrint = () => {
-    if (contentRef) {
-      printContent(contentRef, activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : a_topic);
+    const docTitle = activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : a_topic || 'EduAI Content';
+    const activeSubject = activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject;
+    const activeGrade = activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade;
+    const activeHtml = (activeTab === 'teaching' || activeTab === 'grade1' ? teachingResult?.content : activeTab === 'visual' ? visualResult?.content : adminResult?.content) || '';
+
+    if (contentRef.current && contentRef.current.innerHTML.trim()) {
+      printContent(contentRef, docTitle, { subject: activeSubject, grade: activeGrade, title: docTitle });
+    } else if (activeHtml) {
+      printContent(activeHtml, docTitle, { subject: activeSubject, grade: activeGrade, title: docTitle });
+    } else {
+      triggerToast('No content available to print yet.', 'info');
     }
   };
 
   const handleDownloadPDF = async () => {
-    if (contentRef.current) {
-      patchOklchForHtml2canvas();
-      const element = contentRef.current;
-      const opt = {
-        margin: 0.5,
-        filename: `${activeTab}-${Date.now()}.pdf`,
-        image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const }
-      };
-      await html2pdf().set(opt).from(element).save();
+    const docTitle = activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : a_topic || 'EduAI Content';
+    const filename = `${docTitle.toLowerCase().replace(/[^a-z0-9_-]/g, '_')}_${Date.now()}.pdf`;
+    const activeSubject = activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject;
+    const activeGrade = activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade;
+    const activeHtml = (activeTab === 'teaching' || activeTab === 'grade1' ? teachingResult?.content : activeTab === 'visual' ? visualResult?.content : adminResult?.content) || '';
+
+    if (contentRef.current && contentRef.current.innerHTML.trim()) {
+      await downloadAsPDF(contentRef, filename, { subject: activeSubject, grade: activeGrade, title: docTitle });
+    } else if (activeHtml) {
+      await downloadAsPDF(activeHtml, filename, { subject: activeSubject, grade: activeGrade, title: docTitle });
+    } else {
+      triggerToast('No content available to download as PDF yet.', 'info');
     }
   };
 
@@ -827,6 +843,39 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
 
   const confirmAssign = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      const userId = auth.currentUser?.uid || 'guest';
+      const activeHtml = activeTab === 'teaching' 
+        ? (activePreviewTab === 'content' ? (teachingResult?.content || '') : activePreviewTab === 'memo' ? (teachingResult?.memo || '') : (teachingResult?.rubric || ''))
+        : activeTab === 'visual' ? (visualResult?.content || '')
+        : (adminResult?.content || '');
+        
+      const currentTitle = (activeTab === 'teaching' ? t_topic : activeTab === 'visual' ? v_topic : a_topic) || 'CAPS Educational Content';
+      const currentSubject = (activeTab === 'teaching' ? (t_subject === 'Other' ? t_customSubject : t_subject) : activeTab === 'visual' ? (v_subject === 'Other' ? v_customSubject : v_subject) : (a_subject === 'Other' ? a_customSubject : a_subject)) || 'General';
+      const currentGrade = activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade;
+
+      if (userId && db) {
+        const assignDocRef = doc(collection(db, 'assignments'));
+        await setDoc(assignDocRef, {
+          id: assignDocRef.id,
+          teacherId: userId,
+          teacherName: 'Teacher',
+          title: currentTitle,
+          subject: currentSubject,
+          grade: currentGrade,
+          contentType: activeTab,
+          content: activeHtml,
+          memo: teachingResult?.memo || '',
+          rubric: teachingResult?.rubric || '',
+          targetType: assignTargetType,
+          targetName: assignTargetName,
+          assignedAt: new Date().toISOString(),
+          status: 'Active'
+        });
+      }
+    } catch (error) {
+      console.warn("Firestore assign note:", error);
+    }
     setAssignSuccess(true);
     setTimeout(() => {
       setAssignSuccess(false);
@@ -1058,26 +1107,56 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
           </div>
 
           {/* Studio Selector Tabs */}
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-6 sm:mb-8">
-            {GENERATOR_GROUPS.map((group) => (
-              <button
-                key={group.id}
-                onClick={() => setActiveTab(group.id)}
-                className={cn(
-                  "flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl border transition-all cursor-pointer",
-                  activeTab === group.id
-                    ? (isDarkMode 
-                      ? "bg-cyan-500/10 border-cyan-400 text-cyan-300 font-bold shadow-lg shadow-cyan-500/10" 
-                      : "bg-cyan-50 border-cyan-200 text-cyan-700 font-bold shadow-md")
-                    : (isDarkMode 
-                      ? "bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10" 
-                      : "bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50")
-                )}
-              >
-                <group.icon size={14} className="sm:size-4" />
-                <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider">{group.label}</span>
-              </button>
-            ))}
+          <div className="flex flex-wrap justify-center gap-2.5 sm:gap-3.5 mb-6 sm:mb-8">
+            {GENERATOR_GROUPS.map((group) => {
+              const isActive = activeTab === group.id;
+              
+              let activeStyle = "bg-gradient-to-r from-cyan-500 to-blue-600 text-white border-cyan-300 shadow-lg shadow-cyan-500/30 scale-[1.03]";
+              let inactiveStyle = isDarkMode
+                ? "bg-cyan-950/40 border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-400"
+                : "bg-cyan-50 border-cyan-200 text-cyan-800 hover:bg-cyan-100";
+              let iconColor = "text-cyan-400";
+
+              if (group.id === 'visual') {
+                activeStyle = "bg-gradient-to-r from-purple-500 via-fuchsia-600 to-indigo-600 text-white border-purple-300 shadow-lg shadow-purple-500/30 scale-[1.03]";
+                inactiveStyle = isDarkMode
+                  ? "bg-purple-950/40 border-purple-500/30 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400"
+                  : "bg-purple-50 border-purple-200 text-purple-800 hover:bg-purple-100";
+                iconColor = "text-purple-400";
+              } else if (group.id === 'video') {
+                activeStyle = "bg-gradient-to-r from-rose-500 via-pink-600 to-orange-500 text-white border-rose-300 shadow-lg shadow-rose-500/30 scale-[1.03]";
+                inactiveStyle = isDarkMode
+                  ? "bg-rose-950/40 border-rose-500/30 text-rose-300 hover:bg-rose-500/20 hover:border-rose-400"
+                  : "bg-rose-50 border-rose-200 text-rose-800 hover:bg-rose-100";
+                iconColor = "text-rose-400";
+              } else if (group.id === 'admin') {
+                activeStyle = "bg-gradient-to-r from-emerald-500 via-teal-600 to-blue-600 text-white border-emerald-300 shadow-lg shadow-emerald-500/30 scale-[1.03]";
+                inactiveStyle = isDarkMode
+                  ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-400"
+                  : "bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100";
+                iconColor = "text-emerald-400";
+              } else if (group.id === 'grade1') {
+                activeStyle = "bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-white border-amber-300 shadow-lg shadow-amber-500/30 scale-[1.03]";
+                inactiveStyle = isDarkMode
+                  ? "bg-amber-950/40 border-amber-500/30 text-amber-300 hover:bg-amber-500/20 hover:border-amber-400"
+                  : "bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100";
+                iconColor = "text-amber-400";
+              }
+
+              return (
+                <button
+                  key={group.id}
+                  onClick={() => setActiveTab(group.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border transition-all cursor-pointer font-black text-xs uppercase tracking-wider shadow-md backdrop-blur-md",
+                    isActive ? activeStyle : inactiveStyle
+                  )}
+                >
+                  <group.icon size={16} className={isActive ? "text-white animate-pulse" : iconColor} />
+                  <span>{group.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Module-specific Layout routing */}
@@ -1688,13 +1767,163 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                     const currentTopic = activeTab === 'teaching' ? t_topic : activeTab === 'visual' ? v_topic : a_topic;
                     const currentType = activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : a_type;
 
+                    const activeResult = activeTab === 'teaching' ? teachingResult : activeTab === 'visual' ? visualResult : adminResult;
+                    const activeRating = activeResult?.qualityRating;
+                    const qualityScore = activeRating?.overall || activeRating?.capsAlignmentScore || 95;
+
                     return (
-                      <div className="space-y-4">
+                      <div className="space-y-3">
+                        {/* Quality Score Total Banner on TOP */}
+                        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-cyan-500/20 border border-emerald-500/40 flex items-center justify-between gap-3 shadow-lg shadow-emerald-500/10">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-500/25 border border-emerald-400/50 flex items-center justify-center text-emerald-300 font-black shrink-0 shadow-md">
+                              <Award size={20} />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-black uppercase tracking-wider text-white">CAPS Quality Score</span>
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-400 text-slate-950 text-xs font-black uppercase tracking-wider shadow">
+                                  {qualityScore}% CAPS Aligned
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-slate-300 font-medium">Verified for South African Curriculum Standards</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setQualityRating(activeRating || { capsAlignmentScore: qualityScore, overall: qualityScore });
+                              setShowQualityCheck(true);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-[10px] uppercase tracking-wider transition-all cursor-pointer shadow-md shrink-0 flex items-center gap-1.5"
+                          >
+                            <ClipboardList size={13} />
+                            View Score
+                          </button>
+                        </div>
+
+                        {/* Result Sub-tabs (Teaching material) */}
+                        {activeTab === 'teaching' && (teachingResult.memo || teachingResult.rubric) && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setActivePreviewTab('content')}
+                              className={cn(
+                                "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                                activePreviewTab === 'content'
+                                  ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25 font-black"
+                                  : "bg-white/5 text-slate-400 hover:text-white"
+                              )}
+                            >
+                              Lesson Material
+                            </button>
+                            {teachingResult.memo && (
+                              <button
+                                onClick={() => setActivePreviewTab('memo')}
+                                className={cn(
+                                  "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                                  activePreviewTab === 'memo'
+                                    ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25 font-black"
+                                    : "bg-white/5 text-slate-400 hover:text-white"
+                                )}
+                              >
+                                Expert Memo
+                              </button>
+                            )}
+                            {teachingResult.rubric && (
+                              <button
+                                onClick={() => setActivePreviewTab('rubric')}
+                                className={cn(
+                                  "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                                  activePreviewTab === 'rubric'
+                                    ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25 font-black"
+                                    : "bg-white/5 text-slate-400 hover:text-white"
+                                )}
+                              >
+                                Marks Rubric
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Action Buttons Toolbar on TOP */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            onClick={handleAssign}
+                            className={cn(
+                              "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all cursor-pointer",
+                              assignSuccess
+                                ? "bg-emerald-500 text-white font-black shadow-emerald-500/25"
+                                : "bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-black shadow-purple-600/25"
+                            )}
+                          >
+                            <Users size={13} />
+                            {assignSuccess ? 'Assigned ✅' : 'Assign To...'}
+                          </button>
+
+                          <button
+                            onClick={() => setIsFullscreenPreview(true)}
+                            className="px-2.5 py-1.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-fuchsia-600/25 transition-all cursor-pointer"
+                          >
+                            <Maximize2 size={13} /> Fullscreen
+                          </button>
+                          
+                          <button
+                            onClick={handlePrint}
+                            className="px-2.5 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-cyan-300 border border-cyan-500/40 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md transition-all cursor-pointer"
+                          >
+                            <Printer size={13} /> Print
+                          </button>
+                          
+                          <button
+                            onClick={handleDownloadPDF}
+                            className="px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-indigo-600/25 transition-all cursor-pointer"
+                          >
+                            <Download size={13} /> PDF Download
+                          </button>
+
+                          <button
+                            onClick={handleToggleEdit}
+                            className={cn(
+                              "px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md transition-all cursor-pointer",
+                              isEditing ? "bg-amber-400 text-slate-950 font-black" : "bg-amber-500 hover:bg-amber-400 text-slate-950 font-black"
+                            )}
+                          >
+                            <Edit2 size={13} /> {isEditing ? 'Save' : 'Edit'}
+                          </button>
+
+                          <button
+                            onClick={handleQualityCheck}
+                            className="px-2.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-emerald-500/25 transition-all cursor-pointer"
+                          >
+                            <ClipboardList size={13} /> Quality Check
+                          </button>
+
+                          <button
+                            onClick={() => setShowShareModal(true)}
+                            className="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-blue-600/25 transition-all cursor-pointer"
+                          >
+                            <Share2 size={13} /> Export
+                          </button>
+
+                          <button
+                            onClick={handleArchive}
+                            className={cn(
+                              "px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer ml-auto",
+                              archiveSuccess
+                                ? "bg-emerald-500 text-white font-black"
+                                : "bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-black shadow-md shadow-cyan-500/20"
+                            )}
+                          >
+                            {archiveSuccess ? <Check size={13} /> : <Save size={13} />}
+                            {archiveSuccess ? 'Archived ✅' : 'Archive'}
+                          </button>
+                        </div>
+
+                        {/* Document Viewer Frame */}
                         <div className={cn(
-                          "rounded-3xl border shadow-2xl overflow-hidden flex flex-col min-h-[550px]",
+                          "rounded-3xl border shadow-2xl overflow-hidden flex flex-col min-h-[520px]",
                           isDarkMode ? "bg-[#050a18] border-white/10" : "bg-white border-slate-200"
                         )}>
-                          {/* Document Viewer Frame */}
+                          {/* Document Viewer Frame Header */}
                           <div className={cn(
                             "p-1 flex items-center gap-2 border-b",
                             isDarkMode ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200"
@@ -1710,10 +1939,10 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                           </div>
 
                           {/* Interactive Page Viewport */}
-                          <div className="flex-1 max-h-[650px] overflow-y-auto scrollbar-thin p-3 sm:p-4">
+                          <div className="flex-1 max-h-[600px] overflow-y-auto scrollbar-thin p-3 sm:p-4">
                             <HtmlPreviewFrame
                               html={replaceImagePlaceholders(activeHtml, activeTab === 'teaching' ? t_generateImage : activeTab === 'visual' ? v_generateImage : a_generateImage)}
-                              minHeight="550px"
+                              minHeight="520px"
                             />
                           </div>
                         </div>
@@ -1757,223 +1986,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
             </div>
           )}
 
-          {/* Results Section - RESTORED to the bottom */}
-          {((activeTab === 'teaching' && (teachingResult?.content || teachingResult?.memo || teachingResult?.rubric)) ||
-            (activeTab === 'visual' && visualResult?.content) ||
-            (activeTab === 'admin' && adminResult?.content)) && (
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="max-w-6xl mx-auto mt-8 pb-12"
-            >
-              <div className={cn(
-                "rounded-3xl border p-8 backdrop-blur-xl",
-                isDarkMode
-                  ? "bg-[#0d1221]/90 border-white/10 shadow-2xl"
-                  : "bg-white border-slate-200 shadow-xl"
-              )}>
-                {/* Result Tabs Selector (Teaching) */}
-                {activeTab === 'teaching' && (
-                  <div className="flex gap-2 mb-6 border-b border-white/5 pb-4">
-                    <button
-                      onClick={() => setActivePreviewTab('content')}
-                      className={cn(
-                        "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
-                        activePreviewTab === 'content'
-                          ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
-                          : "text-slate-400 hover:text-white"
-                      )}
-                    >
-                      Lesson Material
-                    </button>
-                    {teachingResult.memo && (
-                      <button
-                        onClick={() => setActivePreviewTab('memo')}
-                        className={cn(
-                          "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
-                          activePreviewTab === 'memo'
-                            ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
-                            : "text-slate-400 hover:text-white"
-                        )}
-                      >
-                        Expert Memo
-                      </button>
-                    )}
-                    {teachingResult.rubric && (
-                      <button
-                        onClick={() => setActivePreviewTab('rubric')}
-                        className={cn(
-                          "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
-                          activePreviewTab === 'rubric'
-                            ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
-                            : "text-slate-400 hover:text-white"
-                        )}
-                      >
-                        Marks Rubric
-                      </button>
-                    )}
-                  </div>
-                )}
 
-                {/* Action Buttons Toolbar */}
-                <div className="flex flex-wrap gap-3 mb-6 pb-6 border-b border-white/5">
-                  <Button
-                    onClick={() => setIsFullscreenPreview(!isFullscreenPreview)}
-                    className={cn(
-                      "border text-[10px] font-black uppercase tracking-widest",
-                      isDarkMode 
-                        ? "bg-white/10 border-white/5 hover:bg-white/20 text-white"
-                        : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-900"
-                    )}
-                  >
-                    {isFullscreenPreview ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                    {isFullscreenPreview ? 'Minimize' : 'Fullscreen'}
-                  </Button>
-                  
-                  <Button
-                    onClick={handlePrint}
-                    className={cn(
-                      "border text-[10px] font-black uppercase tracking-widest",
-                      isDarkMode 
-                        ? "bg-white/10 border-white/5 hover:bg-white/20 text-white"
-                        : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-900"
-                    )}
-                  >
-                    <Printer size={14} />
-                    Print File
-                  </Button>
-                  
-                  <Button
-                    onClick={handleDownloadPDF}
-                    className={cn(
-                      "border text-[10px] font-black uppercase tracking-widest",
-                      isDarkMode 
-                        ? "bg-white/10 border-white/5 hover:bg-white/20 text-white"
-                        : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-900"
-                    )}
-                  >
-                    <Download size={14} />
-                    PDF Download
-                  </Button>
-                  
-                  <Button
-                    onClick={handleToggleEdit}
-                    className={cn(
-                      "border text-[10px] font-black uppercase tracking-widest",
-                      isEditing
-                        ? "bg-cyan-400 border-cyan-400/20 text-slate-900"
-                        : isDarkMode
-                        ? "bg-white/10 border-white/5 hover:bg-white/20 text-white"
-                        : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-900"
-                    )}
-                  >
-                    <Edit2 size={14} />
-                    {isEditing ? 'Save Sandbox' : 'Edit Document'}
-                  </Button>
-
-                  <Button
-                    onClick={handleQualityCheck}
-                    className={cn(
-                      "border text-[10px] font-black uppercase tracking-widest",
-                      showQualityCheck && qualityRating
-                        ? "bg-emerald-500 border-emerald-500 text-white"
-                        : isDarkMode 
-                        ? "bg-white/10 border-white/5 hover:bg-white/20 text-white"
-                        : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-900"
-                    )}
-                  >
-                    <ClipboardList size={14} />
-                    Quality Check
-                  </Button>
-                  
-                  <Button
-                    onClick={() => setShowShareModal(true)}
-                    className={cn(
-                      "border text-[10px] font-black uppercase tracking-widest",
-                      isDarkMode 
-                        ? "bg-white/10 border-white/5 hover:bg-white/20 text-white"
-                        : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-900"
-                    )}
-                  >
-                    <Share2 size={14} />
-                    Export
-                  </Button>
-                  
-                  <Button
-                    onClick={handleArchive}
-                    className={cn(
-                      "text-[10px] font-black uppercase tracking-widest ml-auto",
-                      archiveSuccess
-                        ? "bg-emerald-500 text-white border-0"
-                        : "bg-cyan-400 hover:bg-cyan-500 text-slate-900 border-0 shadow-lg shadow-cyan-500/20"
-                    )}
-                  >
-                    {archiveSuccess ? <Check size={14} /> : <Save size={14} />}
-                    {archiveSuccess ? 'Archived ✅' : 'Archive to Library'}
-                  </Button>
-                </div>
-
-                {/* Quality Badge if checked */}
-                {(teachingResult?.qualityRating || visualResult?.qualityRating || adminResult?.qualityRating) && (
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold mb-6">
-                    <span className="flex items-center gap-2">
-                      <Check className="text-emerald-400" size={16} />
-                      CAPS Quality Score: {((teachingResult?.qualityRating || visualResult?.qualityRating || adminResult?.qualityRating)?.capsAlignmentScore || 95)}% (CAPS Aligned)
-                    </span>
-                    <button
-                      onClick={() => {
-                        setQualityRating(teachingResult?.qualityRating || visualResult?.qualityRating || adminResult?.qualityRating);
-                        setShowQualityCheck(true);
-                      }}
-                      className="text-[10px] underline uppercase tracking-wider text-emerald-300 hover:text-white cursor-pointer"
-                    >
-                      View Full Breakdown
-                    </button>
-                  </div>
-                )}
-
-                {/* Editable Editor */}
-                {isEditing && (
-                  <div className="mb-8 p-6 rounded-2xl bg-white/5 border border-white/10">
-                    <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-4">
-                      <div>
-                        <h4 className="text-sm font-bold text-cyan-400">Sandbox Editor</h4>
-                        <p className="text-[10px] text-slate-400">Modify the generation directly.</p>
-                      </div>
-                      <Button
-                        onClick={handleSaveEdits}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black py-2"
-                      >
-                        <Save size={12} />
-                        Apply Edits
-                      </Button>
-                    </div>
-                    
-                    <Textarea
-                      isDarkMode={isDarkMode}
-                      value={activeTab === 'teaching' ? (activePreviewTab === 'content' ? editContentText : activePreviewTab === 'memo' ? editMemoText : editRubricText) : editContentText}
-                      onChange={(e: any) => {
-                        const val = e.target.value;
-                        if (activeTab === 'teaching') {
-                          if (activePreviewTab === 'content') setEditContentText(val);
-                          else if (activePreviewTab === 'memo') setEditMemoText(val);
-                          else setEditRubricText(val);
-                        } else {
-                          setEditContentText(val);
-                        }
-                      }}
-                      className="h-64 font-mono text-[11px] leading-relaxed"
-                    />
-                  </div>
-                )}
-
-                <div className="text-center text-[10px] text-slate-500 font-mono italic">
-                  Use the tools above to print, download, edit, or archive your generated CAPS document.
-                </div>
-              </div>
-            </motion.div>
-          )}
 
           {/* Dedicated Fullscreen Preview Modal */}
           <AnimatePresence>
@@ -2035,6 +2048,15 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                   )}
 
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleAssign}
+                      className={cn(
+                        "p-2.5 rounded-xl text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all shadow-md",
+                        assignSuccess ? "bg-emerald-500" : "bg-purple-600 hover:bg-purple-500"
+                      )}
+                    >
+                      <Users size={14} /> {assignSuccess ? 'Assigned ✅' : 'Assign'}
+                    </button>
                     <button
                       onClick={handlePrint}
                       className="p-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-700 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"

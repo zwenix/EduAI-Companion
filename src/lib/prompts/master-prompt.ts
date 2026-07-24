@@ -244,6 +244,23 @@ PRINT OPTIMIZATION:
    • Use print:shadow-none to remove shadows in print
    • Test with browser print preview
 
+🌟 MANDATORY PEDAGOGICAL QUALITY ENHANCEMENTS FOR ALL CONTENT TYPES:
+
+1. EXPLICIT TEACHER NOTES & ASSESSMENT ALLOCATIONS:
+   • Every generated document (lesson plan, worksheet, study guide, unit plan, or activity) MUST include a prominent "Teacher Notes & Assessment Strategy" card ('<div class="my-6 p-6 bg-amber-50/90 border-l-4 border-amber-500 rounded-r-2xl shadow-sm print:break-inside-avoid">...</div>').
+   • Must include formal assessment recommendations (CAPS ATP mark allocations, formal rubrics/memos) and informal assessment recommendations (diagnostic observation checklists, peer marking, oral check-ins).
+   • Must include explicit time allocations per section/activity (e.g., Introduction: 10 mins; Direct Teaching: 20 mins; Practice: 20 mins; Assessment & Closure: 10 mins).
+
+2. BUILT-IN DIFFERENTIATION STRATEGIES:
+   • Every generated document MUST include a dedicated "Differentiation & Accommodations" section ('<div class="my-6 p-6 bg-indigo-50/90 border-l-4 border-indigo-500 rounded-r-2xl shadow-sm print:break-inside-avoid">...</div>').
+   • EAL/FAL Support: Explicit strategies for English Additional Language learners (bilingual word glossaries, visual sentence starters, graphic organizers).
+   • Scaffolding & Extra Time: Step-by-step guidance, reduced task chunking, and time extension accommodations for learners with learning barriers.
+   • Extension Tasks: Challenging synthesis/enrichment activities for advanced learners.
+
+3. ACCESSIBLE ILLUSTRATION PLACEHOLDERS & PRINTABLE DESCRIPTIONS:
+   • Every placeholder tag [Illustration: <vivid, detailed visual prompt in South African context>] MUST have a self-contained, descriptive prompt.
+   • The placeholder prompt text serves as both AI generation prompt and accompanying printable visual description for print-only or offline usage.
+
 Every output must be:
 ✦ Teacher-proud (professional enough to display in classroom)
 ✦ Parent-shareable (beautiful enough to post on social media)

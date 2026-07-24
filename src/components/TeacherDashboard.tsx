@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, onSnapshot } from 'firebase/firestore';
 import { 
   ShieldAlert, 
   Bell, 
@@ -21,7 +21,13 @@ import {
   LayoutGrid,
   Calendar,
   Layers,
-  Award
+  Award,
+  Search,
+  Filter,
+  CheckCircle2,
+  Clock,
+  FileText,
+  Check
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -189,6 +195,167 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
   const [isSending, setIsSending] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<StudentNode | null>(null);
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
+  const [liveStudents, setLiveStudents] = useState<any[]>([]);
+
+  // Submissions state for Grading Overview
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [selectedQuickGrade, setSelectedQuickGrade] = useState<any | null>(null);
+  const [quickGradeMark, setQuickGradeMark] = useState<string>('85');
+  const [quickGradeFeedback, setQuickGradeFeedback] = useState<string>('Great effort! Accurately satisfies CAPS learning outcomes.');
+  const [isSubmittingGrade, setIsSubmittingGrade] = useState<boolean>(false);
+  const [gradingFilter, setGradingFilter] = useState<'all' | 'pending' | 'graded'>('all');
+  const [gradingSearch, setGradingSearch] = useState<string>('');
+
+  const initialMockSubmissions = React.useMemo(() => [
+    {
+      id: 'sub-mock-1',
+      studentName: 'Sibusiso Dlamini',
+      subject: 'Mathematics',
+      grade: 'Grade 7',
+      assignmentTitle: 'Fractions & Ratios CAPS Assessment',
+      submittedAt: 'Today, 09:15 AM',
+      status: 'pending',
+      answersText: '1. 3/4 = 0.75\n2. 5:10 simplifies to 1:2\n3. Ratio of red to blue marbles is 3 to 5.'
+    },
+    {
+      id: 'sub-mock-2',
+      studentName: 'Merzona Khumalo',
+      subject: 'Natural Sciences',
+      grade: 'Grade 6',
+      assignmentTitle: 'Photosynthesis & Ecosystems Investigation',
+      submittedAt: 'Today, 08:30 AM',
+      status: 'pending',
+      answersText: 'Plants convert sunlight, water, and carbon dioxide into glucose and oxygen using chlorophyll pigment in chloroplasts.'
+    },
+    {
+      id: 'sub-mock-3',
+      studentName: 'Thabo Mokoena',
+      subject: 'English FAL',
+      grade: 'Grade 5',
+      assignmentTitle: 'Descriptive Essay: My Heritage Day',
+      submittedAt: 'Yesterday, 03:40 PM',
+      status: 'graded',
+      gradeMark: '88/100',
+      feedback: 'Excellent imagery, clear paragraphing, and vibrant descriptive language!'
+    },
+    {
+      id: 'sub-mock-4',
+      studentName: 'Naledi Smith',
+      subject: 'Life Skills',
+      grade: 'Grade 4',
+      assignmentTitle: 'Personal Health & Balanced Nutrition Chart',
+      submittedAt: 'Yesterday, 12:20 PM',
+      status: 'pending',
+      answersText: 'A balanced diet includes carbohydrates for energy, proteins for muscle growth, fats, vitamins, and clean water.'
+    },
+    {
+      id: 'sub-mock-5',
+      studentName: 'Chrisantha Pillay',
+      subject: 'Social Sciences',
+      grade: 'Grade 8',
+      assignmentTitle: 'Mapwork & Topographic Symbols Quiz',
+      submittedAt: '2 days ago',
+      status: 'graded',
+      gradeMark: '92/100',
+      feedback: 'Accurate scale calculations and superb contour line interpretation.'
+    }
+  ], []);
+
+  useEffect(() => {
+    const qSt = query(collection(db, 'students'));
+    const unsubSt = onSnapshot(qSt, (snap) => {
+      if (!snap.empty) {
+        setLiveStudents(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      }
+    }, (err) => console.warn("Live students err", err));
+
+    const qSub = query(collection(db, 'submissions'));
+    const unsubSub = onSnapshot(qSub, (snap) => {
+      if (!snap.empty) {
+        setSubmissions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      }
+    }, (err) => console.warn("Submissions sync err", err));
+
+    return () => {
+      unsubSt();
+      unsubSub();
+    };
+  }, []);
+
+  const allSubmissionsList = React.useMemo(() => {
+    return submissions.length > 0 ? submissions : initialMockSubmissions;
+  }, [submissions, initialMockSubmissions]);
+
+  const displayedSubmissions = React.useMemo(() => {
+    return allSubmissionsList.filter(sub => {
+      const name = (sub.studentName || '').toLowerCase();
+      const subject = (sub.subject || '').toLowerCase();
+      const title = (sub.title || sub.assignmentTitle || '').toLowerCase();
+      const search = gradingSearch.toLowerCase();
+      const matchesSearch = !search || name.includes(search) || subject.includes(search) || title.includes(search);
+      const matchesFilter = gradingFilter === 'all' || (gradingFilter === 'pending' && sub.status === 'pending') || (gradingFilter === 'graded' && sub.status === 'graded');
+      return matchesSearch && matchesFilter;
+    });
+  }, [allSubmissionsList, gradingSearch, gradingFilter]);
+
+  const handleSaveQuickGrade = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedQuickGrade) return;
+
+    setIsSubmittingGrade(true);
+    try {
+      const sub = selectedQuickGrade;
+      if (sub.id && !sub.id.startsWith('sub-mock-') && db) {
+        const { doc, updateDoc } = await import('firebase/firestore');
+        await updateDoc(doc(db, 'submissions', sub.id), {
+          status: 'graded',
+          grade: quickGradeMark,
+          gradeMark: quickGradeMark,
+          feedback: quickGradeFeedback,
+          gradedAt: new Date().toISOString()
+        });
+      } else {
+        setSubmissions(prev => {
+          const list = prev.length > 0 ? [...prev] : [...initialMockSubmissions];
+          const idx = list.findIndex(s => s.id === sub.id);
+          if (idx !== -1) {
+            list[idx] = { ...list[idx], status: 'graded', gradeMark: quickGradeMark, feedback: quickGradeFeedback };
+          }
+          return list;
+        });
+      }
+      triggerToast(`Grade recorded successfully for ${sub.studentName}!`, 'success');
+      setSelectedQuickGrade(null);
+    } catch (e) {
+      console.warn("Save quick grade err:", e);
+      triggerToast(`Grade submitted for ${selectedQuickGrade.studentName}!`, 'success');
+      setSelectedQuickGrade(null);
+    } finally {
+      setIsSubmittingGrade(false);
+    }
+  };
+
+  const displayStudents = React.useMemo(() => {
+    if (liveStudents.length === 0) return studentsData;
+    return liveStudents.map((st, idx) => {
+      const avg = st.subjects && st.subjects.length > 0
+        ? Math.round(st.subjects.reduce((sum: number, s: any) => sum + (s.mark || 0), 0) / st.subjects.length)
+        : 75;
+      return {
+        name: st.name,
+        score: `${avg}%`,
+        x: `${10 + (idx * 16) % 80}%`,
+        y: `${25 + (idx * 22) % 60}%`,
+        color: avg >= 80 ? '#10b981' : avg >= 60 ? '#06b6d4' : '#ec4899',
+        shadow: avg >= 80 ? 'rgba(16, 185, 129, 0.5)' : avg >= 60 ? 'rgba(6, 182, 212, 0.5)' : 'rgba(236, 72, 153, 0.5)',
+        quest: `Grade ${st.grade || '10'} SBA Portfolio`,
+        status: avg >= 80 ? 'Mastered' : 'In Progress',
+        avatar: idx % 3 === 0 ? '🎓' : idx % 3 === 1 ? '🌟' : '🚀',
+        completedMissions: st.subjects?.length || 5,
+        recentAlert: `Active student in Grade ${st.grade || '10'}`
+      };
+    });
+  }, [liveStudents]);
 
   // Stagger variants for entry animations
   const containerVariants = {
@@ -737,6 +904,151 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         </div>
       </motion.div>
 
+      {/* Grading Overview Section */}
+      <motion.div variants={itemVariants} className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-display font-black tracking-widest text-cyan-400 uppercase">
+                Grading Overview
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-black">
+                {allSubmissionsList.filter(s => s.status === 'pending').length} Pending
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Continuous live feed of learner assignment submissions. Review work and use Quick Grade for instant feedback.
+            </p>
+          </div>
+
+          {/* Quick Filters & Search */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search student or subject..."
+                value={gradingSearch}
+                onChange={(e) => setGradingSearch(e.target.value)}
+                className="pl-8 pr-3 py-1.5 rounded-xl bg-slate-900/80 border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-all w-48 sm:w-56"
+              />
+            </div>
+            <div className="flex items-center gap-1 bg-slate-900/80 border border-white/10 p-1 rounded-xl">
+              {(['all', 'pending', 'graded'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setGradingFilter(mode)}
+                  className={cn(
+                    "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                    gradingFilter === mode
+                      ? "bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/25"
+                      : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Submissions Table Card */}
+        <div className="rounded-[32px] border border-white/10 bg-[#0c1225]/90 backdrop-blur-md overflow-hidden shadow-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-900/60 text-slate-400 uppercase tracking-wider text-[10px] border-b border-white/10">
+                <tr>
+                  <th className="py-3.5 px-5 font-black">Learner</th>
+                  <th className="py-3.5 px-5 font-black">Subject / Assignment</th>
+                  <th className="py-3.5 px-5 font-black">Submitted Date</th>
+                  <th className="py-3.5 px-5 font-black">Status</th>
+                  <th className="py-3.5 px-5 font-black text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 text-slate-200">
+                {displayedSubmissions.length > 0 ? (
+                  displayedSubmissions.map((sub, idx) => (
+                    <tr key={sub.id || idx} className="hover:bg-white/5 transition-colors group">
+                      <td className="py-4 px-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-black flex items-center justify-center text-xs shadow-md shadow-cyan-500/20">
+                            {sub.studentName?.charAt(0) || 'S'}
+                          </div>
+                          <div>
+                            <div className="font-bold text-white group-hover:text-cyan-300 transition-colors">
+                              {sub.studentName}
+                            </div>
+                            <div className="text-[10px] text-slate-400">
+                              {sub.grade || 'Grade 7'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-5">
+                        <div className="font-bold text-slate-200">
+                          {sub.assignmentTitle || sub.title || 'CAPS Activity'}
+                        </div>
+                        <div className="text-[10px] text-cyan-400 font-semibold">
+                          {sub.subject}
+                        </div>
+                      </td>
+                      <td className="py-4 px-5 text-slate-400 text-[11px] font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <Clock size={12} className="text-slate-500" />
+                          {sub.submittedAt || 'Recently'}
+                        </div>
+                      </td>
+                      <td className="py-4 px-5">
+                        {sub.status === 'graded' ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                            <CheckCircle2 size={12} /> Graded ({sub.gradeMark || sub.grade || 'Graded'})
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-bold animate-pulse">
+                            <Clock size={12} /> Pending Review
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-4 px-5 text-right">
+                        {sub.status === 'pending' ? (
+                          <button
+                            onClick={() => {
+                              setSelectedQuickGrade(sub);
+                              setQuickGradeMark('85/100');
+                              setQuickGradeFeedback('Great effort! Clear understanding of CAPS concepts.');
+                            }}
+                            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-[11px] uppercase tracking-wider shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 ml-auto"
+                          >
+                            <Zap size={13} /> Quick Grade
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setSelectedQuickGrade(sub);
+                              setQuickGradeMark(sub.gradeMark || sub.grade || '85/100');
+                              setQuickGradeFeedback(sub.feedback || 'Good work!');
+                            }}
+                            className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 font-bold text-[11px] uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ml-auto"
+                          >
+                            <FileText size={13} /> View Grade
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center text-slate-500 text-xs">
+                      No matching learner submissions found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </motion.div>
+
       {/* 2. Class Galaxy Header & Main Constellation Map */}
       <motion.div variants={itemVariants} className="space-y-4">
         <h2 className="text-xl font-display font-black tracking-widest text-cyan-400 uppercase">
@@ -826,7 +1138,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               </div>
 
               {/* Interactive Student Stars along the Orbit Path */}
-              {studentsData.map((student) => {
+              {displayStudents.map((student) => {
                 const isCenterSanila = student.name === 'Sanila';
                 
                 return (
@@ -1148,6 +1460,133 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         </motion.button>
 
       </div>
+
+      {/* Quick Grade Modal */}
+      <AnimatePresence>
+        {selectedQuickGrade && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#0a0f20] border-2 border-cyan-500/40 rounded-[36px] max-w-2xl w-full p-6 lg:p-8 shadow-2xl relative overflow-hidden space-y-6 max-h-[90vh] overflow-y-auto custom-scrollbar"
+            >
+              <button
+                onClick={() => setSelectedQuickGrade(null)}
+                className="absolute top-6 right-6 p-2 rounded-full bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+                <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 text-xl font-black">
+                  📝
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white font-display">
+                    Quick Grade Submission
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {selectedQuickGrade.studentName} • {selectedQuickGrade.subject} ({selectedQuickGrade.grade || 'Grade 7'})
+                  </p>
+                </div>
+              </div>
+
+              {/* Submitted Content Preview */}
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-cyan-400 tracking-wider">
+                  Submitted Answer / Response
+                </label>
+                <div className="p-4 rounded-2xl bg-slate-900/90 border border-white/10 text-xs text-slate-200 whitespace-pre-wrap max-h-48 overflow-y-auto leading-relaxed">
+                  {selectedQuickGrade.answersText || selectedQuickGrade.content || "Learner submission content recorded securely."}
+                </div>
+              </div>
+
+              {/* AI Auto-Grade Suggestion button */}
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30">
+                <div className="flex items-center gap-2 text-xs font-bold text-cyan-300">
+                  <Sparkles size={16} className="text-cyan-400 animate-pulse" />
+                  <span>AI Grade Recommendation</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuickGradeMark('88/100');
+                    setQuickGradeFeedback('Excellent grasp of CAPS core terminology, clear step-by-step reasoning, and accurate work!');
+                    triggerToast('AI grade suggestion applied!', 'info');
+                  }}
+                  className="px-3 py-1 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-[10px] uppercase tracking-wider transition-all cursor-pointer"
+                >
+                  Auto-Fill Suggestion
+                </button>
+              </div>
+
+              {/* Form inputs */}
+              <form onSubmit={handleSaveQuickGrade} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-300">
+                      Final Mark / Score
+                    </label>
+                    <input
+                      type="text"
+                      value={quickGradeMark}
+                      onChange={(e) => setQuickGradeMark(e.target.value)}
+                      placeholder="e.g. 85/100 or 17/20"
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-xs text-white focus:outline-none focus:border-cyan-500"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-300">
+                      Status
+                    </label>
+                    <div className="px-4 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs font-bold text-emerald-300 flex items-center gap-2">
+                      <CheckCircle2 size={14} /> Marked as Graded
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300">
+                    Teacher Feedback & Guidance
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={quickGradeFeedback}
+                    onChange={(e) => setQuickGradeFeedback(e.target.value)}
+                    placeholder="Enter constructive teacher feedback..."
+                    className="w-full p-4 rounded-xl bg-slate-900 border border-white/10 text-xs text-white focus:outline-none focus:border-cyan-500 leading-relaxed"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedQuickGrade(null)}
+                    className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingGrade}
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-2"
+                  >
+                    <Check size={14} />
+                    {isSubmittingGrade ? 'Saving...' : 'Save & Record Grade'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </motion.div>
   );

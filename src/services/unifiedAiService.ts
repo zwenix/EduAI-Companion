@@ -383,7 +383,7 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
   }
 
   try {
-    let model = provider === 'nvidia-nemotron' ? 'nvidia/nemotron-3-ultra-550b-a55b' : 'qwen/qwen3.6-27b';
+    let model = provider === 'nvidia-nemotron' ? 'nvidia/llama-3.1-nemotron-70b-instruct' : 'qwen/qwen3.6-27b';
     
     const grading = await callMultiAi(provider as AIProvider, messages, model);
     

@@ -91,8 +91,12 @@ export function replaceImagePlaceholders(html: string, allowImages: boolean = tr
 
     if (!allowImages) {
       return `
-<div class="my-4 p-4 border border-dashed border-slate-300 rounded-2xl bg-slate-50 text-center text-slate-500 font-medium text-xs">
-  📸 Illustration Placeholder: ${cleanPrompt.slice(0, 80)}${cleanPrompt.length > 80 ? '...' : ''}
+<div class="my-4 p-4 border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50 text-slate-700 font-medium text-xs shadow-sm print:break-inside-avoid">
+  <div class="flex items-center gap-2 mb-1">
+    <span class="text-base">📸</span>
+    <strong class="font-bold text-slate-900 uppercase tracking-wider text-[10px]">Illustration Placeholder & Printable Description:</strong>
+  </div>
+  <p class="italic text-slate-600 font-serif leading-relaxed">${cleanPrompt}</p>
 </div>
       `;
     }
@@ -105,8 +109,10 @@ export function replaceImagePlaceholders(html: string, allowImages: boolean = tr
 <div class="my-6 overflow-hidden rounded-[2rem] border-2 border-solid border-slate-200 p-2 bg-white hover:bg-slate-50 transition-all duration-300 max-w-full print:break-inside-avoid print:border-none print:p-0 print:m-0 print:shadow-none shadow-sm">
   <img src="${cachedUrl}" 
        alt="${cleanPrompt}" 
+       title="${cleanPrompt}"
        class="w-full object-cover rounded-[1.8rem] aspect-[4/3] max-h-[360px] border border-slate-100 shadow-inner print:rounded-none print:shadow-none" 
        referrerPolicy="no-referrer" />
+  <p class="hidden print:block text-[11px] text-slate-700 italic mt-1.5 font-serif text-center border-t border-slate-200 pt-1">[Print Visual Description: ${cleanPrompt}]</p>
   <div class="px-4 py-2 border-t border-dashed border-slate-150 mt-2 bg-slate-50/55 rounded-b-[1.5rem] flex items-center justify-between print:hidden select-none">
     <div class="flex items-center gap-2">
       <span class="text-xs">💾</span>
@@ -137,13 +143,18 @@ export function replaceImagePlaceholders(html: string, allowImages: boolean = tr
 <div class="my-6 overflow-hidden rounded-[2rem] border-2 border-dashed border-slate-300 p-2 bg-slate-50/50 hover:bg-slate-100 transition-all duration-300 max-w-full print:break-inside-avoid print:border-none print:p-0 print:m-0 print:shadow-none shadow-sm">
   <img src="${imageUrl}" 
        alt="${cleanPrompt}" 
+       title="${cleanPrompt}"
        class="w-full object-cover rounded-[1.8rem] aspect-[4/3] max-h-[360px] border border-slate-100 shadow-inner print:rounded-none print:shadow-none" 
        referrerPolicy="no-referrer" />
-  <div class="px-4 py-2 border-t border-dashed border-slate-200 mt-2 bg-white/50 rounded-b-[1.5rem] flex items-center gap-2 print:hidden select-none">
-    <span class="text-xs">🎨</span>
-    <p class="text-[9px] uppercase tracking-widest font-black text-slate-500 leading-none">
-      CAPS Illustration: ${cleanPrompt.slice(0, 60)}${cleanPrompt.length > 60 ? '...' : ''}
-    </p>
+  <p class="hidden print:block text-[11px] text-slate-700 italic mt-1.5 font-serif text-center border-t border-slate-200 pt-1">[Print Visual Description: ${cleanPrompt}]</p>
+  <div class="px-4 py-2 border-t border-dashed border-slate-200 mt-2 bg-white/50 rounded-b-[1.5rem] flex items-center justify-between print:hidden select-none">
+    <div class="flex items-center gap-2">
+      <span class="text-xs">🎨</span>
+      <p class="text-[9px] uppercase tracking-widest font-black text-slate-500 leading-none">
+        CAPS Illustration: ${cleanPrompt.slice(0, 45)}${cleanPrompt.length > 45 ? '...' : ''}
+      </p>
+    </div>
+    <span class="text-[8px] px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 font-bold select-none uppercase">Model: ${provider === 'gemini-imagen' ? 'Gemini Imagen-3' : provider === 'perchance' ? 'Perchance Turbo' : 'Pollinations Turbo'}</span>
   </div>
 </div>
     `;

@@ -212,11 +212,11 @@ export const performBasicQualityCheck = (options: QualityCheckOptions): QualityR
 
   const capsAlignment = {
     hasLearningObjectives: contentLower.includes('objective') || contentLower.includes('outcome') || contentLower.includes('aim') || contentLower.includes('skills'),
-    hasAssessmentCriteria: contentLower.includes('mark') || contentLower.includes('score') || contentLower.includes('grade') || contentLower.includes('rubric') || contentLower.includes('memo'),
-    hasTimeAllocation: contentLower.includes('minute') || contentLower.includes('hour') || contentLower.includes('time') || contentLower.includes('duration'),
-    hasDifferentiation: contentLower.includes('differentiat') || contentLower.includes('adapt') || contentLower.includes('support') || contentLower.includes('barrier') || contentLower.includes('extension'),
-    hasInclusiveEd: contentLower.includes('inclusive') || contentLower.includes('all learner') || contentLower.includes('diverse') || contentLower.includes('remedial'),
-    hasICTIntegration: contentLower.includes('technology') || contentLower.includes('digital') || contentLower.includes('online') || contentLower.includes('ict'),
+    hasAssessmentCriteria: contentLower.includes('mark') || contentLower.includes('score') || contentLower.includes('grade') || contentLower.includes('rubric') || contentLower.includes('memo') || contentLower.includes('teacher note') || contentLower.includes('formal assessment'),
+    hasTimeAllocation: contentLower.includes('minute') || contentLower.includes('hour') || contentLower.includes('time') || contentLower.includes('duration') || contentLower.includes('time allocation'),
+    hasDifferentiation: contentLower.includes('differentiat') || contentLower.includes('adapt') || contentLower.includes('support') || contentLower.includes('barrier') || contentLower.includes('extension') || contentLower.includes('eal') || contentLower.includes('fal'),
+    hasInclusiveEd: contentLower.includes('inclusive') || contentLower.includes('all learner') || contentLower.includes('diverse') || contentLower.includes('remedial') || contentLower.includes('scaffolding'),
+    hasICTIntegration: contentLower.includes('technology') || contentLower.includes('digital') || contentLower.includes('online') || contentLower.includes('ict') || contentLower.includes('illustration') || contentLower.includes('print description'),
     bloomTaxonomy: extractBloomTaxonomy(content)
   };
 
@@ -319,24 +319,20 @@ const generateStrengths = (checks: any, capsAlignment: any): string[] => {
 const generateImprovements = (checks: any, capsAlignment: any): string[] => {
   const improvements: string[] = [];
 
-  if (!capsAlignment.hasLearningObjectives) {
-    improvements.push('Add specific, measurable learning objectives');
+  if (!capsAlignment.hasAssessmentCriteria || !capsAlignment.hasTimeAllocation) {
+    improvements.push('Add explicit teacher notes detailing formal/informal assessment recommendations and time allocations.');
   }
 
-  if (!capsAlignment.hasTimeAllocation) {
-    improvements.push('Include time allocations for each section');
-  }
-
-  if (!capsAlignment.hasDifferentiation) {
-    improvements.push('Add differentiation strategies for struggling and advanced learners');
+  if (!capsAlignment.hasDifferentiation || !capsAlignment.hasInclusiveEd) {
+    improvements.push('Include built-in differentiation strategies (e.g., support for English Additional Language learners or learners requiring extra time/scaffolding).');
   }
 
   if (!capsAlignment.hasICTIntegration) {
-    improvements.push('Integrate technology and digital resources where appropriate');
+    improvements.push("Ensure all interactive placeholder tags like '[Illustration: ...]' have accompanying alt-text or printable descriptions for print-only usage.");
   }
 
-  if (!checks.hasAssessment) {
-    improvements.push('Include formative and summative assessment activities');
+  if (!capsAlignment.hasLearningObjectives) {
+    improvements.push('Add specific, measurable learning objectives (Know, Apply, Analyze, Evaluate).');
   }
 
   return improvements;

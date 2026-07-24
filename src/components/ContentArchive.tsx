@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Box, Search, Library, History, ExternalLink, Loader2, Trash2, Eye, Edit3, FileDown, Send, Check, X, FileText, FileJson, Bookmark } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
-import { printContent, downloadAsHTML } from '../lib/printUtils';
+import { printContent, downloadAsHTML, downloadAsPDF } from '../lib/printUtils';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 // PrintHeader import removed as per user request
 import { PosterPreview } from './PosterPreview';
@@ -244,7 +244,7 @@ export default function ContentArchive() {
 
   const handleDownloadPDF = async () => {
     if (selectedItem) {
-      printContent(printableRef, selectedItem.title || "EduAI-Document", {
+      await downloadAsPDF(printableRef, `${selectedItem.title || "EduAI-Document"}.pdf`, {
         subject: selectedItem.subject,
         grade: selectedItem.grade,
         contentType: selectedItem.contentType,
@@ -252,7 +252,7 @@ export default function ContentArchive() {
         title: selectedItem.title
       });
     } else {
-      printContent(printableRef, "EduAI-Archive-Item");
+      await downloadAsPDF(printableRef, "EduAI-Archive-Item.pdf");
     }
   };
 
