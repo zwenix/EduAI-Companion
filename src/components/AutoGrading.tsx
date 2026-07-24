@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, Scan, X, RefreshCw, Loader2, FileCheck, Brain, CheckCircle, AlertCircle, ChevronRight, GraduationCap, Download, Printer, UserCircle, Users, Save, Check, FileText, ClipboardList, Bookmark, Plus, Trash, Zap } from 'lucide-react';
+import { Camera, Upload, Scan, X, RefreshCw, Loader2, FileCheck, Brain, CheckCircle, AlertCircle, ChevronRight, GraduationCap, Download, Printer, UserCircle, Users, Save, Check, FileText, ClipboardList, Bookmark, Plus, Trash, Zap, Sparkles, Search, FileSpreadsheet, Layers, Eye, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
@@ -990,103 +990,117 @@ export default function AutoGrading() {
         )}
       </AnimatePresence>
 
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-        <div>
-          <p className="text-[10px] text-brand-cyan font-black uppercase tracking-[0.3em] mb-3">AI Vision Laboratory</p>
-          <h2 className="text-5xl font-hand text-white">Teacher's Auto-Grading Lab</h2>
-          <p className="text-slate-500 mt-2 max-w-xl text-sm leading-relaxed">
-            A unified, premium visual studio for testing, bulk processing, and persistently logging student assessment scripts against standard academic rubrics or AI-crafted Memorandums.
-          </p>
-        </div>
-        
-        <div className="flex flex-col md:flex-row gap-4 items-end">
-          <div className="flex flex-col">
-            <label className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-widest pl-1">OCR Language</label>
-            <select 
-              value={ocrLanguage} 
-              onChange={e => setOcrLanguage(e.target.value)}
-              className="bg-navy-dark border border-white/10 outline-none text-slate-300 text-xs font-black uppercase tracking-widest py-3 px-4 rounded-2xl [&>option]:bg-slate-900"
-            >
-              <option value="English">English</option>
-              {LANGUAGES.filter(l => l.value !== 'English').map(l => (
-                <option key={l.value} value={l.value}>{l.label}</option>
-              ))}
-            </select>
+      {/* Header Banner Section */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#0c1033] via-[#080b22] to-[#111640] border-2 border-indigo-500/30 rounded-[32px] p-6 sm:p-8 shadow-[0_0_40px_rgba(99,102,241,0.2)]">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-cyan-300 text-xs font-mono font-bold uppercase tracking-widest">
+              <Sparkles size={14} className="text-cyan-400 animate-pulse" />
+              <span>AI Vision & Auto-Grading Laboratory</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-white to-cyan-300 tracking-tight">
+              Teacher's Auto-Grading Lab
+            </h2>
+            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed font-medium">
+              A unified, premium visual studio for testing, bulk processing, and persistently logging student assessment scripts against standard academic rubrics or AI-crafted Memorandums.
+            </p>
           </div>
-          <div className="flex flex-col">
-            <label className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-widest pl-1">Handwriting Mode</label>
-            <button
-              id="toggle-handwritten"
-              type="button"
-              onClick={() => setIsHandwritten(!isHandwritten)}
-              className={`py-3 px-4 rounded-2xl border text-xs font-black uppercase tracking-widest transition-all h-[42px] flex items-center gap-2 cursor-pointer ${
-                isHandwritten 
-                  ? 'bg-brand-cyan/20 border-brand-cyan text-brand-cyan shadow-sm shadow-brand-cyan/20' 
-                  : 'bg-navy-dark border-white/10 text-slate-400'
-              }`}
-            >
-              <span className={`w-2 h-2 rounded-full ${isHandwritten ? 'bg-brand-cyan animate-pulse' : 'bg-slate-600'}`} />
-              {isHandwritten ? 'Handwritten' : 'Printed Text'}
-            </button>
+          
+          <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+            <div className="flex flex-col grow sm:grow-0">
+              <label className="text-[10px] uppercase font-mono font-bold text-slate-400 mb-1 tracking-widest pl-1">OCR Language</label>
+              <select 
+                value={ocrLanguage} 
+                onChange={e => setOcrLanguage(e.target.value)}
+                className="bg-slate-900/90 border border-indigo-500/30 text-slate-200 text-xs font-bold uppercase tracking-wider py-2.5 px-3.5 rounded-xl outline-none focus:border-cyan-400 [&>option]:bg-slate-900 transition-all"
+              >
+                <option value="English">English</option>
+                {LANGUAGES.filter(l => l.value !== 'English').map(l => (
+                  <option key={l.value} value={l.value}>{l.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col grow sm:grow-0">
+              <label className="text-[10px] uppercase font-mono font-bold text-slate-400 mb-1 tracking-widest pl-1">Script Type</label>
+              <button
+                id="toggle-handwritten"
+                type="button"
+                onClick={() => setIsHandwritten(!isHandwritten)}
+                className={`py-2.5 px-3.5 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all h-[38px] flex items-center gap-2 cursor-pointer ${
+                  isHandwritten 
+                    ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]' 
+                    : 'bg-slate-900/90 border-indigo-500/30 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${isHandwritten ? 'bg-cyan-400 animate-ping' : 'bg-slate-600'}`} />
+                {isHandwritten ? 'Handwritten' : 'Printed Text'}
+              </button>
+            </div>
+
+            <div className="flex flex-col grow sm:grow-0 self-end">
+              <button 
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] h-[38px] cursor-pointer active:scale-95"
+              >
+                <Upload size={16} />
+                <span>Upload Scans</span>
+              </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileUpload} 
+                className="hidden" 
+                accept="image/*,application/pdf,.pdf,.docx,.doc,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
+                multiple
+              />
+            </div>
           </div>
-          <button 
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="glass px-6 py-3 rounded-2xl flex items-center gap-3 text-xs font-black uppercase tracking-widest text-slate-300 hover:text-white transition-all border border-white/5 h-[42px]"
-          >
-            <Upload size={18} className="text-brand-cyan" />
-            Upload Scans
-          </button>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileUpload} 
-            className="hidden" 
-            accept="image/*,application/pdf,.pdf,.docx,.doc,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
-            multiple
-          />
         </div>
       </div>
 
       {/* Unified Teacher's Auto-Grading Lab Navigation tabs */}
-      <div className="flex flex-wrap border-b border-white/10 gap-2 mb-2">
+      <div className="bg-slate-900/90 border border-indigo-500/30 p-1.5 rounded-2xl flex flex-wrap gap-2 shadow-[0_0_20px_rgba(0,0,0,0.3)]">
         <button
           type="button"
           onClick={() => setLabActiveTab('grade')}
-          className={`px-6 py-3.5 text-xs uppercase font-black tracking-widest border-b-2 transition-all cursor-pointer flex items-center gap-2.5 ${
+          className={`flex-1 min-w-[180px] px-5 py-3 rounded-xl text-xs uppercase font-black tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2.5 ${
             labActiveTab === 'grade'
-              ? 'border-brand-cyan text-white bg-white/5 rounded-t-2xl'
-              : 'border-transparent text-slate-400 hover:text-white'
+              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.4)]'
+              : 'text-slate-400 hover:text-white hover:bg-indigo-500/10'
           }`}
         >
-          <Scan size={14} className="text-brand-cyan" />
-          Scan & Grade Desk
+          <Scan size={16} className={labActiveTab === 'grade' ? 'text-slate-950' : 'text-cyan-400'} />
+          <span>Scan & Grade Desk</span>
         </button>
         <button
           type="button"
           onClick={() => setLabActiveTab('notifications')}
-          className={`px-6 py-3.5 text-xs uppercase font-black tracking-widest border-b-2 transition-all cursor-pointer flex items-center gap-2.5 relative ${
+          className={`flex-1 min-w-[180px] px-5 py-3 rounded-xl text-xs uppercase font-black tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2.5 relative ${
             labActiveTab === 'notifications'
-              ? 'border-brand-cyan text-white bg-white/5 rounded-t-2xl'
-              : 'border-transparent text-slate-400 hover:text-white'
+              ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)]'
+              : 'text-slate-400 hover:text-white hover:bg-indigo-500/10'
           }`}
         >
-          <Brain size={14} className="text-purple-400" />
-          Alert Hub & Live Feed
+          <Brain size={16} className={labActiveTab === 'notifications' ? 'text-white' : 'text-purple-400'} />
+          <span>Alert Hub & Live Feed</span>
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
         </button>
         <button
           type="button"
           onClick={() => setLabActiveTab('history')}
-          className={`px-6 py-3.5 text-xs uppercase font-black tracking-widest border-b-2 transition-all cursor-pointer flex items-center gap-2.5 ${
+          className={`flex-1 min-w-[180px] px-5 py-3 rounded-xl text-xs uppercase font-black tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2.5 ${
             labActiveTab === 'history'
-              ? 'border-brand-cyan text-white bg-white/5 rounded-t-2xl'
-              : 'border-transparent text-slate-400 hover:text-white'
+              ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 shadow-[0_0_20px_rgba(251,191,36,0.4)]'
+              : 'text-slate-400 hover:text-white hover:bg-indigo-500/10'
           }`}
         >
-          <ClipboardList size={14} className="text-amber-400" />
-          Archived Reports Vault ({labReports.length})
+          <ClipboardList size={16} className={labActiveTab === 'history' ? 'text-slate-950' : 'text-amber-400'} />
+          <span>Archived Reports Vault ({labReports.length})</span>
         </button>
       </div>
 
@@ -1097,81 +1111,81 @@ export default function AutoGrading() {
           {uploadedFiles.length === 0 && !isCameraActive ? (
             <button 
               onClick={startCamera}
-              className="w-full aspect-[4/3] glass rounded-[48px] border-2 border-dashed border-white/10 flex flex-col items-center justify-center group hover:border-brand-cyan/40 transition-all overflow-hidden relative p-8 text-center"
+              className="w-full aspect-[4/3] bg-gradient-to-b from-indigo-950/40 to-slate-900/80 rounded-[32px] border-2 border-dashed border-cyan-500/30 flex flex-col items-center justify-center group hover:border-cyan-400 hover:shadow-[0_0_30px_rgba(6,182,212,0.25)] transition-all overflow-hidden relative p-8 text-center cursor-pointer"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-brand-cyan/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center text-brand-cyan mb-6 group-hover:scale-110 transition-transform">
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="w-20 h-20 bg-cyan-500/10 border border-cyan-400/30 rounded-3xl flex items-center justify-center text-cyan-400 mb-6 group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(6,182,212,0.2)]">
                 <Camera size={40} />
               </div>
-              <h3 className="text-2xl font-hand text-white">Initialize Visual Stream</h3>
-              <p className="text-slate-500 text-xs mt-2 uppercase font-black tracking-widest">Click to scan/capture custom student work</p>
+              <h3 className="text-2xl font-display font-black text-white tracking-tight">Initialize Visual Stream</h3>
+              <p className="text-cyan-300/80 text-xs mt-2 uppercase font-mono font-bold tracking-widest">Click to scan/capture custom student work</p>
               {cameraError && (
-                <div className="mt-4 flex items-center gap-2 text-rose-400 text-[10px] font-black uppercase tracking-widest bg-rose-400/10 px-4 py-2 rounded-full border border-rose-400/20">
+                <div className="mt-4 flex items-center gap-2 text-rose-400 text-[10px] font-black uppercase tracking-widest bg-rose-500/15 px-4 py-2 rounded-full border border-rose-500/30">
                   <AlertCircle size={14} />
                   {cameraError}
                 </div>
               )}
             </button>
           ) : isCameraActive ? (
-            <div className="relative aspect-[4/3] bg-black rounded-[48px] overflow-hidden border border-white/10 shadow-2xl">
-              <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover opacity-80" />
-              <div className="absolute inset-0 border-2 border-brand-cyan/20 pointer-events-none rounded-[48px]" />
+            <div className="relative aspect-[4/3] bg-black rounded-[32px] overflow-hidden border-2 border-cyan-500/40 shadow-[0_0_30px_rgba(6,182,212,0.3)]">
+              <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover opacity-90" />
+              <div className="absolute inset-0 border-2 border-cyan-400/30 pointer-events-none rounded-[32px]" />
               
               {/* Enhanced Visual Guides */}
-              <div className="absolute inset-8 border-2 border-dashed border-brand-cyan/50 rounded-3xl pointer-events-none" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[2px] bg-brand-cyan/20 pointer-events-none" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-full w-[2px] bg-brand-cyan/20 pointer-events-none" />
+              <div className="absolute inset-8 border-2 border-dashed border-cyan-400/60 rounded-2xl pointer-events-none" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[2px] bg-cyan-400/30 pointer-events-none" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-full w-[2px] bg-cyan-400/30 pointer-events-none" />
               
-              <div className="absolute top-12 left-12 w-12 h-12 border-t-4 border-l-4 border-brand-cyan pointer-events-none rounded-tl-xl" />
-              <div className="absolute top-12 right-12 w-12 h-12 border-t-4 border-r-4 border-brand-cyan pointer-events-none rounded-tr-xl" />
-              <div className="absolute bottom-[110px] left-12 w-12 h-12 border-b-4 border-l-4 border-brand-cyan pointer-events-none rounded-bl-xl" />
-              <div className="absolute bottom-[110px] right-12 w-12 h-12 border-b-4 border-r-4 border-brand-cyan pointer-events-none rounded-br-xl" />
- 
+              <div className="absolute top-10 left-10 w-12 h-12 border-t-4 border-l-4 border-cyan-400 pointer-events-none rounded-tl-xl shadow-[0_0_15px_rgba(6,182,212,0.5)]" />
+              <div className="absolute top-10 right-10 w-12 h-12 border-t-4 border-r-4 border-cyan-400 pointer-events-none rounded-tr-xl shadow-[0_0_15px_rgba(6,182,212,0.5)]" />
+              <div className="absolute bottom-[100px] left-10 w-12 h-12 border-b-4 border-l-4 border-cyan-400 pointer-events-none rounded-bl-xl shadow-[0_0_15px_rgba(6,182,212,0.5)]" />
+              <div className="absolute bottom-[100px] right-10 w-12 h-12 border-b-4 border-r-4 border-cyan-400 pointer-events-none rounded-br-xl shadow-[0_0_15px_rgba(6,182,212,0.5)]" />
+
               {/* On-screen Instructions */}
               <div className="absolute top-6 left-0 right-0 flex justify-center pointer-events-none">
-                <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-full flex items-center gap-3 border border-white/10">
-                  <AlertCircle size={16} className="text-brand-cyan" />
-                  <span className="text-white text-xs font-medium tracking-wide">Align page. Take multiple shots if needed.</span>
+                <div className="bg-slate-950/80 backdrop-blur-md px-6 py-2.5 rounded-full flex items-center gap-3 border border-cyan-500/30 shadow-lg">
+                  <AlertCircle size={16} className="text-cyan-400 animate-pulse" />
+                  <span className="text-cyan-200 text-xs font-mono font-bold tracking-wide">Align assessment script within target frame.</span>
                 </div>
               </div>
               
-              <div className="absolute bottom-10 inset-x-0 flex justify-center gap-6">
+              <div className="absolute bottom-8 inset-x-0 flex justify-center items-center gap-6">
                 <button 
                   onClick={stopCamera}
-                  className="bg-white/10 backdrop-blur-md text-white p-4 rounded-3xl hover:bg-white/20 transition-all border border-white/10"
+                  className="bg-slate-900/80 backdrop-blur-md text-slate-300 hover:text-white p-3.5 rounded-2xl hover:bg-slate-800 transition-all border border-indigo-500/30 cursor-pointer"
                 >
-                  <X size={24} />
+                  <X size={22} />
                 </button>
                 <button 
                   onClick={captureImage}
-                  className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-navy-dark shadow-2xl active:scale-90 transition-all hover:bg-brand-cyan ring-[10px] ring-white/10"
+                  className="w-16 h-16 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center text-slate-950 shadow-[0_0_25px_rgba(6,182,212,0.6)] active:scale-90 transition-all hover:scale-105 ring-4 ring-cyan-400/30 cursor-pointer"
                 >
-                  <Camera size={32} />
+                  <Camera size={28} />
                 </button>
               </div>
             </div>
           ) : (
             <div className="space-y-4">
               {/* Active File Preview Container */}
-              <div className="relative aspect-[4/3] glass rounded-[48px] overflow-hidden border border-white/10 shadow-2xl group">
+              <div className="relative aspect-[4/3] bg-slate-950/80 rounded-[32px] overflow-hidden border-2 border-indigo-500/30 shadow-[0_0_30px_rgba(0,0,0,0.4)] group">
                 {uploadedFiles[activePreviewIndex]?.type === 'image' ? (
                   <img 
                     src={uploadedFiles[activePreviewIndex]?.dataUrl} 
-                    className="w-full h-full object-cover opacity-90" 
+                    className="w-full h-full object-cover opacity-95" 
                   />
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950/40 p-10">
-                    <div className="w-20 h-20 bg-brand-cyan/10 rounded-3xl flex items-center justify-center text-brand-cyan mb-4">
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/80 p-10">
+                    <div className="w-20 h-20 bg-cyan-500/10 border border-cyan-400/30 rounded-3xl flex items-center justify-center text-cyan-400 mb-4 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
                       {uploadedFiles[activePreviewIndex]?.type === 'pdf' ? (
                         <FileText size={40} />
                       ) : (
                         <ClipboardList size={40} />
                       )}
                     </div>
-                    <p className="text-white text-base font-black uppercase tracking-wider text-center max-w-xs truncate">
+                    <p className="text-white text-base font-black tracking-wider text-center max-w-xs truncate">
                       {uploadedFiles[activePreviewIndex]?.name}
                     </p>
-                    <p className="text-slate-500 text-[10px] font-mono mt-2 uppercase tracking-widest bg-navy-dark px-3 py-1 rounded-full border border-white/5">
+                    <p className="text-cyan-300 text-[10px] font-mono mt-2 uppercase tracking-widest bg-slate-900 px-3 py-1 rounded-full border border-cyan-500/30">
                       {uploadedFiles[activePreviewIndex]?.type?.toUpperCase()} Document
                     </p>
                   </div>
@@ -1180,7 +1194,7 @@ export default function AutoGrading() {
                 {/* Reset All Button */}
                 <button 
                   onClick={reset}
-                  className="absolute top-8 right-8 bg-rose-500/85 text-white p-3 py-2 rounded-2xl hover:bg-rose-600 transition-all shadow-2xl active:scale-95 text-xs font-black uppercase tracking-widest flex items-center gap-1.5"
+                  className="absolute top-6 right-6 bg-rose-500/90 text-white px-4 py-2 rounded-xl hover:bg-rose-600 transition-all shadow-lg active:scale-95 text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
                 >
                   <Trash size={14} />
                   Reset Queue
@@ -1188,12 +1202,12 @@ export default function AutoGrading() {
               </div>
 
               {/* Multipage Thumbnails Carousel & Document Queue */}
-              <div className="bg-navy-darker/60 p-4 rounded-3xl border border-white/5 space-y-3">
+              <div className="bg-slate-900/90 p-4 rounded-2xl border border-indigo-500/30 space-y-3">
                 <div className="flex justify-between items-center px-1">
-                  <p className="text-[10px] uppercase font-black text-brand-cyan tracking-widest">
+                  <p className="text-[10px] uppercase font-mono font-bold text-cyan-400 tracking-widest">
                     Uploaded Document Queue ({uploadedFiles.length} page/s or file/s)
                   </p>
-                  <p className="text-[9px] text-slate-500 font-mono">Accepts Multiple Images, PDFs, & DOCX</p>
+                  <p className="text-[9px] text-slate-400 font-mono">Accepts Images, PDFs, & DOCX</p>
                 </div>
 
                 <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-thin">
@@ -1203,16 +1217,16 @@ export default function AutoGrading() {
                       <div 
                         key={file.id}
                         className={`relative group flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden border transition-all cursor-pointer ${
-                          isSelected ? 'border-brand-cyan ring-2 ring-brand-cyan/25 scale-[0.98]' : 'border-white/10 hover:border-white/30'
+                          isSelected ? 'border-cyan-400 ring-2 ring-cyan-400/40 scale-[0.98]' : 'border-indigo-500/20 hover:border-indigo-500/40'
                         }`}
                         onClick={() => setActivePreviewIndex(idx)}
                       >
                         {file.type === 'image' ? (
                           <img src={file.dataUrl} className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/60 font-black text-[10px] text-slate-400">
+                          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950 font-bold text-[10px] text-slate-300">
                             {file.type === 'pdf' ? <span className="text-rose-400">PDF</span> : <span className="text-blue-400 font-mono">DOCX</span>}
-                            <span className="text-[8px] mt-1 text-slate-500 truncate max-w-[80px] p-1">{file.name}</span>
+                            <span className="text-[8px] mt-1 text-slate-400 truncate max-w-[80px] p-1">{file.name}</span>
                           </div>
                         )}
                         
@@ -1224,7 +1238,7 @@ export default function AutoGrading() {
                             setUploadedFiles(updated);
                             setActivePreviewIndex(prev => Math.max(0, Math.min(prev, updated.length - 1)));
                           }}
-                          className="absolute top-1 right-1 bg-black/80 hover:bg-rose-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-1 right-1 bg-slate-950/80 hover:bg-rose-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <X size={12} />
                         </button>
@@ -1237,18 +1251,18 @@ export default function AutoGrading() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-24 h-24 flex-shrink-0 rounded-2xl border-2 border-dashed border-white/10 hover:border-brand-cyan/40 bg-white/5 hover:bg-white/10 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      className="w-24 h-24 flex-shrink-0 rounded-2xl border-2 border-dashed border-indigo-500/30 hover:border-cyan-400 bg-indigo-500/5 hover:bg-cyan-500/10 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer"
                     >
-                      <Plus size={18} className="text-brand-cyan" />
-                      <span className="text-[9px] font-black uppercase text-slate-400">Add File</span>
+                      <Plus size={18} className="text-cyan-400" />
+                      <span className="text-[9px] font-mono font-bold uppercase text-slate-300">Add File</span>
                     </button>
                     <button
                       type="button"
                       onClick={startCamera}
-                      className="w-24 h-24 flex-shrink-0 rounded-2xl border-2 border-dashed border-white/10 hover:border-brand-cyan/40 bg-white/5 hover:bg-white/10 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      className="w-24 h-24 flex-shrink-0 rounded-2xl border-2 border-dashed border-indigo-500/30 hover:border-cyan-400 bg-indigo-500/5 hover:bg-cyan-500/10 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer"
                     >
-                      <Camera size={18} className="text-brand-cyan animate-pulse" />
-                      <span className="text-[9px] font-black uppercase text-slate-400">Scan Page</span>
+                      <Camera size={18} className="text-cyan-400 animate-pulse" />
+                      <span className="text-[9px] font-mono font-bold uppercase text-slate-300">Scan Page</span>
                     </button>
                   </div>
                 </div>
@@ -1256,20 +1270,20 @@ export default function AutoGrading() {
 
               {/* Specialized Bulk Processing Controller */}
               {uploadedFiles.length > 1 && (
-                <div className="bg-navy-darker/60 p-6 rounded-3xl border border-white/5 space-y-4">
+                <div className="bg-slate-900/90 p-6 rounded-2xl border border-indigo-500/30 space-y-4">
                   <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                     <div>
-                      <h4 className="text-[10px] font-black uppercase text-brand-cyan tracking-widest font-mono">Bulk Auto-Grading Control Panel</h4>
-                      <p className="text-slate-500 text-[11px] mt-1 leading-relaxed">Assign students to specific pages or use the engine to automatically map names from raw transcript contents.</p>
+                      <h4 className="text-xs font-mono font-bold uppercase text-cyan-400 tracking-wider">Bulk Auto-Grading Control Panel</h4>
+                      <p className="text-slate-400 text-[11px] mt-1 leading-relaxed">Assign students to specific pages or use the engine to automatically map names from raw transcript contents.</p>
                     </div>
 
                     <button
                       type="button"
                       onClick={runBulkAutoGrading}
                       disabled={isProcessing}
-                      className="bg-brand-cyan hover:bg-cyan-500 text-[#001730] text-[10px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-sm shadow-brand-cyan/20 disabled:opacity-40"
+                      className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 text-xs font-black uppercase tracking-wider px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:opacity-40"
                     >
-                      {isProcessing ? <Loader2 className="animate-spin" size={12} /> : <Zap size={12} />}
+                      {isProcessing ? <Loader2 className="animate-spin" size={14} /> : <Zap size={14} />}
                       Execute Bulk Run
                     </button>
                   </div>
@@ -1278,21 +1292,21 @@ export default function AutoGrading() {
                     {uploadedFiles.map((file) => {
                       const fileStatus = bulkStatus[file.id] || { status: 'Draft', studentId: 'unassigned' };
                       return (
-                        <div key={file.id} className="p-3 bg-navy-dark/40 border border-white/5 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                        <div key={file.id} className="p-3 bg-slate-950/60 border border-indigo-500/20 rounded-xl flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                           <div className="space-y-1">
-                            <span className="text-xs font-black text-slate-200 block truncate max-w-[200px]" title={file.name}>
+                            <span className="text-xs font-bold text-slate-200 block truncate max-w-[200px]" title={file.name}>
                               {file.name}
                             </span>
                             <div className="flex items-center gap-1.5">
-                              {fileStatus.status === 'Draft' && <span className="text-[10px] font-sans font-black uppercase text-slate-500">Draft</span>}
-                              {fileStatus.status === 'Processing' && <span className="text-[10px] font-sans font-black uppercase text-purple-400 animate-pulse">Running OCR...</span>}
-                              {fileStatus.status === 'Graded' && <span className="text-[10px] font-sans font-black uppercase text-emerald-400">Graded: {fileStatus.score}</span>}
-                              {fileStatus.status === 'Error' && <span className="text-[10px] font-sans font-black uppercase text-rose-400">Processing Error</span>}
+                              {fileStatus.status === 'Draft' && <span className="text-[10px] font-mono font-bold uppercase text-slate-500">Draft</span>}
+                              {fileStatus.status === 'Processing' && <span className="text-[10px] font-mono font-bold uppercase text-purple-400 animate-pulse">Running OCR...</span>}
+                              {fileStatus.status === 'Graded' && <span className="text-[10px] font-mono font-bold uppercase text-emerald-400">Graded: {fileStatus.score}</span>}
+                              {fileStatus.status === 'Error' && <span className="text-[10px] font-mono font-bold uppercase text-rose-400">Processing Error</span>}
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <span className="text-[9px] font-mono text-slate-500 uppercase">Map Learner:</span>
+                            <span className="text-[9px] font-mono text-slate-400 uppercase">Map Learner:</span>
                             <select
                               value={fileStatus.studentId}
                               onChange={(e) => {
@@ -1308,7 +1322,7 @@ export default function AutoGrading() {
                                   };
                                 });
                               }}
-                              className="bg-navy-dark border border-white/10 outline-none text-slate-300 text-[10px] font-bold px-2 py-1.5 rounded-lg cursor-pointer [&>option]:bg-slate-900"
+                              className="bg-slate-900 border border-indigo-500/30 text-slate-200 text-[10px] font-bold px-2.5 py-1.5 rounded-lg outline-none cursor-pointer [&>option]:bg-slate-900"
                             >
                               <option value="unassigned">Auto-detect from page</option>
                               {dbStudents.map(s => (
@@ -1325,17 +1339,16 @@ export default function AutoGrading() {
             </div>
           )}
 
-          <div className="glass p-10 rounded-[44px] border border-white/5 space-y-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-brand-cyan/10 rounded-xl text-brand-cyan">
+          <div className="bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-indigo-950/80 border-2 border-indigo-500/30 rounded-[32px] p-6 sm:p-8 space-y-6 shadow-[0_0_25px_rgba(99,102,241,0.2)]">
+            <div className="flex items-center gap-3 mb-2 border-b border-indigo-500/20 pb-4">
+              <div className="p-2.5 bg-cyan-500/10 border border-cyan-400/30 rounded-xl text-cyan-400">
                 <FileCheck size={20} />
               </div>
-              <h3 className="text-xl font-hand text-white">Grading Parameters</h3>
+              <h3 className="text-xl font-display font-black text-white">Grading Parameters</h3>
             </div>
-
-            {/* Select from Content Archive Vault / Assignments */}
+                     {/* Select from Content Archive Vault / Assignments */}
             <div className="space-y-1.5">
-              <label className="text-[10px] uppercase font-black tracking-widest text-slate-400 pl-1">
+              <label className="text-[10px] uppercase font-mono font-bold tracking-widest text-slate-300 pl-1">
                 Linked Class Assignment
               </label>
               <select
@@ -1345,7 +1358,7 @@ export default function AutoGrading() {
                   setSelectedSubmission(null);
                   setResult(null);
                 }}
-                className="w-full bg-navy-dark border border-white/10 outline-none text-slate-300 text-xs font-black uppercase tracking-widest py-3.5 px-4 rounded-2xl [&>option]:bg-slate-900 cursor-pointer"
+                className="w-full bg-slate-900 border border-indigo-500/30 outline-none text-slate-200 text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl focus:border-cyan-400 [&>option]:bg-slate-900 cursor-pointer transition-all"
               >
                 <option value="">-- Or select an assigned task (Autofills Memo & Rubric) --</option>
                 {dbAssignments.map(asg => (
@@ -1358,7 +1371,7 @@ export default function AutoGrading() {
 
             {/* Load Memo/Rubric from Personal Created Content Vault */}
             <div className="space-y-1.5">
-              <label className="text-[10px] uppercase font-black tracking-widest text-[#06b6d4] pl-1 flex items-center gap-1.5">
+              <label className="text-[10px] uppercase font-mono font-bold tracking-widest text-cyan-400 pl-1 flex items-center gap-1.5">
                 <Bookmark size={12} />
                 Load Rubric/Memo from Teacher Content Vault
               </label>
@@ -1378,7 +1391,7 @@ export default function AutoGrading() {
                     }
                   }
                 }}
-                className="w-full bg-navy-dark border border-white/10 outline-none text-slate-300 text-xs font-black uppercase tracking-widest py-3.5 px-4 rounded-2xl [&>option]:bg-slate-900 cursor-pointer"
+                className="w-full bg-slate-900 border border-indigo-500/30 outline-none text-slate-200 text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl focus:border-cyan-400 [&>option]:bg-slate-900 cursor-pointer transition-all"
               >
                 <option value="">-- Or Select from Created Content Vault --</option>
                 {createdContents.map(cnt => (
@@ -1391,17 +1404,17 @@ export default function AutoGrading() {
 
             {/* If has linked assignment and submissions, show students submissions queue */}
             {selectedAssignmentId && (
-              <div className="space-y-3 pt-2 bg-slate-900/10 p-4 rounded-2xl border border-white/5">
+              <div className="space-y-3 pt-2 bg-slate-950/60 p-4 rounded-2xl border border-indigo-500/20">
                 <div className="flex justify-between items-center pl-1">
-                  <span className="text-[10px] uppercase font-black tracking-widest text-[#06b6d4]">
+                  <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-cyan-400">
                     Student Submissions ({filteredSubmissions.length})
                   </span>
-                  <span className="text-[9px] text-slate-500 font-mono">Real-time sync</span>
+                  <span className="text-[9px] text-slate-400 font-mono">Real-time sync</span>
                 </div>
 
                 {filteredSubmissions.length === 0 ? (
-                  <div className="p-4 bg-navy-dark/40 rounded-2xl text-center border border-dashed border-white/5">
-                    <p className="text-xs text-slate-500 font-medium">No students have submitted this task yet.</p>
+                  <div className="p-4 bg-slate-900/40 rounded-xl text-center border border-dashed border-indigo-500/20">
+                    <p className="text-xs text-slate-400 font-medium">No students have submitted this task yet.</p>
                   </div>
                 ) : (
                   <div className="max-h-[160px] overflow-y-auto space-y-2 pr-1">
@@ -1436,24 +1449,24 @@ export default function AutoGrading() {
                           }}
                           className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
                             isChosen
-                              ? 'bg-brand-cyan/25 border-brand-cyan/40 text-white'
-                              : (isGraded ? 'bg-emerald-950/10 border-emerald-900/25 text-slate-300 hover:bg-white/5' : 'bg-navy-dark/40 border-white/5 text-slate-400 hover:bg-white/5')
+                              ? 'bg-cyan-500/20 border-cyan-400 text-white shadow-[0_0_15px_rgba(6,182,212,0.2)]'
+                              : (isGraded ? 'bg-emerald-950/30 border-emerald-500/30 text-slate-200 hover:bg-slate-800/50' : 'bg-slate-900/60 border-indigo-500/20 text-slate-300 hover:bg-slate-800/50')
                           }`}
                         >
                           <div>
-                            <p className="text-xs font-black text-white">{sub.studentName}</p>
-                            <p className="text-[10px] font-mono text-slate-500 mt-0.5">
+                            <p className="text-xs font-bold text-white">{sub.studentName}</p>
+                            <p className="text-[10px] font-mono text-slate-400 mt-0.5">
                               {sub.completedOnline ? 'Completed Online' : 'Uploaded Hand-written paper'}
                             </p>
                           </div>
                           
                           <div className="text-right">
                             {isGraded ? (
-                              <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded">
+                              <span className="text-[9px] font-mono font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded">
                                 Graded: {sub.grade}
                               </span>
                             ) : (
-                              <span className="text-[9px] font-mono text-yellow-400 bg-yellow-950/40 px-2 py-0.5 rounded">
+                              <span className="text-[9px] font-mono font-bold text-amber-300 bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded">
                                 Pending
                               </span>
                             )}
@@ -1468,12 +1481,12 @@ export default function AutoGrading() {
             
             <div className="space-y-3">
               <div className="flex justify-between items-center pl-1">
-                <label className="text-[10px] uppercase font-black tracking-widest text-slate-400">
+                <label className="text-[10px] uppercase font-mono font-bold tracking-widest text-slate-300">
                   Marking Rubric / Memo Notes
                 </label>
                 
                 {autoGenerateRubric && !rubric.trim() && (
-                  <span className="text-[8px] font-bold bg-purple-500/15 text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse">
+                  <span className="text-[8px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse">
                      AI Synthesis Active
                   </span>
                 )}
@@ -1482,16 +1495,16 @@ export default function AutoGrading() {
                 value={rubric}
                 onChange={(e) => setRubric(e.target.value)}
                 placeholder="Enter your marking rubric guidelines or leave blank with the AI toggle enabled to generate one automatically..."
-                className="w-full bg-navy-dark/40 border border-white/10 rounded-[32px] p-8 focus:border-brand-cyan focus:bg-navy-dark outline-none transition-all resize-none text-[15px] text-slate-300 placeholder:text-slate-700 leading-relaxed font-mono h-48 shadow-inner"
+                className="w-full bg-slate-950/80 border border-indigo-500/30 rounded-2xl p-4 focus:border-cyan-400 outline-none transition-all resize-none text-xs text-slate-200 placeholder:text-slate-600 leading-relaxed font-mono h-40 shadow-inner"
               />
 
               <div className="flex flex-col sm:flex-row gap-3 pt-1">
                 <button
                   type="button"
                   onClick={() => rubricFileInputRef.current?.click()}
-                  className="bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-4 py-2.5 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all grow cursor-pointer"
+                  className="bg-slate-900 hover:bg-slate-800 text-slate-200 border border-indigo-500/30 px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider transition-all grow cursor-pointer"
                 >
-                  <Upload size={14} className="text-[#06b6d4]" />
+                  <Upload size={14} className="text-cyan-400" />
                   Upload Memo / Rubric file
                 </button>
                 <input
@@ -1508,10 +1521,10 @@ export default function AutoGrading() {
                     setAutoGenerateRubric(!autoGenerateRubric);
                     triggerToast(!autoGenerateRubric ? "AI auto-generation enabled for missing rubrics!" : "AI auto-generation disabled.", "info");
                   }}
-                  className={`px-4 py-2.5 rounded-2xl border text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 grow cursor-pointer ${
+                  className={`px-4 py-2.5 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 grow cursor-pointer ${
                     autoGenerateRubric
-                      ? 'bg-purple-500/15 border-purple-500/40 text-purple-300'
-                      : 'bg-white/5 border-white/10 text-slate-400'
+                      ? 'bg-purple-500/20 border-purple-400 text-purple-300'
+                      : 'bg-slate-900 border-indigo-500/30 text-slate-400'
                   }`}
                 >
                   <Brain size={14} className={autoGenerateRubric ? "text-purple-400 animate-pulse" : "text-slate-500"} />
@@ -1521,13 +1534,13 @@ export default function AutoGrading() {
             </div>
 
             {/* Report Card Tuning Parameters (Behavioral Dimensions) */}
-            <div className="bg-white/5 p-6 rounded-[32px] border border-white/5 space-y-4">
+            <div className="bg-slate-950/60 p-5 rounded-2xl border border-indigo-500/20 space-y-4">
               <div className="flex items-center gap-2 mb-1">
-                <Brain size={16} className="text-[#06b6d4]" />
-                <h4 className="text-[10px] uppercase font-black tracking-widest text-white">Report Card Behavioral Tuning</h4>
+                <Brain size={16} className="text-cyan-400" />
+                <h4 className="text-[10px] font-mono font-bold uppercase tracking-widest text-white">Report Card Behavioral Tuning</h4>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   { value: 'Focus & Work Effort', desc: 'Assess neatness, completeness and diligence' },
                   { value: 'Critical Thinking & Logic', desc: 'Evaluate reasoning depth and working steps' },
@@ -1538,10 +1551,10 @@ export default function AutoGrading() {
                   return (
                     <label 
                       key={item.value} 
-                      className={`p-3 rounded-2xl border cursor-pointer select-none transition-all flex flex-col gap-1 ${
+                      className={`p-3 rounded-xl border cursor-pointer select-none transition-all flex flex-col gap-1 ${
                         isChecked 
-                          ? 'bg-[#06b6d4]/15 border-[#06b6d4]/40 text-white' 
-                          : 'bg-navy-darker/40 border-white/5 text-slate-400 hover:bg-white/5'
+                          ? 'bg-cyan-500/15 border-cyan-400/50 text-white' 
+                          : 'bg-slate-900/60 border-indigo-500/20 text-slate-400 hover:bg-slate-800/50'
                       }`}
                     >
                       <div className="flex items-center gap-2">
@@ -1555,60 +1568,62 @@ export default function AutoGrading() {
                               setBehavioralAspects(prev => [...prev, item.value]);
                             }
                           }}
-                          className="accent-[#06b6d4] shrink-0"
+                          className="accent-cyan-400 shrink-0"
                         />
                         <span className="text-xs font-bold leading-none">{item.value}</span>
                       </div>
-                      <span className="text-[9px] text-slate-500 font-medium pl-5">{item.desc}</span>
+                      <span className="text-[9px] text-slate-400 font-medium pl-5">{item.desc}</span>
                     </label>
                   );
                 })}
               </div>
 
-              <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+              <div className="pt-2 border-t border-indigo-500/20 flex items-center justify-between">
                 <div className="space-y-0.5">
                   <span className="text-xs font-bold text-slate-300">Resubmission / Late Catchup</span>
-                  <p className="text-[9px] text-slate-500 font-medium font-mono">Include catch-up encouragement</p>
+                  <p className="text-[9px] text-slate-400 font-mono">Include catch-up encouragement</p>
                 </div>
                 <input
                   type="checkbox"
                   checked={adjustLateSubmission}
                   onChange={(e) => setAdjustLateSubmission(e.target.checked)}
-                  className="w-10 h-6 shrink-0 rounded-full appearance-none bg-slate-800 checked:bg-brand-cyan border-2 border-slate-700 relative transition-colors cursor-pointer before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-[2px] before:left-[2px] checked:before:translate-x-4 before:transition-transform"
+                  className="w-10 h-6 shrink-0 rounded-full appearance-none bg-slate-800 checked:bg-cyan-400 border-2 border-slate-700 relative transition-colors cursor-pointer before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-[2px] before:left-[2px] checked:before:translate-x-4 before:transition-transform"
                 />
               </div>
             </div>
             
             {uploadedFiles.length > 0 && (
-              <div className={`w-full py-6 rounded-[28px] font-black uppercase tracking-[0.2em] text-xs flex flex-col items-center justify-center gap-4 transition-all border ${
-                isProcessing ? 'bg-brand-cyan/10 border-brand-cyan/20 text-brand-cyan' : 'bg-white/5 border-white/10 text-slate-400'
+              <div className={`w-full py-5 rounded-2xl font-black uppercase tracking-wider text-xs flex flex-col items-center justify-center gap-4 transition-all border ${
+                isProcessing ? 'bg-cyan-500/10 border-cyan-400/30 text-cyan-300' : 'bg-slate-950/60 border-indigo-500/20 text-slate-300'
               }`}>
                 {isProcessing ? (
-                  <div className="w-full px-8">
-                     <div className="flex justify-between items-center w-full mb-3">
-                       <span className="flex items-center gap-3"><Loader2 className="animate-spin" size={20} /> Neural Synthesis Active</span>
-                       <span>{generationProgress}%</span>
+                  <div className="w-full px-6">
+                     <div className="flex justify-between items-center w-full mb-2">
+                       <span className="flex items-center gap-2 text-xs font-mono"><Loader2 className="animate-spin text-cyan-400" size={16} /> Neural Synthesis Active</span>
+                       <span className="text-xs font-mono">{generationProgress}%</span>
                      </div>
-                     <div className="w-full h-1.5 rounded-full overflow-hidden bg-navy-dark/40 border border-white/5 shadow-inner">
+                     <div className="w-full h-2 rounded-full overflow-hidden bg-slate-900 border border-cyan-500/30 shadow-inner">
                        <div 
-                         className="h-full bg-brand-cyan transition-all duration-300"
+                         className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-300"
                          style={{ width: `${generationProgress}%` }}
                        />
                      </div>
                   </div>
                 ) : (
-                  <div className="flex gap-4">
+                  <div className="flex flex-wrap gap-3 w-full p-2">
                     <button 
+                      type="button"
                       onClick={() => handleExtract()} 
-                      className="flex items-center gap-2 hover:text-brand-cyan transition-colors bg-white/5 p-3 rounded-xl px-6"
+                      className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 border border-indigo-500/30 text-slate-200 p-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
                     >
-                      <Scan size={18} /> Extract Text (Scan & Store)
+                      <Scan size={16} className="text-cyan-400" /> Extract Text
                     </button>
                     <button 
+                      type="button"
                       onClick={() => handleProcess()} 
-                      className="flex items-center gap-2 hover:text-brand-cyan transition-colors bg-brand-cyan text-navy-dark p-3 rounded-xl px-6"
+                      className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 p-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] cursor-pointer"
                     >
-                      <GraduationCap size={18} /> Autograde
+                      <GraduationCap size={16} /> Autograde
                     </button>
                   </div>
                 )}
@@ -1618,18 +1633,19 @@ export default function AutoGrading() {
 
           {/* End-of-Term Report Card Gradebook Sync & Export Panel */}
           {selectedAssignmentId && filteredSubmissions.length > 0 && (
-            <div className="glass p-10 rounded-[44px] border border-white/5 space-y-6">
-              <div className="flex items-center justify-between">
+            <div className="bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-indigo-950/80 border-2 border-indigo-500/30 rounded-[32px] p-6 sm:p-8 space-y-6 shadow-[0_0_25px_rgba(99,102,241,0.2)]">
+              <div className="flex items-center justify-between border-b border-indigo-500/20 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400">
+                  <div className="p-2.5 bg-purple-500/10 border border-purple-400/30 rounded-xl text-purple-400">
                     <Users size={20} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-hand text-white">End-of-Period Gradebook Export</h3>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-widest font-mono font-black mt-0.5">Report Card Synopsis</p>
+                    <h3 className="text-xl font-display font-black text-white">End-of-Period Gradebook Export</h3>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold mt-0.5">Report Card Synopsis</p>
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => {
                     const csvContent = "data:text/csv;charset=utf-8," 
                       + "Student,Grade,Status,Report Comment\n"
@@ -1642,9 +1658,9 @@ export default function AutoGrading() {
                     link.click();
                     document.body.removeChild(link);
                   }}
-                  className="bg-purple-500 hover:bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest py-2 px-4 rounded-xl flex items-center gap-1.5"
+                  className="bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-mono font-bold uppercase tracking-wider py-2.5 px-4 rounded-xl flex items-center gap-1.5 shadow-lg cursor-pointer"
                 >
-                  <Download size={12} /> Export CSV
+                  <Download size={14} /> Export CSV
                 </button>
               </div>
 
@@ -1770,17 +1786,17 @@ export default function AutoGrading() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-8"
+                className="space-y-6"
               >
                 {/* Result header buttons */}
-                <div className="flex justify-end gap-2 mb-6">
-                  <button onClick={handlePrint} className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl text-white transition-all tooltip" title="Print Content"><Printer size={18} /></button>
-                  <button onClick={handleDownloadPDF} className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl text-white transition-all tooltip" title="Download as PDF"><Download size={18} /></button>
+                <div className="flex justify-end items-center gap-2 mb-4">
+                  <button onClick={handlePrint} className="bg-slate-900 hover:bg-slate-800 border border-indigo-500/30 p-3 rounded-xl text-slate-200 hover:text-white transition-all cursor-pointer" title="Print Content"><Printer size={18} /></button>
+                  <button onClick={handleDownloadPDF} className="bg-slate-900 hover:bg-slate-800 border border-indigo-500/30 p-3 rounded-xl text-slate-200 hover:text-white transition-all cursor-pointer" title="Download as PDF"><Download size={18} /></button>
                   <button 
                     onClick={handleArchive}
                     className={cn(
-                      "transition-all px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2",
-                      archiveSuccess ? "bg-emerald-500 text-white" : "bg-brand-cyan hover:bg-cyan-500 text-navy-dark"
+                      "transition-all px-5 py-3 rounded-xl font-black uppercase tracking-wider text-xs flex items-center gap-2 cursor-pointer shadow-lg",
+                      archiveSuccess ? "bg-emerald-500 text-white" : "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.3)]"
                     )}
                   >
                      {archiveSuccess ? <Check size={16} /> : <Save size={16} />}
@@ -1788,20 +1804,20 @@ export default function AutoGrading() {
                   </button>
                 </div>
 
-                <div className="pb-20 bg-white print:bg-white rounded-[32px] p-6 text-slate-900 printable-doc" ref={contentRef}>
+                <div className="pb-12 bg-gradient-to-br from-[#0c1033] via-[#080b22] to-[#111640] border-2 border-indigo-500/30 rounded-[32px] p-6 sm:p-8 text-slate-100 shadow-[0_0_35px_rgba(6,182,212,0.2)] printable-doc print:bg-white print:text-black print:border-none print:p-0 print:shadow-none" ref={contentRef}>
                   {/* Score Card */}
-                  <div className="glass !bg-slate-100 p-10 rounded-[48px] border border-black/10 relative overflow-hidden group mb-8">
-                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-cyan/20 rounded-full blur-3xl transition-colors" />
-                    <div className="flex items-center gap-8 relative z-10">
-                      <div className="w-24 h-24 bg-brand-cyan rounded-3xl flex flex-col items-center justify-center text-navy-dark shadow-xl">
-                        <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Score</span>
-                        <span className="text-4xl font-black">{result.totalScore}</span>
+                  <div className="bg-gradient-to-r from-cyan-500/15 via-blue-500/15 to-purple-500/15 border-2 border-cyan-400/40 p-6 sm:p-8 rounded-3xl relative overflow-hidden group mb-6 shadow-[0_0_25px_rgba(6,182,212,0.2)]">
+                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-cyan-400/20 rounded-full blur-3xl transition-colors pointer-events-none" />
+                    <div className="flex items-center gap-6 relative z-10">
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-2xl flex flex-col items-center justify-center text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.5)] shrink-0">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-widest opacity-80">Score</span>
+                        <span className="text-3xl sm:text-4xl font-black">{result.totalScore}</span>
                       </div>
                       <div>
-                        <h3 className="text-2xl font-hand text-slate-900">Grading Complete</h3>
+                        <h3 className="text-2xl font-display font-black text-white tracking-tight">Grading Complete</h3>
                         <div className="flex items-center gap-2 mt-2">
-                          <CheckCircle size={14} className="text-emerald-500" />
-                          <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Analysis Verified</span>
+                          <CheckCircle size={16} className="text-emerald-400" />
+                          <span className="text-xs text-cyan-300 font-mono font-bold uppercase tracking-wider">Analysis Verified</span>
                         </div>
                       </div>
                     </div>
@@ -1809,23 +1825,23 @@ export default function AutoGrading() {
 
                   {/* AI Rubric / Memo Corrections Log */}
                   {result.originalMemoCorrected && (
-                    <div className="bg-amber-500/10 border border-amber-500/30 p-8 rounded-[40px] mb-8 relative">
-                      <div className="absolute top-6 right-6 px-3 py-1 bg-amber-500 text-white rounded-full text-[9px] font-black uppercase tracking-widest">
+                    <div className="bg-amber-500/10 border border-amber-500/30 p-6 rounded-2xl mb-6 relative">
+                      <div className="absolute top-4 right-4 px-3 py-1 bg-amber-500 text-slate-950 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider">
                         AI Corrected Memo
                       </div>
-                      <h4 className="text-[10px] font-black text-amber-600 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
-                        <Brain size={14} />
+                      <h4 className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <Brain size={16} />
                         Rubric / Memo Adjustments Report
                       </h4>
-                      <p className="text-xs text-slate-700 font-semibold mb-4 bg-white/40 p-4 rounded-2xl border border-black/5 leading-relaxed">
+                      <p className="text-xs text-slate-300 font-medium mb-3 bg-slate-950/60 p-4 rounded-xl border border-amber-500/20 leading-relaxed">
                         {result.memoCorrectionReport || "The original memo had spelling/content omissions or was missing entirely. The AI corrected and streamlined the rubric for optimal auto-grading accuracy."}
                       </p>
                       {result.correctedMemo && (
                         <details className="cursor-pointer group">
-                          <summary className="text-[10px] font-black uppercase tracking-widest text-[#06b6d4] select-none outline-none">
+                          <summary className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400 select-none outline-none">
                             View Corrected Rubric & Memo Checklist
                           </summary>
-                          <pre className="mt-4 p-4 bg-slate-950 text-slate-300 rounded-2xl text-xs font-mono whitespace-pre-wrap overflow-x-auto leading-relaxed border border-white/5">
+                          <pre className="mt-3 p-4 bg-slate-950 text-slate-300 rounded-xl text-xs font-mono whitespace-pre-wrap overflow-x-auto leading-relaxed border border-indigo-500/20">
                             {result.correctedMemo}
                           </pre>
                         </details>
@@ -1834,33 +1850,33 @@ export default function AutoGrading() {
                   )}
 
                   {/* Comprehensive Editable Feedback Box & Comment Bank Helper */}
-                  <div className="bg-brand-cyan/10 border border-[#06b6d4]/30 p-8 rounded-[40px] relative mb-8 text-slate-900">
-                    <div className="flex justify-between items-center mb-4">
-                      <h4 className="text-[10px] font-black text-brand-cyan uppercase tracking-[0.3em]">Comprehensive Report-Card Comment Editor</h4>
-                      <span className="text-[9px] text-[#06b6d4] uppercase font-mono font-black tracking-widest bg-[#06b6d4]/10 px-2 py-1 rounded">Interactive Editor</span>
+                  <div className="bg-slate-950/80 border border-cyan-500/30 p-6 rounded-3xl relative mb-6">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">Report-Card Comment Editor</h4>
+                      <span className="text-[9px] text-cyan-300 uppercase font-mono font-bold tracking-widest bg-cyan-500/10 border border-cyan-400/30 px-2 py-0.5 rounded">Interactive Editor</span>
                     </div>
 
                     <textarea
                       value={editableFeedback}
                       onChange={(e) => setEditableFeedback(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-2xl p-5 text-slate-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#06b6d4]/50 leading-relaxed min-h-[180px] resize-y mb-6 shadow-inner font-sans"
+                      className="w-full bg-slate-900 border border-indigo-500/30 rounded-xl p-4 text-slate-100 text-xs font-mono focus:outline-none focus:border-cyan-400 leading-relaxed min-h-[160px] resize-y mb-4 shadow-inner"
                       placeholder="Customize your student comments here before finalizing grading report..."
                     />
 
                     {/* Clean Formatted Markdown Output Preview */}
-                    <div className="bg-white/50 p-6 rounded-2xl border border-dashed border-slate-200">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-3 font-mono">Rendered Output Preview:</span>
-                      <div className="text-slate-800 font-medium italic leading-relaxed prose prose-sm max-w-none markdown-body"
+                    <div className="bg-slate-900/60 p-4 rounded-xl border border-dashed border-indigo-500/30">
+                      <span className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider block mb-2">Rendered Output Preview:</span>
+                      <div className="text-slate-200 text-xs leading-relaxed prose prose-invert prose-sm max-w-none markdown-body"
                         dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(marked.parse(editableFeedback) as string) }}
                       />
                     </div>
                   </div>
 
                   {/* Interactive Report-Card Comment Bank Helper Module */}
-                  <div className="bg-slate-50 border border-slate-200/60 p-8 rounded-[40px] mb-8 text-slate-900">
+                  <div className="bg-slate-950/80 border border-indigo-500/30 p-6 rounded-3xl mb-6">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                       <div>
-                        <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] mb-1">Interactive Comment Bank</h4>
+                        <h4 className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider mb-0.5">Interactive Comment Bank</h4>
                         <p className="text-[11px] text-slate-400 font-medium">Quickly insert professional report-card comments</p>
                       </div>
                       <button
@@ -1878,9 +1894,9 @@ export default function AutoGrading() {
                             localStorage.setItem('gradebook_comment_bank', JSON.stringify(updatedBank));
                           }
                         }}
-                        className="bg-brand-cyan hover:bg-cyan-500 text-navy-dark text-[10px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
+                        className="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 text-[10px] font-mono font-bold uppercase tracking-wider px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer shrink-0"
                       >
-                        <Plus size={12} /> Save Current Feedback to Bank
+                        <Plus size={14} /> Save Feedback to Bank
                       </button>
                     </div>
 
@@ -1890,16 +1906,16 @@ export default function AutoGrading() {
                       value={commentSearch}
                       onChange={(e) => setCommentSearch(e.target.value)}
                       placeholder="Filter commentary templates..."
-                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-700 outline-none focus:border-cyan-500 mb-4 font-medium"
+                      className="w-full bg-slate-900 border border-indigo-500/30 rounded-xl px-3.5 py-2 text-xs text-slate-200 outline-none focus:border-cyan-400 mb-4 font-medium"
                     />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[180px] overflow-y-auto pr-1">
+                    <div className="grid grid-cols-1 gap-2.5 max-h-[180px] overflow-y-auto pr-1">
                       {commentBank
                         .filter(item => item.title.toLowerCase().includes(commentSearch.toLowerCase()) || item.text.toLowerCase().includes(commentSearch.toLowerCase()))
                         .map((comment) => (
                           <div 
                             key={comment.id}
-                            className="p-4 bg-white hover:bg-cyan-50/20 rounded-2xl border border-slate-200 cursor-pointer transition-all hover:border-[#00f2fe]/40 group"
+                            className="p-3.5 bg-slate-900/90 hover:bg-slate-800 rounded-xl border border-indigo-500/20 cursor-pointer transition-all hover:border-cyan-400/50 group"
                             onClick={() => {
                               const action = confirm(`Do you want to APPEND this comment to the editor?\n\n"${comment.text}"`);
                               if (action) {
@@ -1907,26 +1923,26 @@ export default function AutoGrading() {
                               }
                             }}
                           >
-                            <div className="flex justify-between items-start gap-2 mb-1.5">
-                              <span className="text-[#001730] text-xs font-black uppercase tracking-wider group-hover:text-cyan-700 transition-colors">{comment.title}</span>
-                              <span className="text-[9px] font-mono bg-slate-100 group-hover:bg-cyan-100 text-slate-500 group-hover:text-cyan-600 px-1.5 py-0.5 rounded font-black uppercase shrink-0">{comment.rating}</span>
+                            <div className="flex justify-between items-start gap-2 mb-1">
+                              <span className="text-white text-xs font-bold group-hover:text-cyan-300 transition-colors">{comment.title}</span>
+                              <span className="text-[9px] font-mono bg-cyan-500/10 text-cyan-300 border border-cyan-400/30 px-1.5 py-0.5 rounded font-bold uppercase shrink-0">{comment.rating}</span>
                             </div>
-                            <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed italic">{comment.text}</p>
+                            <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed italic">{comment.text}</p>
                           </div>
                         ))}
                     </div>
                   </div>
 
                   {/* Question Breakdown */}
-                  <div className="glass !bg-slate-50 p-8 rounded-[40px] border border-black/5 mb-8">
-                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6">Question Breakdown</h4>
-                    <div className="space-y-4">
+                  <div className="bg-slate-950/80 border border-indigo-500/30 p-6 rounded-3xl mb-6">
+                    <h4 className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider mb-4">Question Breakdown</h4>
+                    <div className="space-y-3">
                       {result.marksPerQuestion?.map((mark: string, i: number) => (
-                        <div key={i} className="flex gap-4 items-start p-4 bg-white/60 rounded-2xl border border-black/5">
-                          <div className="w-8 h-8 rounded-xl bg-navy-dark flex items-center justify-center text-[10px] font-black text-brand-cyan shrink-0">
+                        <div key={i} className="flex gap-3 items-start p-3.5 bg-slate-900/80 rounded-xl border border-indigo-500/20">
+                          <div className="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-xs font-mono font-black text-cyan-300 shrink-0">
                             {i+1}
                           </div>
-                          <p className="text-sm text-slate-700 font-medium pt-1 leading-relaxed">
+                          <p className="text-xs text-slate-200 font-medium pt-1 leading-relaxed">
                             {mark}
                           </p>
                         </div>
@@ -1935,10 +1951,10 @@ export default function AutoGrading() {
                   </div>
 
                   {/* Extracted Text */}
-                  <div className="glass !bg-slate-50 p-8 rounded-[40px] border border-black/5">
-                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4">RAW DATA EXTRACTION</h4>
-                    <div className="bg-white p-6 rounded-2xl border border-black/5 shadow-inner">
-                      <p className="text-xs text-slate-700 font-mono leading-relaxed whitespace-pre-wrap">
+                  <div className="bg-slate-950/80 border border-indigo-500/30 p-6 rounded-3xl">
+                    <h4 className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider mb-3">RAW DATA EXTRACTION</h4>
+                    <div className="bg-slate-900 p-4 rounded-xl border border-indigo-500/20">
+                      <p className="text-xs text-slate-300 font-mono leading-relaxed whitespace-pre-wrap">
                         {result.extractedText}
                       </p>
                     </div>
@@ -1953,17 +1969,17 @@ export default function AutoGrading() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-8"
+                className="space-y-6"
               >
                 {/* Result header buttons */}
-                <div className="flex justify-end gap-2 mb-6">
-                  <button onClick={handlePrint} className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl text-white transition-all tooltip" title="Print Content"><Printer size={18} /></button>
-                  <button onClick={handleDownloadPDF} className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl text-white transition-all tooltip" title="Download as PDF"><Download size={18} /></button>
+                <div className="flex justify-end gap-2 mb-4">
+                  <button onClick={handlePrint} className="bg-slate-900 hover:bg-slate-800 border border-indigo-500/30 p-3 rounded-xl text-slate-200 hover:text-white transition-all cursor-pointer" title="Print Content"><Printer size={18} /></button>
+                  <button onClick={handleDownloadPDF} className="bg-slate-900 hover:bg-slate-800 border border-indigo-500/30 p-3 rounded-xl text-slate-200 hover:text-white transition-all cursor-pointer" title="Download as PDF"><Download size={18} /></button>
                   <button 
                     onClick={handleArchive}
                     className={cn(
-                      "transition-all px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2",
-                      archiveSuccess ? "bg-emerald-500 text-white" : "bg-brand-cyan hover:bg-cyan-500 text-navy-dark"
+                      "transition-all px-5 py-3 rounded-xl font-black uppercase tracking-wider text-xs flex items-center gap-2 cursor-pointer shadow-lg",
+                      archiveSuccess ? "bg-emerald-500 text-white" : "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.3)]"
                     )}
                   >
                      {archiveSuccess ? <Check size={16} /> : <Save size={16} />}
@@ -1971,16 +1987,15 @@ export default function AutoGrading() {
                   </button>
                 </div>
 
-                 <div className="pb-20 bg-white print:bg-white rounded-[32px] p-6 text-slate-900 printable-doc" ref={contentRef}>
-                  <div className="glass !bg-slate-50 p-8 rounded-[40px] border border-black/5">
-                    <div className="flex items-center gap-4 mb-6 border-b border-slate-200 pb-4">
-                      <FileCheck className="text-brand-cyan" size={28} />
-                      <h3 className="text-2xl font-hand text-slate-900">Scanned Content</h3>
+                 <div className="pb-12 bg-gradient-to-br from-[#0c1033] via-[#080b22] to-[#111640] border-2 border-indigo-500/30 rounded-[32px] p-6 sm:p-8 text-slate-100 shadow-[0_0_35px_rgba(6,182,212,0.2)] printable-doc print:bg-white print:text-black print:border-none print:p-0 print:shadow-none" ref={contentRef}>
+                  <div className="bg-slate-950/80 border border-indigo-500/30 p-6 rounded-3xl">
+                    <div className="flex items-center gap-3 mb-4 border-b border-indigo-500/20 pb-4">
+                      <FileCheck className="text-cyan-400" size={24} />
+                      <h3 className="text-xl font-display font-black text-white">Scanned Content</h3>
                     </div>
-                    <div className="bg-white p-6 rounded-2xl border border-black/5 shadow-inner">
-                      <div className="prose prose-sm max-w-none text-slate-800">
-                         {/* Use simple rendering for OCR data, no markdown interpretation to prevent breaks, just pre-wrap */}
-                         <p className="font-mono whitespace-pre-wrap text-sm leading-relaxed">{extractResult.extractedText}</p>
+                    <div className="bg-slate-900 p-4 rounded-xl border border-indigo-500/20">
+                      <div className="prose prose-invert prose-sm max-w-none text-slate-200">
+                         <p className="font-mono whitespace-pre-wrap text-xs leading-relaxed">{extractResult.extractedText}</p>
                       </div>
                     </div>
                   </div>
@@ -1993,21 +2008,21 @@ export default function AutoGrading() {
                 key="empty"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="h-full min-h-[600px] flex flex-col items-center justify-center text-center p-12 glass rounded-[48px] border border-white/5"
+                className="h-full min-h-[500px] flex flex-col items-center justify-center text-center p-8 bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-indigo-950/80 border-2 border-indigo-500/30 rounded-[32px] shadow-[0_0_25px_rgba(99,102,241,0.2)]"
               >
-                <div className="w-24 h-24 bg-white/5 rounded-[32px] flex items-center justify-center text-slate-700 mb-8 border border-white/10">
-                  <Brain size={40} />
+                <div className="w-20 h-20 bg-cyan-500/10 border border-cyan-400/30 rounded-3xl flex items-center justify-center text-cyan-400 mb-6 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+                  <Brain size={36} />
                 </div>
-                <h3 className="text-3xl font-hand text-slate-300 mb-4">Awaiting Signal</h3>
-                <p className="text-slate-500 max-w-xs mx-auto text-sm leading-relaxed">
+                <h3 className="text-2xl font-display font-black text-white mb-2">Awaiting Visual Stream</h3>
+                <p className="text-slate-400 max-w-xs mx-auto text-xs leading-relaxed">
                   Provide an assessment scan and a custom rubric to initialize the automated grading engine.
                 </p>
-                <div className="mt-10 flex flex-col gap-4 w-full">
-                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-brand-cyan/20 w-1/3 rounded-full animate-pulse" />
+                <div className="mt-8 flex flex-col gap-3 w-full max-w-xs">
+                  <div className="h-2 w-full bg-slate-900 rounded-full overflow-hidden border border-indigo-500/20">
+                    <div className="h-full bg-cyan-400/30 w-1/3 rounded-full animate-pulse" />
                   </div>
-                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-brand-cyan/20 w-2/3 rounded-full animate-pulse delay-75" />
+                  <div className="h-2 w-full bg-slate-900 rounded-full overflow-hidden border border-indigo-500/20">
+                    <div className="h-full bg-cyan-400/30 w-2/3 rounded-full animate-pulse delay-75" />
                   </div>
                 </div>
               </motion.div>
@@ -2035,38 +2050,38 @@ export default function AutoGrading() {
               <motion.div 
                 initial={{ opacity: 0, y: 15 }} 
                 animate={{ opacity: 1, y: 0 }} 
-                className="glass p-10 rounded-[44px] border border-white/5 space-y-8"
+                className="bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-indigo-950/80 border-2 border-indigo-500/30 rounded-[32px] p-6 sm:p-8 space-y-6 shadow-[0_0_35px_rgba(99,102,241,0.2)]"
               >
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-brand-cyan/10 rounded-2xl text-brand-cyan">
-                    <Brain size={24} />
+                <div className="flex items-center gap-3 border-b border-indigo-500/20 pb-4">
+                  <div className="p-2.5 bg-cyan-500/10 border border-cyan-400/30 rounded-xl text-cyan-400">
+                    <Brain size={22} />
                   </div>
                   <div>
-                    <h3 className="text-3xl font-hand text-white">Teacher Alert Hub & Live Feed</h3>
-                    <p className="text-xs text-slate-500 uppercase tracking-widest font-mono">Real-time educational evaluation logging</p>
+                    <h3 className="text-2xl font-display font-black text-white">Teacher Alert Hub & Live Feed</h3>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold mt-0.5">Real-time educational evaluation logging</p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {labReports.length === 0 ? (
-                    <div className="p-8 text-center bg-navy-darker/45 rounded-3xl border border-white/5 text-slate-500 font-medium">
+                    <div className="p-8 text-center bg-slate-950/60 rounded-2xl border border-dashed border-indigo-500/20 text-slate-400 font-medium text-xs">
                       Awaiting live workspace events. Try executing any grading tasks to pop-up live logs!
                     </div>
                   ) : (
                     labReports.map((item, idx) => (
-                      <div key={item.id || idx} className="p-6 bg-navy-darker/60 border border-white/5 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-brand-cyan/20 transition-all">
-                        <div className="space-y-1.5 grow">
+                      <div key={item.id || idx} className="p-4 sm:p-5 bg-slate-950/80 border border-indigo-500/20 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-cyan-400/50 transition-all">
+                        <div className="space-y-1 grow">
                           <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-xs font-black uppercase text-slate-400 tracking-wider">Completed Auto-Grading Task</span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                            <span className="text-[10px] font-mono font-bold uppercase text-slate-400 tracking-wider">Completed Auto-Grading Task</span>
                           </div>
-                          <p className="text-sm font-bold text-slate-200">
-                            Grade reported for <span className="text-brand-cyan font-black">{item.studentName}</span>: Achieved Score of {item.totalScore}
+                          <p className="text-xs font-bold text-slate-200">
+                            Grade reported for <span className="text-cyan-400 font-bold">{item.studentName}</span>: Achieved Score of <span className="text-emerald-400 font-mono font-bold">{item.totalScore}</span>
                           </p>
-                          <div className="flex flex-wrap gap-2 text-[10px] font-mono text-slate-500 uppercase">
-                            <span>Task Reference: {item.assignmentTitle}</span>
+                          <div className="flex flex-wrap gap-2 text-[10px] font-mono text-slate-400 uppercase">
+                            <span>Task: {item.assignmentTitle}</span>
                             <span>•</span>
-                            <span>File scanned: {item.fileName}</span>
+                            <span>File: {item.fileName}</span>
                             <span>•</span>
                             <span>{new Date(item.createdAt).toLocaleDateString()}</span>
                           </div>
@@ -2077,7 +2092,7 @@ export default function AutoGrading() {
                             setLabActiveTab('history');
                             setSelectedReportDetail(item);
                           }}
-                          className="bg-brand-cyan/15 hover:bg-brand-cyan text-brand-cyan hover:text-navy-dark text-[10px] font-black uppercase tracking-widest py-2 px-4 rounded-xl transition-all block shrink-0 cursor-pointer"
+                          className="bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-[10px] font-mono font-bold uppercase tracking-wider py-2 px-4 rounded-xl transition-all block shrink-0 cursor-pointer"
                         >
                           Analyze Log Report
                         </button>
@@ -2096,15 +2111,15 @@ export default function AutoGrading() {
                 className="space-y-8"
               >
                 {/* Archive Directory list */}
-                <div className="glass p-10 rounded-[44px] border border-white/5 space-y-6">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-indigo-950/80 border-2 border-indigo-500/30 rounded-[32px] p-6 sm:p-8 space-y-6 shadow-[0_0_35px_rgba(99,102,241,0.2)]">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-indigo-500/20 pb-4">
                     <div className="flex items-center gap-3">
-                      <div className="p-3 bg-purple-500/10 rounded-2xl text-purple-400">
-                        <ClipboardList size={24} />
+                      <div className="p-2.5 bg-purple-500/10 border border-purple-400/30 rounded-xl text-purple-400">
+                        <ClipboardList size={22} />
                       </div>
                       <div>
-                        <h3 className="text-3xl font-hand text-white">Archived Reports Vault</h3>
-                        <p className="text-xs text-slate-500 uppercase tracking-widest font-mono"> Educator's Gradebook database ledger</p>
+                        <h3 className="text-2xl font-display font-black text-white">Archived Reports Vault</h3>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold mt-0.5">Educator's Gradebook database ledger</p>
                       </div>
                     </div>
 
@@ -2113,14 +2128,14 @@ export default function AutoGrading() {
                       placeholder="Search reports by student name or task..."
                       value={archiveSearchQuery}
                       onChange={(e) => setArchiveSearchQuery(e.target.value)}
-                      className="bg-navy-dark border border-white/10 outline-none text-slate-300 text-xs px-4 py-3 rounded-2xl w-full md:w-80 font-mono"
+                      className="bg-slate-900 border border-indigo-500/30 outline-none text-slate-200 text-xs px-4 py-2.5 rounded-xl w-full md:w-80 font-mono focus:border-cyan-400 transition-all"
                     />
                   </div>
 
-                  <div className="overflow-x-auto rounded-3xl border border-white/5 bg-navy-darker/45">
+                  <div className="overflow-x-auto rounded-2xl border border-indigo-500/20 bg-slate-950/60">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
-                        <tr className="bg-navy-darker border-b border-white/5 text-slate-400 font-mono text-[9px] uppercase tracking-widest [&>th]:p-4">
+                        <tr className="bg-slate-900 border-b border-indigo-500/20 text-slate-300 font-mono text-[9px] uppercase tracking-wider [&>th]:p-3.5">
                           <th>Registered Learner</th>
                           <th>Task / Assignment Name</th>
                           <th>Suggested Score</th>
@@ -2129,20 +2144,20 @@ export default function AutoGrading() {
                           <th className="text-right">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/5">
+                      <tbody className="divide-y divide-indigo-500/10">
                         {filteredReports.length === 0 ? (
                           <tr>
-                            <td colSpan={6} className="p-8 text-center text-slate-500 font-mono">
+                            <td colSpan={6} className="p-8 text-center text-slate-400 font-mono text-xs">
                               No active reports found in ledger directory.
                             </td>
                           </tr>
                         ) : (
                           filteredReports.map((report) => (
-                            <tr key={report.id} className="hover:bg-white/5 transition-colors [&>td]:p-4">
+                            <tr key={report.id} className="hover:bg-slate-900/60 transition-colors [&>td]:p-3.5">
                               <td>
                                 {report.studentId === 'unassigned' ? (
                                   <div className="space-y-1.5 max-w-[200px]">
-                                    <span className="text-amber-400/90 font-mono text-[10px] font-bold block animate-pulse">Learner Name not detected automatically</span>
+                                    <span className="text-amber-400 font-mono text-[10px] font-bold block animate-pulse">Learner Name not detected automatically</span>
                                     <select
                                       value={report.studentId}
                                       onChange={async (e) => {
@@ -2151,7 +2166,7 @@ export default function AutoGrading() {
                                           await handleReattributeReport(report.id, newStuId);
                                         }
                                       }}
-                                      className="bg-navy-dark text-[10px] text-slate-300 border border-white/10 rounded-xl px-2.5 py-1.5 outline-none font-bold cursor-pointer [&>option]:bg-slate-950"
+                                      className="bg-slate-900 text-[10px] text-slate-200 border border-indigo-500/30 rounded-lg px-2 py-1 outline-none font-bold cursor-pointer [&>option]:bg-slate-950"
                                     >
                                       <option value="unassigned">Assign manual learner...</option>
                                       {dbStudents.map(s => (
@@ -2161,31 +2176,31 @@ export default function AutoGrading() {
                                   </div>
                                 ) : (
                                   <div className="flex items-center gap-2">
-                                    <div className="w-7 h-7 bg-brand-cyan/10 rounded-full flex items-center justify-center text-brand-cyan text-[10px] uppercase font-black font-mono">
+                                    <div className="w-7 h-7 bg-cyan-500/10 border border-cyan-400/30 rounded-full flex items-center justify-center text-cyan-300 text-[10px] uppercase font-mono font-bold">
                                       {report.studentName?.slice(0, 2)}
                                     </div>
                                     <div>
-                                      <span className="font-bold text-white block">{report.studentName}</span>
-                                      <span className="text-[9px] text-slate-500 font-mono block">Enrolled Learner</span>
+                                      <span className="font-bold text-white block text-xs">{report.studentName}</span>
+                                      <span className="text-[9px] text-slate-400 font-mono block">Enrolled Learner</span>
                                     </div>
                                   </div>
                                 )}
                               </td>
                               <td>
-                                <span className="font-bold text-slate-300 block">{report.assignmentTitle}</span>
-                                <span className="text-[9px] text-slate-500 font-mono block truncate max-w-[150px]">{report.fileName}</span>
+                                <span className="font-bold text-slate-200 block text-xs">{report.assignmentTitle}</span>
+                                <span className="text-[9px] text-slate-400 font-mono block truncate max-w-[150px]">{report.fileName}</span>
                               </td>
                               <td>
-                                <span className="bg-brand-cyan/10 border border-brand-cyan/20 px-3 py-1.5 rounded-full text-brand-cyan font-black text-[11px] font-mono">
+                                <span className="bg-cyan-500/10 border border-cyan-400/30 px-2.5 py-1 rounded-full text-cyan-300 font-mono font-bold text-xs">
                                   {report.totalScore}
                                 </span>
                               </td>
                               <td>
-                                <span className="text-[10px] text-slate-400 line-clamp-2 max-w-[180px] font-mono leading-relaxed bg-navy-darker/80 p-2 rounded-xl border border-white/5">
+                                <span className="text-[10px] text-slate-400 line-clamp-2 max-w-[180px] font-mono leading-relaxed bg-slate-900 p-2 rounded-lg border border-indigo-500/20">
                                   {report.extractedText || 'No scanning history text recorded.'}
                                 </span>
                               </td>
-                              <td className="text-slate-500 font-mono text-[9px] uppercase">
+                              <td className="text-slate-400 font-mono text-[9px] uppercase">
                                 {new Date(report.createdAt).toLocaleDateString()}
                               </td>
                               <td className="text-right">
@@ -2193,7 +2208,7 @@ export default function AutoGrading() {
                                   <button
                                     type="button"
                                     onClick={() => setSelectedReportDetail(report)}
-                                    className="bg-white/5 hover:bg-brand-cyan text-slate-300 hover:text-[#001730] text-[10px] font-black uppercase tracking-widest py-1.5 px-3 rounded-lg transition-all cursor-pointer"
+                                    className="bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-[10px] font-mono font-bold uppercase tracking-wider py-1.5 px-3 rounded-lg transition-all cursor-pointer"
                                   >
                                     Inspect Result
                                   </button>
@@ -2205,7 +2220,7 @@ export default function AutoGrading() {
                                         triggerToast("Report deleted successfully from history ledger.", "success");
                                       }
                                     }}
-                                    className="bg-rose-500/15 hover:bg-rose-600 text-rose-400 hover:text-white p-2 rounded-lg transition-all cursor-pointer"
+                                    className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 p-2 rounded-lg transition-all cursor-pointer"
                                   >
                                     <Trash size={14} />
                                   </button>
@@ -2228,75 +2243,75 @@ export default function AutoGrading() {
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                     >
-                      <div className="bg-[#001730] border border-white/10 rounded-[44px] w-full max-w-4xl p-6 md:p-10 space-y-6 max-h-[90vh] overflow-y-auto shadow-2xl relative scrollbar-thin">
+                      <div className="bg-gradient-to-br from-slate-900 via-[#0a0f2b] to-indigo-950 border-2 border-indigo-500/40 rounded-[32px] w-full max-w-4xl p-6 md:p-8 space-y-6 max-h-[90vh] overflow-y-auto shadow-[0_0_50px_rgba(6,182,212,0.3)] relative scrollbar-thin">
                         <button 
                           type="button"
                           onClick={() => setSelectedReportDetail(null)}
-                          className="absolute top-8 right-8 bg-white/5 hover:bg-white/10 text-white p-3 rounded-full transition-all cursor-pointer"
+                          className="absolute top-6 right-6 bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-full transition-all cursor-pointer border border-indigo-500/30"
                         >
-                          <X size={20} />
+                          <X size={18} />
                         </button>
 
-                        <div className="flex items-center gap-3">
-                          <div className="p-3 bg-brand-cyan/10 rounded-2xl text-brand-cyan">
-                            <FileCheck size={24} />
+                        <div className="flex items-center gap-3 border-b border-indigo-500/20 pb-4">
+                          <div className="p-2.5 bg-cyan-500/10 border border-cyan-400/30 rounded-xl text-cyan-400">
+                            <FileCheck size={22} />
                           </div>
                           <div>
-                            <h3 className="text-3xl font-hand text-white">Report Insight System</h3>
-                            <p className="text-xs text-slate-400 uppercase tracking-widest font-mono">Assigned Student: {selectedReportDetail.studentName}</p>
+                            <h3 className="text-2xl font-display font-black text-white">Report Insight Inspector</h3>
+                            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold mt-0.5">Assigned Student: {selectedReportDetail.studentName}</p>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <div className="bg-navy-darker/60 p-4 border border-white/5 rounded-2xl flex flex-col justify-center">
-                            <span className="text-[9px] uppercase font-bold text-slate-500 tracking-widest font-mono">Achieved Score</span>
-                            <span className="text-xl font-black text-brand-cyan mt-1 font-mono">{selectedReportDetail.totalScore}</span>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="bg-slate-950/80 p-4 border border-indigo-500/20 rounded-2xl flex flex-col justify-center">
+                            <span className="text-[9px] uppercase font-mono font-bold text-slate-400 tracking-wider">Achieved Score</span>
+                            <span className="text-2xl font-mono font-black text-cyan-300 mt-1">{selectedReportDetail.totalScore}</span>
                           </div>
-                          <div className="bg-navy-darker/60 p-4 border border-white/5 rounded-2xl flex flex-col justify-center col-span-2">
-                            <span className="text-[9px] uppercase font-bold text-slate-500 tracking-widest font-mono">Task Scope Reference</span>
-                            <span className="text-sm font-bold text-white mt-1 truncate">{selectedReportDetail.assignmentTitle}</span>
+                          <div className="bg-slate-950/80 p-4 border border-indigo-500/20 rounded-2xl flex flex-col justify-center col-span-2">
+                            <span className="text-[9px] uppercase font-mono font-bold text-slate-400 tracking-wider">Task Scope Reference</span>
+                            <span className="text-xs font-bold text-white mt-1 truncate">{selectedReportDetail.assignmentTitle}</span>
                           </div>
                         </div>
 
                         <div className="space-y-4">
-                          <div className="bg-white rounded-[32px] p-6 text-slate-900 border border-slate-200">
-                            <div className="flex items-center justify-between mb-4 pb-2 border-b border-sidebar-divider">
-                              <h4 className="text-sm uppercase font-black tracking-wide text-[#001730]">Diagnostic Feedback Report</h4>
+                          <div className="bg-slate-950/90 rounded-2xl p-6 text-slate-100 border border-indigo-500/30">
+                            <div className="flex items-center justify-between mb-3 pb-2 border-b border-indigo-500/20">
+                              <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-400">Diagnostic Feedback Report</h4>
                               <span className="text-[9px] font-mono text-slate-400">South African CAPS evaluation criteria</span>
                             </div>
                             <div 
-                              className="prose prose-sm max-w-none text-slate-800 leading-relaxed [&>h3]:text-[#001730] [&>h3]:text-lg [&>h3]:font-black [&>p]:mb-4"
+                              className="prose prose-invert prose-sm max-w-none text-slate-200 leading-relaxed [&>h3]:text-cyan-300 [&>h3]:text-base [&>h3]:font-black [&>p]:mb-3 text-xs"
                               dangerouslySetInnerHTML={{ __html: (marked.parse(selectedReportDetail.feedback || 'No remarks recorded.') as string) }}
                             />
                           </div>
 
                           {selectedReportDetail.marksPerQuestion && selectedReportDetail.marksPerQuestion.length > 0 && (
-                            <div className="bg-navy-darker/60 p-6 border border-white/5 rounded-3xl space-y-3">
-                              <h4 className="text-[10px] font-black uppercase tracking-widest text-[#06b6d4]">Itemized Question Scoring</h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[140px] overflow-y-auto pr-1">
+                            <div className="bg-slate-950/80 p-5 border border-indigo-500/20 rounded-2xl space-y-3">
+                              <h4 className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400">Itemized Question Scoring</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-[140px] overflow-y-auto pr-1">
                                 {selectedReportDetail.marksPerQuestion.map((q: string, idx: number) => (
-                                  <div key={idx} className="p-3 bg-navy-dark rounded-xl border border-white/5 flex gap-2.5">
-                                    <span className="w-5 h-5 rounded bg-brand-cyan/15 text-brand-cyan flex items-center justify-center font-black text-[10px] shrink-0">{idx+1}</span>
-                                    <p className="text-xs text-slate-300 font-medium">{q}</p>
+                                  <div key={idx} className="p-2.5 bg-slate-900 rounded-xl border border-indigo-500/20 flex gap-2">
+                                    <span className="w-5 h-5 rounded bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-mono font-bold text-[10px] shrink-0">{idx+1}</span>
+                                    <p className="text-xs text-slate-200 font-medium">{q}</p>
                                   </div>
                                 ))}
                               </div>
                             </div>
                           )}
 
-                          <div className="bg-navy-darker/40 p-6 border border-[#ffffff05] rounded-3xl space-y-2">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">RAW FILE TRANSCRIPT</h4>
-                            <div className="bg-navy-dark p-4 rounded-xl max-h-[140px] overflow-y-auto">
-                              <p className="text-[11px] font-mono text-slate-400 whitespace-pre-wrap leading-relaxed">{selectedReportDetail.extractedText || "No context scanned."}</p>
+                          <div className="bg-slate-950/60 p-5 border border-indigo-500/20 rounded-2xl space-y-2">
+                            <h4 className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">RAW FILE TRANSCRIPT</h4>
+                            <div className="bg-slate-900 p-3.5 rounded-xl max-h-[140px] overflow-y-auto border border-indigo-500/20">
+                              <p className="text-[11px] font-mono text-slate-300 whitespace-pre-wrap leading-relaxed">{selectedReportDetail.extractedText || "No context scanned."}</p>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+                        <div className="flex justify-end gap-3 pt-3 border-t border-indigo-500/20">
                           <button 
                             type="button"
                             onClick={() => setSelectedReportDetail(null)}
-                            className="bg-white/10 hover:bg-white/20 px-6 py-3 rounded-2xl text-white text-xs font-black uppercase tracking-widest transition-all cursor-pointer"
+                            className="bg-slate-800 hover:bg-slate-700 border border-indigo-500/30 px-5 py-2.5 rounded-xl text-white text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer"
                           >
                             Close Inspector
                           </button>
