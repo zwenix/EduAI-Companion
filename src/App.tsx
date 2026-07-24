@@ -764,7 +764,7 @@ export default function App() {
     if (r === 'teacher') {
       return [
         { id: 'teacher-dashboard-menu', label: 'Teachers Office', icon: IconHome },
-        { id: 'lesson-planning', label: 'Edu-Tools Hub', icon: IconCurriculum },
+        { id: 'lesson-planning', label: "Teacher'sToolBox", icon: IconCurriculum },
         { id: 'intelligence-ai', label: 'Intelligent AI', icon: SmartBotTutorIcon },
         { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
         { id: 'class-analytics', label: 'Analytics', icon: IconAnalytics },
@@ -775,7 +775,7 @@ export default function App() {
     
     return [
       { id: 'teacher-dashboard-menu', label: firstLabel, icon: IconHome },
-      { id: 'lesson-planning', label: 'Edu-Tools Hub', icon: IconCurriculum },
+      { id: 'lesson-planning', label: "Teacher'sToolBox", icon: IconCurriculum },
       { id: 'intelligence-ai', label: 'Intelligence AI', icon: SmartBotTutorIcon },
       { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
       { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },

@@ -11,9 +11,15 @@ import {
   Video,
   Archive,
   Search,
-  User
+  User,
+  QrCode,
+  Camera,
+  Zap,
+  CheckCircle2,
+  FileCheck
 } from 'lucide-react';
 import ContentSlideshow from './ContentSlideshow';
+import WorksheetQRScannerModal from './WorksheetQRScannerModal';
 
 interface SubTabItem {
   id: string;
@@ -38,9 +44,18 @@ export default function CategoryOverview({
   isDarkMode,
 }: CategoryOverviewProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
-  // Custom Edu-Tools Hub UI matching Screenshot 1 ("Your Magic Toolbox")
-  if (categoryLabel === 'Edu-Tools Hub' || categoryLabel === 'Curriculum' || categoryLabel === 'Teachers Magic' || categoryLabel === 'lesson-planning') {
+  // Custom Teacher'sToolBox / Edu-Tools Hub UI
+  if (
+    categoryLabel === 'Edu-Tools Hub' || 
+    categoryLabel === "Teacher'sToolBox" || 
+    categoryLabel === "Teacher's ToolBox" || 
+    categoryLabel === 'TeachersToolBox' || 
+    categoryLabel === 'Curriculum' || 
+    categoryLabel === 'Teachers Magic' || 
+    categoryLabel === 'lesson-planning'
+  ) {
     return (
       <div className="relative p-6 lg:p-10 overflow-hidden rounded-[40px] border border-indigo-500/30 bg-[#080b22] text-white min-h-[85vh] flex flex-col justify-between font-sans">
         
@@ -52,21 +67,21 @@ export default function CategoryOverview({
         <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none" />
 
-        {/* TOP HEADER BAR (Matching Screenshot 1) */}
+        {/* RESTORED TOP HEADER BAR */}
         <div className="relative z-20 flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-indigo-500/20">
           
           {/* Brand Pill */}
           <div className="flex items-center gap-2.5 bg-slate-900/90 border border-indigo-500/40 rounded-full px-4 py-2 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
             <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-cyan-400 to-pink-500 flex items-center justify-center text-slate-950 font-black text-xs">
-              E
+              T
             </div>
             <span className="font-display font-black text-xs tracking-wider text-slate-100 uppercase">
-              EduAI Companion
+              Teacher'sToolBox
             </span>
           </div>
 
           {/* Search Bar */}
-          <div className="relative w-full sm:w-72 md:w-80">
+          <div className="relative w-full sm:w-64 md:w-72">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-300 pointer-events-none" />
             <input 
               type="text"
@@ -76,6 +91,16 @@ export default function CategoryOverview({
               className="w-full bg-slate-900/90 border border-indigo-500/30 focus:border-cyan-400 focus:shadow-[0_0_12px_rgba(0,211,238,0.4)] rounded-full pl-10 pr-4 py-2 text-xs font-semibold text-white placeholder-slate-400 outline-none transition-all"
             />
           </div>
+
+          {/* INSTANT WORKSHEET QR CODE CAMERA SCANNER BUTTON */}
+          <button
+            onClick={() => setIsQrModalOpen(true)}
+            className="flex items-center gap-2 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-display font-black text-xs px-4 py-2 rounded-full shadow-[0_0_20px_rgba(6,182,212,0.5)] hover:shadow-[0_0_25px_rgba(6,182,212,0.8)] hover:scale-[1.03] transition-all cursor-pointer border border-cyan-300/40"
+          >
+            <Camera className="w-4 h-4 text-cyan-200 animate-pulse" />
+            <QrCode className="w-4 h-4 text-amber-300" />
+            <span>Scan Worksheet QR Code</span>
+          </button>
 
           {/* Right User & CTA Buttons */}
           <div className="flex items-center gap-3">
@@ -102,8 +127,8 @@ export default function CategoryOverview({
 
         </div>
 
-        {/* MAIN TITLE SECTION (Matching Screenshot 1: "Your Magic Toolbox") */}
-        <div className="relative z-10 text-center my-8">
+        {/* MAIN TITLE SECTION ("Your Magic Toolbox") */}
+        <div className="relative z-10 text-center my-6">
           <div className="inline-flex items-center gap-2 mb-2">
             <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
             <span className="text-xl sm:text-2xl font-display font-bold text-slate-100 tracking-tight">
@@ -111,23 +136,88 @@ export default function CategoryOverview({
             </span>
             <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
           </div>
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)]">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)]">
             Toolbox
           </h1>
+          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
+            CAPS Lesson Architect • Instant QR Camera Auto-Grading • Creative Media Suite
+          </p>
         </div>
 
-        {/* 2x2 NEON GLOW CARDS GRID (Matching Screenshot 1) */}
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-5xl mx-auto w-full my-4">
+        {/* HERO SHOWCASE SECTION: RESTORED CONTENT SLIDESHOW & QR SCANNER BANNER */}
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-6 max-w-6xl mx-auto w-full items-stretch">
           
-          {/* CARD 1: Auto-Lesson Maker (Pink/Magenta Border Glow) */}
+          {/* LEFT: Restored Interactive Content Slideshow */}
+          <div className="lg:col-span-7 flex flex-col justify-center">
+            <ContentSlideshow />
+          </div>
+
+          {/* RIGHT: Camera QR Scanner Instant Feature Card */}
+          <motion.div 
+            whileHover={{ scale: 1.02, y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            className="lg:col-span-5 flex flex-col justify-between p-6 rounded-[32px] bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-indigo-950/80 border-2 border-cyan-500/40 hover:border-cyan-300 shadow-[0_0_30px_rgba(6,182,212,0.25)] hover:shadow-[0_0_50px_rgba(6,182,212,0.5)] hover:brightness-110 relative overflow-hidden group transition-all duration-300"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-[10px] font-black uppercase tracking-widest text-cyan-300 flex items-center gap-1.5">
+                  <Zap size={12} className="text-amber-300" />
+                  INSTANT CAMERA GRADING
+                </span>
+                <QrCode size={24} className="text-cyan-400 animate-pulse group-hover:scale-110 transition-transform duration-300" />
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-display font-black text-white group-hover:text-cyan-200 transition-colors">
+                  Worksheet QR Scanner
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed mt-2">
+                  Scan physical printed worksheet QR codes using your phone or laptop camera for instant diagnostic scoring, student mark recording, and memorandum breakdown!
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  <span>Camera QR detection in 0.5 seconds</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  <span>Automatic score calculation & answer memo</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  <span>Direct export to Teacher Gradebook</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsQrModalOpen(true)}
+              className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-display font-black text-xs shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.7)] transition-all cursor-pointer flex items-center justify-center gap-2 border border-cyan-300/40"
+            >
+              <Camera size={16} />
+              <span>Launch Camera QR Scanner</span>
+            </button>
+          </motion.div>
+
+        </div>
+
+        {/* 2x2 NEON GLOW CARDS GRID (With Updated Titles & Smooth Hover Scaling/Brightening) */}
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-6xl mx-auto w-full my-4">
+          
+          {/* CARD 1: CAPS Tools Factory (Pink/Magenta Border Glow) */}
           <motion.div
-            whileHover={{ y: -5, scale: 1.015 }}
+            whileHover={{ scale: 1.03, y: -6 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             onClick={() => onSelect('teaching')}
-            className="rounded-[32px] border-2 border-pink-500/90 bg-[#0e122e]/90 shadow-[0_0_30px_rgba(236,72,153,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-pink-400 hover:shadow-[0_0_45px_rgba(236,72,153,0.6)] transition-all duration-300 cursor-pointer relative overflow-hidden"
+            className="rounded-[32px] border-2 border-pink-500/90 bg-[#0e122e]/90 shadow-[0_0_30px_rgba(236,72,153,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-pink-400 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(236,72,153,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
             <div className="space-y-4 w-full flex flex-col items-center">
               {/* Custom Pink Monitor Icon */}
-              <div className="w-20 h-20 rounded-3xl bg-pink-500/10 border-2 border-pink-500/50 flex items-center justify-center text-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.4)] group-hover:scale-110 transition-transform duration-300">
+              <div className="w-20 h-20 rounded-3xl bg-pink-500/10 border-2 border-pink-500/50 flex items-center justify-center text-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.4)] group-hover:scale-110 group-hover:bg-pink-500/20 group-hover:shadow-[0_0_30px_rgba(236,72,153,0.6)] transition-all duration-300">
                 <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="2" y="3" width="20" height="14" rx="3" stroke="#ec4899" strokeWidth="2" />
                   <line x1="8" y1="21" x2="16" y2="21" stroke="#ec4899" strokeWidth="2" />
@@ -139,24 +229,24 @@ export default function CategoryOverview({
 
               <div>
                 <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-pink-300 transition-colors mb-2">
-                  Auto-Lesson Maker
+                  CAPS Tools Factory
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
-                  Create amazing lesson plans in a flash like a super lesson builder! Perfect for your first subject.
+                  Generate detailed CAPS-aligned lesson plans, unit planners, and foundation phase learning materials in seconds!
                 </p>
               </div>
 
-              {/* Quick Sub-action Pills for Migrated Functions */}
+              {/* Sub-action Pills */}
               <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('teaching'); }}
-                  className="px-3 py-1.5 rounded-full bg-pink-500/10 hover:bg-pink-500/25 border border-pink-500/40 text-[11px] font-bold text-pink-300 hover:text-white transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-pink-500/10 hover:bg-pink-500/30 border border-pink-500/40 text-[11px] font-bold text-pink-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
                 >
                   ✨ Content Studio
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('grade1'); }}
-                  className="px-3 py-1.5 rounded-full bg-pink-500/10 hover:bg-pink-500/25 border border-pink-500/40 text-[11px] font-bold text-pink-300 hover:text-white transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-pink-500/10 hover:bg-pink-500/30 border border-pink-500/40 text-[11px] font-bold text-pink-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
                 >
                   🎒 Foundation Hub (R-3)
                 </button>
@@ -166,13 +256,15 @@ export default function CategoryOverview({
 
           {/* CARD 2: Quiz Wizard (Orange/Amber Border Glow) */}
           <motion.div
-            whileHover={{ y: -5, scale: 1.015 }}
+            whileHover={{ scale: 1.03, y: -6 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             onClick={() => onSelect('student-practice')}
-            className="rounded-[32px] border-2 border-orange-500/90 bg-[#0e122e]/90 shadow-[0_0_30px_rgba(249,115,22,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-orange-400 hover:shadow-[0_0_45px_rgba(249,115,22,0.6)] transition-all duration-300 cursor-pointer relative overflow-hidden"
+            className="rounded-[32px] border-2 border-orange-500/90 bg-[#0e122e]/90 shadow-[0_0_30px_rgba(249,115,22,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-orange-400 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(249,115,22,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
             <div className="space-y-4 w-full flex flex-col items-center">
               {/* Custom Orange Clipboard Icon */}
-              <div className="w-20 h-20 rounded-3xl bg-orange-500/10 border-2 border-orange-500/50 flex items-center justify-center text-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.4)] group-hover:scale-110 transition-transform duration-300">
+              <div className="w-20 h-20 rounded-3xl bg-orange-500/10 border-2 border-orange-500/50 flex items-center justify-center text-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.4)] group-hover:scale-110 group-hover:bg-orange-500/20 group-hover:shadow-[0_0_30px_rgba(249,115,22,0.6)] transition-all duration-300">
                 <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="#f97316" strokeWidth="2" />
                   <rect x="8" y="2" width="8" height="4" rx="1" stroke="#f97316" strokeWidth="2" />
@@ -186,21 +278,21 @@ export default function CategoryOverview({
                   Quiz Wizard
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
-                  Quiz worksheets and exercises to test prior knowledge. Benefits of quizzes in the magic today!
+                  Interactive diagnostic quizzes, formal exam papers, answer memorandums, and student practice exercises.
                 </p>
               </div>
 
-              {/* Quick Sub-action Pills for Migrated Functions */}
+              {/* Sub-action Pills */}
               <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('student-practice'); }}
-                  className="px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/25 border border-orange-500/40 text-[11px] font-bold text-orange-300 hover:text-white transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/30 border border-orange-500/40 text-[11px] font-bold text-orange-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
                 >
                   📝 Practice Zone
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('ocr'); }}
-                  className="px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/25 border border-orange-500/40 text-[11px] font-bold text-orange-300 hover:text-white transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/30 border border-orange-500/40 text-[11px] font-bold text-orange-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
                 >
                   ⚡ Auto-Grading OCR
                 </button>
@@ -208,15 +300,17 @@ export default function CategoryOverview({
             </div>
           </motion.div>
 
-          {/* CARD 3: Report Card Spark (Cyan/Blue Border Glow) */}
+          {/* CARD 3: Admin & Reports Cabinet (Cyan/Blue Border Glow) */}
           <motion.div
-            whileHover={{ y: -5, scale: 1.015 }}
+            whileHover={{ scale: 1.03, y: -6 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             onClick={() => onSelect('admin')}
-            className="rounded-[32px] border-2 border-cyan-400/90 bg-[#0e122e]/90 shadow-[0_0_30px_rgba(34,211,238,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-cyan-300 hover:shadow-[0_0_45px_rgba(34,211,238,0.6)] transition-all duration-300 cursor-pointer relative overflow-hidden"
+            className="rounded-[32px] border-2 border-cyan-400/90 bg-[#0e122e]/90 shadow-[0_0_30px_rgba(34,211,238,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-cyan-300 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(34,211,238,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
             <div className="space-y-4 w-full flex flex-col items-center">
               {/* Custom Cyan Document Icon */}
-              <div className="w-20 h-20 rounded-3xl bg-cyan-500/10 border-2 border-cyan-400/50 flex items-center justify-center text-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.4)] group-hover:scale-110 transition-transform duration-300">
+              <div className="w-20 h-20 rounded-3xl bg-cyan-500/10 border-2 border-cyan-400/50 flex items-center justify-center text-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.4)] group-hover:scale-110 group-hover:bg-cyan-500/20 group-hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] transition-all duration-300">
                 <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#22d3ee" strokeWidth="2" />
                   <polyline points="14 2 14 8 20 8" stroke="#22d3ee" strokeWidth="2" />
@@ -227,24 +321,24 @@ export default function CategoryOverview({
 
               <div>
                 <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-cyan-200 transition-colors mb-2">
-                  Report Card Spark
+                  Admin & Reports Cabinet
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
-                  Create your report card summaries, worksheets and exercises for use and report cards!
+                  Generate learner report comments, parent communication notices, newsletters, and administrative logs.
                 </p>
               </div>
 
-              {/* Quick Sub-action Pills for Migrated Functions */}
+              {/* Sub-action Pills */}
               <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('admin'); }}
-                  className="px-3 py-1.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/40 text-[11px] font-bold text-cyan-300 hover:text-white transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/30 border border-cyan-500/40 text-[11px] font-bold text-cyan-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
                 >
                   📋 Admin Lab & Notices
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('reports'); }}
-                  className="px-3 py-1.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/40 text-[11px] font-bold text-cyan-300 hover:text-white transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/30 border border-cyan-500/40 text-[11px] font-bold text-cyan-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
                 >
                   📊 Analytics & Comments
                 </button>
@@ -252,15 +346,17 @@ export default function CategoryOverview({
             </div>
           </motion.div>
 
-          {/* CARD 4: Classroom Gamify (Emerald/Green Border Glow) */}
+          {/* CARD 4: Media Tools Designer (Emerald/Green Border Glow) */}
           <motion.div
-            whileHover={{ y: -5, scale: 1.015 }}
+            whileHover={{ scale: 1.03, y: -6 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             onClick={() => onSelect('visual')}
-            className="rounded-[32px] border-2 border-emerald-400/90 bg-[#0e122e]/90 shadow-[0_0_30px_rgba(52,211,153,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-emerald-300 hover:shadow-[0_0_45px_rgba(52,211,153,0.6)] transition-all duration-300 cursor-pointer relative overflow-hidden"
+            className="rounded-[32px] border-2 border-emerald-400/90 bg-[#0e122e]/90 shadow-[0_0_30px_rgba(52,211,153,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-emerald-300 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(52,211,153,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
             <div className="space-y-4 w-full flex flex-col items-center">
               {/* Custom Emerald Classroom Icon */}
-              <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 border-2 border-emerald-400/50 flex items-center justify-center text-emerald-300 shadow-[0_0_20px_rgba(52,211,153,0.4)] group-hover:scale-110 transition-transform duration-300">
+              <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 border-2 border-emerald-400/50 flex items-center justify-center text-emerald-300 shadow-[0_0_20px_rgba(52,211,153,0.4)] group-hover:scale-110 group-hover:bg-emerald-500/20 group-hover:shadow-[0_0_30px_rgba(52,211,153,0.6)] transition-all duration-300">
                 <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4 3h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="#34d399" strokeWidth="2" />
                   <path d="M8 21l4-6 4 6" stroke="#34d399" strokeWidth="2" />
@@ -270,30 +366,30 @@ export default function CategoryOverview({
 
               <div>
                 <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-emerald-200 transition-colors mb-2">
-                  Classroom Gamify
+                  Media Tools Designer
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
-                  Make your classroom gamify! Make beautiful posters for your room and classroom.
+                  Design rich classroom posters, educational infographics, AI teacher video avatars, and visual flashcards.
                 </p>
               </div>
 
-              {/* Quick Sub-action Pills for Migrated Functions */}
+              {/* Sub-action Pills */}
               <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('visual'); }}
-                  className="px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:text-white transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
                 >
                   🎨 Visual Lab Posters
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('video'); }}
-                  className="px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:text-white transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
                 >
                   🎬 Video Avatars
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('archive'); }}
-                  className="px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:text-white transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
                 >
                   📂 Vault & Library
                 </button>
@@ -303,7 +399,7 @@ export default function CategoryOverview({
 
         </div>
 
-        {/* BOTTOM QUICK SHORTCUTS STRIP (Ensuring 100% feature migration) */}
+        {/* BOTTOM QUICK SHORTCUTS STRIP */}
         <div className="relative z-10 pt-6 border-t border-indigo-500/20 text-center">
           <p className="text-xs font-mono font-bold text-indigo-300 uppercase tracking-widest mb-3">
             Direct Tool Access
@@ -333,10 +429,18 @@ export default function CategoryOverview({
           </div>
         </div>
 
+        {/* WORKSHEET CAMERA QR SCANNER MODAL */}
+        <WorksheetQRScannerModal
+          isOpen={isQrModalOpen}
+          onClose={() => setIsQrModalOpen(false)}
+          onGradingComplete={(result) => {
+            console.log('Grading result:', result);
+          }}
+        />
+
       </div>
     );
   }
-
 
   // Rich descriptions dynamically matched to IDs
   const getRichDescription = (id: string, label: string) => {
@@ -479,6 +583,12 @@ export default function CategoryOverview({
           );
         })}
       </div>
+
+      {/* WORKSHEET CAMERA QR SCANNER MODAL */}
+      <WorksheetQRScannerModal
+        isOpen={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+      />
     </div>
   );
 }
