@@ -421,6 +421,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   const [t_customSubject, setT_CustomSubject] = useState('');
   const [t_type, setT_Type] = useState('');
   const [t_topic, setT_Topic] = useState('');
+  const [t_customPrompt, setT_CustomPrompt] = useState('');
   const [t_topics, setT_Topics] = useState<string[]>([]);
   const [t_language, setT_Language] = useState('English');
   const [t_difficulty, setT_Difficulty] = useState('Medium (Mixed)');
@@ -442,6 +443,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   const [v_subject, setV_Subject] = useState('');
   const [v_customSubject, setV_CustomSubject] = useState('');
   const [v_type, setV_Type] = useState('');
+  const [v_customPrompt, setV_CustomPrompt] = useState('');
   const [v_topic, setV_Topic] = useState('');
   const [v_colorScheme, setV_ColorScheme] = useState('Bright Primary Colors');
   const [v_visualStyle, setV_VisualStyle] = useState('Modern & Clean');
@@ -467,6 +469,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   const [a_customSubject, setA_CustomSubject] = useState('');
   const [a_type, setA_Type] = useState('');
   const [a_topic, setA_Topic] = useState('');
+  const [a_customPrompt, setA_CustomPrompt] = useState('');
   const [a_tone, setA_Tone] = useState('Formal & Professional');
   const [a_generateImage, setA_GenerateImage] = useState(false);
   const [adminResult, setAdminResult] = useState<any>({ content: '' });
@@ -552,6 +555,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
         duration: t_duration,
         learners: t_learners,
         capsAlignment: t_capsAlignment,
+        additionalInstructions: t_customPrompt,
         differentiation: t_differentiation,
         ictIntegration: t_ictIntegration,
         inclusiveEd: t_inclusiveEd,
@@ -1162,7 +1166,18 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
           {/* Module-specific Layout routing */}
           {activeTab === 'video' ? (
             <div className="max-w-6xl mx-auto">
-              <VideoLabConsole isDarkMode={isDarkMode} onClose={onClose} />
+              <VideoLabConsole 
+                isDarkMode={isDarkMode} 
+                onClose={onClose} 
+                vid_model={vid_model}
+                setVid_Model={setVid_Model}
+                vid_prompt={vid_prompt}
+                setVid_Prompt={setVid_Prompt}
+                vid_seed={vid_seed}
+                setVid_Seed={setVid_Seed}
+                vid_fps={vid_fps}
+                setVid_Fps={setVid_Fps}
+              />
             </div>
           ) : activeTab === 'grade1' ? (
             <div className="max-w-6xl mx-auto">
@@ -1194,8 +1209,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                 </h2>
 
                 <div className="space-y-4">
-                  {/* Phase Quick-Select Pill Buttons (only for teaching/visual) */}
-                  {activeTab !== 'admin' && (
+                  {/* Phase Quick-Select Pill Buttons */}
                     <div className="space-y-1.5">
                       <Label>Quick Phase Preset</Label>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1205,7 +1219,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                           { label: 'Senior (7-9)', grade: 'Grade 8', color: 'from-purple-500/20 to-indigo-500/20 border-purple-500/40 text-purple-300' },
                           { label: 'FET Phase (10-12)', grade: 'Grade 10', color: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/40 text-emerald-300' },
                         ].map((phase) => {
-                          const currentGrade = activeTab === 'teaching' ? t_grade : v_grade;
+                          const currentGrade = activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade;
                           const isSelected = getPhaseForGrade(currentGrade) === (
                             phase.grade === 'Grade 1' ? 'Foundation Phase' :
                             phase.grade === 'Grade 4' ? 'Intermediate Phase' :
@@ -1220,10 +1234,14 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                                   setT_Grade(phase.grade);
                                   setT_Subject('');
                                   setT_Topic('');
-                                } else {
+                                } else if (activeTab === 'visual') {
                                   setV_Grade(phase.grade);
                                   setV_Subject('');
                                   setV_Topic('');
+                                } else {
+                                  setA_Grade(phase.grade);
+                                  setA_Subject('');
+                                  setA_Topic('');
                                 }
                               }}
                               className={cn(
@@ -1238,19 +1256,17 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                         })}
                       </div>
                     </div>
-                  )}
 
                   {/* Primary Parameters Grid: 2 Side-by-Side Controls per Row */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    {/* Grade Selector (only for teaching/visual) */}
-                    {activeTab !== 'admin' && (
+                    {/* Grade Selector */}
                       <div>
                         <Label>Grade Level (R-12)</Label>
                         <Select
                           isDarkMode={isDarkMode}
-                          value={activeTab === 'teaching' ? t_grade : v_grade}
+                          value={activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade}
                           className={cn(
-                            (activeTab === 'teaching' ? t_grade : v_grade) && (isDarkMode ? "border-cyan-400/60 bg-cyan-950/30 text-cyan-200" : "border-cyan-300 bg-cyan-50/80")
+                            (activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade) && (isDarkMode ? "border-cyan-400/60 bg-cyan-950/30 text-cyan-200" : "border-cyan-300 bg-cyan-50/80")
                           )}
                           onChange={(e: any) => {
                             const val = e.target.value;
@@ -1258,10 +1274,14 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                               setT_Grade(val);
                               setT_Subject('');
                               setT_Topic('');
-                            } else {
+                            } else if (activeTab === 'visual') {
                               setV_Grade(val);
                               setV_Subject('');
                               setV_Topic('');
+                            } else {
+                              setA_Grade(val);
+                              setA_Subject('');
+                              setA_Topic('');
                             }
                           }}
                         >
@@ -1273,7 +1293,6 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                           ))}
                         </Select>
                       </div>
-                    )}
 
                     {/* Subject Area */}
                     <div className={activeTab === 'admin' ? "col-span-1" : ""}>
@@ -1588,6 +1607,30 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                       </div>
                     </AdvancedSection>
                   )}
+
+                  {/* Custom Action Prompt Script */}
+                  <div className="pt-4 border-t border-white/5 space-y-1.5">
+                    <label className={cn("text-[10px] font-black uppercase tracking-widest block ml-1", isDarkMode ? "text-purple-400" : "text-purple-600")}>
+                      Action Prompt Script (Optional)
+                    </label>
+                    <textarea 
+                      placeholder="Type your custom instructions here... E.g., Focus specifically on the history of the Khoisan people..."
+                      value={activeTab === 'teaching' ? t_customPrompt : activeTab === 'visual' ? v_customPrompt : a_customPrompt}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (activeTab === 'teaching') setT_CustomPrompt(val);
+                        else if (activeTab === 'visual') setV_CustomPrompt(val);
+                        else setA_CustomPrompt(val);
+                      }}
+                      className={cn(
+                        "w-full h-20 border text-xs font-medium rounded-xl p-2.5 focus:outline-none focus:ring-1 transition-all resize-none",
+                        isDarkMode 
+                          ? "bg-[#0b1122]/80 border-white/10 text-slate-200 focus:border-purple-400 focus:ring-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.05)]" 
+                          : "bg-white border-slate-200 text-slate-800 focus:border-purple-500 focus:ring-purple-500"
+                      )}
+                    />
+                  </div>
+
 
                   {activeTab === 'visual' && (
                     <AdvancedSection label="Visual Settings" isDarkMode={isDarkMode}>

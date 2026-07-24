@@ -67,65 +67,6 @@ export default function CategoryOverview({
         <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none" />
 
-        {/* RESTORED TOP HEADER BAR */}
-        <div className="relative z-20 flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-indigo-500/20">
-          
-          {/* Brand Pill */}
-          <div className="flex items-center gap-2.5 bg-slate-900/90 border border-indigo-500/40 rounded-full px-4 py-2 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-cyan-400 to-pink-500 flex items-center justify-center text-slate-950 font-black text-xs">
-              T
-            </div>
-            <span className="font-display font-black text-xs tracking-wider text-slate-100 uppercase">
-              Teacher'sToolBox
-            </span>
-          </div>
-
-          {/* Search Bar */}
-          <div className="relative w-full sm:w-64 md:w-72">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-300 pointer-events-none" />
-            <input 
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search magic tools..." 
-              className="w-full bg-slate-900/90 border border-indigo-500/30 focus:border-cyan-400 focus:shadow-[0_0_12px_rgba(0,211,238,0.4)] rounded-full pl-10 pr-4 py-2 text-xs font-semibold text-white placeholder-slate-400 outline-none transition-all"
-            />
-          </div>
-
-          {/* INSTANT WORKSHEET QR CODE CAMERA SCANNER BUTTON */}
-          <button
-            onClick={() => setIsQrModalOpen(true)}
-            className="flex items-center gap-2 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-display font-black text-xs px-4 py-2 rounded-full shadow-[0_0_20px_rgba(6,182,212,0.5)] hover:shadow-[0_0_25px_rgba(6,182,212,0.8)] hover:scale-[1.03] transition-all cursor-pointer border border-cyan-300/40"
-          >
-            <Camera className="w-4 h-4 text-cyan-200 animate-pulse" />
-            <QrCode className="w-4 h-4 text-amber-300" />
-            <span>Scan Worksheet QR Code</span>
-          </button>
-
-          {/* Right User & CTA Buttons */}
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => onSelect('teaching')}
-              className="w-8 h-8 rounded-full bg-slate-800/90 border border-indigo-500/30 flex items-center justify-center text-indigo-300 hover:text-white hover:border-cyan-400 transition-all cursor-pointer"
-              title="Profile"
-            >
-              <User className="w-4 h-4" />
-            </button>
-            <button 
-              onClick={() => onSelect('teaching')}
-              className="text-xs font-bold text-slate-300 hover:text-cyan-300 transition-colors px-2 py-1 cursor-pointer"
-            >
-              Sign In
-            </button>
-            <button 
-              onClick={() => onSelect('teaching')}
-              className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-display font-black text-xs px-5 py-2 rounded-full shadow-[0_0_15px_rgba(251,191,36,0.5)] hover:shadow-[0_0_20px_rgba(251,191,36,0.8)] hover:scale-[1.03] transition-all cursor-pointer"
-            >
-              Get Started!
-            </button>
-          </div>
-
-        </div>
 
         {/* MAIN TITLE SECTION ("Your Magic Toolbox") */}
         <div className="relative z-10 text-center my-6">

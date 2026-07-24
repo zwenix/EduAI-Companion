@@ -1331,6 +1331,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
           const isFlashcard = input.visualType?.toLowerCase().includes('flashcard') || input.visualType?.toLowerCase().includes('learning card');
 
           let visualPrompt = "";
+          if (input.additionalInstructions) { visualPrompt += `\n\nUser Custom Instructions: ${input.additionalInstructions}\n`; }
           if (isPoster) {
             visualPrompt = `
               Create an exceptionally polished, high-resolution educational poster layout on the CAPS topic: "${input.topic}" for South African Grade ${input.grade} ${input.subject} classrooms.
@@ -1407,7 +1408,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
 
           let prompt = `
             ${visualPrompt}
-            Language: ${input.language}
+            Language: ${input.language}\n            ${input.additionalInstructions ? `User Custom Instructions: ${input.additionalInstructions}` : ""}
             Style: ${input.style}
             Color: ${input.colorScheme}
             Content Details: ${input.specificContent}
@@ -1450,7 +1451,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             Purpose: ${input.purpose}
             Key Points: ${input.keyPoints}
             Include Reply Slip: ${input.includeReplySlip}
-            Language: ${input.language}
+            Language: ${input.language}\n            ${input.additionalInstructions ? `User Custom Instructions: ${input.additionalInstructions}` : ""}
           `;
           if (input.generateImage) {
             prompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 1-2 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of a professional school stamp, document seal, or graphic depicting the topic in South African context>]. Place them strategically inside the HTML. The system will replace them with actual AI generated images.`;
