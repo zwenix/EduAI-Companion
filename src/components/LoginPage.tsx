@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, ArrowRight, Sparkles, ShieldAlert, Rocket, Orbit, Star, Heart, Smile } from 'lucide-react';
+import { Loader2, ArrowRight, ShieldAlert, Rocket, Sparkles } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { motion, AnimatePresence } from 'motion/react';
-import Logo from './Logo';
 
 interface LoginPageProps {
   onSuccess: () => void;
@@ -14,7 +13,7 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(true); // Default to Sign Up as in Screenshot 2
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogle, setIsGoogle] = useState(false);
   const [error, setError] = useState('');
@@ -22,13 +21,13 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
   const isIframe = typeof window !== 'undefined' && window.self !== window.top;
 
   useEffect(() => {
-    // Generate random stars for background
-    const newStars = Array.from({ length: 30 }).map((_, i) => ({
+    // Generate twinkling stars for cosmic background
+    const newStars = Array.from({ length: 45 }).map((_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
-      size: Math.random() * 2 + 1,
-      delay: Math.random() * 3,
+      size: Math.random() * 2.5 + 1,
+      delay: Math.random() * 4,
     }));
     setStars(newStars);
   }, []);
@@ -102,9 +101,9 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
       const errCode = err?.code || "";
 
       if (errCode === 'auth/popup-closed-by-user' || errMsg.includes('popup-closed-by-user')) {
-        setError("The login window was closed. Please try again! (Tip: If you are using Google AI Studio, make sure you clicked \"Open in a new tab\" to allow the login popup to connect properly).");
+        setError("The login window was closed. Please try again! (Tip: If using AI Studio preview, click 'Open in a new tab').");
       } else if (errCode === 'auth/popup-blocked' || errMsg.includes('popup-blocked')) {
-        setError("The login popup was blocked by your browser. Please enable popups for this site or open the app in a new tab.");
+        setError("Login popup blocked. Please enable popups or open in a new tab.");
       } else {
         setError(errMsg);
       }
@@ -113,11 +112,11 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col md:flex-row relative overflow-hidden cinematic-neon-bg font-sans text-white">
-      {/* 3D Floor Perspective Grid on backgrounds */}
-      <div className="perspective-grid" />
-
-      {/* Floating Stars */}
+    <div className="min-h-screen w-full flex flex-col md:flex-row relative overflow-hidden bg-[#060919] font-sans text-white select-none">
+      
+      {/* Cosmic Stars Background */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(15,23,42,0.6)_0%,rgba(6,9,25,1)_100%)] pointer-events-none" />
+      
       {stars.map((star) => (
         <motion.div
           key={star.id}
@@ -127,263 +126,330 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
             top: `${star.y}%`,
             width: `${star.size}px`,
             height: `${star.size}px`,
+            boxShadow: star.size > 2 ? '0 0 8px rgba(0,211,238,0.8)' : 'none',
           }}
           animate={{
-            opacity: [0.15, 0.85, 0.15],
-            scale: [1, 1.3, 1],
+            opacity: [0.2, 0.9, 0.2],
+            scale: [1, 1.25, 1],
           }}
           transition={{
-            duration: 3 + star.delay,
+            duration: 2.5 + star.delay,
             repeat: Infinity,
             ease: "easeInOut",
           }}
         />
       ))}
 
-      {/* LEFT COLUMN: Neon astronaut riding a rocket ship (Immersive cinematic art) */}
-      <div className="hidden md:flex md:w-[45%] lg:w-[48%] relative flex-col items-center justify-center p-8 border-r border-white/5 bg-slate-950/40 select-none overflow-hidden">
-        {/* Swirling celestial lines */}
-        <div className="absolute w-[450px] h-[450px] rounded-full border border-brand-cyan/15 animate-spin-slow scale-110" />
-        <div className="absolute w-[300px] h-[300px] rounded-full border-2 border-dashed border-brand-pink/10 animate-reverse-spin scale-90" />
-        <div className="absolute top-[20%] left-[10%] w-72 h-72 bg-brand-cyan/10 rounded-full blur-[100px] pointer-events-none" />
-        
-        {/* Animated Flying Mascot */}
-        <motion.div
-          animate={{
-            y: [-15, 15, -15],
-            rotate: [-4, 4, -4],
-          }}
-          transition={{
-            duration: 5,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="relative z-10 flex flex-col items-center cursor-pointer"
-        >
-          {/* Neon rocket fire particle effects */}
-          <div className="absolute bottom-[-15px] left-1/2 -translate-x-1/2 w-16 h-36 bg-gradient-to-t from-transparent via-brand-pink/45 to-transparent blur-md rounded-full pointer-events-none animate-pulse" />
-          
-          <div className="w-64 h-64 sm:w-72 sm:h-72 rounded-[40px] overflow-hidden p-1 bg-white/5 glass-neon-card border-brand-cyan/45 shadow-[0_0_40px_rgba(0,179,255,0.3)] flex items-center justify-center">
-            <div className="w-full h-full rounded-[34px] overflow-hidden bg-slate-950/50 relative flex items-center justify-center">
-              <img 
-                src="https://i.ibb.co/CsvbkGYG/landing-image.jpg" 
-                alt="Astronaut flying on rocket" 
-                className="w-full h-full object-cover filter saturate-[1.25] brightness-[0.8] contrast-[1.1]"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0b0e2c]/90 via-transparent to-brand-cyan/20" />
-            </div>
-          </div>
-
-          {/* Glowing HUD Labels overlay */}
-          <div className="mt-8 text-center px-4">
-            <h2 className="text-3xl font-display font-black tracking-widest text-white leading-none">
-              EduAI <span className="text-brand-pink text-glow-pink">Companion</span>
-            </h2>
-            <p className="text-xs text-brand-cyan font-mono uppercase tracking-widest mt-2 bg-brand-cyan/10 px-4 py-1.5 rounded-full border border-brand-cyan/25 inline-block">
-              Rocket Adventure Ready 🚀
-            </p>
-          </div>
-        </motion.div>
+      {/* Hand-Drawn Neon Doodles (Matching Screenshot 2) */}
+      <div className="absolute top-8 left-12 z-10 pointer-events-none hidden lg:block">
+        <svg width="48" height="48" viewBox="0 0 100 100" className="text-cyan-400 opacity-80 filter drop-shadow-[0_0_8px_#00d2ff]">
+          <path d="M50 10 L63 38 L93 38 L68 56 L78 86 L50 67 L22 86 L32 56 L7 38 L37 38 Z" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </div>
 
-      {/* RIGHT COLUMN: Sign Up / Welcome back portal centered */}
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-8 relative z-10 overflow-y-auto">
+      <div className="absolute top-20 right-16 z-10 pointer-events-none hidden lg:block">
+        <svg width="60" height="60" viewBox="0 0 100 100" className="text-pink-400 opacity-80 filter drop-shadow-[0_0_8px_#ff00d4]">
+          <path d="M20 50 Q50 10 80 50 M65 20 L80 50 L55 60" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+
+      <div className="absolute bottom-16 left-24 z-10 pointer-events-none hidden lg:block">
+        <svg width="50" height="50" viewBox="0 0 100 100" className="text-emerald-400 opacity-80 filter drop-shadow-[0_0_8px_#00ff9f]">
+          <path d="M10 80 Q50 90 85 45 M65 40 L85 45 L80 65" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+
+      <div className="absolute bottom-24 right-20 z-10 pointer-events-none hidden lg:block">
+        <svg width="45" height="45" viewBox="0 0 100 100" className="text-amber-300 opacity-80 filter drop-shadow-[0_0_8px_#ffdf40]">
+          <path d="M50 15 L62 40 L90 40 L67 56 L76 84 L50 67 L24 84 L33 56 L10 40 L38 40 Z" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+
+      {/* LEFT COLUMN: Rocket Robot Mascot + EduAI Logo (Screenshot 2 left half) */}
+      <div className="hidden md:flex md:w-[48%] lg:w-[50%] relative flex-col justify-between p-8 lg:p-12 z-10 select-none">
         
-        {/* Hand-drawn neon doodles around the login box (SVGs and absolute panels) */}
-        <div className="absolute top-[12%] right-[10%] w-16 h-16 pointer-events-none text-brand-pink opacity-50 hidden lg:block">
-          {/* Hand drawn neon loop star */}
-          <svg viewBox="0 0 100 100" className="w-full h-full">
-            <path d="M50 15 L62 40 L88 40 L68 56 L75 82 L50 66 L25 82 L32 56 L12 40 L38 40 Z" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" className="filter drop-shadow-[0_0_6px_#FF00D4]" />
-          </svg>
-        </div>
-        
-        <div className="absolute bottom-[15%] left-[5%] w-24 h-24 pointer-events-none text-brand-green opacity-40 hidden lg:block">
-          {/* Hand drawn neon arrow pointing to card */}
-          <svg viewBox="0 0 100 100" className="w-full h-full rotate-45">
-            <path d="M20 50 Q50 30 75 50 M60 30 L80 50 L60 70" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" className="filter drop-shadow-[0_0_8px_#00FF9F]" />
-          </svg>
+        {/* Top Brand Logo with Rocket */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,211,238,0.4)]">
+            <Rocket className="w-6 h-6 text-cyan-300 -rotate-45 animate-pulse" />
+          </div>
+          <span className="text-3xl font-display font-black tracking-tight text-white flex items-center">
+            Edu<span className="text-cyan-400 drop-shadow-[0_0_10px_rgba(0,211,238,0.8)] font-display">AI</span>
+          </span>
         </div>
 
-        <div className="absolute top-[45%] right-[5%] w-20 h-20 pointer-events-none text-brand-yellow opacity-40 hidden lg:block">
-          {/* Hand drawn loop swirl */}
-          <svg viewBox="0 0 100 100" className="w-full h-full">
-            <path d="M20,50 C20,20 80,20 80,50 C80,80 20,80 50,50" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" className="filter drop-shadow-[0_0_6px_#ffdf40]" />
-          </svg>
-        </div>
+        {/* Center Neon Mascot Robot riding Rocket */}
+        <div className="relative my-auto flex flex-col items-center justify-center">
+          
+          {/* Ambient Glows Behind Robot */}
+          <div className="absolute w-[350px] h-[350px] bg-cyan-500/20 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute w-[280px] h-[280px] bg-pink-500/20 rounded-full blur-[90px] pointer-events-none" />
 
-        {/* Ambient background glows specifically for form */}
-        <div className="absolute w-80 h-80 bg-brand-cyan/5 rounded-full blur-[90px] pointer-events-none" />
-
-        {/* Main card */}
-        <div className="w-full max-w-[460px] mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.96, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.6, type: "spring", stiffness: 90 }}
-            className={`glass-neon-card p-8 sm:p-10 shadow-[0_0_60px_rgba(3,6,17,0.7)] border-white/10 ${
-              isSignUp ? 'animate-neon-pulse-pink' : 'animate-neon-pulse-cyan'
-            }`}
+          {/* Animated Rocket Robot Container */}
+          <motion.div
+            animate={{
+              y: [-12, 12, -12],
+              rotate: [-2, 2, -2],
+            }}
+            transition={{
+              duration: 5,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="relative z-10 w-full max-w-[380px] aspect-square flex items-center justify-center"
           >
-            {/* Logo wrapper */}
-            <div className="flex flex-col items-center mb-6 text-center select-none">
-              <motion.div 
-                whileHover={{ scale: 1.05, rotate: 2 }}
-                onClick={() => window.location.reload()}
-                className="w-18 h-18 flex items-center justify-center mb-4 bg-white/5 border border-white/15 rounded-2xl p-2 shadow-lg cursor-pointer"
-              >
-                <img 
-                  src="https://i.ibb.co/tTc5gG5k/eduai-company-logo2-preview-177246762158%200-2-preview-177247315%203046.png"
-                  alt="EduAI Logo"
-                  className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(0,179,255,0.4)]"
-                />
-              </motion.div>
-              
-              <h1 className="text-3xl font-display font-black text-white tracking-tight mb-1 leading-none">
+            {/* High Impact Glowing Neon Robot Rocket Vector Art */}
+            <svg viewBox="0 0 500 500" className="w-full h-full filter drop-shadow-[0_0_25px_rgba(0,211,238,0.5)]">
+              <defs>
+                <linearGradient id="rocketBody" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#00d2ff" />
+                  <stop offset="50%" stopColor="#3b82f6" />
+                  <stop offset="100%" stopColor="#8b5cf6" />
+                </linearGradient>
+                <linearGradient id="flameGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#ff00d4" />
+                  <stop offset="60%" stopColor="#f43f5e" />
+                  <stop offset="100%" stopColor="transparent" />
+                </linearGradient>
+                <filter id="neonGlowCyan">
+                  <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+                <filter id="neonGlowPink">
+                  <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+
+              {/* Rocket Exhaust Flames */}
+              <path d="M 180 340 Q 140 420 100 450 Q 160 410 190 360 Z" fill="url(#flameGrad)" opacity="0.85" className="animate-pulse" />
+              <path d="M 210 360 Q 180 440 140 480 Q 200 420 225 375 Z" fill="#ff00d4" filter="url(#neonGlowPink)" opacity="0.9" />
+
+              {/* Main Rocket Body */}
+              <path d="M 360 140 C 320 220, 240 280, 180 340 L 220 370 C 290 310, 360 220, 390 170 Z" fill="none" stroke="#00d2ff" strokeWidth="8" filter="url(#neonGlowCyan)" />
+              <path d="M 360 140 C 320 220, 240 280, 180 340 L 220 370 C 290 310, 360 220, 390 170 Z" fill="#090d29" opacity="0.9" />
+
+              {/* Rocket Nosecone & Fins */}
+              <path d="M 360 140 Q 410 110 420 100 Q 390 150 390 170 Z" fill="#ff00d4" stroke="#ff00d4" strokeWidth="4" filter="url(#neonGlowPink)" />
+              <path d="M 180 340 Q 130 360 110 390 Q 160 370 190 360 Z" fill="#3b82f6" stroke="#00d2ff" strokeWidth="4" />
+
+              {/* Rocket Porthole Window */}
+              <circle cx="280" cy="240" r="32" fill="#060919" stroke="#00d2ff" strokeWidth="6" filter="url(#neonGlowCyan)" />
+              <circle cx="280" cy="240" r="22" fill="#00d2ff" opacity="0.3" />
+
+              {/* Cute Robot Mascot sitting on Rocket */}
+              {/* Robot Head */}
+              <rect x="210" y="130" width="90" height="75" rx="30" fill="#090d2b" stroke="#00d2ff" strokeWidth="6" filter="url(#neonGlowCyan)" />
+              {/* Robot Face Screen */}
+              <rect x="225" y="145" width="60" height="45" rx="18" fill="#00d2ff" opacity="0.2" />
+              {/* Cheerful Robot Eyes & Smile */}
+              <path d="M 238 162 Q 245 152 252 162" fill="none" stroke="#00d2ff" strokeWidth="5" strokeLinecap="round" />
+              <path d="M 258 162 Q 265 152 272 162" fill="none" stroke="#00d2ff" strokeWidth="5" strokeLinecap="round" />
+              <path d="M 246 176 Q 255 186 264 176" fill="none" stroke="#ff00d4" strokeWidth="4" strokeLinecap="round" filter="url(#neonGlowPink)" />
+
+              {/* Robot Ears / Antennas */}
+              <circle cx="202" cy="167" r="8" fill="#ff00d4" filter="url(#neonGlowPink)" />
+              <circle cx="308" cy="167" r="8" fill="#ff00d4" filter="url(#neonGlowPink)" />
+              <line x1="255" y1="130" x2="255" y2="110" stroke="#00d2ff" strokeWidth="5" />
+              <circle cx="255" cy="105" r="7" fill="#00d2ff" filter="url(#neonGlowCyan)" />
+
+              {/* Robot Body */}
+              <rect x="220" y="210" width="70" height="55" rx="20" fill="#090d2b" stroke="#ff00d4" strokeWidth="5" filter="url(#neonGlowPink)" />
+              {/* EduAI Chest Badge */}
+              <rect x="232" y="225" width="46" height="22" rx="8" fill="#ff00d4" opacity="0.25" />
+              <text x="255" y="240" fill="#ffffff" fontSize="11" fontWeight="900" textAnchor="middle" fontFamily="sans-serif">EduAI</text>
+
+              {/* Robot Waving Arm */}
+              <path d="M 290 220 Q 325 200 335 175" fill="none" stroke="#00d2ff" strokeWidth="6" strokeLinecap="round" filter="url(#neonGlowCyan)" />
+              <circle cx="338" cy="170" r="10" fill="#00d2ff" />
+            </svg>
+          </motion.div>
+        </div>
+
+        {/* Bottom Tagline */}
+        <div className="text-left">
+          <p className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest bg-cyan-500/10 border border-cyan-500/30 px-4 py-2 rounded-full inline-block">
+            🚀 Ready for Next-Gen Learning
+          </p>
+        </div>
+      </div>
+
+      {/* RIGHT COLUMN: Sign Up Glassmorphism Neon Form (Screenshot 2 right half) */}
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-8 lg:p-12 relative z-20">
+        
+        <div className="w-full max-w-[460px] mx-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
+            className="rounded-[36px] bg-[#0c102c]/85 backdrop-blur-2xl border-2 border-cyan-400/80 shadow-[0_0_50px_rgba(0,211,238,0.35),0_0_20px_rgba(255,0,212,0.2)] p-7 sm:p-10 relative overflow-hidden"
+          >
+            {/* Top Card Title (Exactly matching screenshot 2) */}
+            <div className="text-center mb-7">
+              <h1 className="text-3xl sm:text-4xl font-display font-black tracking-tight leading-tight">
                 {isSignUp ? (
-                  <>Sign Up for <span className="text-brand-pink text-glow-pink font-display">Adventure!</span> ✨</>
+                  <>
+                    <span className="text-cyan-300 drop-shadow-[0_0_12px_rgba(0,211,238,0.8)]">Sign Up for Your</span>{" "}
+                    <br />
+                    <span className="text-pink-400 drop-shadow-[0_0_12px_rgba(255,0,212,0.8)]">Adventure!</span>
+                  </>
                 ) : (
-                  <>Welcome <span className="text-brand-cyan text-glow-cyan font-display">Back!</span> 👋</>
+                  <>
+                    <span className="text-cyan-300 drop-shadow-[0_0_12px_rgba(0,211,238,0.8)]">Log In to Your</span>{" "}
+                    <br />
+                    <span className="text-pink-400 drop-shadow-[0_0_12px_rgba(255,0,212,0.8)]">Adventure!</span>
+                  </>
                 )}
               </h1>
-              <p className="text-xs text-slate-300 font-bold uppercase tracking-widest font-mono">
-                {isSignUp ? "Create Your School Profile" : "Log in to Your Magical Universe"}
-              </p>
             </div>
 
+            {/* Sandbox iframe notification */}
             {isIframe && (
-              <div className="mb-4 p-3.5 bg-indigo-950/65 text-indigo-200 border border-indigo-500/30 rounded-xl font-bold text-xs flex flex-col items-center gap-1.5 shadow-lg text-center leading-normal">
-                <span className="flex items-center gap-1.5 text-indigo-300 text-glow-cyan uppercase tracking-widest text-[9px] font-mono font-bold">
-                  <ShieldAlert className="w-3.5 h-3.5" /> Sandbox Active
+              <div className="mb-5 p-3 bg-indigo-950/80 text-indigo-200 border border-indigo-500/40 rounded-2xl text-xs flex flex-col items-center gap-1 text-center font-medium">
+                <span className="flex items-center gap-1.5 text-cyan-300 uppercase tracking-widest text-[9px] font-mono font-bold">
+                  <ShieldAlert className="w-3.5 h-3.5" /> AI Studio Sandbox
                 </span>
-                <span className="text-[11px] font-sans text-slate-300">
-                  If Google popup fails, please click <b>"Open in a new tab"</b> in the top right menu of AI Studio first!
+                <span className="text-[11px] text-slate-300">
+                  If popup fails, please click <b>"Open in a new tab"</b> in AI Studio header!
                 </span>
               </div>
             )}
 
+            {/* Error Banner */}
             {error && (
-              <div className="mb-4 p-3 bg-rose-500/15 text-rose-300 border border-rose-500/30 rounded-xl font-bold text-xs text-center">
+              <div className="mb-5 p-3 bg-rose-500/20 text-rose-200 border border-rose-500/40 rounded-2xl font-bold text-xs text-center">
                 {error}
               </div>
             )}
 
+            {/* Form */}
             <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-3.5">
-                
-                {/* Name Input - Only for Sign Up */}
-                <AnimatePresence initial={false}>
-                  {isSignUp && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                    >
+              
+              {/* Name Field (Sign Up Mode) */}
+              <AnimatePresence initial={false}>
+                {isSignUp && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <label className="block text-xs font-bold text-slate-200 mb-1.5 ml-1">
+                      Name
+                    </label>
+                    <div className="relative">
                       <input 
                         type="text" 
                         value={name}
                         onChange={e => setName(e.target.value)}
-                        placeholder="Your Full Name"
-                        className="w-full h-12 bg-white/[0.04] border border-white/10 hover:border-white/20 focus:border-brand-pink focus:shadow-[0_0_15px_rgba(255,0,212,0.35)] transition-all rounded-xl px-4 text-white placeholder-slate-400 focus:outline-none font-bold text-sm"
-                        required
+                        placeholder="Your full name"
+                        className="w-full h-12 bg-[#080b22]/90 border border-cyan-400/50 focus:border-cyan-300 focus:shadow-[0_0_15px_rgba(0,211,238,0.5)] rounded-2xl px-4 text-white placeholder-slate-500 font-bold text-sm outline-none transition-all"
+                        required={isSignUp}
                       />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-                {/* Email Input */}
-                <div>
+              {/* Email Field */}
+              <div>
+                <label className="block text-xs font-bold text-slate-200 mb-1.5 ml-1">
+                  Email
+                </label>
+                <div className="relative">
                   <input 
                     type="email" 
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     placeholder="Email address"
-                    className="w-full h-12 bg-white/[0.04] border border-white/10 hover:border-white/20 focus:border-brand-cyan focus:shadow-[0_0_15px_rgba(0,179,255,0.35)] transition-all rounded-xl px-4 text-white placeholder-slate-400 focus:outline-none font-bold text-sm"
+                    className="w-full h-12 bg-[#080b22]/90 border border-pink-500/50 focus:border-pink-400 focus:shadow-[0_0_15px_rgba(255,0,212,0.5)] rounded-2xl px-4 text-white placeholder-slate-500 font-bold text-sm outline-none transition-all"
                     required
                   />
                 </div>
+              </div>
 
-                {/* Password Input */}
-                <div>
+              {/* Password Field */}
+              <div>
+                <label className="block text-xs font-bold text-slate-200 mb-1.5 ml-1">
+                  {isSignUp ? "Choose a Password" : "Password"}
+                </label>
+                <div className="relative">
                   <input 
                     type="password" 
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    placeholder="Choose a Password"
-                    className="w-full h-12 bg-white/[0.04] border border-white/10 hover:border-white/20 focus:border-brand-cyan focus:shadow-[0_0_15px_rgba(0,179,255,0.35)] transition-all rounded-xl px-4 text-white placeholder-slate-400 focus:outline-none font-bold text-sm"
+                    placeholder="••••••••••••"
+                    className="w-full h-12 bg-[#080b22]/90 border border-cyan-400/50 focus:border-cyan-300 focus:shadow-[0_0_15px_rgba(0,211,238,0.5)] rounded-2xl px-4 text-white placeholder-slate-500 font-bold text-sm outline-none transition-all"
                     required
                   />
                 </div>
               </div>
 
-              {/* Submit Button */}
+              {/* Big CTA Button (Matching Screenshot 2: "SIGN UP" glowing magenta pill) */}
               <button 
                 type="submit" 
                 disabled={isLoading || isGoogle}
-                className={`w-full h-12 mt-6 rounded-2xl font-display font-black text-sm flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-70 disabled:cursor-not-allowed ${
-                  isSignUp ? 'primary-neon-btn-pink' : 'primary-neon-btn-cyan'
-                }`}
+                className="w-full h-13 mt-6 rounded-2xl font-display font-black text-base text-white tracking-widest bg-gradient-to-r from-pink-600 via-pink-500 to-purple-600 border-2 border-pink-400 shadow-[0_0_25px_rgba(255,0,212,0.6)] hover:shadow-[0_0_35px_rgba(255,0,212,0.85)] hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer uppercase flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin text-slate-900" />
+                  <Loader2 className="w-5 h-5 animate-spin text-white" />
                 ) : (
-                  <>
-                    <span>{isSignUp ? "SIGN UP & LAUNCH!" : "LET'S GO!"}</span>
-                    <ArrowRight className="w-4.5 h-4.5 transition-transform group-hover:translate-x-1" strokeWidth={3} />
-                  </>
+                  <span>{isSignUp ? "SIGN UP" : "LOG IN"}</span>
                 )}
               </button>
 
-              {/* Separator line */}
-              <div className="relative flex items-center py-4 select-none">
-                <div className="flex-grow border-t border-white/10"></div>
-                <span className="shrink-0 px-3.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Or play with
-                </span>
-                <div className="flex-grow border-t border-white/10"></div>
+              {/* Google OAuth Option */}
+              <div className="pt-2">
+                <button 
+                  type="button"
+                  onClick={handleGoogle} 
+                  disabled={isLoading || isGoogle}
+                  className="w-full h-11 bg-slate-900/90 border border-white/15 hover:bg-slate-800 text-slate-200 rounded-2xl font-display font-bold text-xs flex items-center justify-center gap-2.5 transition-all cursor-pointer hover:border-cyan-400/50"
+                >
+                  {isGoogle ? (
+                    <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />
+                  ) : (
+                    <svg className="w-4 h-4" viewBox="0 0 24 24">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                    </svg>
+                  )}
+                  <span>Sign in with Google</span>
+                </button>
               </div>
-
-              {/* Google Sign In button */}
-              <button 
-                type="button"
-                onClick={handleGoogle} 
-                disabled={isLoading || isGoogle}
-                className="w-full h-12 bg-white border border-transparent hover:bg-slate-50 text-slate-800 rounded-2xl font-display font-black text-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer shadow-lg hover:scale-[1.01]"
-              >
-                {isGoogle ? (
-                  <Loader2 className="w-5 h-5 text-slate-600 animate-spin" />
-                ) : (
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                  </svg>
-                )}
-                <span>Sign in with Google</span>
-              </button>
             </form>
 
-            {/* Footer switch links */}
-            <div className="mt-8 text-center bg-white/[0.02] border border-white/5 rounded-2xl p-4">
-              <p className="text-xs text-slate-300 font-medium">
-                {isSignUp ? "Already have an account?" : "New here?"}{' '}
+            {/* Bottom Toggle Link (Exactly matching screenshot 2: "Already have an account? Sign In") */}
+            <div className="mt-6 text-center">
+              <p className="text-sm font-sans text-slate-300">
+                {isSignUp ? "Already have an account?" : "Don't have an account?"}{' '}
                 <button 
                   type="button" 
                   onClick={() => {
                     setIsSignUp(!isSignUp);
                     setError('');
                   }}
-                  className="text-brand-cyan hover:text-cyan-300 font-black transition-colors focus:outline-none hover:underline"
+                  className="text-cyan-300 font-black italic hover:text-cyan-200 transition-colors focus:outline-none hover:underline ml-1"
                 >
-                  {isSignUp ? "Log in!" : "Sign up!"}
+                  {isSignUp ? "Sign In" : "Sign Up"}
                 </button>
               </p>
             </div>
+
           </motion.div>
         </div>
+
       </div>
+
     </div>
   );
 }
+
