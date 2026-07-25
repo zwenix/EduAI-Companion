@@ -472,6 +472,12 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   const [a_customPrompt, setA_CustomPrompt] = useState('');
   const [a_tone, setA_Tone] = useState('Formal & Professional');
   const [a_generateImage, setA_GenerateImage] = useState(false);
+  const [a_school, setA_School] = useState('');
+  const [a_timeDate, setA_TimeDate] = useState('');
+  const [a_recipient, setA_Recipient] = useState('');
+  const [a_venue, setA_Venue] = useState('');
+  const [a_classTeacher, setA_ClassTeacher] = useState('');
+  const [a_schoolPrincipal, setA_SchoolPrincipal] = useState('');
   const [adminResult, setAdminResult] = useState<any>({ content: '' });
   
   // Foundation Phase State
@@ -648,10 +654,18 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
       const result = await generateAdminDoc({
         grade: a_grade,
         subject: a_subject === 'Other' ? a_customSubject : a_subject,
-        adminType: a_type,
-        topic: a_topic,
+        documentType: a_type,
+        purpose: a_topic,
+        keyPoints: a_customPrompt,
+        schoolName: a_school,
         tone: a_tone,
-        generateImage: a_generateImage
+        generateImage: a_generateImage,
+        additionalInstructions: a_customPrompt,
+        timeDate: a_timeDate,
+        recipient: a_recipient,
+        venue: a_venue,
+        classTeacher: a_classTeacher,
+        schoolPrincipal: a_schoolPrincipal
       }, provider);
       setAdminResult(result);
       setCurrentDocId(`admin-${Date.now()}`);
@@ -1498,6 +1512,36 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                       )}
                     </div>
                   </div>
+
+                  {/* Admin Specific Fields */}
+                  {activeTab === 'admin' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+                      <div>
+                        <Label>School</Label>
+                        <Input isDarkMode={isDarkMode} type="text" value={a_school} onChange={(e: any) => setA_School(e.target.value)} placeholder="School Name" />
+                      </div>
+                      <div>
+                        <Label>Time & Date</Label>
+                        <Input isDarkMode={isDarkMode} type="text" value={a_timeDate} onChange={(e: any) => setA_TimeDate(e.target.value)} placeholder="e.g. 15 Oct, 14:00" />
+                      </div>
+                      <div>
+                        <Label>Recipient</Label>
+                        <Input isDarkMode={isDarkMode} type="text" value={a_recipient} onChange={(e: any) => setA_Recipient(e.target.value)} placeholder="e.g. Parents, Staff" />
+                      </div>
+                      <div>
+                        <Label>Venue</Label>
+                        <Input isDarkMode={isDarkMode} type="text" value={a_venue} onChange={(e: any) => setA_Venue(e.target.value)} placeholder="e.g. School Hall" />
+                      </div>
+                      <div>
+                        <Label>Class Teacher</Label>
+                        <Input isDarkMode={isDarkMode} type="text" value={a_classTeacher} onChange={(e: any) => setA_ClassTeacher(e.target.value)} placeholder="Teacher Name" />
+                      </div>
+                      <div>
+                        <Label>School Principal</Label>
+                        <Input isDarkMode={isDarkMode} type="text" value={a_schoolPrincipal} onChange={(e: any) => setA_SchoolPrincipal(e.target.value)} placeholder="Principal Name" />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Embedded Advanced Section based on mode */}
                   {activeTab === 'teaching' && (

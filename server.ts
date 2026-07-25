@@ -1443,15 +1443,22 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         }
 
         case "generate-admin": {
-          const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate a formal ${input.documentType} for ${input.schoolName}.
-          The tone should be ${input.tone}.
+          const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate a formal ${input.documentType} for ${input.schoolName || 'the school'}.
+          The tone should be ${input.tone || 'Formal'}.
           IMPORTANT: The 'content' field MUST be formatted as visually pleasing HTML string styled with Tailwind CSS classes. DO NOT use generic Markdown.`;
           let prompt = `
             Type: ${input.documentType}
             Purpose: ${input.purpose}
-            Key Points: ${input.keyPoints}
-            Include Reply Slip: ${input.includeReplySlip}
-            Language: ${input.language}\n            ${input.additionalInstructions ? `User Custom Instructions: ${input.additionalInstructions}` : ""}
+            School Name: ${input.schoolName || 'Not specified'}
+            Date & Time: ${input.timeDate || 'Not specified'}
+            Recipient: ${input.recipient || 'Not specified'}
+            Venue: ${input.venue || 'Not specified'}
+            Class Teacher: ${input.classTeacher || 'Not specified'}
+            School Principal: ${input.schoolPrincipal || 'Not specified'}
+            Key Points / Extra Info: ${input.keyPoints || 'None'}
+            Include Reply Slip: ${input.includeReplySlip ? 'Yes' : 'No'}
+            Language: ${input.language || 'English'}
+            ${input.additionalInstructions ? `User Custom Instructions: ${input.additionalInstructions}\nMake sure to incorporate all specific details mentioned here.` : ""}
           `;
           if (input.generateImage) {
             prompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 1-2 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of a professional school stamp, document seal, or graphic depicting the topic in South African context>]. Place them strategically inside the HTML. The system will replace them with actual AI generated images.`;

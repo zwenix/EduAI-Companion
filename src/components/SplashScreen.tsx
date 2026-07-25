@@ -16,34 +16,30 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
   // for exactly 10 seconds to allow assets and services to prepare,
   // showing either the premium video or the beautifully animated fallback.
   useEffect(() => {
+    // We rely on the video onEnded event if possible, but add a fallback timeout just in case it doesn't play or end
     const timer = setTimeout(() => {
       if (onVideoEnd) {
         onVideoEnd();
       }
-    }, 5000); // Set to play/display for exactly 5 seconds
-
-    // Try to trigger video play on mount
-    const loadTimer = setTimeout(() => {
-      if (!videoRef.current || videoRef.current.readyState < 3) {
-        console.warn("Video taking too long to load, but we'll wait for the element's error event.");
-      }
-    }, 5000);
+    }, 7000); 
 
     const video = videoRef.current;
     if (video) {
       video.play().catch((err) => {
         console.warn("Initial autoplay attempt:", err);
+        // If autoplay fails, we might be on mobile, just let the fallback timeout handle it
       });
     }
 
     return () => {
-      clearTimeout(loadTimer);
+      clearTimeout(timer);
     };
   }, [onVideoEnd]);
 
   const handleEnded = () => {
-    // If the video ended naturally but we want to play for 10 seconds, 
-    // let loop handle the visual, and let the timer handle the transition.
+    if (onVideoEnd) {
+      onVideoEnd();
+    }
   };
 
   const toggleMute = (e: React.MouseEvent) => {
@@ -72,8 +68,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
             ref={videoRef}
             src={splashVideo}
             autoPlay
-            loop
-            playsInline
+onEnded={handleEnded}
+                        playsInline
             muted={isMuted}
             preload="auto"
             onCanPlay={() => {
