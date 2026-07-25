@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../lib/firebase';
-import { collection, addDoc, serverTimestamp, query, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, onSnapshot, where } from 'firebase/firestore';
 import { 
   ShieldAlert, 
   Bell, 
@@ -262,23 +262,38 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
   ], []);
 
   useEffect(() => {
-    const qSt = query(collection(db, 'students'));
-    const unsubSt = onSnapshot(qSt, (snap) => {
-      if (!snap.empty) {
-        setLiveStudents(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      }
-    }, (err) => console.warn("Live students err", err));
+    let unsubSt: (() => void) | null = null;
+    let unsubSub: (() => void) | null = null;
 
-    const qSub = query(collection(db, 'submissions'));
-    const unsubSub = onSnapshot(qSub, (snap) => {
-      if (!snap.empty) {
-        setSubmissions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      if (unsubSt) { unsubSt(); unsubSt = null; }
+      if (unsubSub) { unsubSub(); unsubSub = null; }
+
+      if (user) {
+        const qSt = query(collection(db, 'students'), where('teacherId', '==', user.uid));
+        unsubSt = onSnapshot(qSt, (snap) => {
+          if (!snap.empty) {
+            setLiveStudents(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+          } else {
+            setLiveStudents([]);
+          }
+        }, (err) => console.warn("Live students err", err));
+
+        const qSub = query(collection(db, 'submissions'), where('teacherId', '==', user.uid));
+        unsubSub = onSnapshot(qSub, (snap) => {
+          if (!snap.empty) {
+            setSubmissions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+          } else {
+            setSubmissions([]);
+          }
+        }, (err) => console.warn("Submissions sync err", err));
       }
-    }, (err) => console.warn("Submissions sync err", err));
+    });
 
     return () => {
-      unsubSt();
-      unsubSub();
+      unsubscribeAuth();
+      if (unsubSt) unsubSt();
+      if (unsubSub) unsubSub();
     };
   }, []);
 
@@ -644,7 +659,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
 
             {/* Recharts AreaChart */}
             <div className="h-[260px] w-full text-xs">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={260}>
                 <AreaChart
                   data={capsPerformanceData}
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
@@ -752,7 +767,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
 
             {/* Recharts BarChart */}
             <div className="h-[260px] w-full text-xs">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={260}>
                 <BarChart
                   data={studentEngagementData}
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}

@@ -217,6 +217,15 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "" }: { html:
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    const originalWarn = console.warn;
+    console.warn = function(...args) {
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com')) {
+        return;
+      }
+      originalWarn.apply(console, args);
+    };
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
   <style>
@@ -471,7 +480,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   const [a_topic, setA_Topic] = useState('');
   const [a_customPrompt, setA_CustomPrompt] = useState('');
   const [a_tone, setA_Tone] = useState('Formal & Professional');
-  const [a_generateImage, setA_GenerateImage] = useState(false);
+  const [a_generateImage, setA_GenerateImage] = useState(true);
   const [a_school, setA_School] = useState('');
   const [a_timeDate, setA_TimeDate] = useState('');
   const [a_recipient, setA_Recipient] = useState('');

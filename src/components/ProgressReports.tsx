@@ -920,7 +920,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
 
             {/* Bar Chart Container */}
             <div className="h-[280px] sm:h-[320px] w-full text-xs">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={280}>
                 <BarChart
                   data={marksDistributionData}
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}

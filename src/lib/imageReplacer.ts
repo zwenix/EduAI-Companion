@@ -80,8 +80,8 @@ class IllustrationCache {
 export function replaceImagePlaceholders(html: string, allowImages: boolean = true): string {
   if (!html) return '';
 
-  // Matches various placeholder formats like [Illustration: ...], [Image: ...], [Diagram: ...]
-  const regex = /\[(?:Illustration|Image|Concept\s+Illustration|Diagram|Graphic):\s*([^\]]+)\]/gi;
+  // Matches various placeholder formats like [Illustration: ...], [Image: ...], [Diagram: ...], [Placeholder: ...] and any "Placeholder" suffixes
+  const regex = /\[(?:Illustration|Image|Concept\s+Illustration|Diagram|Graphic|Placeholder|Illustration\s+Placeholder|Image\s+Placeholder|Visual\s+Placeholder|Visual\s+Aid\s+Placeholder):\s*([^\]]+)\]/gi;
 
   let seedCounter = Math.floor(Math.random() * 100000);
 

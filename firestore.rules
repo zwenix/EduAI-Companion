@@ -39,6 +39,11 @@ service cloud.firestore {
                           'gradeLevel', 'learningPreference', 'dyslexiaTheme', 'readSpeed', 'dyscalculiaHelp'
                         ])
                      );
+
+      // Support saving and reading generated documents in the user's personal archive subcollection
+      match /archive/{archiveId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
     }
 
     function isValidStudentCreate(data) {

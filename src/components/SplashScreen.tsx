@@ -18,27 +18,36 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
     onVideoEndRef.current = onVideoEnd;
   }, [onVideoEnd]);
 
-  // Splendid 10-second timer that guarantees the splash screen stays active 
-  // for exactly 10 seconds to allow assets and services to prepare,
-  // showing either the premium video or the beautifully animated fallback.
+  // Splendid timer that guarantees the splash screen transitions appropriately,
+  // showing the premium video or a fast auto-transition fallback if the video errors out.
   useEffect(() => {
-    // We rely on the video onEnded event if possible, but add a fallback timeout just in case it doesn't play or end
+    if (videoError) {
+      // If the video errored, do not force the user to wait or manual-click.
+      // Show the elegant fallback branding for 1.5s and then automatically enter the app.
+      const errorTimer = setTimeout(() => {
+        onVideoEndRef.current?.();
+      }, 1500);
+      return () => clearTimeout(errorTimer);
+    }
+
+    // Standard video autoplay / fallback timeout (7 seconds)
     const timer = setTimeout(() => {
       onVideoEndRef.current?.();
     }, 7000); 
 
     const video = videoRef.current;
-    if (video) {
+    if (video && !videoError) {
       video.play().catch((err) => {
-        console.warn("Initial autoplay attempt:", err);
-        // If autoplay fails, we might be on mobile, just let the fallback timeout handle it
+        console.warn("Initial autoplay attempt failed or blocked:", err);
+        // If autoplay is blocked by the browser, we fall back to the beautiful branding screen
+        setVideoError(true);
       });
     }
 
     return () => {
       clearTimeout(timer);
     };
-  }, []);
+  }, [videoError]);
 
   const handleEnded = () => {
     onVideoEndRef.current?.();

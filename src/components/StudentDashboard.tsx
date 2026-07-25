@@ -769,7 +769,7 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
                   <Activity className={cn("text-brand-green animate-pulse", isDarkMode && "icon-glow-green")} size={24} />
                 </div>
                 <div className="h-[280px] w-full pt-2">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height={280}>
                     <AreaChart data={performanceData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorMath" x1="0" y1="0" x2="0" y2="1">
