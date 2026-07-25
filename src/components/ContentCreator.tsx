@@ -844,6 +844,15 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
           grade: activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade,
           subject: activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject,
           topic: activeTab === 'teaching' ? t_topic : activeTab === 'visual' ? v_topic : a_topic,
+          ...(activeTab === 'admin' ? {
+            schoolName: a_school,
+            timeDate: a_timeDate,
+            recipient: a_recipient,
+            venue: a_venue,
+            classTeacher: a_classTeacher,
+            schoolPrincipal: a_schoolPrincipal,
+            customPrompt: a_customPrompt
+          } : {})
         }
       };
       

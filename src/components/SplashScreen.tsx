@@ -12,15 +12,19 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
   const [videoError, setVideoError] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
 
+  // Store onVideoEnd in a ref to keep it stable and prevent resetting of the timer
+  const onVideoEndRef = useRef(onVideoEnd);
+  useEffect(() => {
+    onVideoEndRef.current = onVideoEnd;
+  }, [onVideoEnd]);
+
   // Splendid 10-second timer that guarantees the splash screen stays active 
   // for exactly 10 seconds to allow assets and services to prepare,
   // showing either the premium video or the beautifully animated fallback.
   useEffect(() => {
     // We rely on the video onEnded event if possible, but add a fallback timeout just in case it doesn't play or end
     const timer = setTimeout(() => {
-      if (onVideoEnd) {
-        onVideoEnd();
-      }
+      onVideoEndRef.current?.();
     }, 7000); 
 
     const video = videoRef.current;
@@ -34,12 +38,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
     return () => {
       clearTimeout(timer);
     };
-  }, [onVideoEnd]);
+  }, []);
 
   const handleEnded = () => {
-    if (onVideoEnd) {
-      onVideoEnd();
-    }
+    onVideoEndRef.current?.();
   };
 
   const toggleMute = (e: React.MouseEvent) => {

@@ -1443,9 +1443,16 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         }
 
         case "generate-admin": {
-          const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate a formal ${input.documentType} for ${input.schoolName || 'the school'}.
-          The tone should be ${input.tone || 'Formal'}.
-          IMPORTANT: The 'content' field MUST be formatted as visually pleasing HTML string styled with Tailwind CSS classes. DO NOT use generic Markdown.`;
+          const systemInstruction = `${MASTER_SYSTEM_PROMPT}
+
+Generate a formal ${input.documentType} for ${input.schoolName || 'the school'}.
+The tone should be ${input.tone || 'Formal'}.
+IMPORTANT: The 'content' field MUST be formatted as visually pleasing HTML string styled with Tailwind CSS classes. DO NOT use generic Markdown.
+
+STRICT COMPLIANCE MANDATE:
+1. You MUST explicitly use and display the provided metadata fields: School Name, Date & Time, Recipient, Venue, Class Teacher, and School Principal. Do NOT invent or assume different school names, dates, times, recipients, class teachers, or principals.
+2. You MUST prioritize and integrate all details from the "Key Points / Extra Info" and "User Custom Instructions" prompt box. Do not ignore them, do not substitute with your own imagined details. They are the core requirements of this document.
+3. Every field provided in the input below must be prominently rendered and clearly labeled in the document layout.`;
           let prompt = `
             Type: ${input.documentType}
             Purpose: ${input.purpose}
@@ -1458,7 +1465,9 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             Key Points / Extra Info: ${input.keyPoints || 'None'}
             Include Reply Slip: ${input.includeReplySlip ? 'Yes' : 'No'}
             Language: ${input.language || 'English'}
-            ${input.additionalInstructions ? `User Custom Instructions: ${input.additionalInstructions}\nMake sure to incorporate all specific details mentioned here.` : ""}
+            ${input.additionalInstructions ? `User Custom Instructions: ${input.additionalInstructions}\nMake sure to incorporate all specific details mentioned here without omitting them.` : ""}
+
+            CRITICAL DIRECTIVE: Incorporate every single field value and custom instruction specified above into the final document structure. Render them beautifully in the Tailwind HTML.
           `;
           if (input.generateImage) {
             prompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 1-2 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of a professional school stamp, document seal, or graphic depicting the topic in South African context>]. Place them strategically inside the HTML. The system will replace them with actual AI generated images.`;
