@@ -441,7 +441,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   const [t_differentiation, setT_Differentiation] = useState(true);
   const [t_ictIntegration, setT_IctIntegration] = useState(false);
   const [t_inclusiveEd, setT_InclusiveEd] = useState(false);
-  const [t_generateImage, setT_GenerateImage] = useState(false);
+  const [t_generateImage, setT_GenerateImage] = useState(true);
   const [teachingResult, setTeachingResult] = useState<any>({ content: '', memo: '', rubric: '' });
   const [editContentText, setEditContentText] = useState('');
   const [editMemoText, setEditMemoText] = useState('');
@@ -457,7 +457,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   const [v_colorScheme, setV_ColorScheme] = useState('Bright Primary Colors');
   const [v_visualStyle, setV_VisualStyle] = useState('Modern & Clean');
   const [v_dimensions, setV_Dimensions] = useState('A4');
-  const [v_generateImage, setV_GenerateImage] = useState(false);
+  const [v_generateImage, setV_GenerateImage] = useState(true);
   const [v_currentVariation, setV_CurrentVariation] = useState(0);
   const [visualResults, setVisualResults] = useState<any[]>([]);
   const [visualResult, setVisualResult] = useState<any>(null);
@@ -950,7 +950,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
 
   // ─── Render Helpers ───────────────────────────────────────────────────────
   
-  const ContentPreview = ({ html, label, isDarkMode, imagePrompt, grade, subject, contentType, qualityRating, isAssessing, onViewReport, allowImages = false }: any) => {
+  const ContentPreview = ({ html, label, isDarkMode, imagePrompt, grade, subject, contentType, qualityRating, isAssessing, onViewReport, allowImages = true }: any) => {
     const getScoreColor = (score: number) => {
       if (score >= 85) return 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10';
       if (score >= 70) return 'text-cyan-400 border-cyan-400/20 bg-cyan-400/10';

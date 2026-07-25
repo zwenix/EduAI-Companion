@@ -659,7 +659,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
 
             {/* Recharts AreaChart */}
             <div className="h-[260px] w-full text-xs">
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={260} minWidth={0} minHeight={1}>
                 <AreaChart
                   data={capsPerformanceData}
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
@@ -767,7 +767,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
 
             {/* Recharts BarChart */}
             <div className="h-[260px] w-full text-xs">
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={260} minWidth={0} minHeight={1}>
                 <BarChart
                   data={studentEngagementData}
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}

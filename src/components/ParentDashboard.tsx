@@ -935,7 +935,7 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
               <div className="space-y-2">
                 <p className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">Course Comparison</p>
                 <div className="h-[200px] w-full">
-                  <ResponsiveContainer width="100%" height={200}>
+                  <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={1}>
                     <BarChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#ffffff03" />
                       <XAxis dataKey="name" stroke="#64748b" fontSize={8} tickFormatter={(v: string) => v.split(' ')[0]} />
@@ -950,7 +950,7 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
               <div className="space-y-2">
                 <p className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">Historical GPA Growth</p>
                 <div className="h-[200px] w-full">
-                  <ResponsiveContainer width="100%" height={200}>
+                  <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={1}>
                     <AreaChart data={historyData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#ffffff03" />
                       <XAxis dataKey="name" stroke="#64748b" fontSize={8} />

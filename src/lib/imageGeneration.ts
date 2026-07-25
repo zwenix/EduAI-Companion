@@ -2,6 +2,7 @@
  * EduAI Companion - Multi-Provider Image Generation System
  * Priority: Gemini (Primary) -> Perchance (Secondary) -> Pollinations (Tertiary)
  */
+import { generatePerchanceImageClient } from '../services/perchanceService';
 
 export interface ImageGenerationResult {
   url: string;
@@ -77,6 +78,15 @@ export const generateImagePerchance = async (
   seed: number = Math.floor(Math.random() * 10000)
 ): Promise<string> => {
   try {
+    if (typeof window !== 'undefined') {
+      try {
+        const clientUrl = await generatePerchanceImageClient(prompt, width, height, seed);
+        if (clientUrl) return clientUrl;
+      } catch (clientErr) {
+        console.warn('Perchance client-side iframe generation timed out or failed, transitioning to backend proxy...', clientErr);
+      }
+    }
+
     const encodedPrompt = encodeURIComponent(prompt);
     // Use backend proxy to avoid CORS
     const response = await fetch('/api/images/generate', {

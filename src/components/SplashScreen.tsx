@@ -91,7 +91,7 @@ onEnded={handleEnded}
               }
             }}
             onError={(e) => {
-              console.error("Splash video element fatal error:", e.currentTarget.error?.message);
+              console.warn("Splash video element non-fatal fallback triggered:", e.currentTarget.error?.message);
               setVideoError(true);
             }}
             className="w-full h-full object-contain max-w-full max-h-full cursor-pointer"

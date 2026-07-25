@@ -189,7 +189,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
             <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm flex flex-col`}>
               <h3 className={`text-xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>User Growth Trends</h3>
               <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={300} minWidth={0} minHeight={1}>
                   <AreaChart data={userGrowthData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
@@ -218,7 +218,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
             <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm flex flex-col`}>
               <h3 className={`text-xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Resource Utilization</h3>
               <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={300} minWidth={0} minHeight={1}>
                   <PieChart>
                     <Pie
                       data={resourceData}
@@ -388,7 +388,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  {prov.toUpperCase()} ({count})
+                  {prov === 'all' ? 'ALL' : prov === 'gemini' ? 'GEMINI' : prov === 'nvidia-nemotron' ? 'NEMOTRON 49B' : 'NEMOTRON 550B'} ({count})
                 </button>
               );
             })}

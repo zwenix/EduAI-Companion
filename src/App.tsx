@@ -381,8 +381,8 @@ export default function App() {
     
     const candidates = [
       { id: 'gemini', label: 'Gemini 3.5' },
-      { id: 'nvidia-nemotron', label: 'Nemotron-3 550B' },
-      { id: 'groq-qwen', label: 'Qwen 3.6 27B' }
+      { id: 'nvidia-nemotron', label: 'Llama 3.3 Nemotron 49B' },
+      { id: 'groq-qwen', label: 'Nemotron Ultra 550B' }
     ];
 
     const results: Record<string, number | 'failed'> = {};
@@ -2111,8 +2111,8 @@ export default function App() {
                           }`}
                         >
                           <option value="gemini">Gemini (Primary - Recommended)</option>
-                          <option value="nvidia-nemotron">NVIDIA Nemotron-3 550B (NVIDIA Integration)</option>
-                          <option value="groq-qwen">Qwen3.6 27B (Groq Alternative)</option>
+                          <option value="nvidia-nemotron">NVIDIA Llama 3.3 Nemotron Super 49B (NVIDIA Integration)</option>
+                          <option value="groq-qwen">NVIDIA Nemotron-3 Ultra 550B (NVIDIA Integration)</option>
                         </select>
                       </div>
                       <button
@@ -2173,7 +2173,7 @@ export default function App() {
                         <div className="grid grid-cols-3 gap-1.5 text-center font-mono">
                           {['gemini', 'nvidia-nemotron', 'groq-qwen'].map((pId) => {
                             const lat = optimizationStats[pId];
-                            const name = pId === 'gemini' ? 'Gemini' : pId === 'nvidia-nemotron' ? 'Nemotron' : 'Qwen';
+                            const name = pId === 'gemini' ? 'Gemini' : pId === 'nvidia-nemotron' ? 'Nemotron 49B' : 'Nemotron 550B';
                             const isCurrent = provider === pId;
                             return (
                               <div 
@@ -2232,7 +2232,7 @@ export default function App() {
                       }`}
                     >
                       <option value="gemini-imagen">Google Imagen 3 (Default)</option>
-                      <option value="perchance">Perchance AI (Secondary)</option>
+                      <option value="perchance">Perchance AI: 🌌 Image Generator Professional 🌟 (Secondary)</option>
                       <option value="pollinations">Pollinations AI (Tertiary)</option>
                     </select>
                   </div>
@@ -2450,7 +2450,7 @@ export default function App() {
                     <div className="space-y-4">
                       {[
                         { q: "📚 Is the curriculum aligned with South African CAPS standards?", a: "Yes, 100%! All content created, lessons compiled, and rubrics generated map directly with the Department of Basic Education (DBE) South African National Curriculum Assessment Policy Statements (CAPS) requirements across Grades 1 to 12." },
-                        { q: "🤖 Which AI model powers the tutoring system?", a: "EduAI is powered by advanced multi-model intelligence, featuring state-of-the-art models like Google Gemini, Hugging Face Qwen 3.5, and Groq Llama 4 Scout. These models offer ultra-fast localized explanations, using rands (R), local currencies, and South African historical/geographic contexts." },
+                        { q: "🤖 Which AI model powers the tutoring system?", a: "EduAI is powered by advanced multi-model intelligence, featuring state-of-the-art models like Google Gemini, NVIDIA Llama 3.3 Nemotron Super 49B, and NVIDIA Nemotron-3 Ultra 550B. These models offer ultra-fast localized explanations, using rands (R), local currencies, and South African historical/geographic contexts." },
                         { q: "📶 Can I use this application offline?", a: "Absolutely! Simply click on the 'INSTALL OFFLINE APP' button in the sidebar to download our Progressive Web App (PWA). Your downloaded study guides, textbook revisions, and completed portfolio tasks are cached on your local device for instant access without a stable internet connection." },
                         { q: "🛡️ How is my data protected?", a: "We adhere to strict POPIA (Protection of Personal Information Act) regulation compliance. Student assessments or raw photos are processed securely and never shared with third-party advertising engines." }
                       ].map((item, idx) => (

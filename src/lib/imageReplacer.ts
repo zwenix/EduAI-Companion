@@ -80,15 +80,10 @@ class IllustrationCache {
 export function replaceImagePlaceholders(html: string, allowImages: boolean = true): string {
   if (!html) return '';
 
-  // Matches various placeholder formats like [Illustration: ...], [Image: ...], [Diagram: ...], [Placeholder: ...] and any "Placeholder" suffixes
-  const regex = /\[(?:Illustration|Image|Concept\s+Illustration|Diagram|Graphic|Placeholder|Illustration\s+Placeholder|Image\s+Placeholder|Visual\s+Placeholder|Visual\s+Aid\s+Placeholder):\s*([^\]]+)\]/gi;
-
   let seedCounter = Math.floor(Math.random() * 100000);
 
-  return html.replace(regex, (match, p1) => {
-    const cleanPrompt = p1.trim();
+  const buildImageBlock = (cleanPrompt: string) => {
     seedCounter += 1;
-
     if (!allowImages) {
       return `
 <div class="my-4 p-4 border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50 text-slate-700 font-medium text-xs shadow-sm print:break-inside-avoid">
@@ -131,7 +126,10 @@ export function replaceImagePlaceholders(html: string, allowImages: boolean = tr
       ? window.localStorage.getItem('eduai_image_provider') || 'pollinations'
       : 'pollinations';
 
-    const enhancedPrompt = `${cleanPrompt}, World-class masterpiece work of art, crisp render, sharp focus, charmingly aesthetic design, 4k, soft lighting, masterpiece emoji-style figurine 3D render, 3D Disney Character render, pure white background, natural beauty`;
+    const isLogoOrStamp = /logo|stamp|seal|crest|badge|signature|certificate|emblem/i.test(cleanPrompt);
+    const enhancedPrompt = isLogoOrStamp
+      ? `${cleanPrompt}, clean professional vector logo, official school crest stamp seal aesthetic, crisp graphic design, high contrast, pure white background, masterpiece 4k vector graphic`
+      : `${cleanPrompt}, professional educational illustration, clean aesthetic design, crisp render, sharp focus, vibrant lighting, pure white background, natural beauty, 4k resolution`;
     
     // Use the backend proxy to bypass school network firewalls blocking external generation sites
     const imageUrl = `/api/image-proxy?prompt=${encodeURIComponent(enhancedPrompt)}&width=800&height=600&seed=${seedCounter}`;
@@ -154,9 +152,34 @@ export function replaceImagePlaceholders(html: string, allowImages: boolean = tr
         CAPS Illustration: ${cleanPrompt.slice(0, 45)}${cleanPrompt.length > 45 ? '...' : ''}
       </p>
     </div>
-    <span class="text-[8px] px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 font-bold select-none uppercase">Model: ${provider === 'gemini-imagen' ? 'Gemini Imagen-3' : provider === 'perchance' ? 'Perchance Turbo' : 'Pollinations Turbo'}</span>
+    <span class="text-[8px] px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 font-bold select-none uppercase">Model: ${provider === 'gemini-imagen' ? 'Gemini Imagen-3' : provider === 'perchance' ? 'Perchance Professional 🌟' : 'Pollinations Turbo'}</span>
   </div>
 </div>
     `;
+  };
+
+  const bracketRegex = /\[(?:(?:(?:School|Official|Concept|Mini|Header|Banner|Visual|Insert|Add|Printable)\s+)*(?:Illustration|Image|Diagram|Graphic|Placeholder|Visual|Photo|Picture|Figure|Chart|Map|Infographic|Logo|Stamp|Seal|Icon|Crest|Signature|Drawing|Artwork)(?:\s+(?:Placeholder|Description|Prompt|Aid|of|showing|depicting))?|(?:Illustration|Image|Visual|Graphic|Logo|Stamp|Seal|Photo|Picture|Diagram|Figure|Chart|Map|Crest)\s+Description|Placeholder\s+(?:Image|Illustration|Logo|Stamp|Seal|Photo|Visual|Crest)|Image\s+description|Illustration\s+description)\s*(?::|—|-|\s+of\s+|\s+showing\s+|\s+depicting\s+)?\s*([^\]]+)\]/gi;
+
+  let processed = html.replace(bracketRegex, (match, p1) => {
+    return buildImageBlock(p1.trim());
   });
+
+  // Replace markdown images ![alt](url) where url is a placeholder, empty, or #
+  processed = processed.replace(/!\[([^\]]*)\]\((?:#|""|''|http:\/\/via\.placeholder|https:\/\/via\.placeholder|placeholder[^)]*|example\.com[^)]*)\)/gi, (match, alt) => {
+    if (alt && alt.trim()) {
+      return buildImageBlock(alt.trim());
+    }
+    return '';
+  });
+
+  // Replace HTML <img ...> where src is broken/placeholder/empty/via.placeholder/#
+  processed = processed.replace(/<img\s+[^>]*src=["'](?:#|""|''|http:\/\/via\.placeholder|https:\/\/via\.placeholder|placeholder[^"']*|example\.com[^"']*)["'][^>]*>/gi, (match) => {
+    const altMatch = match.match(/alt=["']([^"']+)["']/i) || match.match(/title=["']([^"']+)["']/i);
+    if (altMatch && altMatch[1]) {
+      return buildImageBlock(altMatch[1].trim());
+    }
+    return '';
+  });
+
+  return processed;
 }

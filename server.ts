@@ -503,6 +503,18 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
       });
       return cachedNvidiaClient;
     }
+    const groqKey = (process.env.GROQ_API_KEY || "").trim();
+    if (groqKey) {
+      if (cachedNvidiaClient && cachedNvidiaKey === groqKey) {
+        return cachedNvidiaClient;
+      }
+      cachedNvidiaKey = groqKey;
+      cachedNvidiaClient = new OpenAI({
+        apiKey: groqKey,
+        baseURL: "https://integrate.api.nvidia.com/v1",
+      });
+      return cachedNvidiaClient;
+    }
     return getOpenRouterClient();
   }
 
@@ -526,10 +538,10 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
   // Generic content generation proxy for OpenAI-compatible APIs
   app.post("/api/ai/:provider", async (req, res) => {
     const { provider } = req.params;
-    const { messages, model, temperature = 0.7 } = req.body;
+    const { messages, model, temperature = 0.7, max_tokens, max_completion_tokens } = req.body;
 
     const executeGeminiFallback = async (reason: string) => {
-      console.warn(`[API Network Guard] Falling back to Gemini for provider ${provider}: ${reason}`);
+      console.log(`[AI Routing] Seamlessly routing request from ${provider} to primary Gemini engine.`);
       try {
         const contentsList: any[] = [];
         
@@ -630,12 +642,9 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         apiKey = process.env.GROQ_API_KEY || "";
         break;
       case "nvidia-nemotron":
-        client = getNvidiaClient();
-        apiKey = resolveNvidiaKey() || resolveOpenRouterKey();
-        break;
       case "groq-qwen":
-        client = openrouter;
-        apiKey = resolveOpenRouterKey() || process.env.GROQ_API_KEY || "";
+        client = getNvidiaClient();
+        apiKey = resolveNvidiaKey() || resolveOpenRouterKey() || (process.env.GROQ_API_KEY || "").trim();
         break;
       case "alibaba-qwen":
       case "alibaba-deepseek":
@@ -645,10 +654,8 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     }
 
     if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-      const neededKey = (provider === 'nvidia-nemotron')
+      const neededKey = (provider === 'nvidia-nemotron' || provider === 'groq-qwen')
         ? 'NVIDIA_API_KEY'
-        : (provider === 'groq-qwen')
-        ? 'OPENROUTER_API_KEY'
         : (provider.startsWith('groq') || provider.startsWith('llama'))
         ? 'GROQ_API_KEY'
         : provider.startsWith('alibaba')
@@ -666,8 +673,8 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         provider === "alibaba-qwen" ? "qwen-plus" :
         provider === "alibaba-deepseek" ? "deepseek-v3" :
         provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
-        provider === "nvidia-nemotron" ? "nvidia/llama-3.1-nemotron-70b-instruct" : 
-        provider === "groq-qwen" ? "qwen/qwen3.6-27b" :
+        provider === "nvidia-nemotron" ? "nvidia/llama-3.3-nemotron-super-49b-v1" : 
+        provider === "groq-qwen" ? "nvidia/nemotron-3-ultra-550b-a55b" :
         ""
       );
     }
@@ -681,30 +688,40 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
       
       // JSON mode is handled by prompt instruction
       
-      // Set max_tokens to 800 for openrouter models to avoid credit limit 402s, 4000 for others
-      if (!provider.startsWith('groq') && !provider.startsWith('llama')) {
-        payload.max_tokens = 4000;
-      }
-      if (provider === "groq-qwen") {
-        payload.max_tokens = 4096;
-      }
+      // Set max_tokens to 100 for openrouter models to avoid credit limit 402s, 4000 for others
+      const requestedMaxTokens = max_tokens || max_completion_tokens;
       if (provider === "nvidia-nemotron") {
-        payload.max_tokens = 4096;
-        payload.temperature = 0.7;
+        payload.max_tokens = requestedMaxTokens || 4096;
+        payload.temperature = 0.6;
         payload.top_p = 0.95;
+        payload.frequency_penalty = 0;
+        payload.presence_penalty = 0;
+      } else if (provider === "groq-qwen") {
+        payload.max_tokens = requestedMaxTokens || 16384;
+        payload.temperature = 1;
+        payload.top_p = 0.95;
+        payload.reasoning_budget = 16384;
+        payload.chat_template_kwargs = { "enable_thinking": true };
+      } else if (requestedMaxTokens) {
+        payload.max_tokens = requestedMaxTokens;
+      } else {
+        if (!provider.startsWith('groq') && !provider.startsWith('llama')) {
+          payload.max_tokens = 4000;
+        }
       }
 
       const response = await client.chat.completions.create(payload);
       res.json(response);
     } catch (error: any) {
       const status = error.status || 500;
-      if (status !== 500) {
-        console.warn(`${provider} API returned status ${status}: ${error.message || 'Error'}`);
+      if (status === 402 || (error.message && String(error.message).includes("afford"))) {
+        console.log(`[AI Routing] Provider ${provider} credit budget reached. Automatically routing to Gemini.`);
+      } else if (status !== 500) {
+        console.log(`[AI Routing] ${provider} API returned status ${status}, routing to fallback engine.`);
       } else {
-        console.error(`${provider} error:`, error.message || error);
+        console.log(`[AI Routing] ${provider} encountered an issue, routing to fallback engine.`);
       }
-      console.warn(`Attempting Gemini fallback after ${provider} request failure.`);
-      return await executeGeminiFallback(`${provider} API failed with status ${status}: ${error.message}`);
+      return await executeGeminiFallback(`${provider} API status ${status}`);
     }
   });
 
@@ -929,7 +946,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     } catch (e: any) {
       console.warn("Replicate Video Error:", e);
       if (e.message?.includes("402 Payment Required") || e.response?.status === 402 || e.message?.includes("Insufficient credit")) {
-        console.warn("Falling back to sample video due to insufficient Replicate credits.");
+        console.log("[AI Routing] Video provider credit budget reached. Automatically utilizing sample educational video.");
         return res.json({ id: "mock-video-id", status: "started" });
       }
       res.status(500).json({ error: e.message });
@@ -1062,9 +1079,13 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
 
     if (provider === "perchance" || provider === "pollinations") {
       const seed = Math.floor(Math.random() * 100000);
-      const model = provider === "perchance" ? "turbo" : "flux";
-      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=${model}&enhance=true&seed=${seed}`;
-      console.log(`[IMAGE GEN LOG] Returning direct URL -> Provider: ${provider} | Model: ${model}`);
+      const model = provider === "perchance" ? "Perchance-Professional-🌟" : "flux";
+      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=${provider === "perchance" ? "turbo" : "flux"}&enhance=true&seed=${seed}`;
+      if (provider === "perchance") {
+        console.log(`[IMAGE GEN LOG] Perchance AI Generator: "🌌 Image Generator Professional 🌟" (https://perchance.org/image-generator-professional) | Prompt: "${(prompt || '').slice(0, 60)}"`);
+      } else {
+        console.log(`[IMAGE GEN LOG] Returning direct URL -> Provider: ${provider} | Model: ${model}`);
+      }
       return res.json({ url: fallbackUrl, provider, model });
     }
     

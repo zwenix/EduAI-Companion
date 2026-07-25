@@ -454,8 +454,8 @@ export default function Settings({
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
                       <option value="gemini">Gemini (Primary - Recommended)</option>
-                      <option value="nvidia-nemotron">NVIDIA Nemotron-3 550B (NVIDIA Integration)</option>
-                      <option value="groq-qwen">Qwen3.6 27B (Groq Alternative)</option>
+                      <option value="nvidia-nemotron">NVIDIA Llama 3.3 Nemotron Super 49B (NVIDIA Integration)</option>
+                      <option value="groq-qwen">NVIDIA Nemotron-3 Ultra 550B (NVIDIA Integration)</option>
                     </select>
                   </div>
 
@@ -467,7 +467,7 @@ export default function Settings({
                       className={cn("w-full px-5 py-4 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-brand-cyan", isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
                     >
                       <option value="gemini-imagen">Google Imagen 3 (Default)</option>
-                      <option value="perchance">Perchance AI (Secondary)</option>
+                      <option value="perchance">Perchance AI: 🌌 Image Generator Professional 🌟 (Secondary)</option>
                       <option value="pollinations">Pollinations AI (Tertiary)</option>
                     </select>
                   </div>
@@ -862,7 +862,7 @@ export default function Settings({
                       },
                       {
                         title: "/AGENTS.md",
-                        desc: "Enforces strict project rules, model mapping identifiers (Gemini 3.5, NVIDIA Nemotron, Qwen), and formatting criteria.",
+                        desc: "Enforces strict project rules, model mapping identifiers (Gemini 3.5, NVIDIA Nemotron 49B, Nemotron Ultra 550B), and formatting criteria.",
                         badge: "System Rules",
                         color: "from-slate-500/10 to-transparent border-slate-500/20"
                       }

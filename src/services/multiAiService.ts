@@ -12,31 +12,31 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
   if (isAltModel) {
     if (provider === 'nvidia-nemotron') {
       url = "https://integrate.api.nvidia.com/v1/chat/completions";
-      apiKey = ((process.env as any).NVIDIA_API_KEY || (import.meta as any).env?.VITE_NVIDIA_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+      apiKey = ((process.env as any).NVIDIA_API_KEY || (import.meta as any).env?.VITE_NVIDIA_API_KEY || (process.env as any).OPENROUTER_API_KEY || (import.meta as any).env?.VITE_OPENROUTER_API_KEY || (process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
       if (!selectedModel || selectedModel === 'nvidia-nemotron') {
-        selectedModel = "nvidia/llama-3.1-nemotron-70b-instruct";
+        selectedModel = "nvidia/llama-3.3-nemotron-super-49b-v1";
       }
     } else if (provider === 'groq-qwen') {
-      url = "https://openrouter.ai/api/v1/chat/completions";
-      apiKey = ((process.env as any).OPENROUTER_API_KEY || (import.meta as any).env?.VITE_OPENROUTER_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+      url = "https://integrate.api.nvidia.com/v1/chat/completions";
+      apiKey = ((process.env as any).NVIDIA_API_KEY || (import.meta as any).env?.VITE_NVIDIA_API_KEY || (process.env as any).OPENROUTER_API_KEY || (import.meta as any).env?.VITE_OPENROUTER_API_KEY || (process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
       if (!selectedModel || selectedModel === 'groq-qwen') {
-        selectedModel = "qwen/qwen3.6-27b";
+        selectedModel = "nvidia/nemotron-3-ultra-550b-a55b";
       }
     }
   } else {
     if (provider === 'nvidia-nemotron') {
       if (!selectedModel || selectedModel === 'nvidia-nemotron') {
-        selectedModel = "nvidia/llama-3.1-nemotron-70b-instruct";
+        selectedModel = "nvidia/llama-3.3-nemotron-super-49b-v1";
       }
     } else if (provider === 'groq-qwen') {
       if (!selectedModel || selectedModel === 'groq-qwen') {
-        selectedModel = "qwen/qwen3.6-27b";
+        selectedModel = "nvidia/nemotron-3-ultra-550b-a55b";
       }
     }
   }
 
   if (!apiKey) {
-    const keyName = provider === 'nvidia-nemotron' ? 'NVIDIA_API_KEY' : provider === 'groq-qwen' ? 'OPENROUTER_API_KEY' : 'GROQ_API_KEY';
+    const keyName = (provider === 'nvidia-nemotron' || provider === 'groq-qwen') ? 'NVIDIA_API_KEY' : 'GROQ_API_KEY';
     throw new Error(`API key (${keyName}) for ${provider} is not configured in settings or environment. Please add it.`);
   }
 
@@ -47,6 +47,12 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
   };
 
   if (provider === 'nvidia-nemotron') {
+    payload.temperature = 0.6;
+    payload.top_p = 0.95;
+    payload.max_tokens = 4096;
+    payload.frequency_penalty = 0;
+    payload.presence_penalty = 0;
+  } else if (provider === 'groq-qwen') {
     payload.temperature = 1;
     payload.top_p = 0.95;
     payload.max_tokens = 16384;
@@ -66,7 +72,8 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
       },
     }
   );
-  return response.data.choices[0].message.content;
+  const msg = response.data.choices[0]?.message || {};
+  return msg.content || msg.reasoning_content || "";
 };
 
 const executeClientOCR = async (base64Image: string, language: string = "eng") => {
@@ -88,7 +95,8 @@ const executeClientOCR = async (base64Image: string, language: string = "eng") =
 export const callMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
   try {
     const response = await axios.post(`/api/ai/${provider}`, { messages, model });
-    return response.data.choices[0].message.content;
+    const msg = response.data.choices[0]?.message || {};
+    return msg.content || msg.reasoning_content || "";
   } catch (error: any) {
     const status = error.response?.status;
     if (status === 404 || !error.response) {
@@ -96,7 +104,10 @@ export const callMultiAi = async (provider: AIProvider, messages: any[], model?:
       try {
         return await executeClientMultiAi(provider, messages, model);
       } catch (clientErr: any) {
-        checkAndReportApiError(clientErr, provider);
+        const errMsg = String(clientErr?.message || "").toLowerCase();
+        if (!errMsg.includes("not configured") && !errMsg.includes("api key") && !errMsg.includes("unauthorized")) {
+          checkAndReportApiError(clientErr, provider);
+        }
         throw clientErr;
       }
     }
@@ -104,15 +115,16 @@ export const callMultiAi = async (provider: AIProvider, messages: any[], model?:
     const backendError = error.response?.data?.error || {};
     const errorMsg = typeof backendError === 'string' ? backendError : backendError?.message || '';
 
-    // Instead of console.error, console.warn since we expect to fallback gracefully.
-    if (status) {
-      console.warn(`[multiAiService] API issue with ${provider} (Status: ${status}): ${errorMsg || 'Unknown Error'}`);
-    } else {
-      console.warn(`[multiAiService] Error with ${provider}:`, error.message);
+    // Handle 402/401 credit limit or missing key gracefully without error logs
+    if (status === 402 || status === 401 || errorMsg.toLowerCase().includes('credit') || errorMsg.toLowerCase().includes('insufficient') || errorMsg.toLowerCase().includes('afford') || errorMsg.toLowerCase().includes('not configured') || errorMsg.toLowerCase().includes('api key')) {
+      console.log(`[AI Routing] Provider ${provider} credentials not configured or budget reached. Automatically transitioning to Gemini.`);
+      throw new Error(`Provider credentials not configured or budget reached, seamlessly transitioning to Gemini.`);
     }
-    
-    if (status === 402 || errorMsg.includes('credit balance is too low') || errorMsg.includes('Insufficient Balance')) {
-      throw new Error(`Insufficient Balance: Your ${provider} account needs a top-up to continue.`);
+
+    if (status) {
+      console.log(`[AI Routing] API transition for ${provider} (Status: ${status})`);
+    } else {
+      console.log(`[AI Routing] Transitioning from ${provider}`);
     }
     
     if (status === 401) {
@@ -121,7 +133,10 @@ export const callMultiAi = async (provider: AIProvider, messages: any[], model?:
 
     // Report potential network issues on other backend status failures as well
     if (!error.response || status >= 500) {
-      checkAndReportApiError(error, provider);
+      const errMsg = String(errorMsg || error?.message || "").toLowerCase();
+      if (!errMsg.includes("not configured") && !errMsg.includes("api key") && !errMsg.includes("credit")) {
+        checkAndReportApiError(error, provider);
+      }
     }
 
     throw new Error(errorMsg || (typeof backendError === 'string' ? backendError : JSON.stringify(backendError)) || `Failed to call ${provider} (Status: ${status || 'Unknown'})`);

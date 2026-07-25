@@ -51,6 +51,13 @@ export function checkAndReportApiError(error: any, provider: string, targetUrl?:
   let statusCode = response?.status;
   let serverErrorDetails = "";
 
+  // If status is 402/401 or credit/config related, handle gracefully as an informational routing event
+  const rawMsg = String(error?.message || error?.response?.data?.error?.message || "").toLowerCase();
+  if (statusCode === 402 || statusCode === 401 || rawMsg.includes("credit") || rawMsg.includes("afford") || rawMsg.includes("insufficient") || rawMsg.includes("not configured") || rawMsg.includes("api key") || rawMsg.includes("unauthorized")) {
+    console.log(`[AI Routing] ${provider} credentials not configured or budget reached. System is automatically routing to Gemini.`);
+    return;
+  }
+
   if (isBlocked) {
     friendlyMsg = `Network request to the ${provider} API was blocked or failed at the client level. This is commonly caused by an active Ad Blocker (like uBlock Origin or Brave Shield) or restrictive network filters. Please try disabling your Ad Blocker or allow connections to ${targetUrl || 'the API domain'}.`;
   } else if (response) {

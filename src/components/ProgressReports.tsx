@@ -782,7 +782,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                 </h3>
               </div>
               <div className="flex-1 min-h-[300px]">
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={300} minWidth={0} minHeight={1}>
                   <AreaChart data={classAggregateData}>
                     <defs>
                       <linearGradient id="colorMath" x1="0" y1="0" x2="0" y2="1">
@@ -920,7 +920,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
 
             {/* Bar Chart Container */}
             <div className="h-[280px] sm:h-[320px] w-full text-xs">
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={280} minWidth={0} minHeight={1}>
                 <BarChart
                   data={marksDistributionData}
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
@@ -1311,7 +1311,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                       </h4>
                       
                       <div className="h-[200px] w-full">
-                        <ResponsiveContainer width="100%" height={200}>
+                        <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={1}>
                           <AreaChart data={individualLineChartData}>
                             <defs>
                               <linearGradient id="colorGpa" x1="0" y1="0" x2="0" y2="1">
@@ -1339,7 +1339,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                       
                       <div className="h-[200px] w-full">
                         {selectedSubjectName && (
-                          <ResponsiveContainer width="100%" height={200}>
+                          <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={1}>
                             <LineChart data={individualLineChartData}>
                               <CartesianGrid strokeDasharray="3 3" stroke="#ffffff03" />
                               <XAxis dataKey="name" stroke="#64748b" fontSize={9} />

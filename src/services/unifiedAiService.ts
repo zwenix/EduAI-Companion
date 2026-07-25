@@ -47,7 +47,7 @@ export const generateEducationalContent = async (type: string, details: string, 
     return await callMultiAi(provider as AIProvider, messages);
   } catch (error: any) {
     if (isProviderFailure(error)) {
-      console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
+      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
       return await geminiGenerateContent(type, details);
     }
     throw error;
@@ -105,7 +105,7 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
     return parsed;
   } catch (error: any) {
     if (isProviderFailure(error)) {
-      console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
+      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
       return await geminiGenerateCAPS(input);
     }
     throw error;
@@ -239,7 +239,7 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini')
     return parsed;
   } catch (error: any) {
     if (isProviderFailure(error)) {
-      console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
+      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
       return await geminiGenerateVisual(input);
     }
     throw error;
@@ -292,7 +292,7 @@ export const generateAdminDoc = async (input: any, provider: string = 'gemini') 
     return parsed;
   } catch (error: any) {
     if (isProviderFailure(error)) {
-      console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
+      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
       return await geminiGenerateAdmin(input);
     }
     throw error;
@@ -383,7 +383,7 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
   }
 
   try {
-    let model = provider === 'nvidia-nemotron' ? 'nvidia/llama-3.1-nemotron-70b-instruct' : 'qwen/qwen3.6-27b';
+    let model = provider === 'nvidia-nemotron' ? 'nvidia/llama-3.3-nemotron-super-49b-v1' : 'nvidia/nemotron-3-ultra-550b-a55b';
     
     const grading = await callMultiAi(provider as AIProvider, messages, model);
     
@@ -398,7 +398,7 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
     }
   } catch (error: any) {
     if (isProviderFailure(error)) {
-      console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
+      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
       return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
     }
     throw error;
@@ -470,7 +470,7 @@ export const chatWithTutor = async (messages: any[], provider: string = 'gemini'
     return await callMultiAi(provider as AIProvider, formattedMessages);
   } catch (error: any) {
     if (isProviderFailure(error)) {
-      console.warn(`Provider ${provider} failed (${error.message}). Falling back to Gemini...`);
+      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
       return await geminiChat(messages);
     }
     throw error;

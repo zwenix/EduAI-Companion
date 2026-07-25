@@ -19,9 +19,9 @@ Under no circumstances is any agent permitted to map the user's selected models 
   - `gemini-3.1-flash-lite` (High performance)
   - `gemini-2.5-flash` (Low latency price-performance)
 * **`nvidia-nemotron`**: Secondary model provider MUST map directly and exclusively to:
-  `nvidia/llama-3.1-nemotron-70b-instruct`
+  `nvidia/llama-3.3-nemotron-super-49b-v1`
 * **`groq-qwen`**: Tertiary model provider MUST map directly and exclusively to:
-  `qwen/qwen3.6-27b`
+  `nvidia/nemotron-3-ultra-550b-a55b`
 
 ### Strictly Banned / Removed Models:
 * Outdated Gemini defaults (`gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-2.1`) MUST NOT be used as primary defaults.
