@@ -49,14 +49,14 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
   if (provider === 'nvidia-nemotron') {
     payload.temperature = 0.6;
     payload.top_p = 0.95;
-    payload.max_tokens = 4096;
+    payload.max_tokens = 16384;
     payload.frequency_penalty = 0;
     payload.presence_penalty = 0;
   } else if (provider === 'groq-qwen') {
     payload.temperature = 1;
     payload.top_p = 0.95;
     payload.max_tokens = 16384;
-    payload.reasoning_budget = 16384;
+    payload.reasoning_budget = 4096;
     payload.chat_template_kwargs = { "enable_thinking": true };
   }
 

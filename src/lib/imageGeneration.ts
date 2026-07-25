@@ -178,16 +178,7 @@ export const generateImageWithFallback = async (
 
   console.log(`Preferred image provider from settings: ${preferredProvider}`);
 
-  // Determine fallback order based on user preference
-  const order: Array<'gemini' | 'perchance' | 'pollinations'> = [];
-  if (preferredProvider === 'perchance') {
-    order.push('perchance', 'gemini', 'pollinations');
-  } else if (preferredProvider === 'pollinations') {
-    order.push('pollinations', 'perchance', 'gemini');
-  } else {
-    // gemini-imagen or default
-    order.push('gemini', 'perchance', 'pollinations');
-  }
+  const order: Array<'gemini' | 'perchance' | 'pollinations'> = ['gemini', 'perchance', 'pollinations', 'gemini'];
 
   for (const prov of order) {
     if (prov === 'gemini') {

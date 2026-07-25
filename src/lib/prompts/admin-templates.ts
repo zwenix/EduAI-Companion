@@ -198,9 +198,9 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
 
 Return as JSON matching:
 {
-  "content": "<HTML CODE FOR THE MAIN DOCUMENT (enclosing the complete styled lesson plan) HERE>",
-  "memo": "<HTML CODE FOR ANSWER MEMORANDUM KEY OF INTEGRATED WORK_SHEET (if applicable) HERE>",
-  "rubric": "<HTML CODE FOR ANALYTICAL MARKING RUBRIC MATRIX OF WORKSHEET TABLE HERE>",
+  "content": "Full complete HTML string for the lesson plan without any summaries or placeholders",
+  "memo": "Full complete HTML string for answer memorandum key without any summaries or placeholders",
+  "rubric": "Full complete HTML string for analytical marking rubric matrix without any summaries or placeholders",
   "assessmentCriteria": "Detailed CAPS criteria tags...",
   "successIndicators": ["string", "string"],
   "imagePrompt": "Detailed classroom lesson visual aid image prompt..."
@@ -292,7 +292,7 @@ Generate personalized, strengths-based report card comments with this structure:
 
 </div>
 
-Return as JSON: { content: "[HTML above]", parentMeetingNotes: "[suggested discussion points]", resourcesForHome: "[home support suggestions]" }
+Return as JSON: { "content": "Full complete HTML string for report comments without summaries", "parentMeetingNotes": "suggested discussion points", "resourcesForHome": "home support suggestions" }
 `;
 
 export const CURRICULUM_MAP_TEMPLATE = `
@@ -411,7 +411,7 @@ Generate a term-long curriculum map with this comprehensive structure:
   </footer>
 </article>
 
-Return as JSON: { content: "[HTML above]", resourcesList: "[required resources]", crossCurricularLinks: "[links to other subjects]" }
+Return as JSON: { "content": "Full complete HTML string for curriculum map without summaries", "resourcesList": "required resources", "crossCurricularLinks": "links to other subjects" }
 `;
 
 export default {

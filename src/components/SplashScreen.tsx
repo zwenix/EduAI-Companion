@@ -9,7 +9,7 @@ interface SplashScreenProps {
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [videoError, setVideoError] = useState(false);
+  const [videoError, setVideoError] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
 
   // Store onVideoEnd in a ref to keep it stable and prevent resetting of the timer

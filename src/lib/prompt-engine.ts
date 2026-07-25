@@ -108,6 +108,15 @@ You MUST ALSO generate:
       .replace(/\$\{phase\}/g, phase)
       .replace(/\$\{gradeRange\}/g, this.getGradeRange(phase));
     
+    const antiSummaryMandate = `\n\n🚨 CRITICAL ANTI-TRUNCATION & ANTI-SUMMARY MANDATE:
+1. ZERO PLACEHOLDERS OR SUMMARIES: You are STRICTLY FORBIDDEN from outputting summaries, placeholder comments, or sentences such as "Summarized HTML below for brevity", "Full HTML available upon request", "etc.", "more questions here", or "insert content here".
+2. COMPLETE HTML OUTPUT: You MUST write out EVERY SINGLE section, paragraph, question, answer, rubric criteria, and HTML tag completely and fully from start to finish.
+3. FULL TEACHING MATERIALS: If generating a lesson plan, include all 5 detailed teaching phases, scripts, and accommodations. If generating a worksheet, test, or memo, write out every single question and every single answer without short-cutting.
+4. OPTIMIZED FOR SPEED: Keep the HTML clean, well-structured, and concise without excessive repetitive boilerplate text so that generation completes rapidly and within token boundaries.`;
+
+    systemPrompt += antiSummaryMandate;
+    userPrompt += antiSummaryMandate;
+
     if (context.isGroq) {
       systemPrompt = this.compressWhitespace(systemPrompt);
       userPrompt = this.compressWhitespace(userPrompt);

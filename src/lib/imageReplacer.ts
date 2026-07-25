@@ -139,10 +139,12 @@ export function replaceImagePlaceholders(html: string, allowImages: boolean = tr
 
     return `
 <div class="my-6 overflow-hidden rounded-[2rem] border-2 border-dashed border-slate-300 p-2 bg-slate-50/50 hover:bg-slate-100 transition-all duration-300 max-w-full print:break-inside-avoid print:border-none print:p-0 print:m-0 print:shadow-none shadow-sm">
-  <img src="${imageUrl}" 
+  <img data-eduai-prompt="${encodeURIComponent(enhancedPrompt)}"
+       data-eduai-seed="${seedCounter}"
+       src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
        alt="${cleanPrompt}" 
        title="${cleanPrompt}"
-       class="w-full object-cover rounded-[1.8rem] aspect-[4/3] max-h-[360px] border border-slate-100 shadow-inner print:rounded-none print:shadow-none" 
+       class="eduai-async-image w-full object-cover rounded-[1.8rem] aspect-[4/3] max-h-[360px] border border-slate-100 shadow-inner print:rounded-none print:shadow-none" 
        referrerPolicy="no-referrer" />
   <p class="hidden print:block text-[11px] text-slate-700 italic mt-1.5 font-serif text-center border-t border-slate-200 pt-1">[Print Visual Description: ${cleanPrompt}]</p>
   <div class="px-4 py-2 border-t border-dashed border-slate-200 mt-2 bg-white/50 rounded-b-[1.5rem] flex items-center justify-between print:hidden select-none">

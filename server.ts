@@ -584,8 +584,8 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         const systemInstruction = systemMessages?.map((m: any) => m.content).join("\n\n");
 
         const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
-          : ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
+          : ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
         let lastError: any = null;
         let response: any = null;
 
@@ -594,7 +594,10 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             response = await geminiAi.models.generateContent({
               model: candidate,
               contents: contentsList.length > 0 ? contentsList : [{ role: 'user', parts: [{ text: "Hello" }] }],
-              config: systemInstruction ? { systemInstruction } : undefined
+              config: {
+                maxOutputTokens: 16384,
+                ...(systemInstruction ? { systemInstruction } : {})
+              }
             });
             if (response) {
               cachedWorkingModel = candidate;
@@ -1175,17 +1178,24 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     }
 
     try {
-      const model = "gemini-3.6-flash";
+      const model = "gemini-3.5-flash";
 
       const generateContentWithFallback = async (options: { model: string, contents: any, config?: any }) => {
         const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
-          : ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
+          : ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
         
         let lastError: any = null;
         for (const candidate of modelsToTry) {
           try {
-            const actualOptions = { ...options, model: candidate };
+            const actualOptions = {
+              ...options,
+              model: candidate,
+              config: {
+                maxOutputTokens: 16384,
+                ...(options.config || {})
+              }
+            };
             const result = await geminiAi.models.generateContent(actualOptions);
             if (result) {
               cachedWorkingModel = candidate; // Cache successfully validated model
@@ -1324,6 +1334,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             model,
             contents: finalUserPrompt,
             config: {
+              maxOutputTokens: 16384,
               systemInstruction: system,
               responseMimeType: "application/json",
               responseSchema: {
@@ -1446,6 +1457,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             model,
             contents: prompt,
             config: { 
+              maxOutputTokens: 16384,
               systemInstruction, 
               responseMimeType: "application/json",
               responseSchema: {
@@ -1500,6 +1512,7 @@ STRICT COMPLIANCE MANDATE:
             model,
             contents: prompt,
             config: { 
+              maxOutputTokens: 16384,
               systemInstruction, 
               responseMimeType: "application/json",
               responseSchema: {

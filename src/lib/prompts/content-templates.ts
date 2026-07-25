@@ -269,9 +269,9 @@ FOOTER:
 
 CRITICAL JSON OUTPUT:
 {
-  "content": "<Complete HTML for worksheet following all design rules above>",
-  "memo": "<Complete HTML for answer memorandum with detailed marking guidelines>",
-  "rubric": "<Complete HTML for analytical marking rubric with criteria and performance levels>",
+  "content": "Full complete HTML string for worksheet following all design rules without summaries or placeholders",
+  "memo": "Full complete HTML string for answer memorandum with detailed marking guidelines without summaries or placeholders",
+  "rubric": "Full complete HTML string for analytical marking rubric with criteria and performance levels without summaries or placeholders",
   "successIndicators": ["string", "string"],
   "imagePrompt": "Ultra-detailed image prompt following the Master Prompt system"
 }
@@ -454,7 +454,7 @@ Color harmony: Align with [subject] palette ([colors]).
 Technical specs: 300 DPI, CMYK-ready, no text overlays, no borders, museum-quality detail, 
 optimized for A3/A4 classroom printing. Emotional tone: [inspiring/curious/empowering]."
 
-Return as JSON: { content: "[HTML above]", imagePrompt: "[enhanced prompt]", printInstructions: "A4/A3, 300 DPI, CMYK", accessibilityNotes: "[alt text suggestions]" }
+Return as JSON: { "content": "Full complete HTML string for visual aid poster without summaries", "imagePrompt": "enhanced prompt", "printInstructions": "A4/A3, 300 DPI, CMYK", "accessibilityNotes": "alt text suggestions" }
 `;
 
 export const STUDY_GUIDE_PROMPT_TEMPLATE = `
@@ -656,12 +656,12 @@ QUICK REFERENCE SECTION:
 "Educational textbook-style illustration: [Core concept of study guide] for South African Grade [X] [Subject]. Style: Semi-realistic digital painting."
 
 Return as JSON: { 
-  content: "[HTML above]", 
-  imagePrompt: "[enhanced prompt]", 
-  printInstructions: "A4, 300 DPI, CMYK, bleed 3mm", 
-  accessibilityNotes: "[alt text for hero + diagrams]", 
-  estimatedReadTime: "[X] minutes",
-  capsAlignment: "[specific CAPS codes covered]"
+  "content": "Full complete HTML string for study guide without summaries or placeholders", 
+  "imagePrompt": "enhanced prompt", 
+  "printInstructions": "A4, 300 DPI, CMYK, bleed 3mm", 
+  "accessibilityNotes": "alt text for hero + diagrams", 
+  "estimatedReadTime": "X minutes",
+  "capsAlignment": "specific CAPS codes covered"
 }
 `;
 

@@ -195,7 +195,35 @@ const TOP_TABS = ['DASHBOARD', 'CLASSROOMS', 'ARCHIVE'];
 const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "" }: { html: string; minHeight?: string; className?: string }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  if (!html || !html.trim()) {
+  useEffect(() => {
+    const handleMessage = async (e: MessageEvent) => {
+      if (e.data?.type === 'EDUAI_GENERATE_IMAGE') {
+         const { prompt, seed, id } = e.data;
+         try {
+           const { generateImageWithFallback } = await import('../lib/imageGeneration.ts');
+           const result = await generateImageWithFallback({ prompt, width: 800, height: 600, seed });
+           iframeRef.current?.contentWindow?.postMessage({ type: 'EDUAI_IMAGE_RESULT', id, url: result.url }, '*');
+         } catch (error) {
+           console.error('Failed to hydrate iframe image:', error);
+         }
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  const cleanedHtml = useMemo(() => {
+    if (!html) return "";
+    let clean = html.trim();
+    if (clean.startsWith("```html")) {
+      clean = clean.replace(/^```html\s*/i, "").replace(/\s*```$/, "");
+    } else if (clean.startsWith("```")) {
+      clean = clean.replace(/^```\s*/i, "").replace(/\s*```$/, "");
+    }
+    return clean;
+  }, [html]);
+
+  if (!cleanedHtml || !cleanedHtml.trim()) {
     return (
       <div className={cn("w-full h-full min-h-[450px] rounded-2xl flex flex-col items-center justify-center p-8 text-center border-2 border-dashed border-cyan-500/20 bg-slate-950/40", className)}>
         <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-4 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
@@ -210,8 +238,8 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "" }: { html:
   }
 
   const fullDocument = useMemo(() => {
-    const isFullDoc = html.includes('<html') || html.includes('<!DOCTYPE');
-    if (isFullDoc) return html;
+    const isFullDoc = cleanedHtml.includes('<html') || cleanedHtml.includes('<!DOCTYPE');
+    if (isFullDoc) return cleanedHtml;
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -257,10 +285,35 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "" }: { html:
   </style>
 </head>
 <body>
-  ${html}
+  ${cleanedHtml}
+  <script>
+    const hydrateImages = () => {
+      const images = document.querySelectorAll('.eduai-async-image:not([data-hydrated="true"])');
+      images.forEach(img => {
+        img.dataset.hydrated = "true";
+        const prompt = img.dataset.eduaiPrompt ? decodeURIComponent(img.dataset.eduaiPrompt) : null;
+        const seed = parseInt(img.dataset.eduaiSeed || '0');
+        if (prompt && window.parent) {
+          const reqId = Math.random().toString();
+          img.dataset.reqId = reqId;
+          const listener = (e) => {
+            if (e.data && e.data.type === 'EDUAI_IMAGE_RESULT' && e.data.id === reqId) {
+              img.src = e.data.url;
+              window.removeEventListener('message', listener);
+            }
+          };
+          window.addEventListener('message', listener);
+          window.parent.postMessage({ type: 'EDUAI_GENERATE_IMAGE', prompt, seed, id: reqId }, '*');
+        }
+      });
+    };
+    const observer = new MutationObserver(hydrateImages);
+    observer.observe(document.body, { childList: true, subtree: true });
+    hydrateImages();
+  </script>
 </body>
 </html>`;
-  }, [html]);
+  }, [cleanedHtml]);
 
   return (
     <iframe

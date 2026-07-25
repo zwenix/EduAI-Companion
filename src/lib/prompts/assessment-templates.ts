@@ -134,7 +134,7 @@ Generate a comprehensive assessment rubric with this professional structure:
 
 </article>
 
-Return as JSON: { content: "[HTML above]", studentCopy: "[simplified student version]", moderationNotes: "[moderation checklist]" }
+Return as JSON: { "content": "Full complete HTML string for rubric matrix without summaries", "studentCopy": "simplified student version", "moderationNotes": "moderation checklist" }
 `;
 
 export const TEST_GENERATOR_TEMPLATE = `
@@ -292,11 +292,11 @@ Generate a CAPS-aligned test/memorandum with this exam-standard structure:
 </html>
 
 Return as JSON: { 
-  testPaper: "[HTML above]", 
-  memorandum: "[memo HTML]", 
-  imagePrompt: "[test illustration]", 
-  markingGuidelines: "[detailed marking notes]",
-  bloomTaxonomy: "[cognitive level breakdown]"
+  "testPaper": "Full complete HTML string for test paper without summaries or placeholders", 
+  "memorandum": "Full complete HTML string for memorandum without summaries or placeholders", 
+  "imagePrompt": "test illustration prompt", 
+  "markingGuidelines": "detailed marking notes",
+  "bloomTaxonomy": "cognitive level breakdown"
 }
 `;
 
@@ -429,7 +429,7 @@ Generate a learner progress tracking tool with this comprehensive structure:
 
 </article>
 
-Return as JSON: { content: "[HTML above]", parentConferenceNotes: "[talking points]", interventionStrategies: "[support recommendations]" }
+Return as JSON: { "content": "Full complete HTML string for progress tracker without summaries", "parentConferenceNotes": "talking points", "interventionStrategies": "support recommendations" }
 `;
 
 export default {
