@@ -538,7 +538,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
   // Generic content generation proxy for OpenAI-compatible APIs
   app.post("/api/ai/:provider", async (req, res) => {
     const { provider } = req.params;
-    const { messages, model, temperature = 0.7, max_tokens, max_completion_tokens } = req.body;
+    const { messages, model, temperature = 0.7, max_tokens, max_completion_tokens, stream } = req.body;
 
     const executeGeminiFallback = async (reason: string) => {
       console.log(`[AI Routing] Seamlessly routing request from ${provider} to primary Gemini engine.`);
@@ -588,6 +588,42 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
           : ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
         let lastError: any = null;
         let response: any = null;
+
+        if (stream) {
+          for (const candidate of modelsToTry) {
+            try {
+              const streamResult = await geminiAi.models.generateContentStream({
+                model: candidate,
+                contents: contentsList.length > 0 ? contentsList : [{ role: 'user', parts: [{ text: "Hello" }] }],
+                config: {
+                  maxOutputTokens: 16384,
+                  ...(systemInstruction ? { systemInstruction } : {})
+                }
+              });
+              if (streamResult) {
+                cachedWorkingModel = candidate;
+                res.setHeader("Content-Type", "text/event-stream");
+                res.setHeader("Cache-Control", "no-cache");
+                res.setHeader("Connection", "keep-alive");
+                if (res.flushHeaders) res.flushHeaders();
+                let fullText = "";
+                for await (const chunk of streamResult) {
+                  const chunkText = chunk.text || "";
+                  if (chunkText) {
+                    fullText += chunkText;
+                    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: chunkText } }] })}\n\n`);
+                  }
+                }
+                res.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }], done: true, final: fullText })}\n\n`);
+                return res.end();
+              }
+            } catch (err: any) {
+              lastError = err;
+              console.warn(`Gemini fallback streaming model '${candidate}' is unavailable, trying next candidate...`);
+            }
+          }
+          throw lastError || new Error("All Gemini models failed for streaming.");
+        }
 
         for (const candidate of modelsToTry) {
           try {
@@ -713,8 +749,27 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         }
       }
 
-      const response = await client.chat.completions.create(payload);
-      res.json(response);
+      if (stream) {
+        payload.stream = true;
+        const completion = await client.chat.completions.create(payload);
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        if (res.flushHeaders) res.flushHeaders();
+        let fullText = "";
+        for await (const chunk of completion as any) {
+          const content = chunk.choices?.[0]?.delta?.content || "";
+          if (content) {
+            fullText += content;
+            res.write(`data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`);
+          }
+        }
+        res.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }], done: true, final: fullText })}\n\n`);
+        return res.end();
+      } else {
+        const response = await client.chat.completions.create(payload);
+        res.json(response);
+      }
     } catch (error: any) {
       const status = error.status || 500;
       if (status === 402 || (error.message && String(error.message).includes("afford"))) {
@@ -1171,7 +1226,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
 
   
   app.post("/api/gemini/action", async (req, res) => {
-    const { action, input } = req.body || {};
+    const { action, input, stream } = req.body || {};
     const apiKey = resolveGeminiKey();
     if (!apiKey || apiKey === "" || apiKey === "dummy" || apiKey === "undefined") {
       return res.status(400).json({ error: "GEMINI_API_KEY is not configured in settings." });
@@ -1207,6 +1262,73 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
           }
         }
         throw lastError || new Error("All candidate Gemini models were unavailable.");
+      };
+
+      const generateContentStreamWithFallback = async (options: { model: string, contents: any, config?: any }) => {
+        const modelsToTry = cachedWorkingModel 
+          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
+          : ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+        
+        let lastError: any = null;
+        for (const candidate of modelsToTry) {
+          try {
+            const actualOptions = {
+              ...options,
+              model: candidate,
+              config: {
+                maxOutputTokens: 16384,
+                ...(options.config || {})
+              }
+            };
+            const streamResult = await geminiAi.models.generateContentStream(actualOptions);
+            if (streamResult) {
+              cachedWorkingModel = candidate;
+              return streamResult;
+            }
+          } catch (err: any) {
+            lastError = err;
+            console.info(`Gemini candidate model '${candidate}' is currently unavailable for streaming. trying alternative...`);
+          }
+        }
+        throw lastError || new Error("All candidate Gemini models were unavailable for streaming.");
+      };
+
+      const handleStreamResponse = async (streamResult: any) => {
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        if (res.flushHeaders) res.flushHeaders();
+
+        let fullText = "";
+        try {
+          for await (const chunk of streamResult) {
+            const chunkText = chunk.text || "";
+            if (chunkText) {
+              fullText += chunkText;
+              res.write(`data: ${JSON.stringify({ chunk: chunkText })}\n\n`);
+            }
+          }
+          res.write(`data: ${JSON.stringify({ done: true, final: fullText })}\n\n`);
+          res.end();
+        } catch (err: any) {
+          console.error("Error during SSE streaming:", err);
+          res.write(`data: ${JSON.stringify({ error: err.message || "Streaming error occurred" })}\n\n`);
+          res.end();
+        }
+      };
+
+      const executeOrStream = async (options: { model: string, contents: any, config?: any }, isJson: boolean = false) => {
+        if (stream) {
+          const streamResult = await generateContentStreamWithFallback(options);
+          await handleStreamResponse(streamResult);
+        } else {
+          const response = await generateContentWithFallback(options);
+          if (isJson) {
+            return res.json(safeJsonParse(response.text));
+          } else {
+            return res.json({ text: response.text });
+          }
+        }
       };
 
       switch (action) {
@@ -1283,15 +1405,14 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         case "generate-educational": {
           const { type, details } = input;
           const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN. NEVER INJECT <script src="https://cdn.tailwindcss.com"></script>. The app already has Tailwind.`;
-          const response = await generateContentWithFallback({
+          return await executeOrStream({
             model,
             contents: `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design). Do NOT add Tailwind CDN scripts.`,
             config: {
               systemInstruction,
               temperature: 0.7,
             },
-          });
-          return res.json({ text: response.text });
+          }, false);
         }
 
         case "generate-caps": {
@@ -1330,7 +1451,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             finalUserPrompt += `\n\n⚠️ CRITICAL: DO NOT include any illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
           }
 
-          const response = await generateContentWithFallback({
+          return await executeOrStream({
             model,
             contents: finalUserPrompt,
             config: {
@@ -1350,8 +1471,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
                 required: ["content", "imagePrompt"]
               }
             }
-          });
-          return res.json(safeJsonParse(response.text));
+          }, true);
         }
 
         case "generate-visual": {
@@ -1453,7 +1573,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             prompt += `\n\n⚠️ CRITICAL: DO NOT include any illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
           }
 
-          const response = await generateContentWithFallback({
+          return await executeOrStream({
             model,
             contents: prompt,
             config: { 
@@ -1471,8 +1591,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
                 required: ["content", "description", "imagePrompt"]
               }
             }
-          });
-          return res.json(safeJsonParse(response.text));
+          }, true);
         }
 
         case "generate-admin": {
@@ -1508,7 +1627,7 @@ STRICT COMPLIANCE MANDATE:
             prompt += `\n\n⚠️ CRITICAL: DO NOT include any illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
           }
 
-          const response = await generateContentWithFallback({
+          return await executeOrStream({
             model,
             contents: prompt,
             config: { 
@@ -1526,8 +1645,7 @@ STRICT COMPLIANCE MANDATE:
                 required: ["content", "documentType"]
               }
             }
-          });
-          return res.json(safeJsonParse(response.text));
+          }, true);
         }
 
         case "ocr-scan": {
@@ -1727,14 +1845,13 @@ STRICT COMPLIANCE MANDATE:
 
         case "chat": {
           const { messages } = input;
-          const response = await generateContentWithFallback({
+          return await executeOrStream({
             model,
             contents: messages,
             config: {
               systemInstruction: "You are a friendly and encouraging South African school tutor for EduAI Companion. You help students understand complex CAPS curriculum concepts in simple terms. Use local South African examples (e.g. using Rands, referring to provinces) and be patient. Keep explanations concise.",
             }
-          });
-          return res.json({ text: response.text });
+          }, false);
         }
 
         default:
