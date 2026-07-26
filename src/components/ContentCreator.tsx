@@ -523,6 +523,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   const [vid_duration, setVid_Duration] = useState(5);
   const [vid_aspectRatio, setVid_AspectRatio] = useState('16:9');
   const [videoResult, setVideoResult] = useState<any>(null);
+  const [videoLoading, setVideoLoading] = useState(false);
   const [videoHistory, setVideoHistory] = useState<any[]>([]);
   
   // Admin Tab State
@@ -568,6 +569,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
       const classesQuery = query(collection(db, 'classes'), where('teacherId', '==', userId));
       const groupsQuery = query(collection(db, 'study_groups'), where('teacherId', '==', userId));
       const studentsQuery = query(collection(db, 'students'), where('teacherId', '==', userId));
+      const videoQuery = query(collection(db, 'users', userId, 'videoHistory'));
       
       const unsubscribeClasses = onSnapshot(classesQuery, (snapshot) => {
         setDbClasses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -587,10 +589,19 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
         console.error("Error listening to students:", err);
       });
 
+      const unsubscribeVideoHistory = onSnapshot(videoQuery, (snapshot) => {
+        const history = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        history.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        setVideoHistory(history);
+      }, (err) => {
+        console.error("Error listening to video history:", err);
+      });
+
       return () => {
         unsubscribeClasses();
         unsubscribeGroups();
         unsubscribeStudents();
+        unsubscribeVideoHistory();
       };
     }
   }, []);
@@ -751,6 +762,77 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
       console.error('Admin generation error:', error);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateVideo = async () => {
+    if (!vid_prompt.trim()) {
+      alert("Please enter an Action Prompt Script for the video.");
+      return;
+    }
+    setVideoLoading(true);
+    setVideoResult(null);
+    try {
+      const response = await fetch("/api/video/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: vid_prompt,
+          model: vid_model,
+          seed: vid_seed,
+          fps: vid_fps
+        })
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to start video generation: ${response.status}`);
+      }
+      const data = await response.json();
+      const jobId = data.id;
+
+      // Poll status every 3 seconds
+      const poll = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`/api/video/status/${jobId}`);
+          if (!statusRes.ok) {
+            clearInterval(poll);
+            throw new Error(`Status check failed: ${statusRes.status}`);
+          }
+          const statusData = await statusRes.json();
+          if (statusData.status === "succeeded" || statusData.status === "success") {
+            clearInterval(poll);
+            const videoUrl = statusData.url;
+            const newVideo = {
+              id: jobId,
+              url: videoUrl,
+              prompt: vid_prompt,
+              model: vid_model,
+              createdAt: new Date().toISOString()
+            };
+            setVideoResult(newVideo);
+            setVideoLoading(false);
+
+            // Store in Firestore videoHistory
+            const userId = auth.currentUser?.uid;
+            if (userId && db) {
+              const histRef = doc(db, 'users', userId, 'videoHistory', jobId);
+              await setDoc(histRef, newVideo);
+            }
+          } else if (statusData.status === "failed") {
+            clearInterval(poll);
+            setVideoLoading(false);
+            alert("Video generation failed. Please try again.");
+          }
+        } catch (pollErr) {
+          console.error("Error polling video status:", pollErr);
+          clearInterval(poll);
+          setVideoLoading(false);
+        }
+      }, 3000);
+
+    } catch (err: any) {
+      console.error("Video generation failed:", err);
+      setVideoLoading(false);
+      alert(err.message || "An error occurred during video generation.");
     }
   };
 
@@ -1262,6 +1344,9 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                 setVid_Seed={setVid_Seed}
                 vid_fps={vid_fps}
                 setVid_Fps={setVid_Fps}
+                onGenerate={handleGenerateVideo}
+                isLoading={videoLoading}
+                videoResult={videoResult}
               />
             </div>
           ) : activeTab === 'grade1' ? (

@@ -260,24 +260,56 @@ export const generateAdminDoc = async (input: any, provider: string = 'gemini') 
     }
   }
   
-  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nGenerate a formal ${input.documentType} for ${input.schoolName}.
-  The tone should be ${input.tone}.
-  IMPORTANT: The 'content' field MUST be formatted as visually pleasing HTML string styled with Tailwind CSS classes. DO NOT use generic Markdown.`;
-  const prompt = `
-    Type: ${input.documentType}
-    Purpose: ${input.purpose}
-    Key Points: ${input.keyPoints}
-    Include Reply Slip: ${input.includeReplySlip}
-    Language: ${input.language}
+  const systemInstruction = `${MASTER_SYSTEM_PROMPT}
 
-    Return as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
-    {
-      "content": "<HTML STRING WITH TAILWIND DESIGN HERE>",
-      "notes": "string",
-      "documentType": "${input.documentType}",
-      "imagePrompt": "prompt for custom seal or emblem if applicable"
-    }
-  `;
+Generate a formal ${input.documentType} for ${input.schoolName || 'the school'}.
+The tone should be ${input.tone || 'Formal'}.
+IMPORTANT: The 'content' field MUST be formatted as visually pleasing HTML string styled with Tailwind CSS classes. DO NOT use generic Markdown.
+
+STRICT COMPLIANCE MANDATES:
+1. You MUST explicitly use and display the provided metadata fields: School Name, Date & Time, Recipient, Venue, Class Teacher, and School Principal. Do NOT invent or assume different school names, dates, times, recipients, class teachers, or principals.
+2. The Action Prompt Script, if present at the top of the user prompt, takes absolute priority over everything. You must execute that script first, then integrate all the supplied parameters below it.
+3. NO PLACEHOLDERS OR QUERIES: Do not generate bracketed text like '[insert date]', '[Date Here]', or placeholders. The exact "Date & Time" parameter value "${input.timeDate || 'Not specified'}" and all other parameters MUST be permanently carried through and rendered explicitly into the certificate or document content.
+4. FOR CERTIFICATES: Fully render the certificate with the School Name, Recipient, Date & Time, Class Teacher, and Principal exactly as supplied. No placeholder fields. Ensure the design is highly professional and complete.`;
+
+  const actionPrompt = input.additionalInstructions || input.keyPoints || "";
+  let promptParts = [];
+
+  if (actionPrompt.trim().length > 0) {
+    promptParts.push(`ACTION PROMPT SCRIPT (HIGHEST PRIORITY):
+${actionPrompt.trim()}
+
+--------------------------------------------------------------------------------
+The above Action Prompt Script represents the primary directive and MUST be prioritized above all else. Treat it as the absolute core blueprint for content, style, and structure.`);
+  }
+
+  promptParts.push(`PARAMETERS (TO BE INTEGRATED FULLY AND PRESERVED):
+Type: ${input.documentType}
+Purpose / Subject: ${input.purpose || 'Not specified'}
+School Name: ${input.schoolName || 'Not specified'}
+Date & Time: ${input.timeDate || 'Not specified'}
+Recipient: ${input.recipient || 'Not specified'}
+Venue: ${input.venue || 'Not specified'}
+Class Teacher: ${input.classTeacher || 'Not specified'}
+School Principal: ${input.schoolPrincipal || 'Not specified'}
+Include Reply Slip: ${input.includeReplySlip ? 'Yes' : 'No'}
+Language: ${input.language || 'English'}`);
+
+  promptParts.push(`STRICT COMPLIANCE MANDATE FOR RENDERING:
+- Embed every parameter above exactly as provided.
+- Do NOT generate dummy variables or bracketed placeholders.
+- The supplied "Date & Time" ("${input.timeDate || 'Not specified'}") must be clearly rendered in the text of the generated document.
+- Prioritize the Action Prompt Script if it was provided above.
+
+Return as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
+{
+  "content": "<HTML STRING WITH TAILWIND DESIGN HERE>",
+  "notes": "string",
+  "documentType": "${input.documentType}",
+  "imagePrompt": "prompt for custom seal or emblem if applicable"
+}`);
+
+  const prompt = promptParts.join("\n\n");
 
   const messages = [
     { role: 'system', content: systemInstruction },

@@ -171,6 +171,13 @@ export const generateImageWithFallback = async (
   const height = options.height || dimensions.height;
   const seed = options.seed ?? Math.floor(Math.random() * 10000);
 
+  // Augment prompt to ensure 3D vector, 3D cute icon, 3D Disney character style is applied
+  let styledPrompt = prompt;
+  const styleSuffix = ", 3D vector, 3D cute icon, 3D animation Disney character style";
+  if (styledPrompt && !styledPrompt.toLowerCase().includes("3d vector") && !styledPrompt.toLowerCase().includes("3d cute icon")) {
+    styledPrompt += styleSuffix;
+  }
+
   // Retrieve preferred provider from local storage
   const preferredProvider = typeof window !== 'undefined'
     ? window.localStorage.getItem('eduai_image_provider') || 'gemini-imagen'
@@ -184,11 +191,11 @@ export const generateImageWithFallback = async (
     if (prov === 'gemini') {
       try {
         console.log('Attempting Gemini image generation...');
-        const imageUrl = await generateImageGemini(prompt, width, height);
+        const imageUrl = await generateImageGemini(styledPrompt, width, height);
         return {
           url: imageUrl,
           provider: 'gemini',
-          prompt,
+          prompt: styledPrompt,
           width,
           height
         };
@@ -198,11 +205,11 @@ export const generateImageWithFallback = async (
     } else if (prov === 'perchance') {
       try {
         console.log('Attempting Perchance image generation...');
-        const imageUrl = await generateImagePerchance(prompt, width, height, seed);
+        const imageUrl = await generateImagePerchance(styledPrompt, width, height, seed);
         return {
           url: imageUrl,
           provider: 'perchance',
-          prompt,
+          prompt: styledPrompt,
           width,
           height
         };
@@ -212,11 +219,11 @@ export const generateImageWithFallback = async (
     } else if (prov === 'pollinations') {
       try {
         console.log('Using Pollinations image generation...');
-        const imageUrl = await generateImagePollinations(prompt, width, height, seed);
+        const imageUrl = await generateImagePollinations(styledPrompt, width, height, seed);
         return {
           url: imageUrl,
           provider: 'pollinations',
-          prompt,
+          prompt: styledPrompt,
           width,
           height
         };
@@ -228,11 +235,11 @@ export const generateImageWithFallback = async (
 
   // Fallback to Pollinations directly if everything somehow fails
   console.log('All attempted image providers failed. Defaulting to Pollinations...');
-  const imageUrl = await generateImagePollinations(prompt, width, height, seed);
+  const imageUrl = await generateImagePollinations(styledPrompt, width, height, seed);
   return {
     url: imageUrl,
     provider: 'pollinations',
-    prompt,
+    prompt: styledPrompt,
     width,
     height
   };

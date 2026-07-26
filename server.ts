@@ -1099,7 +1099,15 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
 
   app.post("/api/images/generate", async (req, res) => {
     const { prompt, provider } = req.body;
-    console.log(`[IMAGE GEN LOG] Requested image generation -> Provider: ${provider} | Prompt: "${(prompt || '').slice(0, 80)}"`);
+    
+    // Augment prompt to ensure 3D vector, 3D cute icon, 3D Disney character style is applied
+    let styledPrompt = prompt || "";
+    const styleSuffix = ", 3D vector, 3D cute icon, 3D animation Disney character style";
+    if (styledPrompt && !styledPrompt.toLowerCase().includes("3d vector") && !styledPrompt.toLowerCase().includes("3d cute icon")) {
+      styledPrompt += styleSuffix;
+    }
+
+    console.log(`[IMAGE GEN LOG] Requested image generation -> Provider: ${provider} | Prompt: "${styledPrompt.slice(0, 80)}"`);
 
     if (provider === "gemini-imagen") {
       const apiKey = resolveGeminiKey();
@@ -1108,7 +1116,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
           console.log("[IMAGE GEN LOG] Attempting primary image generation with Gemini Imagen (imagen-3.0-generate-002)...");
           const response = await geminiAi.models.generateContent({
             model: 'imagen-3.0-generate-002',
-            contents: { parts: [{ text: prompt }] },
+            contents: { parts: [{ text: styledPrompt }] },
             config: { imageConfig: { aspectRatio: "1:1" } }
           });
           let foundBase64 = null;
@@ -1130,7 +1138,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
       }
 
       const seed = Math.floor(Math.random() * 100000);
-      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=turbo&enhance=true&seed=${seed}`;
+      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=1024&height=1024&nologo=true&model=turbo&enhance=true&seed=${seed}`;
       console.log("[IMAGE GEN LOG] Returning direct fallback URL -> Model: Pollinations Turbo");
       return res.json({ url: fallbackUrl, isFallback: true, provider: 'pollinations', model: 'Pollinations-Turbo' });
     }
@@ -1138,9 +1146,9 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     if (provider === "perchance" || provider === "pollinations") {
       const seed = Math.floor(Math.random() * 100000);
       const model = provider === "perchance" ? "Perchance-Professional-🌟" : "flux";
-      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&model=${provider === "perchance" ? "turbo" : "flux"}&enhance=true&seed=${seed}`;
+      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=1024&height=1024&nologo=true&model=${provider === "perchance" ? "turbo" : "flux"}&enhance=true&seed=${seed}`;
       if (provider === "perchance") {
-        console.log(`[IMAGE GEN LOG] Perchance AI Generator: "🌌 Image Generator Professional 🌟" (https://perchance.org/image-generator-professional) | Prompt: "${(prompt || '').slice(0, 60)}"`);
+        console.log(`[IMAGE GEN LOG] Perchance AI Generator: "🌌 Image Generator Professional 🌟" (https://perchance.org/image-generator-professional) | Prompt: "${styledPrompt.slice(0, 60)}"`);
       } else {
         console.log(`[IMAGE GEN LOG] Returning direct URL -> Provider: ${provider} | Model: ${model}`);
       }
@@ -1343,16 +1351,22 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
 
         case "generate-image": {
           const { prompt: imagePrompt, width, height } = input || {};
+          let styledPrompt = imagePrompt || "";
+          const styleSuffix = ", 3D vector, 3D cute icon, 3D animation Disney character style";
+          if (styledPrompt && !styledPrompt.toLowerCase().includes("3d vector") && !styledPrompt.toLowerCase().includes("3d cute icon")) {
+            styledPrompt += styleSuffix;
+          }
+
           try {
             const apiKey = resolveGeminiKey();
             if (!apiKey || apiKey === "" || apiKey === "dummy" || apiKey === "undefined") {
               throw new Error("GEMINI_API_KEY is not configured.");
             }
-            console.log("Generating image with Gemini action:", imagePrompt);
+            console.log("Generating image with Gemini action:", styledPrompt);
             const response = await geminiAi.models.generateContent({
               model: 'imagen-3.0-generate-002',
               contents: {
-                parts: [{ text: imagePrompt }]
+                parts: [{ text: styledPrompt }]
               },
               config: {
                 imageConfig: {
@@ -1379,7 +1393,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             console.warn("Gemini action image generation failed, trying Pollinations Turbo...");
             try {
               const seed = Math.floor(Math.random() * 100000);
-              const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=${width || 1024}&height=${height || 1024}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
+              const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=${width || 1024}&height=${height || 1024}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
               
               const fetchResponse = await fetch(fallbackUrl, {
                 method: 'GET',
@@ -1601,26 +1615,43 @@ Generate a formal ${input.documentType} for ${input.schoolName || 'the school'}.
 The tone should be ${input.tone || 'Formal'}.
 IMPORTANT: The 'content' field MUST be formatted as visually pleasing HTML string styled with Tailwind CSS classes. DO NOT use generic Markdown.
 
-STRICT COMPLIANCE MANDATE:
+STRICT COMPLIANCE MANDATES:
 1. You MUST explicitly use and display the provided metadata fields: School Name, Date & Time, Recipient, Venue, Class Teacher, and School Principal. Do NOT invent or assume different school names, dates, times, recipients, class teachers, or principals.
-2. You MUST prioritize and integrate all details from the "Key Points / Extra Info" and "User Custom Instructions" prompt box. Do not ignore them, do not substitute with your own imagined details. They are the core requirements of this document.
-3. Every field provided in the input below must be prominently rendered and clearly labeled in the document layout.`;
-          let prompt = `
-            Type: ${input.documentType}
-            Purpose: ${input.purpose}
-            School Name: ${input.schoolName || 'Not specified'}
-            Date & Time: ${input.timeDate || 'Not specified'}
-            Recipient: ${input.recipient || 'Not specified'}
-            Venue: ${input.venue || 'Not specified'}
-            Class Teacher: ${input.classTeacher || 'Not specified'}
-            School Principal: ${input.schoolPrincipal || 'Not specified'}
-            Key Points / Extra Info: ${input.keyPoints || 'None'}
-            Include Reply Slip: ${input.includeReplySlip ? 'Yes' : 'No'}
-            Language: ${input.language || 'English'}
-            ${input.additionalInstructions ? `User Custom Instructions: ${input.additionalInstructions}\nMake sure to incorporate all specific details mentioned here without omitting them.` : ""}
+2. The Action Prompt Script, if present at the top of the user prompt, takes absolute priority over everything. You must execute that script first, then integrate all the supplied parameters below it.
+3. NO PLACEHOLDERS OR QUERIES: Do not generate bracketed text like '[insert date]', '[Date Here]', or placeholders. The exact "Date & Time" parameter value "${input.timeDate || 'Not specified'}" and all other parameters MUST be permanently carried through and rendered explicitly into the certificate or document content.
+4. FOR CERTIFICATES: Fully render the certificate with the School Name, Recipient, Date & Time, Class Teacher, and Principal exactly as supplied. No placeholder fields. Ensure the design is highly professional and complete.`;
 
-            CRITICAL DIRECTIVE: Incorporate every single field value and custom instruction specified above into the final document structure. Render them beautifully in the Tailwind HTML.
-          `;
+          const actionPrompt = input.additionalInstructions || input.keyPoints || "";
+          let promptParts = [];
+
+          if (actionPrompt.trim().length > 0) {
+            promptParts.push(`ACTION PROMPT SCRIPT (HIGHEST PRIORITY):
+${actionPrompt.trim()}
+
+--------------------------------------------------------------------------------
+The above Action Prompt Script represents the primary directive and MUST be prioritized above all else. Treat it as the absolute core blueprint for content, style, and structure.`);
+          }
+
+          promptParts.push(`PARAMETERS (TO BE INTEGRATED FULLY AND PRESERVED):
+Type: ${input.documentType}
+Purpose / Subject: ${input.purpose || 'Not specified'}
+School Name: ${input.schoolName || 'Not specified'}
+Date & Time: ${input.timeDate || 'Not specified'}
+Recipient: ${input.recipient || 'Not specified'}
+Venue: ${input.venue || 'Not specified'}
+Class Teacher: ${input.classTeacher || 'Not specified'}
+School Principal: ${input.schoolPrincipal || 'Not specified'}
+Include Reply Slip: ${input.includeReplySlip ? 'Yes' : 'No'}
+Language: ${input.language || 'English'}`);
+
+          promptParts.push(`STRICT COMPLIANCE MANDATE FOR RENDERING:
+- Embed every parameter above exactly as provided.
+- Do NOT generate dummy variables or bracketed placeholders.
+- The supplied "Date & Time" ("${input.timeDate || 'Not specified'}") must be clearly rendered in the text of the generated document.
+- Prioritize the Action Prompt Script if it was provided above.`);
+
+          let prompt = promptParts.join("\n\n");
+
           if (input.generateImage) {
             prompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 1-2 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of a professional school stamp, document seal, or graphic depicting the topic in South African context>]. Place them strategically inside the HTML. The system will replace them with actual AI generated images.`;
           } else {
