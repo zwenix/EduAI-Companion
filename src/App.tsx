@@ -139,7 +139,7 @@ import {
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
 const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDarkMode, themeMode }: { id?: string, icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean, isDarkMode?: boolean, themeMode?: string }) => {
-  const displayLabel = id === 'teacher-dashboard-menu' && label !== 'Home' ? 'Teachers Office' : label;
+  const displayLabel = id === 'teacher-dashboard-menu' && label !== 'Home' ? 'Classroom Chalkboard' : label;
 
   return (
     <button
@@ -763,8 +763,8 @@ export default function App() {
     
     if (r === 'teacher') {
       return [
-        { id: 'teacher-dashboard-menu', label: 'Teachers Office', icon: IconHome },
-        { id: 'lesson-planning', label: "Teacher'sToolBox", icon: IconCurriculum },
+        { id: 'teacher-dashboard-menu', label: 'Classroom Chalkboard', icon: IconHome },
+        { id: 'lesson-planning', label: "Teacher's Table", icon: IconCurriculum },
         { id: 'intelligence-ai', label: 'Intelligent AI', icon: SmartBotTutorIcon },
         { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
         { id: 'class-analytics', label: 'Analytics', icon: IconAnalytics },
@@ -775,8 +775,8 @@ export default function App() {
     
     return [
       { id: 'teacher-dashboard-menu', label: firstLabel, icon: IconHome },
-      { id: 'lesson-planning', label: "Teacher'sToolBox", icon: IconCurriculum },
-      { id: 'intelligence-ai', label: 'Intelligence AI', icon: SmartBotTutorIcon },
+      { id: 'lesson-planning', label: "Teacher's Table", icon: IconCurriculum },
+      { id: 'intelligence-ai', label: 'Intelligent AI', icon: SmartBotTutorIcon },
       { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
       { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
       { id: 'student-class-management', label: 'Chat & Messenger', icon: IconClassrooms },
@@ -1627,7 +1627,7 @@ export default function App() {
                 setActiveCategory('teacher-dashboard-menu');
               }}
               className={`p-2 rounded-xl ${isDarkMode ? 'hover:bg-white/10 text-white' : 'hover:bg-slate-200 text-slate-600'} transition-all`}
-              title="Teachers Office"
+              title="Classroom Chalkboard"
             >
               <IconHome size={18} />
             </button>

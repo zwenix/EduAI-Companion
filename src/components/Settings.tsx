@@ -3,7 +3,7 @@ import {
   Bell, Shield, Key, Moon, Sun, 
   Monitor, Save, AlertCircle, User, CreditCard, 
   Database, Activity, Lock, Mail, Phone, Globe,
-  Trash2, Plus, Smartphone, Download, Palette, Link as LinkIcon
+  Trash2, Plus, Smartphone, Download, Palette, Link as LinkIcon, Edit2
 } from 'lucide-react';
 import { IconSettings, IconLogout } from './LocalIcons';
 import { useAi } from '../contexts/AiContext';
@@ -40,6 +40,7 @@ export default function Settings({
   const { provider, ocrProvider, ttsProvider, imageProvider, setProvider, setOcrProvider, setTtsProvider, setImageProvider } = useAi();
   const [notifications, setNotifications] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(true);
+  const [viewMode, setViewMode] = useState<'dashboard' | 'advanced'>('dashboard');
   
   const [fullName, setFullName] = useState(() => localStorage.getItem('eduai_user_name') || 'Dr. Sarah Mkize');
   const [school, setSchool] = useState(() => localStorage.getItem('eduai_user_school') || 'Houghton Academy');
@@ -262,7 +263,241 @@ export default function Settings({
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-20">
-      {/* Header */}
+      {viewMode === 'dashboard' ? (
+        <div className="space-y-6 text-white font-sans">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl sm:text-3xl font-display font-black tracking-tight text-white">
+              Account & Platform Settings
+            </h1>
+            <button
+              type="button"
+              onClick={() => setViewMode('advanced')}
+              className="bg-white/10 hover:bg-white/15 text-slate-200 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg hover:border-cyan-500/50"
+            >
+              <IconSettings size={14} className="text-cyan-400" />
+              <span>Advanced System Matrix</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left Sidebar (~25% / 3 cols) */}
+            <div className="lg:col-span-3 bg-[#0a0e20] border border-white/10 rounded-[28px] p-4 flex flex-col justify-between shadow-2xl min-h-[480px]">
+              <div className="space-y-1">
+                <h3 className="text-lg font-bold text-white px-3 py-2 mb-2">
+                  Settings
+                </h3>
+                
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('section-security')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-xs sm:text-sm font-semibold bg-[#1a142c] text-white border border-pink-500/30 shadow-lg text-left cursor-pointer"
+                >
+                  <Shield size={18} className="text-pink-400" />
+                  <span>Account Security</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('section-notifications')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-xs sm:text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/5 text-left transition-colors cursor-pointer"
+                >
+                  <Bell size={18} className="text-slate-400" />
+                  <span>Notification Preferences</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setViewMode('advanced')}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-xs sm:text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/5 text-left transition-colors cursor-pointer"
+                >
+                  <IconSettings size={18} className="text-slate-400" />
+                  <span>Platform Settings</span>
+                </button>
+              </div>
+
+              {/* Night Vision Toggle */}
+              <div className="border-t border-white/10 pt-4 mt-6">
+                <div className="flex items-center justify-between px-3 py-2">
+                  <span className="text-xs sm:text-sm font-medium text-slate-300 flex items-center gap-2.5">
+                    <Moon size={16} className="text-cyan-400" />
+                    <span>Night Vision</span>
+                  </span>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase">{isDarkMode ? 'On' : 'Off'}</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsDarkMode(!isDarkMode)}
+                      className={`w-11 h-6 rounded-full transition-colors p-1 flex items-center cursor-pointer ${
+                        isDarkMode ? 'bg-emerald-500 justify-end' : 'bg-slate-700 justify-start'
+                      }`}
+                    >
+                      <div className="w-4 h-4 rounded-full bg-white shadow-md" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column (~75% / 9 cols) */}
+            <div className="lg:col-span-9 space-y-6">
+              {/* Card 1: Profile Management */}
+              <div id="section-profile" className="bg-[#0a0e20] border border-white/10 rounded-[28px] p-6 sm:p-8 shadow-2xl">
+                <h3 className="text-lg font-bold text-white mb-6 text-left">
+                  Profile Management
+                </h3>
+                
+                <div className="flex flex-col sm:flex-row gap-6 items-start">
+                  {/* Left Avatar */}
+                  <div className="shrink-0 flex flex-col items-center w-full sm:w-auto">
+                    <img 
+                      src={photoUrl || "https://images.unsplash.com/photo-1531384441138-2736e62e0919?auto=format&fit=crop&w=300&q=80"} 
+                      alt={fullName} 
+                      className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl object-cover border border-white/10 shadow-lg"
+                    />
+                    <button 
+                      type="button"
+                      onClick={triggerImageUpload} 
+                      className="bg-white text-slate-900 font-semibold px-4 py-2 rounded-xl text-xs flex items-center justify-center gap-2 mt-3 w-full sm:w-32 hover:bg-slate-100 transition-all cursor-pointer shadow-md"
+                    >
+                      <Edit2 size={14} />
+                      <span>Edit Profile</span>
+                    </button>
+                  </div>
+
+                  {/* Right Form */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 grow w-full">
+                    <div className="col-span-1 sm:col-span-2 text-left">
+                      <label className="text-xs text-slate-400 font-medium block mb-1.5">Full Name</label>
+                      <input 
+                        type="text" 
+                        value={fullName} 
+                        onChange={e => setFullName(e.target.value)} 
+                        className="bg-[#11162d] border border-white/10 rounded-xl px-4 py-3 text-xs sm:text-sm text-white font-medium w-full focus:outline-none focus:border-cyan-500 transition-colors shadow-inner" 
+                      />
+                    </div>
+
+                    <div className="col-span-1 sm:col-span-2 text-left">
+                      <label className="text-xs text-slate-400 font-medium block mb-1.5">Title</label>
+                      <input 
+                        type="text" 
+                        value={jobTitle} 
+                        onChange={e => setJobTitle(e.target.value)} 
+                        className="bg-[#11162d] border border-white/10 rounded-xl px-4 py-3 text-xs sm:text-sm text-white font-medium w-full focus:outline-none focus:border-cyan-500 transition-colors shadow-inner" 
+                      />
+                    </div>
+
+                    <div className="col-span-1 text-left">
+                      <label className="text-xs text-slate-400 font-medium block mb-1.5">Email</label>
+                      <input 
+                        type="email" 
+                        value={profileEmail || "zwelakhe.msuthu@eduai.com"} 
+                        onChange={e => setProfileEmail(e.target.value)} 
+                        className="bg-[#11162d] border border-white/10 rounded-xl px-4 py-3 text-xs sm:text-sm text-white font-medium w-full focus:outline-none focus:border-cyan-500 transition-colors shadow-inner" 
+                      />
+                    </div>
+
+                    <div className="col-span-1 text-left">
+                      <label className="text-xs text-slate-400 font-medium block mb-1.5">Role</label>
+                      <input 
+                        type="text" 
+                        value={userRole || "Master Tutor"} 
+                        readOnly 
+                        className="bg-[#11162d] border border-white/10 rounded-xl px-4 py-3 text-xs sm:text-sm text-slate-400 font-medium w-full focus:outline-none cursor-not-allowed shadow-inner" 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Account Security */}
+              <div id="section-security" className="bg-[#0a0e20] border border-white/10 rounded-[28px] p-6 sm:p-8 shadow-2xl">
+                <h3 className="text-lg font-bold text-white mb-4 text-left">
+                  Account Security
+                </h3>
+                
+                <div className="divide-y divide-white/5 text-left">
+                  <div className="py-3.5 flex items-center justify-between group cursor-pointer hover:pl-2 transition-all">
+                    <div className="flex items-center gap-3">
+                      <Lock size={18} className="text-slate-400 group-hover:text-cyan-400 transition-colors" />
+                      <span className="text-xs sm:text-sm font-medium text-slate-200">Password</span>
+                    </div>
+                    <span className="text-xs text-slate-500 group-hover:text-slate-300">••••••••••••</span>
+                  </div>
+
+                  <div className="py-3.5 flex items-center justify-between group cursor-pointer hover:pl-2 transition-all">
+                    <div className="flex items-center gap-3">
+                      <Shield size={18} className="text-slate-400 group-hover:text-cyan-400 transition-colors" />
+                      <span className="text-xs sm:text-sm font-medium text-slate-200">Two-Factor Authentication</span>
+                    </div>
+                    <span className="text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Enabled</span>
+                  </div>
+
+                  <div className="py-3.5 flex items-center justify-between group cursor-pointer hover:pl-2 transition-all">
+                    <div className="flex items-center gap-3">
+                      <Activity size={18} className="text-slate-400 group-hover:text-cyan-400 transition-colors" />
+                      <span className="text-xs sm:text-sm font-medium text-slate-200">Login Activity</span>
+                    </div>
+                    <span className="text-xs text-slate-400">2 active sessions</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Notification Preferences */}
+              <div id="section-notifications" className="bg-[#0a0e20] border border-white/10 rounded-[28px] p-6 sm:p-8 shadow-2xl">
+                <h3 className="text-lg font-bold text-white mb-4 text-left">
+                  Notification Preferences
+                </h3>
+                
+                <div className="flex flex-wrap items-center gap-6 sm:gap-10 pt-2 text-left">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      checked={emailAlerts} 
+                      onChange={e => setEmailAlerts(e.target.checked)} 
+                      className="rounded bg-slate-800 border-white/20 text-cyan-500 w-4 h-4 focus:ring-0 cursor-pointer accent-cyan-500" 
+                    />
+                    <span className="text-xs sm:text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Email Notifications</span>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      checked={notifications} 
+                      onChange={e => setNotifications(e.target.checked)} 
+                      className="rounded bg-slate-800 border-white/20 text-cyan-500 w-4 h-4 focus:ring-0 cursor-pointer accent-cyan-500" 
+                    />
+                    <span className="text-xs sm:text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Push Notifications</span>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      defaultChecked={false} 
+                      className="rounded bg-slate-800 border-white/20 text-cyan-500 w-4 h-4 focus:ring-0 cursor-pointer accent-cyan-500" 
+                    />
+                    <span className="text-xs sm:text-sm font-medium text-slate-300 group-hover:text-white transition-colors">SMS Alerts</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {viewMode === 'advanced' && (
+        <div className="space-y-8">
+          <div className="flex justify-between items-center">
+            <button
+              type="button"
+              onClick={() => setViewMode('dashboard')}
+              className="bg-white/10 hover:bg-white/15 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <span>← Back to Account & Platform Settings</span>
+            </button>
+          </div>
+          {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 p-2">
         <div className="flex items-center gap-4">
           <div className={cn("p-4 rounded-3xl transition-colors", isDarkMode ? "bg-white/5 border border-white/10" : "bg-white border border-slate-200 shadow-sm")}>
@@ -927,6 +1162,8 @@ export default function Settings({
           Synchronize Configuration
         </button>
       </div>
+        </div>
+      )}
     </div>
   );
 }

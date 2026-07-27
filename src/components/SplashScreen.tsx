@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { GraduationCap } from 'lucide-react';
+import Logo from './Logo';
 import splashVideo from '../assets/splash.mp4';
 
 interface SplashScreenProps {
@@ -9,7 +9,7 @@ interface SplashScreenProps {
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [videoError, setVideoError] = useState(true);
+  const [videoError, setVideoError] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
 
   // Store onVideoEnd in a ref to keep it stable and prevent resetting of the timer
@@ -38,9 +38,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
     const video = videoRef.current;
     if (video && !videoError) {
       video.play().catch((err) => {
-        console.warn("Initial autoplay attempt failed or blocked:", err);
-        // If autoplay is blocked by the browser, we fall back to the beautiful branding screen
-        setVideoError(true);
+        console.warn("Initial autoplay attempt delayed or waiting for canplay:", err);
       });
     }
 
@@ -131,8 +129,8 @@ onEnded={handleEnded}
             {/* Decorative ambient glow */}
             <div className="absolute inset-0 bg-emerald-500/20 blur-[120px] rounded-full animate-pulse scale-150" />
             
-            <div className="relative mb-10 p-8 bg-white/5 rounded-[40px] border border-white/10 backdrop-blur-md shadow-[0_0_80px_rgba(52,211,153,0.15)] ring-1 ring-white/10">
-              <GraduationCap className="w-28 h-28 text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]" />
+            <div className="relative mb-10 p-6 bg-white/5 rounded-[40px] border border-white/10 backdrop-blur-md shadow-[0_0_80px_rgba(52,211,153,0.15)] ring-1 ring-white/10 flex items-center justify-center">
+              <Logo className="w-28 h-28 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]" />
             </div>
             
             <div className="text-center space-y-5 relative z-10">

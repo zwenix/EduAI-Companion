@@ -46,9 +46,147 @@ export default function CategoryOverview({
   const [searchQuery, setSearchQuery] = useState('');
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
-  // Custom Teacher'sToolBox / Edu-Tools Hub UI
+  // Custom Intelligent AI Hub UI (matching Screenshot 1)
+  if (categoryLabel === 'Intelligent AI' || categoryLabel === 'Intelligence AI') {
+    return (
+      <div className="relative p-6 sm:p-8 lg:p-10 overflow-hidden rounded-[40px] border border-cyan-500/20 bg-[#070a18] text-white min-h-[85vh] flex flex-col justify-start font-sans">
+        {/* Glowing cosmic curves/waves in background */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(15,23,60,0.8)_0%,rgba(7,10,24,1)_100%)] pointer-events-none" />
+        <div className="absolute top-1/4 -right-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-10 -left-20 w-96 h-96 bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-emerald-500/5 rounded-full blur-[160px] pointer-events-none" />
+
+        <div className="relative z-10 max-w-5xl mx-auto w-full space-y-8 my-auto py-8">
+          {/* Top Main Banner Card */}
+          <div className="p-8 sm:p-12 rounded-[32px] bg-slate-900/60 border border-white/10 shadow-2xl backdrop-blur-xl text-center relative overflow-hidden">
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-cyan-500/20 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-cyan-500/20 border border-white/15 flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Icon size={36} className="text-white" />
+            </div>
+            
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black tracking-tight text-white mb-3">
+              {categoryLabel}
+            </h1>
+            <p className="text-sm sm:text-base text-slate-300 font-normal max-w-xl mx-auto">
+              Explore available modules and smart aids in this curriculum hub.
+            </p>
+          </div>
+
+          {/* Subtabs Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {subTabs.map((item, idx) => {
+              const ItemIcon = item.icon;
+              const desc = item.id === 'ai-tutor' 
+                ? 'A localized AI companion for new manga/data in our homework grading, concept explanations, and curriculum support.'
+                : item.id === 'ocr'
+                ? 'AI vision for scanning student answer sheets, detecting handwritten text, and providing objective auto-grading.'
+                : item.desc || 'Explore AI tools and educational aids tailored for your classroom.';
+
+              return (
+                <motion.button
+                  key={item.id}
+                  onClick={() => onSelect(item.id)}
+                  whileHover={{ y: -4 }}
+                  className="group flex flex-col p-6 sm:p-8 rounded-[28px] bg-slate-900/60 border border-white/10 hover:border-cyan-500/40 hover:bg-slate-900/80 transition-all duration-300 text-left cursor-pointer shadow-xl relative overflow-hidden backdrop-blur-xl"
+                >
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-cyan-500/20 border border-white/15 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                      <ItemIcon size={26} className="text-white" />
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight group-hover:text-cyan-400 transition-colors">
+                      {item.label}
+                    </h3>
+                  </div>
+
+                  <p className="text-sm sm:text-base text-slate-300 font-normal leading-relaxed">
+                    {desc}
+                  </p>
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Custom Message & Collaborate Hub UI (matching Screenshot 3)
+  if (
+    categoryLabel === 'Message & Collaborate' || 
+    categoryLabel === 'Chat & Messenger' || 
+    categoryLabel === 'Communicator Hub' || 
+    categoryLabel === 'Communicator Hub Chat' || 
+    categoryLabel === 'Teacher Chat & Contacts'
+  ) {
+    return (
+      <div className="relative p-6 sm:p-8 lg:p-10 overflow-hidden rounded-[40px] border border-cyan-500/20 bg-[#070a18] text-white min-h-[85vh] flex flex-col justify-start font-sans">
+        {/* Glowing cosmic curves/waves in background */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(15,23,60,0.8)_0%,rgba(7,10,24,1)_100%)] pointer-events-none" />
+        <div className="absolute top-1/3 -left-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-10 -right-20 w-96 h-96 bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
+
+        <div className="relative z-10 max-w-5xl mx-auto w-full space-y-8 my-auto py-8">
+          {/* Top Main Banner Card */}
+          <div className="p-8 sm:p-12 rounded-[32px] bg-slate-900/60 border border-white/10 shadow-2xl backdrop-blur-xl text-center relative overflow-hidden">
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-cyan-500/20 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-cyan-500/20 border border-white/15 flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Icon size={36} className="text-white" />
+            </div>
+            
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black tracking-tight text-white mb-3">
+              {categoryLabel === 'Message & Collaborate' ? 'Message & Collaborate Hub' : categoryLabel}
+            </h1>
+            <p className="text-sm sm:text-base text-slate-300 font-normal max-w-xl mx-auto">
+              Connect with parents, students, and faculty. Share updates, assignments, and class resources in real-time.
+            </p>
+          </div>
+
+          {/* Subtabs Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {subTabs.map((item) => {
+              const ItemIcon = item.icon;
+              const desc = item.id === 'messenger' 
+                ? 'Real-time messaging channels for faculty, parents, and student classroom coordination.'
+                : item.id === 'collaborative-workspace'
+                ? 'Live multiplayer whiteboard and shared document editing for interactive group projects.'
+                : item.id === 'student-practice'
+                ? 'Interactive AI-guided practice exercises, quizzes, and skill mastery drills.'
+                : item.desc || 'Explore collaborative tools and live communication channels.';
+
+              return (
+                <motion.button
+                  key={item.id}
+                  onClick={() => onSelect(item.id)}
+                  whileHover={{ y: -4 }}
+                  className="group flex flex-col p-6 sm:p-8 rounded-[28px] bg-slate-900/60 border border-white/10 hover:border-cyan-500/40 hover:bg-slate-900/80 transition-all duration-300 text-left cursor-pointer shadow-xl relative overflow-hidden backdrop-blur-xl"
+                >
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-cyan-500/20 border border-white/15 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                      <ItemIcon size={26} className="text-white" />
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight group-hover:text-cyan-400 transition-colors">
+                      {item.label}
+                    </h3>
+                  </div>
+
+                  <p className="text-sm sm:text-base text-slate-300 font-normal leading-relaxed">
+                    {desc}
+                  </p>
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Custom Teacher's Table / Edu-Tools Hub UI
   if (
     categoryLabel === 'Edu-Tools Hub' || 
+    categoryLabel === "Teacher's Table" || 
     categoryLabel === "Teacher'sToolBox" || 
     categoryLabel === "Teacher's ToolBox" || 
     categoryLabel === 'TeachersToolBox' || 

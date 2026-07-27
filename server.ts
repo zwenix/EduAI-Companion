@@ -916,31 +916,33 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
       const { Client } = await import("@gradio/client");
       console.log(`[OmniHuman] Connecting to Hugging Face space multimodalart/self-forcing for prompt: "${promptText}"`);
       
-      // Temporarily remove tokens from process.env so @gradio/client doesn't auto-read them
-      delete process.env.HF_TOKEN;
-      delete process.env.HUGGINGFACE_API_KEY;
+      const generationTask = (async () => {
+        // Temporarily remove tokens from process.env so @gradio/client doesn't auto-read them
+        delete process.env.HF_TOKEN;
+        delete process.env.HUGGINGFACE_API_KEY;
 
-      let client;
-      try {
-        client = await Client.connect("multimodalart/self-forcing", { hf_token: "" } as any);
-      } finally {
-        // Restore them immediately after connecting
-        if (origHfToken !== undefined) process.env.HF_TOKEN = origHfToken;
-        if (origHfApiKey !== undefined) process.env.HUGGINGFACE_API_KEY = origHfApiKey;
-      }
-      
-      const predictionPromise = client.predict("/video_generation_handler_streaming", {
-        prompt: promptText,
-        seed: -1,
-        fps: 15
-      });
+        let client;
+        try {
+          client = await Client.connect("multimodalart/self-forcing", { hf_token: "" } as any);
+        } finally {
+          // Restore them immediately after connecting
+          if (origHfToken !== undefined) process.env.HF_TOKEN = origHfToken;
+          if (origHfApiKey !== undefined) process.env.HUGGINGFACE_API_KEY = origHfApiKey;
+        }
+        
+        return await client.predict("/video_generation_handler_streaming", {
+          prompt: promptText,
+          seed: -1,
+          fps: 15
+        });
+      })();
 
-      // Video generation can take up to ~60-90 seconds on HF public zero spaces under load, so let's allow a generous 120s timeout.
+      // Video generation can take time on HF public zero spaces under load, so allow a 45s timeout before falling back
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Timeout after 120 seconds")), 120000)
+        setTimeout(() => reject(new Error("Timeout after 45 seconds")), 45000)
       );
 
-      const result: any = await Promise.race([predictionPromise, timeoutPromise]);
+      const result: any = await Promise.race([generationTask, timeoutPromise]);
       
       console.log(`[OmniHuman] Gradio result received for ${jobId}:`, JSON.stringify(result));
       
@@ -1611,44 +1613,28 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         case "generate-admin": {
           const systemInstruction = `${MASTER_SYSTEM_PROMPT}
 
+You are an expert school administrative document and certificate architect.
 Generate a formal ${input.documentType} for ${input.schoolName || 'the school'}.
 The tone should be ${input.tone || 'Formal'}.
 IMPORTANT: The 'content' field MUST be formatted as visually pleasing HTML string styled with Tailwind CSS classes. DO NOT use generic Markdown.
 
-STRICT COMPLIANCE MANDATES:
-1. You MUST explicitly use and display the provided metadata fields: School Name, Date & Time, Recipient, Venue, Class Teacher, and School Principal. Do NOT invent or assume different school names, dates, times, recipients, class teachers, or principals.
-2. The Action Prompt Script, if present at the top of the user prompt, takes absolute priority over everything. You must execute that script first, then integrate all the supplied parameters below it.
-3. NO PLACEHOLDERS OR QUERIES: Do not generate bracketed text like '[insert date]', '[Date Here]', or placeholders. The exact "Date & Time" parameter value "${input.timeDate || 'Not specified'}" and all other parameters MUST be permanently carried through and rendered explicitly into the certificate or document content.
-4. FOR CERTIFICATES: Fully render the certificate with the School Name, Recipient, Date & Time, Class Teacher, and Principal exactly as supplied. No placeholder fields. Ensure the design is highly professional and complete.`;
+STRICT COMPLIANCE & ZERO-HALLUCINATION MANDATES:
+1. ABSOLUTE METADATA ADHERENCE: You MUST explicitly carry through and display the provided metadata fields: School Name ("${input.schoolName || 'Not specified'}"), Date & Time ("${input.timeDate || 'Not specified'}"), Recipient ("${input.recipient || 'Not specified'}"), Venue ("${input.venue || 'Not specified'}"), Class Teacher ("${input.classTeacher || 'Not specified'}"), and School Principal ("${input.schoolPrincipal || 'Not specified'}"). You are STRICTLY FORBIDDEN from dreaming up, inventing, or hallucinating different dates, times, school names, venues, or people's names.
+2. ZERO QUERIES OR PLACEHOLDERS: Do NOT generate query tags (e.g., "[Query: ...]", "[Insert Date]", "[Date Here]", "[Name Here]") or dummy variables. Every parameter value MUST be permanently rendered into the visible text or signature blocks of the HTML document.
+3. CERTIFICATE MANDATE: When generating certificates (e.g. Academic Achievement, Participation), the Date & Time field ("${input.timeDate || 'Not specified'}") MUST be visibly printed on the certificate body as the date of award or issuance. Do not omit or alter it!`;
 
-          const actionPrompt = input.additionalInstructions || input.keyPoints || "";
+          const actionPrompt = (input.additionalInstructions || input.keyPoints || "").trim();
           let promptParts = [];
 
-          if (actionPrompt.trim().length > 0) {
-            promptParts.push(`ACTION PROMPT SCRIPT (HIGHEST PRIORITY):
-${actionPrompt.trim()}
-
---------------------------------------------------------------------------------
-The above Action Prompt Script represents the primary directive and MUST be prioritized above all else. Treat it as the absolute core blueprint for content, style, and structure.`);
+          if (actionPrompt.length > 0) {
+            promptParts.push(`### 🚀 ACTION PROMPT SCRIPT (ABSOLUTE HIGHEST PRIORITY DIRECTIVE)\n${actionPrompt}\n\n--------------------------------------------------------------------------------\nThe above Action Prompt Script takes priority over everything else. You must execute this action prompt script first as your primary architectural blueprint and core instruction set.`);
+            
+            promptParts.push(`### 📋 SECONDARY PARAMETERS (TO BE ADDED BELOW AND INTEGRATED FULLY)\nIn terms of importance, the following parameters come after the Action Prompt Script above. However, every single specified parameter below MUST be adhered to and permanently woven into the document/certificate without exception:\nType: ${input.documentType}\nPurpose / Subject: ${input.purpose || 'Not specified'}\nSchool Name: ${input.schoolName || 'Not specified'}\nDate & Time: ${input.timeDate || 'Not specified'}\nRecipient: ${input.recipient || 'Not specified'}\nVenue: ${input.venue || 'Not specified'}\nClass Teacher: ${input.classTeacher || 'Not specified'}\nSchool Principal: ${input.schoolPrincipal || 'Not specified'}\nInclude Reply Slip: ${input.includeReplySlip ? 'Yes' : 'No'}\nLanguage: ${input.language || 'English'}`);
+          } else {
+            promptParts.push(`### 📋 DOCUMENT PARAMETERS & REQUIREMENTS (ALL TOGETHER)\nSince no Action Prompt Script was provided, use all of the following parameters together as the primary instruction set to generate the complete document:\nType: ${input.documentType}\nPurpose / Subject: ${input.purpose || 'Not specified'}\nSchool Name: ${input.schoolName || 'Not specified'}\nDate & Time: ${input.timeDate || 'Not specified'}\nRecipient: ${input.recipient || 'Not specified'}\nVenue: ${input.venue || 'Not specified'}\nClass Teacher: ${input.classTeacher || 'Not specified'}\nSchool Principal: ${input.schoolPrincipal || 'Not specified'}\nInclude Reply Slip: ${input.includeReplySlip ? 'Yes' : 'No'}\nLanguage: ${input.language || 'English'}`);
           }
 
-          promptParts.push(`PARAMETERS (TO BE INTEGRATED FULLY AND PRESERVED):
-Type: ${input.documentType}
-Purpose / Subject: ${input.purpose || 'Not specified'}
-School Name: ${input.schoolName || 'Not specified'}
-Date & Time: ${input.timeDate || 'Not specified'}
-Recipient: ${input.recipient || 'Not specified'}
-Venue: ${input.venue || 'Not specified'}
-Class Teacher: ${input.classTeacher || 'Not specified'}
-School Principal: ${input.schoolPrincipal || 'Not specified'}
-Include Reply Slip: ${input.includeReplySlip ? 'Yes' : 'No'}
-Language: ${input.language || 'English'}`);
-
-          promptParts.push(`STRICT COMPLIANCE MANDATE FOR RENDERING:
-- Embed every parameter above exactly as provided.
-- Do NOT generate dummy variables or bracketed placeholders.
-- The supplied "Date & Time" ("${input.timeDate || 'Not specified'}") must be clearly rendered in the text of the generated document.
-- Prioritize the Action Prompt Script if it was provided above.`);
+          promptParts.push(`### 🛑 STRICT RENDERING COMPLIANCE:\n- Carry through the exact Date & Time ("${input.timeDate || 'Not specified'}") and all parameters into the document body or certificate.\n- Never output query prompts or bracketed placeholders.\n- Adhere strictly to all parameter values.`);
 
           let prompt = promptParts.join("\n\n");
 

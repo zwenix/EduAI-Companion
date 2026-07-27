@@ -53,6 +53,7 @@ export default function AutoGrading() {
   const [mode, setMode] = useState<'grade' | 'extract'>('grade');
   const [ocrLanguage, setOcrLanguage] = useState('English');
   const [isHandwritten, setIsHandwritten] = useState(true);
+  const [viewMode, setViewMode] = useState<'dashboard' | 'studio'>('dashboard');
 
   // Unified Teacher's Auto-Grading Lab Navigation
   const [labActiveTab, setLabActiveTab] = useState<'grade' | 'notifications' | 'history'>('grade');
@@ -902,6 +903,7 @@ export default function AutoGrading() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
+      setViewMode('studio');
       const newItems: typeof uploadedFiles = [];
       let loadedCount = 0;
       
@@ -990,9 +992,171 @@ export default function AutoGrading() {
         )}
       </AnimatePresence>
 
-      {/* Header Banner Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-[#0c1033] via-[#080b22] to-[#111640] border-2 border-indigo-500/30 rounded-[32px] p-6 sm:p-8 shadow-[0_0_40px_rgba(99,102,241,0.2)]">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+      {viewMode === 'dashboard' ? (
+        <div className="space-y-6 text-white font-sans">
+          {/* Top Title */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl sm:text-3xl font-display font-black tracking-tight text-white">
+              Auto-Grading Lab
+            </h1>
+            <button
+              type="button"
+              onClick={() => setViewMode('studio')}
+              className="bg-white/10 hover:bg-white/15 text-slate-200 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg hover:border-cyan-500/50"
+            >
+              <Sparkles size={14} className="text-cyan-400" />
+              <span>Advanced Grading Studio</span>
+            </button>
+          </div>
+
+          {/* Top Grid: Scan Files and Document Preview */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Box: Scan Files (~60% / 7 cols) */}
+            <div className="lg:col-span-7 bg-[#0c1024] border border-white/10 rounded-[28px] p-6 flex flex-col justify-center items-center min-h-[360px] shadow-2xl relative group">
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full h-full border-2 border-dashed border-cyan-500/40 rounded-2xl bg-slate-900/40 p-12 text-center flex flex-col items-center justify-center cursor-pointer group-hover:bg-slate-900/60 group-hover:border-cyan-400 transition-all duration-300 my-auto"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-5 group-hover:scale-110 transition-transform shadow-lg">
+                  <Upload size={32} />
+                </div>
+                <h3 className="text-2xl font-display font-bold text-white mb-2">
+                  Scan Files
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-400 max-w-sm leading-relaxed">
+                  Drag and drop answer sheets here or click to browse files for auto-grading.
+                </p>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileUpload} 
+                  className="hidden" 
+                  accept="image/*,application/pdf,.pdf,.docx,.doc" 
+                  multiple
+                />
+              </div>
+            </div>
+
+            {/* Right Box: Document Preview (~40% / 5 cols) */}
+            <div className="lg:col-span-5 bg-[#0c1024] border border-white/10 rounded-[28px] p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden">
+              <h3 className="text-base sm:text-lg font-display font-bold text-white mb-4 text-left">
+                Document Preview
+              </h3>
+              
+              <div className="relative rounded-2xl bg-[#070914] border border-white/10 overflow-hidden p-4 flex items-center justify-center min-h-[280px] grow">
+                {/* Paper Mockup */}
+                <div className="w-48 sm:w-56 bg-white rounded-lg p-3 text-slate-900 font-serif text-[8px] shadow-2xl rotate-[-2deg] border border-slate-200 relative">
+                  <div className="flex justify-between border-b pb-1 mb-2 font-sans">
+                    <span>Name: ______________</span>
+                    <span>Date: ______</span>
+                  </div>
+                  <div className="text-center font-bold text-[9px] text-blue-800 mb-2">
+                    Grade 5 Math - Fractions Quiz
+                  </div>
+                  <div className="space-y-1.5 text-left font-sans">
+                    <p className="font-semibold text-[8px]">Complete the following math answer sheet:</p>
+                    <div className="bg-yellow-200/80 p-0.5 rounded text-[7px] inline-block font-mono">
+                      1. Question 1: (a) 1/3 = 3/9 (b) 2/5 = 4/10
+                    </div>
+                    <div className="bg-yellow-200/80 p-0.5 rounded text-[7px] inline-block font-mono mt-1">
+                      2. Question 2: (a) 3/4 = 9/12 (b) 5/6 = 10/12
+                    </div>
+                  </div>
+                  {/* Red handwriting markup */}
+                  <div className="absolute top-2 right-2 border-2 border-red-500 rounded-full px-1.5 py-0.5 text-red-600 font-hand font-bold text-[10px] rotate-[12deg] bg-white/90">
+                    Score: 14/15
+                  </div>
+                  <div className="absolute bottom-4 right-4 text-red-500 font-hand text-[9px] rotate-[-5deg]">
+                    ↗ Detected text annotations
+                  </div>
+                </div>
+
+                {/* Overlaid Score Badge */}
+                <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 bg-[#11162d]/95 backdrop-blur-xl border border-white/15 rounded-2xl p-4 text-xs space-y-2.5 w-44 sm:w-48 shadow-2xl text-left">
+                  <h4 className="font-bold text-white text-xs sm:text-sm border-b border-white/10 pb-2">
+                    Auto-Graded Scores:
+                  </h4>
+                  <div className="flex justify-between text-slate-300 font-medium">
+                    <span>Question 1:</span>
+                    <span className="font-mono text-emerald-400 font-bold">5/5</span>
+                  </div>
+                  <div className="flex justify-between text-slate-300 font-medium">
+                    <span>Question 2:</span>
+                    <span className="font-mono text-amber-400 font-bold">4/5</span>
+                  </div>
+                  <div className="flex justify-between text-slate-300 font-medium">
+                    <span>Question 3:</span>
+                    <span className="font-mono text-emerald-400 font-bold">5/5</span>
+                  </div>
+                  <div className="border-t border-white/10 pt-2 flex justify-between text-white font-bold text-xs sm:text-sm">
+                    <span>Total:</span>
+                    <span className="font-mono text-cyan-400">14/15 (93%)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Box: Recent Graded Assessments */}
+          <div className="bg-[#0c1024] border border-white/10 rounded-[28px] p-6 shadow-2xl">
+            <h3 className="text-base sm:text-lg font-display font-bold text-white mb-4 text-left">
+              Recent Graded Assessments
+            </h3>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[600px]">
+                <thead>
+                  <tr className="border-b border-white/10 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                    <th className="py-3 px-4">Assessment Name</th>
+                    <th className="py-3 px-4">Class</th>
+                    <th className="py-3 px-4">Date</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Score</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-xs sm:text-sm">
+                  <tr onClick={() => setViewMode('studio')} className="hover:bg-white/[0.04] transition-colors cursor-pointer group">
+                    <td className="py-4 px-4 font-bold text-white group-hover:text-cyan-400 transition-colors">Grade 5 Math - Fractions Quiz</td>
+                    <td className="py-4 px-4 text-slate-300 font-medium">Class 5A</td>
+                    <td className="py-4 px-4 text-slate-400">Oct 26, 2023</td>
+                    <td className="py-4 px-4 font-medium text-emerald-400">Completed (Auto-Graded)</td>
+                    <td className="py-4 px-4 text-right font-bold text-white font-mono">93%</td>
+                  </tr>
+                  <tr onClick={() => setViewMode('studio')} className="hover:bg-white/[0.04] transition-colors cursor-pointer group">
+                    <td className="py-4 px-4 font-bold text-white group-hover:text-cyan-400 transition-colors">Grade 6 Science - Ecosystems</td>
+                    <td className="py-4 px-4 text-slate-300 font-medium">Class 6B</td>
+                    <td className="py-4 px-4 text-slate-400">Oct 25, 2023</td>
+                    <td className="py-4 px-4 font-medium text-amber-400">Grading...</td>
+                    <td className="py-4 px-4 text-right font-medium text-amber-400">Pending</td>
+                  </tr>
+                  <tr onClick={() => setViewMode('studio')} className="hover:bg-white/[0.04] transition-colors cursor-pointer group">
+                    <td className="py-4 px-4 font-bold text-white group-hover:text-cyan-400 transition-colors">Grade 4 English - Grammar</td>
+                    <td className="py-4 px-4 text-slate-300 font-medium">Class 4C</td>
+                    <td className="py-4 px-4 text-slate-400">Oct 24, 2023</td>
+                    <td className="py-4 px-4 font-medium text-emerald-400">Completed (Auto-Graded)</td>
+                    <td className="py-4 px-4 text-right font-bold text-white font-mono">88%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {viewMode === 'studio' && (
+        <div className="space-y-12">
+          {/* Header Banner Section */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-[#0c1033] via-[#080b22] to-[#111640] border-2 border-indigo-500/30 rounded-[32px] p-6 sm:p-8 shadow-[0_0_40px_rgba(99,102,241,0.2)]">
+            <div className="flex justify-between items-center mb-4">
+              <button
+                type="button"
+                onClick={() => setViewMode('dashboard')}
+                className="bg-white/10 hover:bg-white/15 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <span>← Back to Lab Dashboard</span>
+              </button>
+            </div>
+            <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
@@ -2325,6 +2489,8 @@ export default function AutoGrading() {
           </>
         );
       })()}
+        </div>
+      )}
 
       <canvas ref={canvasRef} className="hidden" />
     </div>
