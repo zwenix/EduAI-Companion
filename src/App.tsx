@@ -52,6 +52,7 @@ import {
   Home,
   Calendar,
   ArrowLeft,
+  ArrowUp,
   LogOut,
   RefreshCcw,
   UserCheck,
@@ -480,6 +481,16 @@ export default function App() {
   // Dialog States
   const [activeCreatorTab, setActiveCreatorTab] = useState<string | null>(null);
 
+  // Close all Top bar menus when navigating away from them (when tab, category, or creator tab changes)
+  useEffect(() => {
+    setIsProfileDropdownOpen(false);
+    setHeaderCabinetOpen(false);
+    setIsThemeMenuOpen(false);
+    setIsAccessibilityOpen(false);
+    setUtilityDrawerOpen(false);
+    setMobileSidebarOpen(false);
+  }, [activeTab, activeCategory, activeCreatorTab, categoryOverviewActive]);
+
   // --- Offline Sync States for Student Materials & Notes ---
   const [syncStatus, setSyncStatus] = useState<'synced' | 'pending' | 'syncing' | 'error'>(() => {
     return (localStorage.getItem('eduai_sync_status') as any) || 'pending';
@@ -754,6 +765,23 @@ export default function App() {
     }
   };
 
+  const goUp = () => {
+    if (activeCreatorTab) {
+      setActiveCreatorTab(null);
+      return;
+    }
+    if (!categoryOverviewActive && activeTab !== 'dashboard') {
+      if (activeCategory && activeCategory !== 'teacher-dashboard-menu') {
+        setCategoryOverviewActive(activeCategory);
+        return;
+      }
+    }
+    setActiveTab('dashboard');
+    setActiveCreatorTab(null);
+    setCategoryOverviewActive(null);
+    setActiveCategory('teacher-dashboard-menu');
+  };
+
   const getSidebarCategories = (role: string | null) => {
     const r = role || 'teacher';
     let firstLabel = 'Teacher Dashboard';
@@ -764,7 +792,7 @@ export default function App() {
     if (r === 'teacher') {
       return [
         { id: 'teacher-dashboard-menu', label: 'Classroom Chalkboard', icon: IconHome },
-        { id: 'lesson-planning', label: "Teacher's Table", icon: IconCurriculum },
+        { id: 'lesson-planning', label: "Teacher's Toolbox", icon: IconCurriculum },
         { id: 'intelligence-ai', label: 'Intelligent AI', icon: SmartBotTutorIcon },
         { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
         { id: 'class-analytics', label: 'Analytics', icon: IconAnalytics },
@@ -775,7 +803,7 @@ export default function App() {
     
     return [
       { id: 'teacher-dashboard-menu', label: firstLabel, icon: IconHome },
-      { id: 'lesson-planning', label: "Teacher's Table", icon: IconCurriculum },
+      { id: 'lesson-planning', label: "Teacher's Toolbox", icon: IconCurriculum },
       { id: 'intelligence-ai', label: 'Intelligent AI', icon: SmartBotTutorIcon },
       { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
       { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
@@ -1618,6 +1646,13 @@ export default function App() {
               title="Go Back"
             >
               <ArrowLeft size={18} />
+            </button>
+            <button 
+              onClick={goUp}
+              className={`p-2 rounded-xl ${isDarkMode ? 'hover:bg-white/10 text-white' : 'hover:bg-slate-200 text-slate-600'} transition-all`}
+              title="Navigate One Screen Up"
+            >
+              <ArrowUp size={18} />
             </button>
             <button 
               onClick={() => { 

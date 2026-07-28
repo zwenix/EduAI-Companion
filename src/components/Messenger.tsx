@@ -232,7 +232,7 @@ export default function Messenger() {
     // A. Create General Classroom Hub (for broadcast / general messages)
     const generalMessages = allMessages.filter(m => !m.projectId && !m.threadId && !m.recipientId && !m.groupId);
     const lastGenMsg = generalMessages[generalMessages.length - 1];
-    threadMap.set('general-hub', {
+    threadMap.set('general-hub', { recipientId: '', avatar: '', typingUser: '',
       id: 'general-hub',
       title: 'General Classroom Hub',
       subtitle: lastGenMsg ? `${lastGenMsg.senderName}: ${lastGenMsg.text}` : 'School broadcast & community discussion channel.',
@@ -356,7 +356,7 @@ export default function Messenger() {
       subtitle: 'No conversations yet.',
       type: 'group',
       messages: []
-    };
+    } as ChatThread;
   }, [threads, activeThreadId]);
 
   const scrollToBottom = () => {

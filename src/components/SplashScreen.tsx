@@ -37,9 +37,23 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
 
     const video = videoRef.current;
     if (video && !videoError) {
-      video.play().catch((err) => {
-        console.warn("Initial autoplay attempt delayed or waiting for canplay:", err);
-      });
+      video.muted = true;
+      video.playsInline = true;
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn("Initial autoplay attempt delayed or waiting for interaction:", err);
+          const playOnInteract = () => {
+            video.play().catch(() => {});
+            window.removeEventListener('click', playOnInteract);
+            window.removeEventListener('touchstart', playOnInteract);
+            window.removeEventListener('keydown', playOnInteract);
+          };
+          window.addEventListener('click', playOnInteract);
+          window.addEventListener('touchstart', playOnInteract);
+          window.addEventListener('keydown', playOnInteract);
+        });
+      }
     }
 
     return () => {
@@ -75,12 +89,16 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
         <div className="relative w-full h-full flex items-center justify-center bg-[#0e152e]">
           <video
             ref={videoRef}
-            src={splashVideo}
             autoPlay
-onEnded={handleEnded}
-                        playsInline
             muted={isMuted}
+            playsInline
             preload="auto"
+            onEnded={handleEnded}
+            onLoadedData={() => {
+              if (videoRef.current) {
+                videoRef.current.play().catch(() => {});
+              }
+            }}
             onCanPlay={() => {
               if (videoRef.current) {
                 videoRef.current.play().catch(() => {
@@ -93,7 +111,10 @@ onEnded={handleEnded}
               setVideoError(true);
             }}
             className="w-full h-full object-contain max-w-full max-h-full cursor-pointer"
-          />
+          >
+            <source src={splashVideo} type="video/mp4" />
+            <source src="/splash.mp4" type="video/mp4" />
+          </video>
 
           {/* Video Control Buttons Overlay */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4">

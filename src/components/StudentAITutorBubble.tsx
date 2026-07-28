@@ -23,20 +23,12 @@ type LocalChatMessage = {
 
 const STORAGE_KEY = 'eduai_floating_tutor_history';
 
-const RobbieFaceMini = ({ className = "w-10 h-10" }: { className?: string }) => (
-  <svg className={`${className} filter drop-shadow-[0_0_6px_rgba(34,211,238,0.5)]`} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="22" y="38" width="8" height="24" rx="4" fill="#22d3ee" opacity="0.8" />
-    <rect x="70" y="38" width="8" height="24" rx="4" fill="#22d3ee" opacity="0.8" />
-    <circle cx="50" cy="18" r="4" fill="#22d3ee" />
-    <line x1="50" y1="18" x2="50" y2="28" stroke="#22d3ee" strokeWidth="3" />
-    <rect x="26" y="26" width="48" height="48" rx="16" fill="#1e1b4b" stroke="#22d3ee" strokeWidth="3.5" />
-    <rect x="32" y="32" width="36" height="36" rx="10" fill="#030712" stroke="#1e293b" strokeWidth="2" />
-    <path d="M 38 48 Q 42 44 46 48" stroke="#22d3ee" strokeWidth="3.5" strokeLinecap="round" />
-    <path d="M 54 48 Q 58 44 62 48" stroke="#22d3ee" strokeWidth="3.5" strokeLinecap="round" />
-    <path d="M 44 58 Q 50 63 56 58" stroke="#22d3ee" strokeWidth="3" strokeLinecap="round" />
-    <rect x="42" y="74" width="16" height="8" rx="2" fill="#22d3ee" opacity="0.9" />
-    <path d="M 34 82 L 66 82" stroke="#22d3ee" strokeWidth="4.5" strokeLinecap="round" />
-  </svg>
+import Logo from './Logo';
+
+const EllyFaceMini = ({ className = "w-10 h-10" }: { className?: string }) => (
+  <div className={`${className} relative flex items-center justify-center overflow-hidden shrink-0`}>
+    <Logo className="w-full h-full object-contain" />
+  </div>
 );
 
 export default function StudentAITutorBubble({ isDarkMode, student }: StudentAITutorBubbleProps) {
@@ -253,7 +245,7 @@ export default function StudentAITutorBubble({ isDarkMode, student }: StudentAIT
             <X size={24} className="stroke-[2.5]" />
           ) : (
             <>
-              <RobbieFaceMini className="w-12 h-12 animate-pulse" />
+              <EllyFaceMini className="w-12 h-12 animate-pulse" />
               <div className="absolute -top-1.5 -right-1.5 bg-cyan-400 text-slate-950 text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-full border-2 border-indigo-900 animate-bounce">
                 AI
               </div>

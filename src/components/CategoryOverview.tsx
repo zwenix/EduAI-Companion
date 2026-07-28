@@ -183,9 +183,10 @@ export default function CategoryOverview({
     );
   }
 
-  // Custom Teacher's Table / Edu-Tools Hub UI
+  // Custom Teacher's Toolbox / Edu-Tools Hub UI
   if (
     categoryLabel === 'Edu-Tools Hub' || 
+    categoryLabel === "Teacher's Toolbox" || 
     categoryLabel === "Teacher's Table" || 
     categoryLabel === "Teacher'sToolBox" || 
     categoryLabel === "Teacher's ToolBox" || 
@@ -206,12 +207,12 @@ export default function CategoryOverview({
         <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none" />
 
 
-        {/* MAIN TITLE SECTION ("Your Magic Toolbox") */}
+        {/* MAIN TITLE SECTION ("Teacher's Toolbox") */}
         <div className="relative z-10 text-center my-6">
           <div className="inline-flex items-center gap-2 mb-2">
             <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
             <span className="text-xl sm:text-2xl font-display font-bold text-slate-100 tracking-tight">
-              Your Magic
+              Teacher's
             </span>
             <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
           </div>
