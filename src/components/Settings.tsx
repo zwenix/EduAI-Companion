@@ -690,7 +690,7 @@ export default function Settings({
                     >
                       <option value="gemini">Gemini (Primary - Recommended)</option>
                       <option value="nvidia-nemotron">NVIDIA Llama 3.3 Nemotron Super 49B (NVIDIA Integration)</option>
-                      <option value="groq-qwen">NVIDIA Nemotron-3 Ultra 550B (NVIDIA Integration)</option>
+                      <option value="nvidia-nemotron-ultra">NVIDIA Nemotron-3 Ultra 550B (NVIDIA Integration)</option>
                     </select>
                   </div>
 
@@ -1067,7 +1067,7 @@ export default function Settings({
                     {[
                       {
                         title: "server.ts",
-                        desc: "Backend entry point. Manages API routes, serving Vite development assets, registering OmniHuman-1 Gradio streaming, and proxying Groq models.",
+                        desc: "Backend entry point. Manages API routes, serving Vite development assets, registering OmniHuman-1 Gradio streaming, and proxying AI models.",
                         badge: "CJS/ESM Bundle",
                         color: "from-brand-cyan/15 to-transparent border-brand-cyan/20"
                       },

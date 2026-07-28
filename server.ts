@@ -503,18 +503,6 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
       });
       return cachedNvidiaClient;
     }
-    const groqKey = (process.env.GROQ_API_KEY || "").trim();
-    if (groqKey) {
-      if (cachedNvidiaClient && cachedNvidiaKey === groqKey) {
-        return cachedNvidiaClient;
-      }
-      cachedNvidiaKey = groqKey;
-      cachedNvidiaClient = new OpenAI({
-        apiKey: groqKey,
-        baseURL: "https://integrate.api.nvidia.com/v1",
-      });
-      return cachedNvidiaClient;
-    }
     return getOpenRouterClient();
   }
 
@@ -584,8 +572,8 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         const systemInstruction = systemMessages?.map((m: any) => m.content).join("\n\n");
 
         const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
-          : ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+          ? [cachedWorkingModel, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
+          : ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
         let lastError: any = null;
         let response: any = null;
 
@@ -596,7 +584,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
                 model: candidate,
                 contents: contentsList.length > 0 ? contentsList : [{ role: 'user', parts: [{ text: "Hello" }] }],
                 config: {
-                  maxOutputTokens: 16384,
+                  maxOutputTokens: 8192,
                   ...(systemInstruction ? { systemInstruction } : {})
                 }
               });
@@ -631,7 +619,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
               model: candidate,
               contents: contentsList.length > 0 ? contentsList : [{ role: 'user', parts: [{ text: "Hello" }] }],
               config: {
-                maxOutputTokens: 16384,
+                maxOutputTokens: 8192,
                 ...(systemInstruction ? { systemInstruction } : {})
               }
             });
@@ -681,9 +669,10 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         apiKey = process.env.GROQ_API_KEY || "";
         break;
       case "nvidia-nemotron":
+      case "nvidia-nemotron-ultra":
       case "groq-qwen":
         client = getNvidiaClient();
-        apiKey = resolveNvidiaKey() || resolveOpenRouterKey() || (process.env.GROQ_API_KEY || "").trim();
+        apiKey = resolveNvidiaKey() || resolveOpenRouterKey();
         break;
       case "alibaba-qwen":
       case "alibaba-deepseek":
@@ -693,7 +682,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     }
 
     if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-      const neededKey = (provider === 'nvidia-nemotron' || provider === 'groq-qwen')
+      const neededKey = (provider === 'nvidia-nemotron' || provider === 'nvidia-nemotron-ultra' || provider === 'groq-qwen')
         ? 'NVIDIA_API_KEY'
         : (provider.startsWith('groq') || provider.startsWith('llama'))
         ? 'GROQ_API_KEY'
@@ -713,7 +702,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         provider === "alibaba-deepseek" ? "deepseek-v3" :
         provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
         provider === "nvidia-nemotron" ? "nvidia/llama-3.3-nemotron-super-49b-v1" : 
-        provider === "groq-qwen" ? "nvidia/nemotron-3-ultra-550b-a55b" :
+        (provider === "nvidia-nemotron-ultra" || provider === "groq-qwen") ? "nvidia/nemotron-3-ultra-550b-a55b" :
         ""
       );
     }
@@ -735,12 +724,10 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         payload.top_p = 0.95;
         payload.frequency_penalty = 0;
         payload.presence_penalty = 0;
-      } else if (provider === "groq-qwen") {
+      } else if (provider === "nvidia-nemotron-ultra" || provider === "groq-qwen") {
         payload.max_tokens = requestedMaxTokens || 16384;
-        payload.temperature = 1;
+        payload.temperature = 0.7;
         payload.top_p = 0.95;
-        payload.reasoning_budget = 16384;
-        payload.chat_template_kwargs = { "enable_thinking": true };
       } else if (requestedMaxTokens) {
         payload.max_tokens = requestedMaxTokens;
       } else {
@@ -1114,29 +1101,33 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     if (provider === "gemini-imagen") {
       const apiKey = resolveGeminiKey();
       if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
-        try {
-          console.log("[IMAGE GEN LOG] Attempting primary image generation with Gemini Imagen (imagen-3.0-generate-002)...");
-          const response = await geminiAi.models.generateContent({
-            model: 'imagen-3.0-generate-002',
-            contents: { parts: [{ text: styledPrompt }] },
-            config: { imageConfig: { aspectRatio: "1:1" } }
-          });
-          let foundBase64 = null;
-          if (response.candidates && response.candidates[0]?.content?.parts) {
-            for (const part of response.candidates[0].content.parts) {
-              if (part.inlineData && part.inlineData.data) {
-                foundBase64 = part.inlineData.data;
-                break;
+        const modelsToTry = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
+        for (const m of modelsToTry) {
+          try {
+            console.log(`[IMAGE GEN LOG] Attempting primary image generation with Gemini (${m})...`);
+            const response = await geminiAi.models.generateContent({
+              model: m,
+              contents: { parts: [{ text: styledPrompt }] },
+              config: { imageConfig: { aspectRatio: "1:1" } }
+            });
+            let foundBase64 = null;
+            if (response.candidates && response.candidates[0]?.content?.parts) {
+              for (const part of response.candidates[0].content.parts) {
+                if (part.inlineData && part.inlineData.data) {
+                  foundBase64 = part.inlineData.data;
+                  break;
+                }
               }
             }
+            if (foundBase64) {
+              console.log(`[IMAGE GEN LOG] Image successfully generated with model: Gemini (${m})`);
+              return res.json({ url: `data:image/jpeg;base64,${foundBase64}`, provider: 'gemini', model: m });
+            }
+          } catch (err1: any) {
+            console.warn(`[IMAGE GEN LOG] Gemini generation failed with ${m}, trying next...`, err1.message);
           }
-          if (foundBase64) {
-            console.log("[IMAGE GEN LOG] Image successfully generated with model: Gemini Imagen 3 (imagen-3.0-generate-002)");
-            return res.json({ url: `data:image/jpeg;base64,${foundBase64}`, provider: 'gemini', model: 'Imagen-3' });
-          }
-        } catch (err1: any) {
-          console.warn("[IMAGE GEN LOG] Gemini generation failed, falling back to Pollinations Turbo:", err1.message);
         }
+        console.warn("[IMAGE GEN LOG] All Gemini models failed, falling back to Pollinations Turbo.");
       }
 
       const seed = Math.floor(Math.random() * 100000);
@@ -1243,12 +1234,12 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     }
 
     try {
-      const model = "gemini-3.5-flash";
+      const model = "gemini-3.6-flash";
 
       const generateContentWithFallback = async (options: { model: string, contents: any, config?: any }) => {
         const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
-          : ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+          ? [cachedWorkingModel, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
+          : ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
         
         let lastError: any = null;
         for (const candidate of modelsToTry) {
@@ -1257,7 +1248,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
               ...options,
               model: candidate,
               config: {
-                maxOutputTokens: 16384,
+                maxOutputTokens: 8192,
                 ...(options.config || {})
               }
             };
@@ -1276,8 +1267,8 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
 
       const generateContentStreamWithFallback = async (options: { model: string, contents: any, config?: any }) => {
         const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
-          : ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+          ? [cachedWorkingModel, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
+          : ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
         
         let lastError: any = null;
         for (const candidate of modelsToTry) {
@@ -1286,7 +1277,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
               ...options,
               model: candidate,
               config: {
-                maxOutputTokens: 16384,
+                maxOutputTokens: 8192,
                 ...(options.config || {})
               }
             };
@@ -1365,56 +1356,44 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
               throw new Error("GEMINI_API_KEY is not configured.");
             }
             console.log("Generating image with Gemini action:", styledPrompt);
-            const response = await geminiAi.models.generateContent({
-              model: 'imagen-3.0-generate-002',
-              contents: {
-                parts: [{ text: styledPrompt }]
-              },
-              config: {
-                imageConfig: {
-                  aspectRatio: (width || 1024) > (height || 1024) ? "16:9" : (width || 1024) < (height || 1024) ? "9:16" : "1:1"
-                }
-              }
-            });
-
+            const modelsToTry = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
             let foundBase64 = null;
-            if (response.candidates && response.candidates[0]?.content?.parts) {
-              for (const part of response.candidates[0].content.parts) {
-                if (part.inlineData && part.inlineData.data) {
-                  foundBase64 = part.inlineData.data;
-                  break;
+            for (const m of modelsToTry) {
+              try {
+                console.log(`[IMAGE GEN LOG] Trying model: ${m}`);
+                const response = await geminiAi.models.generateContent({
+                  model: m,
+                  contents: {
+                    parts: [{ text: styledPrompt }]
+                  },
+                  config: {
+                    imageConfig: {
+                      aspectRatio: (width || 1024) > (height || 1024) ? "16:9" : (width || 1024) < (height || 1024) ? "9:16" : "1:1"
+                    }
+                  }
+                });
+                if (response.candidates && response.candidates[0]?.content?.parts) {
+                  for (const part of response.candidates[0].content.parts) {
+                    if (part.inlineData && part.inlineData.data) {
+                      foundBase64 = part.inlineData.data;
+                      break;
+                    }
+                  }
                 }
+                if (foundBase64) {
+                  console.log(`[IMAGE GEN LOG] Success with model: ${m}`);
+                  return res.json({ imageUrl: `data:image/jpeg;base64,${foundBase64}`, provider: 'gemini', model: m });
+                }
+              } catch (modelErr: any) {
+                console.warn(`[IMAGE GEN LOG] Model ${m} failed:`, modelErr.message);
               }
             }
-
-            if (foundBase64) {
-              return res.json({ imageUrl: `data:image/jpeg;base64,${foundBase64}` });
-            }
-            throw new Error("No image data returned from model");
+            throw new Error("No image data returned from Gemini models");
           } catch (err: any) {
-            console.warn("Gemini action image generation failed, trying Pollinations Turbo...");
-            try {
-              const seed = Math.floor(Math.random() * 100000);
-              const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=${width || 1024}&height=${height || 1024}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
-              
-              const fetchResponse = await fetch(fallbackUrl, {
-                method: 'GET',
-                headers: {
-                  'Accept': 'image/png, image/jpeg',
-                  'User-Agent': 'Mozilla/5.0'
-                }
-              });
-              
-              if (fetchResponse.ok) {
-                const arrayBuffer = await fetchResponse.arrayBuffer();
-                const base64 = Buffer.from(arrayBuffer).toString('base64');
-                return res.json({ imageUrl: `data:image/jpeg;base64,${base64}` });
-              }
-              throw new Error(`Pollinations API error: ${fetchResponse.status}`);
-            } catch (fallbackErr) {
-              console.warn("Pollinations failed:", fallbackErr);
-              return res.status(500).json({ error: "All image generation attempts failed" });
-            }
+            console.warn("Gemini action image generation failed, returning direct Pollinations URL fallback...");
+            const seed = Math.floor(Math.random() * 100000);
+            const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=${width || 1024}&height=${height || 1024}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
+            return res.json({ imageUrl: fallbackUrl, isFallback: true, provider: 'pollinations', model: 'Pollinations-Turbo' });
           }
         }
 
@@ -1456,22 +1435,26 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
 
           let finalUserPrompt = user;
           
-          finalUserPrompt += `\n\n📌 MANDATORY QUALITY ENHANCEMENTS:
+          if (input.existingContent) {
+            finalUserPrompt = `The previous content generation was truncated due to character limits. Here is the content generated so far:\n\n${input.existingContent}\n\nCRITICAL INSTRUCTION: Continue generating the rest of the document seamlessly from exactly where it left off. Do not repeat anything already generated. Complete all remaining sections, summaries, worksheets, or rubrics until the document is 100% complete.`;
+          } else {
+            finalUserPrompt += `\n\n📌 MANDATORY QUALITY ENHANCEMENTS:
 1. TEACHER NOTES & TIME ALLOCATIONS: Include a dedicated Teacher Notes section with formal/informal assessment recommendations (e.g. observation checklists, CAPS ATP mark weighting) and explicit minute-by-minute time allocations per phase.
 2. DIFFERENTIATION STRATEGIES: Include explicit built-in differentiation strategies (support for English Additional Language / EAL learners, extra time/scaffolding accommodations, and extension tasks for advanced learners).
 3. PRINTABLE ILLUSTRATION DESCRIPTIONS: Ensure every [Illustration: ...] placeholder has a vivid, self-contained description suitable as both an image generation prompt and a printable text description for print-only materials.`;
 
-          if (input.generateImage) {
-            finalUserPrompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 2-3 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of an educational graphic depicting the topic in South African context>]. Place them strategically inside the HTML to visually break up the text. The system will replace them with actual AI generated images.`;
-          } else {
-            finalUserPrompt += `\n\n⚠️ CRITICAL: DO NOT include any illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
+            if (input.generateImage) {
+              finalUserPrompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 2-3 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of an educational graphic depicting the topic in South African context>]. Place them strategically inside the HTML to visually break up the text. The system will replace them with actual AI generated images.`;
+            } else {
+              finalUserPrompt += `\n\n⚠️ CRITICAL: DO NOT include any illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
+            }
           }
 
           return await executeOrStream({
             model,
             contents: finalUserPrompt,
             config: {
-              maxOutputTokens: 16384,
+              maxOutputTokens: 8192,
               systemInstruction: system,
               responseMimeType: "application/json",
               responseSchema: {
@@ -1574,26 +1557,31 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             visualPrompt = `Create a highly visual display, not a worksheet, for Grade ${input.grade} ${input.subject} on topic ${input.topic}. Ensure it is styled beautifully.`;
           }
 
-          let prompt = `
-            ${visualPrompt}
-            Language: ${input.language}\n            ${input.additionalInstructions ? `User Custom Instructions: ${input.additionalInstructions}` : ""}
-            Style: ${input.style}
-            Color: ${input.colorScheme}
-            Content Details: ${input.specificContent}
-            Quantity: ${input.quantity}
-            Additional Info: ${IMAGE_PROMPT_GOLDEN_RULE}
-          `;
-          if (input.generateImage) {
-            prompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 2-3 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of an educational graphic depicting the topic in South African context>]. Place them strategically inside the HTML to visually break up the text. The system will replace them with actual AI generated images.`;
+          let prompt = "";
+          if (input.existingContent) {
+            prompt = `The previous visual aid content generation was truncated due to character limits. Here is the content generated so far:\n\n${input.existingContent}\n\nCRITICAL INSTRUCTION: Continue generating the rest of the visual aid seamlessly from exactly where it left off. Do not repeat anything already generated. Complete all remaining sections until the document is 100% complete.`;
           } else {
-            prompt += `\n\n⚠️ CRITICAL: DO NOT include any illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
+            prompt = `
+              ${visualPrompt}
+              Language: ${input.language}\n            ${input.additionalInstructions ? `User Custom Instructions: ${input.additionalInstructions}` : ""}
+              Style: ${input.style}
+              Color: ${input.colorScheme}
+              Content Details: ${input.specificContent}
+              Quantity: ${input.quantity}
+              Additional Info: ${IMAGE_PROMPT_GOLDEN_RULE}
+            `;
+            if (input.generateImage) {
+              prompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 2-3 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of an educational graphic depicting the topic in South African context>]. Place them strategically inside the HTML to visually break up the text. The system will replace them with actual AI generated images.`;
+            } else {
+              prompt += `\n\n⚠️ CRITICAL: DO NOT include any illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
+            }
           }
 
           return await executeOrStream({
             model,
             contents: prompt,
             config: { 
-              maxOutputTokens: 16384,
+              maxOutputTokens: 8192,
               systemInstruction, 
               responseMimeType: "application/json",
               responseSchema: {
@@ -1623,32 +1611,37 @@ STRICT COMPLIANCE & ZERO-HALLUCINATION MANDATES:
 2. ZERO QUERIES OR PLACEHOLDERS: Do NOT generate query tags (e.g., "[Query: ...]", "[Insert Date]", "[Date Here]", "[Name Here]") or dummy variables. Every parameter value MUST be permanently rendered into the visible text or signature blocks of the HTML document.
 3. CERTIFICATE MANDATE: When generating certificates (e.g. Academic Achievement, Participation), the Date & Time field ("${input.timeDate || 'Not specified'}") MUST be visibly printed on the certificate body as the date of award or issuance. Do not omit or alter it!`;
 
-          const actionPrompt = (input.additionalInstructions || input.keyPoints || "").trim();
-          let promptParts = [];
-
-          if (actionPrompt.length > 0) {
-            promptParts.push(`### 🚀 ACTION PROMPT SCRIPT (ABSOLUTE HIGHEST PRIORITY DIRECTIVE)\n${actionPrompt}\n\n--------------------------------------------------------------------------------\nThe above Action Prompt Script takes priority over everything else. You must execute this action prompt script first as your primary architectural blueprint and core instruction set.`);
-            
-            promptParts.push(`### 📋 SECONDARY PARAMETERS (TO BE ADDED BELOW AND INTEGRATED FULLY)\nIn terms of importance, the following parameters come after the Action Prompt Script above. However, every single specified parameter below MUST be adhered to and permanently woven into the document/certificate without exception:\nType: ${input.documentType}\nPurpose / Subject: ${input.purpose || 'Not specified'}\nSchool Name: ${input.schoolName || 'Not specified'}\nDate & Time: ${input.timeDate || 'Not specified'}\nRecipient: ${input.recipient || 'Not specified'}\nVenue: ${input.venue || 'Not specified'}\nClass Teacher: ${input.classTeacher || 'Not specified'}\nSchool Principal: ${input.schoolPrincipal || 'Not specified'}\nInclude Reply Slip: ${input.includeReplySlip ? 'Yes' : 'No'}\nLanguage: ${input.language || 'English'}`);
+          let prompt = "";
+          if (input.existingContent) {
+            prompt = `The previous administrative document generation was truncated due to character limits. Here is the content generated so far:\n\n${input.existingContent}\n\nCRITICAL INSTRUCTION: Continue generating the rest of the document seamlessly from exactly where it left off. Do not repeat anything already generated. Complete all remaining sections until the document is 100% complete.`;
           } else {
-            promptParts.push(`### 📋 DOCUMENT PARAMETERS & REQUIREMENTS (ALL TOGETHER)\nSince no Action Prompt Script was provided, use all of the following parameters together as the primary instruction set to generate the complete document:\nType: ${input.documentType}\nPurpose / Subject: ${input.purpose || 'Not specified'}\nSchool Name: ${input.schoolName || 'Not specified'}\nDate & Time: ${input.timeDate || 'Not specified'}\nRecipient: ${input.recipient || 'Not specified'}\nVenue: ${input.venue || 'Not specified'}\nClass Teacher: ${input.classTeacher || 'Not specified'}\nSchool Principal: ${input.schoolPrincipal || 'Not specified'}\nInclude Reply Slip: ${input.includeReplySlip ? 'Yes' : 'No'}\nLanguage: ${input.language || 'English'}`);
-          }
+            const actionPrompt = (input.additionalInstructions || input.keyPoints || "").trim();
+            let promptParts = [];
 
-          promptParts.push(`### 🛑 STRICT RENDERING COMPLIANCE:\n- Carry through the exact Date & Time ("${input.timeDate || 'Not specified'}") and all parameters into the document body or certificate.\n- Never output query prompts or bracketed placeholders.\n- Adhere strictly to all parameter values.`);
+            if (actionPrompt.length > 0) {
+              promptParts.push(`### 🚀 ACTION PROMPT SCRIPT (ABSOLUTE HIGHEST PRIORITY DIRECTIVE)\n${actionPrompt}\n\n--------------------------------------------------------------------------------\nThe above Action Prompt Script takes priority over everything else. You must execute this action prompt script first as your primary architectural blueprint and core instruction set.`);
+              
+              promptParts.push(`### 📋 SECONDARY PARAMETERS (TO BE ADDED BELOW AND INTEGRATED FULLY)\nIn terms of importance, the following parameters come after the Action Prompt Script above. However, every single specified parameter below MUST be adhered to and permanently woven into the document/certificate without exception:\nType: ${input.documentType}\nPurpose / Subject: ${input.purpose || 'Not specified'}\nSchool Name: ${input.schoolName || 'Not specified'}\nDate & Time: ${input.timeDate || 'Not specified'}\nRecipient: ${input.recipient || 'Not specified'}\nVenue: ${input.venue || 'Not specified'}\nClass Teacher: ${input.classTeacher || 'Not specified'}\nSchool Principal: ${input.schoolPrincipal || 'Not specified'}\nInclude Reply Slip: ${input.includeReplySlip ? 'Yes' : 'No'}\nLanguage: ${input.language || 'English'}`);
+            } else {
+              promptParts.push(`### 📋 DOCUMENT PARAMETERS & REQUIREMENTS (ALL TOGETHER)\nSince no Action Prompt Script was provided, use all of the following parameters together as the primary instruction set to generate the complete document:\nType: ${input.documentType}\nPurpose / Subject: ${input.purpose || 'Not specified'}\nSchool Name: ${input.schoolName || 'Not specified'}\nDate & Time: ${input.timeDate || 'Not specified'}\nRecipient: ${input.recipient || 'Not specified'}\nVenue: ${input.venue || 'Not specified'}\nClass Teacher: ${input.classTeacher || 'Not specified'}\nSchool Principal: ${input.schoolPrincipal || 'Not specified'}\nInclude Reply Slip: ${input.includeReplySlip ? 'Yes' : 'No'}\nLanguage: ${input.language || 'English'}`);
+            }
 
-          let prompt = promptParts.join("\n\n");
+            promptParts.push(`### 🛑 STRICT RENDERING COMPLIANCE:\n- Carry through the exact Date & Time ("${input.timeDate || 'Not specified'}") and all parameters into the document body or certificate.\n- Never output query prompts or bracketed placeholders.\n- Adhere strictly to all parameter values.`);
 
-          if (input.generateImage) {
-            prompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 1-2 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of a professional school stamp, document seal, or graphic depicting the topic in South African context>]. Place them strategically inside the HTML. The system will replace them with actual AI generated images.`;
-          } else {
-            prompt += `\n\n⚠️ CRITICAL: DO NOT include any illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
+            prompt = promptParts.join("\n\n");
+
+            if (input.generateImage) {
+              prompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 1-2 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of a professional school stamp, document seal, or graphic depicting the topic in South African context>]. Place them strategically inside the HTML. The system will replace them with actual AI generated images.`;
+            } else {
+              prompt += `\n\n⚠️ CRITICAL: DO NOT include any illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
+            }
           }
 
           return await executeOrStream({
             model,
             contents: prompt,
             config: { 
-              maxOutputTokens: 16384,
+              maxOutputTokens: 8192,
               systemInstruction, 
               responseMimeType: "application/json",
               responseSchema: {

@@ -383,7 +383,7 @@ export default function App() {
     const candidates = [
       { id: 'gemini', label: 'Gemini 3.5' },
       { id: 'nvidia-nemotron', label: 'Llama 3.3 Nemotron 49B' },
-      { id: 'groq-qwen', label: 'Nemotron Ultra 550B' }
+      { id: 'nvidia-nemotron-ultra', label: 'Nemotron Ultra 550B' }
     ];
 
     const results: Record<string, number | 'failed'> = {};
@@ -489,6 +489,7 @@ export default function App() {
     setIsAccessibilityOpen(false);
     setUtilityDrawerOpen(false);
     setMobileSidebarOpen(false);
+    window.dispatchEvent(new Event('close-topbar-menus'));
   }, [activeTab, activeCategory, activeCreatorTab, categoryOverviewActive]);
 
   // --- Offline Sync States for Student Materials & Notes ---
@@ -2147,7 +2148,7 @@ export default function App() {
                         >
                           <option value="gemini">Gemini (Primary - Recommended)</option>
                           <option value="nvidia-nemotron">NVIDIA Llama 3.3 Nemotron Super 49B (NVIDIA Integration)</option>
-                          <option value="groq-qwen">NVIDIA Nemotron-3 Ultra 550B (NVIDIA Integration)</option>
+                          <option value="nvidia-nemotron-ultra">NVIDIA Nemotron-3 Ultra 550B (NVIDIA Integration)</option>
                         </select>
                       </div>
                       <button
@@ -2206,7 +2207,7 @@ export default function App() {
                           <span className="text-[9px] font-bold text-amber-500 lowercase">fastest selected</span>
                         </div>
                         <div className="grid grid-cols-3 gap-1.5 text-center font-mono">
-                          {['gemini', 'nvidia-nemotron', 'groq-qwen'].map((pId) => {
+                          {['gemini', 'nvidia-nemotron', 'nvidia-nemotron-ultra'].map((pId) => {
                             const lat = optimizationStats[pId];
                             const name = pId === 'gemini' ? 'Gemini' : pId === 'nvidia-nemotron' ? 'Nemotron 49B' : 'Nemotron 550B';
                             const isCurrent = provider === pId;
@@ -2649,7 +2650,7 @@ export default function App() {
                   <span className={`font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Recommended Solutions:</span>
                   {apiBlockedAlert.isServerError ? (
                     <ul className={`list-disc list-inside space-y-1.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      <li>Verify your <b>GEMINI_API_KEY</b>, <b>HUGGINGFACE_API_KEY</b>, or <b>GROQ_API_KEY</b> is correctly declared in settings or server config.</li>
+                      <li>Verify your <b>GEMINI_API_KEY</b>, <b>HUGGINGFACE_API_KEY</b>, or <b>NVIDIA_API_KEY</b> is correctly declared in settings or server config.</li>
                       <li>Consult the <b>Debug Console</b> in the Admin Dashboard to review real-time network request payloads.</li>
                       <li>Confirm that the server is not throttled, and that the specified AI model is supported.</li>
                     </ul>

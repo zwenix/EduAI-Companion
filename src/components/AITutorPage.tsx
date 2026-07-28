@@ -1246,119 +1246,97 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
 
           </div>
 
-          {/* 3. RIGHT SIDEBAR (Shrink size to fit without scrolling: w-64 xl:w-72) */}
-          <div className="w-64 xl:w-72 shrink-0 flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-1 max-h-full">
+          {/* 3. RIGHT SIDEBAR (Shrink size to fit without scrolling: w-56 xl:w-64) */}
+          <div className="w-56 xl:w-64 shrink-0 flex flex-col gap-3 overflow-hidden max-h-full">
             {/* Card 1: Suggested Activities & Topics */}
-            <div className="bg-slate-900/80 border border-white/10 rounded-[28px] p-5 shadow-xl text-left shrink-0">
-              <h3 className="text-sm font-display font-bold text-white mb-3 flex items-center gap-2">
-                <Sparkles size={15} className="text-pink-400" />
+            <div className="bg-slate-900/80 border border-white/10 rounded-[22px] p-3.5 shadow-xl text-left shrink-0">
+              <h3 className="text-xs font-display font-bold text-white mb-2 flex items-center gap-1.5">
+                <Sparkles size={13} className="text-pink-400" />
                 <span>Suggested Activities</span>
               </h3>
-              <div className="space-y-2.5">
+              <div className="space-y-1.5">
                 <button
                   type="button"
                   onClick={() => { setInput('Explain Grade 5 Math - Fractions'); handleSend('Explain Grade 5 Math - Fractions'); }}
-                  className="w-full p-3 rounded-2xl bg-[#161a33]/80 border border-pink-500/30 text-left hover:border-pink-400 transition-all shadow-sm group cursor-pointer"
+                  className="w-full py-1.5 px-2.5 rounded-xl bg-[#161a33]/80 border border-pink-500/30 text-left hover:border-pink-400 transition-all shadow-sm group cursor-pointer flex items-center justify-between"
                 >
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-xs font-bold text-white group-hover:text-pink-300">Math - Fractions</span>
-                    <Sparkles size={12} className="text-pink-400" />
-                  </div>
-                  <p className="text-[10px] text-slate-400">Practice equivalent fractions and addition.</p>
+                  <span className="text-[11px] font-bold text-white group-hover:text-pink-300">Math - Fractions</span>
+                  <Sparkles size={11} className="text-pink-400 shrink-0" />
                 </button>
 
                 <button
                   type="button"
                   onClick={() => { setInput('Explain Science - Solar System'); handleSend('Explain Science - Solar System'); }}
-                  className="w-full p-3 rounded-2xl bg-[#161a33]/80 border border-cyan-500/30 text-left hover:border-cyan-400 transition-all shadow-sm group cursor-pointer"
+                  className="w-full py-1.5 px-2.5 rounded-xl bg-[#161a33]/80 border border-cyan-500/30 text-left hover:border-cyan-400 transition-all shadow-sm group cursor-pointer flex items-center justify-between"
                 >
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-xs font-bold text-white group-hover:text-cyan-300">Solar System</span>
-                    <Sparkles size={12} className="text-cyan-400" />
-                  </div>
-                  <p className="text-[10px] text-slate-400">Explore planetary orbits and astronomy.</p>
+                  <span className="text-[11px] font-bold text-white group-hover:text-cyan-300">Solar System</span>
+                  <Sparkles size={11} className="text-cyan-400 shrink-0" />
                 </button>
 
                 <button
                   type="button"
                   onClick={() => { setInput('Let us do an English - Grammar Quiz'); handleSend('Let us do an English - Grammar Quiz'); }}
-                  className="w-full p-3 rounded-2xl bg-[#161a33]/80 border border-emerald-500/30 text-left hover:border-emerald-400 transition-all shadow-sm group cursor-pointer"
+                  className="w-full py-1.5 px-2.5 rounded-xl bg-[#161a33]/80 border border-emerald-500/30 text-left hover:border-emerald-400 transition-all shadow-sm group cursor-pointer flex items-center justify-between"
                 >
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-xs font-bold text-white group-hover:text-emerald-300">Grammar Quiz</span>
-                    <Sparkles size={12} className="text-emerald-400" />
-                  </div>
-                  <p className="text-[10px] text-slate-400">Quick interactive quiz on sentence structure.</p>
+                  <span className="text-[11px] font-bold text-white group-hover:text-emerald-300">Grammar Quiz</span>
+                  <Sparkles size={11} className="text-emerald-400 shrink-0" />
                 </button>
               </div>
             </div>
 
             {/* Card 2: Interactive Toolset */}
-            <div className="bg-slate-900/80 border border-white/10 rounded-[28px] p-5 shadow-xl text-left shrink-0">
-              <h3 className="text-sm font-display font-bold text-white mb-3 flex items-center gap-2">
-                <Monitor size={15} className="text-cyan-400" />
+            <div className="bg-slate-900/80 border border-white/10 rounded-[22px] p-3.5 shadow-xl text-left shrink-0">
+              <h3 className="text-xs font-display font-bold text-white mb-2 flex items-center gap-1.5">
+                <Monitor size={13} className="text-cyan-400" />
                 <span>Interactive Toolset</span>
               </h3>
-              <div className="grid grid-cols-1 gap-2.5">
+              <div className="space-y-1.5">
                 <button
                   type="button"
                   onClick={() => { setInput('Start an Interactive Whiteboard session to draw and visualize math or science concepts.'); handleSend('Start an Interactive Whiteboard session to draw and visualize math or science concepts.'); }}
-                  className="p-3 bg-[#161a33]/80 border border-white/10 rounded-2xl text-left hover:border-cyan-500/50 transition-all flex items-center gap-2.5 cursor-pointer group shadow-sm"
+                  className="w-full py-1.5 px-2.5 bg-[#161a33]/80 border border-white/10 rounded-xl text-left hover:border-cyan-500/50 transition-all flex items-center gap-2 cursor-pointer group shadow-sm"
                 >
-                  <div className="p-1.5 bg-cyan-500/10 rounded-xl text-cyan-400 group-hover:scale-110 transition-transform">
-                    <Monitor size={16} />
+                  <div className="p-1 bg-cyan-500/10 rounded-lg text-cyan-400 group-hover:scale-110 transition-transform shrink-0">
+                    <Monitor size={13} />
                   </div>
-                  <div>
-                    <span className="text-xs font-bold text-white group-hover:text-cyan-300 block">Interactive Whiteboard</span>
-                    <span className="text-[10px] text-slate-400">Visual canvas solver</span>
-                  </div>
+                  <span className="text-[11px] font-bold text-white group-hover:text-cyan-300 truncate">Whiteboard Canvas</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => { setInput('Activate Voice Tutor Mode. Please talk to me conversationally and ask guiding questions.'); handleSend('Activate Voice Tutor Mode. Please talk to me conversationally and ask guiding questions.'); }}
-                  className="p-3 bg-[#161a33]/80 border border-white/10 rounded-2xl text-left hover:border-pink-500/50 transition-all flex items-center gap-2.5 cursor-pointer group shadow-sm"
+                  className="w-full py-1.5 px-2.5 bg-[#161a33]/80 border border-white/10 rounded-xl text-left hover:border-pink-500/50 transition-all flex items-center gap-2 cursor-pointer group shadow-sm"
                 >
-                  <div className="p-1.5 bg-pink-500/10 rounded-xl text-pink-400 group-hover:scale-110 transition-transform">
-                    <Volume2 size={16} />
+                  <div className="p-1 bg-pink-500/10 rounded-lg text-pink-400 group-hover:scale-110 transition-transform shrink-0">
+                    <Volume2 size={13} />
                   </div>
-                  <div>
-                    <span className="text-xs font-bold text-white group-hover:text-pink-300 block">Voice Tutor Mode</span>
-                    <span className="text-[10px] text-slate-400">Audio conversation</span>
-                  </div>
+                  <span className="text-[11px] font-bold text-white group-hover:text-pink-300 truncate">Voice Tutor Mode</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => { setInput('Let us do a Step-by-Step Solver exercise. Give me a problem and guide me through solving it one step at a time.'); handleSend('Let us do a Step-by-Step Solver exercise. Give me a problem and guide me through solving it one step at a time.'); }}
-                  className="p-3 bg-[#161a33]/80 border border-white/10 rounded-2xl text-left hover:border-amber-500/50 transition-all flex items-center gap-2.5 cursor-pointer group shadow-sm"
+                  className="w-full py-1.5 px-2.5 bg-[#161a33]/80 border border-white/10 rounded-xl text-left hover:border-amber-500/50 transition-all flex items-center gap-2 cursor-pointer group shadow-sm"
                 >
-                  <div className="p-1.5 bg-amber-500/10 rounded-xl text-amber-400 group-hover:scale-110 transition-transform">
-                    <Puzzle size={16} />
+                  <div className="p-1 bg-amber-500/10 rounded-lg text-amber-400 group-hover:scale-110 transition-transform shrink-0">
+                    <Puzzle size={13} />
                   </div>
-                  <div>
-                    <span className="text-xs font-bold text-white group-hover:text-amber-300 block">Step-by-Step Solver</span>
-                    <span className="text-[10px] text-slate-400">Guided problem solving</span>
-                  </div>
+                  <span className="text-[11px] font-bold text-white group-hover:text-amber-300 truncate">Step-by-Step Solver</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => { setInput('Explain a core curriculum concept with visual examples and analogies.'); handleSend('Explain a core curriculum concept with visual examples and analogies.'); }}
-                  className="p-3 bg-[#161a33]/80 border border-white/10 rounded-2xl text-left hover:border-emerald-500/50 transition-all flex items-center gap-2.5 cursor-pointer group shadow-sm"
+                  className="w-full py-1.5 px-2.5 bg-[#161a33]/80 border border-white/10 rounded-xl text-left hover:border-emerald-500/50 transition-all flex items-center gap-2 cursor-pointer group shadow-sm"
                 >
-                  <div className="p-1.5 bg-emerald-500/10 rounded-xl text-emerald-400 group-hover:scale-110 transition-transform">
-                    <Eye size={16} />
+                  <div className="p-1 bg-emerald-500/10 rounded-lg text-emerald-400 group-hover:scale-110 transition-transform shrink-0">
+                    <Eye size={13} />
                   </div>
-                  <div>
-                    <span className="text-xs font-bold text-white group-hover:text-emerald-300 block">Concept Visualization</span>
-                    <span className="text-[10px] text-slate-400">Deep intuitive breakdown</span>
-                  </div>
+                  <span className="text-[11px] font-bold text-white group-hover:text-emerald-300 truncate">Concept Visualizer</span>
                 </button>
               </div>
             </div>
           </div>
-
         </div>
       ) : null}
 

@@ -187,7 +187,6 @@ export default function CategoryOverview({
   if (
     categoryLabel === 'Edu-Tools Hub' || 
     categoryLabel === "Teacher's Toolbox" || 
-    categoryLabel === "Teacher's Table" || 
     categoryLabel === "Teacher'sToolBox" || 
     categoryLabel === "Teacher's ToolBox" || 
     categoryLabel === 'TeachersToolBox' || 

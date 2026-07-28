@@ -1,25 +1,25 @@
 import axios from 'axios';
 import { checkAndReportApiError } from '../lib/apiErrorHelper';
 
-export type AIProvider = 'nvidia-nemotron' | 'groq-qwen';
+export type AIProvider = 'nvidia-nemotron' | 'nvidia-nemotron-ultra' | 'groq-qwen';
 
 const executeClientMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
   let url = "https://api.groq.com/openai/v1/chat/completions";
   let apiKey = ((process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
   let selectedModel = model;
-  const isAltModel = provider === 'nvidia-nemotron' || provider === 'groq-qwen';
+  const isAltModel = provider === 'nvidia-nemotron' || provider === 'nvidia-nemotron-ultra' || provider === 'groq-qwen';
 
   if (isAltModel) {
     if (provider === 'nvidia-nemotron') {
       url = "https://integrate.api.nvidia.com/v1/chat/completions";
-      apiKey = ((process.env as any).NVIDIA_API_KEY || (import.meta as any).env?.VITE_NVIDIA_API_KEY || (process.env as any).OPENROUTER_API_KEY || (import.meta as any).env?.VITE_OPENROUTER_API_KEY || (process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+      apiKey = ((process.env as any).NVIDIA_API_KEY || (import.meta as any).env?.VITE_NVIDIA_API_KEY || (process.env as any).OPENROUTER_API_KEY || (import.meta as any).env?.VITE_OPENROUTER_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
       if (!selectedModel || selectedModel === 'nvidia-nemotron') {
         selectedModel = "nvidia/llama-3.3-nemotron-super-49b-v1";
       }
-    } else if (provider === 'groq-qwen') {
+    } else if (provider === 'nvidia-nemotron-ultra' || provider === 'groq-qwen') {
       url = "https://integrate.api.nvidia.com/v1/chat/completions";
-      apiKey = ((process.env as any).NVIDIA_API_KEY || (import.meta as any).env?.VITE_NVIDIA_API_KEY || (process.env as any).OPENROUTER_API_KEY || (import.meta as any).env?.VITE_OPENROUTER_API_KEY || (process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
-      if (!selectedModel || selectedModel === 'groq-qwen') {
+      apiKey = ((process.env as any).NVIDIA_API_KEY || (import.meta as any).env?.VITE_NVIDIA_API_KEY || (process.env as any).OPENROUTER_API_KEY || (import.meta as any).env?.VITE_OPENROUTER_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+      if (!selectedModel || selectedModel === 'nvidia-nemotron-ultra' || selectedModel === 'groq-qwen') {
         selectedModel = "nvidia/nemotron-3-ultra-550b-a55b";
       }
     }
@@ -28,15 +28,15 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
       if (!selectedModel || selectedModel === 'nvidia-nemotron') {
         selectedModel = "nvidia/llama-3.3-nemotron-super-49b-v1";
       }
-    } else if (provider === 'groq-qwen') {
-      if (!selectedModel || selectedModel === 'groq-qwen') {
+    } else if (provider === 'nvidia-nemotron-ultra' || provider === 'groq-qwen') {
+      if (!selectedModel || selectedModel === 'nvidia-nemotron-ultra' || selectedModel === 'groq-qwen') {
         selectedModel = "nvidia/nemotron-3-ultra-550b-a55b";
       }
     }
   }
 
   if (!apiKey) {
-    const keyName = (provider === 'nvidia-nemotron' || provider === 'groq-qwen') ? 'NVIDIA_API_KEY' : 'GROQ_API_KEY';
+    const keyName = (provider === 'nvidia-nemotron' || provider === 'nvidia-nemotron-ultra' || provider === 'groq-qwen') ? 'NVIDIA_API_KEY' : 'GROQ_API_KEY';
     throw new Error(`API key (${keyName}) for ${provider} is not configured in settings or environment. Please add it.`);
   }
 
@@ -52,12 +52,10 @@ const executeClientMultiAi = async (provider: AIProvider, messages: any[], model
     payload.max_tokens = 16384;
     payload.frequency_penalty = 0;
     payload.presence_penalty = 0;
-  } else if (provider === 'groq-qwen') {
-    payload.temperature = 1;
+  } else if (provider === 'nvidia-nemotron-ultra' || provider === 'groq-qwen') {
+    payload.temperature = 0.7;
     payload.top_p = 0.95;
     payload.max_tokens = 16384;
-    payload.reasoning_budget = 4096;
-    payload.chat_template_kwargs = { "enable_thinking": true };
   }
 
   // Let the prompt dictate JSON mode, do not force it which causes issues with certain models on openrouter

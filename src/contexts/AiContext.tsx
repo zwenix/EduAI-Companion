@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type AIProvider = 'gemini' | 'nvidia-nemotron' | 'groq-qwen';
+export type AIProvider = 'gemini' | 'nvidia-nemotron' | 'nvidia-nemotron-ultra';
 export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
 export type OCRProvider = 'gemini' | 'ocrspace';
 export type ImageProvider = 'gemini-imagen' | 'perchance' | 'pollinations';
@@ -18,7 +18,7 @@ interface AiContextType {
 
 const AiContext = createContext<AiContextType | undefined>(undefined);
 
-const VALID_PROVIDERS: AIProvider[] = ['gemini', 'nvidia-nemotron', 'groq-qwen'];
+const VALID_PROVIDERS: AIProvider[] = ['gemini', 'nvidia-nemotron', 'nvidia-nemotron-ultra'];
 const VALID_TTS: TTSProvider[] = ['browser', 'groq-whisper', 'huggingface', 'google-tts'];
 const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace'];
 const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'perchance', 'pollinations'];
@@ -26,9 +26,13 @@ const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'perchance', 'pollination
 export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {
     try {
-      const saved = localStorage.getItem('eduai_provider') as AIProvider;
-      if (saved && VALID_PROVIDERS.includes(saved)) {
-        return saved;
+      const saved = localStorage.getItem('eduai_provider');
+      if (saved === 'groq-qwen') {
+        localStorage.setItem('eduai_provider', 'nvidia-nemotron-ultra');
+        return 'nvidia-nemotron-ultra';
+      }
+      if (saved && VALID_PROVIDERS.includes(saved as AIProvider)) {
+        return saved as AIProvider;
       }
       return 'gemini';
     } catch (e) {
@@ -57,9 +61,9 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [imageProvider, setImageProvider] = useState<ImageProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_image_provider') as any;
-      return saved && VALID_IMAGE.includes(saved) ? saved : 'gemini-imagen';
+      return saved && VALID_IMAGE.includes(saved) ? saved : 'perchance';
     } catch {
-      return 'gemini-imagen';
+      return 'perchance';
     }
   });
 

@@ -110,9 +110,10 @@ You MUST ALSO generate:
     
     const antiSummaryMandate = `\n\n🚨 CRITICAL ANTI-TRUNCATION & ANTI-SUMMARY MANDATE:
 1. ZERO PLACEHOLDERS OR SUMMARIES: You are STRICTLY FORBIDDEN from outputting summaries, placeholder comments, or sentences such as "Summarized HTML below for brevity", "Full HTML available upon request", "etc.", "more questions here", or "insert content here".
-2. COMPLETE HTML OUTPUT: You MUST write out EVERY SINGLE section, paragraph, question, answer, rubric criteria, and HTML tag completely and fully from start to finish.
+2. COMPLETE HTML OUTPUT: You MUST provide the complete HTML/text content of the worksheet including all questions, instructions, images, and data handling activities. Write out EVERY SINGLE section, paragraph, question, answer, rubric criteria, and HTML tag completely and fully from start to finish.
 3. FULL TEACHING MATERIALS: If generating a lesson plan, include all 5 detailed teaching phases, scripts, and accommodations. If generating a worksheet, test, or memo, write out every single question and every single answer without short-cutting.
-4. OPTIMIZED FOR SPEED: Keep the HTML clean, well-structured, and concise without excessive repetitive boilerplate text so that generation completes rapidly and within token boundaries.`;
+4. METADATA & CONTEXT: Add explicit CAPS-aligned metadata such as learning objectives, duration, and cognitive levels. Incorporate South African contexts, such as sorting local animals, indigenous fruits, or typical school items to align with cultural relevance requirements.
+5. OPTIMIZED FOR SPEED: Keep the HTML clean, well-structured, and concise without excessive repetitive boilerplate text so that generation completes rapidly and within token boundaries.`;
 
     systemPrompt += antiSummaryMandate;
     userPrompt += antiSummaryMandate;

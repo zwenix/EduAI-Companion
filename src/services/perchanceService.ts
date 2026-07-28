@@ -1,20 +1,17 @@
 /**
  * Perchance AI Image Generator Service
  * Implements connection to Perchance AI generators via iframe postMessage API
- * Tutorial Reference: https://perchance.org/api-tutorial
- * Configured Generator: "🌌 Image Generator Professional 🌟" (https://perchance.org/image-generator-professional)
+ * Updated for maximum reliability and request correlation.
  */
 
-export const PERCHANCE_GENERATOR_NAME = "🌌 Image Generator Professional 🌟";
-export const PERCHANCE_GENERATOR_URL = "https://perchance.org/image-generator-professional";
-const IFRAME_ID = "perchance-generator-professional-iframe";
+export const PERCHANCE_GENERATOR_NAME = "Perchance AI Text-to-Image";
+// Using the most stable and widely-supported Perchance AI generator
+export const PERCHANCE_GENERATOR_URL = "https://perchance.org/ai-text-to-image-generator";
 
+const IFRAME_ID = "perchance-ai-generator-iframe";
 let iframeInstance: HTMLIFrameElement | null = null;
 let iframeReadyPromise: Promise<void> | null = null;
 
-/**
- * Initializes and mounts the singleton hidden Perchance iframe in the document body.
- */
 function ensurePerchanceIframe(): Promise<void> {
   if (typeof window === "undefined" || typeof document === "undefined") {
     return Promise.reject(new Error("Perchance iframe client can only run in a browser environment"));
@@ -30,6 +27,7 @@ function ensurePerchanceIframe(): Promise<void> {
     existing.id = IFRAME_ID;
     existing.src = PERCHANCE_GENERATOR_URL;
     existing.title = PERCHANCE_GENERATOR_NAME;
+    // Allow scripts and same-origin to ensure postMessage works correctly
     existing.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms");
     existing.style.position = "fixed";
     existing.style.width = "1px";
@@ -48,21 +46,19 @@ function ensurePerchanceIframe(): Promise<void> {
       existing?.removeEventListener("load", onLoad);
       resolve();
     };
+
     if ((existing as any)?.readyState === "complete" || existing?.contentDocument?.readyState === "complete") {
       resolve();
     } else {
       existing?.addEventListener("load", onLoad);
-      // Fallback resolve after 3 seconds in case load event already fired
-      setTimeout(resolve, 3000);
+      // Fallback resolve after 4 seconds in case load event is suppressed by sandbox
+      setTimeout(resolve, 4000);
     }
   });
 
   return iframeReadyPromise;
 }
 
-/**
- * Generates an image using Perchance Image Generator Professional via iframe postMessage
- */
 export async function generatePerchanceImageClient(
   prompt: string,
   width: number = 1024,
@@ -77,7 +73,9 @@ export async function generatePerchanceImageClient(
   }
 
   const generatedSeed = seed ?? Math.floor(Math.random() * 100000);
-  console.log(`[Perchance AI] Initiating generation via ${PERCHANCE_GENERATOR_NAME} | Prompt: "${prompt.slice(0, 60)}..."`);
+  const requestId = `eduai-req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  console.log(`[Perchance AI] Initiating generation | Request: ${requestId} | Prompt: "${prompt.slice(0, 60)}..."`);
 
   return new Promise((resolve, reject) => {
     let timeoutId: any = null;
@@ -88,8 +86,8 @@ export async function generatePerchanceImageClient(
     };
 
     const messageHandler = (event: MessageEvent) => {
-      // Validate origin from perchance.org or iframe source
-      if (!event.origin.includes("perchance.org") && event.source !== iframe.contentWindow) {
+      // Strict origin check for security
+      if (!event.origin.includes("perchance.org")) {
         return;
       }
 
@@ -97,19 +95,18 @@ export async function generatePerchanceImageClient(
       if (!data) return;
 
       let imgUrl: string | null = null;
+
+      // Perchance may return the URL as a direct string or nested in an object
       if (typeof data === "string") {
         if (data.startsWith("http://") || data.startsWith("https://") || data.startsWith("data:image/")) {
           imgUrl = data;
         }
       } else if (typeof data === "object") {
-        const potentialUrl = data.url || data.image || data.imageUrl || data.result || data.output || data.data;
-        if (typeof potentialUrl === "string" && (potentialUrl.startsWith("http") || potentialUrl.startsWith("data:image/"))) {
-          imgUrl = potentialUrl;
-        }
+        imgUrl = data.url || data.image || data.imageUrl || data.result || data.output || data.data || data.imageData;
       }
 
       if (imgUrl) {
-        console.log(`[Perchance AI] Successfully generated image from ${PERCHANCE_GENERATOR_NAME}`);
+        console.log(`[Perchance AI] Successfully generated image for request ${requestId}`);
         cleanup();
         resolve(imgUrl);
       }
@@ -117,18 +114,14 @@ export async function generatePerchanceImageClient(
 
     window.addEventListener("message", messageHandler);
 
-    // Send generation command payload following Perchance tutorial conventions
+    // Payload optimized for Perchance's standard AI Text-to-Image generator
     const payload = {
-      action: "generate",
       type: "generate",
-      command: "generate",
       prompt: prompt,
-      description: prompt,
       width: width,
       height: height,
       seed: generatedSeed,
-      user: "EduAI-Companion",
-      generator: PERCHANCE_GENERATOR_NAME
+      requestId: requestId 
     };
 
     try {
@@ -139,11 +132,11 @@ export async function generatePerchanceImageClient(
       return;
     }
 
-    // Set a 12-second timeout to fallback cleanly if iframe is sandboxed or slow
+    // Increased timeout to 15 seconds as AI generation can take time
     timeoutId = setTimeout(() => {
       cleanup();
-      console.warn(`[Perchance AI] Iframe generation timed out after 12s. Transitioning to backend proxy for ${PERCHANCE_GENERATOR_NAME}.`);
+      console.warn(`[Perchance AI] Request ${requestId} timed out after 15s. Transitioning to fallback.`);
       reject(new Error("Perchance iframe generation timed out"));
-    }, 12000);
+    }, 15000);
   });
 }

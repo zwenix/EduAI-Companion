@@ -85,7 +85,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
         return 'bg-violet-500/10 text-violet-400 border-violet-500/25';
       case 'nvidia-nemotron':
         return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25';
-      case 'groq-qwen':
+      case 'nvidia-nemotron-ultra':
         return 'bg-amber-500/10 text-amber-400 border-amber-500/25';
       default:
         return 'bg-slate-500/10 text-slate-400 border-slate-500/25';
@@ -252,7 +252,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                   {[
                     { action: 'New Teacher Account Provisioned', user: 'Admin', time: '10 mins ago', status: 'Success' },
                     { action: 'Bulk Learner Import (Grade 8)', user: 'Admin', time: '1 hour ago', status: 'Success' },
-                    { action: 'API Key Rotation (Groq)', user: 'System', time: '5 hours ago', status: 'Warning' },
+                    { action: 'API Key Rotation (NVIDIA)', user: 'System', time: '5 hours ago', status: 'Warning' },
                   ].map((log, i) => (
                     <div key={i} className={`flex justify-between items-center p-3 border-b ${isDarkMode ? 'border-white/10' : 'border-slate-100'} last:border-0 text-sm`}>
                       <div>
@@ -372,7 +372,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
 
           {/* Filtering Tab Pills */}
           <div className="flex flex-wrap gap-2 pb-2">
-            {['all', 'gemini', 'nvidia-nemotron', 'groq-qwen'].map((prov) => {
+            {['all', 'gemini', 'nvidia-nemotron', 'nvidia-nemotron-ultra'].map((prov) => {
               const count = prov === 'all' 
                 ? errors.length 
                 : errors.filter(e => e.provider === prov).length;

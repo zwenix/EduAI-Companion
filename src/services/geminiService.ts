@@ -324,13 +324,139 @@ export const generateEducationalContent = async (type: string, details: string) 
   }
 };
 
-export const generateCAPSContent = async (input: any) => {
-  try {
+function isContentTruncated(content: string): boolean {
+  if (!content) return false;
+  const trimmed = content.trim();
+  if (trimmed.length < 300) return false;
+  const lastPart = trimmed.slice(-60);
+  const endsProperly = /[.!?)}>\]"]\s*$/.test(lastPart) || /<\/(div|section|article|table|p|ul|ol|li|h[1-6])>\s*$/i.test(lastPart);
+  return !endsProperly;
+}
+
+const _fetchActionSingle = async (action: string, input: any, onProgress?: (partial: any) => void) => {
+  if (onProgress) {
+    const response = await fetch("/api/gemini/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action,
+        input,
+        stream: true
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let fullText = "";
+    let leftover = "";
+    let lastUpdateTime = 0;
+    
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = leftover + decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+        leftover = lines.pop() || "";
+        
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (trimmedLine.startsWith("data: ")) {
+            const dataStr = trimmedLine.substring(6);
+            try {
+              const data = JSON.parse(dataStr);
+              if (data.error) throw new Error(data.error);
+              if (data.chunk) {
+                fullText += data.chunk;
+                const now = Date.now();
+                if (now - lastUpdateTime > 150) {
+                  const parsed = safeJsonParse(fullText);
+                  if (parsed && Object.keys(parsed).length > 0) {
+                    onProgress(parsed);
+                    lastUpdateTime = now;
+                  }
+                }
+              }
+              if (data.final) {
+                fullText = data.final;
+              }
+            } catch (e: any) {
+              if (e.message && e.message !== "Unexpected end of JSON input" && !e.message.includes("Unexpected token")) {
+                throw e;
+              }
+            }
+          }
+        }
+      }
+    }
+    const parsed = safeJsonParse(fullText);
+    if (parsed && Object.keys(parsed).length > 0) {
+      onProgress(parsed);
+    }
+    if (!parsed || Object.keys(parsed).length === 0) {
+      return { content: fullText || "Error: No content generated.", imagePrompt: "Classroom scene" };
+    }
+    return parsed;
+  } else {
     const response = await axios.post("/api/gemini/action", {
-      action: "generate-caps",
+      action,
       input
     });
-    return response.data;
+    const parsed = response.data;
+    if (!parsed || Object.keys(parsed).length === 0) {
+      return { content: "Error: No content generated.", imagePrompt: "Classroom scene" };
+    }
+    return parsed;
+  }
+};
+
+const executeWithContinuation = async (action: string, input: any, onProgress?: (partial: any) => void) => {
+  let attempts = 0;
+  let accumulatedContent = "";
+  let lastResult: any = null;
+
+  while (attempts < 3) {
+    const currentInput = attempts === 0 ? input : { ...input, existingContent: accumulatedContent };
+    
+    const result = await _fetchActionSingle(action, currentInput, (partial) => {
+      if (onProgress && partial) {
+        const combined = {
+          ...partial,
+          content: accumulatedContent ? (accumulatedContent + "\n" + (partial.content || "")) : (partial.content || "")
+        };
+        onProgress(combined);
+      }
+    });
+
+    const newContent = result.content || "";
+    if (attempts === 0) {
+      accumulatedContent = newContent;
+    } else {
+      accumulatedContent += "\n" + newContent;
+    }
+
+    lastResult = { ...result, content: accumulatedContent };
+    if (onProgress) {
+      onProgress(lastResult);
+    }
+
+    if (!isContentTruncated(newContent) || newContent.length < 500) {
+      break;
+    }
+    attempts++;
+  }
+
+  return lastResult;
+};
+
+export const generateCAPSContent = async (input: any, onProgress?: (partial: any) => void) => {
+  try {
+    return await executeWithContinuation("generate-caps", input, onProgress);
   } catch (error: any) {
     console.error("Express /api/gemini/action failed:", error.message || error);
     checkAndReportApiError(error, "Gemini");
@@ -338,13 +464,9 @@ export const generateCAPSContent = async (input: any) => {
   }
 };
 
-export const generateVisualAid = async (input: any) => {
+export const generateVisualAid = async (input: any, onProgress?: (partial: any) => void) => {
   try {
-    const response = await axios.post("/api/gemini/action", {
-      action: "generate-visual",
-      input
-    });
-    return response.data;
+    return await executeWithContinuation("generate-visual", input, onProgress);
   } catch (error: any) {
     console.error("Express /api/gemini/action failed:", error.message || error);
     checkAndReportApiError(error, "Gemini");
@@ -352,13 +474,9 @@ export const generateVisualAid = async (input: any) => {
   }
 };
 
-export const generateAdminDoc = async (input: any) => {
+export const generateAdminDoc = async (input: any, onProgress?: (partial: any) => void) => {
   try {
-    const response = await axios.post("/api/gemini/action", {
-      action: "generate-admin",
-      input
-    });
-    return response.data;
+    return await executeWithContinuation("generate-admin", input, onProgress);
   } catch (error: any) {
     console.error("Express /api/gemini/action failed:", error.message || error);
     checkAndReportApiError(error, "Gemini");

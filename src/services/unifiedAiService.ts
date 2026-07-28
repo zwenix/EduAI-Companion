@@ -15,8 +15,36 @@ import {
 import { callMultiAi, performOCR, AIProvider } from './multiAiService';
 import { EduAIPromptEngine } from '../lib/prompt-engine';
 
-const isProviderFailure = (error: any) => {
-  return true; // Always fallback if the primary provider fails!
+const isProviderFailure = (error: any): boolean => {
+  const status = error.response?.status || error.status;
+  
+  // Extract all possible error message locations
+  const rawMessage = error.message || '';
+  const responseObj = error.response?.data?.error || error.response?.data || '';
+  const responseMessage = typeof responseObj === 'string' 
+    ? responseObj 
+    : responseObj?.message || JSON.stringify(responseObj);
+  const combinedMessage = `${rawMessage} ${responseMessage}`.toLowerCase();
+  
+  // Credentials errors (401, 402, 403), rate limit (429), server errors (5xx), or missing key keyword matches should fall back.
+  const isTransient = 
+    status === 401 || status === 402 || status === 403 || status === 429 ||
+    status === 500 || status === 502 || status === 503 || status === 504 ||
+    combinedMessage.includes('quota') || 
+    combinedMessage.includes('timeout') ||
+    combinedMessage.includes('network error') ||
+    combinedMessage.includes('not configured') ||
+    combinedMessage.includes('api key') ||
+    combinedMessage.includes('unauthorized') ||
+    combinedMessage.includes('invalid key');
+
+  if (isTransient) {
+    console.warn(`[AI Routing] Transient or missing key error detected (${status || 'N/A'}): ${combinedMessage}. Triggering fallback.`);
+  } else {
+    console.error(`[AI Routing] Client/Validation error detected. No fallback triggered:`, error);
+  }
+  
+  return isTransient;
 };
 
 export const generateEducationalContent = async (type: string, details: string, provider: string = 'gemini') => {
@@ -54,10 +82,10 @@ export const generateEducationalContent = async (type: string, details: string, 
   }
 };
 
-export const generateCAPSContent = async (input: any, provider: string = 'gemini') => {
+export const generateCAPSContent = async (input: any, provider: string = 'gemini', onProgress?: (partial: any) => void) => {
   if (provider === 'gemini') {
     try {
-      return await geminiGenerateCAPS(input);
+      return await geminiGenerateCAPS(input, onProgress);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
         console.warn("Gemini limit hit, auto-falling back to nvidia-nemotron...");
@@ -106,16 +134,16 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
   } catch (error: any) {
     if (isProviderFailure(error)) {
       console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
-      return await geminiGenerateCAPS(input);
+      return await geminiGenerateCAPS(input, onProgress);
     }
     throw error;
   }
 };
 
-export const generateVisualAid = async (input: any, provider: string = 'gemini') => {
+export const generateVisualAid = async (input: any, provider: string = 'gemini', onProgress?: (partial: any) => void) => {
   if (provider === 'gemini') {
     try {
-      return await geminiGenerateVisual(input);
+      return await geminiGenerateVisual(input, onProgress);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
         console.warn("Gemini limit hit, auto-falling back to nvidia-nemotron...");
@@ -240,16 +268,16 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini')
   } catch (error: any) {
     if (isProviderFailure(error)) {
       console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
-      return await geminiGenerateVisual(input);
+      return await geminiGenerateVisual(input, onProgress);
     }
     throw error;
   }
 };
 
-export const generateAdminDoc = async (input: any, provider: string = 'gemini') => {
+export const generateAdminDoc = async (input: any, provider: string = 'gemini', onProgress?: (partial: any) => void) => {
   if (provider === 'gemini') {
     try {
-      return await geminiGenerateAdmin(input);
+      return await geminiGenerateAdmin(input, onProgress);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
         console.warn("Gemini limit hit, auto-falling back to nvidia-nemotron...");
@@ -301,7 +329,7 @@ STRICT COMPLIANCE & ZERO-HALLUCINATION MANDATES:
   } catch (error: any) {
     if (isProviderFailure(error)) {
       console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
-      return await geminiGenerateAdmin(input);
+      return await geminiGenerateAdmin(input, onProgress);
     }
     throw error;
   }
@@ -417,7 +445,7 @@ export const chatWithTutor = async (messages: any[], provider: string = 'gemini'
   const hasImage = messages.some(m => m.parts?.some((p: any) => p.inlineData));
   
   if (provider === 'gemini' || hasImage) {
-     // Force gemini if there are images, because groq text models throw 400s
+     // Force gemini if there are images, because text-only models throw 400s
      try {
        return await geminiChat(messages);
      } catch(err: any) {

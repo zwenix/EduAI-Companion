@@ -1,12 +1,13 @@
 /**
  * EduAI Companion - Multi-Provider Image Generation System
- * Priority: Gemini (Primary) -> Perchance (Secondary) -> Pollinations (Tertiary)
+ * UPDATED: Perchance is now the PRIMARY image generator, followed by Gemini, then Pollinations.
  */
+
 import { generatePerchanceImageClient } from '../services/perchanceService';
 
 export interface ImageGenerationResult {
   url: string;
-  provider: 'gemini' | 'perchance' | 'pollinations';
+  provider: 'perchance' | 'gemini' | 'pollinations';
   prompt: string;
   width: number;
   height: number;
@@ -28,9 +29,6 @@ const ASPECT_RATIOS = {
   landscape: { width: 1024, height: 768 }
 };
 
-/**
- * Generate image using Gemini API (Primary)
- */
 export const generateImageGemini = async (
   prompt: string,
   width: number = 1024,
@@ -42,25 +40,13 @@ export const generateImageGemini = async (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'generate-image',
-        input: {
-          prompt,
-          width,
-          height,
-          model: 'imagen-3'
-        }
+        input: { prompt, width, height, model: 'imagen-3' }
       })
     });
 
-    if (!response.ok) {
-      throw new Error(`Gemini API failed: ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`Gemini API failed: ${response.status}`);
     const data = await response.json();
-    
-    if (!data.imageUrl) {
-      throw new Error('No image URL returned from Gemini');
-    }
-
+    if (!data.imageUrl) throw new Error('No image URL returned from Gemini');
     return data.imageUrl;
   } catch (error) {
     console.error('Gemini image generation failed:', error);
@@ -68,9 +54,6 @@ export const generateImageGemini = async (
   }
 };
 
-/**
- * Generate image using Perchance API (Secondary)
- */
 export const generateImagePerchance = async (
   prompt: string,
   width: number = 1024,
@@ -86,31 +69,17 @@ export const generateImagePerchance = async (
         console.warn('Perchance client-side iframe generation timed out or failed, transitioning to backend proxy...', clientErr);
       }
     }
-
-    const encodedPrompt = encodeURIComponent(prompt);
-    // Use backend proxy to avoid CORS
+    
+    // Fallback to backend proxy if client-side fails
     const response = await fetch('/api/images/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt,
-        provider: 'perchance',
-        width,
-        height,
-        seed
-      })
+      body: JSON.stringify({ prompt, provider: 'perchance', width, height, seed })
     });
 
-    if (!response.ok) {
-      throw new Error(`Perchance API failed: ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`Perchance API failed: ${response.status}`);
     const data = await response.json();
-    
-    if (!data.url) {
-      throw new Error('No image URL returned from Perchance');
-    }
-
+    if (!data.url) throw new Error('No image URL returned from Perchance');
     return data.url;
   } catch (error) {
     console.error('Perchance image generation failed:', error);
@@ -118,50 +87,25 @@ export const generateImagePerchance = async (
   }
 };
 
-/**
- * Generate image using Pollinations API (Tertiary/Fallback)
- */
 export const generateImagePollinations = async (
   prompt: string,
   width: number = 1024,
   height: number = 1024,
   seed: number = Math.floor(Math.random() * 10000)
 ): Promise<string> => {
-  try {
-    const encodedPrompt = encodeURIComponent(prompt);
-    // Use backend proxy to avoid CORS
-    const response = await fetch('/api/images/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt,
-        provider: 'pollinations',
-        width,
-        height,
-        seed
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Pollinations API failed: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    if (!data.url) {
-      throw new Error('No image URL returned from Pollinations');
-    }
-
-    return data.url;
-  } catch (error) {
-    console.error('Pollinations image generation failed:', error);
-    throw error;
-  }
+  // Direct, reliable public API fallback that bypasses backend proxy issues entirely
+  const encodedPrompt = encodeURIComponent(prompt);
+  const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
+  
+  // Verify the image loads by creating a temporary image object
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(imageUrl);
+    img.onerror = () => reject(new Error("Pollinations image failed to load"));
+    img.src = imageUrl;
+  });
 };
 
-/**
- * Main image generation function with fallback chain
- */
 export const generateImageWithFallback = async (
   options: ImageGenerationOptions
 ): Promise<ImageGenerationResult> => {
@@ -171,73 +115,57 @@ export const generateImageWithFallback = async (
   const height = options.height || dimensions.height;
   const seed = options.seed ?? Math.floor(Math.random() * 10000);
 
-  // Augment prompt to ensure 3D vector, 3D cute icon, 3D Disney character style is applied
   let styledPrompt = prompt;
-  const styleSuffix = ", 3D vector, 3D cute icon, 3D animation Disney character style";
+  const styleSuffix = ", 3D vector, 3D cute icon, 3D animation Disney character style, educational, high quality, vibrant colors";
   if (styledPrompt && !styledPrompt.toLowerCase().includes("3d vector") && !styledPrompt.toLowerCase().includes("3d cute icon")) {
     styledPrompt += styleSuffix;
   }
 
-  // Retrieve preferred provider from local storage
+  // UPDATED: Perchance is now the default and primary provider
   const preferredProvider = typeof window !== 'undefined'
-    ? window.localStorage.getItem('eduai_image_provider') || 'gemini-imagen'
-    : 'gemini-imagen';
+    ? window.localStorage.getItem('eduai_image_provider') || 'perchance'
+    : 'perchance';
 
-  console.log(`Preferred image provider from settings: ${preferredProvider}`);
+  console.log(`[Image Gen] Preferred provider: ${preferredProvider}`);
 
-  const order: Array<'gemini' | 'perchance' | 'pollinations'> = ['gemini', 'perchance', 'pollinations', 'gemini'];
+  // UPDATED: Priority chain is now Perchance -> Gemini -> Pollinations
+  const order: Array<'perchance' | 'gemini' | 'pollinations'> = ['perchance', 'gemini', 'pollinations'];
 
   for (const prov of order) {
-    if (prov === 'gemini') {
+    if (prov === 'perchance') {
       try {
-        console.log('Attempting Gemini image generation...');
-        const imageUrl = await generateImageGemini(styledPrompt, width, height);
-        return {
-          url: imageUrl,
-          provider: 'gemini',
-          prompt: styledPrompt,
-          width,
-          height
-        };
-      } catch (error) {
-        console.warn('Gemini failed, trying next fallback...');
-      }
-    } else if (prov === 'perchance') {
-      try {
-        console.log('Attempting Perchance image generation...');
+        console.log('[Image Gen] Attempting Perchance (Primary)...');
         const imageUrl = await generateImagePerchance(styledPrompt, width, height, seed);
-        return {
-          url: imageUrl,
-          provider: 'perchance',
-          prompt: styledPrompt,
-          width,
-          height
-        };
+        return { url: imageUrl, provider: 'perchance', prompt: styledPrompt, width, height };
       } catch (error) {
-        console.warn('Perchance failed, trying next fallback...');
+        console.warn('[Image Gen] Perchance failed, trying next fallback...', error);
+      }
+    } else if (prov === 'gemini') {
+      try {
+        console.log('[Image Gen] Attempting Gemini (Secondary)...');
+        const imageUrl = await generateImageGemini(styledPrompt, width, height);
+        return { url: imageUrl, provider: 'gemini', prompt: styledPrompt, width, height };
+      } catch (error) {
+        console.warn('[Image Gen] Gemini failed, trying next fallback...', error);
       }
     } else if (prov === 'pollinations') {
       try {
-        console.log('Using Pollinations image generation...');
+        console.log('[Image Gen] Attempting Pollinations (Tertiary)...');
         const imageUrl = await generateImagePollinations(styledPrompt, width, height, seed);
-        return {
-          url: imageUrl,
-          provider: 'pollinations',
-          prompt: styledPrompt,
-          width,
-          height
-        };
+        return { url: imageUrl, provider: 'pollinations', prompt: styledPrompt, width, height };
       } catch (error) {
-        console.warn('Pollinations failed, trying next fallback...');
+        console.warn('[Image Gen] Pollinations failed.', error);
       }
     }
   }
 
-  // Fallback to Pollinations directly if everything somehow fails
-  console.log('All attempted image providers failed. Defaulting to Pollinations...');
-  const imageUrl = await generateImagePollinations(styledPrompt, width, height, seed);
+  // Absolute fallback: Direct Pollinations URL if all promises reject
+  console.log('[Image Gen] All providers failed. Defaulting to Pollinations direct URL...');
+  const encodedPrompt = encodeURIComponent(styledPrompt);
+  const fallbackUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
+  
   return {
-    url: imageUrl,
+    url: fallbackUrl,
     provider: 'pollinations',
     prompt: styledPrompt,
     width,
@@ -245,9 +173,6 @@ export const generateImageWithFallback = async (
   };
 };
 
-/**
- * Enhance prompt for educational image generation
- */
 export const enhanceEducationalImagePrompt = (
   topic: string,
   grade: string,
@@ -261,22 +186,18 @@ export const enhanceEducationalImagePrompt = (
     'FET Phase': 'Academic-quality illustration suitable for exam preparation'
   };
 
-  const phase = getPhaseByGrade(grade);
-  
-  return `Educational illustration for South African Grade ${grade} ${subject}: ${topic}. 
-${context || ''}. 
-Style: ${phaseGuidance[phase] || phaseGuidance['Intermediate Phase']}. 
+  const numGrade = parseInt(grade.replace(/\D/g, '')) || 0;
+  let phase = 'Intermediate Phase';
+  if (grade === 'R' || grade.includes('Reception') || numGrade <= 3) phase = 'Foundation Phase';
+  else if (numGrade <= 6) phase = 'Intermediate Phase';
+  else if (numGrade <= 9) phase = 'Senior Phase';
+  else phase = 'FET Phase';
+
+  return `Educational illustration for South African Grade ${grade} ${subject}: ${topic}.
+${context || ''}.
+Style: ${phaseGuidance[phase] || phaseGuidance['Intermediate Phase']}.
 High quality, classroom-ready, culturally appropriate, no text overlays, professional educational resource.`;
 };
-
-function getPhaseByGrade(grade: string): string {
-  if (!grade) return 'Intermediate Phase';
-  const numGrade = parseInt(grade.replace(/\D/g, '')) || 0;
-  if (grade === 'R' || grade.includes('Reception') || numGrade <= 3) return 'Foundation Phase';
-  if (numGrade <= 6) return 'Intermediate Phase';
-  if (numGrade <= 9) return 'Senior Phase';
-  return 'FET Phase';
-}
 
 export default {
   generateImageWithFallback,

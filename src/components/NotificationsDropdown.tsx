@@ -3,10 +3,15 @@ import { Bell, Check, Trash2, X } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
 
-export default function NotificationsDropdown({ isDarkMode, closeTrigger }: { isDarkMode: boolean, closeTrigger?: number }) {
+export default function NotificationsDropdown({ isDarkMode }: { isDarkMode: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
-  useEffect(() => { if (closeTrigger !== undefined) setIsOpen(false); }, [closeTrigger]);
   const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    const handleClose = () => setIsOpen(false);
+    window.addEventListener('close-topbar-menus', handleClose);
+    return () => window.removeEventListener('close-topbar-menus', handleClose);
+  }, []);
 
   useEffect(() => {
     const user = auth.currentUser;

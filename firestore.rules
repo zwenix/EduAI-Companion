@@ -44,6 +44,11 @@ service cloud.firestore {
       match /archive/{archiveId} {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
+
+      // Support saving and reading generated videos in the user's personal videoHistory subcollection
+      match /videoHistory/{videoId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
     }
 
     function isValidStudentCreate(data) {
@@ -299,6 +304,25 @@ service cloud.firestore {
       allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
       allow create: if isSignedIn() && isValidId(videoId) && isValidGeneratedVideo(incoming()) && incoming().createdAt == request.time;
       allow delete: if isSignedIn() && isValidId(videoId) && existing().teacherId == request.auth.uid;
+    }
+
+    match /direct_messages/{messageId} {
+      allow read, write: if isSignedIn();
+    }
+    match /messages/{messageId} {
+      allow read, write: if isSignedIn();
+    }
+    match /messenger_messages/{messageId} {
+      allow read, write: if isSignedIn();
+    }
+    match /auto_grading_reports/{reportId} {
+      allow read, write: if isSignedIn();
+    }
+    match /published_reports/{reportId} {
+      allow read, write: if isSignedIn();
+    }
+    match /activity_logs/{logId} {
+      allow read, write: if isSignedIn();
     }
 
   }

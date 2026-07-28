@@ -80,10 +80,15 @@ class IllustrationCache {
 export function replaceImagePlaceholders(html: string, allowImages: boolean = true): string {
   if (!html) return '';
 
-  let seedCounter = Math.floor(Math.random() * 100000);
-
   const buildImageBlock = (cleanPrompt: string) => {
-    seedCounter += 1;
+    // Generate a stable deterministic seed based on the prompt string to prevent flashing/re-rendering
+    let promptHash = 0;
+    for (let i = 0; i < cleanPrompt.length; i++) {
+      promptHash = (promptHash << 5) - promptHash + cleanPrompt.charCodeAt(i);
+      promptHash |= 0;
+    }
+    const seed = Math.abs(promptHash) % 100000;
+
     if (!allowImages) {
       return `
 <div class="my-4 p-4 border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50 text-slate-700 font-medium text-xs shadow-sm print:break-inside-avoid">
@@ -132,7 +137,7 @@ export function replaceImagePlaceholders(html: string, allowImages: boolean = tr
       : `${cleanPrompt}, professional educational illustration, clean aesthetic design, crisp render, sharp focus, vibrant lighting, pure white background, natural beauty, 4k resolution`;
     
     // Use the backend proxy to bypass school network firewalls blocking external generation sites
-    const imageUrl = `/api/image-proxy?prompt=${encodeURIComponent(enhancedPrompt)}&width=800&height=600&seed=${seedCounter}`;
+    const imageUrl = `/api/image-proxy?prompt=${encodeURIComponent(enhancedPrompt)}&width=800&height=600&seed=${seed}`;
 
     // Async save to firestore in background (non-blocking)
     IllustrationCache.save(cleanPrompt, imageUrl);
@@ -140,7 +145,7 @@ export function replaceImagePlaceholders(html: string, allowImages: boolean = tr
     return `
 <div class="my-6 overflow-hidden rounded-[2rem] border-2 border-dashed border-slate-300 p-2 bg-slate-50/50 hover:bg-slate-100 transition-all duration-300 max-w-full print:break-inside-avoid print:border-none print:p-0 print:m-0 print:shadow-none shadow-sm">
   <img data-eduai-prompt="${encodeURIComponent(enhancedPrompt)}"
-       data-eduai-seed="${seedCounter}"
+       data-eduai-seed="${seed}"
        src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
        alt="${cleanPrompt}" 
        title="${cleanPrompt}"

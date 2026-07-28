@@ -39,6 +39,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
     if (video && !videoError) {
       video.muted = true;
       video.playsInline = true;
+      video.load();
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise.catch((err) => {
@@ -89,6 +90,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
         <div className="relative w-full h-full flex items-center justify-center bg-[#0e152e]">
           <video
             ref={videoRef}
+            src={splashVideo || "/splash.mp4"}
             autoPlay
             muted={isMuted}
             playsInline
@@ -111,10 +113,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
               setVideoError(true);
             }}
             className="w-full h-full object-contain max-w-full max-h-full cursor-pointer"
-          >
-            <source src={splashVideo} type="video/mp4" />
-            <source src="/splash.mp4" type="video/mp4" />
-          </video>
+          />
 
           {/* Video Control Buttons Overlay */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4">
