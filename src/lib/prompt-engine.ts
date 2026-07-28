@@ -7,7 +7,8 @@ import { ENHANCED_MASTER_PROMPT } from './prompts/master-prompt';
 import { 
   WORKSHEET_PROMPT_TEMPLATE, 
   VISUAL_AID_PROMPT_TEMPLATE, 
-  STUDY_GUIDE_PROMPT_TEMPLATE 
+  STUDY_GUIDE_PROMPT_TEMPLATE,
+  FOUNDATION_PHASE_TEMPLATE
 } from './prompts/content-templates';
 import {
   LESSON_PLAN_TEMPLATE,
@@ -63,7 +64,7 @@ export class EduAIPromptEngine {
     );
     
     // Select base template based on content type
-    let contentTemplate = this.selectTemplate(context.contentType);
+    let contentTemplate = this.selectTemplate(context.contentType, phase);
     
     if (context.contentType === 'lesson-plan' && context.includeWorksheet) {
       contentTemplate += `
@@ -158,7 +159,10 @@ Output format: raw JSON (no markdown block wrapper). Escaped double quotes.`;
   /**
    * Select appropriate template based on content type
    */
-  private static selectTemplate(contentType: PromptContext['contentType']): string {
+  private static selectTemplate(contentType: PromptContext['contentType'], phase: string): string {
+    if (contentType === 'worksheet' && phase === 'Foundation Phase') {
+      return FOUNDATION_PHASE_TEMPLATE;
+    }
     const templates: Record<string, string> = {
       'worksheet': WORKSHEET_PROMPT_TEMPLATE,
       'poster': VISUAL_AID_PROMPT_TEMPLATE,

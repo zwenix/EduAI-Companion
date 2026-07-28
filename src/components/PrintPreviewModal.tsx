@@ -25,6 +25,7 @@ interface PrintPreviewModalProps {
   rubric?: string;
   options: PrintOptions;
   isDarkMode?: boolean;
+  fontStyle?: string;
 }
 
 export default function PrintPreviewModal({
@@ -35,7 +36,8 @@ export default function PrintPreviewModal({
   memo,
   rubric,
   options,
-  isDarkMode = true
+  isDarkMode = true,
+  fontStyle = 'Standard System (Inter)'
 }: PrintPreviewModalProps) {
   const [selectedSection, setSelectedSection] = useState<'content' | 'memo' | 'rubric'>('content');
   const paperRef = useRef<HTMLDivElement>(null);
@@ -47,6 +49,14 @@ export default function PrintPreviewModal({
            clean.includes('grade r') || clean.includes('grade 1') || clean.includes('grade 2') || clean.includes('grade 3') ||
            clean.includes('foundation');
   }, [options.grade]);
+
+  const fontFamily = useMemo(() => {
+    if (fontStyle?.includes('Comic Neue')) return '"Comic Neue", cursive, sans-serif';
+    if (fontStyle?.includes('Sassoon')) return '"Sassoon Primary", cursive, sans-serif';
+    if (fontStyle?.includes('Kalam')) return '"Kalam", cursive, sans-serif';
+    if (fontStyle?.includes('Lexend')) return '"Lexend", sans-serif';
+    return isFoundation ? '"Patrick Hand", "Comic Neue", cursive, sans-serif' : "'Inter', system-ui, -apple-system, sans-serif";
+  }, [fontStyle, isFoundation]);
 
   // Subject color palette coding based on our South African CAPS visual styling guidelines
   const subjectStyling = useMemo(() => {
@@ -312,9 +322,7 @@ export default function PrintPreviewModal({
               className="w-full max-w-[210mm] min-h-[297mm] bg-white text-slate-800 p-[20mm] shadow-2xl rounded-sm border border-slate-200 text-left relative flex flex-col shrink-0 overflow-visible select-text"
               style={{
                 boxSizing: 'border-box',
-                fontFamily: isFoundation 
-                  ? '"Patrick Hand", "Comic Neue", cursive, sans-serif'
-                  : "'Inter', system-ui, -apple-system, sans-serif",
+                fontFamily,
                 fontSize: isFoundation ? '1.25rem' : undefined,
                 lineHeight: isFoundation ? '1.6' : undefined
               }}

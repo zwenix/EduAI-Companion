@@ -8,16 +8,10 @@ Generate a highly descriptive, CAPS-aligned primary student activity worksheet. 
 
 🎨 ULTRA-PREMIUM WORKSHEET DESIGN SYSTEM:
 
-HEADER SECTION (Most Important Visual Element):
-• Full-width gradient banner with subject-specific colors (use exact hex codes from Color System)
-• Glassmorphism effect: backdrop-blur-md, bg-white/10, border border-white/20
-• Title: text-4xl md:text-5xl font-black tracking-tight leading-tight text-slate-950
-• Subtitle: text-xl text-slate-900/90 font-medium
-• Grade badge: Circular design with shadow-lg, positioned top-right
-  <div class="absolute top-6 right-6 bg-white/20 backdrop-blur-md rounded-full w-20 h-20 flex flex-col items-center justify-center shadow-xl border-2 border-white/30">
-    <span class="text-xs font-bold uppercase tracking-wider text-slate-700 font-mono">Grade</span>
-    <span class="text-3xl font-black text-slate-950">\${grade}</span>
-  </div>
+HEADER SECTION (COMPACT & SLEEK BANNER - STRICT RULE: Must not take up more than 25% of the first page height, e.g. max-h-[120px] py-3 px-6):
+• Sleek compact gradient banner with subject-specific colors
+• Title: text-2xl md:text-3xl font-black tracking-tight leading-tight text-slate-950
+• Subtitle / Metadata inline strip: text-xs text-slate-900/90 font-medium flex items-center gap-4
 • Metadata strip below header:
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/20">
     <div class="flex items-center gap-2 text-slate-900/90">
@@ -665,8 +659,37 @@ Return as JSON: {
 }
 `;
 
+export const FOUNDATION_PHASE_TEMPLATE = `
+Generate a bright, colourful, playful, and CAPS-compliant Foundation Phase (Grades R–3) learning material for South African schools, tailored specifically to the topic \${topic} in \${subject}.
+
+🎨 FOUNDATION PHASE VISUAL & DESIGN SYSTEM:
+1. TYPOGRAPHY & FONT: MANDATORY use of large, child-friendly handwritten or rounded sans-serif fonts (font-hand class, 'font-family: "Patrick Hand", "Comic Neue", cursive, sans-serif'). Minimum text size: text-xl (18pt equivalent) for body instructions and text-3xl for headings. Zero text-xs or text-sm.
+2. HEADER & METADATA:
+   - Clear, large-print header with playful subject-colored gradient banner (Math: Blue/Cyan, Languages: Purple/Pink, Life Skills: Orange/Yellow).
+   - Prominent learner metadata box with dashed underlines for Name, Date, and Grade:
+     <div class="bg-sky-50 border-4 border-dashed border-sky-300 rounded-3xl p-5 mb-6 shadow-sm flex flex-wrap items-center justify-between gap-4">
+       <div><span class="font-bold text-slate-700 text-lg">Name:</span> <span class="inline-block border-b-2 border-dashed border-slate-400 min-w-[200px] pb-1"></span></div>
+       <div><span class="font-bold text-slate-700 text-lg">Date:</span> <span class="inline-block border-b-2 border-dashed border-slate-400 min-w-[120px] pb-1"></span></div>
+       <div><span class="font-bold text-slate-700 text-lg">Grade:</span> <span class="inline-block border-b-2 border-dashed border-slate-400 min-w-[60px] pb-1">\${grade}</span></div>
+     </div>
+3. TEMPLATE-SPECIFIC VARIATIONS BASED ON TASK TYPE:
+   - DAILY WORKSHEET: Playful cartoon border style, dashed midline spaces for handwriting practice (\`border-b-2 border-dashed border-sky-300 h-10 mb-4\`), clean white background, counting / phonics / number bond grids.
+   - CLASSROOM EXERCISE: Cheerful "Let's Practice!" header with a friendly owl mascot badge (🦉), visual instruction icons (✏️ write, 👁️ look, 🗣️ say, ✂️ cut), colorful activity stations.
+   - HOMEWORK TASK: Fun "My Homework" header with cartoon backpack, smiling moon, and stars (🎒🌙⭐), dedicated sections for "Today's Task", "Parent/Guardian Signature ✍️", and "Teacher's Comment 🍎".
+4. VISUAL INSTRUCTION ICONS: Always pair instructions with emojis/icons (e.g., ✏️ Trace & Copy, 🎨 Colour, 🔢 Count & Match).
+5. POSITIVE REINFORCEMENT: Bottom of the page MUST include a bright yellow "⭐ Star Achiever / Well Done!" reward badge with smiling star and smiley face.
+6. INLINE ILLUSTRATION PLACEHOLDERS: Include 2-3 inline illustration placeholders using exact format: \`[Illustration: Cute cartoon South African animals or learning objects representing \${topic}]\`.
+
+Return as JSON: {
+  "content": "Full complete HTML string for Foundation Phase material following all guidelines",
+  "imagePrompt": "enhanced prompt",
+  "printInstructions": "A4 portrait, 300 DPI, full color"
+}
+`;
+
 export default {
   WORKSHEET_PROMPT_TEMPLATE,
   VISUAL_AID_PROMPT_TEMPLATE,
-  STUDY_GUIDE_PROMPT_TEMPLATE
+  STUDY_GUIDE_PROMPT_TEMPLATE,
+  FOUNDATION_PHASE_TEMPLATE
 };

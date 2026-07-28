@@ -126,6 +126,13 @@ const TERMS = ['Term 1', 'Term 2', 'Term 3', 'Term 4'];
 const COLOR_SCHEMES = ['Bright Primary Colors', 'Pastel Soft', 'School Navy & Gold', 'Green & Nature', 'Monochrome Professional', 'Rainbow Fun'];
 const VISUAL_STYLES = ['Modern & Clean', 'Playful Cartoon', 'Professional Academic', 'Bold & Graphic', 'Minimalist'];
 const TONES = ['Formal & Professional', 'Warm & Friendly', 'Informative & Clear', 'Urgent & Important'];
+const FONT_STYLES = [
+  'Standard System (Inter)',
+  'Comic Neue (Primary Friendly)',
+  'Sassoon Primary (Primary Cursive)',
+  'Kalam (Handwriting)',
+  'Lexend (Dyslexia Friendly)'
+];
 
 const GENERATOR_GROUPS = [
   {
@@ -193,7 +200,7 @@ const TOP_TABS = ['DASHBOARD', 'CLASSROOMS', 'ARCHIVE'];
 
 // ─── Shared UI Components (Simulating Shadcn) ───────────────────────────────
 
-const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "" }: { html: string; minHeight?: string; className?: string }) => {
+const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle = "Standard System (Inter)" }: { html: string; minHeight?: string; className?: string; fontStyle?: string }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
@@ -241,11 +248,21 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "" }: { html:
   const fullDocument = useMemo(() => {
     const isFullDoc = cleanedHtml.includes('<html') || cleanedHtml.includes('<!DOCTYPE');
     if (isFullDoc) return cleanedHtml;
+
+    const fontCss = fontStyle.includes('Comic Neue') ? '"Comic Neue", cursive, sans-serif'
+      : fontStyle.includes('Sassoon') ? '"Sassoon Primary", cursive, sans-serif'
+      : fontStyle.includes('Kalam') ? '"Kalam", cursive, sans-serif'
+      : fontStyle.includes('Lexend') ? '"Lexend", sans-serif'
+      : 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&family=Kalam:wght@300;400;700&family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script>
     const originalWarn = console.warn;
     console.warn = function(...args) {
@@ -262,24 +279,24 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "" }: { html:
     body {
       background-color: #ffffff;
       color: #0f172a;
-      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: ${fontCss};
       margin: 0;
-      padding: 1.5rem;
-      line-height: 1.6;
-      font-size: 14px;
+      padding: 2rem;
+      line-height: 2.2rem;
+      font-size: 16px;
     }
-    h1 { font-size: 1.75rem; font-weight: 800; color: #0f172a; border-bottom: 2px solid #0284c7; padding-bottom: 0.5rem; margin-top: 0; }
-    h2 { font-size: 1.35rem; font-weight: 700; color: #0369a1; margin-top: 1.25rem; }
-    h3 { font-size: 1.1rem; font-weight: 700; color: #0284c7; margin-top: 1rem; }
-    p { margin-bottom: 0.75rem; font-size: 0.95rem; }
-    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 13px; }
-    th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; }
+    h1 { font-size: 2rem; font-weight: 800; color: #0f172a; border-bottom: 2px solid #0284c7; padding-bottom: 0.5rem; margin-top: 0; }
+    h2 { font-size: 1.5rem; font-weight: 700; color: #0369a1; margin-top: 1.5rem; }
+    h3 { font-size: 1.2rem; font-weight: 700; color: #0284c7; margin-top: 1.2rem; }
+    p { margin-bottom: 1rem; font-size: 1rem; line-height: 2.2rem; }
+    table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 14px; }
+    th, td { border: 1px solid #cbd5e1; padding: 12px 16px; text-align: left; }
     th { background-color: #f1f5f9; font-weight: 700; color: #1e293b; }
-    ul, ol { padding-left: 1.5rem; margin-bottom: 1rem; }
-    li { margin-bottom: 0.35rem; }
-    img { max-width: 100%; height: auto; border-radius: 0.5rem; display: block; margin: 1rem 0; }
-    .score-badge { display: inline-block; padding: 4px 12px; border-radius: 8px; font-weight: 800; border: 2px solid #f59e0b; background: #fef3c7; color: #92400e; }
-    .header-badge { border: 1px solid #94a3b8; padding: 8px 12px; border-radius: 6px; font-weight: 600; background: #f8fafc; }
+    ul, ol { padding-left: 2rem; margin-bottom: 1.5rem; line-height: 2.2rem; }
+    li { margin-bottom: 0.5rem; }
+    img { max-width: 100%; height: auto; border-radius: 0.5rem; display: block; margin: 1.5rem 0; }
+    .score-badge { display: inline-block; padding: 6px 14px; border-radius: 8px; font-weight: 800; border: 2px solid #f59e0b; background: #fef3c7; color: #92400e; }
+    .header-badge { border: 1px solid #94a3b8; padding: 10px 14px; border-radius: 6px; font-weight: 600; background: #f8fafc; }
     @media print {
       body { padding: 0; }
     }
@@ -314,7 +331,7 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "" }: { html:
   </script>
 </body>
 </html>`;
-  }, [cleanedHtml]);
+  }, [cleanedHtml, fontStyle]);
 
   return (
     <iframe
@@ -472,6 +489,8 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   const [showShareModal, setShowShareModal] = useState(false);
   const [showPrintPreviewModal, setShowPrintPreviewModal] = useState(false);
   const [isFullscreenPreview, setIsFullscreenPreview] = useState(false);
+  const [fontStyle, setFontStyle] = useState('Standard System (Inter)');
+  const [isPrintPreview, setIsPrintPreview] = useState(false);
   const [shareType, setShareType] = useState<'link' | 'text' | 'html' | 'markdown' | 'json' | 'email'>('link');
   const [shareSuccess, setShareSuccess] = useState(false);
   const [assignSuccess, setAssignSuccess] = useState(false);
@@ -480,6 +499,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   const [assignTargetName, setAssignTargetName] = useState('');
   const [assignTargetId, setAssignTargetId] = useState('');
   const [shareTypeMode, setShareTypeMode] = useState<'link' | 'download' | 'email'>('link');
+  const [activeSetupTab, setActiveSetupTab] = useState<'grade' | 'subject' | 'type' | 'topic'>('grade');
   
   // Teaching Tab State
   const [t_grade, setT_Grade] = useState('');
@@ -1539,295 +1559,302 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                 </h2>
 
                 <div className="space-y-4">
-                  {/* Phase Quick-Select Pill Buttons */}
-                    <div className="space-y-1.5">
-                      <Label>Quick Phase Preset</Label>
+                  <div className="space-y-4">
+                    {/* Reorganized Setup Buttons & List Patterns */}
+                    <div className="space-y-4">
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {[
-                          { label: 'Foundation (R-3)', grade: 'Grade 1', color: 'from-amber-500/20 to-orange-500/20 border-amber-500/40 text-amber-300' },
-                          { label: 'Intermediate (4-6)', grade: 'Grade 4', color: 'from-cyan-500/20 to-blue-500/20 border-cyan-500/40 text-cyan-300' },
-                          { label: 'Senior (7-9)', grade: 'Grade 8', color: 'from-purple-500/20 to-indigo-500/20 border-purple-500/40 text-purple-300' },
-                          { label: 'FET Phase (10-12)', grade: 'Grade 10', color: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/40 text-emerald-300' },
-                        ].map((phase) => {
-                          const currentGrade = activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade;
-                          const isSelected = getPhaseForGrade(currentGrade) === (
-                            phase.grade === 'Grade 1' ? 'Foundation Phase' :
-                            phase.grade === 'Grade 4' ? 'Intermediate Phase' :
-                            phase.grade === 'Grade 8' ? 'Senior Phase' : 'FET Phase'
-                          );
+                          { id: 'grade', label: 'Choose Grade', color: 'from-amber-500/20 to-orange-500/25 border-amber-500/40 text-amber-300' },
+                          { id: 'subject', label: 'Choose Subject', color: 'from-cyan-500/20 to-blue-500/25 border-cyan-500/40 text-cyan-300' },
+                          { id: 'type', label: 'Content Type', color: 'from-purple-500/20 to-indigo-500/25 border-purple-500/40 text-purple-300' },
+                          { id: 'topic', label: 'Topic', color: 'from-emerald-500/20 to-teal-500/25 border-emerald-500/40 text-emerald-300' },
+                        ].map((btn) => {
+                          const isActive = activeSetupTab === btn.id;
                           return (
                             <button
-                              key={phase.label}
+                              key={btn.id}
                               type="button"
-                              onClick={() => {
-                                if (activeTab === 'teaching') {
-                                  setT_Grade(phase.grade);
-                                  setT_Subject('');
-                                  setT_Topic('');
-                                } else if (activeTab === 'visual') {
-                                  setV_Grade(phase.grade);
-                                  setV_Subject('');
-                                  setV_Topic('');
-                                } else {
-                                  setA_Grade(phase.grade);
-                                  setA_Subject('');
-                                  setA_Topic('');
-                                }
-                              }}
+                              onClick={() => setActiveSetupTab(activeSetupTab === btn.id ? null : btn.id as any)}
                               className={cn(
-                                "py-1.5 px-2.5 rounded-xl border text-[10px] font-bold tracking-tight transition-all text-center cursor-pointer bg-gradient-to-r shadow-xs hover:scale-[1.02] active:scale-95 truncate",
-                                phase.color,
-                                isSelected ? "ring-2 ring-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.3)] opacity-100" : "opacity-80 hover:opacity-100"
+                                "py-2.5 px-3 rounded-xl border text-xs font-black tracking-wider uppercase transition-all text-center cursor-pointer bg-gradient-to-r shadow-xs hover:scale-[1.02] active:scale-95 truncate",
+                                btn.color,
+                                isActive ? "ring-2 ring-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.4)] opacity-100" : "opacity-75 hover:opacity-100"
                               )}
                             >
-                              {phase.label}
+                              {btn.label}
                             </button>
                           );
                         })}
                       </div>
-                    </div>
 
-                  {/* Primary Parameters Grid: 2 Side-by-Side Controls per Row */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    {/* Grade Selector */}
-                      <div>
-                        <Label>Grade Level (R-12)</Label>
-                        <Select
-                          isDarkMode={isDarkMode}
-                          value={activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade}
-                          className={cn(
-                            (activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade) && (isDarkMode ? "border-cyan-400/60 bg-cyan-950/30 text-cyan-200" : "border-cyan-300 bg-cyan-50/80")
-                          )}
-                          onChange={(e: any) => {
-                            const val = e.target.value;
-                            if (activeTab === 'teaching') {
-                              setT_Grade(val);
-                              setT_Subject('');
-                              setT_Topic('');
-                            } else if (activeTab === 'visual') {
-                              setV_Grade(val);
-                              setV_Subject('');
-                              setV_Topic('');
-                            } else {
-                              setA_Grade(val);
-                              setA_Subject('');
-                              setA_Topic('');
-                            }
-                          }}
-                        >
-                          <option value="">Choose Grade</option>
-                          {['Reception', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 
-                            'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 
-                            'Grade 11', 'Grade 12'].map(grade => (
-                            <option key={grade} value={grade}>{grade}</option>
-                          ))}
-                        </Select>
-                      </div>
-
-                    {/* Subject Area */}
-                    <div className={activeTab === 'admin' ? "col-span-1" : ""}>
-                      <Label>Subject Area</Label>
-                      <Select
-                        isDarkMode={isDarkMode}
-                        value={activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject}
-                        className={cn(
-                          (activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject) && (isDarkMode ? "border-purple-400/60 bg-purple-950/30 text-purple-200" : "border-purple-300 bg-purple-50/80")
-                        )}
-                        onChange={(e: any) => {
-                          const val = e.target.value;
-                          if (activeTab === 'teaching') {
-                            setT_Subject(val);
-                            setT_Topic('');
-                          } else if (activeTab === 'visual') {
-                            setV_Subject(val);
-                            setV_Topic('');
-                          } else {
-                            setA_Subject(val);
-                            setA_Topic('');
-                          }
-                        }}
-                      >
-                        <option value="">Choose Subject</option>
-                        {activeTab === 'admin' ? (
-                          ['Mathematics', 'Physical Sciences', 'Life Sciences', 'English', 
-                           'Afrikaans', 'History', 'Geography', 'Economic Management Sciences',
-                           'Natural Sciences', 'Technology', 'Creative Arts', 'Other'].map(subj => (
-                            <option key={subj} value={subj}>{subj}</option>
-                          ))
-                        ) : (
-                          (() => {
-                            const currentGrade = activeTab === 'teaching' ? t_grade : v_grade;
-                            const phase = getPhaseForGrade(currentGrade);
-                            const subjects = phase && (subjectsByGrade as any)[phase]
-                              ? (subjectsByGrade as any)[phase]
-                              : [];
-                            return [...subjects, 'Other'].map(subj => (
-                              <option key={subj} value={subj}>{subj}</option>
-                            ));
-                          })()
-                        )}
-                      </Select>
-                    </div>
-
-                    {/* Custom Subject (if 'Other' is chosen) */}
-                    {((activeTab === 'teaching' && t_subject === 'Other') ||
-                      (activeTab === 'visual' && v_subject === 'Other') ||
-                      (activeTab === 'admin' && a_subject === 'Other')) && (
-                      <div className="col-span-1 sm:col-span-2">
-                        <Label>Specify Custom Subject</Label>
-                        <Input
-                          isDarkMode={isDarkMode}
-                          type="text"
-                          value={activeTab === 'teaching' ? t_customSubject : activeTab === 'visual' ? v_customSubject : a_customSubject}
-                          onChange={(e: any) => {
-                            if (activeTab === 'teaching') setT_CustomSubject(e.target.value);
-                            else if (activeTab === 'visual') setV_CustomSubject(e.target.value);
-                            else setA_CustomSubject(e.target.value);
-                          }}
-                          placeholder="Enter custom subject name..."
-                        />
-                      </div>
-                    )}
-
-                    {/* Content / Visual / Admin Type */}
-                    {activeTab === 'teaching' && (
-                      <div>
-                        <Label>Content Type</Label>
-                        <Select
-                          isDarkMode={isDarkMode}
-                          value={t_type}
-                          onChange={(e: any) => setT_Type(e.target.value)}
-                        >
-                          <option value="">Choose Type</option>
-                          {Object.entries(TEACHING_CATEGORIES).map(([cat, types]) => (
-                            <optgroup key={cat} label={cat}>
-                              {types.map(t => (
-                                <option key={t} value={t}>{t}</option>
-                              ))}
-                            </optgroup>
-                          ))}
-                        </Select>
-                      </div>
-                    )}
-
-                    {activeTab === 'visual' && (
-                      <div>
-                        <Label>Visual Type</Label>
-                        <Select
-                          isDarkMode={isDarkMode}
-                          value={v_type}
-                          onChange={(e: any) => setV_Type(e.target.value)}
-                        >
-                          <option value="">Choose Type</option>
-                          {Object.entries(VISUAL_TYPES).map(([cat, types]) => (
-                            <optgroup key={cat} label={cat}>
-                              {types.map(t => (
-                                <option key={t} value={t}>{t}</option>
-                              ))}
-                            </optgroup>
-                          ))}
-                        </Select>
-                      </div>
-                    )}
-
-                    {activeTab === 'admin' && (
-                      <div>
-                        <Label>Administration Type</Label>
-                        <Select
-                          isDarkMode={isDarkMode}
-                          value={a_type}
-                          onChange={(e: any) => setA_Type(e.target.value)}
-                        >
-                          <option value="">Choose Type</option>
-                          {Object.entries(ADMIN_TYPES).map(([cat, types]) => (
-                            <optgroup key={cat} label={cat}>
-                              {types.map(t => (
-                                <option key={t} value={t}>{t}</option>
-                              ))}
-                            </optgroup>
-                          ))}
-                        </Select>
-                      </div>
-                    )}
-
-                    {/* Topic Field */}
-                    <div>
-                      <Label>Topic</Label>
-                      {activeTab !== 'admin' ? (
-                        (() => {
-                          const currentGrade = activeTab === 'teaching' ? t_grade : v_grade;
-                          const currentSubject = activeTab === 'teaching' ? t_subject : v_subject;
-                          const phase = getPhaseForGrade(currentGrade);
-                          const topics = phase && currentSubject && (capsTopics as any)[phase] && (capsTopics as any)[phase][currentSubject]
-                            ? (capsTopics as any)[phase][currentSubject] as string[]
-                            : [];
-                          
-                          const currentTopicValue = activeTab === 'teaching' ? t_topic : v_topic;
-                          
-                          if (topics.length > 0) {
-                            return (
-                              <div className="space-y-2">
-                                <Select
-                                  isDarkMode={isDarkMode}
-                                  value={topics.includes(currentTopicValue) ? currentTopicValue : (currentTopicValue ? "Other" : "")}
-                                  onChange={(e: any) => {
-                                    const val = e.target.value;
-                                    if (val === 'Other') {
-                                      if (activeTab === 'teaching') setT_Topic('');
-                                      else setV_Topic('');
-                                    } else {
-                                      if (activeTab === 'teaching') setT_Topic(val);
-                                      else setV_Topic(val);
-                                    }
-                                  }}
-                                >
-                                  <option value="">Choose Topic</option>
-                                  {topics.map(topic => (
-                                    <option key={topic} value={topic}>{topic}</option>
-                                  ))}
-                                  <option value="Other">Other (Custom)</option>
-                                </Select>
-                                
-                                {(!topics.includes(currentTopicValue) || currentTopicValue === '') && (
-                                  <Input
-                                    isDarkMode={isDarkMode}
-                                    type="text"
-                                    value={currentTopicValue}
-                                    onChange={(e: any) => {
-                                      if (activeTab === 'teaching') setT_Topic(e.target.value);
-                                      else setV_Topic(e.target.value);
-                                    }}
-                                    placeholder="Type custom topic..."
-                                  />
-                                )}
+                      {/* Active Setup Content Area - Minimized/Collapsed when activeSetupTab is null */}
+                      {activeSetupTab && (
+                        <div className={cn("p-4 rounded-2xl border transition-all animate-fadeIn", isDarkMode ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200")}>
+                          {activeSetupTab === 'grade' && (
+                            <div className="space-y-3">
+                              <Label className="text-xs font-black uppercase tracking-wider">Select Grade Level (R-12)</Label>
+                              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                                {['Reception', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 
+                                  'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 
+                                  'Grade 11', 'Grade 12'].map(grade => {
+                                  const currentGrade = activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade;
+                                  const isSel = currentGrade === grade;
+                                  return (
+                                    <button
+                                      key={grade}
+                                      type="button"
+                                      onClick={() => {
+                                        if (activeTab === 'teaching') {
+                                          setT_Grade(grade);
+                                          setT_Subject('');
+                                          setT_Topic('');
+                                        } else if (activeTab === 'visual') {
+                                          setV_Grade(grade);
+                                          setV_Subject('');
+                                          setV_Topic('');
+                                        } else {
+                                          setA_Grade(grade);
+                                          setA_Subject('');
+                                          setA_Topic('');
+                                        }
+                                        setActiveSetupTab(null);
+                                      }}
+                                      className={cn(
+                                        "py-2 px-2.5 rounded-xl border text-xs font-bold transition-all text-center cursor-pointer",
+                                        isSel 
+                                          ? "bg-cyan-500 text-white border-cyan-400 shadow-md shadow-cyan-500/30" 
+                                          : isDarkMode ? "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                                      )}
+                                    >
+                                      {grade}
+                                    </button>
+                                  );
+                                })}
                               </div>
-                            );
-                          } else {
-                            return (
-                              <Input
-                                isDarkMode={isDarkMode}
-                                type="text"
-                                value={currentTopicValue}
-                                onChange={(e: any) => {
-                                  if (activeTab === 'teaching') setT_Topic(e.target.value);
-                                  else setV_Topic(e.target.value);
-                                }}
-                                placeholder="e.g., Fractions, Periodic Table"
-                              />
-                            );
-                          }
-                        })()
-                      ) : (
-                        <Input
-                          isDarkMode={isDarkMode}
-                          type="text"
-                          value={a_topic}
-                          onChange={(e: any) => setA_Topic(e.target.value)}
-                          placeholder="e.g., Parent Newsletter"
-                        />
+                            </div>
+                          )}
+
+                          {activeSetupTab === 'subject' && (
+                            <div className="space-y-3">
+                              <Label className="text-xs font-black uppercase tracking-wider">Select Subject Area</Label>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {(() => {
+                                  const subjects = activeTab === 'admin' 
+                                    ? ['Mathematics', 'Physical Sciences', 'Life Sciences', 'English', 'Afrikaans', 'History', 'Geography', 'Technology', 'Other']
+                                    : (() => {
+                                        const currentGrade = activeTab === 'teaching' ? t_grade : v_grade;
+                                        const phase = getPhaseForGrade(currentGrade);
+                                        const subs = phase && (subjectsByGrade as any)[phase] ? (subjectsByGrade as any)[phase] : [];
+                                        return [...subs, 'Other'];
+                                      })();
+                                  
+                                  const currentSubj = activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject;
+                                  
+                                  return subjects.map((subj: string) => {
+                                    const isSel = currentSubj === subj;
+                                    return (
+                                      <button
+                                        key={subj}
+                                        type="button"
+                                        onClick={() => {
+                                          if (activeTab === 'teaching') {
+                                            setT_Subject(subj);
+                                            setT_Topic('');
+                                          } else if (activeTab === 'visual') {
+                                            setV_Subject(subj);
+                                            setV_Topic('');
+                                          } else {
+                                            setA_Subject(subj);
+                                            setA_Topic('');
+                                          }
+                                          if (subj !== 'Other') setActiveSetupTab(null);
+                                        }}
+                                        className={cn(
+                                          "py-2.5 px-3 rounded-xl border text-xs font-bold transition-all text-left truncate",
+                                          isSel 
+                                            ? "bg-purple-600 text-white border-purple-500 shadow-md shadow-purple-500/30" 
+                                            : isDarkMode ? "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                                        )}
+                                      >
+                                        {subj}
+                                      </button>
+                                    );
+                                  });
+                                })()}
+                              </div>
+
+                              {/* Custom Subject Input if 'Other' */}
+                              {((activeTab === 'teaching' && t_subject === 'Other') ||
+                                (activeTab === 'visual' && v_subject === 'Other') ||
+                                (activeTab === 'admin' && a_subject === 'Other')) && (
+                                <div className="pt-2 flex items-center gap-2">
+                                  <div className="flex-1">
+                                    <Label>Specify Custom Subject</Label>
+                                    <Input
+                                      isDarkMode={isDarkMode}
+                                      type="text"
+                                      value={activeTab === 'teaching' ? t_customSubject : activeTab === 'visual' ? v_customSubject : a_customSubject}
+                                      onChange={(e: any) => {
+                                        if (activeTab === 'teaching') setT_CustomSubject(e.target.value);
+                                        else if (activeTab === 'visual') setV_CustomSubject(e.target.value);
+                                        else setA_CustomSubject(e.target.value);
+                                      }}
+                                      placeholder="Enter custom subject name..."
+                                    />
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setActiveSetupTab(null)}
+                                    className="mt-5 px-3 py-2 bg-purple-600 text-white text-xs font-bold rounded-xl"
+                                  >
+                                    Done
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {activeSetupTab === 'type' && (
+                            <div className="space-y-3">
+                              <Label className="text-xs font-black uppercase tracking-wider">
+                                {activeTab === 'teaching' ? 'Content Type' : activeTab === 'visual' ? 'Visual Type' : 'Administration Type'}
+                              </Label>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                {Object.entries(
+                                  activeTab === 'teaching' ? TEACHING_CATEGORIES :
+                                  activeTab === 'visual' ? VISUAL_TYPES : ADMIN_TYPES
+                                ).map(([cat, types]) => (
+                                  <div key={cat} className={cn("p-3 rounded-xl border", isDarkMode ? "bg-black/20 border-white/10" : "bg-white border-slate-200")}>
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-purple-400 mb-2">{cat}</div>
+                                    <div className="space-y-1.5">
+                                      {types.map(t => {
+                                        const currentType = activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : a_type;
+                                        const isSel = currentType === t;
+                                        return (
+                                          <button
+                                            key={t}
+                                            type="button"
+                                            onClick={() => {
+                                              if (activeTab === 'teaching') setT_Type(t);
+                                              else if (activeTab === 'visual') setV_Type(t);
+                                              else setA_Type(t);
+                                              setActiveSetupTab(null);
+                                            }}
+                                            className={cn(
+                                              "w-full text-left py-1.5 px-2.5 rounded-lg border text-xs font-bold transition-all",
+                                              isSel
+                                                ? "bg-cyan-500 text-white border-cyan-400 shadow-sm"
+                                                : isDarkMode ? "bg-white/5 border-white/5 text-slate-300 hover:bg-white/10" : "bg-slate-50 border-slate-100 text-slate-700 hover:bg-slate-100"
+                                            )}
+                                          >
+                                            {t}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {activeSetupTab === 'topic' && (
+                            <div className="space-y-3">
+                              <Label className="text-xs font-black uppercase tracking-wider">Topic Selection / Input</Label>
+                              {activeTab !== 'admin' ? (
+                                (() => {
+                                  const currentGrade = activeTab === 'teaching' ? t_grade : v_grade;
+                                  const currentSubject = activeTab === 'teaching' ? t_subject : v_subject;
+                                  const phase = getPhaseForGrade(currentGrade);
+                                  const topics = phase && currentSubject && (capsTopics as any)[phase] && (capsTopics as any)[phase][currentSubject]
+                                    ? (capsTopics as any)[phase][currentSubject] as string[]
+                                    : [];
+                                  
+                                  const currentTopicValue = activeTab === 'teaching' ? t_topic : v_topic;
+                                  
+                                  return (
+                                    <div className="space-y-3">
+                                      {topics.length > 0 ? (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                          {topics.map(topic => {
+                                            const isSel = currentTopicValue === topic;
+                                            return (
+                                              <button
+                                                key={topic}
+                                                type="button"
+                                                onClick={() => {
+                                                  if (activeTab === 'teaching') setT_Topic(topic);
+                                                  else setV_Topic(topic);
+                                                  setActiveSetupTab(null);
+                                                }}
+                                                className={cn(
+                                                  "py-2 px-3 rounded-xl border text-xs font-bold text-left transition-all",
+                                                  isSel
+                                                    ? "bg-emerald-600 text-white border-emerald-500 shadow-md"
+                                                    : isDarkMode ? "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                                                )}
+                                              >
+                                                {topic}
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      ) : (
+                                        <div className="text-xs text-slate-400 italic">No preset topics for this subject. Enter custom topic below:</div>
+                                      )}
+
+                                      <div className="pt-2 flex items-center gap-2">
+                                        <div className="flex-1">
+                                          <Label>Custom Topic Input</Label>
+                                          <Input
+                                            isDarkMode={isDarkMode}
+                                            type="text"
+                                            value={currentTopicValue}
+                                            onChange={(e: any) => {
+                                              if (activeTab === 'teaching') setT_Topic(e.target.value);
+                                              else setV_Topic(e.target.value);
+                                            }}
+                                            placeholder="e.g., Fractions, Photosynthesis, Quadratic Equations..."
+                                          />
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => setActiveSetupTab(null)}
+                                          className="mt-5 px-3 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl"
+                                        >
+                                          Done
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })()
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <div className="flex-1">
+                                    <Input
+                                      isDarkMode={isDarkMode}
+                                      type="text"
+                                      value={a_topic}
+                                      onChange={(e: any) => setA_Topic(e.target.value)}
+                                      placeholder="e.g., Parent Newsletter, Term Report Card"
+                                    />
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setActiveSetupTab(null)}
+                                    className="px-3 py-2 bg-cyan-600 text-white text-xs font-bold rounded-xl"
+                                  >
+                                    Done
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
+
 
                   {/* Admin Specific Fields */}
                   {activeTab === 'admin' && (
@@ -1858,6 +1885,58 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                       </div>
                     </div>
                   )}
+
+                  {/* Icon Selector Component for Emergent Learners */}
+                  <div className="space-y-2 pt-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+                        Visual Cue Icon Selector (For Emergent Learners)
+                      </Label>
+                      <span className="text-[10px] text-slate-400">Click to insert icon</span>
+                    </div>
+                    <div className="grid grid-cols-8 gap-1.5 p-2 rounded-xl border bg-black/20 border-white/10">
+                      {['✏️', '📚', '⭐', '✂️', '👁️', '🗣️', '🎒', '💡', '🧠', '🏆', '🦉', '🎨', '🎵', '🔢', '🔤', '🧩'].map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          title={`Insert ${emoji}`}
+                          onClick={() => {
+                            const current = activeTab === 'teaching' ? t_customPrompt : activeTab === 'visual' ? v_customPrompt : a_customPrompt;
+                            const updated = current + (current ? ' ' : '') + emoji;
+                            if (activeTab === 'teaching') setT_CustomPrompt(updated);
+                            else if (activeTab === 'visual') setV_CustomPrompt(updated);
+                            else setA_CustomPrompt(updated);
+                          }}
+                          className="h-8 rounded-lg border border-white/10 bg-white/5 hover:bg-white/15 text-sm flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Custom Action Prompt Script */}
+                  <div className="pt-2 space-y-1.5">
+                    <label className={cn("text-[10px] font-black uppercase tracking-widest block ml-1", isDarkMode ? "text-purple-400" : "text-purple-600")}>
+                      Action Prompt Script (Optional)
+                    </label>
+                    <textarea 
+                      placeholder="Type your custom instructions here... E.g., Focus specifically on the history of the Khoisan people..."
+                      value={activeTab === 'teaching' ? t_customPrompt : activeTab === 'visual' ? v_customPrompt : a_customPrompt}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (activeTab === 'teaching') setT_CustomPrompt(val);
+                        else if (activeTab === 'visual') setV_CustomPrompt(val);
+                        else setA_CustomPrompt(val);
+                      }}
+                      className={cn(
+                        "w-full h-20 border text-xs font-medium rounded-xl p-2.5 focus:outline-none focus:ring-1 transition-all resize-none",
+                        isDarkMode 
+                          ? "bg-[#0b1122]/80 border-white/10 text-slate-200 focus:border-purple-400 focus:ring-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.05)]" 
+                          : "bg-white border-slate-200 text-slate-800 focus:border-purple-500 focus:ring-purple-500"
+                      )}
+                    />
+                  </div>
 
                   {/* Embedded Advanced Section based on mode */}
                   {activeTab === 'teaching' && (
@@ -1898,6 +1977,19 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                             onChange={(e: any) => setT_Duration(e.target.value)}
                             placeholder="e.g. 45 minutes"
                           />
+                        </div>
+
+                        <div>
+                          <Label>Font Style</Label>
+                          <Select
+                            isDarkMode={isDarkMode}
+                            value={fontStyle}
+                            onChange={(e: any) => setFontStyle(e.target.value)}
+                          >
+                            {FONT_STYLES.map(font => (
+                              <option key={font} value={font}>{font}</option>
+                            ))}
+                          </Select>
                         </div>
                       </div>
 
@@ -1967,29 +2059,6 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                       </div>
                     </AdvancedSection>
                   )}
-
-                  {/* Custom Action Prompt Script */}
-                  <div className="pt-4 border-t border-white/5 space-y-1.5">
-                    <label className={cn("text-[10px] font-black uppercase tracking-widest block ml-1", isDarkMode ? "text-purple-400" : "text-purple-600")}>
-                      Action Prompt Script (Optional)
-                    </label>
-                    <textarea 
-                      placeholder="Type your custom instructions here... E.g., Focus specifically on the history of the Khoisan people..."
-                      value={activeTab === 'teaching' ? t_customPrompt : activeTab === 'visual' ? v_customPrompt : a_customPrompt}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (activeTab === 'teaching') setT_CustomPrompt(val);
-                        else if (activeTab === 'visual') setV_CustomPrompt(val);
-                        else setA_CustomPrompt(val);
-                      }}
-                      className={cn(
-                        "w-full h-20 border text-xs font-medium rounded-xl p-2.5 focus:outline-none focus:ring-1 transition-all resize-none",
-                        isDarkMode 
-                          ? "bg-[#0b1122]/80 border-white/10 text-slate-200 focus:border-purple-400 focus:ring-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.05)]" 
-                          : "bg-white border-slate-200 text-slate-800 focus:border-purple-500 focus:ring-purple-500"
-                      )}
-                    />
-                  </div>
 
 
                   {activeTab === 'visual' && (
@@ -2103,18 +2172,36 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                       Magic Preview
                     </h2>
 
-                    {/* Close Button Only */}
-                    {((activeTab === 'teaching' && (teachingResult?.content || teachingResult?.memo || teachingResult?.rubric)) ||
-                      (activeTab === 'visual' && visualResult?.content) ||
-                      (activeTab === 'admin' && adminResult?.content)) && !isGenerating && (
-                      <button
-                        onClick={handleClosePreview}
-                        title="Close Preview"
-                        className="p-2 rounded-xl bg-slate-500/10 border border-slate-500/30 text-slate-400 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all cursor-pointer flex items-center justify-center"
-                      >
-                        <X size={16} />
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {((activeTab === 'teaching' && (teachingResult?.content || teachingResult?.memo || teachingResult?.rubric)) ||
+                        (activeTab === 'visual' && visualResult?.content) ||
+                        (activeTab === 'admin' && adminResult?.content)) && !isGenerating && (
+                        <button
+                          onClick={() => setShowPrintPreviewModal(true)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border shadow-sm",
+                            isDarkMode ? "bg-white/10 text-cyan-300 border-white/20 hover:bg-white/20" : "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100"
+                          )}
+                          title="Toggle A4 Print Preview Mode"
+                        >
+                          <Printer size={14} />
+                          Print Preview (A4)
+                        </button>
+                      )}
+
+                      {/* Close Button Only */}
+                      {((activeTab === 'teaching' && (teachingResult?.content || teachingResult?.memo || teachingResult?.rubric)) ||
+                        (activeTab === 'visual' && visualResult?.content) ||
+                        (activeTab === 'admin' && adminResult?.content)) && !isGenerating && (
+                        <button
+                          onClick={handleClosePreview}
+                          title="Close Preview"
+                          className="p-2 rounded-xl bg-slate-500/10 border border-slate-500/30 text-slate-400 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all cursor-pointer flex items-center justify-center"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Preview Area */}
@@ -2457,6 +2544,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                           <div className="flex-1 max-h-[600px] overflow-y-auto scrollbar-thin p-3 sm:p-4">
                             <HtmlPreviewFrame
                               html={replaceImagePlaceholders(activeHtml, activeTab === 'teaching' ? t_generateImage : activeTab === 'visual' ? v_generateImage : a_generateImage)}
+                              fontStyle={fontStyle}
                               minHeight="520px"
                             />
                           </div>
@@ -2601,6 +2689,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                         : activeTab === 'visual' ? visualResult?.content : adminResult.content,
                       activeTab === 'teaching' ? t_generateImage : activeTab === 'visual' ? v_generateImage : a_generateImage
                     )}
+                    fontStyle={fontStyle}
                     minHeight="100%"
                     className="w-full h-full max-w-5xl"
                   />
@@ -3004,6 +3093,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
           title: (activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation'
         }}
         isDarkMode={isDarkMode}
+        fontStyle={fontStyle}
       />
     </div>
   );
