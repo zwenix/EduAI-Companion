@@ -2267,9 +2267,9 @@ export default function App() {
                             : 'bg-slate-50 border border-slate-200 text-slate-705 focus:border-orange-500 shadow-sm'
                       }`}
                     >
-                      <option value="gemini-imagen">Google Imagen 3 (Default)</option>
-                      <option value="perchance">Perchance AI: 🌌 Image Generator Professional 🌟 (Secondary)</option>
-                      <option value="pollinations">Pollinations AI (Tertiary)</option>
+                      <option value="perchance">Perchance AI Text-to-Image (Primary - Recommended)</option>
+                      <option value="gemini-imagen">Google Imagen 3 (Secondary)</option>
+                      <option value="pollinations">Pollinations AI Turbo (Tertiary)</option>
                     </select>
                   </div>
 

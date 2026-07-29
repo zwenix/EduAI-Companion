@@ -221,7 +221,7 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
   }, []);
 
   const cleanedHtml = useMemo(() => {
-    if (!html) return "";
+    if (!html || typeof html !== 'string') return "";
     let clean = html.trim();
     if (clean.startsWith("```html")) {
       clean = clean.replace(/^```html\s*/i, "").replace(/\s*```$/, "");
@@ -411,6 +411,30 @@ const Button = ({ className, children, ...props }: any) => (
   >
     {children}
   </button>
+);
+
+const IconSelector = ({ onSelect, isDarkMode }: { onSelect: (emoji: string) => void, isDarkMode: boolean }) => (
+  <div className="space-y-2 pt-1">
+    <div className="flex items-center justify-between">
+      <Label className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+        Visual Cue Icon Selector (For Emergent Learners)
+      </Label>
+      <span className="text-[10px] text-slate-400">Click to insert</span>
+    </div>
+    <div className="grid grid-cols-8 gap-1 p-1.5 rounded-xl border bg-black/20 border-white/10">
+      {['✏️', '📚', '⭐', '✂️', '👁️', '🗣️', '🎒', '💡', '🧠', '🏆', '🦉', '🎨', '🎵', '🔢', '🔤', '🧩'].map((emoji) => (
+        <button
+          key={emoji}
+          type="button"
+          title={`Insert ${emoji}`}
+          onClick={() => onSelect(emoji)}
+          className="h-7 rounded-lg border border-white/5 bg-white/5 hover:bg-white/15 text-xs flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer"
+        >
+          {emoji}
+        </button>
+      ))}
+    </div>
+  </div>
 );
 
 // ─── Section Expander ─────────────────────────────────────────────────────────
@@ -1570,19 +1594,48 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                           { id: 'topic', label: 'Topic', color: 'from-emerald-500/20 to-teal-500/25 border-emerald-500/40 text-emerald-300' },
                         ].map((btn) => {
                           const isActive = activeSetupTab === btn.id;
+                          const selectedValue = (() => {
+                            if (activeTab === 'teaching') {
+                              if (btn.id === 'grade') return t_grade;
+                              if (btn.id === 'subject') return t_subject === 'Other' ? t_customSubject : t_subject;
+                              if (btn.id === 'type') return t_type;
+                              if (btn.id === 'topic') return t_topic;
+                            } else if (activeTab === 'visual') {
+                              if (btn.id === 'grade') return v_grade;
+                              if (btn.id === 'subject') return v_subject === 'Other' ? v_customSubject : v_subject;
+                              if (btn.id === 'type') return v_type;
+                              if (btn.id === 'topic') return v_topic;
+                            } else {
+                              if (btn.id === 'grade') return a_grade;
+                              if (btn.id === 'subject') return a_subject === 'Other' ? a_customSubject : a_subject;
+                              if (btn.id === 'type') return a_type;
+                              if (btn.id === 'topic') return a_topic;
+                            }
+                            return '';
+                          })();
+
                           return (
-                            <button
-                              key={btn.id}
-                              type="button"
-                              onClick={() => setActiveSetupTab(activeSetupTab === btn.id ? null : btn.id as any)}
-                              className={cn(
-                                "py-2.5 px-3 rounded-xl border text-xs font-black tracking-wider uppercase transition-all text-center cursor-pointer bg-gradient-to-r shadow-xs hover:scale-[1.02] active:scale-95 truncate",
-                                btn.color,
-                                isActive ? "ring-2 ring-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.4)] opacity-100" : "opacity-75 hover:opacity-100"
+                            <div key={btn.id} className="flex flex-col gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setActiveSetupTab(activeSetupTab === btn.id ? null : btn.id as any)}
+                                className={cn(
+                                  "w-full py-2.5 px-3 rounded-xl border text-xs font-black tracking-wider uppercase transition-all text-center cursor-pointer bg-gradient-to-r shadow-xs hover:scale-[1.02] active:scale-95 truncate",
+                                  btn.color,
+                                  isActive ? "ring-2 ring-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.4)] opacity-100" : "opacity-75 hover:opacity-100"
+                                )}
+                              >
+                                {btn.label}
+                              </button>
+                              {selectedValue && (
+                                <div className={cn(
+                                  "px-2 py-1 rounded-lg text-[10px] font-bold truncate border text-center animate-fadeIn",
+                                  isDarkMode ? "bg-white/5 border-white/10 text-cyan-300" : "bg-slate-50 border-slate-200 text-cyan-700"
+                                )}>
+                                  {selectedValue}
+                                </div>
                               )}
-                            >
-                              {btn.label}
-                            </button>
+                            </div>
                           );
                         })}
                       </div>
@@ -1886,35 +1939,6 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                     </div>
                   )}
 
-                  {/* Icon Selector Component for Emergent Learners */}
-                  <div className="space-y-2 pt-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-amber-400">
-                        Visual Cue Icon Selector (For Emergent Learners)
-                      </Label>
-                      <span className="text-[10px] text-slate-400">Click to insert icon</span>
-                    </div>
-                    <div className="grid grid-cols-8 gap-1.5 p-2 rounded-xl border bg-black/20 border-white/10">
-                      {['✏️', '📚', '⭐', '✂️', '👁️', '🗣️', '🎒', '💡', '🧠', '🏆', '🦉', '🎨', '🎵', '🔢', '🔤', '🧩'].map((emoji) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          title={`Insert ${emoji}`}
-                          onClick={() => {
-                            const current = activeTab === 'teaching' ? t_customPrompt : activeTab === 'visual' ? v_customPrompt : a_customPrompt;
-                            const updated = current + (current ? ' ' : '') + emoji;
-                            if (activeTab === 'teaching') setT_CustomPrompt(updated);
-                            else if (activeTab === 'visual') setV_CustomPrompt(updated);
-                            else setA_CustomPrompt(updated);
-                          }}
-                          className="h-8 rounded-lg border border-white/10 bg-white/5 hover:bg-white/15 text-sm flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer"
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
                   {/* Custom Action Prompt Script */}
                   <div className="pt-2 space-y-1.5">
                     <label className={cn("text-[10px] font-black uppercase tracking-widest block ml-1", isDarkMode ? "text-purple-400" : "text-purple-600")}>
@@ -2057,6 +2081,14 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                           South African Inclusive Education Policy (SIAS) Adaptations
                         </label>
                       </div>
+
+                      <IconSelector 
+                        isDarkMode={isDarkMode} 
+                        onSelect={(emoji) => {
+                          const updated = t_customPrompt + (t_customPrompt ? ' ' : '') + emoji;
+                          setT_CustomPrompt(updated);
+                        }}
+                      />
                     </AdvancedSection>
                   )}
 
@@ -2115,6 +2147,14 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                           />
                         </div>
                       </div>
+
+                      <IconSelector 
+                        isDarkMode={isDarkMode} 
+                        onSelect={(emoji) => {
+                          const updated = v_customPrompt + (v_customPrompt ? ' ' : '') + emoji;
+                          setV_CustomPrompt(updated);
+                        }}
+                      />
                     </AdvancedSection>
                   )}
 
@@ -2144,6 +2184,14 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                           />
                         </div>
                       </div>
+
+                      <IconSelector 
+                        isDarkMode={isDarkMode} 
+                        onSelect={(emoji) => {
+                          const updated = a_customPrompt + (a_customPrompt ? ' ' : '') + emoji;
+                          setA_CustomPrompt(updated);
+                        }}
+                      />
                     </AdvancedSection>
                   )}
                 </div>

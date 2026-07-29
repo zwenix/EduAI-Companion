@@ -508,7 +508,14 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
         })
       });
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`Report API failed with status ${response.status}`);
+      }
+      const resText = await response.text();
+      if (!resText || resText.trim().startsWith('<')) {
+        throw new Error('Report API returned HTML instead of JSON');
+      }
+      const data = JSON.parse(resText);
       setTimeout(() => {
         savePlanToStorageAndFirestore(currentStudent.id, data);
         setGenerationProgress(100);

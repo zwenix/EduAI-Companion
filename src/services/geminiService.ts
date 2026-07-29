@@ -41,22 +41,38 @@ const repairTruncatedJson = (jsonStr: string): string => {
   let inString = false;
   let escape = false;
   const stack: string[] = [];
+  let result = "";
   
   for (let i = 0; i < jsonStr.length; i++) {
     const char = jsonStr[i];
     if (escape) {
       escape = false;
+      result += char;
       continue;
     }
     if (char === '\\') {
       escape = true;
+      result += char;
       continue;
     }
     if (char === '"') {
       inString = !inString;
+      result += char;
       continue;
     }
-    if (!inString) {
+    if (inString) {
+      if (char === '\n') {
+        result += '\\n';
+        continue;
+      } else if (char === '\r') {
+        result += '\\r';
+        continue;
+      } else if (char === '\t') {
+        result += '\\t';
+        continue;
+      }
+      result += char;
+    } else {
       if (char === '{' || char === '[') {
         stack.push(char);
       } else if (char === '}') {
@@ -68,10 +84,11 @@ const repairTruncatedJson = (jsonStr: string): string => {
           stack.pop();
         }
       }
+      result += char;
     }
   }
 
-  let repaired = jsonStr;
+  let repaired = result;
   if (inString) {
     repaired += '"';
   }
@@ -106,7 +123,6 @@ export const safeJsonParse = (text: string | null | undefined): any => {
       if (lastTagStart !== -1) {
         const lastTagEnd = cleanHtml.indexOf('>', lastTagStart);
         if (lastTagEnd === -1) {
-          // It's an unclosed tag fragment at the very end
           cleanHtml = cleanHtml.substring(0, lastTagStart);
         }
       }
@@ -126,10 +142,8 @@ export const safeJsonParse = (text: string | null | undefined): any => {
         }
         
         if (fullTag.startsWith('</')) {
-          // If we see a closing tag, pop until we find matching open tag or run out
           const lastIdx = openTags.lastIndexOf(tagName);
           if (lastIdx !== -1) {
-            // Close all tags opened after this one
             openTags.splice(lastIdx);
           }
         } else {
@@ -174,25 +188,26 @@ export const safeJsonParse = (text: string | null | undefined): any => {
 
   if (!processedText) return {};
 
-  // 2. Extract content from markdown JSON block or generic markdown block anywhere in the text
-  if (processedText.includes("```json")) {
-    const match = processedText.match(/```json\s*([\s\S]*?)\s*```/i);
-    if (match) {
-      processedText = match[1].trim();
-    }
-  } else if (processedText.includes("```")) {
-    const match = processedText.match(/```\s*([\s\S]*?)\s*```/);
-    if (match) {
-      processedText = match[1].trim();
-    }
+  // 2. Strip markdown code block wrappers (both closed AND unclosed like ```json at start)
+  processedText = processedText.replace(/^```(?:json|html|xml|markdown)?\s*/i, '');
+  processedText = processedText.replace(/\s*```$/i, '');
+  processedText = processedText.trim();
+
+  // If input is direct raw HTML without JSON object structure
+  if (processedText.startsWith('<div') || processedText.startsWith('<section') || processedText.startsWith('<article') || processedText.startsWith('<!DOCTYPE') || processedText.startsWith('<html')) {
+    return { content: closeOpenHtmlTags(processedText), imagePrompt: "Educational classroom scene" };
   }
 
-  // 3. Extract the clean JSON object if there is leading/trailing conversational text
+  // 3. Extract JSON object from first '{'
   let extractedJson = processedText;
-  if (processedText.includes("{") && processedText.includes("}")) {
-    const firstCurly = processedText.indexOf("{");
-    const lastCurly = processedText.lastIndexOf("}");
-    extractedJson = processedText.substring(firstCurly, lastCurly + 1).trim();
+  const firstCurly = processedText.indexOf('{');
+  if (firstCurly !== -1) {
+    const lastCurly = processedText.lastIndexOf('}');
+    if (lastCurly > firstCurly) {
+      extractedJson = processedText.substring(firstCurly, lastCurly + 1).trim();
+    } else {
+      extractedJson = processedText.substring(firstCurly).trim();
+    }
   }
 
   try {
@@ -207,19 +222,17 @@ export const safeJsonParse = (text: string | null | undefined): any => {
         const repaired = repairTruncatedJson(extractedJson);
         return cleanMarkdownInValue(JSON.parse(repaired));
       } catch (errRep) {
-        console.warn("safeJsonParse: Standard and repaired JSON parse failed, trying regex fallback...", errRep);
-
-        // Direct Javascript execution/extraction recovery if brackets are matched at all
-        if (extractedJson.includes('{') && extractedJson.includes('}')) {
-          try {
-            const repaired = repairTruncatedJson(extractedJson);
-            const evaluated = new Function('return ' + repaired)();
-            if (typeof evaluated === 'object' && evaluated !== null) return cleanMarkdownInValue(evaluated);
-          } catch(e4) {}
-          try {
-            const evaluated = new Function('return ' + extractedJson)();
-            if (typeof evaluated === 'object' && evaluated !== null) return cleanMarkdownInValue(evaluated);
-          } catch(e5) {}
+        try {
+          const repaired = repairTruncatedJson(processedText);
+          return cleanMarkdownInValue(JSON.parse(repaired));
+        } catch (errRep2) {
+          if (extractedJson.includes('{')) {
+            try {
+              const repaired = repairTruncatedJson(extractedJson);
+              const evaluated = new Function('return ' + repaired)();
+              if (typeof evaluated === 'object' && evaluated !== null) return cleanMarkdownInValue(evaluated);
+            } catch(e4) {}
+          }
         }
       }
     }
@@ -227,9 +240,9 @@ export const safeJsonParse = (text: string | null | undefined): any => {
     // Helper regex extractors
     const extractField = (source: string, field: string): string | null => {
       const escapedField = field.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-      const regex = new RegExp(`"${escapedField}"\\s*:\\s*"([\\s\\S]*?)"(?=\\s*,|\\s*})`, 'i');
-      const match = source.match(regex);
-      if (match) {
+      const closedRegex = new RegExp(`"${escapedField}"\\s*:\\s*"([\\s\\S]*?)"(?=\\s*,|\\s*})`, 'i');
+      const match = source.match(closedRegex);
+      if (match && match[1]) {
         let val = match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n');
         if (val.trim().startsWith('<')) {
           val = closeOpenHtmlTags(val);
@@ -238,16 +251,12 @@ export const safeJsonParse = (text: string | null | undefined): any => {
       }
 
       // Truncated fallback match
-      const truncatedRegex = new RegExp(`"${escapedField}"\\s*:\\s*"([\\s\\S]*)$`, 'i');
-      const truncMatch = source.match(truncatedRegex);
-      if (truncMatch) {
+      const truncRegex = new RegExp(`"${escapedField}"\\s*:\\s*"([\\s\\S]*?)(?:"\\s*,\\s*"[a-zA-Z0-9_]+"|$)`, 'i');
+      const truncMatch = source.match(truncRegex);
+      if (truncMatch && truncMatch[1]) {
         let val = truncMatch[1].trim();
-        if (val.endsWith('\\')) {
-          val = val.slice(0, -1);
-        }
-        if (val.endsWith('"') && !val.endsWith('\\"')) {
-          val = val.slice(0, -1);
-        }
+        if (val.endsWith('\\')) val = val.slice(0, -1);
+        if (val.endsWith('"') && !val.endsWith('\\"')) val = val.slice(0, -1);
         val = val.replace(/\\"/g, '"').replace(/\\n/g, '\n');
         if (val.trim().startsWith('<')) {
           val = closeOpenHtmlTags(val);

@@ -211,177 +211,166 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
      return repaired;
    };
 
-   const safeJsonParse = (text) => {
-    if (!text) return {};
-    let processedText = text.trim();
-    
-    // 1. Strip reasoning thoughts if present (<think>...</think> or unclosed <think>)
-    processedText = processedText.replace(/<think>[\s\S]*?<\/think>/gi, '');
-    processedText = processedText.replace(/<think>[\s\S]*$/gi, '');
-    processedText = processedText.trim();
+    const safeJsonParse = (text: any) => {
+      if (!text || typeof text !== 'string') return typeof text === 'object' ? text : {};
+      let processedText = text.trim();
+      
+      // 1. Strip reasoning thoughts if present (<think>...</think> or unclosed <think>)
+      processedText = processedText.replace(/<think>[\s\S]*?<\/think>/gi, '');
+      processedText = processedText.replace(/<think>[\s\S]*$/gi, '');
+      processedText = processedText.trim();
 
-    if (!processedText) return {};
+      if (!processedText) return {};
 
-    // 2. Extract content from markdown JSON block or generic markdown block anywhere in the text
-    if (processedText.includes("```json")) {
-      const match = processedText.match(/```json\s*([\s\S]*?)\s*```/i);
-      if (match) {
-        processedText = match[1].trim();
+      // 2. Strip markdown code block wrappers
+      processedText = processedText.replace(/^```(?:json|html|xml|markdown)?\s*/i, '');
+      processedText = processedText.replace(/\s*```$/i, '');
+      processedText = processedText.trim();
+
+      if (processedText.startsWith('<div') || processedText.startsWith('<section') || processedText.startsWith('<article') || processedText.startsWith('<!DOCTYPE') || processedText.startsWith('<html')) {
+        return { content: processedText, imagePrompt: "Educational classroom scene" };
       }
-    } else if (processedText.includes("```")) {
-      const match = processedText.match(/```\s*([\s\S]*?)\s*```/);
-      if (match) {
-        processedText = match[1].trim();
+
+      // 3. Extract JSON object from first '{'
+      let extractedJson = processedText;
+      const firstCurly = processedText.indexOf('{');
+      if (firstCurly !== -1) {
+        const lastCurly = processedText.lastIndexOf('}');
+        if (lastCurly > firstCurly) {
+          extractedJson = processedText.substring(firstCurly, lastCurly + 1).trim();
+        } else {
+          extractedJson = processedText.substring(firstCurly).trim();
+        }
       }
-    }
 
-    // 3. Extract the clean JSON object if there is leading/trailing conversational text
-    let extractedJson = processedText;
-    if (processedText.includes("{") && processedText.includes("}")) {
-      const firstCurly = processedText.indexOf("{");
-      const lastCurly = processedText.lastIndexOf("}");
-      extractedJson = processedText.substring(firstCurly, lastCurly + 1).trim();
-    }
-
-    try {
-      // First try normal JSON parse on extracted JSON
-      return JSON.parse(extractedJson);
-    } catch (err) {
       try {
-        // Try parsing the original text directly if extraction was somehow off
-        return JSON.parse(processedText);
-      } catch (errOrig) {
+        return JSON.parse(extractedJson);
+      } catch (err) {
         try {
-          const repaired = repairTruncatedJson(extractedJson);
-          return JSON.parse(repaired);
-        } catch (errRep) {
-        console.warn("safeJsonParse: Standard and repaired JSON parse failed, trying regex fallback...", errRep);
-
-        // Direct Javascript execution/extraction recovery if brackets are matched at all
-        if (extractedJson.includes('{') && extractedJson.includes('}')) {
+          return JSON.parse(processedText);
+        } catch (errOrig) {
           try {
             const repaired = repairTruncatedJson(extractedJson);
-            const evaluated = new Function('return ' + repaired)();
-            if (typeof evaluated === 'object' && evaluated !== null) return evaluated;
-          } catch(e4) {}
-          try {
-            const evaluated = new Function('return ' + extractedJson)();
-            if (typeof evaluated === 'object' && evaluated !== null) return evaluated;
-          } catch(e5) {}
-        }
-      }
-    }
-
-      const closeOpenHtmlTags = (html: string): string => {
-        const tagRegex = /<\/?([a-z1-6]+)(?:\s+[^>]*?)?>/gi;
-        let match;
-        const openTags: string[] = [];
-        
-        while ((match = tagRegex.exec(html)) !== null) {
-          const fullTag = match[0];
-          const tagName = match[1].toLowerCase();
-          
-          if (fullTag.endsWith('/>') || ['img', 'br', 'hr', 'input', 'meta', 'link'].includes(tagName)) {
-            continue;
-          }
-          
-          if (fullTag.startsWith('</')) {
-            if (openTags.length > 0 && openTags[openTags.length - 1] === tagName) {
-              openTags.pop();
+            return JSON.parse(repaired);
+          } catch (errRep) {
+            try {
+              const repaired = repairTruncatedJson(processedText);
+              return JSON.parse(repaired);
+            } catch (errRep2) {
+              if (extractedJson.includes('{')) {
+                try {
+                  const repaired = repairTruncatedJson(extractedJson);
+                  const evaluated = new Function('return ' + repaired)();
+                  if (typeof evaluated === 'object' && evaluated !== null) return evaluated;
+                } catch(e4) {}
+              }
             }
-          } else {
-            openTags.push(tagName);
+          }
+        }
+
+        const closeOpenHtmlTags = (html: string): string => {
+          const tagRegex = /<\/?([a-z1-6]+)(?:\s+[^>]*?)?>/gi;
+          let match;
+          const openTags: string[] = [];
+          
+          while ((match = tagRegex.exec(html)) !== null) {
+            const fullTag = match[0];
+            const tagName = match[1].toLowerCase();
+            
+            if (fullTag.endsWith('/>') || ['img', 'br', 'hr', 'input', 'meta', 'link'].includes(tagName)) {
+              continue;
+            }
+            
+            if (fullTag.startsWith('</')) {
+              if (openTags.length > 0 && openTags[openTags.length - 1] === tagName) {
+                openTags.pop();
+              }
+            } else {
+              openTags.push(tagName);
+            }
+          }
+          
+          let closedHtml = html;
+          while (openTags.length > 0) {
+            const tag = openTags.pop();
+            closedHtml += `</${tag}>`;
+          }
+          return closedHtml;
+        };
+
+        const extractField = (source: string, field: string): string | null => {
+          const escapedField = field.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+          const closedRegex = new RegExp(`"${escapedField}"\\s*:\\s*"([\\s\\S]*?)"(?=\\s*,|\\s*})`, 'i');
+          const match = source.match(closedRegex);
+          if (match && match[1]) {
+            let val = match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n');
+            if (val.trim().startsWith('<')) {
+              val = closeOpenHtmlTags(val);
+            }
+            return val;
+          }
+
+          const truncRegex = new RegExp(`"${escapedField}"\\s*:\\s*"([\\s\\S]*?)(?:"\\s*,\\s*"[a-zA-Z0-9_]+"|$)`, 'i');
+          const truncMatch = source.match(truncRegex);
+          if (truncMatch && truncMatch[1]) {
+            let val = truncMatch[1].trim();
+            if (val.endsWith('\\')) val = val.slice(0, -1);
+            if (val.endsWith('"') && !val.endsWith('\\"')) val = val.slice(0, -1);
+            val = val.replace(/\\"/g, '"').replace(/\\n/g, '\n');
+            if (val.trim().startsWith('<')) {
+              val = closeOpenHtmlTags(val);
+            }
+            return val;
+          }
+          return null;
+        };
+
+        const extractArrayField = (source: string, field: string): string[] => {
+          const escapedField = field.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+          const regex = new RegExp(`"${escapedField}"\\s*:\\s*\\[([\\s\\S]*?)\\]`, 'i');
+          const match = source.match(regex);
+          if (match && match[1]) {
+            return match[1]
+              .split(',')
+              .map(item => item.trim().replace(/^["']|["']$/g, '').trim())
+              .filter(item => item.length > 0);
+          }
+          return [];
+        };
+
+        const textToSearch = processedText;
+
+        const fallbackObj: any = {};
+        const stringFields = [
+          "content", "memo", "rubric", "assessmentCriteria", "imagePrompt",
+          "description", "printInstructions", "notes", "documentType",
+          "extractedText", "feedback", "totalScore"
+        ];
+        
+        for (const field of stringFields) {
+          const extracted = extractField(textToSearch, field);
+          if (extracted !== null) {
+            fallbackObj[field] = extracted;
           }
         }
         
-        let closedHtml = html;
-        while (openTags.length > 0) {
-          const tag = openTags.pop();
-          closedHtml += `</${tag}>`;
-        }
-        return closedHtml;
-      };
-
-      // Helper regex extractors
-      const extractField = (source: string, field: string): string | null => {
-        const escapedField = field.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-        const regex = new RegExp(`"${escapedField}"\\s*:\\s*"([\\s\\S]*?)"(?=\\s*,|\\s*})`, 'i');
-        const match = source.match(regex);
-        if (match) {
-          let val = match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n');
-          if (val.trim().startsWith('<')) {
-            val = closeOpenHtmlTags(val);
+        const arrayFields = ["successIndicators", "marksPerQuestion"];
+        for (const field of arrayFields) {
+          const extracted = extractArrayField(textToSearch, field);
+          if (extracted.length > 0) {
+            fallbackObj[field] = extracted;
           }
-          return val;
         }
 
-        // Truncated fallback match
-        const truncatedRegex = new RegExp(`"${escapedField}"\\s*:\\s*"([\\s\\S]*)$`, 'i');
-        const truncMatch = source.match(truncatedRegex);
-        if (truncMatch) {
-          let val = truncMatch[1].trim();
-          if (val.endsWith('\\')) {
-            val = val.slice(0, -1);
-          }
-          if (val.endsWith('"') && !val.endsWith('\\"')) {
-            val = val.slice(0, -1);
-          }
-          val = val.replace(/\\"/g, '"').replace(/\\n/g, '\n');
-          if (val.trim().startsWith('<')) {
-            val = closeOpenHtmlTags(val);
-          }
-          return val;
+        if (fallbackObj.content || fallbackObj.extractedText || fallbackObj.feedback || fallbackObj.description || fallbackObj.memo) {
+          console.warn("safeJsonParse: Reconstructed truncated JSON response successfully via fallback regex extraction!");
+          return fallbackObj;
         }
-        return null;
-      };
 
-      const extractArrayField = (source: string, field: string): string[] => {
-        const escapedField = field.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-        const regex = new RegExp(`"${escapedField}"\\s*:\\s*\\[([\\s\\S]*?)\\]`, 'i');
-        const match = source.match(regex);
-        if (match && match[1]) {
-          return match[1]
-            .split(',')
-            .map(item => item.trim().replace(/^["']|["']$/g, '').trim())
-            .filter(item => item.length > 0);
-        }
-        return [];
-      };
-
-      const textToSearch = processedText;
-
-      // ─── POWERFALLBACK: HEAL TRUNCATED JSON PROPERTIES ───
-      const fallbackObj: any = {};
-      const stringFields = [
-        "content", "memo", "rubric", "assessmentCriteria", "imagePrompt",
-        "description", "printInstructions", "notes", "documentType",
-        "extractedText", "feedback", "totalScore"
-      ];
-      
-      for (const field of stringFields) {
-        const extracted = extractField(textToSearch, field);
-        if (extracted !== null) {
-          fallbackObj[field] = extracted;
-        }
+        console.warn("Failed to parse AI response as JSON:", processedText);
+        return {};
       }
-      
-      const arrayFields = ["successIndicators", "marksPerQuestion"];
-      for (const field of arrayFields) {
-        const extracted = extractArrayField(textToSearch, field);
-        if (extracted.length > 0) {
-          fallbackObj[field] = extracted;
-        }
-      }
-
-      if (fallbackObj.content || fallbackObj.extractedText || fallbackObj.feedback || fallbackObj.description) {
-        console.warn("safeJsonParse: Reconstructed truncated JSON response successfully via fallback regex extraction!");
-        return fallbackObj;
-      }
-
-      console.warn("Failed to parse AI response as JSON:", processedText);
-      return {};
-    }
-  };
+    };
 
   const PORT = 3000;
 

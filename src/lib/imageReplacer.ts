@@ -77,8 +77,8 @@ class IllustrationCache {
   }
 }
 
-export function replaceImagePlaceholders(html: string, allowImages: boolean = true): string {
-  if (!html) return '';
+export function replaceImagePlaceholders(html: any, allowImages: boolean = true): string {
+  if (!html || typeof html !== 'string') return '';
 
   const buildImageBlock = (cleanPrompt: string) => {
     // Generate a stable deterministic seed based on the prompt string to prevent flashing/re-rendering
@@ -128,8 +128,8 @@ export function replaceImagePlaceholders(html: string, allowImages: boolean = tr
 
     // Fallback/First-generation flow
     const provider = typeof window !== 'undefined'
-      ? window.localStorage.getItem('eduai_image_provider') || 'pollinations'
-      : 'pollinations';
+      ? window.localStorage.getItem('eduai_image_provider') || 'perchance'
+      : 'perchance';
 
     const isLogoOrStamp = /logo|stamp|seal|crest|badge|signature|certificate|emblem/i.test(cleanPrompt);
     const enhancedPrompt = isLogoOrStamp
@@ -159,7 +159,7 @@ export function replaceImagePlaceholders(html: string, allowImages: boolean = tr
         CAPS Illustration: ${cleanPrompt.slice(0, 45)}${cleanPrompt.length > 45 ? '...' : ''}
       </p>
     </div>
-    <span class="text-[8px] px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 font-bold select-none uppercase">Model: ${provider === 'gemini-imagen' ? 'Gemini Imagen-3' : provider === 'perchance' ? 'Perchance Professional 🌟' : 'Pollinations Turbo'}</span>
+    <span class="text-[8px] px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 font-bold select-none uppercase">Model: ${provider === 'gemini-imagen' ? 'Gemini Imagen-3' : provider === 'perchance' ? 'Perchance AI Text-to-Image' : 'Pollinations Turbo'}</span>
   </div>
 </div>
     `;

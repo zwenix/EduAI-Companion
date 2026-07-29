@@ -151,7 +151,7 @@ export default function AiImage({
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           AI Model: {
             provider === 'perchance' 
-              ? 'Perchance AI (Primary)' 
+              ? 'Perchance AI Text-to-Image (Primary)' 
               : provider === 'gemini' 
                 ? 'Gemini Imagen-3' 
                 : 'Pollinations (Fallback)'

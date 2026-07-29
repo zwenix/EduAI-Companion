@@ -64,15 +64,25 @@ export const checkContentQuality = async (
     });
 
     if (!response.ok) {
-      throw new Error('Quality check API failed');
+      throw new Error(`Quality check API failed with status ${response.status}`);
     }
 
-    const data = await response.json();
+    const resText = await response.text();
+    if (!resText || resText.trim().startsWith('<')) {
+      throw new Error('Quality check API returned HTML instead of JSON');
+    }
+
+    let data: any = {};
+    try {
+      data = JSON.parse(resText);
+    } catch (e) {
+      throw new Error('Quality check API response is not valid JSON');
+    }
     
     // Parse the quality rating from AI response
-    return parseQualityRating(data.text || data.content || '', options);
+    return parseQualityRating(data.text || data.content || resText || '', options);
   } catch (error) {
-    console.error('Quality check failed:', error);
+    console.warn('Quality check API unavailable or failed, using heuristic fallback:', error);
     // Return a basic quality check if AI fails
     return performBasicQualityCheck(options);
   }
