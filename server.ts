@@ -791,9 +791,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
       // Map URLs to our server-side proxy to completely bypass iframe CORS and referrer restriction policies
       // Use bulletproof client=tw-ob parameter without the tk signature token to avoid 400 Bad Request errors.
       const proxiedUrls = urls.map(u => {
-        let cleanUrl = u.url;
-        cleanUrl = cleanUrl.replace("client=webapp", "client=tw-ob");
-        cleanUrl = cleanUrl.replace(/&tk=[^&]*/g, "");
+        const cleanUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${encodeURIComponent(lang || 'en')}&q=${encodeURIComponent(u.shortText)}&client=tw-ob`;
         return `/api/tts/proxy?url=${encodeURIComponent(cleanUrl)}`;
       });
       res.json({ urls: proxiedUrls });
