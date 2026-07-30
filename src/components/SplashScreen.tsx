@@ -37,15 +37,19 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
 
     const video = videoRef.current;
     if (video && !videoError) {
+      video.defaultMuted = true;
       video.muted = true;
       video.playsInline = true;
+      video.loop = true;
       video.load();
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise.catch((err) => {
           console.warn("Initial autoplay attempt delayed or waiting for interaction:", err);
           const playOnInteract = () => {
-            video.play().catch(() => {});
+            if (videoRef.current) {
+              videoRef.current.play().catch(() => {});
+            }
             window.removeEventListener('click', playOnInteract);
             window.removeEventListener('touchstart', playOnInteract);
             window.removeEventListener('keydown', playOnInteract);
@@ -61,10 +65,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
       clearTimeout(timer);
     };
   }, [videoError]);
-
-  const handleEnded = () => {
-    onVideoEndRef.current?.();
-  };
 
   const toggleMute = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -87,15 +87,22 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
       style={{ backgroundColor: '#0e152e' }} // Deep premium navy background matching the app's aesthetic
     >
       {!videoError ? (
-        <div className="relative w-full h-full flex items-center justify-center bg-[#0e152e]">
+        <div 
+          className="relative w-full h-full flex items-center justify-center bg-[#0e152e]"
+          onClick={() => {
+            if (videoRef.current && videoRef.current.paused) {
+              videoRef.current.play().catch(() => {});
+            }
+          }}
+        >
           <video
             ref={videoRef}
             src="/splash.mp4"
             autoPlay
+            loop
             muted={isMuted}
             playsInline
             preload="auto"
-            onEnded={handleEnded}
             onLoadedData={() => {
               if (videoRef.current) {
                 videoRef.current.play().catch(() => {});

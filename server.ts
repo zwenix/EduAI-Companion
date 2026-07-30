@@ -2,6 +2,7 @@ import { CAPS_LESSON_PLAN_SYSTEM_PROMPT } from "./src/lib/prompts/caps-lesson-pl
 import { EduAIPromptEngine } from "./src/lib/prompt-engine";
 import express from "express";
 import path from "path";
+import fs from "fs";
 import dotenv from "dotenv";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
@@ -1903,6 +1904,19 @@ STRICT COMPLIANCE & ZERO-HALLUCINATION MANDATES:
 
       console.error(`Gemini server error for action '${action}':`, errMsg);
       return res.status(status).json({ error: errMsg || "Failed to execute server-side action." });
+    }
+  });
+
+  // Explicit route for splash video from root directory so it never returns 404
+  app.get("/splash.mp4", (req, res) => {
+    const rootSplash = path.join(process.cwd(), "splash.mp4");
+    const publicSplash = path.join(process.cwd(), "public", "splash.mp4");
+    if (fs.existsSync(rootSplash)) {
+      return res.sendFile(rootSplash);
+    } else if (fs.existsSync(publicSplash)) {
+      return res.sendFile(publicSplash);
+    } else {
+      return res.status(404).send("Splash video not found");
     }
   });
 
