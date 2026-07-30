@@ -789,7 +789,13 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
       const googleTTS = await import("google-tts-api");
       const urls = googleTTS.getAllAudioUrls(text, { lang, slow: false, splitPunct: ',.?!' });
       // Map URLs to our server-side proxy to completely bypass iframe CORS and referrer restriction policies
-      const proxiedUrls = urls.map(u => `/api/tts/proxy?url=${encodeURIComponent(u.url)}`);
+      // Use bulletproof client=tw-ob parameter without the tk signature token to avoid 400 Bad Request errors.
+      const proxiedUrls = urls.map(u => {
+        let cleanUrl = u.url;
+        cleanUrl = cleanUrl.replace("client=webapp", "client=tw-ob");
+        cleanUrl = cleanUrl.replace(/&tk=[^&]*/g, "");
+        return `/api/tts/proxy?url=${encodeURIComponent(cleanUrl)}`;
+      });
       res.json({ urls: proxiedUrls });
     } catch (e: any) {
       res.status(500).json({ error: e.message });

@@ -1137,30 +1137,45 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
 
                           {/* Action buttons at bottom of bot bubble */}
                           <div className="flex flex-wrap items-center justify-between pt-3 border-t border-purple-500/20 text-xs gap-2">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <button
                                 type="button"
                                 className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors border text-[11px] font-bold cursor-pointer ${
-                                  isAudioPlaying === i && !isAudioPaused 
-                                    ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-lg' 
+                                  isAudioPlaying === i
+                                    ? isAudioPaused
+                                      ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md'
+                                      : 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-lg'
                                     : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
                                 }`}
                                 onClick={() => handlePlayAudio(msg.text, i)}
                                 disabled={isTtsLoading === i}
                               >
                                 {isTtsLoading === i ? <Loader2 className="w-3 h-3 animate-spin text-cyan-400" /> : isAudioPlaying === i && !isAudioPaused ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                                <span>{isAudioPlaying === i && !isAudioPaused ? "Pause Audio" : "Listen"}</span>
+                                <span>{isAudioPlaying === i ? (isAudioPaused ? "Resume Audio" : "Pause Audio") : "Listen"}</span>
                               </button>
                               {isAudioPlaying === i && (
                                 <button
                                   type="button"
-                                  className="p-1 rounded-lg bg-red-500/10 text-red-300 border border-red-500/20 hover:bg-red-500/20 cursor-pointer"
+                                  className="px-2.5 py-1 rounded-lg flex items-center gap-1.5 bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25 transition-colors text-[11px] font-bold cursor-pointer"
                                   onClick={handleStopAudio}
                                   title="Stop Voice"
                                 >
                                   <Square className="w-3 h-3 fill-current" />
+                                  <span>Stop</span>
                                 </button>
                               )}
+                              <button
+                                type="button"
+                                className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors border text-[11px] font-bold cursor-pointer ${
+                                  visuals[i] 
+                                    ? 'bg-purple-500/30 text-purple-200 border-purple-500/50 shadow-lg' 
+                                    : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
+                                }`}
+                                onClick={() => setVisuals(prev => ({...prev, [i]: !prev[i]}))}
+                              >
+                                <ImageIcon className="w-3 h-3" />
+                                <span>{visuals[i] ? "Hide Image" : "Generate Topic Image"}</span>
+                              </button>
                             </div>
 
                             <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-400">
@@ -1555,30 +1570,36 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
 
                       {/* Action buttons at bottom of bot bubble */}
                       <div className="flex flex-wrap items-center justify-between pt-3 border-t border-purple-500/20 text-xs gap-2">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <button
-                            className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors border text-[11px] font-bold ${
-                              isAudioPlaying === i && !isAudioPaused 
-                                ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-lg' 
+                            type="button"
+                            className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors border text-[11px] font-bold cursor-pointer ${
+                              isAudioPlaying === i
+                                ? isAudioPaused
+                                  ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md'
+                                  : 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-lg'
                                 : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
                             }`}
                             onClick={() => handlePlayAudio(msg.text, i)}
                             disabled={isTtsLoading === i}
                           >
                             {isTtsLoading === i ? <Loader2 className="w-3 h-3 animate-spin text-cyan-400" /> : isAudioPlaying === i && !isAudioPaused ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                            <span>{isAudioPlaying === i && !isAudioPaused ? "Pause Audio" : "Listen"}</span>
+                            <span>{isAudioPlaying === i ? (isAudioPaused ? "Resume Audio" : "Pause Audio") : "Listen"}</span>
                           </button>
                           {isAudioPlaying === i && (
                             <button
-                              className="p-1 rounded-lg bg-red-500/10 text-red-300 border border-red-500/20 hover:bg-red-500/20"
+                              type="button"
+                              className="px-2.5 py-1 rounded-lg flex items-center gap-1.5 bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25 transition-colors text-[11px] font-bold cursor-pointer"
                               onClick={handleStopAudio}
                               title="Stop Voice"
                             >
-                              <Square className="w-3 h-3" />
+                              <Square className="w-3 h-3 fill-current" />
+                              <span>Stop</span>
                             </button>
                           )}
                           <button
-                            className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors border text-[11px] font-bold ${
+                            type="button"
+                            className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors border text-[11px] font-bold cursor-pointer ${
                               visuals[i] 
                                 ? 'bg-purple-500/30 text-purple-200 border-purple-500/50 shadow-lg' 
                                 : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
@@ -1586,7 +1607,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                             onClick={() => setVisuals(prev => ({...prev, [i]: !prev[i]}))}
                           >
                             <ImageIcon className="w-3 h-3" />
-                            <span>{visuals[i] ? "Hide Diagram" : "Generate Diagram"}</span>
+                            <span>{visuals[i] ? "Hide Image" : "Generate Topic Image"}</span>
                           </button>
                         </div>
 
