@@ -16,9 +16,11 @@ import {
   Camera,
   Zap,
   CheckCircle2,
-  FileCheck
+  FileCheck,
+  Brain,
+  ScanLine
 } from 'lucide-react';
-import ContentSlideshow from './ContentSlideshow';
+import ContentSlideshow, { INTELLIGENT_AI_SLIDES } from './ContentSlideshow';
 import WorksheetQRScannerModal from './WorksheetQRScannerModal';
 
 interface SubTabItem {
@@ -46,67 +48,191 @@ export default function CategoryOverview({
   const [searchQuery, setSearchQuery] = useState('');
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
-  // Custom Intelligent AI Hub UI (matching Screenshot 1)
-  if (categoryLabel === 'Intelligent AI' || categoryLabel === 'Intelligence AI') {
+  // Custom Intelligent AI Hub UI (matching Teacher's Toolbox design)
+  if (categoryLabel === 'Intelligent AI' || categoryLabel === 'Intelligence AI' || categoryLabel === "AI Tutor's Class") {
     return (
-      <div className="relative p-6 sm:p-8 lg:p-10 overflow-hidden rounded-[40px] border border-cyan-500/20 bg-[#070a18] text-white min-h-[85vh] flex flex-col justify-start font-sans">
-        {/* Glowing cosmic curves/waves in background */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(15,23,60,0.8)_0%,rgba(7,10,24,1)_100%)] pointer-events-none" />
-        <div className="absolute top-1/4 -right-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
-        <div className="absolute bottom-10 -left-20 w-96 h-96 bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-emerald-500/5 rounded-full blur-[160px] pointer-events-none" />
+      <div className="relative p-6 lg:p-10 overflow-hidden rounded-[40px] border border-indigo-500/30 bg-[#080b22] text-white min-h-[85vh] flex flex-col justify-between font-sans">
+        
+        {/* Deep Cosmic Background & Subtle Stars */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-[40px]" />
+        
+        {/* Soft Ambient Radial Glows */}
+        <div className="absolute top-10 left-1/4 w-96 h-96 bg-purple-600/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none" />
 
-        <div className="relative z-10 max-w-5xl mx-auto w-full space-y-8 my-auto py-8">
-          {/* Top Main Banner Card */}
-          <div className="p-8 sm:p-12 rounded-[32px] bg-slate-900/60 border border-white/10 shadow-2xl backdrop-blur-xl text-center relative overflow-hidden">
-            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-cyan-500/20 rounded-full blur-3xl pointer-events-none" />
-            
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-cyan-500/20 border border-white/15 flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <Icon size={36} className="text-white" />
-            </div>
-            
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black tracking-tight text-white mb-3">
-              {categoryLabel}
-            </h1>
-            <p className="text-sm sm:text-base text-slate-300 font-normal max-w-xl mx-auto">
-              Explore available modules and smart aids in this curriculum hub.
-            </p>
+        {/* MAIN TITLE SECTION ("Intelligent AI") */}
+        <div className="relative z-10 text-center my-6">
+          <div className="inline-flex items-center gap-2 mb-2">
+            <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+            <span className="text-xl sm:text-2xl font-display font-bold text-slate-100 tracking-tight">
+              Intelligent
+            </span>
+            <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+          </div>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)]">
+            AI Hub
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
+            Personalized AI Tutoring • Optical Script Analysis • Adaptive Curriculum Support
+          </p>
+        </div>
+
+        {/* HERO SHOWCASE SECTION: SLIDESHOW & FEATURE BANNER */}
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-6 max-w-6xl mx-auto w-full items-stretch">
+          
+          {/* LEFT: Intelligent AI Slideshow */}
+          <div className="lg:col-span-7 flex flex-col justify-center">
+            <ContentSlideshow slides={INTELLIGENT_AI_SLIDES} />
           </div>
 
-          {/* Subtabs Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {subTabs.map((item, idx) => {
-              const ItemIcon = item.icon;
-              const desc = item.id === 'ai-tutor' 
-                ? 'A localized AI companion for new manga/data in our homework grading, concept explanations, and curriculum support.'
-                : item.id === 'ocr'
-                ? 'AI vision for scanning student answer sheets, detecting handwritten text, and providing objective auto-grading.'
-                : item.desc || 'Explore AI tools and educational aids tailored for your classroom.';
+          {/* RIGHT: AI Tutor Featured Card */}
+          <motion.div 
+            whileHover={{ scale: 1.02, y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            onClick={() => onSelect('ai-tutor')}
+            className="lg:col-span-5 flex flex-col justify-between p-6 rounded-[32px] bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-indigo-950/80 border-2 border-amber-500/40 hover:border-amber-300 shadow-[0_0_30px_rgba(251,191,36,0.2)] hover:shadow-[0_0_50px_rgba(251,191,36,0.4)] hover:brightness-110 relative overflow-hidden group transition-all duration-300 cursor-pointer"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-[10px] font-black uppercase tracking-widest text-amber-300 flex items-center gap-1.5">
+                  <Brain size={12} className="text-amber-300" />
+                  ADAPTIVE TUTORING
+                </span>
+                <Brain size={24} className="text-amber-400 animate-pulse group-hover:scale-110 transition-transform duration-300" />
+              </div>
 
-              return (
-                <motion.button
-                  key={item.id}
-                  onClick={() => onSelect(item.id)}
-                  whileHover={{ y: -4 }}
-                  className="group flex flex-col p-6 sm:p-8 rounded-[28px] bg-slate-900/60 border border-white/10 hover:border-cyan-500/40 hover:bg-slate-900/80 transition-all duration-300 text-left cursor-pointer shadow-xl relative overflow-hidden backdrop-blur-xl"
+              <div>
+                <h3 className="text-2xl font-display font-black text-white group-hover:text-amber-200 transition-colors">
+                  AI Tutor Companion
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed mt-2">
+                  Engage with our localized AI tutor for homework help, syllabus explanations, and personalized study drills tailored to your unique learning style!
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-amber-400 shrink-0" />
+                  <span>Multilingual support (isiZulu, Afrikaans, etc.)</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-amber-400 shrink-0" />
+                  <span>Voice interaction & Smart Playback</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-amber-400 shrink-0" />
+                  <span>Topic-specific image generation</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-600 to-amber-700 hover:from-amber-400 hover:to-orange-500 text-white font-display font-black text-xs shadow-[0_0_20px_rgba(251,191,36,0.4)] hover:shadow-[0_0_30px_rgba(251,191,36,0.7)] transition-all cursor-pointer flex items-center justify-center gap-2 border border-amber-300/40"
+            >
+              <Sparkles size={16} />
+              <span>Launch AI Tutor Now</span>
+            </button>
+          </motion.div>
+
+        </div>
+
+        {/* Feature Grid */}
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-6xl mx-auto w-full my-4">
+          
+          {/* CARD 1: AI Tutor (Orange/Amber Border Glow) */}
+          <motion.div
+            whileHover={{ scale: 1.03, y: -6 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            onClick={() => onSelect('ai-tutor')}
+            className="rounded-[32px] border-2 border-orange-500/90 bg-[#0e122e]/90 shadow-[0_0_30px_rgba(249,115,22,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-orange-400 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(249,115,22,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
+          >
+            <div className="space-y-4 w-full flex flex-col items-center">
+              <div className="w-20 h-20 rounded-3xl bg-orange-500/10 border-2 border-orange-500/50 flex items-center justify-center text-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.4)] group-hover:scale-110 group-hover:bg-orange-500/20 group-hover:shadow-[0_0_30px_rgba(249,115,22,0.6)] transition-all duration-300">
+                <Brain size={44} />
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-orange-300 transition-colors mb-2">
+                  AI Tutor Companion
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                  Personalized 1-on-1 tutoring sessions with adaptive support for various subjects and learning phases.
+                </p>
+              </div>
+
+              <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+                <button
+                  className="px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/30 border border-orange-500/40 text-[11px] font-bold text-orange-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
                 >
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-cyan-500/20 border border-white/15 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                      <ItemIcon size={26} className="text-white" />
-                    </div>
-                    <h3 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight group-hover:text-cyan-400 transition-colors">
-                      {item.label}
-                    </h3>
-                  </div>
+                  🤖 Chat with Elly
+                </button>
+              </div>
+            </div>
+          </motion.div>
 
-                  <p className="text-sm sm:text-base text-slate-300 font-normal leading-relaxed">
-                    {desc}
-                  </p>
-                </motion.button>
+          {/* CARD 2: OCR Auto-Grading (Cyan/Blue Border Glow) */}
+          <motion.div
+            whileHover={{ scale: 1.03, y: -6 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            onClick={() => onSelect('ocr')}
+            className="rounded-[32px] border-2 border-cyan-400/90 bg-[#0e122e]/90 shadow-[0_0_30px_rgba(34,211,238,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-cyan-300 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(34,211,238,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
+          >
+            <div className="space-y-4 w-full flex flex-col items-center">
+              <div className="w-20 h-20 rounded-3xl bg-cyan-500/10 border-2 border-cyan-400/50 flex items-center justify-center text-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.4)] group-hover:scale-110 group-hover:bg-cyan-500/20 group-hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] transition-all duration-300">
+                <ScanLine size={44} />
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-cyan-200 transition-colors mb-2">
+                  OCR Auto-Grading
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                  Leverage AI vision to scan physical student answer sheets and provide instant, objective auto-grading.
+                </p>
+              </div>
+
+              <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+                <button
+                  className="px-3 py-1.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/30 border border-cyan-500/40 text-[11px] font-bold text-cyan-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
+                >
+                  ⚡ AI Vision Scanner
+                </button>
+              </div>
+            </div>
+          </motion.div>
+
+        </div>
+
+        {/* BOTTOM QUICK SHORTCUTS STRIP */}
+        <div className="relative z-10 pt-6 border-t border-indigo-500/20 text-center">
+          <p className="text-xs font-mono font-bold text-indigo-300 uppercase tracking-widest mb-3">
+            Intelligent AI Modules
+          </p>
+          <div className="flex flex-wrap justify-center items-center gap-3">
+            {[
+              { id: 'ai-tutor', label: 'AI Tutor', icon: Brain },
+              { id: 'ocr', label: 'OCR Grading', icon: ScanLine },
+              { id: 'student-practice', label: 'Practice Zone', icon: Zap },
+            ].map(tool => {
+              const ToolIcon = tool.icon;
+              return (
+                <button
+                  key={tool.id}
+                  onClick={() => onSelect(tool.id)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-indigo-600/30 border border-indigo-500/30 hover:border-cyan-400 text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <ToolIcon className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>{tool.label}</span>
+                </button>
               );
             })}
           </div>
         </div>
+
       </div>
     );
   }

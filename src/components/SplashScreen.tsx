@@ -30,10 +30,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
       return () => clearTimeout(errorTimer);
     }
 
-    // Standard video autoplay / fallback timeout (7 seconds)
+    // Standard video autoplay / fallback timeout (11 seconds)
     const timer = setTimeout(() => {
       onVideoEndRef.current?.();
-    }, 7000); 
+    }, 11000); 
 
     const video = videoRef.current;
     if (video && !videoError) {
@@ -90,7 +90,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
         <div className="relative w-full h-full flex items-center justify-center bg-[#0e152e]">
           <video
             ref={videoRef}
-            src={splashVideo || "/splash.mp4"}
+            src="/splash.mp4"
             autoPlay
             muted={isMuted}
             playsInline

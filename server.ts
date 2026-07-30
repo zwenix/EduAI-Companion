@@ -801,30 +801,42 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
   });
 
   app.get("/api/tts/proxy", async (req, res) => {
-    let url = req.query.url;
-    if (!url || typeof url !== "string") {
+    let url = req.query.url as string;
+    if (!url) {
       return res.status(400).send("Missing URL parameter");
     }
+
+    // Secondary deep extraction in case of double-encoding in some environments
     const urlIndex = req.originalUrl.indexOf("url=");
     if (urlIndex !== -1) {
-      url = decodeURIComponent(req.originalUrl.substring(urlIndex + 4));
+      const extracted = decodeURIComponent(req.originalUrl.substring(urlIndex + 4));
+      if (extracted.startsWith('http')) {
+        url = extracted;
+      }
     }
+
     try {
+      // Use a cleaner request without Referer to avoid Google's "400 Bad Request" security blocks
       const response = await axios({
         method: "get",
         url: url,
         responseType: "stream",
+        timeout: 10000,
         headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Referer": "https://translate.google.com/"
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+          "Accept": "*/*"
         }
       });
+      
       const contentType = response.headers["content-type"];
       res.setHeader("Content-Type", typeof contentType === "string" ? contentType : "audio/mpeg");
+      res.setHeader("Cache-Control", "public, max-age=31536000"); // Cache audio for 1 year
       response.data.pipe(res);
     } catch (error: any) {
-      console.warn("Audio proxy error:", error.message);
-      res.status(500).send("Audio proxy failed");
+      const statusCode = error.response?.status || 500;
+      const errorMsg = error.response?.data?.message || error.message;
+      console.warn(`[TTS PROXY ERROR] Failed to fetch ${url.slice(0, 50)}... | Status: ${statusCode} | Error: ${errorMsg}`);
+      res.status(statusCode).send(`Audio proxy failed: ${errorMsg}`);
     }
   });
 

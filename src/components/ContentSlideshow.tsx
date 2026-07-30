@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Play, Pause, Sparkles, Layers } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Pause, Sparkles, Brain, ScanLine, UserCircle2 } from 'lucide-react';
 
 import imgLessonPlan from '../assets/images/lesson_plan_screenshot_1784286235763.jpg';
 import imgUnitPlan from '../assets/images/unit_plan_screenshot_1784286250293.jpg';
 import imgAssessment from '../assets/images/assessment_screenshot_1784286266626.jpg';
 import imgStudyGuide from '../assets/images/study_guide_screenshot_1784286281497.jpg';
 
-const slides = [
+export interface Slide {
+  title: string;
+  tag: string;
+  badgeColor: string;
+  description: string;
+  image?: string;
+  icon?: any;
+}
+
+export const TOOLBOX_SLIDES: Slide[] = [
   {
     title: 'Lesson Plan Architect',
     tag: 'CAPS ALIGNED',
@@ -38,7 +47,35 @@ const slides = [
   }
 ];
 
-export default function ContentSlideshow() {
+export const INTELLIGENT_AI_SLIDES: Slide[] = [
+  {
+    title: 'AI Tutor Companion',
+    tag: 'PERSONALIZED',
+    badgeColor: 'from-amber-500 to-orange-600',
+    description: 'A localized AI companion for homework grading, concept explanations, and curriculum support, adaptive to each student’s grade and learning style.',
+    icon: Brain
+  },
+  {
+    title: 'OCR Auto-Grading',
+    tag: 'AI VISION',
+    badgeColor: 'from-cyan-500 to-blue-600',
+    description: 'Leverage AI vision to scan physical student answer sheets, detect handwritten text, and perform objective auto-grading automatically.',
+    icon: ScanLine
+  },
+  {
+    title: 'Adaptive Learning Path',
+    tag: 'DATA DRIVEN',
+    badgeColor: 'from-emerald-500 to-teal-600',
+    description: 'Analyze student performance metrics and generate personalized revision packs and skill mastery drills to close knowledge gaps.',
+    icon: UserCircle2
+  }
+];
+
+interface ContentSlideshowProps {
+  slides?: Slide[];
+}
+
+export default function ContentSlideshow({ slides = TOOLBOX_SLIDES }: ContentSlideshowProps) {
   const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
 
@@ -48,7 +85,7 @@ export default function ContentSlideshow() {
       setIndex((prev) => (prev + 1) % slides.length);
     }, 4500);
     return () => clearInterval(timer);
-  }, [isPlaying]);
+  }, [isPlaying, slides.length]);
 
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -71,6 +108,7 @@ export default function ContentSlideshow() {
   };
 
   const currentSlide = slides[index];
+  const Icon = (currentSlide as any).icon;
 
   return (
     <div className="w-full h-full min-h-[340px] max-h-[420px] rounded-[32px] overflow-hidden relative shadow-2xl border border-cyan-500/30 bg-slate-950 flex flex-col justify-between group select-none">
@@ -95,7 +133,9 @@ export default function ContentSlideshow() {
               referrerPolicy="no-referrer"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-slate-900 via-cyan-950 to-slate-900 opacity-80" />
+            <div className="w-full h-full bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center opacity-80">
+              {Icon && <Icon size={120} className="text-white/5" strokeWidth={1} />}
+            </div>
           )}
 
           {/* Gradient Overlays for optimal readability */}
@@ -131,18 +171,26 @@ export default function ContentSlideshow() {
             transition={{ duration: 0.4 }}
             className="space-y-2.5"
           >
-            <div className="flex items-center gap-2">
-              <span className={`px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest text-white bg-gradient-to-r ${currentSlide.badgeColor} shadow-sm`}>
-                {currentSlide.tag}
-              </span>
-              <span className="text-[10px] font-mono font-bold text-slate-400">
-                0{index + 1} / 0{slides.length}
-              </span>
+            <div className="flex items-center gap-3">
+              {Icon && (
+                <div className={`p-2 rounded-xl bg-gradient-to-r ${currentSlide.badgeColor} bg-opacity-20 backdrop-blur-sm border border-white/20`}>
+                  <Icon size={20} className="text-white" />
+                </div>
+              )}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className={`px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest text-white bg-gradient-to-r ${currentSlide.badgeColor} shadow-sm`}>
+                    {currentSlide.tag}
+                  </span>
+                  <span className="text-[10px] font-mono font-bold text-slate-400">
+                    0{index + 1} / 0{slides.length}
+                  </span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-display font-black text-white tracking-tight leading-tight drop-shadow-md">
+                  {currentSlide.title}
+                </h3>
+              </div>
             </div>
-
-            <h3 className="text-xl sm:text-2xl font-display font-black text-white tracking-tight leading-tight drop-shadow-md">
-              {currentSlide.title}
-            </h3>
 
             <p className="text-xs sm:text-sm text-slate-200 font-medium leading-relaxed line-clamp-3 max-w-xl">
               {currentSlide.description}
