@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../lib/firebase';
-import { collection, query, onSnapshot, setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, onSnapshot, setDoc, doc, serverTimestamp, where, or } from 'firebase/firestore';
 import { MOCK_STUDENTS } from '../data/mockStudents';
 
 interface ChatMessage {
@@ -111,7 +111,14 @@ export default function Messenger() {
     }, (err) => console.error("Error loading users for Messenger:", err));
 
     // B. Listen to enrolled students
-    const unsubStudents = onSnapshot(collection(db, 'students'), (snap) => {
+    const userRole = localStorage.getItem('eduai_user_role')?.toLowerCase();
+    let stuQuery = collection(db, 'students') as any;
+    if (userRole === 'parent') {
+      stuQuery = query(collection(db, 'students'), where('parentEmail', '==', currentUserEmail));
+    } else {
+      stuQuery = query(collection(db, 'students'), where('teacherId', '==', currentUserId));
+    }
+    const unsubStudents = onSnapshot(stuQuery, (snap) => {
       const stuList: UserContact[] = [];
       snap.docs.forEach(d => {
         const data = d.data();
@@ -190,10 +197,14 @@ export default function Messenger() {
       });
     };
 
-    const unsubComm = onSnapshot(collection(db, 'communicator_messages'), (s) => handleMessagesSnap(s, 'communicator'));
-    const unsubDirect = onSnapshot(collection(db, 'direct_messages'), (s) => handleMessagesSnap(s, 'direct'));
-    const unsubGen = onSnapshot(collection(db, 'messages'), (s) => handleMessagesSnap(s, 'messages'));
-    const unsubHub = onSnapshot(collection(db, 'messenger_messages'), (s) => handleMessagesSnap(s, 'hub'));
+    const unsubComm = onSnapshot(
+      query(collection(db, 'communicator_messages'), or(where('senderId', '==', currentUserId), where('recipientId', '==', currentUserId))),
+      (s) => handleMessagesSnap(s, 'communicator'),
+      (err) => console.error("Error loading communicator messages:", err)
+    );
+    const unsubDirect = onSnapshot(collection(db, 'direct_messages'), (s) => handleMessagesSnap(s, 'direct'), (err) => console.error(err));
+    const unsubGen = onSnapshot(collection(db, 'messages'), (s) => handleMessagesSnap(s, 'messages'), (err) => console.error(err));
+    const unsubHub = onSnapshot(collection(db, 'messenger_messages'), (s) => handleMessagesSnap(s, 'hub'), (err) => console.error(err));
 
     return () => {
       unsubUsers();

@@ -3,7 +3,7 @@ import {
   Sparkles, User, Mic, Loader2, Play, Square, GraduationCap, Pause, 
   Image as ImageIcon, Clock, AlertCircle, Search, Plus, Trash2, Folder, 
   FolderOpen, ChevronDown, ChevronRight, Settings, ArrowLeft, Brain, Check, X, FileText, Send, Monitor, Volume2, Puzzle, Eye,
-  MessageSquare, Archive, BookOpen, Layers, History
+  MessageSquare, Archive, BookOpen, Layers, History, Menu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { chatWithTutor } from '../services/unifiedAiService';
@@ -163,6 +163,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
   const [studentStyle, setStudentStyle] = useState('Visual');
   const [userRole, setUserRole] = useState('learner');
   const [studentData, setStudentData] = useState<any>(null);
+  const [isRightMenuOpen, setIsRightMenuOpen] = useState(false);
 
   // Daily Study Duration Timer
   const todayStr = new Date().toISOString().split('T')[0];
@@ -999,6 +1000,16 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   <Plus size={14} strokeWidth={3} />
                   <span>New Chat</span>
                 </button>
+                
+                {/* Mobile Tools Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setIsRightMenuOpen(!isRightMenuOpen)}
+                  className="lg:hidden bg-slate-800 border border-white/10 hover:bg-slate-700 text-cyan-400 px-2 py-1.5 rounded-xl text-xs font-black transition-all flex items-center justify-center shadow-lg active:scale-95 cursor-pointer shrink-0"
+                  title="Toggle Tools"
+                >
+                  {isRightMenuOpen ? <X size={16} strokeWidth={2.5} /> : <Menu size={16} strokeWidth={2.5} />}
+                </button>
               </div>
             </div>
 
@@ -1247,7 +1258,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
           </div>
 
           {/* 3. RIGHT SIDEBAR (Shrink size to fit without scrolling: w-56 xl:w-64) */}
-          <div className="w-56 xl:w-64 shrink-0 flex flex-col gap-3 overflow-hidden max-h-full">
+          <div className={`${isRightMenuOpen ? 'fixed inset-y-4 right-4 z-50 bg-slate-900/95 border border-white/10 p-4 rounded-3xl shadow-2xl overflow-y-auto' : 'hidden'} lg:relative lg:flex lg:w-56 xl:w-64 shrink-0 flex-col gap-3 lg:overflow-hidden lg:max-h-full`}>
             {/* Card 1: Suggested Activities & Topics */}
             <div className="bg-slate-900/80 border border-white/10 rounded-[22px] p-3.5 shadow-xl text-left shrink-0">
               <h3 className="text-xs font-display font-bold text-white mb-2 flex items-center gap-1.5">
@@ -1465,6 +1476,16 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                     {allVoices.map((v, i) => <option key={`${v.value}-${i}`} value={v.value}>{v.label}</option>)}
                   </select>
                 </div>
+                
+                {/* Mobile Menu Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setIsRightMenuOpen(!isRightMenuOpen)}
+                  className="lg:hidden w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-cyan-400 transition-all cursor-pointer mt-3"
+                  title="Toggle Tools"
+                >
+                  {isRightMenuOpen ? <X size={16} strokeWidth={2.5} /> : <Menu size={16} strokeWidth={2.5} />}
+                </button>
               </div>
             </motion.div>
           )}

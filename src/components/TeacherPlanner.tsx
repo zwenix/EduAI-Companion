@@ -30,6 +30,7 @@ interface PlannerEvent {
 interface TeacherPlannerProps {
   isDarkMode: boolean;
   onBack: () => void;
+  userRole?: string | null;
 }
 
 // Preloaded CAPS timeline items to populate the calendar
@@ -76,7 +77,7 @@ const INITIAL_EVENTS: PlannerEvent[] = [
   }
 ];
 
-export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBack }) => {
+export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBack, userRole }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDateStr, setSelectedDateStr] = useState<string>(new Date().toISOString().split('T')[0]);
   const [events, setEvents] = useState<PlannerEvent[]>(() => {
@@ -267,7 +268,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white font-display uppercase">
-                Teacher's Planner & Diary
+                {userRole === 'student' ? 'My Calendar & Planner' : "Teacher's Planner & Diary"}
               </h1>
               <p className="text-slate-400 text-xs font-mono tracking-widest uppercase">
                 CAPS Curricular Scheduler & Lesson Logs
@@ -473,7 +474,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
                   Daily Log
                 </span>
                 <h3 className="text-lg font-black text-white font-display uppercase tracking-wide">
-                  Teacher's Diary & Reflection Notes
+                  {userRole === 'student' ? 'My Daily Journal & Notes' : "Teacher's Diary & Reflection Notes"}
                 </h3>
               </div>
               <Save size={18} className="text-indigo-400/50" />

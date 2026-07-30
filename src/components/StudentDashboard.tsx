@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Target, BookOpen, CheckCircle, Flame, Star, Brain, Play, Check, Heart, MessageCircle, Printer, Camera, Upload, Loader2, AlertCircle, RefreshCw, Eye, GripVertical, ArrowUp, ArrowDown, Move, Activity, Clock } from 'lucide-react';
+import { Target, BookOpen, CheckCircle, Flame, Star, Brain, Play, Check, Heart, MessageCircle, Printer, Camera, Upload, Loader2, AlertCircle, RefreshCw, Eye, GripVertical, ArrowUp, ArrowDown, Move, Activity, Clock, Bell, Calendar, Sparkles, ShieldAlert } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../lib/firebase';
@@ -12,10 +12,27 @@ import StudentAITutorBubble from './StudentAITutorBubble';
 import { runTextGrade, runOCRAndGrade } from '../services/unifiedAiService';
 import { marked } from 'marked';
 
+const stripMarkdownWrapper = (text: string) => {
+  if (!text) return text;
+  let cleaned = text.trim();
+  if (cleaned.startsWith('```')) {
+    const lines = cleaned.split('\n');
+    if (lines.length > 1 && lines[0].startsWith('```')) {
+      lines.shift();
+    }
+    if (lines.length > 0 && lines[lines.length - 1].startsWith('```')) {
+      lines.pop();
+    }
+    cleaned = lines.join('\n').trim();
+  }
+  return cleaned;
+};
+
+
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
 
-export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }) {
+export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMode: boolean, onNavigate?: (tabId: string, categoryId?: string) => void }) {
   const [student, setStudent] = useState<StudentDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [celebrateTaskId, setCelebrateTaskId] = useState<number | null>(null);
@@ -709,6 +726,134 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
          ))}
       </div>
 
+      {/* Quick Access Dashboard Menu */}
+      <motion.div 
+         className={cn(
+          "p-6 md:p-8 rounded-[36px] border-2 space-y-6 relative overflow-hidden",
+          isDarkMode ? "bg-[#0d1225]/45 backdrop-blur-md border-brand-cyan/20" : "bg-white/60 backdrop-blur-md shadow-xl border-slate-200"
+        )}
+      >
+        <h2 className={cn("text-xl font-display font-black tracking-widest uppercase flex items-center gap-2", isDarkMode ? "text-cyan-400" : "text-indigo-600")}>
+          <span>STUDENT COMMAND CENTER</span>
+          <span className={cn("h-1.5 w-1.5 rounded-full animate-pulse", isDarkMode ? "bg-cyan-400" : "bg-indigo-600")} />
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          
+          {/* Tile 1: Notifications */}
+          <motion.div 
+            whileHover={{ y: -6, scale: 1.015 }}
+            onClick={() => onNavigate && onNavigate('alerts', 'student-notifications')}
+            className={cn(
+              "relative p-6 rounded-[32px] border-2 flex flex-col items-start gap-4 overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md",
+              isDarkMode ? "bg-[#0c1225]/85 border-pink-500/50 shadow-[0_0_20px_rgba(236,72,153,0.15)]" : "bg-pink-50/80 border-pink-200"
+            )}
+          >
+            <div className={cn("absolute -bottom-10 -left-10 w-24 h-24 blur-xl rounded-full", isDarkMode ? "bg-pink-500/10" : "bg-pink-200/50")} />
+            
+            <div className={cn(
+              "w-14 h-14 rounded-2xl border-2 flex items-center justify-center shrink-0 group-hover:rotate-12 transition-transform",
+              isDarkMode ? "bg-pink-500/10 border-pink-400 text-pink-400 shadow-[0_0_15px_rgba(236,72,153,0.25)]" : "bg-pink-100 border-pink-300 text-pink-600"
+            )}>
+              <Bell size={24} className={isDarkMode ? "drop-shadow-[0_0_8px_rgba(236,72,153,0.6)]" : ""} />
+            </div>
+            
+            <div className="space-y-1">
+              <h3 className={cn("text-base font-black font-display leading-tight", isDarkMode ? "text-white" : "text-slate-800")}>
+                Notifications
+              </h3>
+              <p className={cn("text-[11px] leading-snug font-medium", isDarkMode ? "text-slate-400" : "text-slate-500")}>
+                Check messages, alerts, and new quests from teachers.
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Tile 2: Calendar Page */}
+          <motion.div 
+            whileHover={{ y: -6, scale: 1.015 }}
+            onClick={() => onNavigate && onNavigate('planner', 'student-calendar')}
+            className={cn(
+              "relative p-6 rounded-[32px] border-2 flex flex-col items-start gap-4 overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md",
+              isDarkMode ? "bg-[#0c1225]/85 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.15)]" : "bg-emerald-50/80 border-emerald-200"
+            )}
+          >
+            <div className={cn("absolute -bottom-10 -left-10 w-24 h-24 blur-xl rounded-full", isDarkMode ? "bg-emerald-500/10" : "bg-emerald-200/50")} />
+            
+            <div className={cn(
+              "w-14 h-14 rounded-2xl border-2 flex items-center justify-center shrink-0 group-hover:-rotate-6 transition-transform",
+              isDarkMode ? "bg-emerald-500/10 border-emerald-400 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.25)]" : "bg-emerald-100 border-emerald-300 text-emerald-600"
+            )}>
+              <Calendar size={24} className={isDarkMode ? "drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" : ""} />
+            </div>
+            
+            <div className="space-y-1">
+              <h3 className={cn("text-base font-black font-display leading-tight", isDarkMode ? "text-white" : "text-slate-800")}>
+                Calendar Page
+              </h3>
+              <p className={cn("text-[11px] leading-snug font-medium", isDarkMode ? "text-slate-400" : "text-slate-500")}>
+                Your upcoming tasks, classes, and due dates.
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Tile 3: My Class */}
+          <motion.div 
+            whileHover={{ y: -6, scale: 1.015 }}
+            onClick={() => onNavigate && onNavigate('student-notes', 'lesson-planning')}
+            className={cn(
+              "relative p-6 rounded-[32px] border-2 flex flex-col items-start gap-4 overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md",
+              isDarkMode ? "bg-[#0c1225]/85 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.15)]" : "bg-indigo-50/80 border-indigo-200"
+            )}
+          >
+            <div className={cn("absolute -bottom-10 -left-10 w-24 h-24 blur-xl rounded-full", isDarkMode ? "bg-indigo-500/10" : "bg-indigo-200/50")} />
+            
+            <div className={cn(
+              "w-14 h-14 rounded-2xl border-2 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform",
+              isDarkMode ? "bg-indigo-500/10 border-indigo-400 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.25)]" : "bg-indigo-100 border-indigo-300 text-indigo-600"
+            )}>
+              <BookOpen size={24} className={isDarkMode ? "drop-shadow-[0_0_8px_rgba(99,102,241,0.6)]" : ""} />
+            </div>
+            
+            <div className="space-y-1">
+              <h3 className={cn("text-base font-black font-display leading-tight", isDarkMode ? "text-white" : "text-slate-800")}>
+                My Class
+              </h3>
+              <p className={cn("text-[11px] leading-snug font-medium", isDarkMode ? "text-slate-400" : "text-slate-500")}>
+                Study guides, resources, and your classroom hub.
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Tile 4: AI Tutor */}
+          <motion.div 
+            whileHover={{ y: -6, scale: 1.015 }}
+            onClick={() => onNavigate && onNavigate('ai-tutor', 'intelligence-ai')}
+            className={cn(
+              "relative p-6 rounded-[32px] border-2 flex flex-col items-start gap-4 overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md",
+              isDarkMode ? "bg-[#0c1225]/85 border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.15)]" : "bg-cyan-50/80 border-cyan-200"
+            )}
+          >
+            <div className={cn("absolute -bottom-10 -left-10 w-24 h-24 blur-xl rounded-full", isDarkMode ? "bg-cyan-500/10" : "bg-cyan-200/50")} />
+            
+            <div className={cn(
+              "w-14 h-14 rounded-2xl border-2 flex items-center justify-center shrink-0 group-hover:rotate-[15deg] transition-transform",
+              isDarkMode ? "bg-cyan-500/10 border-cyan-400 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)]" : "bg-cyan-100 border-cyan-300 text-cyan-600"
+            )}>
+              <Sparkles size={24} className={isDarkMode ? "drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" : ""} />
+            </div>
+            
+            <div className="space-y-1">
+              <h3 className={cn("text-base font-black font-display leading-tight", isDarkMode ? "text-white" : "text-slate-800")}>
+                AI Tutor's Class
+              </h3>
+              <p className={cn("text-[11px] leading-snug font-medium", isDarkMode ? "text-slate-400" : "text-slate-500")}>
+                Ask questions and get intelligent help anytime.
+              </p>
+            </div>
+          </motion.div>
+          
+        </div>
+      </motion.div>
+
       {/* Dashboard Customization Control Panel */}
       <div className={cn(
         "p-4 rounded-[24px] border flex flex-col sm:flex-row justify-between items-center gap-4",
@@ -1186,7 +1331,7 @@ export default function StudentDashboard({ isDarkMode }: { isDarkMode: boolean }
                     {selectedAssignment.content && selectedAssignment.content.trim().startsWith('<') ? (
                       <div dangerouslySetInnerHTML={{ __html: selectedAssignment.content }} />
                     ) : (
-                      <div dangerouslySetInnerHTML={{ __html: marked.parse(selectedAssignment.content || '') as string }} />
+                      <div dangerouslySetInnerHTML={{ __html: (/<\/?[a-z][\s\S]*>/i.test(stripMarkdownWrapper(selectedAssignment.content || '')) && stripMarkdownWrapper(selectedAssignment.content || '').trim().startsWith('<')) ? stripMarkdownWrapper(selectedAssignment.content || '') : marked.parse(stripMarkdownWrapper(selectedAssignment.content || '')) as string }} />
                     )}
                   </div>
                 </div>

@@ -1913,7 +1913,7 @@ STRICT COMPLIANCE & ZERO-HALLUCINATION MANDATES:
     }
 
     if (!process.env.VERCEL) {
-      const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+      const PORT = 3000;
       app.listen(PORT, "0.0.0.0", () => {
         console.log(`Server running on port ${PORT}`);
       });

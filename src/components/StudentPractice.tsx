@@ -4,6 +4,23 @@ import { motion } from 'motion/react';
 import { generateEducationalContent, runOCRAndGrade } from '../services/geminiService';
 import OCRScanner from './OCRScanner';
 import { marked } from 'marked';
+
+const stripMarkdownWrapper = (text: string) => {
+  if (!text) return text;
+  let cleaned = text.trim();
+  if (cleaned.startsWith('```')) {
+    const lines = cleaned.split('\n');
+    if (lines.length > 1 && lines[0].startsWith('```')) {
+      lines.shift();
+    }
+    if (lines.length > 0 && lines[lines.length - 1].startsWith('```')) {
+      lines.pop();
+    }
+    cleaned = lines.join('\n').trim();
+  }
+  return cleaned;
+};
+
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { educationalData } from '../lib/educational-data';
 import { db, auth } from '../lib/firebase';
@@ -145,14 +162,14 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
     // Convert potential markdown to HTML first if it's not raw HTML
     let bodyHtml = typeof contentString === 'string' ? contentString.trim() : '';
     if (bodyHtml && !bodyHtml.startsWith('<')) {
-      bodyHtml = marked.parse(bodyHtml) as string;
+      bodyHtml = marked.parse(stripMarkdownWrapper(bodyHtml)) as string;
     }
     bodyHtml = replaceImagePlaceholders(bodyHtml);
 
     let memoHtml = typeof memoString === 'string' ? memoString.trim() : '';
     if (memoHtml) {
       if (!memoHtml.startsWith('<')) {
-        memoHtml = marked.parse(memoHtml) as string;
+        memoHtml = marked.parse(stripMarkdownWrapper(memoHtml)) as string;
       }
       memoHtml = replaceImagePlaceholders(memoHtml);
     }
@@ -360,7 +377,7 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
                     dangerouslySetInnerHTML={{ 
                       __html: (result.content || result).trim().startsWith('<') 
                         ? replaceImagePlaceholders(result.content || result)
-                        : replaceImagePlaceholders(marked.parse(result.content || result) as string)
+                        : replaceImagePlaceholders((/<\/?[a-z][\s\S]*>/i.test(stripMarkdownWrapper(result.content || result)) && stripMarkdownWrapper(result.content || result).trim().startsWith('<')) ? stripMarkdownWrapper(result.content || result) : marked.parse(stripMarkdownWrapper(result.content || result)) as string)
                     }} 
                     className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-850'}`} 
                   />
@@ -371,7 +388,7 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
                           dangerouslySetInnerHTML={{ 
                             __html: result.memo.trim().startsWith('<') 
                               ? replaceImagePlaceholders(result.memo)
-                              : replaceImagePlaceholders(marked.parse(result.memo) as string)
+                              : replaceImagePlaceholders((/<\/?[a-z][\s\S]*>/i.test(stripMarkdownWrapper(result.memo)) && stripMarkdownWrapper(result.memo).trim().startsWith('<')) ? stripMarkdownWrapper(result.memo) : marked.parse(stripMarkdownWrapper(result.memo)) as string)
                           }} 
                           className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-800'}`} 
                        />

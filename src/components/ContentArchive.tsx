@@ -2,6 +2,23 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Box, Search, Library, History, ExternalLink, Loader2, Trash2, Eye, Edit3, FileDown, Send, Check, X, FileText, FileJson, Bookmark } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
+
+const stripMarkdownWrapper = (text: string) => {
+  if (!text) return text;
+  let cleaned = text.trim();
+  if (cleaned.startsWith('```')) {
+    const lines = cleaned.split('\n');
+    if (lines.length > 1 && lines[0].startsWith('```')) {
+      lines.shift();
+    }
+    if (lines.length > 0 && lines[lines.length - 1].startsWith('```')) {
+      lines.pop();
+    }
+    cleaned = lines.join('\n').trim();
+  }
+  return cleaned;
+};
+
 import { printContent, downloadAsHTML, downloadAsPDF } from '../lib/printUtils';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 // PrintHeader import removed as per user request
@@ -572,7 +589,7 @@ export default function ContentArchive() {
                         <PosterPreview html={selectedItem.content} />
                       ) : (
                         <div className="prose prose-sm lg:prose-base max-w-none markdown-body"
-                          dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(marked.parse(selectedItem.content.trim().startsWith('div ') ? '<' + selectedItem.content : selectedItem.content) as string) }}
+                          dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(/<\/?[a-z][\s\S]*>/i.test(stripMarkdownWrapper(selectedItem.content)) && stripMarkdownWrapper(selectedItem.content).trim().startsWith('<') ? stripMarkdownWrapper(selectedItem.content) : marked.parse(stripMarkdownWrapper(selectedItem.content)) as string) }}
                         />
                       )
                     ) : (

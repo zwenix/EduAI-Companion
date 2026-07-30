@@ -74,6 +74,23 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'motion/react';
 import { marked } from 'marked';
+
+const stripMarkdownWrapper = (text: string) => {
+  if (!text) return text;
+  let cleaned = text.trim();
+  if (cleaned.startsWith('```')) {
+    const lines = cleaned.split('\n');
+    if (lines.length > 1 && lines[0].startsWith('```')) {
+      lines.shift();
+    }
+    if (lines.length > 0 && lines[lines.length - 1].startsWith('```')) {
+      lines.pop();
+    }
+    cleaned = lines.join('\n').trim();
+  }
+  return cleaned;
+};
+
 import { replaceImagePlaceholders } from './lib/imageReplacer';
 import ContentCreator from './components/ContentCreator';
 import Messenger from './components/Messenger';
@@ -98,6 +115,9 @@ import StudentPortfolio from './components/StudentPortfolio';
 import CurriculumSuite from './components/CurriculumSuite';
 import ParentDashboard from './components/ParentDashboard';
 import ReaderModeModal from './components/ReaderModeModal';
+
+
+
 import { TeacherPlanner } from './components/TeacherPlanner';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -139,8 +159,8 @@ import {
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
-const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDarkMode, themeMode }: { id?: string, icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean, isDarkMode?: boolean, themeMode?: string }) => {
-  const displayLabel = id === 'teacher-dashboard-menu' && label !== 'Home' ? 'Classroom Chalkboard' : label;
+const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDarkMode, themeMode, role }: { id?: string, icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean, isDarkMode?: boolean, themeMode?: string, role?: string | null }) => {
+  const displayLabel = id === 'teacher-dashboard-menu' && label !== 'Home' && role !== 'student' ? 'Classroom Chalkboard' : label;
 
   return (
     <button
@@ -175,7 +195,10 @@ const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDark
       />
       
       {!collapsed && (
-        <span className="font-sans text-xs font-semibold text-left flex-1 flex items-center justify-between gap-2 overflow-hidden truncate">
+        <span className={cn(
+          "text-left flex-1 flex items-center justify-between gap-2 overflow-hidden truncate",
+          role === 'student' ? "font-hand text-base font-bold tracking-wide" : "font-sans text-xs font-semibold"
+        )}>
           <span className="truncate">{displayLabel}</span>
         </span>
       )}
@@ -802,6 +825,17 @@ export default function App() {
       ];
     }
     
+    if (r === 'student') {
+      return [
+        { id: 'teacher-dashboard-menu', label: firstLabel, icon: IconHome },
+        { id: 'lesson-planning', label: 'My Class', icon: IconCurriculum },
+        { id: 'intelligence-ai', label: "AI Tutor's Class", icon: SmartBotTutorIcon },
+        { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
+        { id: 'student-class-management', label: 'Chat & Messenger', icon: IconClassrooms },
+        { id: 'system-support', label: 'System support', icon: IconSettings },
+      ];
+    }
+
     return [
       { id: 'teacher-dashboard-menu', label: firstLabel, icon: IconHome },
       { id: 'lesson-planning', label: "Teacher's Toolbox", icon: IconCurriculum },
@@ -825,7 +859,7 @@ export default function App() {
           ];
         case 'lesson-planning':
           return [
-            { id: 'student-notes', label: 'Study & Revision Notes', icon: IconCurriculum }
+            { id: 'student-notes', label: 'My Class Dashboard', icon: IconCurriculum }
           ];
         case 'intelligence-ai':
           return [
@@ -1384,6 +1418,7 @@ export default function App() {
                 active={active} 
                 isDarkMode={isDarkMode}
                 themeMode={themeMode}
+                role={userRole}
                 onClick={() => {
                   setActiveCategory(cat.id);
                   const subTabs = getSubTabsForCategory(cat.id, userRole);
@@ -1722,7 +1757,7 @@ export default function App() {
             {/* Accessibility Helpers Expandable Bar Button */}
             <button
               onClick={() => setIsAccessibilityOpen(!isAccessibilityOpen)}
-              className={`p-2 rounded-full transition-all flex items-center justify-center ${
+              className={`hidden sm:flex p-2 rounded-full transition-all items-center justify-center ${
                 isAccessibilityOpen 
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
                   : (isDarkMode ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-205 border border-slate-200/55 shadow-sm')
@@ -1735,7 +1770,7 @@ export default function App() {
             {/* Expandable settings drawer trigger button */}
             <button
               onClick={() => setUtilityDrawerOpen(!utilityDrawerOpen)}
-              className={`p-2 rounded-full transition-all flex items-center justify-center ${
+              className={`hidden sm:flex p-2 rounded-full transition-all items-center justify-center ${
                 utilityDrawerOpen 
                   ? 'bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/30' 
                   : (isDarkMode ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-205 border border-slate-200/55 shadow-sm')
@@ -1746,7 +1781,7 @@ export default function App() {
             </button>
 
             {/* Theme Mode Dropdown Menu */}
-            <div className="relative">
+            <div className="relative hidden sm:block">
               <button 
                 onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
                 className={`p-2 rounded-full transition-all flex items-center justify-center ${
@@ -2359,7 +2394,13 @@ export default function App() {
 
                   {activeTab === 'dashboard' ? (
               userRole === 'student' ? (
-                <StudentDashboard isDarkMode={isDarkMode} />
+                <StudentDashboard 
+                  isDarkMode={isDarkMode} 
+                  onNavigate={(tabId, categoryId) => {
+                    if (categoryId) setActiveCategory(categoryId);
+                    changeTab(tabId);
+                  }}
+                />
               ) : userRole === 'parent' ? (
                 <ParentDashboard isDarkMode={isDarkMode} />
               ) : userRole === 'admin' ? (
@@ -2421,7 +2462,7 @@ export default function App() {
                 ) : activeTab === 'archive' ? (
                   <ContentArchive />
                 ) : activeTab === 'planner' ? (
-                  <TeacherPlanner isDarkMode={isDarkMode} onBack={() => setActiveTab('dashboard')} />
+                  <TeacherPlanner isDarkMode={isDarkMode} onBack={() => setActiveTab('dashboard')} userRole={userRole} />
                 ) : activeTab === 'illustrations' ? (
                   <IllustrationLibrary isDarkMode={isDarkMode} />
                 ) : activeTab === 'ai-tutor' ? (
@@ -2906,7 +2947,7 @@ export default function App() {
                                 const txtEl = document.createElement('div');
                                 txtEl.style.fontSize = '13px';
                                 txtEl.style.lineHeight = '1.6';
-                                txtEl.innerHTML = replaceImagePlaceholders(marked.parse(selectedOfflineMaterial.content || '') as string);
+                                txtEl.innerHTML = replaceImagePlaceholders((/<\/?[a-z][\s\S]*>/i.test(stripMarkdownWrapper(selectedOfflineMaterial.content || '')) && stripMarkdownWrapper(selectedOfflineMaterial.content || '').trim().startsWith('<')) ? stripMarkdownWrapper(selectedOfflineMaterial.content || '') : marked.parse(stripMarkdownWrapper(selectedOfflineMaterial.content || '')) as string);
                                 containerDiv.appendChild(txtEl);
 
                                 document.body.appendChild(containerDiv);
@@ -2989,7 +3030,7 @@ export default function App() {
                               : 'bg-white border-slate-100 text-slate-700'
                           } markdown-body`}
                           dangerouslySetInnerHTML={{
-                            __html: replaceImagePlaceholders(marked.parse(selectedOfflineMaterial.content || '*No content available for this study guide. Try sync again.*') as string)
+                            __html: replaceImagePlaceholders((/<\/?[a-z][\s\S]*>/i.test(stripMarkdownWrapper(selectedOfflineMaterial.content || '')) && stripMarkdownWrapper(selectedOfflineMaterial.content || '').trim().startsWith('<')) ? stripMarkdownWrapper(selectedOfflineMaterial.content || '') : marked.parse(stripMarkdownWrapper(selectedOfflineMaterial.content || '*No content available for this study guide. Try sync again.*')) as string)
                           }}
                         />
                       </div>
@@ -3041,7 +3082,7 @@ export default function App() {
             isOpen={isOfflineReaderOpen}
             onClose={() => setIsOfflineReaderOpen(false)}
             title={selectedOfflineMaterial.title || 'Syllabus Note Guide'}
-            content={selectedOfflineMaterial.content || ''}
+            content={stripMarkdownWrapper(selectedOfflineMaterial.content || '')}
             subject={selectedOfflineMaterial.subject}
             grade={selectedOfflineMaterial.grade}
           />

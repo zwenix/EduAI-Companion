@@ -110,7 +110,9 @@ export default function ReaderModeModal({
   const activeHTML = useMemo(() => {
     if (!content) return '';
     try {
-      const parsed = marked.parse(content) as string;
+      // If content is primarily HTML, avoid marked.parse to prevent treating indents as code blocks
+      const isHTML = /<\/?[a-z][\s\S]*>/i.test(content) && content.trim().startsWith('<');
+      const parsed = isHTML ? content : (marked.parse(content) as string);
       return renderMathInHtml(replaceImagePlaceholders(parsed));
     } catch (e) {
       return renderMathInHtml(content);
