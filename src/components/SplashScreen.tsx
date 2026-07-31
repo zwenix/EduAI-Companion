@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import Logo from './Logo';
-import splashVideo from '../assets/splash.mp4';
+import { SPLASH_VIDEO_BASE64 } from '../assets/splashBase64';
 
 interface SplashScreenProps {
   onVideoEnd?: () => void;
@@ -18,19 +18,15 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
     onVideoEndRef.current = onVideoEnd;
   }, [onVideoEnd]);
 
-  // Splendid timer that guarantees the splash screen transitions appropriately,
-  // showing the premium video or a fast auto-transition fallback if the video errors out.
+  // Splendid timer that guarantees the splash screen transitions appropriately (11 seconds)
   useEffect(() => {
     if (videoError) {
-      // If the video errored, do not force the user to wait or manual-click.
-      // Show the elegant fallback branding for 1.5s and then automatically enter the app.
       const errorTimer = setTimeout(() => {
         onVideoEndRef.current?.();
       }, 1500);
       return () => clearTimeout(errorTimer);
     }
 
-    // Standard video autoplay / fallback timeout (11 seconds)
     const timer = setTimeout(() => {
       onVideoEndRef.current?.();
     }, 11000); 
@@ -84,7 +80,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
   return (
     <div
       className="fixed inset-0 z-[120] flex h-screen w-screen items-center justify-center select-none overflow-hidden"
-      style={{ backgroundColor: '#0e152e' }} // Deep premium navy background matching the app's aesthetic
+      style={{ backgroundColor: '#0e152e' }}
     >
       {!videoError ? (
         <div 
@@ -97,7 +93,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
         >
           <video
             ref={videoRef}
-            src="/splash.mp4"
+            src={SPLASH_VIDEO_BASE64}
             autoPlay
             loop
             muted={isMuted}
