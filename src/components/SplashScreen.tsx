@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import Logo from './Logo';
+import splashVideoUrl from '../assets/splash.mp4';
 
 interface SplashScreenProps {
   onVideoEnd?: () => void;
@@ -90,32 +91,34 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
             }
           }}
         >
-          <video
-            ref={videoRef}
-            src="/splash.mp4"
-            autoPlay
-            loop
-            muted={isMuted}
-            playsInline
-            preload="auto"
-            onLoadedData={() => {
-              if (videoRef.current) {
-                videoRef.current.play().catch(() => {});
-              }
-            }}
-            onCanPlay={() => {
-              if (videoRef.current) {
-                videoRef.current.play().catch(() => {
-                  console.warn("Autoplay blocked, user interaction required");
-                });
-              }
-            }}
-            onError={(e) => {
-              console.warn("Splash video element non-fatal fallback triggered:", e.currentTarget.error?.message);
-              setVideoError(true);
-            }}
-            className="w-full h-full object-contain max-w-full max-h-full cursor-pointer"
-          />
+            <video
+              ref={videoRef}
+              autoPlay
+              loop
+              muted={isMuted}
+              playsInline
+              preload="auto"
+              onLoadedData={() => {
+                if (videoRef.current) {
+                  videoRef.current.play().catch(() => {});
+                }
+              }}
+              onCanPlay={() => {
+                if (videoRef.current) {
+                  videoRef.current.play().catch((err) => {
+                    console.warn("Autoplay blocked, user interaction required:", err);
+                  });
+                }
+              }}
+              onError={(e) => {
+                console.warn("Splash video element non-fatal fallback triggered:", e.currentTarget.error?.message);
+                setVideoError(true);
+              }}
+              className="w-full h-full object-contain max-w-full max-h-full cursor-pointer"
+            >
+              <source src="/splash.mp4" type="video/mp4" />
+              <source src={splashVideoUrl} type="video/mp4" />
+            </video>
 
           {/* Video Control Buttons Overlay */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4">

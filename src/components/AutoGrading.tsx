@@ -3,7 +3,7 @@ import { Camera, Upload, Scan, X, RefreshCw, Loader2, FileCheck, Brain, CheckCir
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
-import { runOCRAndGrade, runOCRScan } from '../services/unifiedAiService';
+import { runOCRAndGrade, runOCRScan, generateEducationalContent } from '../services/unifiedAiService';
 import { useAi } from '../contexts/AiContext';
 import { db, auth } from '../lib/firebase';
 import { collection, query, onSnapshot, where, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
@@ -56,7 +56,13 @@ export default function AutoGrading() {
   const [viewMode, setViewMode] = useState<'dashboard' | 'studio'>('dashboard');
 
   // Unified Teacher's Auto-Grading Lab Navigation
-  const [labActiveTab, setLabActiveTab] = useState<'grade' | 'notifications' | 'history'>('grade');
+  const [labActiveTab, setLabActiveTab] = useState<'grade' | 'notifications' | 'history' | 'workflow'>('grade');
+
+  // Academic History & Individualized Learning Plan (ILP/IDP) Workflow States
+  const [selectedIlpStudentId, setSelectedIlpStudentId] = useState<string>('');
+  const [ilpGenerating, setIlpGenerating] = useState<boolean>(false);
+  const [ilpResult, setIlpResult] = useState<string | null>(null);
+  const [ilpStatusNote, setIlpStatusNote] = useState<string | null>(null);
 
   // AI-Generation options and notification pop-ups
   const [autoGenerateRubric, setAutoGenerateRubric] = useState(true);
@@ -387,6 +393,58 @@ export default function AutoGrading() {
 
   const handleDownloadPDF = async () => {
     await downloadAsPDF(contentRef, "EduAI-AutoGrading-Report.pdf");
+  };
+
+  const handleGenerateIlp = async (studentId: string) => {
+    if (!studentId) return;
+    setIlpGenerating(true);
+    setIlpResult(null);
+    setIlpStatusNote("Synthesizing longitudinal academic history...");
+
+    try {
+      const student = dbStudents.find(s => s.id === studentId);
+      if (!student) throw new Error("Student not found");
+
+      // Gather academic history from reports
+      const studentReports = labReports.filter(r => r.studentId === studentId);
+      const performanceSummary = studentReports.map(r => 
+        `- ${r.assignmentTitle}: ${r.totalScore}. Feedback: ${r.feedback}`
+      ).join('\n');
+
+      const details = `
+        Student Name: ${student.name}
+        Grade: ${student.grade || 'N/A'}
+        Performance History:
+        ${performanceSummary || 'No digital reports archived yet.'}
+        
+        Current IDP/Baseline:
+        Strengths: ${(student.idp?.strengths || []).join(', ')}
+        Areas for Improvement: ${(student.idp?.weaknesses || []).join(', ')}
+      `;
+
+      setIlpStatusNote("Generating individualized learning pathways with Gemini...");
+      const generatedPlan = await generateEducationalContent(
+        'Comprehensive Individualized Learning Plan (ILP) & IDP',
+        details,
+        provider
+      );
+
+      setIlpResult(generatedPlan);
+      
+      // Update student IDP with the detailed generated content
+      await updateDoc(doc(db, 'students', studentId), {
+        'idp.detailedPlan': generatedPlan,
+        'idp.lastUpdated': new Date().toISOString()
+      });
+
+      triggerToast("ILP generated and synced to academic history.", "success");
+    } catch (err: any) {
+      console.error("ILP Generation error:", err);
+      triggerToast("Failed to generate ILP. Check AI quota.", "error");
+    } finally {
+      setIlpGenerating(false);
+      setIlpStatusNote(null);
+    }
   };
 
   const handleArchive = async () => {
@@ -1265,6 +1323,18 @@ export default function AutoGrading() {
         >
           <ClipboardList size={16} className={labActiveTab === 'history' ? 'text-slate-950' : 'text-amber-400'} />
           <span>Archived Reports Vault ({labReports.length})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setLabActiveTab('workflow')}
+          className={`flex-1 min-w-[180px] px-5 py-3 rounded-xl text-xs uppercase font-black tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2.5 ${
+            labActiveTab === 'workflow'
+              ? 'bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 shadow-[0_0_20px_rgba(52,211,153,0.4)]'
+              : 'text-slate-400 hover:text-white hover:bg-indigo-500/10'
+          }`}
+        >
+          <Sparkles size={16} className={labActiveTab === 'workflow' ? 'text-slate-950' : 'text-emerald-400'} />
+          <span>ILP/IDP Workflow Hub</span>
         </button>
       </div>
 
@@ -2210,7 +2280,150 @@ export default function AutoGrading() {
         return (
           <>
             {/* ALERT HUB & LIVE FEED TAB */}
-            {labActiveTab === 'notifications' && (
+            {labActiveTab === 'workflow' && (
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Student Selection & Analysis */}
+            <div className="bg-slate-900/40 border border-slate-800 rounded-[32px] p-8">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                  <Users size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-display font-black text-white">Select Learner for IDP Synthesis</h3>
+                  <p className="text-slate-400 text-xs">Analyze longitudinal marking data to build custom pathways.</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                {dbStudents.map((stu) => {
+                  const reportCount = labReports.filter(r => r.studentId === stu.id).length;
+                  return (
+                    <button
+                      key={stu.id}
+                      onClick={() => setSelectedIlpStudentId(stu.id)}
+                      className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group ${
+                        selectedIlpStudentId === stu.id 
+                          ? 'bg-emerald-500/10 border-emerald-500/30 ring-1 ring-emerald-500/20' 
+                          : 'bg-slate-900/40 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-slate-700 transition-colors">
+                          <UserCircle size={20} />
+                        </div>
+                        <div className="text-left">
+                          <div className="text-sm font-black text-white group-hover:text-emerald-400 transition-colors">{stu.name}</div>
+                          <div className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">Grade {stu.grade || 'N/A'} • {reportCount} marked reports</div>
+                        </div>
+                      </div>
+                      <ChevronRight size={16} className={selectedIlpStudentId === stu.id ? 'text-emerald-400' : 'text-slate-600'} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Action Panel */}
+            <div className="space-y-6">
+              <div className="bg-slate-900/40 border border-slate-800 rounded-[32px] p-8 flex flex-col items-center justify-center text-center min-h-[300px] relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent pointer-events-none" />
+                
+                {!selectedIlpStudentId ? (
+                  <div className="relative z-10 py-12">
+                    <div className="w-20 h-20 bg-slate-800 rounded-3xl flex items-center justify-center text-slate-500 mb-6 mx-auto opacity-50">
+                      <Sparkles size={40} />
+                    </div>
+                    <p className="text-slate-400 font-display font-medium max-w-[240px]">Select a learner from the list to begin generating their Individualized Learning Plan.</p>
+                  </div>
+                ) : (
+                  <div className="relative z-10 w-full">
+                    <h4 className="text-emerald-400 font-mono text-[10px] font-black uppercase tracking-[0.2em] mb-4">Workflow Engine Active</h4>
+                    <h3 className="text-2xl font-display font-black text-white mb-2">
+                      {dbStudents.find(s => s.id === selectedIlpStudentId)?.name}'s Pathway
+                    </h3>
+                    <p className="text-slate-400 text-sm mb-8 max-w-sm mx-auto">
+                      Gemini will analyze {labReports.filter(r => r.studentId === selectedIlpStudentId).length} archived reports and current baseline IDP markers to synthesize a 4-week remedial/enrichment action plan.
+                    </p>
+
+                    <button
+                      onClick={() => handleGenerateIlp(selectedIlpStudentId)}
+                      disabled={ilpGenerating}
+                      className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 px-8 py-4 rounded-2xl flex items-center justify-center gap-3 text-sm font-black uppercase tracking-wider transition-all shadow-[0_0_30px_rgba(52,211,153,0.3)] disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer"
+                    >
+                      {ilpGenerating ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} className="group-hover:scale-125 transition-transform" />}
+                      <span>{ilpGenerating ? 'Generating IDP...' : 'Generate Individualized Learning Plan'}</span>
+                    </button>
+
+                    {ilpStatusNote && (
+                      <div className="mt-4 flex items-center justify-center gap-2 text-emerald-400 text-[10px] font-black uppercase tracking-widest animate-pulse">
+                        <Zap size={12} />
+                        {ilpStatusNote}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* IDP Status Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-4">
+                  <div className="text-slate-500 text-[9px] font-black uppercase tracking-widest mb-1">Reports Analyzed</div>
+                  <div className="text-xl font-display font-black text-white">
+                    {selectedIlpStudentId ? labReports.filter(r => r.studentId === selectedIlpStudentId).length : 0}
+                  </div>
+                </div>
+                <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-4">
+                  <div className="text-slate-500 text-[9px] font-black uppercase tracking-widest mb-1">IDP Last Updated</div>
+                  <div className="text-xl font-display font-black text-white">
+                    {selectedIlpStudentId ? (dbStudents.find(s => s.id === selectedIlpStudentId)?.idp?.lastUpdated ? 'Recent' : 'Never') : '---'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ILP Result Display */}
+          <AnimatePresence>
+            {ilpResult && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-slate-900/40 border border-emerald-500/20 rounded-[32px] p-8 shadow-[0_0_50px_rgba(52,211,153,0.1)]"
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                      <FileText size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-display font-black text-white">Synthesized IDP Report</h3>
+                      <p className="text-slate-400 text-xs">Auto-saved to learner's official academic record.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => downloadAsPDF(null, `IDP_${dbStudents.find(s => s.id === selectedIlpStudentId)?.name}.pdf`)}
+                      className="bg-slate-800 hover:bg-slate-700 p-3 rounded-xl text-slate-200 transition-colors cursor-pointer"
+                    >
+                      <Download size={18} />
+                    </button>
+                    <button className="bg-slate-800 hover:bg-slate-700 p-3 rounded-xl text-slate-200 transition-colors cursor-pointer">
+                      <Printer size={18} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="prose prose-invert prose-emerald max-w-none prose-sm sm:prose-base bg-slate-950/30 rounded-2xl p-6 border border-slate-800 overflow-y-auto max-h-[600px] custom-scrollbar">
+                  <div dangerouslySetInnerHTML={{ __html: ilpResult }} />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {labActiveTab === 'notifications' && (
               <motion.div 
                 initial={{ opacity: 0, y: 15 }} 
                 animate={{ opacity: 1, y: 0 }} 
