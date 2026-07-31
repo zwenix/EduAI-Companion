@@ -156,7 +156,8 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
         status: editStudentStatus,
         parentName: editParentName.trim(),
         parentEmail: editParentEmail.trim(),
-        parentPhone: editParentPhone.trim()
+        parentPhone: editParentPhone.trim(),
+        updatedAt: serverTimestamp()
       });
       setShowEditStudentModal(false);
     } catch (err) {
@@ -466,7 +467,8 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
     if (auth.currentUser && !(studentId.startsWith('mock-') && !studentId.includes('_'))) {
       try {
         await updateDoc(doc(db, 'students', studentId), {
-          idp: updatedPlan
+          idp: updatedPlan,
+          updatedAt: serverTimestamp()
         });
       } catch (err) {
         console.error("Failed to sync IDP to Firestore:", err);

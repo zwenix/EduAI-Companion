@@ -6,7 +6,7 @@ import {
   Map, Award, Flame, Star, ShieldAlert, Check, HelpCircle, Download, FilePlus
 } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
-import { collection, query, where, getDocs, doc, getDoc, updateDoc, setDoc, addDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, setDoc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { educationalData, getSubjects, getTopics } from '../lib/educational-data';
 import confetti from 'canvas-confetti';
 
@@ -215,7 +215,8 @@ export default function CurriculumSuite({ isDarkMode, userRole }: { isDarkMode: 
         await updateDoc(doc(db, 'students', studentDoc.id), {
           points: newVal,
           xp: nextXp,
-          level: nextLevel
+          level: nextLevel,
+          updatedAt: serverTimestamp()
         });
       } catch (err) {
         console.warn("Could not sync points/xp to DB", err);

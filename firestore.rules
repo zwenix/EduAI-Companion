@@ -105,7 +105,8 @@ service cloud.firestore {
                      && incoming().updatedAt == request.time
                      && (
                         incoming().diff(existing()).affectedKeys().hasOnly([
-                          'name', 'grade', 'email', 'status', 'updatedAt', 'parentId', 'parentName', 'parentEmail', 'parentPhone', 'teacherId'
+                          'name', 'grade', 'email', 'status', 'updatedAt', 'parentId', 'parentName', 'parentEmail', 'parentPhone', 'teacherId', 'idp', 'subjects', 'lastActiveDate',
+                          'streak', 'points', 'xp', 'level', 'coins', 'widgetOrder', 'pfp', 'bio', 'achievements'
                         ])
                      );
       allow delete: if isSignedIn() && isValidId(studentId) && (

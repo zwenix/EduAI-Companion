@@ -174,7 +174,8 @@ export default function Settings({
           const studentDocId = sSnap.docs[0].id;
           await updateDoc(doc(db, 'students', studentDocId), {
             name: fullName,
-            grade: gradeLevel
+            grade: gradeLevel,
+            updatedAt: serverTimestamp()
           });
         }
       }
@@ -223,7 +224,8 @@ export default function Settings({
         await updateDoc(doc(db, 'students', studentDocId), {
           parentEmail: auth.currentUser.email.toLowerCase().trim(),
           parentName: fullName,
-          parentPhone: phone
+          parentPhone: phone,
+          updatedAt: serverTimestamp()
         });
         setLinkMessage(`Successfully linked student profile for: ${emailSearch}!`);
       }

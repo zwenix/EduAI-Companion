@@ -434,7 +434,8 @@ export default function AutoGrading() {
       // Update student IDP with the detailed generated content
       await updateDoc(doc(db, 'students', studentId), {
         'idp.detailedPlan': generatedPlan,
-        'idp.lastUpdated': new Date().toISOString()
+        'idp.lastUpdated': serverTimestamp(),
+        updatedAt: serverTimestamp()
       });
 
       triggerToast("ILP generated and synced to academic history.", "success");
@@ -634,7 +635,8 @@ export default function AutoGrading() {
       await updateDoc(doc(db, 'students', stuId), {
         subjects: updatedSubjects,
         idp: finalIdp,
-        lastActiveDate: new Date().toISOString()
+        lastActiveDate: new Date().toISOString(),
+        updatedAt: serverTimestamp()
       });
       triggerToast(`Registered mark securely under ${targetStudent.name}'s official gradebook profile and updated their individual support plan!`, 'success');
     } catch (err) {

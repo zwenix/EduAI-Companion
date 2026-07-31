@@ -23,7 +23,8 @@ export async function logStudentActivity(
 
     // Mirror last active date onto student document
     await updateDoc(doc(db, 'students', studentId), {
-      lastActiveDate: todayStr
+      lastActiveDate: todayStr,
+      updatedAt: serverTimestamp()
     });
   } catch (err) {
     console.warn("Failed recording live student activity:", err);

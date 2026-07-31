@@ -91,7 +91,8 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
             try {
               await updateDoc(doc(db, 'students', studentId), {
                 lastActiveDate: todayStr,
-                streak: currentStreak
+                streak: currentStreak,
+                updatedAt: serverTimestamp()
               });
             } catch (e) {
               console.warn("Error updating user initial lastActive", e);
@@ -115,7 +116,8 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
               try {
                 await updateDoc(doc(db, 'students', studentId), {
                   lastActiveDate: todayStr,
-                  streak: currentStreak
+                  streak: currentStreak,
+                  updatedAt: serverTimestamp()
                 });
               } catch (e) {
                 console.warn("Error updating user current streak", e);
@@ -216,7 +218,8 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
     try {
       setStudent(prev => prev ? { ...prev, widgetOrder: newOrder } : null);
       await updateDoc(doc(db, 'students', student.id), {
-        widgetOrder: newOrder
+        widgetOrder: newOrder,
+        updatedAt: serverTimestamp()
       });
     } catch (err) {
       console.warn("Failed saving widget reorder:", err);
@@ -302,7 +305,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
 
       // Back-sync computed streak to the student doc if differs
       if (student.streak !== finalStreak) {
-        updateDoc(doc(db, 'students', student.id), { streak: finalStreak }).catch(console.warn);
+        updateDoc(doc(db, 'students', student.id), { streak: finalStreak, updatedAt: serverTimestamp() }).catch(console.warn);
       }
     });
 
@@ -428,7 +431,8 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
 
       try {
         await updateDoc(doc(db, 'students', student.id), {
-          idp: updatedPlan
+          idp: updatedPlan,
+          updatedAt: serverTimestamp()
         });
       } catch (err) {
         console.error("Error setting mission task status", err);
@@ -595,7 +599,8 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
       });
 
       await updateDoc(doc(db, 'students', student.id), {
-        subjects: updatedSubjects
+        subjects: updatedSubjects,
+        updatedAt: serverTimestamp()
       });
 
       // Success celebrations
