@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eduai-companion-v1';
+const CACHE_NAME = 'eduai-companion-v2-splash-fix';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html'
@@ -36,9 +36,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Bypass API routes, external networks, and non-GET requests
+  // Bypass API routes, media files, Range requests, external networks, and non-GET requests
   if (
-    url.pathname.startsWith('/api') || 
+    url.pathname.startsWith('/api') ||
+    /\.(mp4|webm|ogg|mp3|wav|m4a)$/i.test(url.pathname) ||
+    event.request.headers.get('range') ||
     event.request.method !== 'GET' ||
     !url.origin.includes(self.location.origin)
   ) {
