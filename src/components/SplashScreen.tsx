@@ -1,7 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import Logo from './Logo';
-import { SPLASH_VIDEO_BASE64 } from '../assets/splashBase64';
 
 interface SplashScreenProps {
   onVideoEnd?: () => void;
@@ -93,7 +92,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
         >
           <video
             ref={videoRef}
-            src={SPLASH_VIDEO_BASE64}
+            src="/splash.mp4"
             autoPlay
             loop
             muted={isMuted}
