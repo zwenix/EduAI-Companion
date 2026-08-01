@@ -428,6 +428,24 @@ export default function Messenger() {
           ...newMessage,
           createdAt: serverTimestamp()
         });
+        // Trigger push notification
+        try {
+          await fetch('/api/notifications/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              title: `New message from ${currentUserName}`,
+              body: msgText,
+              url: '/messenger',
+              userId: activeThread.recipientId || ''
+            })
+          });
+        } catch (e) {
+          console.error('Failed to trigger push notification', e);
+        }
+
       } catch (err) {
         console.error("Error sending message to database:", err);
       }

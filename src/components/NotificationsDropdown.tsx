@@ -1,3 +1,4 @@
+import { NotificationManager } from '../lib/notifications/NotificationManager';
 import React, { useState, useEffect } from 'react';
 import { Bell, Check, Trash2, X } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
@@ -6,6 +7,7 @@ import { collection, query, where, onSnapshot, doc, updateDoc, deleteDoc, orderB
 export default function NotificationsDropdown({ isDarkMode }: { isDarkMode: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const isInitialLoad = React.useRef(true);
 
   useEffect(() => {
     const handleClose = () => setIsOpen(false);
@@ -32,6 +34,21 @@ export default function NotificationsDropdown({ isDarkMode }: { isDarkMode: bool
          return tB - tA;
       });
       setNotifications(data);
+
+      if (!isInitialLoad.current) {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') {
+            const notif = change.doc.data();
+            NotificationManager.sendTestNotification(
+              notif.title || 'New Notification', 
+              notif.message || notif.body || 'You have a new alert', 
+              notif.url || '/'
+            );
+          }
+        });
+      } else {
+        isInitialLoad.current = false;
+      }
     }, (error) => console.error("Notifications snapshot fail:", error));
 
     return () => unsubscribe();

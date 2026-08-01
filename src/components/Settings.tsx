@@ -1,3 +1,4 @@
+import { NotificationManager } from '../lib/notifications/NotificationManager';
 import React, { useState, useEffect } from 'react';
 import { 
   Bell, Shield, Key, Moon, Sun, 
@@ -467,7 +468,13 @@ export default function Settings({
                     <input 
                       type="checkbox" 
                       checked={notifications} 
-                      onChange={e => setNotifications(e.target.checked)} 
+                      onChange={async (e) => {
+                        const checked = e.target.checked;
+                        setNotifications(checked);
+                        if (checked) {
+                          await NotificationManager.init();
+                        }
+                      }} 
                       className="rounded bg-slate-800 border-white/20 text-cyan-500 w-4 h-4 focus:ring-0 cursor-pointer accent-cyan-500" 
                     />
                     <span className="text-xs sm:text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Push Notifications</span>
