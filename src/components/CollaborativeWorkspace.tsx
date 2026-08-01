@@ -424,7 +424,7 @@ export default function CollaborativeWorkspace({ isDarkMode }: CollaborativeWork
           <Users size={180} />
         </div>
         <div className="relative z-10 space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-3 py-1 text-xs font-bold text-yellow-300">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-transparent backdrop-blur-md px-3 py-1 text-xs font-bold text-yellow-300">
             <Sparkles size={14} className="animate-spin" /> Live Synced Lab
           </div>
           <h2 className="text-3xl sm:text-5xl font-hand tracking-wide leading-tight">Group Projects & Shared Workspaces</h2>
@@ -613,7 +613,7 @@ export default function CollaborativeWorkspace({ isDarkMode }: CollaborativeWork
                       value={selectedProject.notes || ''}
                       onChange={(e) => handleNotesChange(e.target.value)}
                       placeholder="Collaborate and type your research or group project summary draft here in real-time together..."
-                      className="w-full flex-1 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 text-xs font-bold leading-relaxed bg-white/50 dark:bg-slate-950/40 outline-none focus:border-indigo-500 resize-none"
+                      className="w-full flex-1 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 text-xs font-bold leading-relaxed bg-transparent dark:bg-slate-950/40 outline-none focus:border-indigo-500 resize-none"
                     />
                   </div>
 
@@ -635,14 +635,14 @@ export default function CollaborativeWorkspace({ isDarkMode }: CollaborativeWork
                         value={newTaskTitle}
                         onChange={(e) => setNewTaskTitle(e.target.value)}
                         placeholder="Project sub-task (e.g. Gather chemistry formulas)"
-                        className="flex-1 border border-slate-100 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-indigo-500 bg-white/50 dark:bg-slate-950/40"
+                        className="flex-1 border border-slate-100 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-indigo-500 bg-transparent dark:bg-slate-950/40"
                       />
                       <input
                         type="text"
                         value={newTaskAssignee}
                         onChange={(e) => setNewTaskAssignee(e.target.value)}
                         placeholder="Assignee name (optional)"
-                        className="sm:w-[150px] border border-slate-100 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-indigo-500 bg-white/50 dark:bg-slate-950/40"
+                        className="sm:w-[150px] border border-slate-100 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-indigo-500 bg-transparent dark:bg-slate-950/40"
                       />
                       <button
                         onClick={handleAddTask}
@@ -663,7 +663,7 @@ export default function CollaborativeWorkspace({ isDarkMode }: CollaborativeWork
                             className={`p-3 rounded-xl border flex items-center justify-between gap-3 ${
                               task.completed
                                 ? 'bg-emerald-500/5 border-emerald-500/20'
-                                : (isDarkMode ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-slate-50 border-slate-100 hover:bg-slate-100/50')
+                                : (isDarkMode ? 'bg-white/5 border-white/5 hover:bg-transparent' : 'bg-slate-50 border-slate-100 hover:bg-slate-100/50')
                             } transition-colors`}
                           >
                             <div className="flex items-center gap-3">
@@ -745,7 +745,7 @@ export default function CollaborativeWorkspace({ isDarkMode }: CollaborativeWork
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
                       placeholder="Type a group message..."
-                      className="flex-1 border border-slate-100 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-indigo-500 bg-white/50 dark:bg-slate-950/40"
+                      className="flex-1 border border-slate-100 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-indigo-500 bg-transparent dark:bg-slate-950/40"
                     />
                     <button
                       type="submit"

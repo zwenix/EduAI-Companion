@@ -186,7 +186,7 @@ export default function AlertsPage({ isDarkMode, onNavigate, triggerToast }: Ale
           <div className="flex items-center gap-2">
             <button 
               onClick={() => onNavigate('dashboard')}
-              className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer mr-1 border-0"
+              className="p-1.5 rounded-xl bg-white/5 hover:bg-transparent text-slate-400 hover:text-white transition-colors cursor-pointer mr-1 border-0"
               title="Back to Dashboard"
             >
               <ArrowLeft size={16} />
@@ -206,7 +206,7 @@ export default function AlertsPage({ isDarkMode, onNavigate, triggerToast }: Ale
         {unreadCount > 0 && (
           <button
             onClick={handleClearAll}
-            className="px-5 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-black uppercase tracking-wider transition-all border border-white/10 cursor-pointer self-start sm:self-auto"
+            className="px-5 py-2.5 rounded-2xl bg-white/5 hover:bg-transparent text-slate-300 text-xs font-black uppercase tracking-wider transition-all border border-white/10 cursor-pointer self-start sm:self-auto"
           >
             Mark All Resolved
           </button>
@@ -228,7 +228,7 @@ export default function AlertsPage({ isDarkMode, onNavigate, triggerToast }: Ale
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
               activeFilter === tab.id
                 ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
-                : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-transparent'
             }`}
           >
             {tab.label}
@@ -244,7 +244,7 @@ export default function AlertsPage({ isDarkMode, onNavigate, triggerToast }: Ale
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="p-12 rounded-[32px] border border-white/5 bg-[#0c1225]/50 text-center space-y-4"
+              className="p-12 rounded-[32px] border border-white/5 bg-transparent text-center space-y-4"
             >
               <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-[0_0_15px_rgba(16,185,129,0.15)]">
                 <CheckCircle2 size={28} />
@@ -268,7 +268,7 @@ export default function AlertsPage({ isDarkMode, onNavigate, triggerToast }: Ale
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -50 }}
-                  className={`p-6 rounded-[32px] border-2 bg-[#0c1225]/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all duration-300 relative overflow-hidden ${
+                  className={`p-6 rounded-[32px] border-2 bg-transparent flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all duration-300 relative overflow-hidden ${
                     alert.resolved 
                       ? 'border-white/5 opacity-55' 
                       : isCritical 

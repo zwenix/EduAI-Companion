@@ -25,7 +25,7 @@ export default function Helpdesk({ isDarkMode }: HelpdeskProps) {
         isDarkMode ? "bg-gradient-to-br from-navy-dark via-slate-900 to-brand-cyan/20 border border-white/5" : "bg-gradient-to-br from-[#1E293B] to-[#334155] shadow-2xl"
       )}>
         <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-[10px] font-black tracking-widest uppercase border border-white/20">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-transparent rounded-full text-[10px] font-black tracking-widest uppercase border border-white/20">
             <LifeBuoy className="w-4 h-4 text-brand-cyan" />
             Support Matrix
           </div>
@@ -39,7 +39,7 @@ export default function Helpdesk({ isDarkMode }: HelpdeskProps) {
             placeholder="Query knowledge base..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-slate-400 focus:outline-none focus:bg-white/20 transition-all font-medium"
+            className="w-full pl-12 pr-4 py-4 rounded-2xl bg-transparent border border-white/20 text-white placeholder-slate-400 focus:outline-none focus:bg-transparent transition-all font-medium"
           />
         </div>
       </div>
@@ -49,7 +49,7 @@ export default function Helpdesk({ isDarkMode }: HelpdeskProps) {
         <div className="space-y-6">
           <div className={cn(
             "p-8 rounded-[42px] border transition-all group cursor-pointer",
-            isDarkMode ? "glass hover:bg-white/10" : "bg-white border-slate-200 shadow-sm hover:shadow-xl"
+            isDarkMode ? "glass hover:bg-transparent" : "bg-white border-slate-200 shadow-sm hover:shadow-xl"
           )}>
             <div className="w-16 h-16 bg-blue-500/10 text-blue-500 rounded-3xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <MessageCircle className="w-8 h-8" />
@@ -63,7 +63,7 @@ export default function Helpdesk({ isDarkMode }: HelpdeskProps) {
 
           <div className={cn(
             "p-8 rounded-[42px] border transition-all group cursor-pointer",
-            isDarkMode ? "glass hover:bg-white/10" : "bg-white border-slate-200 shadow-sm hover:shadow-xl"
+            isDarkMode ? "glass hover:bg-transparent" : "bg-white border-slate-200 shadow-sm hover:shadow-xl"
           )}>
             <div className="w-16 h-16 bg-brand-yellow/10 text-brand-yellow rounded-3xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <Mail className="w-8 h-8" />
@@ -89,7 +89,7 @@ export default function Helpdesk({ isDarkMode }: HelpdeskProps) {
                 key={i} 
                 className={cn(
                   "p-8 rounded-[48px] border transition-all",
-                  isDarkMode ? "glass hover:bg-white/10" : "bg-white border-slate-200 shadow-sm hover:shadow-lg"
+                  isDarkMode ? "glass hover:bg-transparent" : "bg-white border-slate-200 shadow-sm hover:shadow-lg"
                 )}
               >
                 <h4 className={cn("font-bold mb-3 text-xl font-hand", isDarkMode ? "text-white" : "text-slate-900")}>{faq.q}</h4>

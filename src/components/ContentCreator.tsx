@@ -10,7 +10,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
 import { renderMathInHtml } from '../lib/latexHelper';
-import { educationalData, subjectsByGrade, capsTopics } from '../lib/educational-data';
+import { educationalData } from '../lib/educational-data';
 import { generateCAPSContent, generateVisualAid, generateAdminDoc } from '../services/unifiedAiService';
 import { useAi } from '../contexts/AiContext';
 import { checkContentQuality, QualityRatingDisplay, type QualityRating } from '../lib/qualityChecker';
@@ -28,6 +28,7 @@ import PrintPreviewModal from './PrintPreviewModal';
 import { PosterPreview } from './PosterPreview';
 import VideoLabConsole from './VideoLabConsole';
 import FoundationPhaseArchitect from './FoundationPhaseArchitect';
+import PageOverlay from './PageOverlay';
 import { GRADE_2_DATA_HANDLING_WORKSHEET } from '../data/grade2DataHandlingWorksheet';
 import { db, auth } from '../lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -428,7 +429,7 @@ const IconSelector = ({ onSelect, isDarkMode }: { onSelect: (emoji: string) => v
           type="button"
           title={`Insert ${emoji}`}
           onClick={() => onSelect(emoji)}
-          className="h-7 rounded-lg border border-white/5 bg-white/5 hover:bg-white/15 text-xs flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer"
+          className="h-7 rounded-lg border border-white/5 bg-white/5 hover:bg-transparent text-xs flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer"
         >
           {emoji}
         </button>
@@ -656,9 +657,9 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
 
   useEffect(() => {
     // Update topics when subject changes
-    const phase = getPhaseForGrade(t_grade);
-    if (phase && (capsTopics as any)[phase] && t_subject && (capsTopics as any)[phase][t_subject]) {
-      setT_Topics((capsTopics as any)[phase][t_subject]);
+    const gradeKey = getGradeKey(t_grade);
+    if (gradeKey && (educationalData as any)[gradeKey] && t_subject && (educationalData as any)[gradeKey][t_subject]) {
+      setT_Topics((educationalData as any)[gradeKey][t_subject]);
     } else {
       setT_Topics([]);
     }
@@ -1384,7 +1385,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   return (
     <div className={cn(
       "fixed inset-0 z-40 flex flex-col overflow-hidden transition-all duration-300",
-      isDarkMode ? "bg-[#0a0f21]" : "bg-slate-50",
+      isDarkMode ? "bg-transparent" : "bg-transparent",
       isSidebarOpen ? "lg:pl-[240px]" : "lg:pl-[84px]"
     )}>
       {/* Main Content Area */}
@@ -1393,8 +1394,8 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
         <header className={cn(
           "sticky top-0 z-40 border-b backdrop-blur-xl shrink-0",
           isDarkMode 
-            ? "bg-[#0d1221]/80 border-white/10" 
-            : "bg-white/80 border-slate-200"
+            ? "bg-transparent border-white/10" 
+            : "bg-transparent border-slate-200"
         )}>
           <div className="flex flex-wrap items-center justify-between gap-4 px-4 sm:px-8 py-3 sm:py-4">
             {/* Top Tabs & Exit Button */}
@@ -1464,7 +1465,9 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
+        <main className="relative flex-1 p-4 sm:p-8 overflow-y-auto overflow-x-hidden">
+          <PageOverlay route="toolbox" isDarkMode={isDarkMode} />
+          <div className="relative z-10">
           {/* Content Factory Title */}
           <div className="text-center mb-6 sm:mb-10">
             <h1 className={cn(
@@ -1566,10 +1569,10 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
                 className={cn(
-                  "rounded-3xl border p-6 backdrop-blur-xl",
+                  "rounded-3xl border-2 p-6 backdrop-blur-xl animate-border-flash-cyan",
                   isDarkMode
-                    ? "bg-white/5 border-white/10 shadow-2xl shadow-black/20"
-                    : "bg-white border-slate-200 shadow-xl shadow-slate-200/50"
+                    ? "bg-transparent shadow-2xl shadow-black/20"
+                    : "bg-transparent shadow-xl shadow-slate-200/50"
                 )}
               >
                 <h2 className={cn(
@@ -1676,7 +1679,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                                         "py-2 px-2.5 rounded-xl border text-xs font-bold transition-all text-center cursor-pointer",
                                         isSel 
                                           ? "bg-cyan-500 text-white border-cyan-400 shadow-md shadow-cyan-500/30" 
-                                          : isDarkMode ? "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                                          : isDarkMode ? "bg-white/5 border-white/10 text-slate-300 hover:bg-transparent" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
                                       )}
                                     >
                                       {grade}
@@ -1696,8 +1699,8 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                                     ? ['Mathematics', 'Physical Sciences', 'Life Sciences', 'English', 'Afrikaans', 'History', 'Geography', 'Technology', 'Other']
                                     : (() => {
                                         const currentGrade = activeTab === 'teaching' ? t_grade : v_grade;
-                                        const phase = getPhaseForGrade(currentGrade);
-                                        const subs = phase && (subjectsByGrade as any)[phase] ? (subjectsByGrade as any)[phase] : [];
+                                        const gradeKey = getGradeKey(currentGrade);
+                                        const subs = gradeKey && (educationalData as any)[gradeKey] ? Object.keys((educationalData as any)[gradeKey]) : [];
                                         return [...subs, 'Other'];
                                       })();
                                   
@@ -1726,7 +1729,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                                           "py-2.5 px-3 rounded-xl border text-xs font-bold transition-all text-left truncate",
                                           isSel 
                                             ? "bg-purple-600 text-white border-purple-500 shadow-md shadow-purple-500/30" 
-                                            : isDarkMode ? "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                                            : isDarkMode ? "bg-white/5 border-white/10 text-slate-300 hover:bg-transparent" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
                                         )}
                                       >
                                         {subj}
@@ -1797,7 +1800,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                                               "w-full text-left py-1.5 px-2.5 rounded-lg border text-xs font-bold transition-all",
                                               isSel
                                                 ? "bg-cyan-500 text-white border-cyan-400 shadow-sm"
-                                                : isDarkMode ? "bg-white/5 border-white/5 text-slate-300 hover:bg-white/10" : "bg-slate-50 border-slate-100 text-slate-700 hover:bg-slate-100"
+                                                : isDarkMode ? "bg-white/5 border-white/5 text-slate-300 hover:bg-transparent" : "bg-slate-50 border-slate-100 text-slate-700 hover:bg-slate-100"
                                             )}
                                           >
                                             {t}
@@ -1818,9 +1821,9 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                                 (() => {
                                   const currentGrade = activeTab === 'teaching' ? t_grade : v_grade;
                                   const currentSubject = activeTab === 'teaching' ? t_subject : v_subject;
-                                  const phase = getPhaseForGrade(currentGrade);
-                                  const topics = phase && currentSubject && (capsTopics as any)[phase] && (capsTopics as any)[phase][currentSubject]
-                                    ? (capsTopics as any)[phase][currentSubject] as string[]
+                                  const gradeKey = getGradeKey(currentGrade);
+                                  const topics = gradeKey && currentSubject && (educationalData as any)[gradeKey] && (educationalData as any)[gradeKey][currentSubject]
+                                    ? (educationalData as any)[gradeKey][currentSubject] as string[]
                                     : [];
                                   
                                   const currentTopicValue = activeTab === 'teaching' ? t_topic : v_topic;
@@ -1844,7 +1847,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                                                   "py-2 px-3 rounded-xl border text-xs font-bold text-left transition-all",
                                                   isSel
                                                     ? "bg-emerald-600 text-white border-emerald-500 shadow-md"
-                                                    : isDarkMode ? "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                                                    : isDarkMode ? "bg-white/5 border-white/10 text-slate-300 hover:bg-transparent" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
                                                 )}
                                               >
                                                 {topic}
@@ -1956,7 +1959,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                       className={cn(
                         "w-full h-20 border text-xs font-medium rounded-xl p-2.5 focus:outline-none focus:ring-1 transition-all resize-none",
                         isDarkMode 
-                          ? "bg-[#0b1122]/80 border-white/10 text-slate-200 focus:border-purple-400 focus:ring-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.05)]" 
+                          ? "bg-transparent border-white/10 text-slate-200 focus:border-purple-400 focus:ring-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.05)]" 
                           : "bg-white border-slate-200 text-slate-800 focus:border-purple-500 focus:ring-purple-500"
                       )}
                     />
@@ -2203,10 +2206,10 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
                 className={cn(
-                  "rounded-3xl border p-6 backdrop-blur-xl flex flex-col justify-between",
+                  "rounded-3xl border-2 p-6 backdrop-blur-xl flex flex-col justify-between animate-border-flash-purple",
                   isDarkMode
-                    ? "bg-white/5 border-white/10 shadow-2xl shadow-black/20"
-                    : "bg-white border-slate-200 shadow-xl shadow-slate-200/50"
+                    ? "bg-transparent shadow-2xl shadow-black/20"
+                    : "bg-transparent shadow-xl shadow-slate-200/50"
                 )}
                 id="preview-panel"
               >
@@ -2228,7 +2231,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                           onClick={() => setShowPrintPreviewModal(true)}
                           className={cn(
                             "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border shadow-sm",
-                            isDarkMode ? "bg-white/10 text-cyan-300 border-white/20 hover:bg-white/20" : "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100"
+                            isDarkMode ? "bg-transparent text-cyan-300 border-white/20 hover:bg-transparent" : "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100"
                           )}
                           title="Toggle A4 Print Preview Mode"
                         >
@@ -2325,7 +2328,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                           {/* Progress container */}
                           <div className={cn(
                             "text-center z-10 p-8 rounded-2xl border max-w-sm w-full shadow-2xl flex flex-col items-center justify-center",
-                            isDarkMode ? "bg-[#070b19]/80 border-cyan-500/20" : "bg-white border-slate-200/80"
+                            isDarkMode ? "bg-transparent border-cyan-500/20" : "bg-white border-slate-200/80"
                           )}>
                             {/* Rotating glowing rings */}
                             <div className="relative w-28 h-28 mb-6 flex items-center justify-center">
@@ -2722,7 +2725,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                     </button>
                     <button
                       onClick={() => setIsFullscreenPreview(false)}
-                      className="p-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 cursor-pointer ml-2"
+                      className="p-2.5 rounded-xl bg-transparent text-white hover:bg-transparent cursor-pointer ml-2"
                     >
                       <X size={20} />
                     </button>
@@ -2745,6 +2748,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
               </motion.div>
             )}
           </AnimatePresence>
+          </div>
         </main>
       </div>
 
@@ -2920,7 +2924,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                   className={cn(
                     "px-6 py-2.5 rounded-xl",
                     isDarkMode 
-                      ? "bg-white/10 hover:bg-white/20 text-white"
+                      ? "bg-transparent hover:bg-transparent text-white"
                       : "bg-slate-100 hover:bg-slate-200 text-slate-900"
                   )}
                 >

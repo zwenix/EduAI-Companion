@@ -116,7 +116,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
         <div className="relative z-10 max-w-xl">
            <div className={cn(
              "inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-bold mb-6 shadow-sm",
-             isDarkMode ? "border-brand-green/30 bg-brand-green/10 text-brand-green animate-pulse" : "border-white/20 bg-white/10 text-emerald-300"
+             isDarkMode ? "border-brand-green/30 bg-brand-green/10 text-brand-green animate-pulse" : "border-white/20 bg-transparent text-emerald-300"
            )}>
              <Server size={16} className={cn(isDarkMode ? "text-brand-green" : "text-emerald-400")} /> Admin Suite
            </div>
@@ -138,7 +138,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
               "px-5 py-3 rounded-full font-bold text-sm transition-all flex items-center gap-2 shadow-lg cursor-pointer hover:scale-105 active:scale-95 border-none",
               isDarkMode 
                 ? (activeTab === 'system' ? 'primary-neon-btn-cyan text-slate-950 font-black' : 'glass-neon-btn border-brand-cyan/20')
-                : (activeTab === 'system' ? 'bg-brand-cyan text-slate-950 border-brand-cyan' : 'bg-white/10 hover:bg-white/20 text-white border-white/20')
+                : (activeTab === 'system' ? 'bg-brand-cyan text-slate-950 border-brand-cyan' : 'bg-transparent hover:bg-transparent text-white border-white/20')
             )}
           >
             <Activity size={16} /> System Operations
@@ -149,7 +149,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
               "px-5 py-3 rounded-full font-bold text-sm transition-all flex items-center gap-2 shadow-lg cursor-pointer hover:scale-105 active:scale-95 border-none",
               isDarkMode
                 ? (activeTab === 'debug' ? 'primary-neon-btn-pink text-white font-black' : 'glass-neon-btn border-brand-pink/20')
-                : (activeTab === 'debug' ? 'bg-brand-cyan text-slate-950 border-brand-cyan' : 'bg-white/10 hover:bg-white/20 text-white border-white/20')
+                : (activeTab === 'debug' ? 'bg-brand-cyan text-slate-950 border-brand-cyan' : 'bg-transparent hover:bg-transparent text-white border-white/20')
             )}
           >
             <Terminal size={16} /> Debug Console
@@ -269,7 +269,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
               </div>
             </div>
             <div className="lg:col-span-4 space-y-6">
-              <div className={`p-8 rounded-[36px] shadow-lg ${isDarkMode ? 'bg-[#0B1122]/90 border border-white/10' : 'bg-slate-800' } text-white h-full`}>
+              <div className={`p-8 rounded-[36px] shadow-lg ${isDarkMode ? 'bg-transparent border border-white/10' : 'bg-slate-800' } text-white h-full`}>
                 <h3 className="text-xl font-bold mb-4">Quick Actions</h3>
                 <div className="space-y-3">
                   <button 
@@ -360,7 +360,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                   <button 
                     onClick={() => setConfirmClear(true)}
                     disabled={errors.length === 0}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-white/5 border border-white/10 hover:bg-white/10 dark:text-white text-slate-700 hover:text-slate-900 dark:hover:text-white transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-white/5 border border-white/10 hover:bg-transparent dark:text-white text-slate-700 hover:text-slate-900 dark:hover:text-white transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
                   >
                     <Trash2 size={13} />
                     Clear Buffer
@@ -384,7 +384,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                     providerFilter === prov
                       ? 'bg-brand-cyan text-slate-900 border-brand-cyan'
                       : isDarkMode 
-                        ? 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                        ? 'bg-white/5 border-white/10 text-slate-300 hover:bg-transparent'
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
@@ -459,7 +459,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                             className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
                               copiedId === err.id 
                                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                                : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
+                                : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-transparent'
                             }`}
                             title="Copy error details as JSON"
                           >
@@ -562,7 +562,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
               </div>
               <button 
                 onClick={() => setActiveModal(null)}
-                className="p-2 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                className="p-2 rounded-xl hover:bg-transparent text-slate-400 hover:text-white transition-colors"
               >
                 ✕
               </button>

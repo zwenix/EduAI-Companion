@@ -154,7 +154,7 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
         <div className="flex items-center gap-4 lg:gap-6">
           <button 
             onClick={() => setSoundMuted(!soundMuted)}
-            className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition-all focus:outline-none"
+            className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:bg-transparent transition-all focus:outline-none"
             title={soundMuted ? "Unmute sounds" : "Mute sounds"}
           >
             {soundMuted ? <VolumeX size={18} /> : <Volume2 size={18} className="text-brand-cyan icon-glow-cyan" />}
@@ -399,7 +399,7 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
                   <div className={`w-24 h-24 rounded-full bg-gradient-to-tr ${galaxy.planetGradient} shadow-inner relative overflow-hidden flex items-center justify-center border border-white/10`}>
                     {/* Planet Surface details */}
                     <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.15),transparent)] pointer-events-none" />
-                    <div className="absolute w-6 h-3 bg-white/15 rounded-full top-6 left-5 blur-sm transform -rotate-12" />
+                    <div className="absolute w-6 h-3 bg-transparent rounded-full top-6 left-5 blur-sm transform -rotate-12" />
                     <div className="absolute w-12 h-6 bg-black/30 rounded-full bottom-4 right-3 blur-xs transform -rotate-12" />
                     
                     {/* Planet Emoji Icon */}
@@ -421,7 +421,7 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
 
                 <div 
                   className={`mt-auto px-5 py-2 rounded-full border text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-1 ${
-                    isHovered ? 'bg-white/10 border-white text-white' : 'border-white/15 text-slate-400'
+                    isHovered ? 'bg-transparent border-white text-white' : 'border-white/15 text-slate-400'
                   }`}
                 >
                   <span>Launch Planet</span>
@@ -507,7 +507,7 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
                   <span className="text-[10px] font-mono text-brand-green">PLANNER ACTIVE</span>
                   <button 
                     onClick={() => { playSfx('power'); onEnter(); }}
-                    className="px-3 py-1.5 bg-[#FF00D4]/10 hover:bg-[#FF00D4]/20 text-brand-pink border border-brand-pink/30 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all"
+                    className="px-3 py-1.5 bg-transparent hover:bg-transparent text-brand-pink border border-brand-pink/30 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all"
                   >
                     <span>Launch Editor</span>
                     <ChevronRight className="w-3.5 h-3.5" />

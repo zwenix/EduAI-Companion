@@ -452,6 +452,9 @@ export default function AutoGrading() {
     const data = mode === 'grade' ? result : extractResult;
     if (!data) return;
 
+    let targetStudentId = selectedStudentId !== 'unassigned' ? selectedStudentId : undefined;
+    let targetStudentName = undefined;
+
     // Save grades back to firebase submissions if matching student submission is active
     if (selectedSubmission && mode === 'grade') {
       try {
@@ -463,11 +466,61 @@ export default function AutoGrading() {
           marksPerQuestion: result.marksPerQuestion,
           answersText: result.extractedText || ''
         });
+        targetStudentId = selectedSubmission.studentId;
+        targetStudentName = selectedSubmission.studentName;
       } catch (err) {
         console.warn("Could not save to remote submissions collection (handled):", err);
       }
     }
 
+    if (targetStudentId && !targetStudentName) {
+      const matchStu = dbStudents.find(s => s.id === targetStudentId);
+      if (matchStu) targetStudentName = matchStu.name;
+    }
+
+    const currentAssignment = dbAssignments.find(a => a.id === selectedAssignmentId);
+    const assignmentTitle = currentAssignment?.title || 'AutoGraded Assessment';
+
+    try {
+      // 1. Save to auto_grading_reports in Firestore (creates ledger history)
+      const user = auth.currentUser;
+      if (user) {
+        const newReportRef = doc(collection(db, 'auto_grading_reports'));
+        await setDoc(newReportRef, {
+          teacherId: user.uid,
+          studentId: targetStudentId || null,
+          studentName: targetStudentName || 'Unassigned',
+          assignmentId: selectedAssignmentId || null,
+          assignmentTitle: assignmentTitle,
+          totalScore: data.totalScore || null,
+          feedback: editableFeedback || null,
+          marksPerQuestion: data.marksPerQuestion || null,
+          extractedText: data.extractedText || null,
+          createdAt: serverTimestamp()
+        });
+
+        // 2. Notify the teacher about the successfully generated report
+        const notifRef = doc(collection(db, 'notifications'));
+        await setDoc(notifRef, {
+          userId: user.uid,
+          title: 'Grading Workflow Completed',
+          message: `The report for ${assignmentTitle} has been saved to your history ledger.`,
+          type: 'grading_complete',
+          createdAt: serverTimestamp(),
+          read: false
+        });
+      }
+
+      // 3. Save Academic Record for the student
+      if (targetStudentId && mode === 'grade' && data.totalScore) {
+        await saveAcademicRecord(targetStudentId, assignmentTitle, data.totalScore, editableFeedback);
+      }
+
+    } catch (err) {
+      console.warn("Could not save to Firestore ledger or generate ILP (handled):", err);
+    }
+
+    // Save to offline db (local storage/indexedDB) for fast retrieval
     const newItem = {
       id: Date.now().toString(),
       title: mode === 'grade' ? 'Grading Report' : 'Text Extraction',
@@ -489,6 +542,7 @@ export default function AutoGrading() {
       await saveStudyNote(newItem);
       setArchiveSuccess(true);
       setTimeout(() => setArchiveSuccess(false), 2000);
+      triggerToast('Report successfully integrated into workflow and student portfolio!', 'success');
     } catch (e) {
       console.error('Archive error:', e);
     }
@@ -1062,7 +1116,7 @@ export default function AutoGrading() {
             <button
               type="button"
               onClick={() => setViewMode('studio')}
-              className="bg-white/10 hover:bg-white/15 text-slate-200 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg hover:border-cyan-500/50"
+              className="bg-transparent hover:bg-transparent text-slate-200 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg hover:border-cyan-500/50"
             >
               <Sparkles size={14} className="text-cyan-400" />
               <span>Advanced Grading Studio</span>
@@ -1123,7 +1177,7 @@ export default function AutoGrading() {
                     </div>
                   </div>
                   {/* Red handwriting markup */}
-                  <div className="absolute top-2 right-2 border-2 border-red-500 rounded-full px-1.5 py-0.5 text-red-600 font-hand font-bold text-[10px] rotate-[12deg] bg-white/90">
+                  <div className="absolute top-2 right-2 border-2 border-red-500 rounded-full px-1.5 py-0.5 text-red-600 font-hand font-bold text-[10px] rotate-[12deg] bg-transparent">
                     Score: 14/15
                   </div>
                   <div className="absolute bottom-4 right-4 text-red-500 font-hand text-[9px] rotate-[-5deg]">
@@ -1132,7 +1186,7 @@ export default function AutoGrading() {
                 </div>
 
                 {/* Overlaid Score Badge */}
-                <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 bg-[#11162d]/95 backdrop-blur-xl border border-white/15 rounded-2xl p-4 text-xs space-y-2.5 w-44 sm:w-48 shadow-2xl text-left">
+                <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 bg-transparent backdrop-blur-xl border border-white/15 rounded-2xl p-4 text-xs space-y-2.5 w-44 sm:w-48 shadow-2xl text-left">
                   <h4 className="font-bold text-white text-xs sm:text-sm border-b border-white/10 pb-2">
                     Auto-Graded Scores:
                   </h4>
@@ -1211,7 +1265,7 @@ export default function AutoGrading() {
               <button
                 type="button"
                 onClick={() => setViewMode('dashboard')}
-                className="bg-white/10 hover:bg-white/15 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+                className="bg-transparent hover:bg-transparent text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
               >
                 <span>← Back to Lab Dashboard</span>
               </button>
@@ -1983,7 +2037,7 @@ export default function AutoGrading() {
                                 navigator.clipboard.writeText(`${sub.studentName} • Grade: ${rawSc || 'Pending'} • ${commentTxt}`);
                                 alert(`Copied report-card synopsis for ${sub.studentName}!`);
                               }}
-                              className="text-[10px] px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-lg text-slate-400 font-bold hover:text-white uppercase tracking-wider shrink-0 transition-all active:scale-95"
+                              className="text-[10px] px-2.5 py-1.5 bg-white/5 hover:bg-transparent border border-white/5 hover:border-white/10 rounded-lg text-slate-400 font-bold hover:text-white uppercase tracking-wider shrink-0 transition-all active:scale-95"
                             >
                               Copy
                             </button>

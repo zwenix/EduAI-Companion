@@ -190,7 +190,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
       <div className="w-full lg:w-[350px] shrink-0 flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-2 pb-12 h-full">
         <div className={cn(
           "rounded-[32px] p-6 border-2 space-y-5 shadow-xl relative overflow-hidden shrink-0",
-          isDarkMode ? "bg-[#0d1225]/80 backdrop-blur-md border-indigo-500/20" : "bg-white/90 backdrop-blur-md border-slate-200"
+          isDarkMode ? "bg-transparent backdrop-blur-md border-indigo-500/20" : "bg-transparent backdrop-blur-md border-slate-200"
         )}>
           <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
              <BookOpen size={100} className={isDarkMode ? "text-indigo-400" : "text-indigo-600"} />
@@ -260,7 +260,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
                   <span className={isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}>Generating Content</span>
                   <span className={isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}>{progress}%</span>
                 </div>
-                <div className={cn("w-full h-1.5 rounded-full overflow-hidden", isDarkMode ? 'bg-white/10' : 'bg-slate-200')}>
+                <div className={cn("w-full h-1.5 rounded-full overflow-hidden", isDarkMode ? 'bg-transparent' : 'bg-slate-200')}>
                   <div 
                     className="h-full bg-indigo-500 transition-all duration-300"
                     style={{ width: `${progress}%` }}
@@ -274,7 +274,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
         {/* History Panel */}
         <div className={cn(
           "rounded-[32px] p-6 border-2 space-y-4 shadow-sm flex-1 flex flex-col min-h-0 shrink-0",
-          isDarkMode ? "bg-[#0d1225]/50 backdrop-blur-md border-white/5" : "bg-white/60 backdrop-blur-md border-slate-200"
+          isDarkMode ? "bg-transparent backdrop-blur-md border-white/5" : "bg-transparent backdrop-blur-md border-slate-200"
         )}>
           <h3 className={cn("font-bold flex items-center gap-2 text-sm", isDarkMode ? 'text-white' : 'text-slate-800')}>
             <History size={16} className="text-indigo-500" />
@@ -325,7 +325,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
       {/* Right Main Panel - Results / Preview */}
       <div className={cn(
         "flex-1 rounded-[36px] border-2 shadow-2xl flex flex-col overflow-hidden relative",
-        isDarkMode ? "bg-[#0B1122]/90 border-white/10" : "bg-white border-slate-200"
+        isDarkMode ? "bg-transparent border-white/10" : "bg-white border-slate-200"
       )}>
         {result ? (
           <div className="flex-1 flex flex-col h-full">
@@ -349,7 +349,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
                 onClick={handleExportPDF}
                 className={cn(
                   "flex items-center gap-1.5 px-4 py-2 text-[10px] uppercase tracking-wider font-black rounded-xl transition-all cursor-pointer",
-                  isDarkMode ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-slate-150 hover:bg-slate-200 text-slate-700'
+                  isDarkMode ? 'bg-transparent hover:bg-transparent text-white' : 'bg-slate-150 hover:bg-slate-200 text-slate-700'
                 )}
               >
                 <Download size={14} /> PDF

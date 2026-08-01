@@ -583,12 +583,12 @@ svg:not(.not-sketchy) {
 
 @keyframes border-flash-cyan {
   0%, 100% {
-    border-color: rgba(6, 182, 212, 0.35);
-    box-shadow: 0 0 8px rgba(6, 182, 212, 0.1), inset 0 0 4px rgba(6, 182, 212, 0.05);
+    border-color: rgba(6, 182, 212, 0.25);
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.15), inset 0 0 4px rgba(6, 182, 212, 0.1);
   }
   50% {
-    border-color: rgba(6, 182, 212, 0.9);
-    box-shadow: 0 0 22px rgba(6, 182, 212, 0.45), inset 0 0 10px rgba(6, 182, 212, 0.2);
+    border-color: rgba(6, 182, 212, 0.5);
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.45), inset 0 0 10px rgba(6, 182, 212, 0.3);
   }
 }
 
@@ -596,6 +596,70 @@ svg:not(.not-sketchy) {
   animation: border-flash-cyan 2.5s ease-in-out infinite;
 }
 
+@keyframes border-flash-pink {
+  0%, 100% {
+    border-color: rgba(236, 72, 153, 0.25);
+    box-shadow: 0 0 8px rgba(236, 72, 153, 0.15), inset 0 0 4px rgba(236, 72, 153, 0.1);
+  }
+  50% {
+    border-color: rgba(236, 72, 153, 0.5);
+    box-shadow: 0 0 20px rgba(236, 72, 153, 0.45), inset 0 0 10px rgba(236, 72, 153, 0.3);
+  }
+}
+
+.animate-border-flash-pink {
+  animation: border-flash-pink 2.5s ease-in-out infinite;
+}
+
+@keyframes border-flash-purple {
+  0%, 100% {
+    border-color: rgba(168, 85, 247, 0.25);
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.15), inset 0 0 4px rgba(168, 85, 247, 0.1);
+  }
+  50% {
+    border-color: rgba(168, 85, 247, 0.5);
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.45), inset 0 0 10px rgba(168, 85, 247, 0.3);
+  }
+}
+
+.animate-border-flash-purple {
+  animation: border-flash-purple 2.5s ease-in-out infinite;
+}
+
+@keyframes border-flash-emerald {
+  0%, 100% {
+    border-color: rgba(16, 185, 129, 0.25);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.15), inset 0 0 4px rgba(16, 185, 129, 0.1);
+  }
+  50% {
+    border-color: rgba(16, 185, 129, 0.5);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.45), inset 0 0 10px rgba(16, 185, 129, 0.3);
+  }
+}
+
+.animate-border-flash-emerald {
+  animation: border-flash-emerald 2.5s ease-in-out infinite;
+}
 
 
 
+
+
+/* Overlay Styles */
+.holo-overlay { will-change: transform, opacity; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .holo-drift {
+    animation: holo-drift 26s ease-in-out infinite alternate,
+               holo-breathe 9s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes holo-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1.02); }
+  100% { transform: translate3d(-1.2%, -0.8%, 0) scale(1.05); }
+}
+@keyframes holo-breathe {
+  0%   { filter: brightness(0.92); }
+  100% { filter: brightness(1.12); }
+}

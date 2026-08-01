@@ -408,7 +408,10 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
   return (
     <div className="space-y-8 pb-10">
       {/* Premium Glassmorphic Header Banner */}
-      <div className="relative rounded-[32px] p-8 lg:p-10 overflow-hidden text-white border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] bg-[#070b19]/60 backdrop-blur-xl flex flex-col md:flex-row md:items-center md:justify-between gap-6 transition-all duration-300">
+      <div className={cn(
+        "relative rounded-[32px] p-8 lg:p-10 overflow-hidden text-white border-2 animate-border-flash-cyan shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] backdrop-blur-xl flex flex-col md:flex-row md:items-center md:justify-between gap-6 transition-all duration-300",
+        isDarkMode ? "bg-transparent" : "bg-transparent"
+      )}>
         <div className="absolute -left-10 -bottom-10 w-40 h-40 rounded-full bg-brand-cyan/15 blur-3xl pointer-events-none" />
         <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-brand-pink/15 blur-3xl pointer-events-none" />
         
@@ -512,7 +515,10 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
               </div>
 
               {/* Glassmorphic Table list */}
-              <div className="bg-[#070b19]/40 backdrop-blur-xl rounded-[24px] shadow-2xl border border-white/10 overflow-hidden">
+              <div className={cn(
+                "bg-transparent backdrop-blur-xl rounded-[24px] shadow-2xl border-2 animate-border-flash-cyan overflow-hidden",
+                isDarkMode ? "bg-transparent" : "bg-transparent"
+              )}>
                 {/* Desktop view */}
                 <div className="hidden sm:block overflow-x-auto">
                   <table className="w-full text-left border-collapse">
@@ -695,8 +701,11 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
           {activeTab === 'classes' && selectedClass && (
             <div className="space-y-6 text-left">
               {/* Specific Class Header Capsule */}
-              <div className="relative rounded-[28px] p-6 border border-white/10 bg-[#070b19]/60 backdrop-blur-xl shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div className="absolute -left-10 -bottom-10 w-40 h-40 rounded-full bg-[#a21caf]/10 blur-3xl pointer-events-none" />
+              <div className={cn(
+                "relative rounded-[28px] p-6 border-2 animate-border-flash-cyan backdrop-blur-xl shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6",
+                isDarkMode ? "bg-transparent" : "bg-transparent"
+              )}>
+                <div className="absolute -left-10 -bottom-10 w-40 h-40 rounded-full bg-transparent blur-3xl pointer-events-none" />
                 
                 <div className="relative z-10">
                   <button 
@@ -716,7 +725,7 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
                       setEditClassForm({ name: selectedClass.name, subject: selectedClass.subject });
                       setIsEditingClass(true);
                     }} 
-                    className="bg-white/5 hover:bg-white/10 text-white border border-white/10 px-4 py-3 rounded-xl font-black uppercase tracking-wider text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                    className="bg-white/5 hover:bg-transparent text-white border border-white/10 px-4 py-3 rounded-xl font-black uppercase tracking-wider text-xs transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     <Edit2 size={13} /> Edit Class
                   </button>
@@ -735,7 +744,10 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
               {/* Class Specific Learner List */}
               <div className="space-y-4">
                 <h4 className="text-lg font-black tracking-tight text-white">Enrolled Class List</h4>
-                <div className="bg-[#070b19]/40 backdrop-blur-xl rounded-[24px] border border-white/10 overflow-hidden shadow-2xl">
+                <div className={cn(
+                  "backdrop-blur-xl rounded-[24px] border-2 animate-border-flash-cyan overflow-hidden shadow-2xl",
+                  isDarkMode ? "bg-transparent" : "bg-transparent"
+                )}>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
@@ -859,18 +871,18 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
       <AnimatePresence>
         {/* Modal A: Add Learner (With Manual vs CSV Tab selector) */}
         {isAddingLearner && (
-          <div className="fixed inset-0 bg-[#070b19]/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-transparent backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#090e1d]/95 border border-white/15 rounded-[32px] p-6 lg:p-8 w-full max-w-md shadow-[0_0_50px_rgba(34,211,238,0.15)] relative text-white"
+              className="bg-transparent border border-white/15 rounded-[32px] p-6 lg:p-8 w-full max-w-md shadow-[0_0_50px_rgba(34,211,238,0.15)] relative text-white"
             >
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-black text-white text-glow-cyan">Enroll Learner</h3>
                 <button 
                   type="button" 
-                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center text-slate-400 transition-colors"
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-transparent border border-white/5 flex items-center justify-center text-slate-400 transition-colors"
                   onClick={() => {
                     setIsAddingLearner(false);
                     setCsvStudents([]);
@@ -959,7 +971,7 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
                     <CloudUpload size={32} className="text-brand-cyan mb-2 icon-glow-cyan" />
                     <p className="text-xs font-bold text-white mb-1">Upload student roster CSV spreadsheet</p>
                     <p className="text-[10px] text-slate-400">(Columns analog to: Name, Email, Class)</p>
-                    <button type="button" className="text-[10px] uppercase tracking-wider font-black bg-white/5 hover:bg-white/10 text-white px-3 py-1.5 rounded-lg border border-white/10 mt-3">Select File</button>
+                    <button type="button" className="text-[10px] uppercase tracking-wider font-black bg-white/5 hover:bg-transparent text-white px-3 py-1.5 rounded-lg border border-white/10 mt-3">Select File</button>
                     <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleCsvSelect} />
                   </div>
 
@@ -998,18 +1010,18 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
 
         {/* Modal B: Create Class */}
         {isAddingClass && (
-          <div className="fixed inset-0 bg-[#070b19]/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-transparent backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#090e1d]/95 border border-white/15 rounded-[32px] p-6 lg:p-8 w-full max-w-md shadow-[0_0_50px_rgba(34,211,238,0.15)] text-white"
+              className="bg-transparent border border-white/15 rounded-[32px] p-6 lg:p-8 w-full max-w-md shadow-[0_0_50px_rgba(34,211,238,0.15)] text-white"
             >
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-black text-white text-glow-cyan">Create Class</h3>
                 <button 
                   type="button" 
-                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center text-slate-400 transition-colors"
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-transparent border border-white/5 flex items-center justify-center text-slate-400 transition-colors"
                   onClick={() => setIsAddingClass(false)}
                 >
                   <X size={16} />
@@ -1049,18 +1061,18 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
 
         {/* Modal C: Create Study Group */}
         {isAddingGroup && (
-          <div className="fixed inset-0 bg-[#070b19]/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-transparent backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#090e1d]/95 border border-white/15 rounded-[32px] p-6 lg:p-8 w-full max-w-md shadow-[0_0_50px_rgba(16,185,129,0.15)] text-white"
+              className="bg-transparent border border-white/15 rounded-[32px] p-6 lg:p-8 w-full max-w-md shadow-[0_0_50px_rgba(16,185,129,0.15)] text-white"
             >
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-black text-white text-glow-cyan">Create Study Group</h3>
                 <button 
                   type="button" 
-                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center text-slate-400 transition-colors"
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-transparent border border-white/5 flex items-center justify-center text-slate-400 transition-colors"
                   onClick={() => setIsAddingGroup(false)}
                 >
                   <X size={16} />
@@ -1120,18 +1132,18 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
 
         {/* Modal D: Edit Student */}
         {isEditingLearner && (
-          <div className="fixed inset-0 bg-[#070b19]/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-transparent backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#090e1d]/95 border border-white/15 rounded-[32px] p-6 lg:p-8 w-full max-w-md shadow-[0_0_50px_rgba(34,211,238,0.15)] text-white"
+              className="bg-transparent border border-white/15 rounded-[32px] p-6 lg:p-8 w-full max-w-md shadow-[0_0_50px_rgba(34,211,238,0.15)] text-white"
             >
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-black text-white text-glow-cyan">Edit Profile</h3>
                 <button 
                   type="button" 
-                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center text-slate-400 transition-colors"
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-transparent border border-white/5 flex items-center justify-center text-slate-400 transition-colors"
                   onClick={() => setIsEditingLearner(false)}
                 >
                   <X size={16} />
@@ -1195,18 +1207,18 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
 
         {/* Modal E: Edit Class Details */}
         {isEditingClass && selectedClass && (
-          <div className="fixed inset-0 bg-[#070b19]/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-transparent backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#090e1d]/95 border border-white/15 rounded-[32px] p-6 lg:p-8 w-full max-w-md shadow-[0_0_50px_rgba(34,211,238,0.15)] text-white"
+              className="bg-transparent border border-white/15 rounded-[32px] p-6 lg:p-8 w-full max-w-md shadow-[0_0_50px_rgba(34,211,238,0.15)] text-white"
             >
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-black text-white text-glow-cyan">Edit Class details</h3>
                 <button 
                   type="button" 
-                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center text-slate-400 transition-colors"
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-transparent border border-white/5 flex items-center justify-center text-slate-400 transition-colors"
                   onClick={() => setIsEditingClass(false)}
                 >
                   <X size={16} />

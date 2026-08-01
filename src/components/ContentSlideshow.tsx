@@ -153,7 +153,7 @@ export default function ContentSlideshow({ slides = TOOLBOX_SLIDES }: ContentSli
 
         <button
           onClick={togglePlay}
-          className="p-2 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-all shadow-md focus:outline-none"
+          className="p-2 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 text-slate-300 hover:text-white hover:bg-transparent transition-all shadow-md focus:outline-none"
           title={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
         >
           {isPlaying ? <Pause size={14} /> : <Play size={14} className="ml-0.5 text-cyan-400" />}
@@ -213,7 +213,7 @@ export default function ContentSlideshow({ slides = TOOLBOX_SLIDES }: ContentSli
                   className={`h-1.5 rounded-full transition-all duration-300 ${
                     i === index
                       ? 'w-7 bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]'
-                      : 'w-2 bg-white/20 hover:bg-white/40'
+                      : 'w-2 bg-transparent hover:bg-transparent'
                   }`}
                 />
               </button>
@@ -224,14 +224,14 @@ export default function ContentSlideshow({ slides = TOOLBOX_SLIDES }: ContentSli
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrev}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-slate-300 hover:text-white transition-all focus:outline-none"
+              className="p-2 rounded-xl bg-white/5 hover:bg-transparent border border-white/10 text-slate-300 hover:text-white transition-all focus:outline-none"
               title="Previous Slide"
             >
               <ChevronLeft size={16} />
             </button>
             <button
               onClick={handleNext}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-slate-300 hover:text-white transition-all focus:outline-none"
+              className="p-2 rounded-xl bg-white/5 hover:bg-transparent border border-white/10 text-slate-300 hover:text-white transition-all focus:outline-none"
               title="Next Slide"
             >
               <ChevronRight size={16} />

@@ -84,7 +84,7 @@ export default function FoundationPhaseArchitect({
             <button
               type="button"
               onClick={onBack}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/5 hover:bg-white/10 text-brand-cyan border border-brand-cyan/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/5 hover:bg-transparent text-brand-cyan border border-brand-cyan/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
             >
               <span>← Labs</span>
             </button>
@@ -100,7 +100,7 @@ export default function FoundationPhaseArchitect({
              <button 
                onClick={onGenerate}
                disabled={isLoading}
-               className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all group disabled:opacity-50 cursor-pointer"
+               className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-transparent border border-white/10 rounded-full transition-all group disabled:opacity-50 cursor-pointer"
              >
                 {isLoading ? (
                   <Loader2 size={14} className="text-cyan-400 animate-spin" />
@@ -165,7 +165,7 @@ export default function FoundationPhaseArchitect({
                  <div className="flex items-center justify-between gap-4">
                     <button 
                       onClick={() => onGradeChange?.("Grade R")}
-                      className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all text-slate-400"
+                      className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-transparent border border-white/10 rounded-xl transition-all text-slate-400"
                     >
                        <RotateCcw size={16} />
                     </button>
@@ -174,7 +174,7 @@ export default function FoundationPhaseArchitect({
                     </div>
                     <button 
                       onClick={() => onGradeChange?.("Grade 3")}
-                      className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all text-slate-400"
+                      className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-transparent border border-white/10 rounded-xl transition-all text-slate-400"
                     >
                        <Plus size={16} />
                     </button>
@@ -277,16 +277,16 @@ export default function FoundationPhaseArchitect({
                              <span className="text-4xl font-black text-white">C</span>
                           </div>
                           <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-3xl flex items-center justify-center">
-                             <div className="w-8 h-1 bg-white/20 rounded-full" />
+                             <div className="w-8 h-1 bg-transparent rounded-full" />
                           </div>
                           <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-3xl flex items-center justify-center">
-                             <div className="w-8 h-1 bg-white/20 rounded-full" />
+                             <div className="w-8 h-1 bg-transparent rounded-full" />
                           </div>
                        </div>
 
                        <div className="grid grid-cols-4 gap-4 mt-8">
                           {['A', 'T', 'O', 'P'].map(letter => (
-                            <button key={letter} className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center hover:bg-white/10 hover:border-cyan-400/50 transition-all active:scale-95">
+                            <button key={letter} className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center hover:bg-transparent hover:border-cyan-400/50 transition-all active:scale-95">
                                <span className="text-lg font-black text-slate-300">{letter}</span>
                             </button>
                           ))}

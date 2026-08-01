@@ -430,7 +430,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         variants={itemVariants} 
         className={cn(
           "p-6 md:p-8 rounded-[36px] border-2 space-y-6 animate-border-flash-cyan relative overflow-hidden",
-          isDarkMode ? "bg-[#0d1225]/45 backdrop-blur-md" : "bg-white/60 backdrop-blur-md shadow-xl"
+          isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md shadow-xl"
         )}
       >
         <h2 className="text-xl font-display font-black tracking-widest text-cyan-400 uppercase flex items-center gap-2">
@@ -444,7 +444,10 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
           <motion.div 
             whileHover={{ y: -6, scale: 1.015 }}
             onClick={() => onNavigate('alerts')}
-            className="relative p-6 rounded-[32px] border-2 border-pink-500/50 bg-[#0c1225]/85 shadow-[0_0_20px_rgba(236,72,153,0.25)] flex items-center gap-5 overflow-hidden transition-all duration-300 cursor-pointer group"
+            className={cn(
+              "relative p-6 rounded-[32px] border-2 animate-border-flash-pink shadow-[0_0_20px_rgba(236,72,153,0.15)] flex items-center gap-5 overflow-hidden transition-all duration-300 cursor-pointer group",
+              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
+            )}
           >
             <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-pink-500/10 blur-xl rounded-full" />
             
@@ -455,14 +458,20 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             
             <div className="space-y-1">
               <div className="flex items-center gap-1.5">
-                <h3 className="text-base font-black text-white font-display leading-tight">
+                <h3 className={cn(
+                  "text-base font-black font-display leading-tight",
+                  isDarkMode ? "text-white" : "text-slate-900"
+                )}>
                   Alerts & Reminders
                 </h3>
                 <span className="px-1.5 py-0.5 rounded bg-pink-500/20 text-[9px] text-pink-300 font-bold animate-pulse">
                   ATP Warn
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 leading-snug font-medium">
+              <p className={cn(
+                "text-[11px] leading-snug font-medium",
+                isDarkMode ? "text-slate-400" : "text-slate-600"
+              )}>
                 Track critical CAPS alerts & flags in real-time.
               </p>
             </div>
@@ -472,9 +481,12 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
           <motion.div 
             whileHover={{ y: -6, scale: 1.015 }}
             onClick={() => onNavigate('edu-tools-hub')}
-            className="relative p-6 rounded-[32px] border-2 border-[#a855f7]/60 bg-[#0c1225]/85 shadow-[0_0_20px_rgba(168,85,247,0.25)] flex items-center gap-5 overflow-hidden transition-all duration-300 cursor-pointer group"
+            className={cn(
+              "relative p-6 rounded-[32px] border-2 animate-border-flash-purple shadow-[0_0_20px_rgba(168,85,247,0.15)] flex items-center gap-5 overflow-hidden transition-all duration-300 cursor-pointer group",
+              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
+            )}
           >
-            <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-[#a855f7]/10 blur-xl rounded-full" />
+            <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-transparent blur-xl rounded-full" />
             
             {/* Neon Violet Icon Wrapper */}
             <div className="w-16 h-16 rounded-2xl bg-purple-500/10 border-2 border-purple-400 flex items-center justify-center text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.25)] shrink-0 group-hover:scale-105 transition-transform">
@@ -483,12 +495,18 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             
             <div className="space-y-1">
               <div className="flex items-center gap-1.5">
-                <h3 className="text-base font-black text-white font-display leading-tight">
+                <h3 className={cn(
+                  "text-base font-black font-display leading-tight",
+                  isDarkMode ? "text-white" : "text-slate-900"
+                )}>
                   Content Factory
                 </h3>
                 <span className="h-2 w-2 rounded-full bg-purple-500 animate-ping shrink-0" />
               </div>
-              <p className="text-[11px] text-slate-400 leading-snug font-medium">
+              <p className={cn(
+                "text-[11px] leading-snug font-medium",
+                isDarkMode ? "text-slate-400" : "text-slate-600"
+              )}>
                 Generate custom CAPS lesson plans & booklets.
               </p>
             </div>
@@ -498,7 +516,10 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
           <motion.div 
             whileHover={{ y: -6, scale: 1.015 }}
             onClick={() => onNavigate('planner')}
-            className="relative p-6 rounded-[32px] border-2 border-emerald-500/50 bg-[#0c1225]/85 shadow-[0_0_20px_rgba(16,185,129,0.25)] flex items-center gap-5 overflow-hidden transition-all duration-300 cursor-pointer group"
+            className={cn(
+              "relative p-6 rounded-[32px] border-2 animate-border-flash-emerald shadow-[0_0_20px_rgba(16,185,129,0.15)] flex items-center gap-5 overflow-hidden transition-all duration-300 cursor-pointer group",
+              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
+            )}
           >
             <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-emerald-500/10 blur-xl rounded-full" />
             
@@ -508,10 +529,16 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             </div>
             
             <div className="space-y-1">
-              <h3 className="text-base font-black text-white font-display leading-tight">
+              <h3 className={cn(
+                "text-base font-black font-display leading-tight",
+                isDarkMode ? "text-white" : "text-slate-900"
+              )}>
                 Planner & Diary
               </h3>
-              <p className="text-[11px] text-slate-400 leading-snug font-medium">
+              <p className={cn(
+                "text-[11px] leading-snug font-medium",
+                isDarkMode ? "text-slate-400" : "text-slate-600"
+              )}>
                 Manage your CAPS schedules, lessons & reminders.
               </p>
             </div>
@@ -641,7 +668,10 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
           {/* Chart 1: CAPS Performance Trends */}
-          <div className="p-6 rounded-[32px] border border-white/10 bg-[#0d1225]/70 backdrop-blur-md shadow-xl flex flex-col gap-4">
+          <div className={cn(
+            "p-6 rounded-[32px] border-2 animate-border-flash-cyan backdrop-blur-md shadow-xl flex flex-col gap-4",
+            isDarkMode ? "bg-transparent" : "bg-transparent"
+          )}>
             <div className="flex justify-between items-start">
               <div className="space-y-1">
                 <h3 className="text-sm font-black text-white font-display uppercase tracking-wide flex items-center gap-2">
@@ -749,7 +779,10 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
           </div>
 
           {/* Chart 2: Student Quest Engagement Metrics */}
-          <div className="p-6 rounded-[32px] border border-white/10 bg-[#0d1225]/70 backdrop-blur-md shadow-xl flex flex-col gap-4">
+          <div className={cn(
+            "p-6 rounded-[32px] border-2 animate-border-flash-purple backdrop-blur-md shadow-xl flex flex-col gap-4",
+            isDarkMode ? "bg-transparent" : "bg-transparent"
+          )}>
             <div className="flex justify-between items-start">
               <div className="space-y-1">
                 <h3 className="text-sm font-black text-white font-display uppercase tracking-wide flex items-center gap-2">
@@ -834,17 +867,26 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               onNavigate('teaching', 'lesson-planning');
               triggerToast('Opening CAPS Lesson Creator Studio...', 'info');
             }}
-            className="p-6 rounded-[32px] border-2 border-cyan-500/50 bg-[#0c1225]/85 shadow-[0_0_20px_rgba(6,182,212,0.15)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden"
+            className={cn(
+              "p-6 rounded-[32px] border-2 animate-border-flash-cyan shadow-[0_0_20px_rgba(6,182,212,0.1)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden",
+              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
+            )}
           >
             <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-cyan-500/10 blur-xl rounded-full" />
             <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border-2 border-cyan-400 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)] shrink-0 group-hover:scale-105 transition-all">
               <Sparkles size={24} className="drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
             </div>
             <div className="space-y-1 mt-4">
-              <h4 className="text-sm font-black text-white font-display leading-tight group-hover:text-cyan-300 transition-colors">
+              <h4 className={cn(
+                "text-sm font-black font-display leading-tight group-hover:text-cyan-300 transition-colors",
+                isDarkMode ? "text-white" : "text-slate-900"
+              )}>
                 CAPS Creator Studio
               </h4>
-              <p className="text-[10px] text-slate-400 leading-snug font-medium">
+              <p className={cn(
+                "text-[10px] leading-snug font-medium",
+                isDarkMode ? "text-slate-400" : "text-slate-600"
+              )}>
                 Design magical, fully-aligned unit maps and step-by-step CAPS lessons.
               </p>
             </div>
@@ -857,17 +899,26 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               onNavigate('class-management', 'class-management');
               triggerToast('Opening Classrooms Manager...', 'info');
             }}
-            className="p-6 rounded-[32px] border-2 border-emerald-500/50 bg-[#0c1225]/85 shadow-[0_0_20px_rgba(16,185,129,0.15)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden"
+            className={cn(
+              "p-6 rounded-[32px] border-2 animate-border-flash-emerald shadow-[0_0_20px_rgba(16,185,129,0.1)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden",
+              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
+            )}
           >
             <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-emerald-500/10 blur-xl rounded-full" />
             <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border-2 border-emerald-400 flex items-center justify-center text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.25)] shrink-0 group-hover:scale-105 transition-all">
               <UserCheck size={24} className="drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
             </div>
             <div className="space-y-1 mt-4">
-              <h4 className="text-sm font-black text-white font-display leading-tight group-hover:text-emerald-300 transition-colors">
+              <h4 className={cn(
+                "text-sm font-black font-display leading-tight group-hover:text-emerald-300 transition-colors",
+                isDarkMode ? "text-white" : "text-slate-900"
+              )}>
                 Classroom Manager
               </h4>
-              <p className="text-[10px] text-slate-400 leading-snug font-medium">
+              <p className={cn(
+                "text-[10px] leading-snug font-medium",
+                isDarkMode ? "text-slate-400" : "text-slate-600"
+              )}>
                 Manage portfolios, reward achievements, and track active pupil marks.
               </p>
             </div>
@@ -880,17 +931,26 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               onNavigate('ocr', 'intelligence-ai');
               triggerToast('Launching Teacher\'s Auto-Grading Lab...', 'info');
             }}
-            className="p-6 rounded-[32px] border-2 border-pink-500/50 bg-[#0c1225]/85 shadow-[0_0_20px_rgba(236,72,153,0.15)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden"
+            className={cn(
+              "p-6 rounded-[32px] border-2 animate-border-flash-pink shadow-[0_0_20px_rgba(236,72,153,0.1)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden",
+              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
+            )}
           >
             <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-pink-500/10 blur-xl rounded-full" />
             <div className="w-14 h-14 rounded-2xl bg-pink-500/10 border-2 border-pink-400 flex items-center justify-center text-pink-400 shadow-[0_0_15px_rgba(236,72,153,0.25)] shrink-0 group-hover:scale-105 transition-all">
               <Scan size={24} className="drop-shadow-[0_0_8px_rgba(236,72,153,0.6)]" />
             </div>
             <div className="space-y-1 mt-4">
-              <h4 className="text-sm font-black text-white font-display leading-tight group-hover:text-pink-300 transition-colors">
+              <h4 className={cn(
+                "text-sm font-black font-display leading-tight group-hover:text-pink-300 transition-colors",
+                isDarkMode ? "text-white" : "text-slate-900"
+              )}>
                 Grading Lab (OCR)
               </h4>
-              <p className="text-[10px] text-slate-400 leading-snug font-medium">
+              <p className={cn(
+                "text-[10px] leading-snug font-medium",
+                isDarkMode ? "text-slate-400" : "text-slate-600"
+              )}>
                 Scan physical assessment worksheets with instant smart grading.
               </p>
             </div>
@@ -900,17 +960,26 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
           <motion.div 
             whileHover={{ y: -6, scale: 1.02 }}
             onClick={() => setIsBroadcastModalOpen(true)}
-            className="p-6 rounded-[32px] border-2 border-purple-500/50 bg-[#0c1225]/85 shadow-[0_0_20px_rgba(168,85,247,0.15)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden"
+            className={cn(
+              "p-6 rounded-[32px] border-2 animate-border-flash-purple shadow-[0_0_20px_rgba(168,85,247,0.1)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden",
+              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
+            )}
           >
             <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-purple-500/10 blur-xl rounded-full" />
             <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border-2 border-purple-400 flex items-center justify-center text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.25)] shrink-0 group-hover:scale-105 transition-all">
               <Bell size={24} className="drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
             </div>
             <div className="space-y-1 mt-4">
-              <h4 className="text-sm font-black text-white font-display leading-tight group-hover:text-purple-300 transition-colors">
+              <h4 className={cn(
+                "text-sm font-black font-display leading-tight group-hover:text-purple-300 transition-colors",
+                isDarkMode ? "text-white" : "text-slate-900"
+              )}>
                 Orbital Broadcast
               </h4>
-              <p className="text-[10px] text-slate-400 leading-snug font-medium">
+              <p className={cn(
+                "text-[10px] leading-snug font-medium",
+                isDarkMode ? "text-slate-400" : "text-slate-600"
+              )}>
                 Send live CAPS announcements directly to student dashboard models.
               </p>
             </div>
@@ -968,7 +1037,10 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         </div>
 
         {/* Submissions Table Card */}
-        <div className="rounded-[32px] border border-white/10 bg-[#0c1225]/90 backdrop-blur-md overflow-hidden shadow-2xl">
+        <div className={cn(
+          "rounded-[32px] border-2 animate-border-flash-cyan backdrop-blur-md overflow-hidden shadow-2xl",
+          isDarkMode ? "bg-transparent" : "bg-transparent"
+        )}>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-900/60 text-slate-400 uppercase tracking-wider text-[10px] border-b border-white/10">
@@ -1071,10 +1143,13 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         </h2>
 
         {/* Wide Constellation Panel */}
-        <div className="relative w-full rounded-[40px] border border-white/10 bg-[#0d1225]/45 backdrop-blur-md overflow-hidden shadow-2xl">
+        <div className={cn(
+          "relative w-full rounded-[40px] border-2 animate-border-flash-cyan backdrop-blur-md overflow-hidden shadow-2xl",
+          isDarkMode ? "bg-transparent" : "bg-transparent"
+        )}>
           
           {/* Constellation Inner Space BG */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#060a16] via-[#090f23] to-[#03050c] -z-10" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#060a16] via-[#090f23] to-[#03050c] -z-10 opacity-10" />
           
           {/* Grid lines inside galaxy box */}
           <div 
@@ -1206,7 +1281,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
                     initial={{ opacity: 0, scale: 0.92, y: 12 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.92, y: 12 }}
-                    className="absolute z-20 top-2 left-2 max-w-sm rounded-3xl border-2 border-cyan-500/40 bg-[#0d1225]/95 backdrop-blur-md p-5 shadow-[0_0_30px_rgba(6,182,212,0.3)] flex flex-col gap-3.5 text-white"
+                    className="absolute z-20 top-2 left-2 max-w-sm rounded-3xl border-2 border-cyan-500/40 bg-transparent backdrop-blur-md p-5 shadow-[0_0_30px_rgba(6,182,212,0.3)] flex flex-col gap-3.5 text-white"
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-3.5">
@@ -1218,7 +1293,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
                       </div>
                       <button 
                         onClick={() => setSelectedStudent(null)}
-                        className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                        className="p-1.5 rounded-full hover:bg-transparent text-slate-400 hover:text-white transition-colors"
                       >
                         <X size={14} />
                       </button>
@@ -1363,7 +1438,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
                   <button
                     type="button"
                     onClick={() => setIsBroadcastModalOpen(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer bg-white/5 hover:bg-white/10 text-white"
+                    className="px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer bg-white/5 hover:bg-transparent text-white"
                   >
                     Cancel
                   </button>
@@ -1408,7 +1483,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
                   triggerToast('Opening CAPS Content Factory...', 'info');
                   setIsQuickActionsOpen(false);
                 }}
-                className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-[#0d1225]/95 border-2 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.3)] text-white text-xs font-black tracking-wide uppercase group cursor-pointer"
+                className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-transparent border-2 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.3)] text-white text-xs font-black tracking-wide uppercase group cursor-pointer"
               >
                 <div className="p-1.5 rounded-xl bg-cyan-500/15 text-cyan-400 group-hover:rotate-12 transition-transform">
                   <Sparkles size={14} />
@@ -1425,7 +1500,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
                   triggerToast('Launching Teacher\'s Auto-Grading Lab...', 'info');
                   setIsQuickActionsOpen(false);
                 }}
-                className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-[#0d1225]/95 border-2 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.3)] text-white text-xs font-black tracking-wide uppercase group cursor-pointer"
+                className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-transparent border-2 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.3)] text-white text-xs font-black tracking-wide uppercase group cursor-pointer"
               >
                 <div className="p-1.5 rounded-xl bg-emerald-500/15 text-emerald-400 group-hover:scale-110 transition-transform">
                   <Scan size={14} />
@@ -1442,7 +1517,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
                   triggerToast('Opening Classrooms Manager to assign homework...', 'info');
                   setIsQuickActionsOpen(false);
                 }}
-                className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-[#0d1225]/95 border-2 border-pink-500/50 shadow-[0_0_15px_rgba(236,72,153,0.3)] text-white text-xs font-black tracking-wide uppercase group cursor-pointer"
+                className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-transparent border-2 border-pink-500/50 shadow-[0_0_15px_rgba(236,72,153,0.3)] text-white text-xs font-black tracking-wide uppercase group cursor-pointer"
               >
                 <div className="p-1.5 rounded-xl bg-pink-500/15 text-pink-400 group-hover:-rotate-12 transition-transform">
                   <ClipboardCheck size={14} />
@@ -1493,7 +1568,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             >
               <button
                 onClick={() => setSelectedQuickGrade(null)}
-                className="absolute top-6 right-6 p-2 rounded-full bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white transition-all cursor-pointer"
+                className="absolute top-6 right-6 p-2 rounded-full bg-transparent hover:bg-transparent text-slate-400 hover:text-white transition-all cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -1584,7 +1659,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
                   <button
                     type="button"
                     onClick={() => setSelectedQuickGrade(null)}
-                    className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-all cursor-pointer"
+                    className="px-5 py-2.5 rounded-xl bg-transparent hover:bg-transparent text-white font-bold text-xs transition-all cursor-pointer"
                   >
                     Cancel
                   </button>

@@ -269,7 +269,7 @@ export default function VideoGenerationHistory({
                               isActive 
                                 ? "bg-indigo-600 text-white cursor-default" 
                                 : isDarkMode 
-                                  ? "bg-white/5 text-slate-300 hover:bg-white/10" 
+                                  ? "bg-white/5 text-slate-300 hover:bg-transparent" 
                                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                             )}
                           >

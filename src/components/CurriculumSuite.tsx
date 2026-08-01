@@ -502,7 +502,7 @@ export default function CurriculumSuite({ isDarkMode, userRole }: { isDarkMode: 
                       "w-full text-left p-4 rounded-xl border flex items-center justify-between transition-all font-bold text-xs uppercase tracking-wider",
                       selectedPhase === phase 
                         ? (isDarkMode ? 'bg-brand-cyan/15 border-brand-cyan text-white' : 'bg-cyan-50 border-cyan-200 text-cyan-900')
-                        : (isDarkMode ? 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10' : 'bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100')
+                        : (isDarkMode ? 'bg-white/5 border-white/10 text-slate-400 hover:bg-transparent' : 'bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100')
                     )}
                   >
                     <span>{phase}</span>
@@ -525,7 +525,7 @@ export default function CurriculumSuite({ isDarkMode, userRole }: { isDarkMode: 
                         "px-3.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border",
                         selectedSubject === sub
                           ? (isDarkMode ? 'bg-indigo-500/20 border-indigo-500 text-white shadow-md' : 'bg-indigo-50 border-indigo-200 text-indigo-900')
-                          : (isDarkMode ? 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10' : 'bg-slate-100 border-slate-100 text-slate-600 hover:bg-slate-200')
+                          : (isDarkMode ? 'bg-white/5 border-white/10 text-slate-400 hover:bg-transparent' : 'bg-slate-100 border-slate-100 text-slate-600 hover:bg-slate-200')
                       )}
                     >
                       {sub}
@@ -853,7 +853,7 @@ export default function CurriculumSuite({ isDarkMode, userRole }: { isDarkMode: 
               
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="text-[9px] font-black uppercase tracking-[0.2em] bg-white/10 px-2.5 py-1 rounded-full text-indigo-200">
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] bg-transparent px-2.5 py-1 rounded-full text-indigo-200">
                     Active Student Vault
                   </span>
                   <h3 className="text-3xl font-hand uppercase tracking-wider mt-2">Learner Rank</h3>
@@ -871,7 +871,7 @@ export default function CurriculumSuite({ isDarkMode, userRole }: { isDarkMode: 
                   <span>XP Progress</span>
                   <span>{userXp}% to Level {userLevel + 1}</span>
                 </div>
-                <div className="bg-white/20 h-3 rounded-full overflow-hidden border border-white/10">
+                <div className="bg-transparent h-3 rounded-full overflow-hidden border border-white/10">
                   <div className="h-full bg-yellow-400 animate-pulse" style={{ width: `${userXp}%` }} />
                 </div>
               </div>
@@ -977,7 +977,7 @@ export default function CurriculumSuite({ isDarkMode, userRole }: { isDarkMode: 
                           ? 'border-emerald-600 bg-emerald-600/10 text-emerald-400 disabled:cursor-not-allowed'
                           : points < item.cost 
                             ? 'border-slate-500/20 bg-slate-550/5 text-slate-500 cursor-not-allowed'
-                            : 'border-[#22d3ee]/20 bg-[#22d3ee]/10 text-[#22d3ee] hover:bg-[#22d3ee]/25 hover:scale-[1.01] active:scale-95'
+                            : 'border-[#22d3ee]/20 bg-transparent text-[#22d3ee] hover:bg-transparent hover:scale-[1.01] active:scale-95'
                       )}
                     >
                       {item.claimed ? 'Claimed / Active' : points < item.cost ? 'Locked (Low Points)' : 'Claim Reward'}

@@ -382,7 +382,7 @@ export default function RoleSelection({ onComplete, onBack }: RoleSelectionProps
                       whileTap={{ scale: 0.98 }}
                       className={`group flex flex-col items-center text-center rounded-[32px] p-6 transition-all duration-300 outline-none relative overflow-hidden backdrop-blur-md border ${
                         active 
-                          ? `bg-white/10 ${galaxy.activeColor} ${galaxy.bgGlow}`
+                          ? `bg-transparent ${galaxy.activeColor} ${galaxy.bgGlow}`
                           : `bg-white/[0.02] ${galaxy.borderColor}`
                       }`}
                     >
@@ -408,7 +408,7 @@ export default function RoleSelection({ onComplete, onBack }: RoleSelectionProps
 
                       <div className={`mt-5 px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wider transition-all ${
                         active
-                          ? 'bg-white/10 border-white text-white'
+                          ? 'bg-transparent border-white text-white'
                           : 'border-white/15 text-white/50 group-hover:text-white'
                       }`}>
                         {active ? 'Selected' : 'Select Planet'}

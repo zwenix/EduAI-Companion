@@ -97,6 +97,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
               loop
               muted={isMuted}
               playsInline
+              webkit-playsinline="true"
               preload="auto"
               onLoadedData={() => {
                 if (videoRef.current) {
@@ -116,7 +117,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
               }}
               className="w-full h-full object-contain max-w-full max-h-full cursor-pointer"
             >
-              <source src="/splash.mp4" type="video/mp4" />
               <source src={splashVideoUrl} type="video/mp4" />
             </video>
 

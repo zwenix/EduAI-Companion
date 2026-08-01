@@ -299,7 +299,7 @@ export default function ReaderModeModal({
         >
           
           {/* Top Progress Bar */}
-          <div className="w-full h-1 bg-white/10 shrink-0">
+          <div className="w-full h-1 bg-transparent shrink-0">
             <div 
               className={`h-full transition-all duration-100 ${
                 theme === 'cyber' ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-cyan-500'

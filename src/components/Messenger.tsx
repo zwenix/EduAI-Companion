@@ -571,7 +571,7 @@ export default function Messenger() {
       <div className="flex-1 bg-[#0c1024] border border-white/10 rounded-[28px] flex flex-col shadow-2xl relative overflow-hidden min-h-[600px]">
         
         {/* Top Header Bar */}
-        <div className="p-4 sm:p-5 border-b border-white/10 bg-[#0e132b]/80 backdrop-blur-md flex items-center justify-between gap-4">
+        <div className="p-4 sm:p-5 border-b border-white/10 bg-transparent backdrop-blur-md flex items-center justify-between gap-4">
           <div className="flex items-center gap-3.5 min-w-0">
             <div className="shrink-0">
               {activeThread.type === 'group' ? (
@@ -713,7 +713,7 @@ export default function Messenger() {
         </div>
 
         {/* Bottom Input Area */}
-        <form onSubmit={handleSendMessage} className="p-4 sm:p-5 border-t border-white/10 bg-[#0e132b]/80 backdrop-blur-md">
+        <form onSubmit={handleSendMessage} className="p-4 sm:p-5 border-t border-white/10 bg-transparent backdrop-blur-md">
           <div className="flex items-center gap-2 sm:gap-3 bg-[#13172e] border border-white/10 rounded-2xl px-4 py-2 focus-within:border-pink-500/50 transition-all shadow-inner">
             <button
               type="button"
@@ -775,7 +775,7 @@ export default function Messenger() {
                 <button
                   type="button"
                   onClick={() => setShowNewChatModal(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-transparent transition-colors"
                 >
                   <X size={20} />
                 </button>
@@ -803,7 +803,7 @@ export default function Messenger() {
                         setActiveThreadId(t.id);
                         setShowNewChatModal(false);
                       }}
-                      className="w-full p-3 rounded-xl bg-[#161a33]/60 hover:bg-[#161a33] border border-white/5 hover:border-cyan-500/40 flex items-center gap-3 transition-all text-left cursor-pointer"
+                      className="w-full p-3 rounded-xl bg-transparent hover:bg-[#161a33] border border-white/5 hover:border-cyan-500/40 flex items-center gap-3 transition-all text-left cursor-pointer"
                     >
                       <img
                         src={t.avatar || getAvatarUrl({ name: t.title })}
@@ -830,7 +830,7 @@ export default function Messenger() {
                 <button
                   type="button"
                   onClick={() => setShowNewChatModal(false)}
-                  className="px-5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all"
+                  className="px-5 py-2 rounded-xl bg-transparent hover:bg-transparent text-white text-xs font-bold transition-all"
                 >
                   Close
                 </button>

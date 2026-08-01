@@ -561,7 +561,7 @@ export default function StudentPortfolio({ isDarkMode }: { isDarkMode: boolean }
       {/* Hero Section */}
       <div className={cn(
         "relative rounded-[36px] p-8 lg:p-12 overflow-hidden text-white flex flex-col justify-end min-h-[300px] border shadow-2xl",
-        isDarkMode ? "bg-[#0B1122] border-white/10" : "bg-slate-900 border-slate-800"
+        isDarkMode ? "bg-transparent border-white/10" : "bg-transparent border-slate-800"
       )}>
         <div className="absolute top-0 right-0 p-8 opacity-20 pointer-events-none">
            <Award size={200} />
@@ -571,7 +571,7 @@ export default function StudentPortfolio({ isDarkMode }: { isDarkMode: boolean }
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none mix-blend-overlay" />
         
         <div className="relative z-10 max-w-3xl">
-           <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-4 py-1.5 text-sm font-bold text-emerald-300 mb-6 shadow-sm">
+           <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-transparent backdrop-blur-md px-4 py-1.5 text-sm font-bold text-emerald-300 mb-6 shadow-sm">
              <Trophy size={16} className="text-emerald-400" /> Academic Portfolio
            </motion.div>
            <h1 className="text-4xl lg:text-6xl font-hand tracking-wide leading-tight mb-4 drop-shadow-md">
@@ -647,7 +647,7 @@ export default function StudentPortfolio({ isDarkMode }: { isDarkMode: boolean }
                   </div>
                   
                   <div className="flex flex-wrap gap-2 mt-4">
-                    <span className={cn("text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-md", isDarkMode ? "bg-white/10 text-slate-300" : "bg-slate-100 text-slate-500")}>
+                    <span className={cn("text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-md", isDarkMode ? "bg-transparent text-slate-300" : "bg-slate-100 text-slate-500")}>
                       {item.capsAlignment}
                     </span>
                   </div>
@@ -683,7 +683,7 @@ export default function StudentPortfolio({ isDarkMode }: { isDarkMode: boolean }
                   filter === subj
                     ? "bg-brand-cyan text-navy-dark shadow-lg shadow-cyan-500/20"
                     : isDarkMode 
-                      ? "bg-white/5 text-slate-400 hover:bg-white/10" 
+                      ? "bg-white/5 text-slate-400 hover:bg-transparent" 
                       : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                 )}
               >

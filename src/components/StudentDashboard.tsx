@@ -658,7 +658,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
          <div className="relative z-10">
             <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className={cn(
               "inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs sm:text-sm font-bold mb-6 shadow-sm",
-              isDarkMode ? "border-brand-green/30 bg-brand-green/10 text-brand-green" : "border-white/20 bg-white/10 text-emerald-300"
+              isDarkMode ? "border-brand-green/30 bg-brand-green/10 text-brand-green" : "border-white/20 bg-transparent text-emerald-300"
             )}>
               <Star size={16} className={cn("animate-pulse", isDarkMode ? "text-brand-yellow icon-glow-yellow" : "text-brand-yellow")} /> Welcome back, {student?.name || 'Discovery Cadet'}! 🚀
             </motion.div>
@@ -672,7 +672,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
             <div className="flex items-center gap-4 mt-4 sm:mt-6 max-w-lg">
               <div className={cn(
                 "flex-1 h-3 sm:h-4 rounded-full overflow-hidden border",
-                isDarkMode ? "bg-slate-950/60 border-white/10" : "bg-white/20 border-white/10"
+                isDarkMode ? "bg-slate-950/60 border-white/10" : "bg-transparent border-white/10"
               )}>
                  <motion.div 
                    initial={{ width: 0 }} 
@@ -734,23 +734,23 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
       {/* Quick Access Dashboard Menu */}
       <motion.div 
          className={cn(
-          "p-6 md:p-8 rounded-[36px] border-2 space-y-6 relative overflow-hidden",
-          isDarkMode ? "bg-[#0d1225]/45 backdrop-blur-md border-brand-cyan/20" : "bg-white/60 backdrop-blur-md shadow-xl border-slate-200"
+          "p-6 md:p-8 rounded-[36px] border-2 space-y-6 relative overflow-hidden animate-border-flash-cyan",
+          isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md shadow-xl"
         )}
       >
         <h2 className={cn("text-xl font-display font-black tracking-widest uppercase flex items-center gap-2", isDarkMode ? "text-cyan-400" : "text-indigo-600")}>
           <span>STUDENT COMMAND CENTER</span>
           <span className={cn("h-1.5 w-1.5 rounded-full animate-pulse", isDarkMode ? "bg-cyan-400" : "bg-indigo-600")} />
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           
           {/* Tile 1: Notifications */}
           <motion.div 
             whileHover={{ y: -6, scale: 1.015 }}
             onClick={() => onNavigate && onNavigate('alerts', 'student-notifications')}
             className={cn(
-              "relative p-6 rounded-[32px] border-2 flex flex-col items-start gap-4 overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md",
-              isDarkMode ? "bg-[#0c1225]/85 border-pink-500/50 shadow-[0_0_20px_rgba(236,72,153,0.15)]" : "bg-pink-50/80 border-pink-200"
+              "relative p-6 rounded-[32px] border-2 flex flex-col items-start gap-4 overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md animate-border-flash-pink",
+              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
             )}
           >
             <div className={cn("absolute -bottom-10 -left-10 w-24 h-24 blur-xl rounded-full", isDarkMode ? "bg-pink-500/10" : "bg-pink-200/50")} />
@@ -777,8 +777,8 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
             whileHover={{ y: -6, scale: 1.015 }}
             onClick={() => onNavigate && onNavigate('planner', 'student-calendar')}
             className={cn(
-              "relative p-6 rounded-[32px] border-2 flex flex-col items-start gap-4 overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md",
-              isDarkMode ? "bg-[#0c1225]/85 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.15)]" : "bg-emerald-50/80 border-emerald-200"
+              "relative p-6 rounded-[32px] border-2 flex flex-col items-start gap-4 overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md animate-border-flash-emerald",
+              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
             )}
           >
             <div className={cn("absolute -bottom-10 -left-10 w-24 h-24 blur-xl rounded-full", isDarkMode ? "bg-emerald-500/10" : "bg-emerald-200/50")} />
@@ -805,8 +805,8 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
             whileHover={{ y: -6, scale: 1.015 }}
             onClick={() => onNavigate && onNavigate('student-notes', 'lesson-planning')}
             className={cn(
-              "relative p-6 rounded-[32px] border-2 flex flex-col items-start gap-4 overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md",
-              isDarkMode ? "bg-[#0c1225]/85 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.15)]" : "bg-indigo-50/80 border-indigo-200"
+              "relative p-6 rounded-[32px] border-2 flex flex-col items-start gap-4 overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md animate-border-flash-purple",
+              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
             )}
           >
             <div className={cn("absolute -bottom-10 -left-10 w-24 h-24 blur-xl rounded-full", isDarkMode ? "bg-indigo-500/10" : "bg-indigo-200/50")} />
@@ -833,8 +833,8 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
             whileHover={{ y: -6, scale: 1.015 }}
             onClick={() => onNavigate && onNavigate('ai-tutor', 'intelligence-ai')}
             className={cn(
-              "relative p-6 rounded-[32px] border-2 flex flex-col items-start gap-4 overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md",
-              isDarkMode ? "bg-[#0c1225]/85 border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.15)]" : "bg-cyan-50/80 border-cyan-200"
+              "relative p-6 rounded-[32px] border-2 flex flex-col items-start gap-4 overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md animate-border-flash-cyan",
+              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
             )}
           >
             <div className={cn("absolute -bottom-10 -left-10 w-24 h-24 blur-xl rounded-full", isDarkMode ? "bg-cyan-500/10" : "bg-cyan-200/50")} />
@@ -1141,7 +1141,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                                         {progressValue}%
                                       </span>
                                     </div>
-                                    <div className="w-full bg-slate-200 dark:bg-white/10 h-2.5 rounded-full overflow-hidden">
+                                    <div className="w-full bg-slate-200 dark:bg-transparent h-2.5 rounded-full overflow-hidden">
                                       <motion.div 
                                         initial={{ width: 0 }}
                                         animate={{ width: `${progressValue}%` }}

@@ -141,7 +141,7 @@ export default function VideoLabConsole({
           {onBack && (
             <button
               onClick={onBack}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/5 hover:bg-white/10 text-brand-cyan border border-brand-cyan/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/5 hover:bg-transparent text-brand-cyan border border-brand-cyan/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
             >
               <span>← Labs</span>
             </button>
@@ -152,7 +152,7 @@ export default function VideoLabConsole({
               <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
               <span className="text-[10px] font-black text-white uppercase tracking-widest">SYS REC</span>
             </div>
-            <div className="w-px h-3 bg-white/10" />
+            <div className="w-px h-3 bg-transparent" />
             <span className="text-[11px] font-mono font-bold text-slate-400">{currentTime}</span>
           </div>
 
@@ -250,7 +250,7 @@ export default function VideoLabConsole({
                 <select 
                   value={vid_model} 
                   onChange={(e) => setVid_Model?.(e.target.value)}
-                  className="w-full bg-[#0b1122]/80 border border-white/10 text-slate-200 text-xs font-semibold rounded-xl p-2.5 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.05)]"
+                  className="w-full bg-transparent border border-white/10 text-slate-200 text-xs font-semibold rounded-xl p-2.5 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.05)]"
                 >
                   <option value="omnihuman-1" className="bg-slate-900">Omnihuman-1 (Gradio Streaming)</option>
                   <option value="replicate-minimax" className="bg-slate-900">Minimax Video</option>
@@ -265,7 +265,7 @@ export default function VideoLabConsole({
                   placeholder="Type your prompt here... E.g., A cinematic shot of a lion roaring in the African savanna..." 
                   value={vid_prompt} 
                   onChange={(e) => setVid_Prompt?.(e.target.value)} 
-                  className="w-full h-20 bg-[#0b1122]/80 border border-white/10 text-slate-200 text-xs font-medium rounded-xl p-2.5 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all resize-none shadow-[0_0_15px_rgba(168,85,247,0.05)]"
+                  className="w-full h-20 bg-transparent border border-white/10 text-slate-200 text-xs font-medium rounded-xl p-2.5 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all resize-none shadow-[0_0_15px_rgba(168,85,247,0.05)]"
                 />
               </div>
 
@@ -278,7 +278,7 @@ export default function VideoLabConsole({
                       type="number" 
                       value={vid_seed} 
                       onChange={(e) => setVid_Seed?.(Number(e.target.value))} 
-                      className="w-full h-9 bg-[#0b1122]/80 border border-white/10 text-slate-250 text-xs font-medium rounded-xl px-3 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                      className="w-full h-9 bg-transparent border border-white/10 text-slate-250 text-xs font-medium rounded-xl px-3 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
                     />
                   </div>
                   <div className="space-y-1.5 text-left">
@@ -295,18 +295,18 @@ export default function VideoLabConsole({
                 </div>
               )}
 
-              <div className="h-px bg-white/10 my-1" />
+              <div className="h-px bg-transparent my-1" />
 
               <RadialDial label="Script Tone" subLabel="Academic - Casual" value={72} color="text-cyan-400" />
               <RadialDial label="Avatar Speed" subLabel="Multiplier: 1.2x" value={45} color="text-purple-400" />
             </div>
 
             <div className="mt-auto space-y-3 pt-6 border-t border-white/5">
-               <button className="w-full flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all group">
+               <button className="w-full flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-transparent border border-white/10 rounded-2xl transition-all group">
                   <span className="text-xs font-bold text-slate-300">Camera Presets</span>
                   <ChevronRight size={14} className="text-slate-500 group-hover:translate-x-1 transition-transform" />
                </button>
-               <button className="w-full flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all group">
+               <button className="w-full flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-transparent border border-white/10 rounded-2xl transition-all group">
                   <span className="text-xs font-bold text-slate-300">Lighting Override</span>
                   <ChevronRight size={14} className="text-slate-500 group-hover:translate-x-1 transition-transform" />
                </button>
@@ -339,7 +339,7 @@ export default function VideoLabConsole({
           disabled={isLoading}
           className="shrink-0 flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-2xl shadow-xl shadow-cyan-500/20 active:scale-95 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <div className="w-6 h-6 flex items-center justify-center bg-white/20 rounded-lg group-hover:rotate-12 transition-transform">
+          <div className="w-6 h-6 flex items-center justify-center bg-transparent rounded-lg group-hover:rotate-12 transition-transform">
             {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
           </div>
           <span className="text-xs font-black uppercase tracking-widest">

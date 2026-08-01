@@ -288,7 +288,7 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
             initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
-            className="rounded-[36px] bg-[#0c102c]/85 backdrop-blur-2xl border-2 border-cyan-400/80 shadow-[0_0_50px_rgba(0,211,238,0.35),0_0_20px_rgba(255,0,212,0.2)] p-7 sm:p-10 relative overflow-hidden"
+            className="rounded-[36px] bg-transparent backdrop-blur-2xl border-2 border-cyan-400/80 shadow-[0_0_50px_rgba(0,211,238,0.35),0_0_20px_rgba(255,0,212,0.2)] p-7 sm:p-10 relative overflow-hidden"
           >
             {/* Top Card Title (Exactly matching screenshot 2) */}
             <div className="text-center mb-7">
@@ -349,7 +349,7 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
                         value={name}
                         onChange={e => setName(e.target.value)}
                         placeholder="Your full name"
-                        className="w-full h-12 bg-[#080b22]/90 border border-cyan-400/50 focus:border-cyan-300 focus:shadow-[0_0_15px_rgba(0,211,238,0.5)] rounded-2xl px-4 text-white placeholder-slate-500 font-bold text-sm outline-none transition-all"
+                        className="w-full h-12 bg-transparent border border-cyan-400/50 focus:border-cyan-300 focus:shadow-[0_0_15px_rgba(0,211,238,0.5)] rounded-2xl px-4 text-white placeholder-slate-500 font-bold text-sm outline-none transition-all"
                         required={isSignUp}
                       />
                     </div>
@@ -368,7 +368,7 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     placeholder="Email address"
-                    className="w-full h-12 bg-[#080b22]/90 border border-pink-500/50 focus:border-pink-400 focus:shadow-[0_0_15px_rgba(255,0,212,0.5)] rounded-2xl px-4 text-white placeholder-slate-500 font-bold text-sm outline-none transition-all"
+                    className="w-full h-12 bg-transparent border border-pink-500/50 focus:border-pink-400 focus:shadow-[0_0_15px_rgba(255,0,212,0.5)] rounded-2xl px-4 text-white placeholder-slate-500 font-bold text-sm outline-none transition-all"
                     required
                   />
                 </div>
@@ -385,7 +385,7 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    className="w-full h-12 bg-[#080b22]/90 border border-cyan-400/50 focus:border-cyan-300 focus:shadow-[0_0_15px_rgba(0,211,238,0.5)] rounded-2xl px-4 text-white placeholder-slate-500 font-bold text-sm outline-none transition-all"
+                    className="w-full h-12 bg-transparent border border-cyan-400/50 focus:border-cyan-300 focus:shadow-[0_0_15px_rgba(0,211,238,0.5)] rounded-2xl px-4 text-white placeholder-slate-500 font-bold text-sm outline-none transition-all"
                     required
                   />
                 </div>

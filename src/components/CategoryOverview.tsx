@@ -51,7 +51,7 @@ export default function CategoryOverview({
   // Custom Intelligent AI Hub UI (matching Teacher's Toolbox design)
   if (categoryLabel === 'Intelligent AI' || categoryLabel === 'Intelligence AI' || categoryLabel === "AI Tutor's Class") {
     return (
-      <div className="relative p-6 lg:p-10 overflow-hidden rounded-[40px] border border-indigo-500/30 bg-[#080b22] text-white min-h-[85vh] flex flex-col justify-between font-sans">
+      <div className="relative p-6 lg:p-10 overflow-hidden rounded-[40px] border border-indigo-500/30 bg-transparent text-white min-h-[85vh] flex flex-col justify-between font-sans">
         
         {/* Deep Cosmic Background & Subtle Stars */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-[40px]" />
@@ -147,7 +147,7 @@ export default function CategoryOverview({
             whileTap={{ scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             onClick={() => onSelect('ai-tutor')}
-            className="rounded-[32px] border-2 border-orange-500/90 bg-[#0e122e]/90 shadow-[0_0_30px_rgba(249,115,22,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-orange-400 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(249,115,22,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
+            className="rounded-[32px] border-2 border-orange-500/90 bg-transparent shadow-[0_0_30px_rgba(249,115,22,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-orange-400 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(249,115,22,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
             <div className="space-y-4 w-full flex flex-col items-center">
               <div className="w-20 h-20 rounded-3xl bg-orange-500/10 border-2 border-orange-500/50 flex items-center justify-center text-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.4)] group-hover:scale-110 group-hover:bg-orange-500/20 group-hover:shadow-[0_0_30px_rgba(249,115,22,0.6)] transition-all duration-300">
@@ -179,7 +179,7 @@ export default function CategoryOverview({
             whileTap={{ scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             onClick={() => onSelect('ocr')}
-            className="rounded-[32px] border-2 border-cyan-400/90 bg-[#0e122e]/90 shadow-[0_0_30px_rgba(34,211,238,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-cyan-300 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(34,211,238,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
+            className="rounded-[32px] border-2 border-cyan-400/90 bg-transparent shadow-[0_0_30px_rgba(34,211,238,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-cyan-300 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(34,211,238,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
             <div className="space-y-4 w-full flex flex-col items-center">
               <div className="w-20 h-20 rounded-3xl bg-cyan-500/10 border-2 border-cyan-400/50 flex items-center justify-center text-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.4)] group-hover:scale-110 group-hover:bg-cyan-500/20 group-hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] transition-all duration-300">
@@ -246,7 +246,7 @@ export default function CategoryOverview({
     categoryLabel === 'Teacher Chat & Contacts'
   ) {
     return (
-      <div className="relative p-6 sm:p-8 lg:p-10 overflow-hidden rounded-[40px] border border-cyan-500/20 bg-[#070a18] text-white min-h-[85vh] flex flex-col justify-start font-sans">
+      <div className="relative p-6 sm:p-8 lg:p-10 overflow-hidden rounded-[40px] border border-cyan-500/20 bg-transparent text-white min-h-[85vh] flex flex-col justify-start font-sans">
         {/* Glowing cosmic curves/waves in background */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(15,23,60,0.8)_0%,rgba(7,10,24,1)_100%)] pointer-events-none" />
         <div className="absolute top-1/3 -left-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
@@ -321,7 +321,7 @@ export default function CategoryOverview({
     categoryLabel === 'lesson-planning'
   ) {
     return (
-      <div className="relative p-6 lg:p-10 overflow-hidden rounded-[40px] border border-indigo-500/30 bg-[#080b22] text-white min-h-[85vh] flex flex-col justify-between font-sans">
+      <div className="relative p-6 lg:p-10 overflow-hidden rounded-[40px] border border-indigo-500/30 bg-transparent text-white min-h-[85vh] flex flex-col justify-between font-sans">
         
         {/* Deep Cosmic Background & Subtle Stars */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-[40px]" />
@@ -418,7 +418,7 @@ export default function CategoryOverview({
             whileTap={{ scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             onClick={() => onSelect('teaching')}
-            className="rounded-[32px] border-2 border-pink-500/90 bg-[#0e122e]/90 shadow-[0_0_30px_rgba(236,72,153,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-pink-400 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(236,72,153,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
+            className="rounded-[32px] border-2 border-pink-500/90 bg-transparent shadow-[0_0_30px_rgba(236,72,153,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-pink-400 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(236,72,153,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
             <div className="space-y-4 w-full flex flex-col items-center">
               {/* Custom Pink Monitor Icon */}
@@ -465,7 +465,7 @@ export default function CategoryOverview({
             whileTap={{ scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             onClick={() => onSelect('student-practice')}
-            className="rounded-[32px] border-2 border-orange-500/90 bg-[#0e122e]/90 shadow-[0_0_30px_rgba(249,115,22,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-orange-400 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(249,115,22,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
+            className="rounded-[32px] border-2 border-orange-500/90 bg-transparent shadow-[0_0_30px_rgba(249,115,22,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-orange-400 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(249,115,22,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
             <div className="space-y-4 w-full flex flex-col items-center">
               {/* Custom Orange Clipboard Icon */}
@@ -511,7 +511,7 @@ export default function CategoryOverview({
             whileTap={{ scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             onClick={() => onSelect('admin')}
-            className="rounded-[32px] border-2 border-cyan-400/90 bg-[#0e122e]/90 shadow-[0_0_30px_rgba(34,211,238,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-cyan-300 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(34,211,238,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
+            className="rounded-[32px] border-2 border-cyan-400/90 bg-transparent shadow-[0_0_30px_rgba(34,211,238,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-cyan-300 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(34,211,238,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
             <div className="space-y-4 w-full flex flex-col items-center">
               {/* Custom Cyan Document Icon */}
@@ -557,7 +557,7 @@ export default function CategoryOverview({
             whileTap={{ scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             onClick={() => onSelect('visual')}
-            className="rounded-[32px] border-2 border-emerald-400/90 bg-[#0e122e]/90 shadow-[0_0_30px_rgba(52,211,153,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-emerald-300 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(52,211,153,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
+            className="rounded-[32px] border-2 border-emerald-400/90 bg-transparent shadow-[0_0_30px_rgba(52,211,153,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-emerald-300 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(52,211,153,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
             <div className="space-y-4 w-full flex flex-col items-center">
               {/* Custom Emerald Classroom Icon */}
@@ -685,21 +685,21 @@ export default function CategoryOverview({
     const colorThemes = [
       { 
         color: 'text-brand-cyan', 
-        bg: 'bg-[#00d2ff]/15', 
+        bg: 'bg-transparent', 
         border: 'border-[#00d2ff]/20 shadow-cyan-500/5',
         gradLight: 'bg-gradient-to-br from-cyan-50/70 via-cyan-50/30 to-white hover:from-cyan-100/80 hover:to-white border-cyan-100/65',
         gradDark: 'bg-gradient-to-br from-slate-900/60 to-[#00d2ff]/10 hover:from-slate-900/80 hover:to-[#00d2ff]/20 border-[#00d2ff]/25'
       },
       { 
         color: 'text-brand-purple', 
-        bg: 'bg-[#8e44ad]/15', 
+        bg: 'bg-transparent', 
         border: 'border-[#8e44ad]/20 shadow-purple-500/5',
         gradLight: 'bg-gradient-to-br from-purple-50/70 via-purple-50/30 to-white hover:from-purple-100/80 hover:to-white border-purple-100/65',
         gradDark: 'bg-gradient-to-br from-slate-900/60 to-[#8e44ad]/10 hover:from-slate-900/80 hover:to-[#8e44ad]/20 border-[#8e44ad]/25'
       },
       { 
         color: 'text-brand-yellow', 
-        bg: 'bg-[#ffdf40]/15', 
+        bg: 'bg-transparent', 
         border: 'border-[#ffdf40]/20 shadow-yellow-500/5',
         gradLight: 'bg-gradient-to-br from-yellow-50/70 via-yellow-50/30 to-white hover:from-yellow-100/80 hover:to-white border-yellow-200/50',
         gradDark: 'bg-gradient-to-br from-slate-900/60 to-[#ffdf40]/10 hover:from-slate-900/80 hover:to-[#ffdf40]/20 border-[#ffdf40]/25'

@@ -708,7 +708,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
   }, [sessions, searchHistoryQuery, selectedSubjectFilter]);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-100px)] w-full rounded-[36px] overflow-hidden bg-[#080b22] text-white p-4 lg:p-6 relative font-sans border border-indigo-500/30 shadow-2xl">
+    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-100px)] w-full rounded-[36px] overflow-hidden bg-transparent text-white p-4 lg:p-6 relative font-sans border border-indigo-500/30 shadow-2xl">
       {/* Background radial glows */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-[36px]" />
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
@@ -717,7 +717,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
 
       {/* Time limit blocker overlay */}
       {isTimeLimitReached() && (
-        <div className="absolute inset-0 bg-[#070b19]/95 backdrop-blur-md z-50 flex flex-col items-center justify-center text-center p-8 space-y-6 rounded-[36px]">
+        <div className="absolute inset-0 bg-transparent backdrop-blur-md z-50 flex flex-col items-center justify-center text-center p-8 space-y-6 rounded-[36px]">
           <div className="w-16 h-16 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.3)]">
             <Clock size={32} className="animate-pulse" />
           </div>
@@ -733,7 +733,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
           {onBack && (
             <button 
               onClick={onBack}
-              className="bg-white/5 hover:bg-white/10 text-white border border-white/10 px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all mt-4"
+              className="bg-white/5 hover:bg-transparent text-white border border-white/10 px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all mt-4"
             >
               <ArrowLeft size={14} /> Exit to Dashboard
             </button>
@@ -753,7 +753,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   onClick={() => setLeftMenu(leftMenu === 'chats' ? null : 'chats')}
                   title="Chats History"
                   className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
-                    leftMenu === 'chats' ? 'bg-cyan-500 text-slate-950 font-bold shadow-[0_0_15px_rgba(34,211,238,0.4)]' : 'text-slate-400 hover:bg-white/10 hover:text-white'
+                    leftMenu === 'chats' ? 'bg-cyan-500 text-slate-950 font-bold shadow-[0_0_15px_rgba(34,211,238,0.4)]' : 'text-slate-400 hover:bg-transparent hover:text-white'
                   }`}
                 >
                   <MessageSquare size={18} />
@@ -764,7 +764,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   onClick={() => setLeftMenu(leftMenu === 'subjects' ? null : 'subjects')}
                   title="Subjects"
                   className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
-                    leftMenu === 'subjects' ? 'bg-purple-500 text-white font-bold shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'text-slate-400 hover:bg-white/10 hover:text-white'
+                    leftMenu === 'subjects' ? 'bg-purple-500 text-white font-bold shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'text-slate-400 hover:bg-transparent hover:text-white'
                   }`}
                 >
                   <Folder size={18} />
@@ -775,7 +775,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   onClick={() => setLeftMenu(leftMenu === 'archive' ? null : 'archive')}
                   title="Content Archive"
                   className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
-                    leftMenu === 'archive' ? 'bg-amber-500 text-slate-950 font-bold shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'text-slate-400 hover:bg-white/10 hover:text-white'
+                    leftMenu === 'archive' ? 'bg-amber-500 text-slate-950 font-bold shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'text-slate-400 hover:bg-transparent hover:text-white'
                   }`}
                 >
                   <Archive size={18} />
@@ -788,7 +788,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   onClick={() => setIsSettingsOpen(!isSettingsOpen)}
                   title="Tutor Settings"
                   className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
-                    isSettingsOpen ? 'bg-pink-500 text-white' : 'text-slate-400 hover:bg-white/10 hover:text-white'
+                    isSettingsOpen ? 'bg-pink-500 text-white' : 'text-slate-400 hover:bg-transparent hover:text-white'
                   }`}
                 >
                   <Settings size={18} />
@@ -871,7 +871,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                         }`}
                       >
                         <span>All Subjects</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10">{sessions.length}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-transparent">{sessions.length}</span>
                       </button>
                       {folders.map(sub => {
                         const count = sessions.filter(s => (s.subject || 'General') === sub).length;
@@ -885,7 +885,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                             }`}
                           >
                             <span className="truncate pr-2">{sub}</span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10">{count}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-transparent">{count}</span>
                           </button>
                         );
                       })}
@@ -928,7 +928,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   <button 
                     type="button"
                     onClick={onBack} 
-                    className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 transition-all cursor-pointer active:scale-95 shrink-0"
+                    className="w-9 h-9 rounded-xl bg-white/5 hover:bg-transparent border border-white/10 flex items-center justify-center text-slate-300 transition-all cursor-pointer active:scale-95 shrink-0"
                     title="Exit to main portal"
                   >
                     <ArrowLeft size={16} strokeWidth={2.5} />
@@ -1021,7 +1021,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  className="bg-[#090e1d]/95 border-b border-white/10 py-4 shrink-0 overflow-hidden backdrop-blur-xl relative z-30"
+                  className="bg-transparent border-b border-white/10 py-4 shrink-0 overflow-hidden backdrop-blur-xl relative z-30"
                 >
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
                     <div className="flex flex-col">
@@ -1029,7 +1029,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                       <select 
                         value={studentGrade} 
                         onChange={e => setStudentGrade(e.target.value)}
-                        className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 transition-all"
+                        className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-transparent transition-all"
                       >
                         <option value="All Grades">All Grades (Open Mode)</option>
                         <option value="Grades R-12">Grades R-12 (Adaptive)</option>
@@ -1044,7 +1044,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                       <select 
                         value={activeSession?.subject || 'General'}
                         onChange={e => handleMoveSessionToFolder(e.target.value)}
-                        className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 transition-all"
+                        className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-transparent transition-all"
                       >
                         {folders.map(f => <option key={f} value={f}>{f}</option>)}
                       </select>
@@ -1054,7 +1054,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                       <select 
                         value={language} 
                         onChange={e => setLanguage(e.target.value)}
-                        className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 transition-all"
+                        className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-transparent transition-all"
                       >
                         {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                       </select>
@@ -1064,7 +1064,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                       <select 
                         value={voice} 
                         onChange={e => setVoice(e.target.value)}
-                        className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 transition-all"
+                        className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-transparent transition-all"
                       >
                         {allVoices.map((v, i) => <option key={`${v.value}-${i}`} value={v.value}>{v.label}</option>)}
                       </select>
@@ -1146,7 +1146,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                                     ? isAudioPaused
                                       ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md'
                                       : 'bg-indigo-500/20 border-indigo-400 text-indigo-300 shadow-lg'
-                                    : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
+                                    : 'bg-white/5 text-slate-300 border-white/10 hover:bg-transparent hover:text-white'
                                 }`}
                                 onClick={() => handlePlayAudio(msg.text, i)}
                                 disabled={isTtsLoading === i}
@@ -1170,7 +1170,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                                 className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors border text-[11px] font-bold cursor-pointer ${
                                   visuals[i] 
                                     ? 'bg-indigo-500/30 text-indigo-200 border-indigo-500/50 shadow-lg' 
-                                    : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
+                                    : 'bg-white/5 text-slate-300 border-white/10 hover:bg-transparent hover:text-white'
                                 }`}
                                 onClick={() => setVisuals(prev => ({...prev, [i]: !prev[i]}))}
                               >
@@ -1224,7 +1224,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   title="Upload Worksheet or Image"
-                  className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-cyan-400 border border-white/10 transition-all cursor-pointer shrink-0"
+                  className="p-2.5 rounded-2xl bg-white/5 hover:bg-transparent text-slate-300 hover:text-cyan-400 border border-white/10 transition-all cursor-pointer shrink-0"
                 >
                   <ImageIcon size={18} />
                 </button>
@@ -1373,7 +1373,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
             <button
               type="button"
               onClick={() => setViewMode('studio')}
-              className="bg-white/10 hover:bg-white/15 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+              className="bg-transparent hover:bg-transparent text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
             >
               <span>← Back to Interactive Learning Studio</span>
             </button>
@@ -1387,7 +1387,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
             {onBack && (
               <button 
                 onClick={onBack} 
-                className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 transition-all cursor-pointer active:scale-95 shrink-0"
+                className="w-9 h-9 rounded-xl bg-white/5 hover:bg-transparent border border-white/10 flex items-center justify-center text-slate-300 transition-all cursor-pointer active:scale-95 shrink-0"
                 title="Exit to main portal"
               >
                 <ArrowLeft size={16} strokeWidth={2.5} />
@@ -1429,7 +1429,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
               className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer active:scale-95 shrink-0 ${
                 isSettingsOpen 
                   ? 'bg-brand-cyan/20 text-brand-cyan border-brand-cyan/40 shadow-[0_0_12px_rgba(34,211,238,0.35)]' 
-                  : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
+                  : 'bg-white/5 text-slate-300 border-white/10 hover:bg-transparent hover:text-white'
               }`}
             >
               <Settings size={14} className={isSettingsOpen ? 'rotate-45 transition-transform' : 'transition-transform'} />
@@ -1445,7 +1445,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="bg-[#090e1d]/95 border-b border-white/10 py-4 shrink-0 overflow-hidden backdrop-blur-xl relative z-30"
+              className="bg-transparent border-b border-white/10 py-4 shrink-0 overflow-hidden backdrop-blur-xl relative z-30"
             >
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
                 <div className="flex flex-col">
@@ -1453,7 +1453,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   <select 
                     value={studentGrade} 
                     onChange={e => setStudentGrade(e.target.value)}
-                    className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 transition-all"
+                    className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-transparent transition-all"
                   >
                     <option value="Grades R-12">Grades R-12 (Adaptive)</option>
                     <option value="Grade R">Grade R</option>
@@ -1467,7 +1467,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   <select 
                     value={activeSession?.subject || 'General'}
                     onChange={e => handleMoveSessionToFolder(e.target.value)}
-                    className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 transition-all"
+                    className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-transparent transition-all"
                   >
                     {folders.map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
@@ -1477,7 +1477,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   <select 
                     value={language} 
                     onChange={e => setLanguage(e.target.value)}
-                    className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 transition-all"
+                    className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-transparent transition-all"
                   >
                     {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                   </select>
@@ -1487,7 +1487,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   <select 
                     value={voice} 
                     onChange={e => setVoice(e.target.value)}
-                    className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-white/10 transition-all"
+                    className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-transparent transition-all"
                   >
                     {allVoices.map((v, i) => <option key={`${v.value}-${i}`} value={v.value}>{v.label}</option>)}
                   </select>
@@ -1497,7 +1497,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                 <button
                   type="button"
                   onClick={() => setIsRightMenuOpen(!isRightMenuOpen)}
-                  className="lg:hidden w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-cyan-400 transition-all cursor-pointer mt-3"
+                  className="lg:hidden w-9 h-9 rounded-xl bg-white/5 hover:bg-transparent border border-white/10 flex items-center justify-center text-cyan-400 transition-all cursor-pointer mt-3"
                   title="Toggle Tools"
                 >
                   {isRightMenuOpen ? <X size={16} strokeWidth={2.5} /> : <Menu size={16} strokeWidth={2.5} />}
@@ -1579,7 +1579,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                                 ? isAudioPaused
                                   ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md'
                                   : 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-lg'
-                                : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
+                                : 'bg-white/5 text-slate-300 border-white/10 hover:bg-transparent hover:text-white'
                             }`}
                             onClick={() => handlePlayAudio(msg.text, i)}
                             disabled={isTtsLoading === i}
@@ -1603,7 +1603,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                             className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors border text-[11px] font-bold cursor-pointer ${
                               visuals[i] 
                                 ? 'bg-purple-500/30 text-purple-200 border-purple-500/50 shadow-lg' 
-                                : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
+                                : 'bg-white/5 text-slate-300 border-white/10 hover:bg-transparent hover:text-white'
                             }`}
                             onClick={() => setVisuals(prev => ({...prev, [i]: !prev[i]}))}
                           >
@@ -1646,7 +1646,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   <span>Elly is formulating...</span>
                   <span>{generationProgress}%</span>
                 </div>
-                <div className="w-full h-1 rounded-full overflow-hidden bg-white/10">
+                <div className="w-full h-1 rounded-full overflow-hidden bg-transparent">
                   <div 
                     className="h-full bg-gradient-to-r from-cyan-400 to-purple-400 transition-all duration-300"
                     style={{ width: `${generationProgress}%` }}
@@ -1698,7 +1698,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
             
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="p-1.5 rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all shrink-0 cursor-pointer"
+              className="p-1.5 rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-transparent transition-all shrink-0 cursor-pointer"
               title="Attach Homework Photo"
             >
               <ImageIcon size={18} className="text-slate-400 hover:text-cyan-400" />
@@ -1726,7 +1726,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
             <button 
               onClick={() => handleSend()} 
               disabled={isLoading || (!input.trim() && !selectedImage)} 
-              className="p-2 rounded-xl bg-transparent hover:bg-white/10 text-slate-400 hover:text-cyan-400 disabled:opacity-40 transition-all shrink-0 cursor-pointer"
+              className="p-2 rounded-xl bg-transparent hover:bg-transparent text-slate-400 hover:text-cyan-400 disabled:opacity-40 transition-all shrink-0 cursor-pointer"
               title="Send query"
             >
               <Send size={18} />
@@ -1821,7 +1821,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                         <div className="flex items-center gap-1.5 shrink-0">
                           <button 
                             onClick={(e) => handleDeleteChat(s.id, e)}
-                            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-white/10 text-rose-400 transition-opacity"
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-transparent text-rose-400 transition-opacity"
                             title="Delete topic"
                           >
                             <Trash2 size={13} />

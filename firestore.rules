@@ -31,7 +31,7 @@ service cloud.firestore {
       allow list: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().createdAt == request.time;
       allow update: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming())
-                     && incoming().createdAt == existing().createdAt
+                     && incoming().get('createdAt', null) == existing().get('createdAt', null)
                      && incoming().updatedAt == request.time
                      && (
                         incoming().diff(existing()).affectedKeys().hasOnly([
@@ -101,7 +101,7 @@ service cloud.firestore {
                       (existing().parentId is string && existing().parentId == request.auth.uid) ||
                       (existing().parentEmail is string && existing().parentEmail == request.auth.token.email)
                     ) 
-                     && incoming().createdAt == existing().createdAt
+                     && incoming().get('createdAt', null) == existing().get('createdAt', null)
                      && incoming().updatedAt == request.time
                      && (
                         incoming().diff(existing()).affectedKeys().hasOnly([
@@ -129,7 +129,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidId(classId) && isValidClass(incoming()) && incoming().createdAt == request.time;
       allow update: if isSignedIn() && isValidId(classId) && existing().teacherId == request.auth.uid && isValidClass(incoming())
                      && incoming().teacherId == existing().teacherId
-                     && incoming().createdAt == existing().createdAt
+                     && incoming().get('createdAt', null) == existing().get('createdAt', null)
                      && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'subject']);
       allow delete: if isSignedIn() && isValidId(classId) && existing().teacherId == request.auth.uid;
     }
@@ -147,7 +147,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidId(groupId) && isValidStudyGroup(incoming()) && incoming().createdAt == request.time;
       allow update: if isSignedIn() && isValidId(groupId) && existing().teacherId == request.auth.uid && isValidStudyGroup(incoming())
                      && incoming().teacherId == existing().teacherId
-                     && incoming().createdAt == existing().createdAt
+                     && incoming().get('createdAt', null) == existing().get('createdAt', null)
                      && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'members']);
       allow delete: if isSignedIn() && isValidId(groupId) && existing().teacherId == request.auth.uid;
     }
@@ -174,7 +174,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidId(notificationId) && isValidNotification(incoming()) && incoming().createdAt == request.time;
       allow update: if isSignedIn() && isValidId(notificationId) && existing().userId == request.auth.uid && isValidNotification(incoming())
                      && incoming().userId == existing().userId
-                     && incoming().createdAt == existing().createdAt
+                     && incoming().get('createdAt', null) == existing().get('createdAt', null)
                      && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
       allow delete: if isSignedIn() && isValidId(notificationId) && existing().userId == request.auth.uid;
     }
@@ -239,7 +239,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidId(contentId) && isValidCreatedContent(incoming()) && incoming().createdAt == request.time;
       allow update: if isSignedIn() && isValidId(contentId) && existing().teacherId == request.auth.uid && isValidCreatedContent(incoming())
                      && incoming().teacherId == existing().teacherId
-                     && incoming().createdAt == existing().createdAt
+                     && incoming().get('createdAt', null) == existing().get('createdAt', null)
                      && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'subject', 'grade', 'contentType', 'content', 'isSystem', 'memo', 'rubric', 'imagePrompt', 'previewUrl', 'updatedAt']);
       allow delete: if isSignedIn() && isValidId(contentId) && existing().teacherId == request.auth.uid;
     }

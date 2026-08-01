@@ -543,7 +543,7 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
                   setPinError('');
                 }}
                 className={`h-11 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                  isDarkMode ? 'bg-[#0F172A]/40 hover:bg-slate-800 text-slate-400' : 'bg-slate-50 hover:bg-slate-100 text-slate-500'
+                  isDarkMode ? 'bg-transparent hover:bg-slate-800 text-slate-400' : 'bg-slate-50 hover:bg-slate-100 text-slate-500'
                 }`}
               >
                 Clear
@@ -587,7 +587,7 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
                   }
                 }}
                 className={`h-11 text-xs font-bold rounded-xl transition-all flex items-center justify-center cursor-pointer ${
-                  isDarkMode ? 'bg-[#0F172A]/40 hover:bg-slate-800 text-slate-400' : 'bg-slate-50 hover:bg-slate-100 text-slate-550'
+                  isDarkMode ? 'bg-transparent hover:bg-slate-800 text-slate-400' : 'bg-slate-50 hover:bg-slate-100 text-slate-550'
                 }`}
               >
                 ⌫
@@ -707,7 +707,7 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
                   
                   {/* Custom/General Chat Override */}
                   <div className={`flex items-center justify-between p-3.5 rounded-xl border ${
-                    isDarkMode ? 'bg-[#0F172A]/40 border-white/5' : 'bg-slate-50 border-slate-200'
+                    isDarkMode ? 'bg-transparent border-white/5' : 'bg-slate-50 border-slate-200'
                   }`}>
                     <div className="space-y-0.5 max-w-[80%] font-sans">
                       <span className="text-xs font-bold block">Strict Syllabus Tutoring Only</span>
@@ -753,7 +753,7 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
                           className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
                             isRestricted
                               ? 'border-red-500/20 bg-red-500/5 hover:bg-red-500/10'
-                              : isDarkMode ? 'border-white/5 bg-[#0F172A]/20 hover:bg-[#0F172A]/40' : 'border-slate-100 bg-slate-50/50 hover:bg-slate-100'
+                              : isDarkMode ? 'border-white/5 bg-transparent hover:bg-transparent' : 'border-slate-100 bg-slate-50/50 hover:bg-slate-100'
                           }`}
                         >
                           <span className="text-xs font-bold font-sans">{sub.name}</span>
@@ -830,7 +830,7 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
                 </div>
               ) : (
                 <div className={`rounded-2xl p-4 max-h-[380px] overflow-y-auto space-y-3 border ${
-                  isDarkMode ? 'bg-[#0F172A]/50 border-white/5' : 'bg-slate-50 border-slate-100'
+                  isDarkMode ? 'bg-transparent border-white/5' : 'bg-slate-50 border-slate-100'
                 }`}>
                   {chatHistory.map((msg, i) => {
                     const isUser = msg.sender === 'user' || msg.role === 'user';
@@ -879,14 +879,14 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
         <div className="relative z-10 space-y-3">
           <div className={cn(
             "w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold font-hand uppercase leading-none shadow-md border",
-            isDarkMode ? "bg-slate-950 border-brand-cyan/40 text-brand-cyan text-glow-cyan" : "bg-white/15 border-white/25 text-brand-cyan"
+            isDarkMode ? "bg-slate-950 border-brand-cyan/40 text-brand-cyan text-glow-cyan" : "bg-transparent border-white/25 text-brand-cyan"
           )}>
             {activeChild.name.split(' ').map((n: string) => n.charAt(0)).join('')}
           </div>
           <div>
             <span className={cn(
               "inline-block border px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider mb-2",
-              isDarkMode ? "bg-brand-pink/10 border-brand-pink/30 text-brand-pink text-glow-pink" : "bg-white/20 border-white/25 text-white"
+              isDarkMode ? "bg-brand-pink/10 border-brand-pink/30 text-brand-pink text-glow-pink" : "bg-transparent border-white/25 text-white"
             )}>
               Grade {activeChild.grade}
             </span>
@@ -970,7 +970,7 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {activeChild.subjects?.map((sub: any, i: number) => (
                 <div key={i} className={`p-5 rounded-3xl border space-y-3 transition-colors ${
-                  isDarkMode ? 'bg-[#1E293B]/20 hover:bg-[#1E293B]/40 border-white/5' : 'bg-white hover:bg-slate-50 border-slate-200 shadow-sm'
+                  isDarkMode ? 'bg-transparent hover:bg-transparent border-white/5' : 'bg-white hover:bg-slate-50 border-slate-200 shadow-sm'
                 }`}>
                   <div className="flex justify-between items-start">
                     <div>
@@ -1026,7 +1026,7 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
                   className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${
                     reportCycle === cycle
                     ? 'bg-brand-cyan text-slate-950 border-brand-cyan'
-                    : (isDarkMode ? 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10' : 'bg-slate-50 border-slate-200 text-slate-600')
+                    : (isDarkMode ? 'bg-white/5 border-white/10 text-slate-300 hover:bg-transparent' : 'bg-slate-50 border-slate-200 text-slate-600')
                   }`}
                 >
                   {cycle}
@@ -1120,7 +1120,7 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
                   className={`p-3 rounded-2xl border flex flex-col items-center justify-center text-center transition-all ${
                     badge.active
                     ? `opacity-100 scale-100 ${badge.color}`
-                    : 'opacity-40 scale-95 border-dashed border-slate-800 bg-[#111827]/40'
+                    : 'opacity-40 scale-95 border-dashed border-slate-800 bg-transparent'
                   }`}
                 >
                   <div className={`p-2 rounded-xl mb-1.5`}>
@@ -1254,7 +1254,7 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
               </div>
               <button 
                 onClick={() => setSelectedSubmissionModal(null)}
-                className="p-1.5 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                className="p-1.5 rounded-xl hover:bg-transparent text-slate-400 hover:text-white transition-colors"
               >
                 <X size={18} />
               </button>

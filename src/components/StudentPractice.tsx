@@ -245,7 +245,7 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
       {/* Hero Section */}
       <div className={cn(
         "relative rounded-[36px] p-8 lg:p-12 overflow-hidden text-white flex flex-col justify-end min-h-[300px] border shadow-2xl",
-        isDarkMode ? "bg-[#0B1122] border-white/10" : "bg-slate-900 border-slate-800"
+        isDarkMode ? "bg-transparent border-white/10" : "bg-transparent border-slate-800"
       )}>
         <div className="absolute top-0 right-0 p-8 opacity-20 pointer-events-none">
            <Target size={200} />
@@ -255,7 +255,7 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none mix-blend-overlay" />
         
         <div className="relative z-10 max-w-3xl">
-           <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-4 py-1.5 text-sm font-bold text-emerald-300 mb-6 shadow-sm">
+           <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-transparent backdrop-blur-md px-4 py-1.5 text-sm font-bold text-emerald-300 mb-6 shadow-sm">
              <Trophy size={16} className="text-emerald-400" /> Practice Zone
            </motion.div>
            <h1 className="text-4xl lg:text-6xl font-hand tracking-wide leading-tight mb-4 drop-shadow-md">
@@ -268,9 +268,9 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
       </div>
 
       <div className="flex flex-wrap gap-4 mb-6">
-        <button onClick={() => setActiveTab('create')} className={cn("px-6 py-3 rounded-full font-bold transition-all border cursor-pointer", activeTab === 'create' ? 'bg-brand-cyan text-slate-950 border-brand-cyan/20 shadow-lg shadow-cyan-500/20' : isDarkMode ? 'bg-white/10 text-slate-300 border-white/10 hover:bg-white/20' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50')}>Generate Practice</button>
-        <button onClick={() => setActiveTab('custom')} className={cn("px-6 py-3 rounded-full font-bold transition-all border cursor-pointer", activeTab === 'custom' ? 'bg-brand-cyan text-slate-950 border-brand-cyan/20 shadow-lg shadow-cyan-500/20' : isDarkMode ? 'bg-white/10 text-slate-300 border-white/10 hover:bg-white/20' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50')}>Custom Questions</button>
-        <button onClick={() => setActiveTab('autograde')} className={cn("px-6 py-3 rounded-full font-bold transition-all border cursor-pointer", activeTab === 'autograde' ? 'bg-brand-cyan text-slate-950 border-brand-cyan/20 shadow-lg shadow-cyan-500/20' : isDarkMode ? 'bg-white/10 text-slate-300 border-white/10 hover:bg-white/20' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50')}>Autograde Answers</button>
+        <button onClick={() => setActiveTab('create')} className={cn("px-6 py-3 rounded-full font-bold transition-all border cursor-pointer", activeTab === 'create' ? 'bg-brand-cyan text-slate-950 border-brand-cyan/20 shadow-lg shadow-cyan-500/20' : isDarkMode ? 'bg-transparent text-slate-300 border-white/10 hover:bg-transparent' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50')}>Generate Practice</button>
+        <button onClick={() => setActiveTab('custom')} className={cn("px-6 py-3 rounded-full font-bold transition-all border cursor-pointer", activeTab === 'custom' ? 'bg-brand-cyan text-slate-950 border-brand-cyan/20 shadow-lg shadow-cyan-500/20' : isDarkMode ? 'bg-transparent text-slate-300 border-white/10 hover:bg-transparent' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50')}>Custom Questions</button>
+        <button onClick={() => setActiveTab('autograde')} className={cn("px-6 py-3 rounded-full font-bold transition-all border cursor-pointer", activeTab === 'autograde' ? 'bg-brand-cyan text-slate-950 border-brand-cyan/20 shadow-lg shadow-cyan-500/20' : isDarkMode ? 'bg-transparent text-slate-300 border-white/10 hover:bg-transparent' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50')}>Autograde Answers</button>
       </div>
 
       {activeTab === 'create' && (
@@ -337,7 +337,7 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
                       }}
                       className={`w-full text-left p-3 rounded-xl border text-xs transition-colors flex items-center justify-between group cursor-pointer ${
                         isDarkMode
-                          ? 'bg-white/5 border-white/5 hover:border-white/10 hover:bg-white/10 text-slate-300'
+                          ? 'bg-white/5 border-white/5 hover:border-white/10 hover:bg-transparent text-slate-300'
                           : 'bg-slate-50 border-slate-100 hover:border-slate-200 hover:bg-slate-100 text-slate-700'
                       }`}
                     >
@@ -367,7 +367,7 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
                   </button>
                   <button 
                     onClick={handleExportPDF}
-                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${isDarkMode ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-slate-150 hover:bg-slate-200 text-slate-700'}`}
+                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${isDarkMode ? 'bg-transparent hover:bg-transparent text-white' : 'bg-slate-150 hover:bg-slate-200 text-slate-700'}`}
                   >
                     <Download size={16} /> Export Practice to PDF
                   </button>

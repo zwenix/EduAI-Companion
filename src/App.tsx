@@ -115,6 +115,7 @@ import StudentPortfolio from './components/StudentPortfolio';
 import CurriculumSuite from './components/CurriculumSuite';
 import ParentDashboard from './components/ParentDashboard';
 import ReaderModeModal from './components/ReaderModeModal';
+import PageOverlay from './components/PageOverlay';
 
 
 
@@ -2343,6 +2344,7 @@ export default function App() {
 
         {/* Content Container with Animations */}
         <div className="flex-1 overflow-hidden relative">
+          <PageOverlay route={activeTab} isDarkMode={isDarkMode} />
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -2350,7 +2352,7 @@ export default function App() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
-              className="absolute inset-0 overflow-y-auto p-4 lg:p-8 custom-scrollbar"
+              className="absolute inset-0 overflow-y-auto p-4 lg:p-8 custom-scrollbar z-10"
             >
               <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8 pb-12">
               {categoryOverviewActive ? (

@@ -138,7 +138,7 @@ export default function PrintPreviewModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-2 sm:p-4 md:p-6 lg:p-10 font-sans">
-      <div className={`w-full h-full max-w-7xl flex flex-col rounded-[32px] overflow-hidden border ${isDarkMode ? 'bg-[#0B1122]/98 border-white/10 shadow-[0_30px_100px_rgba(0,0,0,0.8)]' : 'bg-white border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.15)]'}`}>
+      <div className={`w-full h-full max-w-7xl flex flex-col rounded-[32px] overflow-hidden border ${isDarkMode ? 'bg-transparent border-white/10 shadow-[0_30px_100px_rgba(0,0,0,0.8)]' : 'bg-white border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.15)]'}`}>
         
         {/* Modal Header */}
         <div className={`flex items-center justify-between p-4 lg:p-6 border-b ${isDarkMode ? 'border-white/5 bg-white/5' : 'border-slate-100 bg-slate-50'} shrink-0`}>
@@ -159,7 +159,7 @@ export default function PrintPreviewModal({
           <button 
             type="button" 
             onClick={onClose}
-            className={`p-2 rounded-xl transition-all hover:scale-105 active:scale-95 border ${isDarkMode ? 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5' : 'bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 border-slate-200'}`}
+            className={`p-2 rounded-xl transition-all hover:scale-105 active:scale-95 border ${isDarkMode ? 'bg-white/5 hover:bg-transparent text-slate-400 hover:text-white border-white/5' : 'bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 border-slate-200'}`}
           >
             <X size={18} />
           </button>
@@ -196,7 +196,7 @@ export default function PrintPreviewModal({
                   </div>
                   <div className="flex justify-between items-center py-1">
                     <span className="text-slate-400">CAPS Standard:</span>
-                    <span className="text-[#00d2ff] flex items-center gap-1 font-black text-[10px] uppercase tracking-wider bg-[#00d2ff]/10 px-2 py-0.5 rounded-md">
+                    <span className="text-[#00d2ff] flex items-center gap-1 font-black text-[10px] uppercase tracking-wider bg-transparent px-2 py-0.5 rounded-md">
                       <Sparkles size={10} /> Compliant
                     </span>
                   </div>
@@ -252,7 +252,7 @@ export default function PrintPreviewModal({
                   </div>
                   <div className="flex gap-2 items-start mt-2">
                     <span className="text-emerald-400">✔</span>
-                    <span><strong>Break Prevention Rule</strong> binds the elements like <code className="font-mono text-xs text-brand-cyan bg-[#00d2ff]/10 px-1 py-0.25 rounded">.page-break-avoid</code> to secure complete question cards from splits.</span>
+                    <span><strong>Break Prevention Rule</strong> binds the elements like <code className="font-mono text-xs text-brand-cyan bg-transparent px-1 py-0.25 rounded">.page-break-avoid</code> to secure complete question cards from splits.</span>
                   </div>
                   <div className="flex gap-2 items-start mt-2">
                     <span className="text-emerald-400">✔</span>
@@ -298,7 +298,7 @@ export default function PrintPreviewModal({
               <button
                 type="button"
                 onClick={handleTriggerDownloadHTML}
-                className={`w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl font-sans font-black uppercase tracking-widest text-xs transition-all border hover:scale-[1.02] active:scale-[0.98] ${isDarkMode ? 'bg-white/5 hover:bg-white/10 text-white border-white/10' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-sm'}`}
+                className={`w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl font-sans font-black uppercase tracking-widest text-xs transition-all border hover:scale-[1.02] active:scale-[0.98] ${isDarkMode ? 'bg-white/5 hover:bg-transparent text-white border-white/10' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-sm'}`}
               >
                 <Download size={16} />
                 <span>Download HTML Source</span>

@@ -247,7 +247,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
   };
 
   return (
-    <div className="min-h-screen bg-[#060b18] text-white p-6 md:p-8 space-y-6">
+    <div className="text-white p-6 md:p-8 space-y-6">
       
       {/* Visual Header Banner */}
       <div className="relative p-6 md:p-8 rounded-[32px] overflow-hidden border border-white/5 bg-gradient-to-r from-emerald-900/40 via-[#0a0f24] to-indigo-950/40 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -257,7 +257,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
         <div className="space-y-3">
           <button 
             onClick={onBack}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-xs text-slate-400 hover:text-white transition-all w-fit cursor-pointer border border-white/5"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-transparent text-xs text-slate-400 hover:text-white transition-all w-fit cursor-pointer border border-white/5"
           >
             <ArrowLeft size={14} /> Back to Office
           </button>
@@ -302,7 +302,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
         
         {/* Left Column: Calendar & Settings (5 Cols) */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="rounded-[32px] border border-white/5 bg-[#0c1225]/90 p-5 shadow-xl relative overflow-hidden backdrop-blur-md">
+          <div className="rounded-[32px] border-2 animate-border-flash-cyan bg-transparent p-5 shadow-xl relative overflow-hidden backdrop-blur-md">
             <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-2xl rounded-full" />
             
             {/* Month Control Header */}
@@ -380,7 +380,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
         <div className="lg:col-span-7 space-y-8">
           
           {/* Day Scheduler Panel */}
-          <div className="rounded-[32px] border border-white/5 bg-[#0c1225]/90 p-6 md:p-8 shadow-xl relative overflow-hidden backdrop-blur-md">
+          <div className="rounded-[32px] border-2 animate-border-flash-emerald bg-transparent p-6 md:p-8 shadow-xl relative overflow-hidden backdrop-blur-md">
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-2xl rounded-full" />
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -465,7 +465,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
           </div>
 
           {/* Daily Personal Diary & Reflection Notes */}
-          <div className="rounded-[32px] border border-white/5 bg-[#0c1225]/90 p-6 md:p-8 shadow-xl relative overflow-hidden backdrop-blur-md">
+          <div className="rounded-[32px] border-2 animate-border-flash-purple bg-transparent p-6 md:p-8 shadow-xl relative overflow-hidden backdrop-blur-md">
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-2xl rounded-full" />
             
             <div className="flex items-center justify-between mb-4">

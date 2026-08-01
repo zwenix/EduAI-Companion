@@ -286,7 +286,7 @@ export default function EduVideoPlayer({ src, prompt, isDarkMode }: EduVideoPlay
               max={duration || 100}
               value={currentTime}
               onChange={handleSeekChange}
-              className="flex-1 h-1 bg-white/20 hover:h-1.5 rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none"
+              className="flex-1 h-1 bg-transparent hover:h-1.5 rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none"
             />
             <span className="text-[10px] font-mono font-bold text-slate-300">
               {formatTime(duration)}
@@ -299,7 +299,7 @@ export default function EduVideoPlayer({ src, prompt, isDarkMode }: EduVideoPlay
               <button 
                 onClick={togglePlay}
                 title={isPlaying ? "Pause" : "Play"}
-                className="hover:text-indigo-400 transition-colors p-1.5 rounded-lg hover:bg-white/10"
+                className="hover:text-indigo-400 transition-colors p-1.5 rounded-lg hover:bg-transparent"
               >
                 {isPlaying ? <Pause size={18} /> : <Play size={18} className="fill-current" />}
               </button>
@@ -307,7 +307,7 @@ export default function EduVideoPlayer({ src, prompt, isDarkMode }: EduVideoPlay
               <button 
                 onClick={handleRestart}
                 title="Restart Video"
-                className="hover:text-indigo-400 transition-colors p-1.5 rounded-lg hover:bg-white/10"
+                className="hover:text-indigo-400 transition-colors p-1.5 rounded-lg hover:bg-transparent"
               >
                 <RotateCcw size={16} />
               </button>
@@ -316,7 +316,7 @@ export default function EduVideoPlayer({ src, prompt, isDarkMode }: EduVideoPlay
               <div className="flex items-center gap-2 group/volume">
                 <button 
                   onClick={toggleMute}
-                  className="hover:text-indigo-400 transition-colors p-1.5 rounded-lg hover:bg-white/10"
+                  className="hover:text-indigo-400 transition-colors p-1.5 rounded-lg hover:bg-transparent"
                   title={isMuted ? "Unmute" : "Mute"}
                 >
                   {isMuted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
@@ -328,7 +328,7 @@ export default function EduVideoPlayer({ src, prompt, isDarkMode }: EduVideoPlay
                   step={0.05}
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
-                  className="w-16 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none"
+                  className="w-16 h-1 bg-transparent rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none"
                 />
               </div>
             </div>
@@ -340,7 +340,7 @@ export default function EduVideoPlayer({ src, prompt, isDarkMode }: EduVideoPlay
               <button 
                 onClick={toggleFullscreen}
                 title="Fullscreen Toggle"
-                className="hover:text-indigo-400 transition-colors p-1.5 rounded-lg hover:bg-white/10"
+                className="hover:text-indigo-400 transition-colors p-1.5 rounded-lg hover:bg-transparent"
               >
                 <Maximize size={16} />
               </button>
@@ -350,7 +350,7 @@ export default function EduVideoPlayer({ src, prompt, isDarkMode }: EduVideoPlay
       )}
 
       {/* Media Descriptor Segment under Video element */}
-      <div className={cn("p-5 border-t text-center select-text", isDarkMode ? "border-white/10 bg-slate-900/80 text-slate-300" : "border-slate-200 bg-white/80 text-slate-700")}>
+      <div className={cn("p-5 border-t text-center select-text", isDarkMode ? "border-white/10 bg-slate-900/80 text-slate-300" : "border-slate-200 bg-transparent text-slate-700")}>
         <p className="font-semibold text-[10px] tracking-widest uppercase text-indigo-500 mb-1.5">Generated Video Prompt</p>
         <p className="font-medium text-sm leading-relaxed max-w-2xl mx-auto italic">
           "{prompt}"
