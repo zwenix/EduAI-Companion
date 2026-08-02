@@ -428,9 +428,10 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
       {/* 1. Teaching Command Center Header & Cards */}
       <motion.div 
         variants={itemVariants} 
+        style={{ backgroundColor: '#05145d' }}
         className={cn(
-          "p-6 md:p-8 rounded-[36px] border-2 space-y-6 animate-border-flash-cyan relative overflow-hidden",
-          isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md shadow-xl"
+          "p-6 md:p-8 rounded-[36px] border-2 space-y-6 animate-border-flash-cyan relative overflow-hidden backdrop-blur-md",
+          isDarkMode ? "border-cyan-500/40" : "border-cyan-500/50 shadow-xl"
         )}
       >
         <h2 className="text-xl font-display font-black tracking-widest text-cyan-400 uppercase flex items-center gap-2">
@@ -444,9 +445,10 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
           <motion.div 
             whileHover={{ y: -6, scale: 1.015 }}
             onClick={() => onNavigate('alerts')}
+            style={{ backgroundColor: '#00013d' }}
             className={cn(
-              "relative p-6 rounded-[32px] border-2 animate-border-flash-pink shadow-[0_0_20px_rgba(236,72,153,0.15)] flex items-center gap-5 overflow-hidden transition-all duration-300 cursor-pointer group",
-              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
+              "relative p-6 rounded-[32px] border-2 animate-border-flash-pink shadow-[0_0_20px_rgba(236,72,153,0.15)] flex items-center gap-5 overflow-hidden transition-all duration-300 cursor-pointer group backdrop-blur-md",
+              isDarkMode ? "border-pink-500/40" : "border-pink-500/50"
             )}
           >
             <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-pink-500/10 blur-xl rounded-full" />
@@ -481,9 +483,10 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
           <motion.div 
             whileHover={{ y: -6, scale: 1.015 }}
             onClick={() => onNavigate('edu-tools-hub')}
+            style={{ backgroundColor: '#020242' }}
             className={cn(
-              "relative p-6 rounded-[32px] border-2 animate-border-flash-purple shadow-[0_0_20px_rgba(168,85,247,0.15)] flex items-center gap-5 overflow-hidden transition-all duration-300 cursor-pointer group",
-              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
+              "relative p-6 rounded-[32px] border-2 animate-border-flash-purple shadow-[0_0_20px_rgba(168,85,247,0.15)] flex items-center gap-5 overflow-hidden transition-all duration-300 cursor-pointer group backdrop-blur-md",
+              isDarkMode ? "border-purple-500/40" : "border-purple-500/50"
             )}
           >
             <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-transparent blur-xl rounded-full" />
@@ -516,9 +519,10 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
           <motion.div 
             whileHover={{ y: -6, scale: 1.015 }}
             onClick={() => onNavigate('planner')}
+            style={{ backgroundColor: '#020242' }}
             className={cn(
-              "relative p-6 rounded-[32px] border-2 animate-border-flash-emerald shadow-[0_0_20px_rgba(16,185,129,0.15)] flex items-center gap-5 overflow-hidden transition-all duration-300 cursor-pointer group",
-              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
+              "relative p-6 rounded-[32px] border-2 animate-border-flash-emerald shadow-[0_0_20px_rgba(16,185,129,0.15)] flex items-center gap-5 overflow-hidden transition-all duration-300 cursor-pointer group backdrop-blur-md",
+              isDarkMode ? "border-emerald-500/40" : "border-emerald-500/50"
             )}
           >
             <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-emerald-500/10 blur-xl rounded-full" />

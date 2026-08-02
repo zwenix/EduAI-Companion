@@ -1,19 +1,18 @@
 // src/lib/overlays.ts
-// Saved as .png in src/assets/overlays/ — the download path yields .png,
-// so the imports match reality. No .webp anywhere in this file.
-import classroomChalkboard from '../assets/overlays/classroom-chalkboard.png';
-import teachersToolbox     from '../assets/overlays/teachers-toolbox.png';
-import intelligentAi       from '../assets/overlays/intelligent-ai.png';
-import classesLearners     from '../assets/overlays/classes-learners.png';
-import analytics           from '../assets/overlays/analytics.png';
-import messageCollaborate  from '../assets/overlays/message-collaborate.png';
-import settings            from '../assets/overlays/settings.png';
-import contentFactory      from '../assets/overlays/content-factory.png';
-import practiceExercises   from '../assets/overlays/practice-exercises.png';
-import contentArchive      from '../assets/overlays/content-archive.png';
-import learnerPortfolios   from '../assets/overlays/learner-portfolios.png';
-import capsGamificationHub from '../assets/overlays/caps-gamification-hub.png';
-import aiTutor             from '../assets/overlays/ai-tutor.png';
+// Direct hosted image URLs for reliable overlay rendering across all pages.
+const classroomChalkboard = 'https://i.ibb.co/RGmCJ3jh/teachers-toolbox.png';
+const teachersToolbox     = 'https://i.ibb.co/RGmCJ3jh/teachers-toolbox.png';
+const intelligentAi       = 'https://i.ibb.co/22bDqWm/intelligent-ai.png';
+const classesLearners     = 'https://i.ibb.co/5pVh4rL/classes-learners.png';
+const analytics           = 'https://i.ibb.co/MkWLX6qt/analytics.png';
+const messageCollaborate  = 'https://i.ibb.co/SXyQK2df/message-collaborate.png';
+const settings            = 'https://i.ibb.co/5Jv6WQH/settings.png';
+const contentFactory      = 'https://i.ibb.co/zySmQWz/content-factory.png';
+const practiceExercises   = 'https://i.ibb.co/ch7V6ZVt/practice-exercises.png';
+const contentArchive      = 'https://i.ibb.co/d0b9bBw0/content-archive.png';
+const learnerPortfolios   = 'https://i.ibb.co/ksM48wgF/learner-portfolios.png';
+const capsGamificationHub = 'https://i.ibb.co/60vh3Jnr/caps-gamification-hub.png';
+const aiTutor             = 'https://i.ibb.co/chSwj5SL/ai-tutor.png';
 
 /** The thirteen rooms, by their current page id. */
 export const OVERLAY_REGISTRY = {

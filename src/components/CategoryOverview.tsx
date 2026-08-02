@@ -33,9 +33,9 @@ import bgAnalytics     from '../assets/images/analytics_bg_1785652499527.jpg';
 import bgVisualPosters from '../assets/images/visual_posters_bg_1785652509797.jpg';
 import bgVideoAvatars  from '../assets/images/video_avatars_bg_1785652522004.jpg';
 import bgVaultLibrary  from '../assets/images/vault_library_bg_1785652535683.jpg';
-import overlayTeachersToolbox from '../assets/overlays/teachers-toolbox.png';
-import overlayIntelligentAi from '../assets/overlays/intelligent-ai.png';
-import overlayMessageCollaborate from '../assets/overlays/message-collaborate.png';
+const overlayTeachersToolbox = 'https://i.ibb.co/RGmCJ3jh/teachers-toolbox.png';
+const overlayIntelligentAi = 'https://i.ibb.co/22bDqWm/intelligent-ai.png';
+const overlayMessageCollaborate = 'https://i.ibb.co/SXyQK2df/message-collaborate.png';
 
 interface SubTabItem {
   id: string;

@@ -116,7 +116,7 @@ import CurriculumSuite from './components/CurriculumSuite';
 import ParentDashboard from './components/ParentDashboard';
 import ReaderModeModal from './components/ReaderModeModal';
 import PageOverlay from './components/PageOverlay';
-import teachersToolbox from './assets/overlays/teachers-toolbox.png';
+const teachersToolbox = 'https://i.ibb.co/RGmCJ3jh/teachers-toolbox.png';
 
 
 
