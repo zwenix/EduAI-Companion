@@ -14,6 +14,7 @@ import { speakText, stopSpeaking, pauseSpeaking, resumeSpeaking } from '../servi
 import AiImage from './AiImage';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
+import overlayAiTutor from '../assets/overlays/ai-tutor.png';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
@@ -711,6 +712,17 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-100px)] w-full rounded-[36px] overflow-hidden bg-transparent text-white p-4 lg:p-6 relative font-sans border border-indigo-500/30 shadow-2xl">
       {/* Background radial glows */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-[36px]" />
+      
+      {/* AI Tutor Overlay */}
+      <div 
+        className="absolute inset-0 z-0 opacity-20 pointer-events-none rounded-[36px]"
+        style={{
+          backgroundImage: `url(${overlayAiTutor})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      />
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-10 right-1/3 w-96 h-96 bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute top-1/2 right-1/4 w-80 h-80 bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />

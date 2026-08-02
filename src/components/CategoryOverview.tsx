@@ -34,6 +34,8 @@ import bgVisualPosters from '../assets/images/visual_posters_bg_1785652509797.jp
 import bgVideoAvatars  from '../assets/images/video_avatars_bg_1785652522004.jpg';
 import bgVaultLibrary  from '../assets/images/vault_library_bg_1785652535683.jpg';
 import overlayTeachersToolbox from '../assets/overlays/teachers-toolbox.png';
+import overlayIntelligentAi from '../assets/overlays/intelligent-ai.png';
+import overlayMessageCollaborate from '../assets/overlays/message-collaborate.png';
 
 interface SubTabItem {
   id: string;
@@ -86,7 +88,7 @@ function InteractiveShowcaseCard({
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       onClick={onClick}
-      className={`rounded-[32px] border-2 bg-transparent p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:brightness-110 transition-all duration-300 cursor-pointer relative overflow-hidden h-[340px] select-none ${borderColorClass} ${shadowColorClass} ${hoverBorderColorClass} ${hoverShadowColorClass}`}
+      className={`rounded-[32px] border-2 bg-transparent p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:brightness-110 transition-all duration-300 cursor-pointer relative overflow-hidden h-full min-h-[340px] select-none ${borderColorClass} ${shadowColorClass} ${hoverBorderColorClass} ${hoverShadowColorClass}`}
     >
       {/* Background Slideshow using Framer Motion (matching the main ContentSlideshow) */}
       <AnimatePresence mode="wait" initial={false}>
@@ -104,7 +106,7 @@ function InteractiveShowcaseCard({
             transition={{ duration: 6, ease: 'easeOut' }}
             src={currentSlide.image}
             alt={currentSlide.title}
-            className="w-full h-full object-cover opacity-[0.35] filter brightness-90 group-hover:scale-105 transition-transform duration-[6000ms]"
+            className="w-full h-full object-cover opacity-[0.40] filter brightness-95 group-hover:scale-105 transition-transform duration-[6000ms]"
             referrerPolicy="no-referrer"
           />
           {/* Gradient Overlays for optimal readability matching ContentSlideshow */}
@@ -167,6 +169,17 @@ export default function CategoryOverview({
         
         {/* Deep Cosmic Background & Subtle Stars */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-[40px]" />
+
+        {/* Intelligent AI Background Overlay */}
+        <div 
+          className="absolute inset-0 z-0 opacity-20 pointer-events-none"
+          style={{
+            backgroundImage: `url(${overlayIntelligentAi})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        />
         
         {/* Soft Ambient Radial Glows */}
         <div className="absolute top-10 left-1/4 w-96 h-96 bg-purple-600/15 rounded-full blur-[120px] pointer-events-none" />
@@ -251,7 +264,7 @@ export default function CategoryOverview({
         </div>
 
         {/* Feature Grid */}
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-6xl mx-auto w-full my-4">
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-6xl mx-auto w-full my-4 items-stretch">
           
           {/* CARD 1: AI Tutor (Orange/Amber Border Glow) */}
           <motion.div
@@ -261,7 +274,7 @@ export default function CategoryOverview({
             onClick={() => onSelect('ai-tutor')}
             className="rounded-[32px] border-2 border-orange-500/90 bg-transparent shadow-[0_0_30px_rgba(249,115,22,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-orange-400 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(249,115,22,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
-            <div className="space-y-4 w-full flex flex-col items-center">
+            <div className="space-y-4 w-full h-full flex flex-col items-center justify-between">
               <div className="w-20 h-20 rounded-3xl bg-orange-500/10 border-2 border-orange-500/50 flex items-center justify-center text-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.4)] group-hover:scale-110 group-hover:bg-orange-500/20 group-hover:shadow-[0_0_30px_rgba(249,115,22,0.6)] transition-all duration-300">
                 <Brain size={44} />
               </div>
@@ -293,7 +306,7 @@ export default function CategoryOverview({
             onClick={() => onSelect('ocr')}
             className="rounded-[32px] border-2 border-cyan-400/90 bg-transparent shadow-[0_0_30px_rgba(34,211,238,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-cyan-300 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(34,211,238,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
-            <div className="space-y-4 w-full flex flex-col items-center">
+            <div className="space-y-4 w-full h-full flex flex-col items-center justify-between">
               <div className="w-20 h-20 rounded-3xl bg-cyan-500/10 border-2 border-cyan-400/50 flex items-center justify-center text-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.4)] group-hover:scale-110 group-hover:bg-cyan-500/20 group-hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] transition-all duration-300">
                 <ScanLine size={44} />
               </div>
@@ -361,6 +374,17 @@ export default function CategoryOverview({
       <div className="relative p-6 sm:p-8 lg:p-10 overflow-hidden rounded-[40px] border border-cyan-500/20 bg-transparent text-white min-h-[85vh] flex flex-col justify-start font-sans">
         {/* Glowing cosmic curves/waves in background */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(15,23,60,0.8)_0%,rgba(7,10,24,1)_100%)] pointer-events-none" />
+        
+        {/* Message Collaborate Overlay */}
+        <div 
+          className="absolute inset-0 z-0 opacity-20 pointer-events-none"
+          style={{
+            backgroundImage: `url(${overlayMessageCollaborate})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        />
         <div className="absolute top-1/3 -left-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
         <div className="absolute bottom-10 -right-20 w-96 h-96 bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
 
@@ -440,7 +464,7 @@ export default function CategoryOverview({
         
         {/* Teachers Toolbox Background Overlay */}
         <div 
-          className="absolute inset-0 z-0 opacity-[0.15] pointer-events-none mix-blend-overlay"
+          className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-overlay"
           style={{
             backgroundImage: `url(${overlayTeachersToolbox})`,
             backgroundSize: 'cover',
@@ -533,7 +557,7 @@ export default function CategoryOverview({
         </div>
 
         {/* 2x2 NEON GLOW CARDS GRID (With Interactive Slideshow Showcases) */}
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-6xl mx-auto w-full my-4">
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-6xl mx-auto w-full my-4 items-stretch">
           
           {/* CARD 1: CAPS Tools Factory (Pink/Magenta Border Glow) */}
           <InteractiveShowcaseCard
@@ -545,7 +569,7 @@ export default function CategoryOverview({
             glowColorClass="shadow-[0_0_20px_rgba(236,72,153,0.4)] group-hover:bg-pink-500/20 group-hover:shadow-[0_0_30px_rgba(236,72,153,0.6)]"
             onClick={() => onSelect('teaching')}
           >
-            <div className="space-y-4 w-full flex flex-col items-center">
+            <div className="space-y-4 w-full h-full flex flex-col items-center justify-between">
               {/* Custom Pink Monitor Icon */}
               <div className="w-20 h-20 rounded-3xl bg-pink-500/10 border-2 border-pink-500/50 flex items-center justify-center text-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.4)] group-hover:scale-110 group-hover:bg-pink-500/20 group-hover:shadow-[0_0_30px_rgba(236,72,153,0.6)] transition-all duration-300">
                 <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -594,7 +618,7 @@ export default function CategoryOverview({
             glowColorClass="shadow-[0_0_20px_rgba(249,115,22,0.4)] group-hover:bg-orange-500/20 group-hover:shadow-[0_0_30px_rgba(249,115,22,0.6)]"
             onClick={() => onSelect('student-practice')}
           >
-            <div className="space-y-4 w-full flex flex-col items-center">
+            <div className="space-y-4 w-full h-full flex flex-col items-center justify-between">
               {/* Custom Orange Clipboard Icon */}
               <div className="w-20 h-20 rounded-3xl bg-orange-500/10 border-2 border-orange-500/50 flex items-center justify-center text-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.4)] group-hover:scale-110 group-hover:bg-orange-500/20 group-hover:shadow-[0_0_30px_rgba(249,115,22,0.6)] transition-all duration-300">
                 <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -642,7 +666,7 @@ export default function CategoryOverview({
             glowColorClass="shadow-[0_0_20px_rgba(34,211,238,0.4)] group-hover:bg-cyan-500/20 group-hover:shadow-[0_0_30px_rgba(34,211,238,0.6)]"
             onClick={() => onSelect('admin')}
           >
-            <div className="space-y-4 w-full flex flex-col items-center">
+            <div className="space-y-4 w-full h-full flex flex-col items-center justify-between">
               {/* Custom Cyan Document Icon */}
               <div className="w-20 h-20 rounded-3xl bg-cyan-500/10 border-2 border-cyan-400/50 flex items-center justify-center text-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.4)] group-hover:scale-110 group-hover:bg-cyan-500/20 group-hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] transition-all duration-300">
                 <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -690,7 +714,7 @@ export default function CategoryOverview({
             glowColorClass="shadow-[0_0_20px_rgba(52,211,153,0.4)] group-hover:bg-emerald-500/20 group-hover:shadow-[0_0_30px_rgba(52,211,153,0.6)]"
             onClick={() => onSelect('visual')}
           >
-            <div className="space-y-4 w-full flex flex-col items-center">
+            <div className="space-y-4 w-full h-full flex flex-col items-center justify-between">
               {/* Custom Emerald Classroom Icon */}
               <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 border-2 border-emerald-400/50 flex items-center justify-center text-emerald-300 shadow-[0_0_20px_rgba(52,211,153,0.4)] group-hover:scale-110 group-hover:bg-emerald-500/20 group-hover:shadow-[0_0_30px_rgba(52,211,153,0.6)] transition-all duration-300">
                 <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

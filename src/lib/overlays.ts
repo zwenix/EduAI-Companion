@@ -44,24 +44,24 @@ const ALIASES: Record<string, OverlayRoute> = {
   home: 'classroom-chalkboard', dashboard: 'classroom-chalkboard',
   'teachers-board': 'classroom-chalkboard', chalkboard: 'classroom-chalkboard',
   // Toolbox
-  toolbox: 'teachers-toolbox', 'content-creator': 'teachers-toolbox',
+  toolbox: 'teachers-toolbox', 'content-creator': 'teachers-toolbox', teaching: 'teachers-toolbox',
   // Intelligent AI
   'ai-hub': 'intelligent-ai', 'intelligent-ai-hub': 'intelligent-ai',
   'smart-bot-tutor': 'intelligent-ai',
   // Classes & Learners
   classes: 'classes-learners', learners: 'classes-learners',
-  'class-manager': 'classes-learners',
+  'class-manager': 'classes-learners', 'class-management': 'classes-learners',
   // Analytics
   stats: 'analytics', reports: 'analytics', insights: 'analytics',
   // Message & Collaborate
   message: 'message-collaborate', messages: 'message-collaborate',
-  collaborate: 'message-collaborate', collaboration: 'message-collaborate',
+  collaborate: 'message-collaborate', collaboration: 'message-collaborate', messenger: 'message-collaborate',
   // Content Factory (was Magic Lessons)
   'magic-lessons': 'content-factory', factory: 'content-factory',
   'content-studio': 'content-factory',
   // Practice & Exercises (was Super Worksheets)
   'super-worksheets': 'practice-exercises', worksheets: 'practice-exercises',
-  exercises: 'practice-exercises', practice: 'practice-exercises',
+  exercises: 'practice-exercises', practice: 'practice-exercises', 'student-practice': 'practice-exercises',
   // Content Archive (was Resource Library)
   'resource-library': 'content-archive', archive: 'content-archive',
   library: 'content-archive', vault: 'content-archive',

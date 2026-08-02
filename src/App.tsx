@@ -1348,7 +1348,7 @@ export default function App() {
         }}
         transition={{ type: "spring", bounce: 0, duration: 0.3 }}
         className={cn(
-          "flex flex-col py-8 px-4 fixed left-4 top-4 bottom-4 shrink-0 z-[60] shadow-2xl transition-all duration-300 border rounded-[32px] h-[calc(100vh-2rem)] overflow-hidden",
+          "flex flex-col pt-0 pb-8 px-4 fixed left-4 top-4 bottom-4 shrink-0 z-[60] shadow-2xl transition-all duration-300 border rounded-[32px] h-[calc(100vh-2rem)] overflow-hidden",
           isDarkMode 
             ? "bg-[#0d1225]/45 border-white/10 text-white backdrop-blur-2xl" 
             : themeMode === 'peach'
@@ -1359,7 +1359,7 @@ export default function App() {
         {isDarkMode && <div className="sidebar-glow-highlight" />}
 
         {/* Center-aligned Animated Logo & Compact Header */}
-        <div className="flex flex-col mb-8 relative shrink-0">
+        <div className="flex flex-col justify-center h-[64px] mb-6 relative shrink-0">
           <div className="flex items-center justify-between w-full relative px-1">
             <div className="flex items-center gap-2.5">
               {/* Animated Logo */}
@@ -1667,7 +1667,7 @@ export default function App() {
         )}
         {/* Header */}
         <header 
-          className={`sticky top-0 left-0 right-0 h-20 border-b ${isDarkMode ? 'border-white/5 bg-[#050a18]/90' : themeMode === 'peach' ? 'border-[#dcd4c3] bg-[#efe8d9]/90' : 'border-slate-200 bg-slate-50/90'} backdrop-blur-md px-4 lg:px-8 flex items-center justify-between shrink-0 z-50 transition-colors duration-500`}
+          className={`sticky top-0 left-0 right-0 h-24 border-b ${isDarkMode ? 'border-white/5 bg-[#050a18]/90' : themeMode === 'peach' ? 'border-[#dcd4c3] bg-[#efe8d9]/90' : 'border-slate-200 bg-slate-50/90'} backdrop-blur-md px-4 lg:px-8 flex items-center justify-between shrink-0 z-50 transition-colors duration-500`}
         >
           {/* Left Side: Navigation (Home & Back Buttons) */}
           <div className="flex items-center gap-3">
