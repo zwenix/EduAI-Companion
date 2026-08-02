@@ -1466,7 +1466,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
 
         {/* Page Content */}
         <main className="relative flex-1 p-4 sm:p-8 overflow-y-auto overflow-x-hidden">
-          <PageOverlay route="toolbox" isDarkMode={isDarkMode} />
+          <PageOverlay route="toolbox" />
           <div className="relative z-10">
           {/* Content Factory Title */}
           <div className="text-center mb-6 sm:mb-10">

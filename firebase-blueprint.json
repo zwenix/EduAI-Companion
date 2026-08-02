@@ -189,6 +189,24 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["prompt", "videoUrl", "teacherId", "createdAt"]
+    },
+    "PlannerEvent": {
+      "title": "Planner Event",
+      "description": "Weekly curriculum schedule and calendar events for teachers and students.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "string" },
+        "dayOfWeek": { "type": "number" },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" },
+        "category": { "type": "string" },
+        "role": { "type": "string" },
+        "color": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "date", "startTime", "endTime", "category", "createdAt"]
     }
   },
   "firestore": {
@@ -255,6 +273,10 @@
     "/omnihuman_videos/{videoId}": {
       "schema": "GeneratedVideo",
       "description": "Cached video files generated using the OmniHuman API."
+    },
+    "/planner_events/{eventId}": {
+      "schema": "PlannerEvent",
+      "description": "Weekly curriculum schedule and calendar events."
     }
   }
 }

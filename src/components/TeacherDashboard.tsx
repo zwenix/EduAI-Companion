@@ -554,7 +554,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             </h4>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-7 gap-4">
             
             {/* Action 1: Create Lesson */}
             <motion.button 
@@ -643,6 +643,21 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               </div>
               <span className="text-[10px] font-black uppercase text-slate-300 tracking-wider group-hover:text-cyan-300 transition-colors">
                 Magic Library
+              </span>
+            </motion.button>
+
+            {/* Action 7: Weekly Planner */}
+            <motion.button 
+              whileHover={{ y: -4, scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => onNavigate('weekly-planner', 'lesson-planning')}
+              className="p-3.5 rounded-[20px] bg-slate-950/40 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-400/25 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(16,185,129,0.15)]">
+                <Calendar size={18} />
+              </div>
+              <span className="text-[10px] font-black uppercase text-slate-300 tracking-wider group-hover:text-emerald-300 transition-colors">
+                Weekly Planner
               </span>
             </motion.button>
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, ArrowRight, ShieldAlert, Rocket, Sparkles } from 'lucide-react';
 import { auth } from '../lib/firebase';
-import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signInAnonymously } from 'firebase/auth';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface LoginPageProps {
@@ -79,6 +79,26 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
     }
   };
 
+  const handleDemoLogin = async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      localStorage.setItem('eduai_user_name', 'Demo Teacher');
+      localStorage.setItem('eduai_user_email', 'demo.teacher@eduai.com');
+      localStorage.setItem('userRole_demo_user', 'teacher');
+      try {
+        await signInAnonymously(auth);
+      } catch (anonErr) {
+        console.warn("Anonymous auth fallback:", anonErr);
+      }
+      setIsLoading(false);
+      onSuccess();
+    } catch (err: any) {
+      setIsLoading(false);
+      onSuccess();
+    }
+  };
+
   const handleGoogle = async () => {
     setIsGoogle(true);
     setError('');
@@ -96,14 +116,17 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
       setIsGoogle(false);
       onSuccess();
     } catch (err: any) {
-      console.error(err);
       const errMsg = err?.message || String(err);
       const errCode = err?.code || "";
 
+      if (errCode !== 'auth/popup-closed-by-user' && !errMsg.includes('popup-closed-by-user') && errCode !== 'auth/popup-blocked' && !errMsg.includes('popup-blocked')) {
+        console.error("Google Auth error:", err);
+      }
+
       if (errCode === 'auth/popup-closed-by-user' || errMsg.includes('popup-closed-by-user')) {
-        setError("The login window was closed. Please try again! (Tip: If using AI Studio preview, click 'Open in a new tab').");
+        setError("The Google Sign-In popup was closed or blocked by the preview iframe. Tip: Click '⚡ QUICK DEMO ACCESS' below to enter instantly without logging in!");
       } else if (errCode === 'auth/popup-blocked' || errMsg.includes('popup-blocked')) {
-        setError("Login popup blocked. Please enable popups or open in a new tab.");
+        setError("Login popup blocked by your browser/iframe. Tip: Click '⚡ QUICK DEMO ACCESS' below to enter instantly!");
       } else {
         setError(errMsg);
       }
@@ -423,6 +446,19 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
                     </svg>
                   )}
                   <span>Sign in with Google</span>
+                </button>
+              </div>
+
+              {/* Quick Demo Access Option (Bypasses Popups / Instant Entry) */}
+              <div className="pt-2">
+                <button 
+                  type="button"
+                  onClick={handleDemoLogin} 
+                  disabled={isLoading || isGoogle}
+                  className="w-full h-11 bg-cyan-500/15 border border-cyan-400/50 hover:bg-cyan-500/25 text-cyan-300 rounded-2xl font-display font-black text-xs flex items-center justify-center gap-2.5 transition-all cursor-pointer shadow-[0_0_15px_rgba(0,211,238,0.25)] hover:shadow-[0_0_25px_rgba(0,211,238,0.45)]"
+                >
+                  <Sparkles className="w-4 h-4 text-cyan-300 animate-pulse" />
+                  <span>⚡ QUICK DEMO ACCESS (INSTANT ENTRY)</span>
                 </button>
               </div>
             </form>

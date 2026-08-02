@@ -1,4 +1,3 @@
-import webpush from 'web-push';
 import { CAPS_LESSON_PLAN_SYSTEM_PROMPT } from "./src/lib/prompts/caps-lesson-plan-prompt";
 import { EduAIPromptEngine } from "./src/lib/prompt-engine";
 import express from "express";
@@ -115,8 +114,6 @@ const geminiAi = new Proxy({} as GoogleGenAI, {
   }
 });
 
-
-import { HfInference } from "@huggingface/inference";
 
 const app = express();
 
@@ -1944,7 +1941,6 @@ STRICT COMPLIANCE & ZERO-HALLUCINATION MANDATES:
     }
 
     if (!process.env.VERCEL) {
-      const PORT = 3000;
       app.listen(PORT, "0.0.0.0", () => {
         console.log(`Server running on port ${PORT}`);
       });

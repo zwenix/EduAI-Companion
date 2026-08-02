@@ -116,10 +116,12 @@ import CurriculumSuite from './components/CurriculumSuite';
 import ParentDashboard from './components/ParentDashboard';
 import ReaderModeModal from './components/ReaderModeModal';
 import PageOverlay from './components/PageOverlay';
+import teachersToolbox from './assets/overlays/teachers-toolbox.png';
 
 
 
 import { TeacherPlanner } from './components/TeacherPlanner';
+import { WeeklyPlanner } from './components/WeeklyPlanner';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { patchOklchForHtml2canvas } from './lib/pdfHelper';
@@ -860,6 +862,7 @@ export default function App() {
           ];
         case 'lesson-planning':
           return [
+            { id: 'weekly-planner', label: 'Weekly Planner', icon: IconMagicPlanner },
             { id: 'student-notes', label: 'My Class Dashboard', icon: IconCurriculum }
           ];
         case 'intelligence-ai':
@@ -970,6 +973,7 @@ export default function App() {
           ];
         case 'lesson-planning':
           return [
+            { id: 'weekly-planner', label: 'Weekly Planner', icon: IconMagicPlanner },
             { id: 'teaching', label: 'Content Factory', icon: CreativeCanvasIcon },
             { id: 'archive', label: 'Content Archive Storage', icon: IconResources },
             { id: 'illustrations', label: 'Illustration Library', icon: CreativeCanvasIcon }
@@ -2344,7 +2348,7 @@ export default function App() {
 
         {/* Content Container with Animations */}
         <div className="flex-1 overflow-hidden relative">
-          <PageOverlay route={activeTab} isDarkMode={isDarkMode} />
+          {isDarkMode && <PageOverlay route={activeTab} blend="normal" opacity={0.5} vignette={true} drift={false} />}
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -2355,218 +2359,235 @@ export default function App() {
               className="absolute inset-0 overflow-y-auto p-4 lg:p-8 custom-scrollbar z-10"
             >
               <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8 pb-12">
-              {categoryOverviewActive ? (
-                <CategoryOverview
-                  categoryLabel={sidebarCategories.find(c => c.id === categoryOverviewActive)?.label || ''}
-                  categoryIcon={sidebarCategories.find(c => c.id === categoryOverviewActive)?.icon}
-                  subTabs={getSubTabsForCategory(categoryOverviewActive, userRole)}
-                  isDarkMode={isDarkMode}
-                  onSelect={(tabId) => {
-                    setCategoryOverviewActive(null);
-                    if (['teaching', 'grade1', 'admin', 'visual', 'video'].includes(tabId)) {
-                      setActiveCreatorTab(tabId);
-                      setActiveTab('teaching');
-                    } else {
-                      changeTab(tabId);
-                    }
-                  }}
-                />
-              ) : (
-                <>
-                  {(function() {
-                    const currentSubTabs = getSubTabsForCategory(activeCategory, userRole);
-                    if (currentSubTabs.length <= 1 || activeCategory === 'teacher-dashboard-menu') return null;
-                    const catLabel = sidebarCategories.find(c => c.id === activeCategory)?.label || '';
-                    return (
-                      <div className="flex justify-between items-center mb-6">
-                        <button
-                          onClick={() => setCategoryOverviewActive(activeCategory)}
-                          className={`flex items-center gap-2 px-5 py-2.5 rounded-[22px] text-xs font-bold transition-all border outline-none cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${
-                            isDarkMode 
-                              ? 'bg-slate-950/40 border-white/5 text-slate-300 hover:text-white hover:bg-[#00d2ff]/10 hover:border-[#00d2ff]/20' 
-                              : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:shadow-sm hover:bg-slate-50'
-                          }`}
-                        >
-                          <ArrowLeft size={14} strokeWidth={2.5} />
-                          <span>Back to {catLabel} Hub</span>
-                        </button>
-                      </div>
-                    );
-                  })()}
-
-                  {activeTab === 'dashboard' ? (
-              userRole === 'student' ? (
-                <StudentDashboard 
-                  isDarkMode={isDarkMode} 
-                  onNavigate={(tabId, categoryId) => {
-                    if (categoryId) setActiveCategory(categoryId);
-                    changeTab(tabId);
-                  }}
-                />
-              ) : userRole === 'parent' ? (
-                <ParentDashboard isDarkMode={isDarkMode} />
-              ) : userRole === 'admin' ? (
-                <AdminDashboard isDarkMode={isDarkMode} />
-              ) : (
-                <TeacherDashboard 
-                  isDarkMode={isDarkMode} 
-                  onNavigate={(tabId, categoryId) => {
-                    if (categoryId) {
-                      setActiveCategory(categoryId);
-                    }
-                    if (tabId === 'edu-tools-hub' || tabId === 'lesson-planning-landing') {
-                      setActiveCategory('lesson-planning');
-                      setCategoryOverviewActive('lesson-planning');
-                    } else if (tabId === 'teaching') {
-                      setActiveCreatorTab('teaching');
-                      setActiveTab('teaching');
-                    } else {
-                      setCategoryOverviewActive(null);
-                      changeTab(tabId);
-                    }
-                  }}
-                  triggerToast={triggerToast}
-                />
-              )
-
-                ) : activeTab === 'alerts' ? (
-                  <AlertsPage 
-                    isDarkMode={isDarkMode} 
-                    onNavigate={(tabId, categoryId) => {
-                      if (categoryId) {
-                        setActiveCategory(categoryId);
-                      }
-                      if (tabId === 'edu-tools-hub' || tabId === 'lesson-planning-landing') {
-                        setActiveCategory('lesson-planning');
-                        setCategoryOverviewActive('lesson-planning');
-                      } else if (tabId === 'teaching') {
-                        setActiveCreatorTab('teaching');
-                        setActiveTab('teaching');
-                      } else {
+                <div>
+                  {categoryOverviewActive ? (
+                    <CategoryOverview
+                      categoryLabel={sidebarCategories.find(c => c.id === categoryOverviewActive)?.label || ''}
+                      categoryIcon={sidebarCategories.find(c => c.id === categoryOverviewActive)?.icon}
+                      subTabs={getSubTabsForCategory(categoryOverviewActive, userRole)}
+                      isDarkMode={isDarkMode}
+                      onSelect={(tabId) => {
                         setCategoryOverviewActive(null);
-                        changeTab(tabId);
-                      }
-                    }}
-                    triggerToast={triggerToast}
-                  />
-                ) : activeTab === 'messenger' ? (
-                  <Messenger />
-                ) : activeTab === 'reports' ? (
-                  userRole === 'parent' ? (
-                    <ParentDashboard isDarkMode={isDarkMode} />
+                        if (['teaching', 'grade1', 'admin', 'visual', 'video'].includes(tabId)) {
+                          setActiveCreatorTab(tabId);
+                          setActiveTab('teaching');
+                        } else {
+                          changeTab(tabId);
+                        }
+                      }}
+                    />
                   ) : (
-                    <ProgressReports isDarkMode={isDarkMode} />
+                    <>
+                      {(function() {
+                        const currentSubTabs = getSubTabsForCategory(activeCategory, userRole);
+                        if (currentSubTabs.length <= 1 || activeCategory === 'teacher-dashboard-menu') return null;
+                        const catLabel = sidebarCategories.find(c => c.id === activeCategory)?.label || '';
+                        return (
+                          <div className="flex justify-between items-center mb-6">
+                            <button
+                              onClick={() => setCategoryOverviewActive(activeCategory)}
+                              className={`flex items-center gap-2 px-5 py-2.5 rounded-[22px] text-xs font-bold transition-all border outline-none cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${
+                                isDarkMode 
+                                  ? 'bg-slate-950/40 border-white/5 text-slate-300 hover:text-white hover:bg-[#00d2ff]/10 hover:border-[#00d2ff]/20' 
+                                  : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:shadow-sm hover:bg-slate-50'
+                              }`}
+                            >
+                              <ArrowLeft size={14} strokeWidth={2.5} />
+                              <span>Back to {catLabel} Hub</span>
+                            </button>
+                          </div>
+                        );
+                      })()}
+
+                      {activeTab === 'dashboard' ? (
+                  userRole === 'student' ? (
+                    <StudentDashboard 
+                      isDarkMode={isDarkMode} 
+                      onNavigate={(tabId, categoryId) => {
+                        if (categoryId) setActiveCategory(categoryId);
+                        changeTab(tabId);
+                      }}
+                    />
+                  ) : userRole === 'parent' ? (
+                    <ParentDashboard isDarkMode={isDarkMode} />
+                  ) : userRole === 'admin' ? (
+                    <AdminDashboard isDarkMode={isDarkMode} />
+                  ) : (
+                    <TeacherDashboard 
+                      isDarkMode={isDarkMode} 
+                      onNavigate={(tabId, categoryId) => {
+                        if (categoryId) {
+                          setActiveCategory(categoryId);
+                        }
+                        if (tabId === 'edu-tools-hub' || tabId === 'lesson-planning-landing') {
+                          setActiveCategory('lesson-planning');
+                          setCategoryOverviewActive('lesson-planning');
+                        } else if (tabId === 'teaching') {
+                          setActiveCreatorTab('teaching');
+                          setActiveTab('teaching');
+                        } else {
+                          setCategoryOverviewActive(null);
+                          changeTab(tabId);
+                        }
+                      }}
+                      triggerToast={triggerToast}
+                    />
                   )
-                ) : activeTab === 'class-management' ? (
-                  <ClassManagement isDarkMode={isDarkMode} />
-                ) : activeTab === 'ocr' ? (
-                  <AutoGrading />
-                ) : activeTab === 'archive' ? (
-                  <ContentArchive />
-                ) : activeTab === 'planner' ? (
-                  <TeacherPlanner isDarkMode={isDarkMode} onBack={() => setActiveTab('dashboard')} userRole={userRole} />
-                ) : activeTab === 'illustrations' ? (
-                  <IllustrationLibrary isDarkMode={isDarkMode} />
-                ) : activeTab === 'ai-tutor' ? (
-                  <AITutorPage onBack={() => setActiveTab('dashboard')} />
-                ) : activeTab === 'student-practice' ? (
-                  <StudentPractice isDarkMode={isDarkMode} />
-                ) : activeTab === 'collaborative-workspace' ? (
-                  <CollaborativeWorkspace isDarkMode={isDarkMode} />
-                ) : activeTab === 'student-notes' ? (
-                  <StudentNotes isDarkMode={isDarkMode} />
-                ) : activeTab === 'portfolios' ? (
-                  <StudentPortfolio isDarkMode={isDarkMode} />
-                ) : activeTab === 'curriculum' ? (
-                  <CurriculumSuite isDarkMode={isDarkMode} userRole={userRole} />
-                ) : activeTab === 'settings' ? (
-                  <SettingsPage 
-                    isDarkMode={isDarkMode} 
-                    setIsDarkMode={setIsDarkMode}
-                    onLogout={() => {
-                      setShowDashboard(false);
-                      setShowLogin(false);
-                      setUserRole(null);
-                    }}
-                    onSwitchRole={() => setNeedsRoleSetup(true)}
-                    onSwitchUser={() => {
-                      setShowDashboard(false);
-                      setShowLogin(true);
-                      setUserRole(null);
-                    }}
-                    isAppInstallable={isAppInstallable}
-                    installPWAApp={installPWAApp}
-                    isAlreadyInstalled={isAlreadyInstalled}
-                    userRole={userRole || 'teacher'}
-                  />
-                ) : activeTab === 'teaching' ? (
-                  <div className={`p-8 rounded-[40px] text-center ${isDarkMode ? 'bg-[#0B1122] border border-white/5 animate-fade-in' : 'bg-white border border-slate-200 shadow-xl'} flex flex-col items-center justify-center min-h-[440px] space-y-6`}>
-                    <div className="w-20 h-20 rounded-[28px] bg-brand-cyan/20 text-[#00d2ff] flex items-center justify-center animate-bounce">
-                      <FlaskConical size={40} />
-                    </div>
-                    <h3 className={`text-2xl font-black font-display ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Content Factory</h3>
-                    <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} max-w-sm leading-relaxed font-semibold`}>
-                      The CAPS-aligned AI curriculum content editor is open in a workspace hub overlay. Rubrics, worksheets, and exams are active inside the studio.
-                    </p>
-                    <button
-                      onClick={() => setActiveCreatorTab('teaching')}
-                      className="bg-[#00d2ff] hover:bg-[#00d2ff]/90 text-[#0F172A] font-extrabold px-8 py-3.5 rounded-full shadow-lg hover:shadow-cyan-500/20 shadow-cyan-500/10 transition-all font-display hover:scale-105 active:scale-95 border-none outline-none cursor-pointer"
-                    >
-                      Re-open Creator Studio Overlay
-                    </button>
-                  </div>
-                ) : activeTab === 'helpdesk' ? (
-                  <Helpdesk isDarkMode={isDarkMode} />
-                ) : activeTab === 'faq' ? (
-                  <div className={`p-8 rounded-[40px] ${isDarkMode ? 'bg-slate-900/60 border border-white/5' : 'bg-white border border-slate-200 shadow-xl'}`}>
-                    <h2 className="text-3xl font-display font-black mb-2 flex items-center gap-3">
-                      <span>🤝 Support & Knowledge Base</span>
-                    </h2>
-                    <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'} mb-8 font-medium`}>
-                      Find answers to common questions about South African CAPS curriculum coverage and EduAI Companion platform features.
-                    </p>
-                    
-                    <div className="space-y-4">
-                      {[
-                        { q: "📚 Is the curriculum aligned with South African CAPS standards?", a: "Yes, 100%! All content created, lessons compiled, and rubrics generated map directly with the Department of Basic Education (DBE) South African National Curriculum Assessment Policy Statements (CAPS) requirements across Grades 1 to 12." },
-                        { q: "🤖 Which AI model powers the tutoring system?", a: "EduAI is powered by advanced multi-model intelligence, featuring state-of-the-art models like Google Gemini, NVIDIA Llama 3.3 Nemotron Super 49B, and NVIDIA Nemotron-3 Ultra 550B. These models offer ultra-fast localized explanations, using rands (R), local currencies, and South African historical/geographic contexts." },
-                        { q: "📶 Can I use this application offline?", a: "Absolutely! Simply click on the 'INSTALL OFFLINE APP' button in the sidebar to download our Progressive Web App (PWA). Your downloaded study guides, textbook revisions, and completed portfolio tasks are cached on your local device for instant access without a stable internet connection." },
-                        { q: "🛡️ How is my data protected?", a: "We adhere to strict POPIA (Protection of Personal Information Act) regulation compliance. Student assessments or raw photos are processed securely and never shared with third-party advertising engines." }
-                      ].map((item, idx) => (
-                        <div key={idx} className={`p-6 rounded-[24px] ${isDarkMode ? 'bg-white/5 hover:bg-white/[0.08]' : 'bg-slate-50 hover:bg-slate-100'} transition-all`}>
-                          <h4 className={`text-base font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'} mb-2`}>{item.q}</h4>
-                          <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'} leading-relaxed font-semibold`}>{item.a}</p>
+
+                    ) : activeTab === 'alerts' ? (
+                      <AlertsPage 
+                        isDarkMode={isDarkMode} 
+                        onNavigate={(tabId, categoryId) => {
+                          if (categoryId) {
+                            setActiveCategory(categoryId);
+                          }
+                          if (tabId === 'edu-tools-hub' || tabId === 'lesson-planning-landing') {
+                            setActiveCategory('lesson-planning');
+                            setCategoryOverviewActive('lesson-planning');
+                          } else if (tabId === 'teaching') {
+                            setActiveCreatorTab('teaching');
+                            setActiveTab('teaching');
+                          } else {
+                            setCategoryOverviewActive(null);
+                            changeTab(tabId);
+                          }
+                        }}
+                        triggerToast={triggerToast}
+                      />
+                    ) : activeTab === 'messenger' ? (
+                      <Messenger />
+                    ) : activeTab === 'reports' ? (
+                      userRole === 'parent' ? (
+                        <ParentDashboard isDarkMode={isDarkMode} />
+                      ) : (
+                        <ProgressReports isDarkMode={isDarkMode} />
+                      )
+                    ) : activeTab === 'class-management' ? (
+                      <ClassManagement isDarkMode={isDarkMode} />
+                    ) : activeTab === 'ocr' ? (
+                      <AutoGrading />
+                    ) : activeTab === 'archive' ? (
+                      <ContentArchive />
+                    ) : activeTab === 'planner' ? (
+                      <TeacherPlanner isDarkMode={isDarkMode} onBack={() => setActiveTab('dashboard')} userRole={userRole} />
+                    ) : activeTab === 'weekly-planner' ? (
+                      <WeeklyPlanner isDarkMode={isDarkMode} onBack={() => setActiveTab('dashboard')} userRole={userRole} />
+                    ) : activeTab === 'illustrations' ? (
+                      <IllustrationLibrary isDarkMode={isDarkMode} />
+                    ) : activeTab === 'ai-tutor' ? (
+                      <AITutorPage onBack={() => setActiveTab('dashboard')} />
+                    ) : activeTab === 'student-practice' ? (
+                      <StudentPractice isDarkMode={isDarkMode} />
+                    ) : activeTab === 'collaborative-workspace' ? (
+                      <CollaborativeWorkspace isDarkMode={isDarkMode} />
+                    ) : activeTab === 'student-notes' ? (
+                      <StudentNotes isDarkMode={isDarkMode} />
+                    ) : activeTab === 'portfolios' ? (
+                      <StudentPortfolio isDarkMode={isDarkMode} />
+                    ) : activeTab === 'curriculum' ? (
+                      <CurriculumSuite isDarkMode={isDarkMode} userRole={userRole} />
+                    ) : activeTab === 'settings' ? (
+                      <SettingsPage 
+                        isDarkMode={isDarkMode} 
+                        setIsDarkMode={setIsDarkMode}
+                        onLogout={() => {
+                          setShowDashboard(false);
+                          setShowLogin(false);
+                          setUserRole(null);
+                        }}
+                        onSwitchRole={() => setNeedsRoleSetup(true)}
+                        onSwitchUser={() => {
+                          setShowDashboard(false);
+                          setShowLogin(true);
+                          setUserRole(null);
+                        }}
+                        isAppInstallable={isAppInstallable}
+                        installPWAApp={installPWAApp}
+                        isAlreadyInstalled={isAlreadyInstalled}
+                        userRole={userRole || 'teacher'}
+                      />
+                    ) : activeTab === 'teaching' ? (
+                      <div className={`p-8 rounded-[40px] text-center relative overflow-hidden flex flex-col items-center justify-center min-h-[440px] space-y-6 border ${isDarkMode ? 'border-white/5 bg-slate-950 animate-fade-in' : 'border-slate-200 bg-white shadow-xl'}`}>
+                        {/* Background Image Overlay */}
+                        <img 
+                          src={teachersToolbox} 
+                          alt="" 
+                          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" 
+                          referrerPolicy="no-referrer"
+                        />
+                        {/* Overlay to guarantee high text contrast and visual harmony */}
+                        <div className={`absolute inset-0 ${isDarkMode ? 'bg-slate-950/65' : 'bg-white/80'} pointer-events-none`} />
+
+                        {/* Foreground Content */}
+                        <div className="relative z-10 flex flex-col items-center justify-center space-y-6">
+                          <div className="w-20 h-20 rounded-[28px] bg-brand-cyan/20 text-[#00d2ff] flex items-center justify-center animate-bounce">
+                            <FlaskConical size={40} />
+                          </div>
+                          <h3 className={`text-2xl font-black font-display ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Content Factory</h3>
+                          <p className={`text-sm ${isDarkMode ? 'text-slate-300' : 'text-slate-600'} max-w-sm leading-relaxed font-semibold`}>
+                            The CAPS-aligned AI curriculum content editor is open in a workspace hub overlay. Rubrics, worksheets, and exams are active inside the studio.
+                          </p>
+                          <button
+                            onClick={() => setActiveCreatorTab('teaching')}
+                            className="bg-[#00d2ff] hover:bg-[#00d2ff]/90 text-[#0F172A] font-extrabold px-8 py-3.5 rounded-full shadow-lg hover:shadow-cyan-500/20 shadow-cyan-500/10 transition-all font-display hover:scale-105 active:scale-95 border-none outline-none cursor-pointer"
+                          >
+                            Re-open Creator Studio Overlay
+                          </button>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : ( 
-                  <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200 shadow-sm'} p-12 rounded-[48px] text-center min-h-[500px] flex flex-col items-center justify-center`}>
-                    <Logo className="w-40 h-40 mb-8" />
-                    <h3 className={`text-4xl font-hand mb-4 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                      Exploring New Worlds!
-                    </h3>
-                    <p className={`text-slate-500 max-w-sm mx-auto font-medium leading-relaxed`}> 
-                      Our robot engineers are currently adding more magic to this module. For now, check out the <span className="text-brand-cyan font-bold">AI Tutor</span> or <span className="text-brand-cyan font-bold">Content Creator</span>! 
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-4 mt-10">
-                      <button 
-                        onClick={() => setActiveTab('dashboard')}
-                        className="bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-10 py-4 rounded-3xl font-black uppercase tracking-widest text-[11px] shadow-xl shadow-cyan-500/30 transition-all active:scale-95"
-                      >
-                        Back to HQ
-                      </button>
-                      <button 
-                        onClick={() => setActiveTab('ai-tutor')}
-                        className="bg-white/5 border border-white/10 text-white px-10 py-4 rounded-3xl font-black uppercase tracking-widest text-[11px] hover:bg-white/10 transition-all"
-                      >
-                        Talk to Tutor
-                      </button>
-                    </div>
-                  </div>
-                )}
-                </>
-              )}
+                      </div>
+                    ) : activeTab === 'helpdesk' ? (
+                      <Helpdesk isDarkMode={isDarkMode} />
+                    ) : activeTab === 'faq' ? (
+                      <div className={`p-8 rounded-[40px] ${isDarkMode ? 'bg-slate-900/60 border border-white/5' : 'bg-white border border-slate-200 shadow-xl'}`}>
+                        <h2 className="text-3xl font-display font-black mb-2 flex items-center gap-3">
+                          <span>🤝 Support & Knowledge Base</span>
+                        </h2>
+                        <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'} mb-8 font-medium`}>
+                          Find answers to common questions about South African CAPS curriculum coverage and EduAI Companion platform features.
+                        </p>
+                        
+                        <div className="space-y-4">
+                          {[
+                            { q: "📚 Is the curriculum aligned with South African CAPS standards?", a: "Yes, 100%! All content created, lessons compiled, and rubrics generated map directly with the Department of Basic Education (DBE) South African National Curriculum Assessment Policy Statements (CAPS) requirements across Grades 1 to 12." },
+                            { q: "🤖 Which AI model powers the tutoring system?", a: "EduAI is powered by advanced multi-model intelligence, featuring state-of-the-art models like Google Gemini, NVIDIA Llama 3.3 Nemotron Super 49B, and NVIDIA Nemotron-3 Ultra 550B. These models offer ultra-fast localized explanations, using rands (R), local currencies, and South African historical/geographic contexts." },
+                            { q: "📶 Can I use this application offline?", a: "Absolutely! Simply click on the 'INSTALL OFFLINE APP' button in the sidebar to download our Progressive Web App (PWA). Your downloaded study guides, textbook revisions, and completed portfolio tasks are cached on your local device for instant access without a stable internet connection." },
+                            { q: "🛡️ How is my data protected?", a: "We adhere to strict POPIA (Protection of Personal Information Act) regulation compliance. Student assessments or raw photos are processed securely and never shared with third-party advertising engines." }
+                          ].map((item, idx) => (
+                            <div key={idx} className={`p-6 rounded-[24px] ${isDarkMode ? 'bg-white/5 hover:bg-white/[0.08]' : 'bg-slate-50 hover:bg-slate-100'} transition-all`}>
+                              <h4 className={`text-base font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'} mb-2`}>{item.q}</h4>
+                              <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'} leading-relaxed font-semibold`}>{item.a}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : ( 
+                      <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200 shadow-sm'} p-12 rounded-[48px] text-center min-h-[500px] flex flex-col items-center justify-center`}>
+                        <Logo className="w-40 h-40 mb-8" />
+                        <h3 className={`text-4xl font-hand mb-4 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                          Exploring New Worlds!
+                        </h3>
+                        <p className={`text-slate-500 max-w-sm mx-auto font-medium leading-relaxed`}> 
+                          Our robot engineers are currently adding more magic to this module. For now, check out the <span className="text-brand-cyan font-bold">AI Tutor</span> or <span className="text-brand-cyan font-bold">Content Creator</span>! 
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4 mt-10">
+                          <button 
+                            onClick={() => setActiveTab('dashboard')}
+                            className="bg-brand-cyan hover:bg-cyan-500 text-navy-dark px-10 py-4 rounded-3xl font-black uppercase tracking-widest text-[11px] shadow-xl shadow-cyan-500/30 transition-all active:scale-95"
+                          >
+                            Back to HQ
+                          </button>
+                          <button 
+                            onClick={() => setActiveTab('ai-tutor')}
+                            className="bg-white/5 border border-white/10 text-white px-10 py-4 rounded-3xl font-black uppercase tracking-widest text-[11px] hover:bg-white/10 transition-all"
+                          >
+                            Talk to Tutor
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    </>
+                  )}
+                </div>
               </div>
             </motion.div>
           </AnimatePresence>

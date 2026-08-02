@@ -325,6 +325,9 @@ service cloud.firestore {
     match /activity_logs/{logId} {
       allow read, write: if isSignedIn();
     }
+    match /planner_events/{eventId} {
+      allow read, write: if true;
+    }
 
   }
 }

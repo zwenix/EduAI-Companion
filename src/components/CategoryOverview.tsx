@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import { 
   ChevronRight, 
   Sparkles, 
@@ -23,12 +23,124 @@ import {
 import ContentSlideshow, { INTELLIGENT_AI_SLIDES } from './ContentSlideshow';
 import WorksheetQRScannerModal from './WorksheetQRScannerModal';
 
+// Generated background images for interactive showcases
+import bgContentStudio from '../assets/images/content_studio_bg_1785652440860.jpg';
+import bgFoundationHub from '../assets/images/foundation_hub_bg_1785652450982.jpg';
+import bgPracticeZone  from '../assets/images/practice_zone_bg_1785652462543.jpg';
+import bgOcrGrading    from '../assets/images/ocr_grading_bg_1785652474254.jpg';
+import bgAdminLab      from '../assets/images/admin_lab_bg_1785652489555.jpg';
+import bgAnalytics     from '../assets/images/analytics_bg_1785652499527.jpg';
+import bgVisualPosters from '../assets/images/visual_posters_bg_1785652509797.jpg';
+import bgVideoAvatars  from '../assets/images/video_avatars_bg_1785652522004.jpg';
+import bgVaultLibrary  from '../assets/images/vault_library_bg_1785652535683.jpg';
+import overlayTeachersToolbox from '../assets/overlays/teachers-toolbox.png';
+
 interface SubTabItem {
   id: string;
   label: string;
   icon: any;
   desc?: string;
 }
+
+interface InteractiveShowcaseSlide {
+  image: string;
+  title: string;
+  description: string;
+}
+
+interface InteractiveShowcaseCardProps {
+  slides: InteractiveShowcaseSlide[];
+  borderColorClass: string;
+  shadowColorClass: string;
+  hoverBorderColorClass: string;
+  hoverShadowColorClass: string;
+  glowColorClass: string;
+  onClick: () => void;
+  children?: React.ReactNode;
+}
+
+function InteractiveShowcaseCard({
+  slides,
+  borderColorClass,
+  shadowColorClass,
+  hoverBorderColorClass,
+  hoverShadowColorClass,
+  glowColorClass,
+  onClick,
+  children
+}: InteractiveShowcaseCardProps) {
+  const [slideIndex, setSlideIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSlideIndex((prev) => (prev + 1) % slides.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [slides.length]);
+
+  const currentSlide = slides[slideIndex];
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.03, y: -6 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      onClick={onClick}
+      className={`rounded-[32px] border-2 bg-transparent p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:brightness-110 transition-all duration-300 cursor-pointer relative overflow-hidden h-[340px] select-none ${borderColorClass} ${shadowColorClass} ${hoverBorderColorClass} ${hoverShadowColorClass}`}
+    >
+      {/* Background Slideshow using Framer Motion (matching the main ContentSlideshow) */}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={slideIndex}
+          initial={{ opacity: 0, scale: 1.05 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.6, ease: 'easeInOut' }}
+          className="absolute inset-0 z-0 overflow-hidden"
+        >
+          <motion.img
+            initial={{ scale: 1.15 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 6, ease: 'easeOut' }}
+            src={currentSlide.image}
+            alt={currentSlide.title}
+            className="w-full h-full object-cover opacity-[0.35] filter brightness-90 group-hover:scale-105 transition-transform duration-[6000ms]"
+            referrerPolicy="no-referrer"
+          />
+          {/* Gradient Overlays for optimal readability matching ContentSlideshow */}
+          <div className="absolute inset-0 bg-slate-900/40 pointer-events-none z-0" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/50 to-transparent pointer-events-none z-0" />
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Foreground Interactive Layout */}
+      <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
+        {children}
+      </div>
+    </motion.div>
+  );
+}
+
+const CAPS_TOOLS_SLIDES = [
+  { image: bgContentStudio, title: 'Content Studio', description: 'Create rich CAPS lesson plans and curriculum booklets.' },
+  { image: bgFoundationHub, title: 'Foundation Hub (R-3)', description: 'Primary grade templates, trace-and-copy tracing sheets.' }
+];
+
+const QUIZ_WIZARD_SLIDES = [
+  { image: bgPracticeZone, title: 'Practice Zone', description: 'Engage students with diagnostic quizzes and practice drills.' },
+  { image: bgOcrGrading, title: 'Auto-Grading OCR', description: 'Scan physical printed answer sheets using camera in seconds.' }
+];
+
+const ADMIN_REPORTS_SLIDES = [
+  { image: bgAdminLab, title: 'Admin Lab & Notices', description: 'Draft newsletter letters to parents and administrative announcements.' },
+  { image: bgAnalytics, title: 'Analytics & Comments', description: 'Generate individual learner comments and track key performance metrics.' }
+];
+
+const MEDIA_TOOLS_SLIDES = [
+  { image: bgVisualPosters, title: 'Visual Lab Posters', description: 'Design educational infographics and vivid classroom science posters.' },
+  { image: bgVideoAvatars, title: 'Video Avatars', description: 'Produce captivating teacher video guides using digital presentation avatars.' },
+  { image: bgVaultLibrary, title: 'Vault & Library', description: 'Securely archive all generated templates, rubrics, and study guides.' }
+];
 
 interface CategoryOverviewProps {
   categoryLabel: string;
@@ -326,6 +438,17 @@ export default function CategoryOverview({
         {/* Deep Cosmic Background & Subtle Stars */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-[40px]" />
         
+        {/* Teachers Toolbox Background Overlay */}
+        <div 
+          className="absolute inset-0 z-0 opacity-[0.15] pointer-events-none mix-blend-overlay"
+          style={{
+            backgroundImage: `url(${overlayTeachersToolbox})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        />
+
         {/* Soft Ambient Radial Glows */}
         <div className="absolute top-10 left-1/4 w-96 h-96 bg-pink-600/15 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-[120px] pointer-events-none" />
@@ -409,16 +532,18 @@ export default function CategoryOverview({
 
         </div>
 
-        {/* 2x2 NEON GLOW CARDS GRID (With Updated Titles & Smooth Hover Scaling/Brightening) */}
+        {/* 2x2 NEON GLOW CARDS GRID (With Interactive Slideshow Showcases) */}
         <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-6xl mx-auto w-full my-4">
           
           {/* CARD 1: CAPS Tools Factory (Pink/Magenta Border Glow) */}
-          <motion.div
-            whileHover={{ scale: 1.03, y: -6 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          <InteractiveShowcaseCard
+            slides={CAPS_TOOLS_SLIDES}
+            borderColorClass="border-pink-500/90"
+            shadowColorClass="shadow-[0_0_30px_rgba(236,72,153,0.35)]"
+            hoverBorderColorClass="hover:border-pink-400"
+            hoverShadowColorClass="hover:shadow-[0_0_50px_rgba(236,72,153,0.65)]"
+            glowColorClass="shadow-[0_0_20px_rgba(236,72,153,0.4)] group-hover:bg-pink-500/20 group-hover:shadow-[0_0_30px_rgba(236,72,153,0.6)]"
             onClick={() => onSelect('teaching')}
-            className="rounded-[32px] border-2 border-pink-500/90 bg-transparent shadow-[0_0_30px_rgba(236,72,153,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-pink-400 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(236,72,153,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
             <div className="space-y-4 w-full flex flex-col items-center">
               {/* Custom Pink Monitor Icon */}
@@ -445,27 +570,29 @@ export default function CategoryOverview({
               <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('teaching'); }}
-                  className="px-3 py-1.5 rounded-full bg-pink-500/10 hover:bg-pink-500/30 border border-pink-500/40 text-[11px] font-bold text-pink-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-pink-500/10 hover:bg-pink-500/30 border border-pink-500/40 text-[11px] font-bold text-pink-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
                 >
                   ✨ Content Studio
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('grade1'); }}
-                  className="px-3 py-1.5 rounded-full bg-pink-500/10 hover:bg-pink-500/30 border border-pink-500/40 text-[11px] font-bold text-pink-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-pink-500/10 hover:bg-pink-500/30 border border-pink-500/40 text-[11px] font-bold text-pink-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
                 >
                   🎒 Foundation Hub (R-3)
                 </button>
               </div>
             </div>
-          </motion.div>
+          </InteractiveShowcaseCard>
 
           {/* CARD 2: Quiz Wizard (Orange/Amber Border Glow) */}
-          <motion.div
-            whileHover={{ scale: 1.03, y: -6 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          <InteractiveShowcaseCard
+            slides={QUIZ_WIZARD_SLIDES}
+            borderColorClass="border-orange-500/90"
+            shadowColorClass="shadow-[0_0_30px_rgba(249,115,22,0.35)]"
+            hoverBorderColorClass="hover:border-orange-400"
+            hoverShadowColorClass="hover:shadow-[0_0_50px_rgba(249,115,22,0.65)]"
+            glowColorClass="shadow-[0_0_20px_rgba(249,115,22,0.4)] group-hover:bg-orange-500/20 group-hover:shadow-[0_0_30px_rgba(249,115,22,0.6)]"
             onClick={() => onSelect('student-practice')}
-            className="rounded-[32px] border-2 border-orange-500/90 bg-transparent shadow-[0_0_30px_rgba(249,115,22,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-orange-400 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(249,115,22,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
             <div className="space-y-4 w-full flex flex-col items-center">
               {/* Custom Orange Clipboard Icon */}
@@ -491,27 +618,29 @@ export default function CategoryOverview({
               <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('student-practice'); }}
-                  className="px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/30 border border-orange-500/40 text-[11px] font-bold text-orange-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/30 border border-orange-500/40 text-[11px] font-bold text-orange-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
                 >
                   📝 Practice Zone
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('ocr'); }}
-                  className="px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/30 border border-orange-500/40 text-[11px] font-bold text-orange-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/30 border border-orange-500/40 text-[11px] font-bold text-orange-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
                 >
                   ⚡ Auto-Grading OCR
                 </button>
               </div>
             </div>
-          </motion.div>
+          </InteractiveShowcaseCard>
 
           {/* CARD 3: Admin & Reports Cabinet (Cyan/Blue Border Glow) */}
-          <motion.div
-            whileHover={{ scale: 1.03, y: -6 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          <InteractiveShowcaseCard
+            slides={ADMIN_REPORTS_SLIDES}
+            borderColorClass="border-cyan-400/90"
+            shadowColorClass="shadow-[0_0_30px_rgba(34,211,238,0.35)]"
+            hoverBorderColorClass="hover:border-cyan-300"
+            hoverShadowColorClass="hover:shadow-[0_0_50px_rgba(34,211,238,0.65)]"
+            glowColorClass="shadow-[0_0_20px_rgba(34,211,238,0.4)] group-hover:bg-cyan-500/20 group-hover:shadow-[0_0_30px_rgba(34,211,238,0.6)]"
             onClick={() => onSelect('admin')}
-            className="rounded-[32px] border-2 border-cyan-400/90 bg-transparent shadow-[0_0_30px_rgba(34,211,238,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-cyan-300 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(34,211,238,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
             <div className="space-y-4 w-full flex flex-col items-center">
               {/* Custom Cyan Document Icon */}
@@ -537,27 +666,29 @@ export default function CategoryOverview({
               <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('admin'); }}
-                  className="px-3 py-1.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/30 border border-cyan-500/40 text-[11px] font-bold text-cyan-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/30 border border-cyan-500/40 text-[11px] font-bold text-cyan-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
                 >
                   📋 Admin Lab & Notices
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('reports'); }}
-                  className="px-3 py-1.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/30 border border-cyan-500/40 text-[11px] font-bold text-cyan-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/30 border border-cyan-500/40 text-[11px] font-bold text-cyan-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
                 >
                   📊 Analytics & Comments
                 </button>
               </div>
             </div>
-          </motion.div>
+          </InteractiveShowcaseCard>
 
           {/* CARD 4: Media Tools Designer (Emerald/Green Border Glow) */}
-          <motion.div
-            whileHover={{ scale: 1.03, y: -6 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          <InteractiveShowcaseCard
+            slides={MEDIA_TOOLS_SLIDES}
+            borderColorClass="border-emerald-400/90"
+            shadowColorClass="shadow-[0_0_30px_rgba(52,211,153,0.35)]"
+            hoverBorderColorClass="hover:border-emerald-300"
+            hoverShadowColorClass="hover:shadow-[0_0_50px_rgba(52,211,153,0.65)]"
+            glowColorClass="shadow-[0_0_20px_rgba(52,211,153,0.4)] group-hover:bg-emerald-500/20 group-hover:shadow-[0_0_30px_rgba(52,211,153,0.6)]"
             onClick={() => onSelect('visual')}
-            className="rounded-[32px] border-2 border-emerald-400/90 bg-transparent shadow-[0_0_30px_rgba(52,211,153,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-emerald-300 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(52,211,153,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
             <div className="space-y-4 w-full flex flex-col items-center">
               {/* Custom Emerald Classroom Icon */}
@@ -582,25 +713,25 @@ export default function CategoryOverview({
               <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('visual'); }}
-                  className="px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
                 >
                   🎨 Visual Lab Posters
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('video'); }}
-                  className="px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
                 >
                   🎬 Video Avatars
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('archive'); }}
-                  className="px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
                 >
                   📂 Vault & Library
                 </button>
               </div>
             </div>
-          </motion.div>
+          </InteractiveShowcaseCard>
 
         </div>
 

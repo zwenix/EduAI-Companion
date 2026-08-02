@@ -1,87 +1,85 @@
+// src/lib/overlays.ts
+// Saved as .png in src/assets/overlays/ — the download path yields .png,
+// so the imports match reality. No .webp anywhere in this file.
+import classroomChalkboard from '../assets/overlays/classroom-chalkboard.png';
+import teachersToolbox     from '../assets/overlays/teachers-toolbox.png';
+import intelligentAi       from '../assets/overlays/intelligent-ai.png';
+import classesLearners     from '../assets/overlays/classes-learners.png';
+import analytics           from '../assets/overlays/analytics.png';
+import messageCollaborate  from '../assets/overlays/message-collaborate.png';
+import settings            from '../assets/overlays/settings.png';
+import contentFactory      from '../assets/overlays/content-factory.png';
+import practiceExercises   from '../assets/overlays/practice-exercises.png';
+import contentArchive      from '../assets/overlays/content-archive.png';
+import learnerPortfolios   from '../assets/overlays/learner-portfolios.png';
+import capsGamificationHub from '../assets/overlays/caps-gamification-hub.png';
+import aiTutor             from '../assets/overlays/ai-tutor.png';
+
+/** The thirteen rooms, by their current page id. */
+export const OVERLAY_REGISTRY = {
+  'classroom-chalkboard':  classroomChalkboard,
+  'teachers-toolbox':      teachersToolbox,
+  'intelligent-ai':        intelligentAi,
+  'classes-learners':      classesLearners,
+  'analytics':             analytics,
+  'message-collaborate':   messageCollaborate,
+  'settings':              settings,
+  'content-factory':       contentFactory,
+  'practice-exercises':    practiceExercises,
+  'content-archive':       contentArchive,
+  'learner-portfolios':    learnerPortfolios,
+  'caps-gamification-hub': capsGamificationHub,
+  'ai-tutor':              aiTutor,
+} as const;
+
+export type OverlayRoute = keyof typeof OVERLAY_REGISTRY;
+
 /**
- * EduAI Companion — Holographic page overlays
- * ------------------------------------------------------------------
- * One luminous schematic per route, drawn to hug the corners and leave
- * the centre quiet for the real UI. Keyed so the sidebar rail, the top
- * DASHBOARD / CLASSROOMS / ARCHIVE tabs, and the Content Creator view
- * all resolve to a tile without any per‑page guesswork.
- *
- * Drop the matching PNGs into /public/overlays/ (see the save map).
+ * Every name a route might still answer to — old slugs, short forms,
+ * the pre-rename pages — pointed at the room it became. This is the
+ * safety net: rename a page tomorrow and the overlay follows it.
  */
-
-export interface OverlayDef {
-  /** Path under /public — served from site root. */
-  src: string;
-  /** Decorative only; left empty so screen readers ignore the layer. */
-  alt: string;
-}
-
-const O = (file: string): OverlayDef => ({ src: `/overlays/${file}`, alt: '' });
-
-export const OVERLAYS: Record<string, OverlayDef> = {
-  // ── Actual Tab IDs from App.tsx ──────────────────────────────────
-  'teacher-dashboard-menu': O('dashboard.jpg'),
-  'lesson-planning':        O('toolbox.jpg'),
-  'intelligence-ai':        O('ai-tutor.jpg'),
-  'class-management':       O('class-manager.jpg'),
-  'class-analytics':        O('resource-library.jpg'),
-  'student-class-management': O('games.jpg'),
-  'system-support':         O('settings.jpg'),
-  'student-practice':       O('dashboard.jpg'),
-  'collaborative-workspace': O('games.jpg'),
-
-  // ── Core Routes / Fallbacks ──────────────────────────────────────
-  home:                   O('dashboard.jpg'),
-  dashboard:              O('dashboard.jpg'),
-  'magic-lessons':        O('magic-lessons.jpg'),
-  'super-worksheets':     O('super-worksheets.jpg'),
-  'smart-bot-tutor':      O('ai-tutor.jpg'),
-  'intelligent-ai':       O('ai-tutor.jpg'),
-  'personalized-learning': O('personalized.jpg'),
-  'educational-games':    O('games.jpg'),
-  'class-manager':        O('class-manager.jpg'),
-  'resource-library':     O('resource-library.jpg'),
-  settings:               O('settings.jpg'),
-
-  // ── Content creator / 3D Holo‑Forge ──────────────────────────────
-  toolbox:                O('toolbox.jpg'),
-  'content-creator':      O('toolbox.jpg'),
-  'holo-forge':           O('toolbox.jpg'),
-
-  // ── Additional sub-pages/tabs ────────────────────────────────────
-  classrooms:             O('class-manager.jpg'),
-  archive:                O('resource-library.jpg'),
-  alerts:                 O('dashboard.jpg'),
-  reports:                O('resource-library.jpg'),
-  planner:                O('settings.jpg'),
-  portfolios:             O('class-manager.jpg'),
-  curriculum:             O('toolbox.jpg'),
+const ALIASES: Record<string, OverlayRoute> = {
+  // Chalkboard / home
+  home: 'classroom-chalkboard', dashboard: 'classroom-chalkboard',
+  'teachers-board': 'classroom-chalkboard', chalkboard: 'classroom-chalkboard',
+  // Toolbox
+  toolbox: 'teachers-toolbox', 'content-creator': 'teachers-toolbox',
+  // Intelligent AI
+  'ai-hub': 'intelligent-ai', 'intelligent-ai-hub': 'intelligent-ai',
+  'smart-bot-tutor': 'intelligent-ai',
+  // Classes & Learners
+  classes: 'classes-learners', learners: 'classes-learners',
+  'class-manager': 'classes-learners',
+  // Analytics
+  stats: 'analytics', reports: 'analytics', insights: 'analytics',
+  // Message & Collaborate
+  message: 'message-collaborate', messages: 'message-collaborate',
+  collaborate: 'message-collaborate', collaboration: 'message-collaborate',
+  // Content Factory (was Magic Lessons)
+  'magic-lessons': 'content-factory', factory: 'content-factory',
+  'content-studio': 'content-factory',
+  // Practice & Exercises (was Super Worksheets)
+  'super-worksheets': 'practice-exercises', worksheets: 'practice-exercises',
+  exercises: 'practice-exercises', practice: 'practice-exercises',
+  // Content Archive (was Resource Library)
+  'resource-library': 'content-archive', archive: 'content-archive',
+  library: 'content-archive', vault: 'content-archive',
+  // Learner Personal Portfolios (was Personalized Learning)
+  'personalized-learning': 'learner-portfolios', portfolio: 'learner-portfolios',
+  portfolios: 'learner-portfolios', 'learner-portfolio': 'learner-portfolios',
+  // CAPS & Gamification Hub (was Educational Games)
+  'educational-games': 'caps-gamification-hub', games: 'caps-gamification-hub',
+  gamification: 'caps-gamification-hub',
+  // AI Tutor
+  tutor: 'ai-tutor', 'ai-tutor-companion': 'ai-tutor', elly: 'ai-tutor',
+  // Settings
+  preferences: 'settings', config: 'settings',
 };
 
-/**
- * Resolve a route id, an alias, or a free‑form label ("Teachers Board",
- * "Teacher's Toolbox", "Intelligent AI"…) to an overlay. Returns null
- * when nothing matches so the caller can render nothing rather than a
- * wrong tile.
- */
-export function resolveOverlay(route: string | null | undefined): OverlayDef | null {
-  if (!route) return null;
-  const key = route.trim().toLowerCase();
-  if (OVERLAYS[key]) return OVERLAYS[key];
-
-  const aliases: Record<string, string> = {
-    'teachers board': 'dashboard',
-    'teacher board': 'dashboard',
-    'teachers toolbox': 'toolbox',
-    "teacher's toolbox": 'toolbox',
-    'content studio': 'toolbox',
-    'intelligent ai': 'ai-tutor',
-    'ai tutor': 'ai-tutor',
-    'smart bot': 'ai-tutor',
-    'personalized': 'personalized-learning',
-    'games': 'educational-games',
-    'library': 'resource-library',
-  };
-  const aliased = aliases[key];
-  return aliased ? OVERLAYS[aliased] : null;
-}
+/** Resolve any route / slug / legacy name to its plate. Never returns null. */
+export const resolveOverlay = (route?: string | null): string => {
+  const key = (route ?? '').toLowerCase().trim();
+  const canonical = (ALIASES[key] ?? key) as OverlayRoute;
+  return OVERLAY_REGISTRY[canonical] ?? classroomChalkboard;
+};

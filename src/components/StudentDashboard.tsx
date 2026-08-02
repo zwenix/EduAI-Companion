@@ -772,10 +772,10 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
             </div>
           </motion.div>
 
-          {/* Tile 2: Calendar Page */}
+          {/* Tile 2: Weekly Planner */}
           <motion.div 
             whileHover={{ y: -6, scale: 1.015 }}
-            onClick={() => onNavigate && onNavigate('planner', 'student-calendar')}
+            onClick={() => onNavigate && onNavigate('weekly-planner', 'lesson-planning')}
             className={cn(
               "relative p-6 rounded-[32px] border-2 flex flex-col items-start gap-4 overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md animate-border-flash-emerald",
               isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
@@ -792,10 +792,10 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
             
             <div className="space-y-1">
               <h3 className={cn("text-base font-black font-display leading-tight", isDarkMode ? "text-white" : "text-slate-800")}>
-                Calendar Page
+                Weekly Planner
               </h3>
               <p className={cn("text-[11px] leading-snug font-medium", isDarkMode ? "text-slate-400" : "text-slate-500")}>
-                Your upcoming tasks, classes, and due dates.
+                Your weekly timetable, upcoming tasks, and class schedule.
               </p>
             </div>
           </motion.div>
