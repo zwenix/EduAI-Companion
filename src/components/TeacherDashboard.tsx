@@ -206,61 +206,6 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
   const [gradingFilter, setGradingFilter] = useState<'all' | 'pending' | 'graded'>('all');
   const [gradingSearch, setGradingSearch] = useState<string>('');
 
-  const initialMockSubmissions = React.useMemo(() => [
-    {
-      id: 'sub-mock-1',
-      studentName: 'Sibusiso Dlamini',
-      subject: 'Mathematics',
-      grade: 'Grade 7',
-      assignmentTitle: 'Fractions & Ratios CAPS Assessment',
-      submittedAt: 'Today, 09:15 AM',
-      status: 'pending',
-      answersText: '1. 3/4 = 0.75\n2. 5:10 simplifies to 1:2\n3. Ratio of red to blue marbles is 3 to 5.'
-    },
-    {
-      id: 'sub-mock-2',
-      studentName: 'Merzona Khumalo',
-      subject: 'Natural Sciences',
-      grade: 'Grade 6',
-      assignmentTitle: 'Photosynthesis & Ecosystems Investigation',
-      submittedAt: 'Today, 08:30 AM',
-      status: 'pending',
-      answersText: 'Plants convert sunlight, water, and carbon dioxide into glucose and oxygen using chlorophyll pigment in chloroplasts.'
-    },
-    {
-      id: 'sub-mock-3',
-      studentName: 'Thabo Mokoena',
-      subject: 'English FAL',
-      grade: 'Grade 5',
-      assignmentTitle: 'Descriptive Essay: My Heritage Day',
-      submittedAt: 'Yesterday, 03:40 PM',
-      status: 'graded',
-      gradeMark: '88/100',
-      feedback: 'Excellent imagery, clear paragraphing, and vibrant descriptive language!'
-    },
-    {
-      id: 'sub-mock-4',
-      studentName: 'Naledi Smith',
-      subject: 'Life Skills',
-      grade: 'Grade 4',
-      assignmentTitle: 'Personal Health & Balanced Nutrition Chart',
-      submittedAt: 'Yesterday, 12:20 PM',
-      status: 'pending',
-      answersText: 'A balanced diet includes carbohydrates for energy, proteins for muscle growth, fats, vitamins, and clean water.'
-    },
-    {
-      id: 'sub-mock-5',
-      studentName: 'Chrisantha Pillay',
-      subject: 'Social Sciences',
-      grade: 'Grade 8',
-      assignmentTitle: 'Mapwork & Topographic Symbols Quiz',
-      submittedAt: '2 days ago',
-      status: 'graded',
-      gradeMark: '92/100',
-      feedback: 'Accurate scale calculations and superb contour line interpretation.'
-    }
-  ], []);
-
   useEffect(() => {
     let unsubSt: (() => void) | null = null;
     let unsubSub: (() => void) | null = null;
@@ -298,8 +243,8 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
   }, []);
 
   const allSubmissionsList = React.useMemo(() => {
-    return submissions.length > 0 ? submissions : initialMockSubmissions;
-  }, [submissions, initialMockSubmissions]);
+    return submissions;
+  }, [submissions]);
 
   const displayedSubmissions = React.useMemo(() => {
     return allSubmissionsList.filter(sub => {
@@ -320,7 +265,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
     setIsSubmittingGrade(true);
     try {
       const sub = selectedQuickGrade;
-      if (sub.id && !sub.id.startsWith('sub-mock-') && db) {
+      if (sub.id && db) {
         const { doc, updateDoc } = await import('firebase/firestore');
         await updateDoc(doc(db, 'submissions', sub.id), {
           status: 'graded',
@@ -331,7 +276,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         });
       } else {
         setSubmissions(prev => {
-          const list = prev.length > 0 ? [...prev] : [...initialMockSubmissions];
+          const list = prev.length > 0 ? [...prev] : [];
           const idx = list.findIndex(s => s.id === sub.id);
           if (idx !== -1) {
             list[idx] = { ...list[idx], status: 'graded', gradeMark: quickGradeMark, feedback: quickGradeFeedback };
@@ -428,7 +373,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
       {/* 1. Teaching Command Center Header & Cards */}
       <motion.div 
         variants={itemVariants} 
-        style={{ backgroundColor: '#05145d' }}
+        style={{ backgroundColor: 'rgba(5, 20, 93, 0.98)' }}
         className={cn(
           "p-6 md:p-8 rounded-[36px] border-2 space-y-6 animate-border-flash-cyan relative overflow-hidden backdrop-blur-md",
           isDarkMode ? "border-cyan-500/40" : "border-cyan-500/50 shadow-xl"
@@ -689,7 +634,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
           {/* Chart 1: CAPS Performance Trends */}
           <div className={cn(
             "p-6 rounded-[32px] border-2 animate-border-flash-cyan backdrop-blur-md shadow-xl flex flex-col gap-4",
-            isDarkMode ? "bg-transparent" : "bg-transparent"
+            isDarkMode ? "bg-slate-900/80" : "bg-slate-900/80"
           )}>
             <div className="flex justify-between items-start">
               <div className="space-y-1">
@@ -800,7 +745,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
           {/* Chart 2: Student Quest Engagement Metrics */}
           <div className={cn(
             "p-6 rounded-[32px] border-2 animate-border-flash-purple backdrop-blur-md shadow-xl flex flex-col gap-4",
-            isDarkMode ? "bg-transparent" : "bg-transparent"
+            isDarkMode ? "bg-slate-900/80" : "bg-slate-900/80"
           )}>
             <div className="flex justify-between items-start">
               <div className="space-y-1">
@@ -888,7 +833,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             }}
             className={cn(
               "p-6 rounded-[32px] border-2 animate-border-flash-cyan shadow-[0_0_20px_rgba(6,182,212,0.1)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden",
-              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
+              isDarkMode ? "bg-slate-900/80 backdrop-blur-md" : "bg-slate-900/80 backdrop-blur-md"
             )}
           >
             <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-cyan-500/10 blur-xl rounded-full" />
@@ -920,7 +865,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             }}
             className={cn(
               "p-6 rounded-[32px] border-2 animate-border-flash-emerald shadow-[0_0_20px_rgba(16,185,129,0.1)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden",
-              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
+              isDarkMode ? "bg-slate-900/80 backdrop-blur-md" : "bg-slate-900/80 backdrop-blur-md"
             )}
           >
             <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-emerald-500/10 blur-xl rounded-full" />
@@ -952,7 +897,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             }}
             className={cn(
               "p-6 rounded-[32px] border-2 animate-border-flash-pink shadow-[0_0_20px_rgba(236,72,153,0.1)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden",
-              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
+              isDarkMode ? "bg-slate-900/80 backdrop-blur-md" : "bg-slate-900/80 backdrop-blur-md"
             )}
           >
             <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-pink-500/10 blur-xl rounded-full" />
@@ -981,7 +926,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             onClick={() => setIsBroadcastModalOpen(true)}
             className={cn(
               "p-6 rounded-[32px] border-2 animate-border-flash-purple shadow-[0_0_20px_rgba(168,85,247,0.1)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden",
-              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
+              isDarkMode ? "bg-slate-900/80 backdrop-blur-md" : "bg-slate-900/80 backdrop-blur-md"
             )}
           >
             <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-purple-500/10 blur-xl rounded-full" />
@@ -1058,7 +1003,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         {/* Submissions Table Card */}
         <div className={cn(
           "rounded-[32px] border-2 animate-border-flash-cyan backdrop-blur-md overflow-hidden shadow-2xl",
-          isDarkMode ? "bg-transparent" : "bg-transparent"
+          isDarkMode ? "bg-slate-900/80" : "bg-slate-900/80"
         )}>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -1164,7 +1109,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         {/* Wide Constellation Panel */}
         <div className={cn(
           "relative w-full rounded-[40px] border-2 animate-border-flash-cyan backdrop-blur-md overflow-hidden shadow-2xl",
-          isDarkMode ? "bg-transparent" : "bg-transparent"
+          isDarkMode ? "bg-slate-900/80" : "bg-slate-900/80"
         )}>
           
           {/* Constellation Inner Space BG */}
@@ -1247,12 +1192,12 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               </div>
 
               {/* Interactive Student Stars along the Orbit Path */}
-              {displayStudents.map((student) => {
+              {displayStudents.map((student, idx) => {
                 const isCenterSanila = student.name === 'Sanila';
                 
                 return (
                   <motion.div
-                    key={student.name}
+                    key={`${student.name}-${idx}`}
                     style={{ left: student.x, top: student.y }}
                     className="absolute transform -translate-x-1/2 -translate-y-1/2 group z-10 cursor-pointer flex flex-col items-center"
                     whileHover={{ scale: 1.15 }}

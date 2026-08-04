@@ -276,7 +276,7 @@ export default function Settings({
             <button
               type="button"
               onClick={() => setViewMode('advanced')}
-              className="bg-transparent hover:bg-transparent text-slate-200 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg hover:border-cyan-500/50"
+              className="bg-slate-900/85 hover:bg-slate-900/85 text-slate-200 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg hover:border-cyan-500/50"
             >
               <IconSettings size={14} className="text-cyan-400" />
               <span>Advanced System Matrix</span>
@@ -501,7 +501,7 @@ export default function Settings({
             <button
               type="button"
               onClick={() => setViewMode('dashboard')}
-              className="bg-transparent hover:bg-transparent text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+              className="bg-slate-900/85 hover:bg-slate-900/85 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
             >
               <span>← Back to Account & Platform Settings</span>
             </button>
@@ -1163,7 +1163,7 @@ export default function Settings({
       </div>
 
       <div className="flex justify-end gap-4 p-4">
-        <button className={cn("flex items-center gap-2 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[11px] transition-all active:scale-95", isDarkMode ? "glass hover:bg-transparent text-white" : "bg-white border border-slate-200 text-slate-500 hover:bg-slate-50")}>
+        <button className={cn("flex items-center gap-2 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[11px] transition-all active:scale-95", isDarkMode ? "glass hover:bg-slate-900/85 text-white" : "bg-white border border-slate-200 text-slate-500 hover:bg-slate-50")}>
           Discard Changes
         </button>
         <button className="flex items-center gap-2 px-10 py-4 bg-brand-cyan hover:bg-cyan-500 text-navy-dark rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-xl shadow-cyan-500/30 active:scale-95 transition-all">

@@ -7,7 +7,6 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../lib/firebase';
 import { collection, query, onSnapshot, setDoc, doc, serverTimestamp, where, or } from 'firebase/firestore';
-import { MOCK_STUDENTS } from '../data/mockStudents';
 
 interface ChatMessage {
   id: string;
@@ -286,19 +285,8 @@ export default function Messenger() {
       }
     });
 
-    // C. Combine DB users and Mock students for comprehensive direct chat list
+    // C. Use DB users for comprehensive direct chat list
     const allContacts: UserContact[] = [...dbUsers];
-    MOCK_STUDENTS.forEach(ms => {
-      if (!allContacts.some(c => c.email.toLowerCase() === ms.email.toLowerCase() || c.name === ms.name)) {
-        allContacts.push({
-          id: ms.id,
-          name: ms.name,
-          email: ms.email,
-          grade: ms.grade,
-          role: 'Student'
-        });
-      }
-    });
 
     // Also include any conversation partner found in actual message history!
     allMessages.forEach(m => {

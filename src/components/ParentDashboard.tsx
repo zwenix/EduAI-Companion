@@ -11,7 +11,6 @@ import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, 
   CartesianGrid, Tooltip, BarChart, Bar 
 } from 'recharts';
-import { MOCK_STUDENTS } from '../data/mockStudents';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
@@ -388,13 +387,6 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
           </div>
 
           <div className="pt-2 space-y-3">
-            <button
-              onClick={() => setChildren([MOCK_STUDENTS[0]])}
-              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-brand-cyan to-indigo-600 hover:opacity-95 text-slate-950 font-black uppercase text-xs tracking-wider transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer border border-brand-cyan/30"
-            >
-              <Sparkles size={16} />
-              <span>⚡ Connect Demo Learner Profile (Sibusiso Dlamini)</span>
-            </button>
             <p className="text-xs text-slate-400 font-medium">
               Currently logged in email: <span className="text-white font-mono">{currentEmail}</span>
             </p>

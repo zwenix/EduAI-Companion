@@ -185,7 +185,7 @@ export default function VideoLabConsole({
               </div>
             </div>
 
-            {/* Placeholder Content for Video Viewport */}
+            {/* Video Viewport Content */}
             <div className="absolute inset-0 flex items-center justify-center bg-black">
               {videoResult?.url ? (
                 <video 

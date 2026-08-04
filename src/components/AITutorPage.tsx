@@ -31,6 +31,7 @@ interface ChatSession {
   subject: string; // e.g. 'Mathematics', 'Physical Sciences', 'Life Sciences', 'History', 'Geography', 'Languages', 'General'
   createdAt: string; // ISO String
   updatedAt: string; // ISO String
+  grade?: string; // Optional grade mode for the session
   messages: ChatMessage[];
 }
 
@@ -232,7 +233,6 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
               setUserRole(uData.role);
               currentRole = uData.role;
             }
-            if (uData.gradeLevel) setStudentGrade(uData.gradeLevel);
             if (uData.learningPreference) setStudentStyle(uData.learningPreference);
           }
 
@@ -321,7 +321,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
              }
            }
 
-           if (loadedSessions.length === 0 || (loadedSessions[0].messages && loadedSessions[0].messages.length > 0)) {
+           if (loadedSessions.length === 0) {
              const freshId = 'session-' + Date.now();
              const freshSession: ChatSession = {
                id: freshId,
@@ -331,8 +331,10 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                updatedAt: new Date().toISOString(),
                messages: []
              };
-             loadedSessions = [freshSession, ...loadedSessions];
+             loadedSessions = [freshSession];
            }
+
+           loadedSessions.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
            setSessions(loadedSessions);
            setActiveSessionId(loadedSessions[0].id);
@@ -408,6 +410,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
       id: newId,
       title: 'New Discussion',
       subject: selectedSubjectFilter !== 'All' ? selectedSubjectFilter : 'General',
+      grade: 'Grades R-12', // Adaptive mode by default for new chats
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       messages: []
@@ -415,6 +418,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
     const updated = [newSession, ...sessions];
     setSessions(updated);
     setActiveSessionId(newId);
+    setStudentGrade('Grades R-12');
     saveSessionsToFirebase(updated);
   };
 
@@ -433,6 +437,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
             id: freshId,
             title: 'New Discussion',
             subject: 'General',
+            grade: 'Grades R-12',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             messages: []
@@ -443,6 +448,46 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
       }
       saveSessionsToFirebase(updated.length > 0 ? updated : []);
     }
+  };
+
+  // Clear All Chat History
+  const handleClearAllHistory = () => {
+    if (confirm('Are you sure you want to completely clear your AI chat history? This cannot be undone.')) {
+      const freshId = 'session-' + Date.now();
+      const freshSession: ChatSession = {
+        id: freshId,
+        title: 'New Discussion',
+        subject: 'General',
+        grade: 'Grades R-12',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        messages: []
+      };
+      const updated = [freshSession];
+      setSessions(updated);
+      setActiveSessionId(freshId);
+      saveSessionsToFirebase(updated);
+    }
+  };
+
+  // Restore grade from session
+  useEffect(() => {
+    if (activeSession) {
+      setStudentGrade(activeSession.grade || 'Grades R-12');
+    }
+  }, [activeSessionId, activeSession?.grade]);
+
+  // Update grade mode of active chat session
+  const handleGradeChange = (grade: string) => {
+    setStudentGrade(grade);
+    const updated = sessions.map(s => {
+      if (s.id === activeSessionId) {
+        return { ...s, grade, updatedAt: new Date().toISOString() };
+      }
+      return s;
+    });
+    setSessions(updated);
+    saveSessionsToFirebase(updated);
   };
 
   // Update subject/folder of active chat session
@@ -969,7 +1014,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   <GraduationCap size={14} className="text-amber-400 shrink-0" />
                   <select
                     value={studentGrade}
-                    onChange={e => setStudentGrade(e.target.value)}
+                    onChange={e => handleGradeChange(e.target.value)}
                     className="bg-transparent text-xs text-white font-bold outline-none cursor-pointer [&>option]:bg-[#070b19] [&>option]:text-white"
                   >
                     <option value="All Grades">All Grades (Open Mode)</option>
@@ -1013,6 +1058,17 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   <Plus size={14} strokeWidth={3} />
                   <span>New Chat</span>
                 </button>
+
+                {/* Clear Chat History */}
+                <button
+                  type="button"
+                  onClick={handleClearAllHistory}
+                  className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer shrink-0"
+                  title="Clear All Chat History"
+                >
+                  <Trash2 size={14} />
+                  <span className="hidden sm:inline">Clear</span>
+                </button>
                 
                 {/* Mobile Tools Toggle */}
                 <button
@@ -1040,7 +1096,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                       <label className="text-[9px] uppercase font-black text-brand-cyan mb-1 tracking-wider">Target Grade</label>
                       <select 
                         value={studentGrade} 
-                        onChange={e => setStudentGrade(e.target.value)}
+                        onChange={e => handleGradeChange(e.target.value)}
                         className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-transparent transition-all"
                       >
                         <option value="All Grades">All Grades (Open Mode)</option>
@@ -1464,7 +1520,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   <label className="text-[9px] uppercase font-black text-brand-cyan mb-1 tracking-wider">Target Grade</label>
                   <select 
                     value={studentGrade} 
-                    onChange={e => setStudentGrade(e.target.value)}
+                    onChange={e => handleGradeChange(e.target.value)}
                     className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-transparent transition-all"
                   >
                     <option value="Grades R-12">Grades R-12 (Adaptive)</option>

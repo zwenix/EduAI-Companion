@@ -6,7 +6,7 @@ import {
   Map, Award, Flame, Star, ShieldAlert, Check, HelpCircle, Download, FilePlus
 } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
-import { collection, query, where, getDocs, doc, getDoc, updateDoc, setDoc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, setDoc, addDoc, deleteDoc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
 import { educationalData, getSubjects, getTopics } from '../lib/educational-data';
 import confetti from 'canvas-confetti';
 
@@ -384,18 +384,54 @@ export default function CurriculumSuite({ isDarkMode, userRole }: { isDarkMode: 
   // Total assessment marks
   const totalAssessmentMarks = selectedQuestions.reduce((acc, q) => acc + q.marks, 0);
 
-  // Leaderboard mock players rosters
-  const LEADERBOARD_ROSTER: LeaderboardUser[] = [
-    { name: 'Lerato Molefe', points: 410, level: 4, streak: 9, avatar: '🦊' },
-    { name: 'Jaden Naidoo', points: 380, level: 3, streak: 7, avatar: '🐼' },
-    { name: 'Sibusiso Dube', points: points, level: userLevel, streak: streakDays, avatar: '🐯', isSelf: true },
-    { name: 'Chloe Peters', points: 290, level: 3, streak: 4, avatar: '🐰' },
-    { name: 'Amara Adebayo', points: 250, level: 2, streak: 3, avatar: '🐣' }
-  ];
+  const [leaderboardRoster, setLeaderboardRoster] = useState<LeaderboardUser[]>([]);
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const q = query(collection(db, 'students'), orderBy('points', 'desc'), limit(10));
+        const snap = await getDocs(q);
+        const fetched: LeaderboardUser[] = [];
+        const avatars = ['🦊', '🐼', '🐯', '🐰', '🐣', '🦁', '🐸', '🐵', '🐱', '🐶'];
+        
+        snap.docs.forEach((doc, idx) => {
+          const data = doc.data();
+          const isSelf = auth.currentUser?.uid && (data.teacherId === auth.currentUser.uid || data.userId === auth.currentUser.uid); // simplistic self check
+          fetched.push({
+            name: data.name || 'Unknown Student',
+            points: data.points || 0,
+            level: data.level || 1,
+            streak: data.streak || 0,
+            avatar: avatars[idx % avatars.length],
+            isSelf: isSelf
+          });
+        });
+        
+        // If we don't have enough data or current user is testing and not in list
+        // (Just fallback logic to ensure UI doesn't break if db is empty)
+        if (fetched.length === 0) {
+           fetched.push({ name: 'You', points: points, level: userLevel, streak: streakDays, avatar: '🐯', isSelf: true });
+        } else {
+           // Ensure current user is updated with live local state if present
+           const selfIdx = fetched.findIndex(u => u.isSelf);
+           if (selfIdx !== -1) {
+             fetched[selfIdx].points = points;
+             fetched[selfIdx].level = userLevel;
+             fetched[selfIdx].streak = streakDays;
+           }
+        }
+        
+        setLeaderboardRoster(fetched);
+      } catch (err) {
+        console.error("Error fetching leaderboard", err);
+      }
+    };
+    fetchLeaderboard();
+  }, [points, userLevel, streakDays]);
 
   const sortedLeaderboard = useMemo(() => {
-    return [...LEADERBOARD_ROSTER].sort((a, b) => b.points - a.points);
-  }, [points, userLevel, streakDays]);
+    return [...leaderboardRoster].sort((a, b) => b.points - a.points);
+  }, [leaderboardRoster]);
 
   return (
     <div className={`space-y-6 sm:space-y-8 animate-in fade-in duration-500`}>
@@ -1013,7 +1049,7 @@ export default function CurriculumSuite({ isDarkMode, userRole }: { isDarkMode: 
                   <tbody>
                     {sortedLeaderboard.map((player, idx) => (
                       <tr 
-                        key={player.name}
+                        key={`${player.name}-${idx}`}
                         className={cn(
                           "transition-all",
                           player.isSelf 

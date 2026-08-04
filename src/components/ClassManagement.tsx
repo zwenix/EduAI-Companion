@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Users, Search, Plus, Edit2, Trash2, Mail, GraduationCap, X, 
-  BookOpen, ChevronRight, Layers, PieChart, Sparkles, Check, CloudUpload, ArrowLeft
+  BookOpen, ChevronRight, Layers, PieChart, Sparkles, Check, CloudUpload, ArrowLeft, Eye
 } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
@@ -16,6 +16,7 @@ interface Student {
   email: string;
   status: 'Active' | 'Inactive';
   teacherId: string;
+  notes?: string;
 }
 
 interface ClassModel {
@@ -68,6 +69,24 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
   const [learnerForm, setLearnerForm] = useState({ name: '', grade: '', email: '', status: 'Active' as const });
   const [classForm, setClassForm] = useState({ name: '', subject: '' });
   const [groupForm, setGroupForm] = useState({ name: '', description: '', selectedMembers: [] as string[] });
+
+  // Student Profile Modal State
+  const [viewingProfileStudent, setViewingProfileStudent] = useState<Student | null>(null);
+  const [profileNotes, setProfileNotes] = useState('');
+  const [studentSubmissions, setStudentSubmissions] = useState<any[]>([]);
+  const [isAddingMark, setIsAddingMark] = useState(false);
+  const [manualMarkForm, setManualMarkForm] = useState({ title: '', grade: '', percentage: '', feedback: '' });
+
+  useEffect(() => {
+    if (viewingProfileStudent) {
+      setProfileNotes(viewingProfileStudent.notes || '');
+      const q = query(collection(db, 'submissions'), where('studentId', '==', viewingProfileStudent.id));
+      const unsub = onSnapshot(q, (snap) => {
+        setStudentSubmissions(snap.docs.map(d => d.data()));
+      });
+      return () => unsub();
+    }
+  }, [viewingProfileStudent]);
 
   // Load classes, students, and groups from Firebase Firestore
   useEffect(() => {
@@ -245,6 +264,40 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
     }
   };
 
+  const handleSaveNotes = async () => {
+    if (!viewingProfileStudent) return;
+    try {
+      await updateDoc(doc(db, 'students', viewingProfileStudent.id), { notes: profileNotes });
+      setViewingProfileStudent({ ...viewingProfileStudent, notes: profileNotes });
+      alert("Notes saved successfully.");
+    } catch(err: any) { alert(err.message); }
+  };
+
+  const handleAddManualMark = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!viewingProfileStudent) return;
+    const subId = 'submission_' + Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+    try {
+      await setDoc(doc(db, 'submissions', subId), {
+        id: subId,
+        studentId: viewingProfileStudent.id,
+        studentName: viewingProfileStudent.name,
+        teacherId: viewingProfileStudent.teacherId,
+        assignmentTitle: manualMarkForm.title,
+        status: 'graded',
+        submittedAt: new Date().toISOString(),
+        grade: manualMarkForm.grade,
+        percentageScore: parseInt(manualMarkForm.percentage) || 0,
+        feedback: manualMarkForm.feedback,
+        completedOnline: false,
+        manualEntry: true,
+      });
+      setIsAddingMark(false);
+      setManualMarkForm({ title: '', grade: '', percentage: '', feedback: '' });
+      alert("Mark added successfully.");
+    } catch(err: any) { alert(err.message); }
+  };
+
   const handleDeleteStudent = async (id: string, name: string) => {
     if(confirm(`Are you sure you want to remove learner ${name}?`)) {
       try { 
@@ -410,7 +463,7 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
       {/* Premium Glassmorphic Header Banner */}
       <div className={cn(
         "relative rounded-[32px] p-8 lg:p-10 overflow-hidden text-white border-2 animate-border-flash-cyan shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] backdrop-blur-xl flex flex-col md:flex-row md:items-center md:justify-between gap-6 transition-all duration-300",
-        isDarkMode ? "bg-transparent" : "bg-transparent"
+        isDarkMode ? "bg-slate-900/85" : "bg-slate-900/85"
       )}>
         <div className="absolute -left-10 -bottom-10 w-40 h-40 rounded-full bg-brand-cyan/15 blur-3xl pointer-events-none" />
         <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-brand-pink/15 blur-3xl pointer-events-none" />
@@ -557,12 +610,19 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
                           <td className="py-4 px-6 text-right">
                             <div className="flex items-center justify-end gap-2">
                               <button 
-                                onClick={() => handleEditLearner(student)} 
-                                className="p-2 text-slate-400 hover:text-brand-cyan hover:bg-white/5 rounded-xl transition-all cursor-pointer border border-transparent hover:border-white/5" 
-                                title="Edit Profile"
-                              >
-                                <Edit2 size={15} />
-                              </button>
+    onClick={() => setViewingProfileStudent(student)} 
+    className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-white/5 rounded-xl transition-all cursor-pointer border border-transparent hover:border-white/5"
+    title="View Learner Profile"
+  >
+    <Eye size={15} />
+  </button>
+  <button 
+    onClick={() => handleEditLearner(student)} 
+    className="p-2 text-slate-400 hover:text-brand-cyan hover:bg-white/5 rounded-xl transition-all cursor-pointer border border-transparent hover:border-white/5"
+    title="Edit Profile"
+  >
+    <Edit2 size={15} />
+  </button>
                               <button 
                                 onClick={() => handleDeleteStudent(student.id, student.name)} 
                                 className="p-2 text-slate-400 hover:text-rose-400 hover:bg-white/5 rounded-xl transition-all cursor-pointer border border-transparent hover:border-white/5" 
@@ -1250,6 +1310,135 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
                   Save Class Details
                 </button>
               </form>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Student Profile Modal */}
+        {viewingProfileStudent && (
+          <div className="fixed inset-0 bg-transparent backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-slate-900/85 border border-white/15 rounded-[32px] p-6 lg:p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-[0_0_50px_rgba(34,211,238,0.15)] text-white"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-2xl font-black text-white text-glow-cyan">Learner Profile</h3>
+                  <p className="text-slate-400 font-medium text-sm mt-1">{viewingProfileStudent.name} • {viewingProfileStudent.grade}</p>
+                </div>
+                <button 
+                  type="button" 
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-transparent border border-white/5 flex items-center justify-center text-slate-400 transition-colors"
+                  onClick={() => setViewingProfileStudent(null)}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Notes Section */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-black text-brand-cyan uppercase tracking-widest flex items-center gap-2">
+                    <BookOpen size={16} /> Teacher Notes
+                  </h4>
+                  <textarea 
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-brand-cyan h-40 resize-none"
+                    placeholder="Capture specialized individual learning plans, behavioral notes, and academic assistance strategies here..."
+                    value={profileNotes}
+                    onChange={e => setProfileNotes(e.target.value)}
+                  />
+                  <button 
+                    onClick={handleSaveNotes}
+                    className="w-full bg-brand-cyan/20 hover:bg-brand-cyan/30 text-brand-cyan border border-brand-cyan/50 py-3 rounded-xl font-black uppercase tracking-wider text-xs transition-all shadow-inner"
+                  >
+                    Save Notes
+                  </button>
+
+                  <h4 className="text-sm font-black text-brand-cyan uppercase tracking-widest flex items-center gap-2 mt-8 mb-4">
+                    <CloudUpload size={16} /> Manual Mark Entry
+                  </h4>
+                  {isAddingMark ? (
+                    <form onSubmit={handleAddManualMark} className="space-y-4 bg-white/5 p-4 rounded-xl border border-white/10">
+                      <input 
+                        required placeholder="Assignment Title"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-brand-cyan"
+                        value={manualMarkForm.title} onChange={e => setManualMarkForm({...manualMarkForm, title: e.target.value})}
+                      />
+                      <div className="flex gap-4">
+                        <input 
+                          required placeholder="Grade (e.g. 24/30)"
+                          className="w-1/2 bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-brand-cyan"
+                          value={manualMarkForm.grade} onChange={e => setManualMarkForm({...manualMarkForm, grade: e.target.value})}
+                        />
+                        <input 
+                          required type="number" placeholder="Percentage (e.g. 80)" min="0" max="100"
+                          className="w-1/2 bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-brand-cyan"
+                          value={manualMarkForm.percentage} onChange={e => setManualMarkForm({...manualMarkForm, percentage: e.target.value})}
+                        />
+                      </div>
+                      <textarea 
+                        required placeholder="Teacher Feedback"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-brand-cyan h-20 resize-none"
+                        value={manualMarkForm.feedback} onChange={e => setManualMarkForm({...manualMarkForm, feedback: e.target.value})}
+                      />
+                      <div className="flex gap-2">
+                        <button type="submit" className="flex-1 bg-brand-cyan hover:bg-cyan-500 text-slate-950 py-2 rounded-lg font-black uppercase text-xs transition-all">Save Mark</button>
+                        <button type="button" onClick={() => setIsAddingMark(false)} className="px-4 py-2 bg-white/5 text-white rounded-lg text-xs uppercase font-bold hover:bg-white/10 transition-all">Cancel</button>
+                      </div>
+                    </form>
+                  ) : (
+                    <button 
+                      onClick={() => setIsAddingMark(true)}
+                      className="w-full bg-white/5 hover:bg-white/10 text-white border border-white/10 py-3 rounded-xl font-black uppercase tracking-wider text-xs transition-all flex items-center justify-center gap-2"
+                    >
+                      <Plus size={16} /> Capture Manual Result
+                    </button>
+                  )}
+                </div>
+
+                {/* Submissions History Section */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-black text-brand-pink uppercase tracking-widest flex items-center gap-2">
+                    <Layers size={16} /> Academic History & Results
+                  </h4>
+                  <div className="space-y-3 h-[450px] overflow-y-auto pr-2 custom-scrollbar">
+                    {studentSubmissions.length === 0 ? (
+                      <div className="text-center p-8 bg-white/5 border border-white/5 rounded-2xl text-slate-400 text-sm">
+                        No submissions or marks recorded yet.
+                      </div>
+                    ) : (
+                      studentSubmissions.sort((a,b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()).map((sub, idx) => (
+                        <div key={idx} className="bg-white/5 p-4 rounded-xl border border-white/10">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <p className="font-bold text-white text-sm">{sub.assignmentTitle || "Assignment"}</p>
+                              <p className="text-xs text-slate-400 mt-0.5">{new Date(sub.submittedAt).toLocaleDateString()}</p>
+                            </div>
+                            <div className="text-right">
+                              <span className="inline-block bg-brand-cyan/20 text-brand-cyan px-2 py-0.5 rounded text-xs font-bold border border-brand-cyan/30">
+                                {sub.percentageScore}%
+                              </span>
+                              <p className="text-[10px] text-slate-400 mt-1">{sub.grade}</p>
+                            </div>
+                          </div>
+                          {sub.feedback && (
+                            <div className="bg-slate-900/50 p-3 rounded-lg border border-white/5 mt-3">
+                              <p className="text-xs text-slate-300 italic">"{sub.feedback}"</p>
+                            </div>
+                          )}
+                          <div className="mt-3 flex gap-2">
+                             {sub.completedOnline && <span className="text-[9px] bg-brand-purple/20 text-brand-purple px-1.5 py-0.5 rounded uppercase font-bold tracking-widest">Digital Entry</span>}
+                             {sub.manualEntry && <span className="text-[9px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-widest">Manual Mark</span>}
+                             {!sub.completedOnline && !sub.manualEntry && <span className="text-[9px] bg-brand-pink/20 text-brand-pink px-1.5 py-0.5 rounded uppercase font-bold tracking-widest">OCR Scanned</span>}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

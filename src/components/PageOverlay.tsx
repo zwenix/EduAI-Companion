@@ -56,14 +56,20 @@ export default function PageOverlay({
         {/* key={src} remounts on route change → the new constellation ignites */}
         <div
           key={src}
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat will-change-transform"
+          className="absolute inset-0 will-change-transform overflow-hidden flex items-center justify-center"
           style={{
-            backgroundImage: `url(${src})`,
             opacity: imgOpacity,
             mixBlendMode: blend === 'screen' ? 'screen' : 'normal',
             animation: 'ov-ignite 900ms ease-out both' + (drift ? ', ov-drift 48s ease-in-out infinite' : ''),
           }}
-        />
+        >
+          <img
+            src={src}
+            alt=""
+            draggable={false}
+            className="w-full h-full object-cover object-center scale-105"
+          />
+        </div>
 
         {vignette && (
           // radial hush: protects the centre AND tames the side-heroes

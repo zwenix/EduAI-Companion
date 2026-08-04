@@ -151,7 +151,6 @@ import { cleanTextForSpeech } from './services/ttsService';
 import { auth, db } from './lib/firebase';
 import { doc, setDoc, updateDoc, serverTimestamp, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import { MOCK_STUDENTS } from './data/mockStudents';
 import axios from 'axios';
 import { 
   AreaChart, Area, 
@@ -295,9 +294,6 @@ export default function App() {
   }, [userRole]);
 
   const computedStudents = useMemo(() => {
-    if (dashboardStudents.length === 0) {
-      return MOCK_STUDENTS;
-    }
     return dashboardStudents.map(student => {
       const seed = student.name.charCodeAt(0) || 72;
       const mathScore = Math.min(95, Math.max(42, (seed % 40) + 50));

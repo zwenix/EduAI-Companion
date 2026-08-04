@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Search, Library, History, ExternalLink, Loader2, Trash2, Eye, Edit3, FileDown, Send, Check, X, FileText, FileJson, Bookmark } from 'lucide-react';
+import { Box, Search, Library, History, ExternalLink, Loader2, Trash2, Eye, Edit3, FileDown, Send, Check, X, FileText, FileJson, Bookmark, UploadCloud } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { marked } from 'marked';
 
@@ -24,6 +24,7 @@ import { replaceImagePlaceholders } from '../lib/imageReplacer';
 // PrintHeader import removed as per user request
 import { PosterPreview } from './PosterPreview';
 import { auth, db } from '../lib/firebase';
+import { runOCRScan } from '../services/geminiService';
 import { collection, query, where, getDocs, deleteDoc, doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
 
@@ -131,12 +132,84 @@ export default function ContentArchive() {
   const [isAssigning, setIsAssigning] = useState(false);
   const printableRef = useRef<HTMLDivElement>(null);
 
-  // Assignment targeting states
+
+// Assignment targeting states
   const [assigneeType, setAssigneeType] = useState<'class' | 'group' | 'student'>('class');
   const [assigneeTargetId, setAssigneeTargetId] = useState('');
   const [availableStudents, setAvailableStudents] = useState<any[]>([]);
   const [availableClasses, setAvailableClasses] = useState<any[]>([]);
   const [availableGroups, setAvailableGroups] = useState<any[]>([]);
+
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadTitle, setUploadTitle] = useState("");
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadCustomTask = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!uploadTitle.trim()) {
+      alert("Please enter a title for your task before uploading.");
+      if (uploadInputRef.current) uploadInputRef.current.value = "";
+      return;
+    }
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+           setIsUploading(false);
+           return;
+        }
+
+        const dataUrl = reader.result as string;
+        const newId = "archive_" + Date.now().toString();
+
+        let extractedText = "";
+        
+        // Use Gemini to extract text if it is an image
+        if (file.type.startsWith("image/")  ) {
+          try {
+             const base64Image = dataUrl.split(",")[1];
+             const ocrRes = await runOCRScan(base64Image, "English", false);
+             if (ocrRes.success) {
+                 extractedText = ocrRes.text + "\n\n<img src=\"" + dataUrl + "\" alt=\"Task\" style=\"max-width:100%; border-radius: 8px;\" />";
+             } else {
+                 extractedText = "<p>Attached Custom Document.</p><img src=\"" + dataUrl + "\" alt=\"Task\" style=\"max-width:100%; border-radius: 8px;\" />";
+             }
+          } catch(err) {
+             console.warn("Gemini extraction failed, using raw base64.", err);
+             extractedText = `<p>Attached Custom Document.</p><img src="${dataUrl}" alt="Task" style="max-width:100%; border-radius: 8px;" />`;
+          }
+        } else {
+           extractedText = `<p>Attached Custom Document.</p><img src="${dataUrl}" alt="Task" style="max-width:100%; border-radius: 8px;" />`;
+        }
+
+        await setDoc(doc(db, "archive", newId), {
+          id: newId,
+          userId: user.uid,
+          title: uploadTitle,
+          subject: "Custom Task",
+          grade: "All",
+          contentType: "Task",
+          content: extractedText,
+          createdAt: serverTimestamp()
+        });
+
+        alert("Task successfully uploaded and saved to archive!");
+        setUploadTitle("");
+      } catch (err: any) {
+        alert("Upload failed: " + err.message);
+      } finally {
+        setIsUploading(false);
+        if (uploadInputRef.current) uploadInputRef.current.value = "";
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
 
   useEffect(() => {
     setAssigneeTargetId('');
@@ -390,7 +463,43 @@ export default function ContentArchive() {
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8">
+
+        <div className="glass p-4 lg:p-6 rounded-[2rem] lg:rounded-[2.5rem] flex items-center gap-4 lg:gap-6 border border-slate-200 shadow-sm relative group overflow-hidden bg-gradient-to-r hover:from-brand-cyan/5 hover:to-transparent transition-all cursor-pointer">
+          <div className="p-3 lg:p-5 bg-brand-pink/20 rounded-2xl lg:rounded-3xl text-brand-pink"><UploadCloud className="h-6 w-6 lg:h-8 lg:w-8" /></div>
+          <div className="flex-1">
+            <h3 className="font-hand text-xl lg:text-2xl text-slate-800">Upload Task</h3>
+            <p className="text-slate-500 text-xs lg:text-sm">Upload custom PDF or image.</p>
+            <div className="mt-2 flex gap-2 relative z-20">
+              <input 
+                type="text" 
+                placeholder="Task Title..." 
+                className="w-full text-xs px-2 py-1 rounded border border-slate-300 focus:outline-brand-cyan bg-white/50"
+                value={uploadTitle}
+                onChange={(e) => setUploadTitle(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+              />
+              <button 
+                className="bg-brand-cyan text-white text-xs px-3 py-1 rounded font-bold hover:bg-cyan-500 transition-colors flex items-center gap-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  uploadInputRef.current?.click();
+                }}
+                disabled={isUploading}
+              >
+                {isUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : "Upload"}
+              </button>
+            </div>
+            <input 
+              type="file" 
+              className="hidden" 
+              ref={uploadInputRef}
+              accept="image/*,application/pdf"
+              onChange={handleUploadCustomTask}
+            />
+          </div>
+        </div>
+
         <div className="glass p-4 lg:p-6 rounded-[2rem] lg:rounded-[2.5rem] flex items-center gap-4 lg:gap-6 border border-slate-200 shadow-sm relative group overflow-hidden">
           <div className="p-3 lg:p-5 bg-brand-yellow/20 rounded-2xl lg:rounded-3xl text-brand-yellow"><Library className="h-6 w-6 lg:h-8 lg:w-8" /></div>
           <div>

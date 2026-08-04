@@ -88,7 +88,7 @@ function InteractiveShowcaseCard({
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       onClick={onClick}
-      className={`rounded-[32px] border-2 bg-transparent p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:brightness-110 transition-all duration-300 cursor-pointer relative overflow-hidden h-full min-h-[340px] select-none ${borderColorClass} ${shadowColorClass} ${hoverBorderColorClass} ${hoverShadowColorClass}`}
+      className={`rounded-[32px] border-2 bg-slate-900/85 p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:brightness-110 transition-all duration-300 cursor-pointer relative overflow-hidden h-full min-h-[340px] select-none ${borderColorClass} ${shadowColorClass} ${hoverBorderColorClass} ${hoverShadowColorClass}`}
     >
       {/* Background Slideshow using Framer Motion (matching the main ContentSlideshow) */}
       <AnimatePresence mode="wait" initial={false}>
@@ -165,7 +165,7 @@ export default function CategoryOverview({
   // Custom Intelligent AI Hub UI (matching Teacher's Toolbox design)
   if (categoryLabel === 'Intelligent AI' || categoryLabel === 'Intelligence AI' || categoryLabel === "AI Tutor's Class") {
     return (
-      <div className="relative p-6 lg:p-10 overflow-hidden rounded-[40px] border border-indigo-500/30 bg-transparent text-white min-h-[85vh] flex flex-col justify-between font-sans">
+      <div className="relative p-6 lg:p-10 overflow-hidden rounded-[40px] border border-indigo-500/30 bg-slate-900/85 text-white min-h-[85vh] flex flex-col justify-between font-sans">
         
         {/* Deep Cosmic Background & Subtle Stars */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-[40px]" />
@@ -457,7 +457,7 @@ export default function CategoryOverview({
     categoryLabel === 'lesson-planning'
   ) {
     return (
-      <div className="relative p-6 lg:p-10 overflow-hidden rounded-[40px] border border-indigo-500/30 bg-transparent text-white min-h-[85vh] flex flex-col justify-between font-sans">
+      <div className="relative p-6 lg:p-10 overflow-hidden rounded-[40px] border border-indigo-500/30 bg-slate-900/85 text-white min-h-[85vh] flex flex-col justify-between font-sans">
         
         {/* Deep Cosmic Background & Subtle Stars */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-[40px]" />

@@ -20,7 +20,6 @@ import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
 import { StudentDoc, Subject, Assessment, MilestoneTask, IdpModel } from '../types';
-import { MOCK_STUDENTS, PRELOADED_PLANS } from '../data/mockStudents';
 import LoadingMascot from './LoadingMascot';
 
 export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: boolean }) {
@@ -45,7 +44,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
   const [selectedClassFilter, setSelectedClassFilter] = useState('All');
   
   // Selection
-  const [selectedStudentId, setSelectedStudentId] = useState<string>('mock-1');
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [selectedSubjectName, setSelectedSubjectName] = useState<string>('');
   
   // Marks and Assessment distribution chart state
@@ -140,13 +139,6 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
   const handleUpdateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editStudentName.trim() || !currentStudent) return;
-    
-    // Prevent updating unseeded mock fallback record directly
-    if (currentStudent.id.startsWith('mock-') && !currentStudent.id.includes('_')) {
-      alert("This is a preview student. Please add a new student instead.");
-      setShowEditStudentModal(false);
-      return;
-    }
 
     try {
       await updateDoc(doc(db, 'students', currentStudent.id), {
@@ -182,28 +174,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
     // Students
     const qStudents = query(collection(db, 'students'), where('teacherId', '==', user.uid));
     const unsubStudents = onSnapshot(qStudents, async (snapshot) => {
-      if (snapshot.empty) {
-        console.log("Seeding student documents to Firestore for new teacher...");
-        const seededList: any[] = [];
-        for (const mock of MOCK_STUDENTS) {
-          const docId = `${mock.id}_${user.uid}`;
-          const seededData = {
-            ...mock,
-            id: docId,
-            teacherId: user.uid,
-            createdAt: serverTimestamp(),
-          };
-          try {
-            await setDoc(doc(db, 'students', docId), seededData);
-          } catch (e) {
-            console.error("Failed to seed student doc", e);
-          }
-          seededList.push(seededData);
-        }
-        setFirebaseStudents(seededList);
-      } else {
-        setFirebaseStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      }
+      setFirebaseStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setLoading(false);
     }, (error) => {
       console.error("Students loading snapshot error:", error);
@@ -229,7 +200,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
     }));
   }, [firebaseStudents]);
 
-  // Merge mock students with Firebase students so that any custom-added learner dynamically functions!
+  // Process students to include synthetic data if necessary
   const allStudents = useMemo(() => {
     return firebaseStudents.map(student => {
       // Create a deterministic seed from student name to create realistic scores
@@ -425,11 +396,6 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
     if (customPlans[selectedStudentId]) {
       return customPlans[selectedStudentId];
     }
-    // Else check preloaded mock analyses
-    const cleanId = selectedStudentId.split('_')[0];
-    if (PRELOADED_PLANS[cleanId]) {
-      return PRELOADED_PLANS[cleanId];
-    }
     // Final default fallback structure
     return {
       strengths: [
@@ -464,7 +430,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
     localStorage.setItem('eduai_custom_plans', JSON.stringify(cached));
 
     // Firebase update if live student
-    if (auth.currentUser && !(studentId.startsWith('mock-') && !studentId.includes('_'))) {
+    if (auth.currentUser) {
       try {
         await updateDoc(doc(db, 'students', studentId), {
           idp: updatedPlan,
@@ -728,7 +694,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
       {/* Header Block with Tab Navigator */}
       <div className={cn(
         "relative rounded-[36px] p-8 overflow-hidden text-white flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border shadow-2xl",
-        isDarkMode ? "bg-transparent border-white/10" : "bg-transparent border-slate-800"
+        isDarkMode ? "bg-slate-900/85 border-white/10" : "bg-slate-900/85 border-slate-800"
       )}>
         <div className="absolute top-0 right-0 p-8 opacity-20 pointer-events-none hidden md:block">
           <TrendingUp size={160} />
@@ -783,7 +749,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
         >
           {/* Main Chart Card + Sidebar info */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 glass bg-transparent p-4 sm:p-6 md:p-8 rounded-[28px] sm:rounded-[40px] md:rounded-[48px] border border-white/5 h-[320px] sm:h-[400px] md:h-[440px] flex flex-col justify-between min-w-0">
+            <div className="lg:col-span-2 glass bg-slate-900/85 p-4 sm:p-6 md:p-8 rounded-[28px] sm:rounded-[40px] md:rounded-[48px] border border-white/5 h-[320px] sm:h-[400px] md:h-[440px] flex flex-col justify-between min-w-0">
               <div>
                 <h3 className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-widest mb-3 sm:mb-6 flex items-center gap-2">
                   <TrendingUp size={16} className="text-brand-cyan" />
@@ -821,7 +787,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
 
             {/* Sidebar quick updates */}
             <div className="space-y-6 flex flex-col justify-between h-full">
-              <div className="glass bg-transparent p-8 rounded-[40px] border border-white/5 flex-1 flex flex-col justify-center">
+              <div className="glass bg-slate-900/85 p-8 rounded-[40px] border border-white/5 flex-1 flex flex-col justify-center">
                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                   <TrendingUp size={14} className="text-emerald-400 animate-pulse" />
                   Top Class Growth
@@ -838,7 +804,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                 </div>
               </div>
 
-              <div className="glass bg-transparent p-8 rounded-[40px] border border-white/5 flex-1 flex flex-col justify-center mt-6">
+              <div className="glass bg-slate-900/85 p-8 rounded-[40px] border border-white/5 flex-1 flex flex-col justify-center mt-6">
                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                   <AlertCircle size={14} className="text-rose-400" />
                   Attention Suggested
@@ -869,7 +835,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
           </div>
 
           {/* Dynamic Marks Distribution Card (Bar Chart) */}
-          <div className="glass bg-transparent p-6 sm:p-8 rounded-[40px] border border-white/5 space-y-6">
+          <div className="glass bg-slate-900/85 p-6 sm:p-8 rounded-[40px] border border-white/5 space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h3 className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-2">
@@ -1004,7 +970,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
               { label: 'Avg SBA Percentage', value: '69%', icon: BookOpen, color: 'text-purple-400', bg: 'bg-purple-500/5' },
               { label: 'Roster Capacity', value: `${allStudents.length} Students`, icon: Users, color: 'text-brand-cyan', bg: 'bg-cyan-500/5' },
             ].map((stat, i) => (
-              <div key={i} className="glass bg-transparent p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] border border-white/5 flex items-center gap-3 sm:gap-4">
+              <div key={i} className="glass bg-slate-900/85 p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] border border-white/5 flex items-center gap-3 sm:gap-4">
                 <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${stat.bg} border border-white/5`}>
                   <stat.icon size={18} className={stat.color} />
                 </div>
@@ -1046,7 +1012,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
         >
           {/* LEFT INDEX FOR SEARCH AND ROSTER LISTING (cols-4) */}
           {(!isMobile || mobileActiveSubView === 'roster') && (
-            <div className="lg:col-span-4 bg-transparent border border-white/5 p-4 sm:p-6 lg:p-8 rounded-[28px] sm:rounded-[40px] space-y-6">
+            <div className="lg:col-span-4 bg-slate-900/85 border border-white/5 p-4 sm:p-6 lg:p-8 rounded-[28px] sm:rounded-[40px] space-y-6">
               <div className="flex justify-between items-center sm:gap-4">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                   <Search size={14} className="text-brand-cyan" />
@@ -1076,7 +1042,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                     placeholder="Search by learner name..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full bg-white/5 hover:bg-transparent focus:bg-transparent transition-all border border-white/10 rounded-2xl pl-10 pr-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-cyan/40 focus:border-brand-cyan placeholder:text-slate-500"
+                    className="w-full bg-white/5 hover:bg-slate-900/85 focus:bg-slate-900/85 transition-all border border-white/10 rounded-2xl pl-10 pr-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-cyan/40 focus:border-brand-cyan placeholder:text-slate-500"
                   />
                 </div>
 
@@ -1129,13 +1095,13 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                       className={`p-4 rounded-3xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                         isSelected 
                           ? 'bg-[#1E293B] border-brand-cyan shadow-lg shadow-cyan-500/5 text-white' 
-                          : 'bg-white/5 hover:bg-transparent border-white/5 text-slate-300'
+                          : 'bg-white/5 hover:bg-slate-900/85 border-white/5 text-slate-300'
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         {/* Initials badge */}
                         <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-bold leading-none shrink-0 ${
-                          isSelected ? 'bg-brand-cyan text-navy-dark font-black' : 'bg-transparent text-slate-300'
+                          isSelected ? 'bg-brand-cyan text-navy-dark font-black' : 'bg-slate-900/85 text-slate-300'
                         }`}>
                           {student.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                         </div>
@@ -1176,7 +1142,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                 <button
                   type="button"
                   onClick={() => setMobileActiveSubView('roster')}
-                  className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-brand-cyan bg-[#1E293B] border border-brand-cyan/20 px-4 py-3 rounded-2xl hover:bg-transparent active:scale-95 transition-all mb-4 self-start cursor-pointer shadow-md"
+                  className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-brand-cyan bg-[#1E293B] border border-brand-cyan/20 px-4 py-3 rounded-2xl hover:bg-slate-900/85 active:scale-95 transition-all mb-4 self-start cursor-pointer shadow-md"
                 >
                   <ArrowLeft size={14} />
                   <span>◀ Back to Learner List</span>
@@ -1193,7 +1159,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                     className="space-y-8 p-6 bg-[#0f172a] rounded-[40px] border border-white/5"
                   >
                   {/* Student Banner */}
-                  <div className="glass bg-transparent p-6 lg:p-8 rounded-[40px] border border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                  <div className="glass bg-slate-900/85 p-6 lg:p-8 rounded-[40px] border border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div className="flex items-center gap-5">
                       <div className="w-16 h-16 bg-gradient-to-tr from-brand-cyan to-indigo-500 rounded-3xl flex items-center justify-center text-xl font-bold font-hand text-navy-dark leading-none shadow-xl shrink-0">
                         {currentStudent.name.split(' ').map(n => n.charAt(0)).join('')}
@@ -1225,17 +1191,13 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                           setEditParentPhone(currentStudent.parentPhone || '');
                           setShowEditStudentModal(true);
                         }}
-                        className="p-3 bg-white/5 hover:bg-transparent border border-white/10 text-white rounded-2xl transition-all cursor-pointer"
+                        className="p-3 bg-white/5 hover:bg-slate-900/85 border border-white/10 text-white rounded-2xl transition-all cursor-pointer"
                         title="Edit learner profile"
                       >
                         <Edit2 size={14} className="text-brand-cyan" />
                       </button>
                       <button 
                         onClick={async () => {
-                          if (currentStudent.id.startsWith('mock-') && !currentStudent.id.includes('_')) {
-                            alert("Cannot delete preview mock students.");
-                            return;
-                          }
                           if (confirm(`Are you sure you want to completely delete learner record ${currentStudent.name}?`)) {
                             try {
                               await deleteDoc(doc(db, 'students', currentStudent.id));
@@ -1252,7 +1214,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                       </button>
                       <button 
                         onClick={handleSyncToParents}
-                        className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white/5 hover:bg-transparent border border-white/10 text-white rounded-2xl px-5 py-3 text-xs font-black uppercase tracking-widest transition-all cursor-pointer"
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white/5 hover:bg-slate-900/85 border border-white/10 text-white rounded-2xl px-5 py-3 text-xs font-black uppercase tracking-widest transition-all cursor-pointer"
                         title="Sync report with Parent Portal"
                       >
                         <Send size={14} />
@@ -1280,7 +1242,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                   </div>
 
                   {/* Connected Parent & Guardian Profile */}
-                  <div className="glass bg-transparent p-6 rounded-[32px] border border-white/5 space-y-4">
+                  <div className="glass bg-slate-900/85 p-6 rounded-[32px] border border-white/5 space-y-4">
                     <div className="flex items-center justify-between border-b border-white/5 pb-3">
                       <h4 className="text-xs font-black uppercase text-brand-cyan tracking-widest flex items-center gap-2">
                         <span>👨‍👩‍👦 Connected Parent & Guardian details</span>
@@ -1313,7 +1275,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     
                     {/* Graph 1: Overall Term GPA Performance */}
-                    <div className="glass bg-transparent p-6 rounded-[36px] border border-white/5">
+                    <div className="glass bg-slate-900/85 p-6 rounded-[36px] border border-white/5">
                       <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                         <Activity size={14} className="text-brand-cyan" />
                         Overall Term Average progression
@@ -1340,7 +1302,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                     </div>
 
                     {/* Graph 2: Subject Targeted Progress */}
-                    <div className="glass bg-transparent p-6 rounded-[36px] border border-white/5">
+                    <div className="glass bg-slate-900/85 p-6 rounded-[36px] border border-white/5">
                       <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                         <TrendingUp size={14} className="text-purple-400" />
                         Subject Progression: {selectedSubjectName || "N/A"}
@@ -1365,7 +1327,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                   </div>
 
                   {/* ACTIVE SUBJECT CHOOSE BUTTONS AND DETAILED ASSESSMENT MATRIX */}
-                  <div className="glass bg-transparent p-6 lg:p-8 rounded-[40px] border border-white/5 space-y-6">
+                  <div className="glass bg-slate-900/85 p-6 lg:p-8 rounded-[40px] border border-white/5 space-y-6">
                     <div>
                       <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                         <BookOpen size={16} className="text-brand-cyan" />
@@ -1388,7 +1350,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                             className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-xs font-bold whitespace-nowrap transition-all uppercase tracking-wider ${
                               isFocused 
                                 ? 'bg-[#1E293B] border border-brand-cyan text-brand-cyan shadow-md' 
-                                : 'bg-white/5 border border-transparent text-slate-400 hover:text-white hover:bg-transparent'
+                                : 'bg-white/5 border border-transparent text-slate-400 hover:text-white hover:bg-slate-900/85'
                             }`}
                           >
                             <span>{subj.name}</span>
@@ -1508,7 +1470,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           
                           {/* Column 1: Strengths */}
-                          <div className="bg-transparent p-5 rounded-3xl border border-emerald-500/10 space-y-3">
+                          <div className="bg-slate-900/85 p-5 rounded-3xl border border-emerald-500/10 space-y-3">
                             <h5 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
                               <CheckCircle size={12} /> Key Academic Strengths
                             </h5>
@@ -1523,7 +1485,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                           </div>
 
                           {/* Column 2: Weaknesses */}
-                          <div className="bg-transparent p-5 rounded-3xl border border-yellow-500/10 space-y-3">
+                          <div className="bg-slate-900/85 p-5 rounded-3xl border border-yellow-500/10 space-y-3">
                             <h5 className="text-[10px] font-black text-brand-yellow uppercase tracking-widest flex items-center gap-1.5">
                               <AlertCircle size={12} /> Directed Growth Areas
                             </h5>
@@ -1540,7 +1502,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                         </div>
 
                         {/* Advisory Recommendations Section */}
-                        <div className="bg-transparent p-5 rounded-3xl border border-indigo-500/10 space-y-3">
+                        <div className="bg-slate-900/85 p-5 rounded-3xl border border-indigo-500/10 space-y-3">
                           <h5 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
                             <Brain size={12} /> AI Advisory learning Steps
                           </h5>
@@ -1555,7 +1517,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                         </div>
 
                         {/* Interactive ROADMAP Milestones list (Teacher Action Control) */}
-                        <div className="bg-transparent p-5 rounded-3xl border border-white/5 space-y-4">
+                        <div className="bg-slate-900/85 p-5 rounded-3xl border border-white/5 space-y-4">
                           <div className="flex justify-between items-center border-b border-white/5 pb-2">
                             <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                               <CheckSquare size={12} /> Interactive Roadmap Goals Timeline
@@ -1628,7 +1590,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                             </div>
                             <button
                               type="submit"
-                              className="bg-transparent hover:bg-transparent hover:text-white transition-all text-slate-300 text-xs font-black uppercase tracking-widest rounded-xl py-2 flex items-center justify-center gap-1.5 cursor-pointer"
+                              className="bg-slate-900/85 hover:bg-slate-900/85 hover:text-white transition-all text-slate-300 text-xs font-black uppercase tracking-widest rounded-xl py-2 flex items-center justify-center gap-1.5 cursor-pointer"
                             >
                               <Plus size={14} /> Add Goal
                             </button>
@@ -1639,7 +1601,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
                   </div>
                 </motion.div>
               ) : (
-                <div className="glass bg-transparent p-12 rounded-[50px] border border-white/5 text-center text-slate-500 max-w-lg mx-auto py-24 space-y-4">
+                <div className="glass bg-slate-900/85 p-12 rounded-[50px] border border-white/5 text-center text-slate-500 max-w-lg mx-auto py-24 space-y-4">
                   <div className="p-4 bg-brand-cyan/15 rounded-full border border-brand-cyan/25 text-brand-cyan w-16 h-16 mx-auto flex items-center justify-center">
                     <User size={32} />
                   </div>
@@ -1670,7 +1632,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
               </h3>
               <button 
                 onClick={() => setShowAddStudentModal(false)}
-                className="text-slate-400 hover:text-white p-1 hover:bg-transparent rounded-full transition-all cursor-pointer"
+                className="text-slate-400 hover:text-white p-1 hover:bg-slate-900/85 rounded-full transition-all cursor-pointer"
               >
                 <X size={20} />
               </button>
@@ -1777,7 +1739,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
               </h3>
               <button 
                 onClick={() => setShowEditStudentModal(false)}
-                className="text-slate-400 hover:text-white p-1 hover:bg-transparent rounded-full transition-all cursor-pointer"
+                className="text-slate-400 hover:text-white p-1 hover:bg-slate-900/85 rounded-full transition-all cursor-pointer"
               >
                 <X size={20} />
               </button>

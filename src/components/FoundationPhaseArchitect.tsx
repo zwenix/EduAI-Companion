@@ -265,7 +265,7 @@ export default function FoundationPhaseArchitect({
                     />
                     <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
                     
-                    {/* Sandbox UI Placeholder */}
+                    {/* Sandbox UI Interactive View */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-8 p-6 text-center">
                        <div className="space-y-1">
                           <span className="text-[9px] font-black text-cyan-400 uppercase tracking-[0.2em] bg-cyan-400/10 px-2 py-0.5 rounded-full border border-cyan-400/20">SANDBOX PREVIEW</span>
