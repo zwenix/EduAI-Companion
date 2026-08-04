@@ -265,30 +265,42 @@ export default function Settings({
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-20">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20">
+      {/* Cosmic Header Banner */}
+      <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-r from-slate-900 via-indigo-950/80 to-slate-900 border border-cyan-500/30 p-8 sm:p-10 shadow-2xl text-center">
+        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+          <Sparkles size={140} className="text-cyan-400" />
+        </div>
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-widest mb-4">
+          <Sparkles size={14} className="animate-spin" />
+          <span>EduAI Platform Control</span>
+        </div>
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white font-display tracking-tight mb-3">
+          ✨ Settings & Preferences ✨
+        </h1>
+        <p className="text-slate-300 max-w-2xl mx-auto text-sm sm:text-base font-medium">
+          Manage your account profile, adaptive learning preferences, security credentials, and platform configurations.
+        </p>
+        <div className="mt-6 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setViewMode(viewMode === 'dashboard' ? 'advanced' : 'dashboard')}
+            className="bg-brand-cyan text-navy-dark px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg hover:scale-105 cursor-pointer flex items-center gap-2"
+          >
+            <IconSettings size={16} />
+            <span>{viewMode === 'dashboard' ? 'Switch to Advanced System Matrix' : 'Return to Dashboard View'}</span>
+          </button>
+        </div>
+      </div>
+
       {viewMode === 'dashboard' ? (
         <div className="space-y-6 text-white font-sans">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl sm:text-3xl font-display font-black tracking-tight text-white">
-              Account & Platform Settings
-            </h1>
-            <button
-              type="button"
-              onClick={() => setViewMode('advanced')}
-              className="bg-slate-900/85 hover:bg-slate-900/85 text-slate-200 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg hover:border-cyan-500/50"
-            >
-              <IconSettings size={14} className="text-cyan-400" />
-              <span>Advanced System Matrix</span>
-            </button>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left Sidebar (~25% / 3 cols) */}
             <div className="lg:col-span-3 bg-[#0a0e20] border border-white/10 rounded-[28px] p-4 flex flex-col justify-between shadow-2xl min-h-[480px]">
               <div className="space-y-1">
                 <h3 className="text-lg font-bold text-white px-3 py-2 mb-2">
-                  Settings
+                  Settings Menu
                 </h3>
                 
                 <button

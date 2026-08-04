@@ -460,42 +460,33 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
 
   return (
     <div className="space-y-8 pb-10">
-      {/* Premium Glassmorphic Header Banner */}
-      <div className={cn(
-        "relative rounded-[32px] p-8 lg:p-10 overflow-hidden text-white border-2 animate-border-flash-cyan shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] backdrop-blur-xl flex flex-col md:flex-row md:items-center md:justify-between gap-6 transition-all duration-300",
-        isDarkMode ? "bg-slate-900/85" : "bg-slate-900/85"
-      )}>
-        <div className="absolute -left-10 -bottom-10 w-40 h-40 rounded-full bg-brand-cyan/15 blur-3xl pointer-events-none" />
-        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-brand-pink/15 blur-3xl pointer-events-none" />
-        
-        <div className="relative z-10 flex items-center gap-5">
-          <div className="p-4 bg-brand-cyan/10 border border-brand-cyan/25 rounded-2xl text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.2)]">
-            <Users size={36} className="icon-glow-cyan" />
-          </div>
-          <div>
-            <span className="text-[10px] uppercase tracking-widest text-brand-cyan font-black block mb-1">Administrative Center</span>
-            <h2 className="text-2xl lg:text-3xl font-display font-black tracking-tight leading-none text-white text-glow-cyan">
-              Class & Learner <span className="text-brand-cyan font-hand text-3xl">Management</span>
-            </h2>
-            <p className="text-slate-400 font-medium text-xs lg:text-sm mt-2 max-w-lg">
-              Organize classes, manage learner profiles, import rosters, and structure active study groups inside a centralized DBE & CAPS-focused ecosystem.
-            </p>
-          </div>
+      {/* Cosmic Header Banner */}
+      <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-r from-slate-900 via-indigo-950/80 to-slate-900 border border-cyan-500/30 p-8 sm:p-10 shadow-2xl text-center">
+        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+          <Sparkles size={140} className="text-cyan-400" />
         </div>
-
-        {/* Dynamic Overview Stats */}
-        <div className="relative z-10 grid grid-cols-3 gap-3 w-full md:w-auto shrink-0 md:border-l md:border-white/10 md:pl-6">
-          <div className="bg-white/[0.03] border border-white/5 p-3.5 rounded-2xl text-center min-w-[90px]">
-            <span className="text-[10px] font-black tracking-wider text-slate-400 block uppercase">Learners</span>
-            <span className="text-xl lg:text-2xl font-black text-brand-cyan font-mono mt-1 block">{students.length}</span>
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-widest mb-4">
+          <Sparkles size={14} className="animate-spin" />
+          <span>Administrative Center</span>
+        </div>
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white font-display tracking-tight mb-3">
+          ✨ Classes & Learners ✨
+        </h1>
+        <p className="text-slate-300 max-w-2xl mx-auto text-sm sm:text-base font-medium">
+          Organize classes, manage learner profiles, import rosters, and structure active study groups inside a centralized DBE & CAPS-focused ecosystem.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-4">
+          <div className="bg-white/[0.05] border border-white/10 px-5 py-2.5 rounded-2xl flex items-center gap-2">
+            <span className="text-xs text-slate-400 font-bold uppercase">Learners:</span>
+            <span className="text-lg font-black text-cyan-400 font-mono">{students.length}</span>
           </div>
-          <div className="bg-white/[0.03] border border-white/5 p-3.5 rounded-2xl text-center min-w-[90px]">
-            <span className="text-[10px] font-black tracking-wider text-slate-400 block uppercase">Classes</span>
-            <span className="text-xl lg:text-2xl font-black text-white font-mono mt-1 block">{classes.length}</span>
+          <div className="bg-white/[0.05] border border-white/10 px-5 py-2.5 rounded-2xl flex items-center gap-2">
+            <span className="text-xs text-slate-400 font-bold uppercase">Classes:</span>
+            <span className="text-lg font-black text-white font-mono">{classes.length}</span>
           </div>
-          <div className="bg-white/[0.03] border border-white/5 p-3.5 rounded-2xl text-center min-w-[90px]">
-            <span className="text-[10px] font-black tracking-wider text-slate-400 block uppercase">Groups</span>
-            <span className="text-xl lg:text-2xl font-black text-purple-400 font-mono mt-1 block">{studyGroups.length}</span>
+          <div className="bg-white/[0.05] border border-white/10 px-5 py-2.5 rounded-2xl flex items-center gap-2">
+            <span className="text-xs text-slate-400 font-bold uppercase">Groups:</span>
+            <span className="text-lg font-black text-purple-400 font-mono">{studyGroups.length}</span>
           </div>
         </div>
       </div>

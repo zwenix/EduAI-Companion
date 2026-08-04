@@ -418,20 +418,21 @@ export default function CollaborativeWorkspace({ isDarkMode }: CollaborativeWork
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-[#7c3aed] to-[#4f46e5] p-6 sm:p-10 rounded-[28px] sm:rounded-[36px] text-white shadow-xl relative overflow-hidden flex flex-col justify-end min-h-[180px] sm:min-h-[220px]">
-        <div className="absolute top-0 right-0 p-6 opacity-10 hidden sm:block">
-          <Users size={180} />
+      {/* Cosmic Header Banner */}
+      <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-r from-slate-900 via-indigo-950/80 to-slate-900 border border-cyan-500/30 p-8 sm:p-10 shadow-2xl text-center">
+        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+          <Sparkles size={140} className="text-cyan-400" />
         </div>
-        <div className="relative z-10 space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-transparent backdrop-blur-md px-3 py-1 text-xs font-bold text-yellow-300">
-            <Sparkles size={14} className="animate-spin" /> Live Synced Lab
-          </div>
-          <h2 className="text-3xl sm:text-5xl font-hand tracking-wide leading-tight">Group Projects & Shared Workspaces</h2>
-          <p className="text-xs sm:text-sm text-indigo-100 max-w-xl font-medium">
-            Connect with classmates in real time. Work on assignments, divide research activities, and track live teammate mouse movements instantly.
-          </p>
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-widest mb-4">
+          <Sparkles size={14} className="animate-spin" />
+          <span>Live Synced Workspace</span>
         </div>
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white font-display tracking-tight mb-3">
+          ✨ Collaborative Workspace ✨
+        </h1>
+        <p className="text-slate-300 max-w-2xl mx-auto text-sm sm:text-base font-medium">
+          Connect with classmates in real time. Work on assignments, divide research activities, and track live teammate presence instantly.
+        </p>
       </div>
 
       {/* Select Group & Projects Selection Bar */}
