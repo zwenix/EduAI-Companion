@@ -754,7 +754,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
   }, [sessions, searchHistoryQuery, selectedSubjectFilter]);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-full w-full text-white relative font-sans" style={{ minHeight: 'calc(100vh - 120px)' }}>
+    <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 h-full min-h-0 w-full min-w-0 overflow-hidden text-white relative font-sans">
       {/* Subtle ambient glows */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/8 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-10 right-1/3 w-96 h-96 bg-cyan-500/8 rounded-full blur-[140px] pointer-events-none" />
@@ -787,9 +787,9 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
       )}
 
       {viewMode === 'studio' ? (
-        <div className="flex-1 flex gap-3 lg:gap-4 w-full overflow-hidden z-20" style={{ height: 'calc(100vh - 140px)' }}>
+        <div className="flex-1 min-h-0 min-w-0 flex gap-2 sm:gap-3 lg:gap-4 w-full overflow-hidden z-20">
           {/* 1. LEFT MENU RAIL (Minimised to icon by default, expands when clicked) */}
-          <div className="flex h-full shrink-0 gap-2">
+          <div className="hidden sm:flex h-full shrink-0 gap-2">
             {/* Icon Bar */}
             <div className="w-14 bg-slate-900/80 border border-white/10 rounded-[28px] py-4 flex flex-col items-center justify-between shadow-xl backdrop-blur-xl shrink-0">
               <div className="flex flex-col items-center gap-3">
@@ -964,7 +964,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
           </div>
 
           {/* 2. CENTER MAIN CHAT COLUMN */}
-          <div className="flex-1 flex flex-col h-full bg-slate-900/60 border border-white/10 rounded-[32px] p-5 lg:p-6 shadow-2xl backdrop-blur-xl relative z-20 overflow-hidden">
+          <div className="flex-1 min-w-0 min-h-0 flex flex-col h-full bg-slate-900/75 border border-white/10 rounded-[24px] sm:rounded-[32px] p-3 sm:p-5 lg:p-6 shadow-2xl backdrop-blur-xl relative z-20 overflow-hidden">
             
             {/* Top Header Bar */}
             <div className="flex flex-wrap items-center justify-between pb-4 border-b border-white/10 gap-3 shrink-0">

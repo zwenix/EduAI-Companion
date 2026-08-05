@@ -2346,7 +2346,7 @@ export default function App() {
         </AnimatePresence>
 
         {/* Content Container with Animations */}
-        <div className="flex-1 overflow-hidden relative">
+        <div className="flex-1 min-h-0 overflow-hidden relative app-content-canvas">
           <PageOverlay route={activeTab} blend="normal" opacity={0.7} vignette={false} drift={false} />
           <AnimatePresence mode="wait">
             <motion.div
@@ -2358,7 +2358,7 @@ export default function App() {
               className={cn(
                 "absolute inset-0 custom-scrollbar z-10",
                 ['ai-tutor', 'messenger', 'collaborative-workspace'].includes(activeTab)
-                  ? "overflow-hidden p-2 lg:p-4"
+                  ? "overflow-hidden p-2 sm:p-3 lg:p-4"
                   : "overflow-y-auto p-4 lg:p-8"
               )}
               onClick={() => window.dispatchEvent(new CustomEvent('close-topbar-menus'))}

@@ -46,7 +46,7 @@ export default function PageOverlay({
       <style>{KEYFRAMES}</style>
       <div
         aria-hidden="true"
-        className={`pointer-events-none fixed inset-0 z-0 select-none overflow-hidden ${className}`}
+        className={`page-overlay pointer-events-none absolute inset-0 z-0 select-none overflow-hidden ${className}`}
       >
         {/* key={src} remounts on route change → the new constellation ignites */}
         <div
