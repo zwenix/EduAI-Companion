@@ -4,19 +4,6 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import dotenv from "dotenv";
-
-// Initialize environment variables at the very start
-dotenv.config();
-
-// Global Error Handlers for robust startup
-process.on('uncaughtException', (err) => {
-  console.error('CRITICAL: Uncaught Exception:', err);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('CRITICAL: Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import axios from "axios";
@@ -50,6 +37,7 @@ interface FailedRequest {
 }
 
 const failedRequestsLog: FailedRequest[] = [];
+dotenv.config();
 
 function resolveOpenRouterKey(): string {
   const keys = [
@@ -1933,52 +1921,32 @@ STRICT COMPLIANCE & ZERO-HALLUCINATION MANDATES:
   // --- Vite Middleware ---
 
   async function initializeAndListen() {
-    const isProduction = process.env.NODE_ENV === "production" || fs.existsSync(path.join(process.cwd(), "dist", "index.html"));
-    
-    if (!isProduction) {
-      try {
-        console.log("Starting in development mode with Vite middleware...");
-        const { createServer: createViteServer } = await import("vite");
-        const vite = await createViteServer({
-          server: { middlewareMode: true },
-          appType: "spa",
-        });
-        app.use(vite.middlewares);
-      } catch (err) {
-        console.error("Failed to initialize Vite middleware, falling back to static serving:", err);
-      }
-    } else {
-      console.log("Starting in production mode...");
-      const distPath = path.join(process.cwd(), "dist");
-      if (fs.existsSync(distPath)) {
-        app.use(express.static(distPath));
-        app.get("*", (req, res) => {
-          const indexPath = path.join(distPath, "index.html");
-          if (fs.existsSync(indexPath)) {
-            res.sendFile(indexPath);
-          } else {
-            res.status(404).send("Application shell not found. Please ensure the build completed successfully.");
-          }
-        });
-      } else {
-        console.warn("Dist directory not found in production mode!");
-      }
+    if (process.env.VERCEL) {
+      return;
     }
 
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server running on port ${PORT} (Mode: ${isProduction ? 'Production' : 'Development'})`);
-    }).on('error', (err: any) => {
-      if (err.code === 'EADDRINUSE') {
-        console.error(`Port ${PORT} is already in use. This usually means the server is already running.`);
-      } else {
-        console.error("Server failed to start:", err);
-      }
-    });
+    if (process.env.NODE_ENV !== "production") {
+      const { createServer: createViteServer } = await import("vite");
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), "dist");
+      app.use(express.static(distPath));
+      app.get("*", (req, res) => {
+        res.sendFile(path.join(distPath, "index.html"));
+      });
+    }
+
+    if (!process.env.VERCEL) {
+      app.listen(PORT, "0.0.0.0", () => {
+        console.log(`Server running on port ${PORT}`);
+      });
+    }
   }
 
-  initializeAndListen().catch(err => {
-    console.error("Critical failure during server initialization:", err);
-    process.exit(1);
-  });
+  initializeAndListen();
 
   export default app;

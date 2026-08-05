@@ -754,7 +754,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
   }, [sessions, searchHistoryQuery, selectedSubjectFilter]);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-100px)] w-full rounded-[36px] overflow-hidden bg-transparent text-white p-4 lg:p-6 relative font-sans border border-indigo-500/30 shadow-2xl">
+    <div className="flex flex-col lg:flex-row gap-6 min-h-screen w-full rounded-[36px] bg-transparent text-white p-4 lg:p-6 relative font-sans border border-indigo-500/30 shadow-2xl">
       {/* Background radial glows */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-[36px]" />
       

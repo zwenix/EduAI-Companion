@@ -169,29 +169,29 @@ const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDark
       onClick={onClick}
       title={collapsed ? displayLabel : undefined}
       className={cn(
-        "flex items-center w-full gap-3.5 transition-all duration-300 relative cursor-pointer border-0 outline-none group mb-1.5",
-        collapsed ? "justify-center p-3 rounded-2xl" : "p-3 px-4 rounded-2xl",
+        "flex items-center w-full gap-2 transition-all duration-200 relative cursor-pointer border-0 outline-none group py-1.5 px-2.5 rounded-xl mb-0.5 font-['Patrick_Hand',cursive]",
+        collapsed ? "justify-center py-1.5 px-1 rounded-xl" : "py-1.5 px-2.5 rounded-xl",
         active 
-          ? "bg-cyan-500/10 text-cyan-400 font-black border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.15)]"
-          : "text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
+          ? "bg-cyan-500/15 text-cyan-300 font-bold border border-cyan-500/30 shadow-[0_0_10px_rgba(34,211,238,0.2)]"
+          : "text-slate-300 hover:text-white hover:bg-white/[0.06] border border-transparent"
       )}
     >
       <Icon 
-        size={collapsed ? 20 : 18} 
+        size={collapsed ? 18 : 15} 
         className={cn(
-          "shrink-0 transition-transform duration-300 group-hover:scale-110",
+          "shrink-0 transition-transform duration-200 group-hover:scale-110",
           active ? "text-cyan-400" : "text-slate-400 group-hover:text-cyan-300"
         )} 
       />
       
       {!collapsed && (
-        <span className="text-[10px] tracking-widest uppercase font-black truncate text-left">
+        <span className="text-[15px] leading-snug font-['Patrick_Hand',cursive] font-bold truncate text-left tracking-wide">
           {displayLabel}
         </span>
       )}
       
       {active && !collapsed && (
-         <div className="absolute right-3 w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+         <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
       )}
     </button>
   );
@@ -806,6 +806,7 @@ export default function App() {
       return [
         { id: 'teacher-dashboard-menu', label: 'Classroom Chalkboard', icon: IconHome },
         { id: 'lesson-planning', label: "Teacher's Toolbox", icon: IconCurriculum },
+        { id: 'curriculum-planning', label: 'Curriculum & Planning', icon: IconMagicPlanner },
         { id: 'intelligence-ai', label: 'Intelligent AI', icon: SmartBotTutorIcon },
         { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
         { id: 'class-analytics', label: 'Analytics', icon: IconAnalytics },
@@ -828,6 +829,7 @@ export default function App() {
     return [
       { id: 'teacher-dashboard-menu', label: firstLabel, icon: IconHome },
       { id: 'lesson-planning', label: "Teacher's Toolbox", icon: IconCurriculum },
+      { id: 'curriculum-planning', label: 'Curriculum & Planning', icon: IconMagicPlanner },
       { id: 'intelligence-ai', label: 'Intelligent AI', icon: SmartBotTutorIcon },
       { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
       { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
@@ -961,6 +963,16 @@ export default function App() {
           return [
             { id: 'weekly-planner', label: 'Weekly Planner', icon: IconMagicPlanner },
             { id: 'teaching', label: 'Content Factory', icon: CreativeCanvasIcon },
+            { id: 'archive', label: 'Content Archive Storage', icon: IconResources },
+            { id: 'illustrations', label: 'Illustration Library', icon: CreativeCanvasIcon }
+          ];
+        case 'curriculum-planning':
+          return [
+            { id: 'weekly-planner', label: 'Weekly Planner', icon: IconMagicPlanner },
+            { id: 'teaching', label: 'Lesson Planner / Content Studio', icon: CreativeCanvasIcon },
+            { id: 'planner', label: "Teacher's Planner & Diary", icon: IconMagicPlanner },
+            { id: 'curriculum', label: 'CAPS Syllabus Hub', icon: QuizQuestsIcon },
+            { id: 'alerts', label: 'Notifications & Planning Reminders', icon: Bell },
             { id: 'archive', label: 'Content Archive Storage', icon: IconResources },
             { id: 'illustrations', label: 'Illustration Library', icon: CreativeCanvasIcon }
           ];
@@ -1334,7 +1346,7 @@ export default function App() {
         }}
         transition={{ type: "spring", bounce: 0, duration: 0.3 }}
         className={cn(
-          "flex flex-col pt-6 pb-6 px-3 fixed left-0 top-0 bottom-0 shrink-0 z-[60] shadow-2xl transition-all duration-300 h-screen border-r overflow-hidden",
+          "flex flex-col pt-3 pb-3 px-2 fixed left-0 top-0 bottom-0 shrink-0 z-[60] shadow-2xl transition-all duration-300 h-screen border-r overflow-hidden font-['Patrick_Hand',cursive]",
           isDarkMode 
             ? "bg-[#0b101e] border-white/5 text-white backdrop-blur-2xl" 
             : themeMode === 'peach'
@@ -1345,18 +1357,18 @@ export default function App() {
         {isDarkMode && <div className="sidebar-glow-highlight" />}
 
         {/* Center-aligned Animated Logo & Compact Header */}
-        <div className="flex flex-col justify-center h-[64px] mb-6 relative shrink-0">
+        <div className="flex flex-col justify-center h-[42px] mb-2 relative shrink-0">
           <div className="flex items-center justify-between w-full relative px-1">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               {/* Animated Logo */}
-              <Logo className="w-8 h-8 shrink-0" />
+              <Logo className="w-7 h-7 shrink-0" />
               
               {(isSidebarOpen || isMobile) && (
                 <div className="flex flex-col text-left animate-fadeIn">
                   <span className={cn(
-                    "text-xl font-display font-black tracking-tight leading-none text-white drop-shadow-[0_0_15px_rgba(0,225,255,0.4)]"
+                    "text-lg font-['Patrick_Hand',cursive] font-bold tracking-wide leading-none text-white drop-shadow-[0_0_15px_rgba(0,225,255,0.4)]"
                   )}>Edu<span className="text-[#00ff9f]">AI</span></span>
-                  <span className="text-[10px] font-bold text-slate-400 mt-1 leading-none">Lead Navigator</span>
+                  <span className="text-[11px] font-['Patrick_Hand',cursive] font-bold text-slate-400 mt-0.5 leading-none">Lead Navigator</span>
                 </div>
               )}
             </div>
@@ -1395,7 +1407,7 @@ export default function App() {
           </div>
         </div>
 
-        <nav className="flex-1 min-h-0 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar pr-1 relative z-10">
+        <nav className="flex-1 min-h-0 space-y-0.5 overflow-y-auto overflow-x-hidden custom-scrollbar pr-0.5 relative z-10 font-['Patrick_Hand',cursive]">
           {sidebarCategories.map((cat) => {
             const collapsed = !isSidebarOpen && !isMobile;
             const active = activeCategory === cat.id;
@@ -2335,7 +2347,7 @@ export default function App() {
 
         {/* Content Container with Animations */}
         <div className="flex-1 overflow-hidden relative">
-          {isDarkMode && <PageOverlay route={activeTab} blend="normal" opacity={0.5} vignette={true} drift={false} />}
+          <PageOverlay route={activeTab} blend="normal" opacity={0.7} vignette={false} drift={false} />
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}

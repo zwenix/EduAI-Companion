@@ -18,7 +18,10 @@ import {
   CheckCircle2,
   FileCheck,
   Brain,
-  ScanLine
+  ScanLine,
+  Calendar,
+  Bell,
+  Layers
 } from 'lucide-react';
 import ContentSlideshow, { INTELLIGENT_AI_SLIDES } from './ContentSlideshow';
 import WorksheetQRScannerModal from './WorksheetQRScannerModal';
@@ -441,6 +444,218 @@ export default function CategoryOverview({
             })}
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Dedicated Curriculum & Planning Landing Page
+  if (categoryLabel === 'Curriculum and Planning' || categoryLabel === 'Curriculum & Planning') {
+    return (
+      <div className="relative p-6 lg:p-10 overflow-hidden rounded-[40px] border border-cyan-500/30 bg-slate-900/85 text-white min-h-[85vh] flex flex-col justify-between font-sans">
+        
+        {/* Deep Cosmic Background */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(15,23,42,0.9)_0%,rgba(6,11,25,1)_100%)] pointer-events-none rounded-[40px]" />
+        
+        {/* Background Overlay */}
+        <div 
+          className="absolute inset-0 z-0 opacity-30 pointer-events-none mix-blend-overlay"
+          style={{
+            backgroundImage: `url(${overlayTeachersToolbox})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        />
+
+        {/* Soft Ambient Radial Glows */}
+        <div className="absolute top-10 left-1/4 w-96 h-96 bg-cyan-600/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-purple-500/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none" />
+
+        {/* MAIN TITLE SECTION ("Curriculum & Planning") */}
+        <div className="relative z-10 text-center my-6">
+          <div className="inline-flex items-center gap-2 mb-2">
+            <Sparkles className="w-5 h-5 text-cyan-400 animate-pulse" />
+            <span className="text-xl sm:text-2xl font-display font-bold text-slate-100 tracking-tight">
+              Curriculum &
+            </span>
+            <Sparkles className="w-5 h-5 text-cyan-400 animate-pulse" />
+          </div>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-cyan-400 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(34,211,238,0.6)]">
+            Planning Hub
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
+            CAPS Syllabus Hub • Weekly Planner • Teacher's Planner & Diary • Lesson Architect & Alerts
+          </p>
+        </div>
+
+        {/* HERO SHOWCASE SECTION */}
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-6 max-w-6xl mx-auto w-full items-stretch">
+          
+          {/* LEFT: Restored Interactive Content Slideshow */}
+          <div className="lg:col-span-7 flex flex-col justify-center">
+            <ContentSlideshow />
+          </div>
+
+          {/* RIGHT: Quick Launch Weekly Planner & Syllabus Card */}
+          <motion.div 
+            whileHover={{ scale: 1.02, y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            className="lg:col-span-5 flex flex-col justify-between p-6 rounded-[32px] bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-cyan-950/80 border-2 border-cyan-500/40 hover:border-cyan-300 shadow-[0_0_30px_rgba(6,182,212,0.25)] hover:shadow-[0_0_50px_rgba(6,182,212,0.5)] hover:brightness-110 relative overflow-hidden group transition-all duration-300"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-[10px] font-black uppercase tracking-widest text-cyan-300 flex items-center gap-1.5">
+                  <Zap size={12} className="text-amber-300" />
+                  CAPS & WEEKLY PACING
+                </span>
+                <Calendar size={24} className="text-cyan-400 animate-pulse group-hover:scale-110 transition-transform duration-300" />
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-display font-black text-white group-hover:text-cyan-200 transition-colors">
+                  Weekly Planner & Syllabus
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed mt-2">
+                  Organize term topics, ATP progress, weekly lesson schedules, daily task reminders, and notifications seamlessly in one place.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  <span>Interactive weekly lesson calendar & diary notes</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  <span>South African CAPS syllabus alignment</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  <span>Integrated planning notifications & alerts</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => onSelect('weekly-planner')}
+              className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-display font-black text-xs shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.7)] transition-all cursor-pointer flex items-center justify-center gap-2 border border-cyan-300/40"
+            >
+              <Calendar size={16} />
+              <span>Launch Weekly Planner</span>
+            </button>
+          </motion.div>
+
+        </div>
+
+        {/* CURRICULUM & PLANNING FEATURES GRID */}
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto w-full my-4 items-stretch">
+          
+          {/* CARD 1: Weekly Planner */}
+          <div 
+            onClick={() => onSelect('weekly-planner')}
+            className="p-6 rounded-[28px] bg-slate-900/80 border-2 border-cyan-500/50 hover:border-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.2)] hover:shadow-[0_0_40px_rgba(6,182,212,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+                <Calendar size={28} />
+              </div>
+              <h3 className="text-xl font-display font-black text-white group-hover:text-cyan-300">Weekly Planner</h3>
+              <p className="text-xs text-slate-300 leading-relaxed">Schedule weekly lesson milestones, timetable periods, and term pacing.</p>
+            </div>
+            <button className="mt-4 px-4 py-2 rounded-xl bg-cyan-500/20 text-cyan-300 font-bold text-xs hover:bg-cyan-500/30 transition-all text-center">
+              Open Weekly Planner →
+            </button>
+          </div>
+
+          {/* CARD 2: Lesson Planner / Content Studio */}
+          <div 
+            onClick={() => onSelect('teaching')}
+            className="p-6 rounded-[28px] bg-slate-900/80 border-2 border-pink-500/50 hover:border-pink-300 shadow-[0_0_25px_rgba(236,72,153,0.2)] hover:shadow-[0_0_40px_rgba(236,72,153,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-pink-500/10 border border-pink-500/40 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform">
+                <BookOpen size={28} />
+              </div>
+              <h3 className="text-xl font-display font-black text-white group-hover:text-pink-300">Lesson Architect</h3>
+              <p className="text-xs text-slate-300 leading-relaxed">Create step-by-step CAPS lesson plans, worksheets, and teaching aids.</p>
+            </div>
+            <button className="mt-4 px-4 py-2 rounded-xl bg-pink-500/20 text-pink-300 font-bold text-xs hover:bg-pink-500/30 transition-all text-center">
+              Open Lesson Architect →
+            </button>
+          </div>
+
+          {/* CARD 3: Teacher's Planner & Diary */}
+          <div 
+            onClick={() => onSelect('planner')}
+            className="p-6 rounded-[28px] bg-slate-900/80 border-2 border-purple-500/50 hover:border-purple-300 shadow-[0_0_25px_rgba(168,85,247,0.2)] hover:shadow-[0_0_40px_rgba(168,85,247,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/40 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
+                <FileText size={28} />
+              </div>
+              <h3 className="text-xl font-display font-black text-white group-hover:text-purple-300">Teacher's Diary</h3>
+              <p className="text-xs text-slate-300 leading-relaxed">Personal teaching log, daily reflections, reminders, and class task lists.</p>
+            </div>
+            <button className="mt-4 px-4 py-2 rounded-xl bg-purple-500/20 text-purple-300 font-bold text-xs hover:bg-purple-500/30 transition-all text-center">
+              Open Teacher's Diary →
+            </button>
+          </div>
+
+          {/* CARD 4: CAPS Syllabus Hub */}
+          <div 
+            onClick={() => onSelect('curriculum')}
+            className="p-6 rounded-[28px] bg-slate-900/80 border-2 border-emerald-500/50 hover:border-emerald-300 shadow-[0_0_25px_rgba(16,185,129,0.2)] hover:shadow-[0_0_40px_rgba(16,185,129,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                <Layers size={28} />
+              </div>
+              <h3 className="text-xl font-display font-black text-white group-hover:text-emerald-300">CAPS Syllabus Hub</h3>
+              <p className="text-xs text-slate-300 leading-relaxed">Full South African CAPS curriculum documents, assessment plans, and topics.</p>
+            </div>
+            <button className="mt-4 px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold text-xs hover:bg-emerald-500/30 transition-all text-center">
+              Explore CAPS Hub →
+            </button>
+          </div>
+
+          {/* CARD 5: Notifications & Alerts */}
+          <div 
+            onClick={() => onSelect('alerts')}
+            className="p-6 rounded-[28px] bg-slate-900/80 border-2 border-amber-500/50 hover:border-amber-300 shadow-[0_0_25px_rgba(245,158,11,0.2)] hover:shadow-[0_0_40px_rgba(245,158,11,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/40 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
+                <Bell size={28} />
+              </div>
+              <h3 className="text-xl font-display font-black text-white group-hover:text-amber-300">Notifications & Alerts</h3>
+              <p className="text-xs text-slate-300 leading-relaxed">Stay updated with planning reminders, assignment deadlines, and alerts.</p>
+            </div>
+            <button className="mt-4 px-4 py-2 rounded-xl bg-amber-500/20 text-amber-300 font-bold text-xs hover:bg-amber-500/30 transition-all text-center">
+              View Notifications →
+            </button>
+          </div>
+
+          {/* CARD 6: Content Archive */}
+          <div 
+            onClick={() => onSelect('archive')}
+            className="p-6 rounded-[28px] bg-slate-900/80 border-2 border-indigo-500/50 hover:border-indigo-300 shadow-[0_0_25px_rgba(99,102,241,0.2)] hover:shadow-[0_0_40px_rgba(99,102,241,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/40 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
+                <Archive size={28} />
+              </div>
+              <h3 className="text-xl font-display font-black text-white group-hover:text-indigo-300">Content Archive</h3>
+              <p className="text-xs text-slate-300 leading-relaxed">Access all saved plans, exported workbooks, and generated teaching resources.</p>
+            </div>
+            <button className="mt-4 px-4 py-2 rounded-xl bg-indigo-500/20 text-indigo-300 font-bold text-xs hover:bg-indigo-500/30 transition-all text-center">
+              Open Archive →
+            </button>
+          </div>
+
+        </div>
+
       </div>
     );
   }

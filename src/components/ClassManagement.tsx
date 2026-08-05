@@ -460,7 +460,7 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
 
   return (
     <div className="w-full flex justify-center p-2 sm:p-4 pb-20 font-sans">
-      <div className="w-full max-w-6xl h-[85vh] rounded-[32px] overflow-hidden bg-[#0c1024] border border-cyan-500/20 shadow-[0_0_50px_rgba(34,211,238,0.1)] flex flex-col md:flex-row relative">
+      <div className="w-full max-w-6xl min-h-[85vh] rounded-[32px] bg-[#0c1024] border border-cyan-500/20 shadow-[0_0_50px_rgba(34,211,238,0.1)] flex flex-col md:flex-row relative">
         
         {/* LEFT PANEL: Menu */}
         <div className="w-full md:w-64 shrink-0 bg-[#141a2e] border-r border-cyan-500/10 p-5 flex flex-col shadow-xl relative overflow-hidden z-10">

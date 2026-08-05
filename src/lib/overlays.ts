@@ -1,18 +1,18 @@
 // src/lib/overlays.ts
-// Direct hosted image URLs for reliable overlay rendering across all pages.
-const classroomChalkboard = 'https://i.ibb.co/RGmCJ3jh/teachers-toolbox.png';
-const teachersToolbox     = 'https://i.ibb.co/RGmCJ3jh/teachers-toolbox.png';
-const intelligentAi       = 'https://i.ibb.co/22bDqWm/intelligent-ai.png';
-const classesLearners     = 'https://i.ibb.co/5pVh4rL/classes-learners.png';
-const analytics           = 'https://i.ibb.co/MkWLX6qt/analytics.png';
-const messageCollaborate  = 'https://i.ibb.co/SXyQK2df/message-collaborate.png';
-const settings            = 'https://i.ibb.co/5Jv6WQH/settings.png';
-const contentFactory      = 'https://i.ibb.co/zySmQWz/content-factory.png';
-const practiceExercises   = 'https://i.ibb.co/ch7V6ZVt/practice-exercises.png';
-const contentArchive      = 'https://i.ibb.co/d0b9bBw0/content-archive.png';
-const learnerPortfolios   = 'https://i.ibb.co/ksM48wgF/learner-portfolios.png';
-const capsGamificationHub = 'https://i.ibb.co/60vh3Jnr/caps-gamification-hub.png';
-const aiTutor             = 'https://i.ibb.co/chSwj5SL/ai-tutor.png';
+// Local overlay image assets from public/overlays for pristine resolution and offline support.
+const classroomChalkboard = '/overlays/dashboard.png';
+const teachersToolbox     = '/overlays/toolbox.png';
+const intelligentAi       = '/overlays/magic-lessons.png';
+const classesLearners     = '/overlays/class-manager.png';
+const analytics           = '/overlays/personalized.png';
+const messageCollaborate  = '/overlays/resource-library.png';
+const settings            = '/overlays/settings.png';
+const contentFactory      = '/overlays/magic-lessons.png';
+const practiceExercises   = '/overlays/super-worksheets.png';
+const contentArchive      = '/overlays/resource-library.png';
+const learnerPortfolios   = '/overlays/personalized.png';
+const capsGamificationHub = '/overlays/games.png';
+const aiTutor             = '/overlays/ai-tutor.png';
 
 /** The thirteen rooms, by their current page id. */
 export const OVERLAY_REGISTRY = {
@@ -72,6 +72,12 @@ const ALIASES: Record<string, OverlayRoute> = {
   gamification: 'caps-gamification-hub',
   // AI Tutor
   tutor: 'ai-tutor', 'ai-tutor-companion': 'ai-tutor', elly: 'ai-tutor',
+  // Curriculum & Planning
+  'curriculum-planning': 'teachers-toolbox', 'weekly-planner': 'teachers-toolbox',
+  planner: 'teachers-toolbox', curriculum: 'teachers-toolbox', alerts: 'settings',
+  illustrations: 'content-factory', visual: 'content-factory', video: 'content-factory',
+  admin: 'settings', grade1: 'teachers-toolbox',
+  'collaborative-workspace': 'message-collaborate', 'student-notes': 'learner-portfolios',
   // Settings
   preferences: 'settings', config: 'settings',
 };

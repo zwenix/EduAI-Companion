@@ -32,19 +32,14 @@ const KEYFRAMES = `
 export default function PageOverlay({
   route,
   blend = 'normal',
-  opacity = 0.5,
-  vignette = true,
+  opacity = 0.65,
+  vignette = false,
   drift = false,
   className = '',
 }: PageOverlayProps) {
   const src = useMemo(() => resolveOverlay(route), [route]);
 
   const imgOpacity = blend === 'screen' ? Math.min(1, opacity + 0.15) : opacity;
-  const imgStyle: React.CSSProperties = {
-    opacity: imgOpacity,
-    mixBlendMode: blend === 'screen' ? 'screen' : 'normal',
-    animation: drift ? 'ov-drift 48s ease-in-out infinite' : undefined,
-  };
 
   return (
     <>
@@ -67,18 +62,16 @@ export default function PageOverlay({
             src={src}
             alt=""
             draggable={false}
-            className="w-full h-full object-cover object-center scale-105"
+            className="w-full h-full min-w-full min-h-full object-cover object-center scale-100"
           />
         </div>
 
         {vignette && (
-          // radial hush: protects the centre AND tames the side-heroes
-          // (the forge line, the tutor head) so they glow *behind* your cards
           <div
-            className="absolute inset-0"
+            className="absolute inset-0 pointer-events-none"
             style={{
               background:
-                'radial-gradient(ellipse 72% 62% at 50% 46%, transparent 28%, rgba(10,15,33,0.6) 100%)',
+                'radial-gradient(ellipse 85% 85% at 50% 50%, transparent 40%, rgba(10,15,33,0.35) 100%)',
             }}
           />
         )}
