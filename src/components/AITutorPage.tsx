@@ -754,7 +754,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
   }, [sessions, searchHistoryQuery, selectedSubjectFilter]);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 h-full min-h-0 w-full min-w-0 overflow-hidden text-white relative font-sans">
+    <div className="flex flex-col lg:flex-row gap-0 h-full min-h-0 w-full min-w-0 overflow-hidden text-white relative font-sans">
       {/* Subtle ambient glows */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/8 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-10 right-1/3 w-96 h-96 bg-cyan-500/8 rounded-full blur-[140px] pointer-events-none" />

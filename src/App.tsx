@@ -2358,14 +2358,14 @@ export default function App() {
               className={cn(
                 "absolute inset-0 custom-scrollbar z-10",
                 ['ai-tutor', 'messenger', 'collaborative-workspace'].includes(activeTab)
-                  ? "overflow-hidden p-2 sm:p-3 lg:p-4"
+                  ? "overflow-hidden p-0"
                   : "overflow-y-auto p-4 lg:p-8"
               )}
               onClick={() => window.dispatchEvent(new CustomEvent('close-topbar-menus'))}
             >
               <div className={cn(
                 ['ai-tutor', 'messenger', 'collaborative-workspace'].includes(activeTab)
-                  ? "h-full"
+                  ? "h-full w-full"
                   : "max-w-7xl mx-auto space-y-6 lg:space-y-8 pb-12"
               )}>
                 <div>

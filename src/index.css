@@ -658,11 +658,17 @@ svg:not(.not-sketchy) {
     radial-gradient(circle at 15% 15%, rgba(0, 179, 255, 0.20), transparent 42%),
     radial-gradient(circle at 85% 85%, rgba(99, 102, 241, 0.18), transparent 46%),
     #091225;
+  width: 100% !important;
+  height: 100% !important;
 }
 .page-overlay img {
   display: block;
-  min-width: 100%;
-  min-height: 100%;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  object-fit: cover;
+  object-position: center;
 }
 
 .app-content-canvas {

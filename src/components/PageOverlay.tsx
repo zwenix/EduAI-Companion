@@ -47,6 +47,7 @@ export default function PageOverlay({
       <div
         aria-hidden="true"
         className={`page-overlay pointer-events-none absolute inset-0 z-0 select-none overflow-hidden ${className}`}
+        style={{ width: '100%', height: '100%' }}
       >
         {/* key={src} remounts on route change → the new constellation ignites */}
         <div
