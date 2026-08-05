@@ -754,27 +754,15 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
   }, [sessions, searchHistoryQuery, selectedSubjectFilter]);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 min-h-screen w-full rounded-[36px] bg-transparent text-white p-4 lg:p-6 relative font-sans border border-indigo-500/30 shadow-2xl">
-      {/* Background radial glows */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-[36px]" />
-      
-      {/* AI Tutor Overlay */}
-      <div 
-        className="absolute inset-0 z-0 opacity-20 pointer-events-none rounded-[36px]"
-        style={{
-          backgroundImage: `url(${overlayAiTutor})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        }}
-      />
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-10 right-1/3 w-96 h-96 bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-full w-full text-white relative font-sans" style={{ minHeight: 'calc(100vh - 120px)' }}>
+      {/* Subtle ambient glows */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/8 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-10 right-1/3 w-96 h-96 bg-cyan-500/8 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute top-1/2 right-1/4 w-80 h-80 bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Time limit blocker overlay */}
       {isTimeLimitReached() && (
-        <div className="absolute inset-0 bg-transparent backdrop-blur-md z-50 flex flex-col items-center justify-center text-center p-8 space-y-6 rounded-[36px]">
+        <div className="absolute inset-0 bg-transparent backdrop-blur-md z-50 flex flex-col items-center justify-center text-center p-8 space-y-6">
           <div className="w-16 h-16 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.3)]">
             <Clock size={32} className="animate-pulse" />
           </div>
@@ -799,7 +787,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
       )}
 
       {viewMode === 'studio' ? (
-        <div className="flex-1 flex gap-4 h-full w-full overflow-hidden z-20">
+        <div className="flex-1 flex gap-3 lg:gap-4 w-full overflow-hidden z-20" style={{ height: 'calc(100vh - 140px)' }}>
           {/* 1. LEFT MENU RAIL (Minimised to icon by default, expands when clicked) */}
           <div className="flex h-full shrink-0 gap-2">
             {/* Icon Bar */}

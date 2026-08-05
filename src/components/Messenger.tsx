@@ -453,8 +453,8 @@ export default function Messenger() {
   );
 
   return (
-    <div className="w-full flex justify-center p-2 sm:p-4 pb-20">
-      <div className="w-full max-w-6xl h-[75vh] rounded-[32px] overflow-hidden bg-[#0c1024] border border-cyan-500/20 shadow-[0_0_50px_rgba(34,211,238,0.1)] flex flex-col md:flex-row relative">
+    <div className="w-full h-full">
+      <div className="w-full overflow-hidden bg-[#0c1024] rounded-2xl flex flex-col md:flex-row relative" style={{ height: 'calc(100vh - 130px)' }}>
       
       {/* LEFT PANEL: Chats & Groups */}
       <div className="w-full md:w-80 xl:w-96 shrink-0 bg-[#141a2e] border-r border-cyan-500/10 p-5 flex flex-col shadow-xl relative overflow-hidden z-10">
@@ -575,7 +575,7 @@ export default function Messenger() {
       </div>
 
       {/* RIGHT PANEL: Active Chat Stream */}
-      <div className="flex-1 bg-[#0c1024] border border-white/10 rounded-[28px] flex flex-col shadow-2xl relative overflow-hidden min-h-[600px]">
+      <div className="flex-1 bg-[#0c1024] flex flex-col relative overflow-hidden h-full">
         
         {/* Top Header Bar */}
         <div className="p-4 sm:p-5 border-b border-white/10 bg-transparent backdrop-blur-md flex items-center justify-between gap-4">

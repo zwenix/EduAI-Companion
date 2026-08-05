@@ -168,10 +168,10 @@ export default function CategoryOverview({
   // Custom Intelligent AI Hub UI (matching Teacher's Toolbox design)
   if (categoryLabel === 'Intelligent AI' || categoryLabel === 'Intelligence AI' || categoryLabel === "AI Tutor's Class") {
     return (
-      <div className="relative p-6 lg:p-10 overflow-hidden rounded-[40px] border border-indigo-500/30 bg-slate-900/85 text-white min-h-[85vh] flex flex-col justify-between font-sans">
+      <div className="relative p-6 lg:p-10 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100vh - 130px)' }}>
         
         {/* Deep Cosmic Background & Subtle Stars */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-[40px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
 
         {/* Intelligent AI Background Overlay */}
         <div 
@@ -374,7 +374,7 @@ export default function CategoryOverview({
     categoryLabel === 'Teacher Chat & Contacts'
   ) {
     return (
-      <div className="relative p-6 sm:p-8 lg:p-10 overflow-hidden rounded-[40px] border border-cyan-500/20 bg-transparent text-white min-h-[85vh] flex flex-col justify-start font-sans">
+      <div className="relative p-6 sm:p-8 lg:p-10 overflow-hidden rounded-2xl text-white flex flex-col justify-start font-sans" style={{ minHeight: 'calc(100vh - 130px)' }}>
         {/* Glowing cosmic curves/waves in background */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(15,23,60,0.8)_0%,rgba(7,10,24,1)_100%)] pointer-events-none" />
         
@@ -451,10 +451,10 @@ export default function CategoryOverview({
   // Dedicated Curriculum & Planning Landing Page
   if (categoryLabel === 'Curriculum and Planning' || categoryLabel === 'Curriculum & Planning') {
     return (
-      <div className="relative p-6 lg:p-10 overflow-hidden rounded-[40px] border border-cyan-500/30 bg-slate-900/85 text-white min-h-[85vh] flex flex-col justify-between font-sans">
+      <div className="relative p-6 lg:p-10 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100vh - 130px)' }}>
         
         {/* Deep Cosmic Background */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(15,23,42,0.9)_0%,rgba(6,11,25,1)_100%)] pointer-events-none rounded-[40px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(15,23,42,0.9)_0%,rgba(6,11,25,1)_100%)] pointer-events-none rounded-2xl" />
         
         {/* Background Overlay */}
         <div 
@@ -672,10 +672,10 @@ export default function CategoryOverview({
     categoryLabel === 'lesson-planning'
   ) {
     return (
-      <div className="relative p-6 lg:p-10 overflow-hidden rounded-[40px] border border-indigo-500/30 bg-slate-900/85 text-white min-h-[85vh] flex flex-col justify-between font-sans">
+      <div className="relative p-6 lg:p-10 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100vh - 130px)' }}>
         
         {/* Deep Cosmic Background & Subtle Stars */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-[40px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
         
         {/* Teachers Toolbox Background Overlay */}
         <div 
