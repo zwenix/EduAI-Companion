@@ -2355,10 +2355,19 @@ export default function App() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
-              className="absolute inset-0 overflow-y-auto p-4 lg:p-8 custom-scrollbar z-10"
+              className={cn(
+                "absolute inset-0 custom-scrollbar z-10",
+                ['ai-tutor', 'messenger', 'collaborative-workspace'].includes(activeTab)
+                  ? "overflow-hidden p-2 lg:p-4"
+                  : "overflow-y-auto p-4 lg:p-8"
+              )}
               onClick={() => window.dispatchEvent(new CustomEvent('close-topbar-menus'))}
             >
-              <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8 pb-12">
+              <div className={cn(
+                ['ai-tutor', 'messenger', 'collaborative-workspace'].includes(activeTab)
+                  ? "h-full"
+                  : "max-w-7xl mx-auto space-y-6 lg:space-y-8 pb-12"
+              )}>
                 <div>
                   {categoryOverviewActive ? (
                     <CategoryOverview

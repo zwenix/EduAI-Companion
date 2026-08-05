@@ -51,7 +51,7 @@ export default function PageOverlay({
         {/* key={src} remounts on route change → the new constellation ignites */}
         <div
           key={src}
-          className="absolute inset-0 will-change-transform overflow-hidden flex items-center justify-center"
+          className="absolute inset-0 will-change-transform overflow-hidden"
           style={{
             opacity: imgOpacity,
             mixBlendMode: blend === 'screen' ? 'screen' : 'normal',
@@ -62,7 +62,8 @@ export default function PageOverlay({
             src={src}
             alt=""
             draggable={false}
-            className="w-full h-full min-w-full min-h-full object-cover object-center scale-100"
+            className="absolute inset-0 w-full h-full object-cover object-center"
+            style={{ width: '100%', height: '100%' }}
           />
         </div>
 
