@@ -1,4 +1,7 @@
+const fs = require('fs');
+let code = fs.readFileSync('src/components/Helpdesk.tsx', 'utf8');
 
+const replacement = `
 import React, { useState } from 'react';
 import { Headphones, LifeBuoy, Book, MessageCircle, Mail, ExternalLink, ChevronRight, Search, Power, Settings as IconSettings, Shield, Bell, User, X } from 'lucide-react';
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
@@ -150,3 +153,6 @@ export default function Helpdesk({ isDarkMode }: HelpdeskProps) {
     </div>
   );
 }
+`;
+fs.writeFileSync('src/components/Helpdesk.tsx', replacement);
+console.log('Helpdesk.tsx updated.');

@@ -1,269 +1,25 @@
-import { NotificationManager } from '../lib/notifications/NotificationManager';
-import React, { useState, useEffect } from 'react';
-import { 
-  Bell, Shield, Key, Moon, Sun, 
-  Monitor, Save, AlertCircle, User, CreditCard, 
-  Database, Activity, Lock, Mail, Phone, Globe,
-  Trash2, Plus, Smartphone, Download, Palette, Link as LinkIcon, Edit2, Camera
-} from 'lucide-react';
-import { IconSettings, IconLogout } from './LocalIcons';
-import { useAi } from '../contexts/AiContext';
-import { auth, db } from '../lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
-import ProfileSettings from './ProfileSettings';
+const fs = require('fs');
+let code = fs.readFileSync('src/components/Settings.tsx', 'utf8');
 
-const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
+// Identify the start and end of the return statement
+const startMatch = code.match(/return \(/);
+const startIndex = startMatch.index;
 
-interface SettingsProps {
-  isDarkMode: boolean;
-  setIsDarkMode: (dm: boolean) => void;
-  onLogout?: () => void;
-  onSwitchRole?: () => void;
-  onSwitchUser?: () => void;
-  isAppInstallable?: boolean;
-  installPWAApp?: () => void;
-  isAlreadyInstalled?: boolean;
-  userRole?: string;
+// We want to replace from line 267 to the end.
+// Let's find where return ( starts
+const lines = code.split('\n');
+let returnLineIndex = -1;
+for (let i = 0; i < lines.length; i++) {
+  if (lines[i].includes('return (') && i > 250) {
+    returnLineIndex = i;
+    break;
+  }
 }
 
-export default function Settings({ 
-  isDarkMode, 
-  setIsDarkMode, 
-  onLogout, 
-  onSwitchRole, 
-  onSwitchUser,
-  isAppInstallable = false,
-  installPWAApp,
-  isAlreadyInstalled = false,
-  userRole
-}: SettingsProps) {
-  const { provider, ocrProvider, ttsProvider, imageProvider, setProvider, setOcrProvider, setTtsProvider, setImageProvider } = useAi();
-  const [notifications, setNotifications] = useState(true);
-  const [emailAlerts, setEmailAlerts] = useState(true);
-  const [viewMode, setViewMode] = useState<'dashboard' | 'advanced'>('dashboard');
+if (returnLineIndex !== -1) {
+  const head = lines.slice(0, returnLineIndex).join('\n');
   
-  const [fullName, setFullName] = useState(() => localStorage.getItem('eduai_user_name') || 'Dr. Sarah Mkize');
-  const [school, setSchool] = useState(() => localStorage.getItem('eduai_user_school') || 'Houghton Academy');
-  const [phone, setPhone] = useState(() => localStorage.getItem('eduai_user_phone') || '+27 72 000 0000');
-  const [jobTitle, setJobTitle] = useState(() => localStorage.getItem('eduai_user_job') || 'Professional Educator');
-  const [photoUrl, setPhotoUrl] = useState(() => localStorage.getItem('eduai_user_photo') || '');
-  const [profileEmail, setProfileEmail] = useState('');
-  
-  // Adaptive Learning & Grade Settings
-  const [gradeLevel, setGradeLevel] = useState('Grade 10');
-  const [learningPreference, setLearningPreference] = useState('Visual');
-
-  // Parents Link child forms
-  const [childEmailToLink, setChildEmailToLink] = useState('');
-  const [linkMessage, setLinkMessage] = useState('');
-  const [isLinking, setIsLinking] = useState(false);
-  const [linkedChildrenList, setLinkedChildrenList] = useState<any[]>([]);
-  
-  // Children accessibility preferences controls
-  const [dyslexiaTheme, setDyslexiaTheme] = useState(() => localStorage.getItem('eduai_dyslexia') === 'true');
-  const [readSpeed, setReadSpeed] = useState(() => Number(localStorage.getItem('eduai_read_speed') || '1.0'));
-  const [dyscalculiaHelp, setDyscalculiaHelp] = useState(() => localStorage.getItem('eduai_dyscalculia') === 'true');
-  
-  const [activeSubTab, setActiveSubTab] = useState('personal');
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (auth.currentUser) {
-        setProfileEmail(auth.currentUser.email || '');
-        let currentName = auth.currentUser.displayName || fullName;
-        let currentPhoto = auth.currentUser.photoURL || photoUrl;
-        
-        try {
-          const docRef = doc(db, 'users', auth.currentUser.uid);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data.name) currentName = data.name;
-            if (data.school) setSchool(data.school);
-            if (data.phone) setPhone(data.phone);
-            if (data.jobTitle) setJobTitle(data.jobTitle);
-            if (data.photoUrl) currentPhoto = data.photoUrl;
-            if (data.gradeLevel) setGradeLevel(data.gradeLevel);
-            if (data.learningPreference) setLearningPreference(data.learningPreference);
-            
-            // Sync accessibility from DB if keys present
-            if (data.dyslexiaTheme !== undefined) {
-              setDyslexiaTheme(data.dyslexiaTheme);
-              localStorage.setItem('eduai_dyslexia', String(data.dyslexiaTheme));
-            }
-            if (data.readSpeed !== undefined) {
-              setReadSpeed(data.readSpeed);
-              localStorage.setItem('eduai_read_speed', String(data.readSpeed));
-            }
-            if (data.dyscalculiaHelp !== undefined) {
-              setDyscalculiaHelp(data.dyscalculiaHelp);
-              localStorage.setItem('eduai_dyscalculia', String(data.dyscalculiaHelp));
-            }
-          }
-
-          // If current role is parent, let's load linked children
-          if (userRole === 'parent' || userRole === 'Parent') {
-            const childrenQuery = query(
-              collection(db, 'students'), 
-              where('parentEmail', '==', auth.currentUser.email?.toLowerCase().trim())
-            );
-            const childrenSnap = await getDocs(childrenQuery);
-            const list = childrenSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setLinkedChildrenList(list);
-          }
-        } catch (error) {
-          console.error("Error fetching profile", error);
-          handleFirestoreError(error, OperationType.GET, 'users/' + auth.currentUser.uid);
-        }
-        
-        setFullName(currentName);
-        setPhotoUrl(currentPhoto);
-        
-        localStorage.setItem('eduai_user_name', currentName || '');
-        localStorage.setItem('eduai_user_photo', currentPhoto || '');
-      }
-      setIsLoading(false);
-    }
-    fetchProfile();
-  }, [userRole]);
-
-  const handleSavePersonal = async () => {
-    if (!auth.currentUser) return;
-    
-    // Optimistic UI updates
-    localStorage.setItem('eduai_user_name', fullName);
-    localStorage.setItem('eduai_user_school', school);
-    localStorage.setItem('eduai_user_phone', phone);
-    localStorage.setItem('eduai_user_job', jobTitle);
-    localStorage.setItem('eduai_user_photo', photoUrl);
-    
-    try {
-      const docRef = doc(db, 'users', auth.currentUser.uid);
-      const docSnap = await getDoc(docRef);
-      const userPayload = {
-        name: fullName,
-        email: profileEmail || auth.currentUser.email || '',
-        school: school,
-        jobTitle: jobTitle,
-        phone: phone,
-        photoUrl: photoUrl,
-        gradeLevel: gradeLevel,
-        learningPreference: learningPreference,
-        dyslexiaTheme: dyslexiaTheme,
-        readSpeed: readSpeed,
-        dyscalculiaHelp: dyscalculiaHelp,
-        updatedAt: serverTimestamp()
-      };
-
-      if (docSnap.exists()) {
-        await updateDoc(docRef, userPayload);
-      } else {
-        await setDoc(docRef, {
-          ...userPayload,
-          role: userRole || 'teacher', // fallback role
-          createdAt: serverTimestamp()
-        });
-      }
-
-      // If user is a student/learner, search for their record in 'students' and align it too
-      if (userRole === 'student' || userRole === 'learner') {
-        const sQuery = query(collection(db, 'students'), where('email', '==', auth.currentUser.email?.toLowerCase().trim()));
-        const sSnap = await getDocs(sQuery);
-        if (!sSnap.empty) {
-          const studentDocId = sSnap.docs[0].id;
-          await updateDoc(doc(db, 'students', studentDocId), {
-            name: fullName,
-            grade: gradeLevel,
-            updatedAt: serverTimestamp()
-          });
-        }
-      }
-
-      alert('Personal and Adaptive Profile details saved successfully to Firebase.');
-    } catch (error) {
-       console.error("Firebase update failed", error);
-       alert('Personal details failed to save to Firebase.');
-       handleFirestoreError(error, OperationType.WRITE, 'users/' + auth.currentUser.uid);
-    }
-  };
-
-  const handleLinkChild = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!childEmailToLink.trim() || !auth.currentUser?.email) return;
-    setIsLinking(true);
-    setLinkMessage('');
-    try {
-      const emailSearch = childEmailToLink.trim().toLowerCase();
-      const q = query(collection(db, 'students'), where('email', '==', emailSearch));
-      const sSnap = await getDocs(q);
-      
-      if (sSnap.empty) {
-        // Create an empty template student record linked to key parent so it activates
-        const docId = `student_${Date.now()}`;
-        await setDoc(doc(db, 'students', docId), {
-          id: docId,
-          name: childEmailToLink.split('@')[0],
-          grade: 'Grade 10',
-          email: emailSearch,
-          status: 'Active',
-          teacherId: 'unassigned',
-          parentName: fullName,
-          parentEmail: auth.currentUser.email.toLowerCase().trim(),
-          parentPhone: phone,
-          createdAt: serverTimestamp(),
-          subjects: [
-            { name: 'Mathematics', mark: 65, termHistory: [55, 60, 65], assessments: [] },
-            { name: 'Physical Sciences', mark: 70, termHistory: [60, 65, 70], assessments: [] },
-            { name: 'English First Additional Language', mark: 72, termHistory: [68, 70, 72], assessments: [] }
-          ]
-        });
-        setLinkMessage(`A new profile template was created and linked to your parent account for: ${emailSearch}`);
-      } else {
-        const studentDocId = sSnap.docs[0].id;
-        await updateDoc(doc(db, 'students', studentDocId), {
-          parentEmail: auth.currentUser.email.toLowerCase().trim(),
-          parentName: fullName,
-          parentPhone: phone,
-          updatedAt: serverTimestamp()
-        });
-        setLinkMessage(`Successfully linked student profile for: ${emailSearch}!`);
-      }
-      setChildEmailToLink('');
-      // Update list
-      const q2 = query(collection(db, 'students'), where('parentEmail', '==', auth.currentUser.email.toLowerCase().trim()));
-      const cSnap = await getDocs(q2);
-      setLinkedChildrenList(cSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-    } catch (err: any) {
-      console.error("Linking failed", err);
-      setLinkMessage(`Failed to link: ${err.message || String(err)}`);
-    } finally {
-      setIsLinking(false);
-    }
-  };
-
-  const triggerImageUpload = () => {
-    const url = prompt('Enter image URL for profile picture (or leave blank for initials):', photoUrl);
-    if (url !== null) {
-      setPhotoUrl(url);
-    }
-  };
-
-  const subTabs = [
-    { id: 'personal', label: 'Profile Settings', icon: User },
-    { id: 'accessibility', label: 'Accessibility', icon: Palette },
-    { id: 'security', label: 'Security', icon: Lock },
-    { id: 'ai', label: 'AI Configuration', icon: Activity },
-    { id: 'pwa', label: 'App Install (PWA)', icon: Smartphone },
-    { id: 'billing', label: 'Plan & Billing', icon: CreditCard },
-    { id: 'codebase', label: 'Codebase Spec', icon: Database },
-  ];
-
-  if (isLoading) {
-    return <div className="p-12 text-center text-slate-500">Loading settings...</div>;
-  }
-  return (
+  const newReturn = `  return (
     <div className="w-full flex justify-center p-2 sm:p-4 pb-20 font-sans">
       <div className="w-full max-w-6xl h-[85vh] rounded-[32px] overflow-hidden bg-[#0c1024] border border-cyan-500/20 shadow-[0_0_50px_rgba(34,211,238,0.1)] flex flex-col md:flex-row relative">
         
@@ -344,7 +100,7 @@ export default function Settings({
                       </div>
                       <div className="space-y-2">
                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Communication Link</label>
-                         <input type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold focus:border-brand-cyan transition-all" />
+                         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold focus:border-brand-cyan transition-all" />
                       </div>
                    </div>
                 </div>
@@ -448,4 +204,9 @@ export default function Settings({
       </div>
     </div>
   );
+}
+`;
+  fs.writeFileSync('src/components/Settings.tsx', head + newReturn);
+} else {
+  console.error("Could not find return line");
 }

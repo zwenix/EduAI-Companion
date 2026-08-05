@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   BookOpen, Trophy, Compass, Plus, Search, Calendar, ChevronRight, FileText, 
-  Settings, CheckCircle, Sparkles, AlertCircle, ShoppingBag, ListTodo, Users, 
+  Settings, CheckCircle, CalendarDays, Sparkles, AlertCircle, ShoppingBag, ListTodo, Users, 
   Map, Award, Flame, Star, ShieldAlert, Check, HelpCircle, Download, FilePlus
 } from 'lucide-react';
 import { db, auth } from '../lib/firebase';

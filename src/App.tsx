@@ -162,56 +162,36 @@ import {
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
 const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDarkMode, themeMode, role }: { id?: string, icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean, isDarkMode?: boolean, themeMode?: string, role?: string | null }) => {
-  const displayLabel = id === 'teacher-dashboard-menu' && label !== 'Home' && role !== 'student' ? 'Classroom Chalkboard' : label;
+  const displayLabel = id === 'teacher-dashboard-menu' && label !== 'Home' && role !== 'student' ? 'Chalkboard' : label;
 
   return (
     <button
       onClick={onClick}
       title={collapsed ? displayLabel : undefined}
       className={cn(
-        "flex items-center w-full gap-3.5 transition-all duration-300 relative cursor-pointer border-0 outline-none group",
-        collapsed ? "justify-center p-1.5 rounded-xl" : "p-2 px-3.5 rounded-xl mb-1",
+        "flex items-center w-full gap-3.5 transition-all duration-300 relative cursor-pointer border-0 outline-none group mb-1.5",
+        collapsed ? "justify-center p-3 rounded-2xl" : "p-3 px-4 rounded-2xl",
         active 
-          ? isDarkMode
-            ? "bg-white/[0.08] text-cyan-400 font-black border-l-4 border-cyan-400 rounded-l-none rounded-r-2xl shadow-[inset_1px_0_0_rgba(255,255,255,0.05)] text-glow-cyan"
-            : "bg-cyan-500/10 text-cyan-700 font-black border-l-4 border-cyan-500 rounded-l-none rounded-r-2xl"
-          : isDarkMode 
-            ? "text-slate-400 hover:text-white hover:bg-white/[0.03] rounded-2xl font-semibold" 
-            : themeMode === 'peach'
-              ? "text-[#431407]/75 hover:text-[#431407] hover:bg-[#431407]/5 rounded-2xl font-semibold"
-              : "text-slate-500 hover:text-cyan-600 hover:bg-cyan-500/5 rounded-2xl font-semibold"
+          ? "bg-cyan-500/10 text-cyan-400 font-black border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.15)]"
+          : "text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
       )}
     >
       <Icon 
-        size={collapsed ? 18 : 19} 
+        size={collapsed ? 20 : 18} 
         className={cn(
           "shrink-0 transition-transform duration-300 group-hover:scale-110",
-          active 
-            ? isDarkMode ? "text-cyan-400 filter drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" : "text-cyan-600" 
-            : isDarkMode 
-              ? "text-slate-400 group-hover:text-slate-200" 
-              : themeMode === 'peach'
-                ? "text-[#431407]/75 group-hover:text-[#431407]"
-                : "text-slate-500 group-hover:text-cyan-600"
+          active ? "text-cyan-400" : "text-slate-400 group-hover:text-cyan-300"
         )} 
       />
       
       {!collapsed && (
-        <span className={cn(
-          "text-left flex-1 flex items-center justify-between gap-2 overflow-hidden truncate",
-          role === 'student' ? "font-hand text-base font-bold tracking-wide" : "font-sans text-xs font-semibold"
-        )}>
-          <span className="truncate">{displayLabel}</span>
+        <span className="text-[10px] tracking-widest uppercase font-black truncate text-left">
+          {displayLabel}
         </span>
       )}
-
-      {/* Animated Sparkles for Intelligence AI */}
-      {!collapsed && id === 'intelligence-ai' && (
-        <>
-          <span className="sparkle-twinkle text-[9px]" style={{ top: '6px', right: '14px' }}>✦</span>
-          <span className="sparkle-twinkle text-[12px]" style={{ top: '16px', right: '-2px' }}>✧</span>
-          <span className="sparkle-twinkle text-[7px]" style={{ bottom: '8px', right: '8px' }}>✦</span>
-        </>
+      
+      {active && !collapsed && (
+         <div className="absolute right-3 w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
       )}
     </button>
   );
@@ -395,6 +375,16 @@ export default function App() {
   const [modelStatusError, setModelStatusError] = useState<string | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizationStats, setOptimizationStats] = useState<Record<string, number | 'failed'>>({});
+
+  useEffect(() => {
+    const handleClose = () => {
+      setIsProfileDropdownOpen(false);
+      setIsThemeMenuOpen(false);
+      setIsAccessibilityOpen(false);
+    };
+    window.addEventListener('close-topbar-menus', handleClose);
+    return () => window.removeEventListener('close-topbar-menus', handleClose);
+  }, []);
 
   const runAutoOptimize = async () => {
     if (isOptimizing) return;
@@ -1332,21 +1322,21 @@ export default function App() {
 
       {/* Sidebar Base Placeholder on Desktop to prevent page content starting at 0 */}
       {!isMobile && (
-        <div className={cn("shrink-0 transition-all duration-300", isSidebarOpen ? "w-[256px]" : "w-[100px]")} />
+        <div className={cn("shrink-0 transition-all duration-300", isSidebarOpen ? "w-[240px]" : "w-[72px]")} />
       )}
 
       {/* Sidebar */}
       <motion.aside 
         initial={false}
         animate={{ 
-          width: isMobile ? 240 : (isSidebarOpen ? 240 : 84),
+          width: isMobile ? 240 : (isSidebarOpen ? 240 : 72),
           x: isMobile ? (isMobileSidebarOpen ? 0 : -240) : 0
         }}
         transition={{ type: "spring", bounce: 0, duration: 0.3 }}
         className={cn(
-          "flex flex-col pt-0 pb-8 px-4 fixed left-4 top-4 bottom-4 shrink-0 z-[60] shadow-2xl transition-all duration-300 border rounded-[32px] h-[calc(100vh-2rem)] overflow-hidden",
+          "flex flex-col pt-6 pb-6 px-3 fixed left-0 top-0 bottom-0 shrink-0 z-[60] shadow-2xl transition-all duration-300 h-screen border-r overflow-hidden",
           isDarkMode 
-            ? "bg-[#0d1225]/45 border-white/10 text-white backdrop-blur-2xl" 
+            ? "bg-[#0b101e] border-white/5 text-white backdrop-blur-2xl" 
             : themeMode === 'peach'
               ? "bg-[#efe8d9]/75 border-[#dcd4c3] text-[#431407] backdrop-blur-2xl"
               : "bg-white/75 border-slate-200 text-slate-800 backdrop-blur-2xl"
@@ -1421,6 +1411,7 @@ export default function App() {
                 themeMode={themeMode}
                 role={userRole}
                 onClick={() => {
+                  window.dispatchEvent(new CustomEvent('close-topbar-menus'));
                   setActiveCategory(cat.id);
                   const subTabs = getSubTabsForCategory(cat.id, userRole);
                   if (subTabs.length <= 1 || cat.id === 'teacher-dashboard-menu') {
@@ -2353,6 +2344,7 @@ export default function App() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
               className="absolute inset-0 overflow-y-auto p-4 lg:p-8 custom-scrollbar z-10"
+              onClick={() => window.dispatchEvent(new CustomEvent('close-topbar-menus'))}
             >
               <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8 pb-12">
                 <div>

@@ -39,6 +39,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
+const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
+
 export interface PlannerEvent {
   id: string;
   title: string;
@@ -1098,4 +1100,4 @@ export const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({
       </AnimatePresence>
     </div>
   );
-};
+}
