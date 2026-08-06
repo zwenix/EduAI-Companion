@@ -35,6 +35,8 @@ import {
 import ContentSlideshow, { INTELLIGENT_AI_SLIDES } from './ContentSlideshow';
 import WorksheetQRScannerModal from './WorksheetQRScannerModal';
 
+const cn = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(' ');
+
 // Generated background images for interactive showcases
 import bgContentStudio from '../assets/images/content_studio_bg_1785652440860.jpg';
 import bgFoundationHub from '../assets/images/foundation_hub_bg_1785652450982.jpg';
@@ -949,50 +951,55 @@ export default function CategoryOverview({
 
         </div>
 
-        {/* MODULES GRID — each integrated menu is a showcase card */}
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-6xl mx-auto w-full my-4 items-stretch">
+        {/* MODULES GRID — clean card style mirroring the reference screenshot:
+            each integrated menu is a card with a coloured icon tile, a bold
+            title, and a short description. */}
+        <div className={cn(
+          "relative z-10 grid grid-cols-1 gap-6 lg:gap-8 max-w-6xl mx-auto w-full my-4 items-stretch",
+          subTabs.length >= 3 ? "md:grid-cols-2 lg:grid-cols-3" : "md:grid-cols-2"
+        )}>
           {subTabs.map((item) => {
             const cfg = getReportsCardConfig(item.id, item.label);
             const theme = REPORTS_THEME[cfg.themeKey] || REPORTS_THEME.purple;
             const CardIcon = cfg.icon || item.icon;
             return (
-              <InteractiveShowcaseCard
+              <motion.div
                 key={item.id}
-                slides={cfg.slides}
-                borderColorClass={theme.borderColorClass}
-                shadowColorClass={theme.shadowColorClass}
-                hoverBorderColorClass={theme.hoverBorderColorClass}
-                hoverShadowColorClass={theme.hoverShadowColorClass}
-                glowColorClass="shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+                whileHover={{ y: -6 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                 onClick={() => onSelect(item.id)}
+                className={`group flex flex-col p-6 sm:p-7 rounded-[24px] bg-slate-900/75 border hover:brightness-110 hover:-translate-y-1 transition-all duration-300 cursor-pointer relative overflow-hidden ${theme.borderColorClass} ${theme.shadowColorClass} ${theme.hoverBorderColorClass} ${theme.hoverShadowColorClass}`}
               >
-                <div className="space-y-4 w-full h-full flex flex-col items-center justify-between">
-                  <div className={`w-20 h-20 rounded-3xl border-2 flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${theme.iconWrapClass}`}>
-                    <CardIcon size={44} />
+                {/* soft top accent glow */}
+                <div className={`absolute -top-16 -right-16 w-40 h-40 rounded-full blur-3xl pointer-events-none opacity-30 group-hover:opacity-50 transition-opacity ${theme.accentBg}`} />
+
+                <div className="relative z-10 flex flex-col h-full">
+                  {/* icon tile */}
+                  <div className={`w-16 h-16 rounded-2xl border-2 flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${theme.iconWrapClass}`}>
+                    <CardIcon size={32} />
                   </div>
 
-                  <div>
-                    <h2 className={`text-2xl font-display font-extrabold text-white mb-2 ${theme.accentText} transition-colors`}>
-                      {cfg.title}
-                    </h2>
-                    <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
-                      {cfg.desc}
-                    </p>
-                  </div>
+                  <h3 className={`mt-4 text-xl font-display font-extrabold text-white ${theme.accentText} transition-colors`}>
+                    {cfg.title}
+                  </h3>
 
-                  <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+                  <p className="mt-2 text-xs sm:text-sm text-slate-300 leading-relaxed flex-1">
+                    {cfg.desc}
+                  </p>
+
+                  <div className="pt-4 flex flex-wrap items-center gap-2">
                     {cfg.pills.map((pill, pi) => (
                       <button
                         key={pi}
                         onClick={(e) => { e.stopPropagation(); onSelect(pill.id); }}
-                        className={`px-3 py-1.5 rounded-full border hover:scale-105 transition-all cursor-pointer relative z-20 ${theme.pillBg} ${theme.accentBorder} ${theme.pillText} hover:text-white`}
+                        className={`px-3 py-1.5 rounded-full border hover:scale-105 transition-all cursor-pointer ${theme.pillBg} ${theme.accentBorder} ${theme.pillText} hover:text-white`}
                       >
                         {pill.label}
                       </button>
                     ))}
                   </div>
                 </div>
-              </InteractiveShowcaseCard>
+              </motion.div>
             );
           })}
         </div>
