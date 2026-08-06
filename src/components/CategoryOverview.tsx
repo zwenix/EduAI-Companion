@@ -193,6 +193,27 @@ const REPORTS_HERO_SLIDES = [
     description: 'Map CAPS outcomes to engaging gamified quests and reward systems that keep learners motivated while you track curriculum mastery.',
     image: imgGames,
   },
+  {
+    title: 'Mark Distribution & Term Trends',
+    tag: 'VISUALISATION',
+    badgeColor: 'from-rose-500 to-pink-600',
+    description: 'Compare class performance across subjects and terms with interactive mark-distribution bands, averages, and pass-rate baselines.',
+    image: bgPracticeZone,
+  },
+  {
+    title: 'Report Comments & Parent Notices',
+    tag: 'COMMENT READY',
+    badgeColor: 'from-sky-500 to-indigo-600',
+    description: 'Generate constructive, CAPS-standard individual learner report comments and polished parent communication notices in seconds.',
+    image: bgAdminLab,
+  },
+  {
+    title: 'Portfolio Reviews & Feedback',
+    tag: 'FEEDBACK',
+    badgeColor: 'from-teal-500 to-emerald-600',
+    description: 'Review learner portfolios, mark submissions, and leave personalized feedback that travels straight back to each student.',
+    image: bgVaultLibrary,
+  },
 ];
 
 const REPORTS_CARD_SLIDES = [
@@ -890,62 +911,62 @@ export default function CategoryOverview({
           </p>
         </div>
 
-        {/* HERO SHOWCASE SECTION: SLIDESHOW & FEATURED REPORT CARD */}
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-6 max-w-6xl mx-auto w-full items-stretch">
+        {/* HERO SHOWCASE SECTION: FULL-WIDTH INTERACTIVE SLIDESHOW & FEATURED CARD */}
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-6 w-full items-stretch">
           
-          {/* LEFT: Interactive Reports Slideshow */}
-          <div className="lg:col-span-7 flex flex-col justify-center">
-            <ContentSlideshow slides={REPORTS_HERO_SLIDES} />
+          {/* LEFT: Interactive Reports Slideshow (tall, full-width hero) */}
+          <div className="lg:col-span-8 flex flex-col justify-center">
+            <ContentSlideshow slides={REPORTS_HERO_SLIDES} tall />
           </div>
 
-          {/* RIGHT: Featured Report Launch Card */}
+          {/* RIGHT: Featured Learner Portfolio Spotlight Card */}
           <motion.div 
             whileHover={{ scale: 1.02, y: -4 }}
             whileTap={{ scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className="lg:col-span-5 flex flex-col justify-between p-6 rounded-[32px] bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-cyan-950/80 border-2 border-cyan-500/40 hover:border-cyan-300 shadow-[0_0_30px_rgba(6,182,212,0.25)] hover:shadow-[0_0_50px_rgba(6,182,212,0.5)] hover:brightness-110 relative overflow-hidden group transition-all duration-300 cursor-pointer"
-            onClick={() => onSelect('reports')}
+            className="lg:col-span-4 flex flex-col justify-between p-6 rounded-[32px] bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-emerald-950/80 border-2 border-emerald-500/40 hover:border-emerald-300 shadow-[0_0_30px_rgba(16,185,129,0.25)] hover:shadow-[0_0_50px_rgba(16,185,129,0.5)] hover:brightness-110 relative overflow-hidden group transition-all duration-300 cursor-pointer"
+            onClick={() => onSelect('portfolios')}
           >
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-[10px] font-black uppercase tracking-widest text-cyan-300 flex items-center gap-1.5">
+                <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-[10px] font-black uppercase tracking-widest text-emerald-300 flex items-center gap-1.5">
                   <Zap size={12} className="text-amber-300" />
-                  LIVE PERFORMANCE
+                  LEARNER WORK SPOTLIGHT
                 </span>
-                <BarChart3 size={24} className="text-cyan-400 animate-pulse group-hover:scale-110 transition-transform duration-300" />
+                <FolderKanban size={24} className="text-emerald-400 animate-pulse group-hover:scale-110 transition-transform duration-300" />
               </div>
 
               <div>
-                <h3 className="text-2xl font-display font-black text-white group-hover:text-cyan-200 transition-colors">
-                  Progress Reports Hub
+                <h3 className="text-2xl font-display font-black text-white group-hover:text-emerald-200 transition-colors">
+                  Learner Portfolio Spotlight
                 </h3>
                 <p className="text-xs text-slate-300 leading-relaxed mt-2">
-                  Track learner marks, SBA assessments, term trends, and achievement baselines — then generate detailed, comment-ready CAPS report notes.
+                  Showcase continuous learner work — homework, submissions, custom marks, and teacher feedback — in one living portfolio that follows every student.
                 </p>
               </div>
 
               <div className="space-y-2 pt-1">
                 <div className="flex items-center gap-2 text-xs text-slate-300">
                   <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
-                  <span>Interactive mark distribution & term charts</span>
+                  <span>Continuous evaluation artefacts & marks</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-slate-300">
                   <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
-                  <span>Exportable spreadsheets & PDF reports</span>
+                  <span>Personalized teacher feedback per item</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-slate-300">
                   <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
-                  <span>Individual learner dossiers & comments</span>
+                  <span>Shareable academic portfolio showcase</span>
                 </div>
               </div>
             </div>
 
             <button
-              onClick={(e) => { e.stopPropagation(); onSelect('reports'); }}
-              className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-display font-black text-xs shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.7)] transition-all cursor-pointer flex items-center justify-center gap-2 border border-cyan-300/40"
+              onClick={(e) => { e.stopPropagation(); onSelect('portfolios'); }}
+              className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-700 hover:from-emerald-400 hover:to-teal-500 text-white font-display font-black text-xs shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.7)] transition-all cursor-pointer flex items-center justify-center gap-2 border border-emerald-300/40"
             >
-              <TrendingUp size={16} />
-              <span>Open Progress Reports</span>
+              <Award size={16} />
+              <span>Open Learner Portfolios</span>
             </button>
           </motion.div>
 
