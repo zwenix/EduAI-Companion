@@ -675,6 +675,55 @@ svg:not(.not-sketchy) {
   background: #091225;
 }
 
+/* ---------------------------------------------------------------------------
+   App shell + scroll reliability
+   ---------------------------------------------------------------------------
+   The app is a fixed viewport-height shell with a scrollable content area.
+   We intentionally keep the shell at `100vh` (a stable value that matches the
+   visible viewport) and rely on the inner `.content-scroll-area` to scroll, so
+   the page never grows taller than the viewport (which is what caused the
+   overlay to appear "shrunk" with an uncovered page showing below it).
+*/
+.app-shell {
+  height: 100vh;
+}
+
+/* The content scroller: guaranteed scrollable, touch-friendly, and it never
+   lets a runaway child grow the layout out of the viewport. */
+.content-scroll-area {
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+
+/* Overlay plate: always exactly covers its container so there is never a
+   white gap and the crop stays identical no matter what the content does. */
+.page-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+}
+.page-overlay img {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: cover;
+  object-position: center;
+}
+
 .holo-overlay { will-change: transform, opacity; }
 
 @media (prefers-reduced-motion: no-preference) {

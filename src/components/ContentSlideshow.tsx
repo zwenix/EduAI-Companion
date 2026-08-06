@@ -73,9 +73,11 @@ export const INTELLIGENT_AI_SLIDES: Slide[] = [
 
 interface ContentSlideshowProps {
   slides?: Slide[];
+  /** Render a taller hero variant (used on full-width hub pages). */
+  tall?: boolean;
 }
 
-export default function ContentSlideshow({ slides = TOOLBOX_SLIDES }: ContentSlideshowProps) {
+export default function ContentSlideshow({ slides = TOOLBOX_SLIDES, tall = false }: ContentSlideshowProps) {
   const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
 
@@ -111,7 +113,9 @@ export default function ContentSlideshow({ slides = TOOLBOX_SLIDES }: ContentSli
   const Icon = (currentSlide as any).icon;
 
   return (
-    <div className="w-full h-full min-h-[340px] max-h-[420px] rounded-[32px] overflow-hidden relative shadow-2xl border border-cyan-500/30 bg-slate-950 flex flex-col justify-between group select-none">
+    <div className={`w-full h-full rounded-[32px] overflow-hidden relative shadow-2xl border border-cyan-500/30 bg-slate-950 flex flex-col justify-between group select-none ${
+      tall ? 'min-h-[460px] max-h-[560px]' : 'min-h-[340px] max-h-[420px]'
+    }`}>
       {/* Slide Image & Backdrop */}
       <AnimatePresence mode="wait" initial={false}>
         <motion.div

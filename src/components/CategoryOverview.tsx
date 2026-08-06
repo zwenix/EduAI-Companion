@@ -21,10 +21,21 @@ import {
   ScanLine,
   Calendar,
   Bell,
-  Layers
+  Layers,
+  TrendingUp,
+  Award,
+  Trophy,
+  FileSpreadsheet,
+  UserCheck,
+  FolderKanban,
+  BarChart3,
+  PieChart,
+  Medal
 } from 'lucide-react';
 import ContentSlideshow, { INTELLIGENT_AI_SLIDES } from './ContentSlideshow';
 import WorksheetQRScannerModal from './WorksheetQRScannerModal';
+
+const cn = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(' ');
 
 // Generated background images for interactive showcases
 import bgContentStudio from '../assets/images/content_studio_bg_1785652440860.jpg';
@@ -36,6 +47,9 @@ import bgAnalytics     from '../assets/images/analytics_bg_1785652499527.jpg';
 import bgVisualPosters from '../assets/images/visual_posters_bg_1785652509797.jpg';
 import bgVideoAvatars  from '../assets/images/video_avatars_bg_1785652522004.jpg';
 import bgVaultLibrary  from '../assets/images/vault_library_bg_1785652535683.jpg';
+import imgAssessment   from '../assets/images/assessment_screenshot_1784286266626.jpg';
+import imgGames        from '../assets/images/games_overlay_1785535062476.jpg';
+import imgPersonalized from '../assets/images/personalized_overlay_1785535051900.jpg';
 const overlayTeachersToolbox = 'https://i.ibb.co/RGmCJ3jh/teachers-toolbox.png';
 const overlayIntelligentAi = 'https://i.ibb.co/22bDqWm/intelligent-ai.png';
 const overlayMessageCollaborate = 'https://i.ibb.co/SXyQK2df/message-collaborate.png';
@@ -146,6 +160,202 @@ const MEDIA_TOOLS_SLIDES = [
   { image: bgVideoAvatars, title: 'Video Avatars', description: 'Produce captivating teacher video guides using digital presentation avatars.' },
   { image: bgVaultLibrary, title: 'Vault & Library', description: 'Securely archive all generated templates, rubrics, and study guides.' }
 ];
+
+/* ---------------------------------------------------------------------------
+   REPORTS & PORTFOLIOS HUB — hero slideshow + per-module showcase slides
+--------------------------------------------------------------------------- */
+const REPORTS_HERO_SLIDES = [
+  {
+    title: 'Progress Analytics Dashboard',
+    tag: 'PERFORMANCE',
+    badgeColor: 'from-cyan-500 to-blue-600',
+    description: 'Visualize continuous class performance metrics with mark distribution charts, term trends, and achievement baselines for targeted interventions.',
+    image: bgAnalytics,
+  },
+  {
+    title: 'Assessment Insights & Mark Book',
+    tag: 'SBA & EXAMS',
+    badgeColor: 'from-emerald-500 to-teal-600',
+    description: 'Drill into assessment scores, SBA portfolios, formal tests, and answer memorandums to spot strengths and support gaps across every learner.',
+    image: imgAssessment,
+  },
+  {
+    title: 'Learner Personal Portfolios',
+    tag: 'SHOWCASE WORK',
+    badgeColor: 'from-amber-500 to-orange-600',
+    description: 'Browse continuous learner homework submissions, academic portfolios, custom marks, and personalized teacher feedback in one living portfolio.',
+    image: imgPersonalized,
+  },
+  {
+    title: 'CAPS & Gamification Hub',
+    tag: 'REWARDS',
+    badgeColor: 'from-purple-500 to-indigo-600',
+    description: 'Map CAPS outcomes to engaging gamified quests and reward systems that keep learners motivated while you track curriculum mastery.',
+    image: imgGames,
+  },
+  {
+    title: 'Mark Distribution & Term Trends',
+    tag: 'VISUALISATION',
+    badgeColor: 'from-rose-500 to-pink-600',
+    description: 'Compare class performance across subjects and terms with interactive mark-distribution bands, averages, and pass-rate baselines.',
+    image: bgPracticeZone,
+  },
+  {
+    title: 'Report Comments & Parent Notices',
+    tag: 'COMMENT READY',
+    badgeColor: 'from-sky-500 to-indigo-600',
+    description: 'Generate constructive, CAPS-standard individual learner report comments and polished parent communication notices in seconds.',
+    image: bgAdminLab,
+  },
+  {
+    title: 'Portfolio Reviews & Feedback',
+    tag: 'FEEDBACK',
+    badgeColor: 'from-teal-500 to-emerald-600',
+    description: 'Review learner portfolios, mark submissions, and leave personalized feedback that travels straight back to each student.',
+    image: bgVaultLibrary,
+  },
+];
+
+const REPORTS_CARD_SLIDES = [
+  { image: bgAnalytics, title: 'Progress Analytics', description: 'Continuous performance tracking, charts and baselines.' },
+  { image: imgAssessment, title: 'Assessments', description: 'Term trends, mark distribution and SBA insights.' },
+];
+
+const PORTFOLIOS_CARD_SLIDES = [
+  { image: imgPersonalized, title: 'Learner Portfolios', description: 'Living collections of work, marks and feedback.' },
+  { image: bgVaultLibrary, title: 'Vault & Library', description: 'Safely archived academic artefacts and study guides.' },
+];
+
+const GAMIFICATION_CARD_SLIDES = [
+  { image: imgGames, title: 'Gamification Hub', description: 'Quests, badges and reward systems for motivation.' },
+  { image: bgPracticeZone, title: 'Practice Zone', description: 'Diagnostic quizzes and skill-mastery drills.' },
+];
+
+interface ReportsCardTheme {
+  borderColorClass: string;
+  shadowColorClass: string;
+  hoverBorderColorClass: string;
+  hoverShadowColorClass: string;
+  iconWrapClass: string;
+  accentText: string;
+  accentBg: string;
+  accentBorder: string;
+  pillBg: string;
+  pillText: string;
+}
+
+const REPORTS_THEME: Record<string, ReportsCardTheme> = {
+  cyan: {
+    borderColorClass: 'border-cyan-400/90',
+    shadowColorClass: 'shadow-[0_0_30px_rgba(34,211,238,0.35)]',
+    hoverBorderColorClass: 'hover:border-cyan-300',
+    hoverShadowColorClass: 'hover:shadow-[0_0_50px_rgba(34,211,238,0.65)]',
+    iconWrapClass: 'border-cyan-400/50 text-cyan-300 bg-cyan-500/10 shadow-[0_0_20px_rgba(34,211,238,0.4)]',
+    accentText: 'group-hover:text-cyan-200 text-cyan-300',
+    accentBg: 'bg-cyan-500/10',
+    accentBorder: 'border-cyan-400/40',
+    pillBg: 'bg-cyan-500/10',
+    pillText: 'text-cyan-300',
+  },
+  emerald: {
+    borderColorClass: 'border-emerald-400/90',
+    shadowColorClass: 'shadow-[0_0_30px_rgba(52,211,153,0.35)]',
+    hoverBorderColorClass: 'hover:border-emerald-300',
+    hoverShadowColorClass: 'hover:shadow-[0_0_50px_rgba(52,211,153,0.65)]',
+    iconWrapClass: 'border-emerald-400/50 text-emerald-300 bg-emerald-500/10 shadow-[0_0_20px_rgba(52,211,153,0.4)]',
+    accentText: 'group-hover:text-emerald-200 text-emerald-300',
+    accentBg: 'bg-emerald-500/10',
+    accentBorder: 'border-emerald-400/40',
+    pillBg: 'bg-emerald-500/10',
+    pillText: 'text-emerald-300',
+  },
+  amber: {
+    borderColorClass: 'border-amber-400/90',
+    shadowColorClass: 'shadow-[0_0_30px_rgba(251,191,36,0.35)]',
+    hoverBorderColorClass: 'hover:border-amber-300',
+    hoverShadowColorClass: 'hover:shadow-[0_0_50px_rgba(251,191,36,0.65)]',
+    iconWrapClass: 'border-amber-400/50 text-amber-300 bg-amber-500/10 shadow-[0_0_20px_rgba(251,191,36,0.4)]',
+    accentText: 'group-hover:text-amber-200 text-amber-300',
+    accentBg: 'bg-amber-500/10',
+    accentBorder: 'border-amber-400/40',
+    pillBg: 'bg-amber-500/10',
+    pillText: 'text-amber-300',
+  },
+  pink: {
+    borderColorClass: 'border-pink-500/90',
+    shadowColorClass: 'shadow-[0_0_30px_rgba(236,72,153,0.35)]',
+    hoverBorderColorClass: 'hover:border-pink-400',
+    hoverShadowColorClass: 'hover:shadow-[0_0_50px_rgba(236,72,153,0.65)]',
+    iconWrapClass: 'border-pink-500/50 text-pink-300 bg-pink-500/10 shadow-[0_0_20px_rgba(236,72,153,0.4)]',
+    accentText: 'group-hover:text-pink-200 text-pink-300',
+    accentBg: 'bg-pink-500/10',
+    accentBorder: 'border-pink-500/40',
+    pillBg: 'bg-pink-500/10',
+    pillText: 'text-pink-300',
+  },
+  purple: {
+    borderColorClass: 'border-purple-500/90',
+    shadowColorClass: 'shadow-[0_0_30px_rgba(168,85,247,0.35)]',
+    hoverBorderColorClass: 'hover:border-purple-300',
+    hoverShadowColorClass: 'hover:shadow-[0_0_50px_rgba(168,85,247,0.65)]',
+    iconWrapClass: 'border-purple-500/50 text-purple-300 bg-purple-500/10 shadow-[0_0_20px_rgba(168,85,247,0.4)]',
+    accentText: 'group-hover:text-purple-200 text-purple-300',
+    accentBg: 'bg-purple-500/10',
+    accentBorder: 'border-purple-500/40',
+    pillBg: 'bg-purple-500/10',
+    pillText: 'text-purple-300',
+  },
+};
+
+function getReportsCardConfig(id: string, label: string) {
+  switch (id) {
+    case 'reports':
+      return {
+        themeKey: 'cyan',
+        title: 'Progress Reports & Analytics',
+        icon: BarChart3,
+        desc: 'Analyze continuous class performance analytics, export detailed spreadsheets, and locate performance baselines for custom interventions.',
+        slides: REPORTS_CARD_SLIDES,
+        pills: [
+          { id: 'reports', label: '📊 Progress Reports' },
+          { id: 'reports', label: '📈 Analytics & Comments' },
+        ],
+      };
+    case 'portfolios':
+      return {
+        themeKey: 'emerald',
+        title: 'Learner Personal Portfolios',
+        icon: FolderKanban,
+        desc: 'Browse continuous student homework submissions, academic portfolios, custom marks, and personalized teacher feedback.',
+        slides: PORTFOLIOS_CARD_SLIDES,
+        pills: [
+          { id: 'portfolios', label: '🗂️ Learner Portfolios' },
+          { id: 'portfolios', label: '📚 Assignments' },
+        ],
+      };
+    case 'curriculum':
+      return {
+        themeKey: 'amber',
+        title: 'CAPS & Gamification Hub',
+        icon: Trophy,
+        desc: 'Map CAPS outcomes to engaging quests, badges and reward systems while tracking curriculum mastery across your classroom.',
+        slides: GAMIFICATION_CARD_SLIDES,
+        pills: [
+          { id: 'curriculum', label: '🎮 Gamification Hub' },
+          { id: 'curriculum', label: '📋 CAPS Alignment' },
+        ],
+      };
+    default:
+      return {
+        themeKey: 'purple',
+        title: label,
+        icon: FileSpreadsheet,
+        desc: `Access and manage ${label} tools and educational aids securely.`,
+        slides: REPORTS_CARD_SLIDES,
+        pills: [{ id, label: `Open ${label}` }],
+      };
+  }
+}
 
 interface CategoryOverviewProps {
   categoryLabel: string;
@@ -654,6 +864,188 @@ export default function CategoryOverview({
             </button>
           </div>
 
+        </div>
+
+      </div>
+    );
+  }
+
+  // Custom Reports & Portfolios Hub UI (mirrors Teacher's Toolbox design language)
+  if (categoryLabel === 'Reports & Portfolios' || categoryLabel === 'Reports & Portfolio') {
+    return (
+      <div className="relative p-6 lg:p-10 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100vh - 130px)' }}>
+        
+        {/* Deep Cosmic Background & Subtle Stars */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
+        
+        {/* Analytics Background Overlay */}
+        <div 
+          className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-overlay"
+          style={{
+            backgroundImage: `url(${bgAnalytics})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        />
+
+        {/* Soft Ambient Radial Glows */}
+        <div className="absolute top-10 left-1/4 w-96 h-96 bg-cyan-600/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-amber-500/15 rounded-full blur-[120px] pointer-events-none" />
+
+        {/* MAIN TITLE SECTION ("Reports & Portfolios") */}
+        <div className="relative z-10 text-center my-6">
+          <div className="inline-flex items-center gap-2 mb-2">
+            <Sparkles className="w-5 h-5 text-cyan-300 animate-pulse" />
+            <span className="text-xl sm:text-2xl font-display font-bold text-slate-100 tracking-tight">
+              Reports &
+            </span>
+            <Sparkles className="w-5 h-5 text-cyan-300 animate-pulse" />
+          </div>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-cyan-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(34,211,238,0.6)]">
+            Portfolios
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
+            Progress Reports • Learner Portfolios • CAPS & Gamification
+          </p>
+        </div>
+
+        {/* HERO SHOWCASE SECTION: FULL-WIDTH INTERACTIVE SLIDESHOW & FEATURED CARD */}
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-6 w-full items-stretch">
+          
+          {/* LEFT: Interactive Reports Slideshow (tall, full-width hero) */}
+          <div className="lg:col-span-8 flex flex-col justify-center">
+            <ContentSlideshow slides={REPORTS_HERO_SLIDES} tall />
+          </div>
+
+          {/* RIGHT: Featured Learner Portfolio Spotlight Card */}
+          <motion.div 
+            whileHover={{ scale: 1.02, y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            className="lg:col-span-4 flex flex-col justify-between p-6 rounded-[32px] bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-emerald-950/80 border-2 border-emerald-500/40 hover:border-emerald-300 shadow-[0_0_30px_rgba(16,185,129,0.25)] hover:shadow-[0_0_50px_rgba(16,185,129,0.5)] hover:brightness-110 relative overflow-hidden group transition-all duration-300 cursor-pointer"
+            onClick={() => onSelect('portfolios')}
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-[10px] font-black uppercase tracking-widest text-emerald-300 flex items-center gap-1.5">
+                  <Zap size={12} className="text-amber-300" />
+                  LEARNER WORK SPOTLIGHT
+                </span>
+                <FolderKanban size={24} className="text-emerald-400 animate-pulse group-hover:scale-110 transition-transform duration-300" />
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-display font-black text-white group-hover:text-emerald-200 transition-colors">
+                  Learner Portfolio Spotlight
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed mt-2">
+                  Showcase continuous learner work — homework, submissions, custom marks, and teacher feedback — in one living portfolio that follows every student.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  <span>Continuous evaluation artefacts & marks</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  <span>Personalized teacher feedback per item</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  <span>Shareable academic portfolio showcase</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={(e) => { e.stopPropagation(); onSelect('portfolios'); }}
+              className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-700 hover:from-emerald-400 hover:to-teal-500 text-white font-display font-black text-xs shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.7)] transition-all cursor-pointer flex items-center justify-center gap-2 border border-emerald-300/40"
+            >
+              <Award size={16} />
+              <span>Open Learner Portfolios</span>
+            </button>
+          </motion.div>
+
+        </div>
+
+        {/* MODULES GRID — clean card style mirroring the reference screenshot:
+            each integrated menu is a card with a coloured icon tile, a bold
+            title, and a short description. */}
+        <div className={cn(
+          "relative z-10 grid grid-cols-1 gap-6 lg:gap-8 max-w-6xl mx-auto w-full my-4 items-stretch",
+          subTabs.length >= 3 ? "md:grid-cols-2 lg:grid-cols-3" : "md:grid-cols-2"
+        )}>
+          {subTabs.map((item) => {
+            const cfg = getReportsCardConfig(item.id, item.label);
+            const theme = REPORTS_THEME[cfg.themeKey] || REPORTS_THEME.purple;
+            const CardIcon = cfg.icon || item.icon;
+            return (
+              <motion.div
+                key={item.id}
+                whileHover={{ y: -6 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                onClick={() => onSelect(item.id)}
+                className={`group flex flex-col p-6 sm:p-7 rounded-[24px] bg-slate-900/75 border hover:brightness-110 hover:-translate-y-1 transition-all duration-300 cursor-pointer relative overflow-hidden ${theme.borderColorClass} ${theme.shadowColorClass} ${theme.hoverBorderColorClass} ${theme.hoverShadowColorClass}`}
+              >
+                {/* soft top accent glow */}
+                <div className={`absolute -top-16 -right-16 w-40 h-40 rounded-full blur-3xl pointer-events-none opacity-30 group-hover:opacity-50 transition-opacity ${theme.accentBg}`} />
+
+                <div className="relative z-10 flex flex-col h-full">
+                  {/* icon tile */}
+                  <div className={`w-16 h-16 rounded-2xl border-2 flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${theme.iconWrapClass}`}>
+                    <CardIcon size={32} />
+                  </div>
+
+                  <h3 className={`mt-4 text-xl font-display font-extrabold text-white ${theme.accentText} transition-colors`}>
+                    {cfg.title}
+                  </h3>
+
+                  <p className="mt-2 text-xs sm:text-sm text-slate-300 leading-relaxed flex-1">
+                    {cfg.desc}
+                  </p>
+
+                  <div className="pt-4 flex flex-wrap items-center gap-2">
+                    {cfg.pills.map((pill, pi) => (
+                      <button
+                        key={pi}
+                        onClick={(e) => { e.stopPropagation(); onSelect(pill.id); }}
+                        className={`px-3 py-1.5 rounded-full border hover:scale-105 transition-all cursor-pointer ${theme.pillBg} ${theme.accentBorder} ${theme.pillText} hover:text-white`}
+                      >
+                        {pill.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* BOTTOM QUICK SHORTCUTS STRIP */}
+        <div className="relative z-10 pt-6 border-t border-cyan-500/20 text-center">
+          <p className="text-xs font-mono font-bold text-cyan-300 uppercase tracking-widest mb-3">
+            Reports & Portfolios Modules
+          </p>
+          <div className="flex flex-wrap justify-center items-center gap-3">
+            {subTabs.map((tool) => {
+              const cfg = getReportsCardConfig(tool.id, tool.label);
+              const ToolIcon = cfg.icon || tool.icon;
+              return (
+                <button
+                  key={tool.id}
+                  onClick={() => onSelect(tool.id)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-cyan-600/30 border border-cyan-500/30 hover:border-cyan-400 text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <ToolIcon className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>{tool.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
       </div>
