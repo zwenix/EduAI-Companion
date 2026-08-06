@@ -675,6 +675,66 @@ svg:not(.not-sketchy) {
   background: #091225;
 }
 
+/* ---------------------------------------------------------------------------
+   App shell + scroll reliability
+   ---------------------------------------------------------------------------
+   `100dvh` (dynamic viewport height) tracks the browser's *visible* height,
+   so on mobile the layout no longer shifts when the address bar hides/shows.
+   That shifting was the root cause of BOTH "pages won't scroll" (content cut
+   off past the visible area with no way to reach it) and "the overlay image
+   changes size / leaves white space every time the page opens" (the canvas
+   height changed, so object-fit:cover re-cropped the plate). The `100vh`
+   line is the fallback for browsers that do not support dvh yet.
+*/
+.app-shell {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* The content scroller: guaranteed scrollable, touch-friendly, and it never
+   lets a runaway child grow the layout out of the viewport. */
+.content-scroll-area {
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+
+/* Overlay plate: always exactly covers its container so there is never a
+   white gap and the crop stays identical no matter what the content does. */
+.page-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  width: 100% !important;
+  height: 100% !important;
+}
+.page-overlay > * {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden;
+}
+.page-overlay img {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: cover;
+  object-position: center;
+}
+
 .holo-overlay { will-change: transform, opacity; }
 
 @media (prefers-reduced-motion: no-preference) {

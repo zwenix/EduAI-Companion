@@ -20,7 +20,7 @@ export default function Helpdesk({ isDarkMode }: HelpdeskProps) {
 
   return (
     <div className="w-full h-full">
-      <div className="w-full overflow-hidden bg-[#0c1024] rounded-2xl flex flex-col md:flex-row relative" style={{ height: 'calc(100vh - 130px)' }}>
+      <div className="w-full overflow-hidden bg-[#0c1024] rounded-2xl flex flex-col md:flex-row relative" style={{ height: 'calc(100dvh - 130px)' }}>
         
         {/* Sidebar portion of the Support modal */}
         <div className="w-full md:w-64 bg-[#141a2e] border-r border-cyan-500/10 flex flex-col pt-6 pb-6 shadow-xl shrink-0 z-10">

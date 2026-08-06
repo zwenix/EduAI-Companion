@@ -809,7 +809,7 @@ export default function App() {
         { id: 'curriculum-planning', label: 'Curriculum & Planning', icon: IconMagicPlanner },
         { id: 'intelligence-ai', label: 'Intelligent AI', icon: SmartBotTutorIcon },
         { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
-        { id: 'class-analytics', label: 'Analytics', icon: IconAnalytics },
+        { id: 'class-analytics', label: 'Reports & Portfolios', icon: IconAnalytics },
         { id: 'student-class-management', label: 'Message & Collaborate', icon: IconClassrooms },
         { id: 'system-support', label: 'Settings', icon: IconSettings },
       ];
@@ -820,7 +820,7 @@ export default function App() {
         { id: 'teacher-dashboard-menu', label: firstLabel, icon: IconHome },
         { id: 'lesson-planning', label: 'My Class', icon: IconCurriculum },
         { id: 'intelligence-ai', label: "AI Tutor's Class", icon: SmartBotTutorIcon },
-        { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
+        { id: 'class-analytics', label: 'Reports & Portfolios', icon: IconAnalytics },
         { id: 'student-class-management', label: 'Chat & Messenger', icon: IconClassrooms },
         { id: 'system-support', label: 'System support', icon: IconSettings },
       ];
@@ -832,7 +832,7 @@ export default function App() {
       { id: 'curriculum-planning', label: 'Curriculum & Planning', icon: IconMagicPlanner },
       { id: 'intelligence-ai', label: 'Intelligent AI', icon: SmartBotTutorIcon },
       { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
-      { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
+      { id: 'class-analytics', label: 'Reports & Portfolios', icon: IconAnalytics },
       { id: 'student-class-management', label: 'Chat & Messenger', icon: IconClassrooms },
       { id: 'system-support', label: 'System support', icon: IconSettings },
     ];
@@ -1061,7 +1061,7 @@ export default function App() {
       case 'planner':
         return "Teacher's Planner & Diary";
       case 'reports':
-        return 'Galaxy Analytics';
+        return 'Reports & Portfolios';
       case 'class-management':
         return 'Classes & Learners';
       case 'settings':
@@ -1318,7 +1318,7 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion="never">
-      <div className={`flex h-screen ${isDarkMode ? 'bg-[#050a18]' : themeMode === 'peach' ? 'bg-[#efe8d9] peach-theme' : 'bg-slate-50'} font-sans selection:bg-brand-cyan/30 overflow-hidden transition-colors duration-500`}>
+      <div className={`flex h-screen app-shell ${isDarkMode ? 'bg-[#050a18]' : themeMode === 'peach' ? 'bg-[#efe8d9] peach-theme' : 'bg-slate-50'} font-sans selection:bg-brand-cyan/30 overflow-hidden transition-colors duration-500`}>
       {/* Sidebar Overlay for Mobile */}
       <AnimatePresence>
         {isMobile && isMobileSidebarOpen && (
@@ -1346,7 +1346,7 @@ export default function App() {
         }}
         transition={{ type: "spring", bounce: 0, duration: 0.3 }}
         className={cn(
-          "flex flex-col pt-3 pb-3 px-2 fixed left-0 top-0 bottom-0 shrink-0 z-[60] shadow-2xl transition-all duration-300 h-screen border-r overflow-hidden font-['Patrick_Hand',cursive]",
+          "flex flex-col pt-3 pb-3 px-2 fixed left-0 top-0 bottom-0 shrink-0 z-[60] shadow-2xl transition-all duration-300 h-screen app-shell border-r overflow-hidden font-['Patrick_Hand',cursive]",
           isDarkMode 
             ? "bg-[#0b101e] border-white/5 text-white backdrop-blur-2xl" 
             : themeMode === 'peach'
@@ -2359,7 +2359,7 @@ export default function App() {
                 "absolute inset-0 custom-scrollbar z-10",
                 ['ai-tutor', 'messenger', 'collaborative-workspace'].includes(activeTab)
                   ? "overflow-hidden p-0"
-                  : "overflow-y-auto p-4 lg:p-8"
+                  : "content-scroll-area overflow-y-auto p-4 lg:p-8"
               )}
               onClick={() => window.dispatchEvent(new CustomEvent('close-topbar-menus'))}
             >

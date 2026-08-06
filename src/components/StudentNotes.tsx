@@ -183,7 +183,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
 
   return (
     <div className={cn(
-      "flex flex-col h-[calc(100vh-100px)] lg:flex-row gap-6 overflow-hidden animate-in fade-in duration-700",
+      "flex flex-col h-[calc(100dvh-100px)] lg:flex-row gap-6 overflow-hidden animate-in fade-in duration-700",
       isDarkMode ? "bg-transparent" : "bg-transparent"
     )}>
       {/* Left Sidebar - Config & History */}
