@@ -24,22 +24,23 @@ const KEYFRAMES = `
   to   { opacity: 1; filter: blur(0);   transform: scale(1); }
 }
 @keyframes ov-drift {
-  0%   { transform: translate3d(0,0,0) scale(1.04); }
-  50%  { transform: translate3d(-1.2%,-0.8%,0) scale(1.07); }
-  100% { transform: translate3d(0,0,0) scale(1.04); }
+  0%   { transform: translate3d(0,0,0) scale(1.06); }
+  50%  { transform: translate3d(-1.2%,-0.8%,0) scale(1.1); }
+  100% { transform: translate3d(0,0,0) scale(1.06); }
 }`;
 
 export default function PageOverlay({
   route,
   blend = 'normal',
-  opacity = 0.65,
+  opacity = 0.85,
   vignette = false,
   drift = false,
   className = '',
 }: PageOverlayProps) {
   const src = useMemo(() => resolveOverlay(route), [route]);
 
-  const imgOpacity = blend === 'screen' ? Math.min(1, opacity + 0.15) : opacity;
+  // Keep plate strong enough that transparent PNG edges never read as white canvas
+  const imgOpacity = blend === 'screen' ? Math.min(1, opacity + 0.1) : Math.min(1, Math.max(0.55, opacity));
 
   return (
     <>
@@ -47,26 +48,36 @@ export default function PageOverlay({
       <div
         aria-hidden="true"
         className={`page-overlay pointer-events-none absolute inset-0 z-0 select-none overflow-hidden ${className}`}
-        style={{ width: '100%', height: '100%' }}
       >
+        {/* Solid navy fill — paints full area before/under the image */}
+        <div className="page-overlay-fallback absolute inset-0" />
+
         {/* key={src} remounts on route change → the new constellation ignites */}
         <div
           key={src}
-          className="absolute inset-0 will-change-transform overflow-hidden"
+          className="absolute inset-0 overflow-hidden"
           style={{
             opacity: imgOpacity,
             mixBlendMode: blend === 'screen' ? 'screen' : 'normal',
-            animation: 'ov-ignite 900ms ease-out both' + (drift ? ', ov-drift 48s ease-in-out infinite' : ''),
+            animation: 'ov-ignite 700ms ease-out both' + (drift ? ', ov-drift 48s ease-in-out infinite' : ''),
           }}
         >
           <img
             src={src}
             alt=""
             draggable={false}
-            className="absolute inset-0 w-full h-full object-cover object-center"
-            style={{ width: '100%', height: '100%' }}
+            className="page-overlay-img"
           />
         </div>
+
+        {/* Soft top/bottom veil so header/footer seams never look like a white strip */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'linear-gradient(to bottom, rgba(9,18,37,0.55) 0%, transparent 14%, transparent 86%, rgba(9,18,37,0.65) 100%)',
+          }}
+        />
 
         {vignette && (
           <div

@@ -20,12 +20,17 @@
 
 @layer base {
   html, body, #root {
-    min-height: 100%;
     height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    /* Navy fallback — never flash pure white behind the app shell */
+    background-color: #091225;
   }
 
   body {
-    @apply antialiased bg-slate-50 text-slate-800 transition-colors duration-500 font-sans;
+    @apply antialiased text-slate-100 transition-colors duration-500 font-sans;
+    background-color: #091225;
     overflow: hidden;
   }
   
@@ -343,14 +348,15 @@ svg:not(.not-sketchy) {
   animation: float-gentle 4s ease-in-out infinite;
 }
 
-/* Glassmorphic Sidebar & Dashboard Background Mockup Styles */
+/* Glassmorphic Sidebar & Dashboard Background Mockup Styles
+   (kept absolute to main surface — fixed was painting white bands outside overlay) */
 .dashboard-bg-container {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: radial-gradient(circle at 80% 20%, #0a0b1e 0%, #050612 100%);
   z-index: 0;
   pointer-events: none;
-  opacity: 0.8;
+  opacity: 0.55;
 }
 
 .bg-blur-card {
@@ -651,77 +657,115 @@ svg:not(.not-sketchy) {
 
 
 
-/* Overlay Styles — a solid gradient canvas sits behind every image so transparent
-   image edges never expose an empty white page during navigation or resizing. */
-.page-overlay {
-  background:
-    radial-gradient(circle at 15% 15%, rgba(0, 179, 255, 0.20), transparent 42%),
-    radial-gradient(circle at 85% 85%, rgba(99, 102, 241, 0.18), transparent 46%),
-    #091225;
-  width: 100% !important;
-  height: 100% !important;
-}
-.page-overlay img {
-  display: block;
-  width: 100% !important;
-  height: 100% !important;
-  min-width: 100% !important;
-  min-height: 100% !important;
-  object-fit: cover;
-  object-position: center;
-}
-
-.app-content-canvas {
-  background: #091225;
-}
-
 /* ---------------------------------------------------------------------------
    App shell + scroll reliability
    ---------------------------------------------------------------------------
-   The app is a fixed viewport-height shell with a scrollable content area.
-   We intentionally keep the shell at `100vh` (a stable value that matches the
-   visible viewport) and rely on the inner `.content-scroll-area` to scroll, so
-   the page never grows taller than the viewport (which is what caused the
-   overlay to appear "shrunk" with an uncovered page showing below it).
+   Fixed viewport-height shell. Overlay covers the entire <main> (header +
+   content). Normal pages scroll via `.content-scroll-area`. Full-bleed pages
+   fill the remaining space under the header and scroll internally.
 */
 .app-shell {
-  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  background-color: #091225;
 }
 
-/* The content scroller: guaranteed scrollable, touch-friendly, and it never
-   lets a runaway child grow the layout out of the viewport. */
+/* Main column surface — solid navy so header/content never show white edges */
+.app-main-surface {
+  position: relative;
+  background-color: #091225 !important;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-content-canvas {
+  position: relative;
+  background: transparent;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The content scroller: MUST be a block (not a flex shrink trap) so children
+   can grow taller than the viewport and drive overflow-y scrolling. */
 .content-scroll-area {
-  overflow-x: hidden;
-  overflow-y: auto;
+  display: block !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   scroll-behavior: smooth;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  /* Allow wheel/touch to always reach this scroller */
+  touch-action: pan-y;
 }
 
-/* Overlay plate: always exactly covers its container so there is never a
-   white gap and the crop stays identical no matter what the content does. */
-.page-overlay {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
+/* Full-bleed feature pages (AI Tutor, Messenger, etc.) fill the canvas and
+   own their own internal scroll regions — never nest a second outer scroller. */
+.full-bleed-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
   overflow: hidden;
-  width: 100% !important;
-  height: 100% !important;
-  min-width: 100% !important;
-  min-height: 100% !important;
 }
-.page-overlay img {
-  display: block;
+
+/* Overlay plate: covers the entire main surface (header + content). */
+.page-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
   width: 100% !important;
   height: 100% !important;
   min-width: 100% !important;
   min-height: 100% !important;
   max-width: none !important;
   max-height: none !important;
-  object-fit: cover;
-  object-position: center;
+  overflow: hidden !important;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(0, 179, 255, 0.28), transparent 42%),
+    radial-gradient(circle at 85% 85%, rgba(99, 102, 241, 0.24), transparent 46%),
+    radial-gradient(circle at 50% 100%, rgba(0, 255, 159, 0.10), transparent 50%),
+    #091225;
+}
+
+.page-overlay-fallback {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(0, 179, 255, 0.28), transparent 42%),
+    radial-gradient(circle at 85% 85%, rgba(99, 102, 241, 0.24), transparent 46%),
+    #091225;
+}
+
+.page-overlay img,
+.page-overlay-img {
+  display: block !important;
+  position: absolute !important;
+  /* Overscale + cover: no letterbox, no edge gap */
+  width: 120% !important;
+  height: 120% !important;
+  min-width: 120% !important;
+  min-height: 120% !important;
+  max-width: none !important;
+  max-height: none !important;
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%) !important;
+  object-fit: cover !important;
+  object-position: center center !important;
 }
 
 .holo-overlay { will-change: transform, opacity; }

@@ -533,7 +533,7 @@ export default function CollaborativeWorkspace({ isDarkMode }: CollaborativeWork
             <div 
               ref={workspaceAreaRef}
               onMouseMove={handleMouseMove}
-              className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} rounded-[28px] overflow-hidden flex flex-col h-[750px] relative shadow-lg`}
+              className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} rounded-[28px] overflow-hidden flex flex-col min-h-[560px] h-[min(70dvh,720px)] relative shadow-lg`}
             >
               {/* Floating Cursors Layer */}
               <div className="absolute inset-0 pointer-events-none z-30 overflow-hidden">

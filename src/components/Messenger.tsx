@@ -453,11 +453,11 @@ export default function Messenger() {
   );
 
   return (
-    <div className="w-full h-full">
-      <div className="w-full overflow-hidden bg-[#0c1024] rounded-2xl flex flex-col md:flex-row relative" style={{ height: 'calc(100vh - 130px)' }}>
+    <div className="full-bleed-page w-full h-full min-h-0 p-2 sm:p-3 lg:p-4">
+      <div className="w-full h-full min-h-0 overflow-hidden bg-[#0c1024] rounded-2xl flex flex-col md:flex-row relative">
       
       {/* LEFT PANEL: Chats & Groups */}
-      <div className="w-full md:w-80 xl:w-96 shrink-0 bg-[#141a2e] border-r border-cyan-500/10 p-5 flex flex-col shadow-xl relative overflow-hidden z-10">
+      <div className="w-full md:w-80 xl:w-96 shrink-0 bg-[#141a2e] border-r border-cyan-500/10 p-5 flex flex-col shadow-xl relative overflow-hidden z-10 min-h-0 h-full">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-display font-black tracking-tight text-white">

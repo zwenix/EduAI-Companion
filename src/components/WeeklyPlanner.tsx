@@ -444,7 +444,7 @@ export const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({
   }, [weekDays]);
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-900'} pb-16`}>
+    <div className={`min-h-0 ${isDarkMode ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-900'} pb-16`}>
       {/* Top Banner */}
       <div className={`${isDarkMode ? 'bg-gray-900 border-b border-gray-800' : 'bg-white border-b border-gray-200'} shadow-sm`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
