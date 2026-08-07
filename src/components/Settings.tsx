@@ -264,8 +264,8 @@ export default function Settings({
     return <div className="p-12 text-center text-slate-500">Loading settings...</div>;
   }
   return (
-    <div className="w-full h-full font-sans">
-      <div className="w-full overflow-hidden bg-[#0c1024] rounded-2xl flex flex-col md:flex-row relative" style={{ height: 'calc(100vh - 130px)' }}>
+    <div className="full-bleed-page w-full h-full min-h-0 font-sans p-2 sm:p-3 lg:p-4">
+      <div className="w-full h-full min-h-0 overflow-hidden bg-[#0c1024] rounded-2xl flex flex-col md:flex-row relative">
         
         {/* LEFT PANEL: Menu */}
         <div className="w-full md:w-64 bg-[#141a2e] border-r border-cyan-500/10 flex flex-col pt-6 pb-6 shadow-xl shrink-0 z-10 text-white">

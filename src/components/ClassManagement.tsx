@@ -459,8 +459,8 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
   });
 
   return (
-    <div className="w-full h-full font-sans">
-      <div className="w-full bg-[#0c1024] rounded-2xl flex flex-col md:flex-row relative" style={{ minHeight: 'calc(100vh - 130px)' }}>
+    <div className="full-bleed-page w-full h-full min-h-0 font-sans p-2 sm:p-3 lg:p-4">
+      <div className="w-full h-full min-h-0 overflow-hidden bg-[#0c1024] rounded-2xl flex flex-col md:flex-row relative">
         
         {/* LEFT PANEL: Menu */}
         <div className="w-full md:w-64 shrink-0 bg-[#141a2e] border-r border-cyan-500/10 p-5 flex flex-col shadow-xl relative overflow-hidden z-10">

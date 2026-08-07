@@ -368,7 +368,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="space-y-10 relative select-none p-2 md:p-4 min-h-screen pb-24"
+      className="space-y-10 relative select-none p-2 md:p-4 pb-24"
     >
       {/* 1. Teaching Command Center Header & Cards */}
       <motion.div 

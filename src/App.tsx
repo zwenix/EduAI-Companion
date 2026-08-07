@@ -1318,7 +1318,7 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion="never">
-      <div className={`flex h-screen app-shell ${isDarkMode ? 'bg-[#050a18]' : themeMode === 'peach' ? 'bg-[#efe8d9] peach-theme' : 'bg-slate-50'} font-sans selection:bg-brand-cyan/30 overflow-hidden transition-colors duration-500`}>
+      <div className={`flex h-[100dvh] max-h-[100dvh] app-shell ${isDarkMode ? 'bg-[#091225]' : themeMode === 'peach' ? 'bg-[#efe8d9] peach-theme' : 'bg-[#091225]'} font-sans selection:bg-brand-cyan/30 overflow-hidden transition-colors duration-500`}>
       {/* Sidebar Overlay for Mobile */}
       <AnimatePresence>
         {isMobile && isMobileSidebarOpen && (
@@ -1653,27 +1653,25 @@ export default function App() {
         {/* END: User Profile Section */}
       </motion.aside>
 
-      {/* Main Content */}
-      <main className={`flex-1 flex flex-col overflow-hidden relative ${isDarkMode ? 'bg-[#0d0e1b] dark-theme' : themeMode === 'peach' ? 'bg-[#efe8d9] peach-theme' : 'bg-slate-50'} transition-colors duration-500`}>
-        {isDarkMode && (
-          <div className="dashboard-bg-container" data-purpose="mock-dashboard-layers">
-            <div className="bg-blur-card bg-blur-card-1"></div>
-            <div className="bg-blur-card bg-blur-card-2"></div>
-            <div className="bg-blur-card bg-blur-card-3"></div>
-            <div className="bg-blur-card bg-blur-card-4"></div>
-            <div className="bg-blur-card bg-blur-card-5"></div>
-          </div>
-        )}
-        {/* Header */}
+      {/* Main Content — navy canvas end-to-end so overlay never leaves white bands */}
+      <main className={`flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden relative app-main-surface ${isDarkMode ? 'dark-theme' : themeMode === 'peach' ? 'peach-theme' : ''} transition-colors duration-500`}>
+        {/* Full-main overlay plate (behind header + content) so top/bottom never flash white */}
+        <PageOverlay route={activeTab} blend="normal" opacity={0.8} vignette={false} drift={false} />
+
+        {/* Header sits above overlay with translucent glass */}
         <header 
-          className={`sticky top-0 left-0 right-0 h-24 border-b ${isDarkMode ? 'border-white/5 bg-[#050a18]/90' : themeMode === 'peach' ? 'border-[#dcd4c3] bg-[#efe8d9]/90' : 'border-slate-200 bg-slate-50/90'} backdrop-blur-md px-4 lg:px-8 flex items-center justify-between shrink-0 z-50 transition-colors duration-500`}
+          className={`relative h-16 sm:h-20 lg:h-24 border-b shrink-0 z-50 px-4 lg:px-8 flex items-center justify-between transition-colors duration-500 ${
+            themeMode === 'peach'
+              ? 'border-[#dcd4c3]/60 bg-[#efe8d9]/55 backdrop-blur-xl text-[#431407]'
+              : 'border-white/10 bg-[#091225]/60 backdrop-blur-xl text-white'
+          }`}
         >
           {/* Left Side: Navigation (Home & Back Buttons) */}
           <div className="flex items-center gap-3">
             {isMobile && (
               <button 
                 onClick={() => setMobileSidebarOpen(true)}
-                className={`p-2 rounded-xl ${isDarkMode ? 'bg-white/5 text-white' : 'bg-slate-100 text-slate-600'}`}
+                className="p-2 rounded-xl bg-white/5 text-white hover:bg-white/10"
               >
                 <Menu size={20} />
               </button>
@@ -1682,14 +1680,14 @@ export default function App() {
             {/* Navigation Buttons */}
             <button 
               onClick={goBack}
-              className={`p-2 rounded-xl ${isDarkMode ? 'hover:bg-white/10 text-white' : 'hover:bg-slate-200 text-slate-600'} transition-all`}
+              className="p-2 rounded-xl hover:bg-white/10 text-white transition-all"
               title="Go Back"
             >
               <ArrowLeft size={18} />
             </button>
             <button 
               onClick={goUp}
-              className={`p-2 rounded-xl ${isDarkMode ? 'hover:bg-white/10 text-white' : 'hover:bg-slate-200 text-slate-600'} transition-all`}
+              className="p-2 rounded-xl hover:bg-white/10 text-white transition-all"
               title="Navigate One Screen Up"
             >
               <ArrowUp size={18} />
@@ -1701,7 +1699,7 @@ export default function App() {
                 setCategoryOverviewActive(null);
                 setActiveCategory('teacher-dashboard-menu');
               }}
-              className={`p-2 rounded-xl ${isDarkMode ? 'hover:bg-white/10 text-white' : 'hover:bg-slate-200 text-slate-600'} transition-all`}
+              className="p-2 rounded-xl hover:bg-white/10 text-white transition-all"
               title="Classroom Chalkboard"
             >
               <IconHome size={18} />
@@ -1709,10 +1707,7 @@ export default function App() {
 
             {/* Page/Branding Title */}
             <div className="flex items-center ml-2 border-l border-white/10 pl-4 py-1">
-              <span className={cn(
-                "font-display font-black tracking-tight text-xs sm:text-base lg:text-lg",
-                isDarkMode ? "text-white text-glow-cyan animate-fade-in" : "text-slate-800"
-              )}>
+              <span className="font-display font-black tracking-tight text-xs sm:text-base lg:text-lg text-white text-glow-cyan animate-fade-in">
                 {getPageTitle()}
               </span>
             </div>
@@ -1728,12 +1723,7 @@ export default function App() {
                   <input
                     type="text"
                     placeholder="Search the galaxy..."
-                    className={cn(
-                      "pl-10 pr-4 py-2 rounded-full text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-500/50 w-40 lg:w-48 border transition-all",
-                      isDarkMode 
-                        ? "bg-[#0b1122]/80 border-white/5 text-white" 
-                        : "bg-slate-100 border-slate-200 text-slate-800"
-                    )}
+                    className="pl-10 pr-4 py-2 rounded-full text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-500/50 w-40 lg:w-48 border transition-all bg-[#0b1122]/70 border-white/10 text-white placeholder:text-slate-400"
                   />
                 </div>
 
@@ -1752,7 +1742,7 @@ export default function App() {
               </>
             ) : (
               <div className="hidden md:flex items-center mr-1">
-                <span className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-white/30' : 'text-slate-400'}`}>
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/40">
                   EduAI Space
                 </span>
               </div>
@@ -1764,7 +1754,7 @@ export default function App() {
               className={`hidden sm:flex p-2 rounded-full transition-all items-center justify-center ${
                 isAccessibilityOpen 
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-                  : (isDarkMode ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-205 border border-slate-200/55 shadow-sm')
+                  : 'bg-white/5 text-slate-200 hover:bg-white/10 border border-white/10'
               }`}
               title={isAccessibilityOpen ? "Hide Accessibility" : "Show Accessibility"}
             >
@@ -1777,7 +1767,7 @@ export default function App() {
               className={`hidden sm:flex p-2 rounded-full transition-all items-center justify-center ${
                 utilityDrawerOpen 
                   ? 'bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/30' 
-                  : (isDarkMode ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-205 border border-slate-200/55 shadow-sm')
+                  : 'bg-white/5 text-slate-200 hover:bg-white/10 border border-white/10'
               }`}
               title={utilityDrawerOpen ? "Hide AI Engines" : "Show AI Engines"}
             >
@@ -1788,12 +1778,12 @@ export default function App() {
             <div className="relative hidden sm:block">
               <button 
                 onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
-                className={`p-2 rounded-full transition-all flex items-center justify-center ${
+                className={`p-2 rounded-full transition-all flex items-center justify-center border border-white/10 ${
                   themeMode === 'dark' 
                     ? 'bg-white/5 text-brand-yellow hover:bg-white/10' 
                     : themeMode === 'peach'
-                      ? 'bg-[#ffebe5] text-orange-602 hover:bg-[#ffdacc] border border-orange-200/40'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/50 shadow-sm'
+                      ? 'bg-orange-500/20 text-orange-300 hover:bg-orange-500/30'
+                      : 'bg-white/5 text-amber-200 hover:bg-white/10'
                 }`}
                 title="Change UI Theme Mode"
               >
@@ -2346,29 +2336,44 @@ export default function App() {
         </AnimatePresence>
 
         {/* Content Container with Animations */}
-        <div className="flex-1 min-h-0 overflow-hidden relative app-content-canvas">
-          <PageOverlay route={activeTab} blend="normal" opacity={0.7} vignette={false} drift={false} />
+        <div className="flex-1 min-h-0 overflow-hidden relative z-10 app-content-canvas">
           <AnimatePresence mode="wait">
+            {(() => {
+              // Full-bleed tabs fill the content canvas and own internal scroll (no outer page scroll / max-width box).
+              const FULL_BLEED_TABS = ['ai-tutor', 'messenger', 'settings', 'helpdesk', 'class-management'];
+              const isFullBleed = FULL_BLEED_TABS.includes(activeTab) && !categoryOverviewActive;
+              const currentSubTabs = getSubTabsForCategory(activeCategory, userRole);
+              const showHubBack =
+                !categoryOverviewActive &&
+                !isFullBleed &&
+                currentSubTabs.length > 1 &&
+                activeCategory !== 'teacher-dashboard-menu';
+              const catLabel = sidebarCategories.find(c => c.id === activeCategory)?.label || '';
+
+              return (
             <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
+              key={categoryOverviewActive ? `overview-${categoryOverviewActive}` : activeTab}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.22 }}
               className={cn(
-                "absolute inset-0 custom-scrollbar z-10",
-                ['ai-tutor', 'messenger', 'collaborative-workspace'].includes(activeTab)
-                  ? "overflow-hidden p-0"
-                  : "content-scroll-area overflow-y-auto p-4 lg:p-8"
+                "absolute inset-0 z-10 min-w-0",
+                // Full-bleed: flex column, no outer scroll — page owns internal scroll
+                // Normal pages: plain block + overflow-y-auto so content height drives scrolling
+                isFullBleed
+                  ? "flex flex-col overflow-hidden p-0"
+                  : "content-scroll-area overflow-y-auto overflow-x-hidden p-4 lg:p-8"
               )}
               onClick={() => window.dispatchEvent(new CustomEvent('close-topbar-menus'))}
             >
               <div className={cn(
-                ['ai-tutor', 'messenger', 'collaborative-workspace'].includes(activeTab)
-                  ? "h-full w-full"
-                  : "max-w-7xl mx-auto space-y-6 lg:space-y-8 pb-12"
+                "w-full",
+                isFullBleed
+                  ? "flex flex-col flex-1 min-h-0 h-full"
+                  // IMPORTANT: no min-h-0 / flex here — natural content height is required for outer scroll
+                  : "max-w-7xl mx-auto space-y-6 lg:space-y-8 pb-16"
               )}>
-                <div>
                   {categoryOverviewActive ? (
                     <CategoryOverview
                       categoryLabel={sidebarCategories.find(c => c.id === categoryOverviewActive)?.label || ''}
@@ -2387,12 +2392,8 @@ export default function App() {
                     />
                   ) : (
                     <>
-                      {(function() {
-                        const currentSubTabs = getSubTabsForCategory(activeCategory, userRole);
-                        if (currentSubTabs.length <= 1 || activeCategory === 'teacher-dashboard-menu') return null;
-                        const catLabel = sidebarCategories.find(c => c.id === activeCategory)?.label || '';
-                        return (
-                          <div className="flex justify-between items-center mb-6">
+                      {showHubBack && (
+                          <div className="flex justify-between items-center mb-6 shrink-0">
                             <button
                               onClick={() => setCategoryOverviewActive(activeCategory)}
                               className={`flex items-center gap-2 px-5 py-2.5 rounded-[22px] text-xs font-bold transition-all border outline-none cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${
@@ -2405,9 +2406,13 @@ export default function App() {
                               <span>Back to {catLabel} Hub</span>
                             </button>
                           </div>
-                        );
-                      })()}
+                      )}
 
+                      <div className={cn(
+                        isFullBleed
+                          ? "flex-1 min-h-0 h-full w-full overflow-hidden flex flex-col"
+                          : "w-full block"
+                      )}>
                       {activeTab === 'dashboard' ? (
                   userRole === 'student' ? (
                     <StudentDashboard 
@@ -2594,11 +2599,13 @@ export default function App() {
                         </div>
                       </div>
                     )}
+                      </div>
                     </>
                   )}
-                </div>
               </div>
             </motion.div>
+              );
+            })()}
           </AnimatePresence>
         </div>
       </main>
