@@ -299,7 +299,7 @@ export default function StudentAITutorBubble({ isDarkMode, student }: StudentAIT
             <div 
               ref={chatContainerRef}
               className={`flex-1 overflow-y-auto p-4 space-y-4 ${
-                isDarkMode ? 'bg-slate-950/40' : 'bg-slate-50/50'
+                isDarkMode ? 'bg-slate-900/80' : 'bg-slate-50/50'
               }`}
             >
               {messages.length === 0 ? (

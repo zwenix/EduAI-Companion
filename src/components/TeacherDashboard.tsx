@@ -42,6 +42,119 @@ import {
   Cell 
 } from 'recharts';
 
+// Slideshow background images for Teaching Command Center (matching Teacher's Toolbox)
+import bgContentStudio from '../assets/images/content_studio_bg_1785652440860.jpg';
+import bgFoundationHub from '../assets/images/foundation_hub_bg_1785652450982.jpg';
+import bgPracticeZone from '../assets/images/practice_zone_bg_1785652462543.jpg';
+import bgOcrGrading from '../assets/images/ocr_grading_bg_1785652474254.jpg';
+import bgAdminLab from '../assets/images/admin_lab_bg_1785652489555.jpg';
+import bgAnalytics from '../assets/images/analytics_bg_1785652499527.jpg';
+import bgVisualPosters from '../assets/images/visual_posters_bg_1785652509797.jpg';
+import bgVideoAvatars from '../assets/images/video_avatars_bg_1785652522004.jpg';
+import bgVaultLibrary from '../assets/images/vault_library_bg_1785652535683.jpg';
+
+// Outer container continuous slideshow (rotates through key toolbox imagery)
+const TEACHING_OUTER_SLIDES = [bgContentStudio, bgAnalytics, bgFoundationHub, bgAdminLab, bgVisualPosters];
+
+// Per-card slideshow sets — each card cycles its own imagery like the toolbox cards
+const ALERTS_SLIDES = [
+  { image: bgAdminLab, title: 'Alerts' },
+  { image: bgAnalytics, title: 'Reminders' },
+  { image: bgVaultLibrary, title: 'ATP Warn' },
+];
+const CONTENT_FACTORY_SLIDES = [
+  { image: bgContentStudio, title: 'Content Studio' },
+  { image: bgFoundationHub, title: 'Foundation Hub' },
+  { image: bgVisualPosters, title: 'Visual Lab' },
+];
+const PLANNER_SLIDES = [
+  { image: bgPracticeZone, title: 'Planner' },
+  { image: bgVideoAvatars, title: 'Diary' },
+  { image: bgVaultLibrary, title: 'Calendar' },
+];
+
+function ShowcaseCard({
+  slides,
+  borderColorClass,
+  shadowColorClass,
+  hoverBorderColorClass,
+  hoverShadowColorClass,
+  icon,
+  iconWrapClass,
+  title,
+  badge,
+  desc,
+  onClick,
+}: {
+  slides: { image: string; title: string }[];
+  borderColorClass: string;
+  shadowColorClass: string;
+  hoverBorderColorClass: string;
+  hoverShadowColorClass: string;
+  icon: React.ReactNode;
+  iconWrapClass: string;
+  title: string;
+  badge?: React.ReactNode;
+  desc: string;
+  onClick: () => void;
+}) {
+  const [idx, setIdx] = React.useState(0);
+  React.useEffect(() => {
+    const t = setInterval(() => setIdx((p) => (p + 1) % slides.length), 3500);
+    return () => clearInterval(t);
+  }, [slides.length]);
+  const current = slides[idx];
+  return (
+    <motion.div
+      whileHover={{ scale: 1.03, y: -6 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      onClick={onClick}
+      className={`rounded-[32px] border-2 bg-slate-900/90 p-6 text-center flex flex-col items-center justify-center gap-4 group hover:brightness-110 transition-all duration-300 cursor-pointer relative overflow-hidden min-h-[200px] select-none ${borderColorClass} ${shadowColorClass} ${hoverBorderColorClass} ${hoverShadowColorClass}`}
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={idx}
+          initial={{ opacity: 0, scale: 1.05 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.6, ease: 'easeInOut' }}
+          className="absolute inset-0 z-0 overflow-hidden rounded-[32px]"
+        >
+          <motion.img
+            initial={{ scale: 1.15 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 6, ease: 'easeOut' }}
+            src={current.image}
+            alt={current.title}
+            className="w-full h-full object-cover opacity-[0.38] group-hover:opacity-[0.45] transition-opacity duration-500"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-slate-950/45 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/40 to-transparent pointer-events-none" />
+        </motion.div>
+      </AnimatePresence>
+      <div className="relative z-10 w-full flex flex-col items-center gap-3">
+        <div className={`w-16 h-16 rounded-2xl backdrop-blur border-2 flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.08)] group-hover:scale-105 transition-transform ${iconWrapClass}`}>
+          {icon}
+        </div>
+        <div className="space-y-1">
+          <div className="flex items-center justify-center gap-1.5">
+            <h3 className="text-[15px] font-black font-display leading-tight text-white group-hover:text-white">
+              {title}
+            </h3>
+            {badge}
+          </div>
+          <p className="text-[11px] leading-snug font-medium text-slate-300">
+            {desc}
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
 interface TeacherDashboardProps {
@@ -188,6 +301,37 @@ const studentEngagementData = [
   { name: 'Maranetha', completed: 4, active: 3, score: 71 },
   { name: 'Linwirom', completed: 9, active: 1, score: 98 },
 ];
+
+
+function TeachingOuterSlideshow() {
+  const [idx, setIdx] = React.useState(0);
+  React.useEffect(() => {
+    const t = setInterval(() => setIdx((p) => (p + 1) % TEACHING_OUTER_SLIDES.length), 4000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={idx}
+        initial={{ opacity: 0, scale: 1.03 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.98 }}
+        transition={{ duration: 0.7, ease: 'easeInOut' }}
+        className="absolute inset-0 z-0 overflow-hidden rounded-[28px]"
+      >
+        <motion.img
+          initial={{ scale: 1.08 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 7, ease: 'easeOut' }}
+          src={TEACHING_OUTER_SLIDES[idx]}
+          alt=""
+          className="w-full h-full object-cover opacity-40"
+          referrerPolicy="no-referrer"
+        />
+      </motion.div>
+    </AnimatePresence>
+  );
+}
 
 export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast }: TeacherDashboardProps) {
   const [broadcastMessage, setBroadcastMessage] = useState('');
@@ -368,130 +512,66 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="space-y-10 relative select-none p-2 md:p-4 pb-24"
+      className="space-y-6 relative select-none p-2 md:p-3 pb-12"
     >
-      {/* 1. Teaching Command Center Header & Cards */}
+      {/* 1. Teaching Command Center Header & Cards — continuous slideshow like Teacher's Toolbox */}
       <motion.div 
         variants={itemVariants} 
-        style={{ backgroundColor: 'rgba(5, 20, 93, 0.98)' }}
         className={cn(
-          "p-6 md:p-8 rounded-[36px] border-2 space-y-6 animate-border-flash-cyan relative overflow-hidden backdrop-blur-md",
-          isDarkMode ? "border-cyan-500/40" : "border-cyan-500/50 shadow-xl"
+          "p-4 md:p-5 rounded-[28px] border-2 space-y-5 animate-border-flash-cyan relative overflow-hidden backdrop-blur-md",
+          isDarkMode ? "border-cyan-500/40 bg-slate-900/90" : "border-cyan-500/50 bg-slate-900/90 shadow-xl"
         )}
       >
-        <h2 className="text-xl font-display font-black tracking-widest text-cyan-400 uppercase flex items-center gap-2">
+        {/* Continuous outer slideshow backdrop — same technique as Teacher's Toolbox InteractiveShowcaseCard */}
+        <TeachingOuterSlideshow />
+        <div className="absolute inset-0 bg-slate-950/40 pointer-events-none rounded-[28px]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 via-slate-950/20 to-transparent pointer-events-none rounded-[28px]" />
+
+        <h2 className="relative z-10 text-xl font-display font-black tracking-widest text-cyan-400 uppercase flex items-center gap-2">
           <span>TEACHING COMMAND CENTER</span>
           <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
-          {/* Card 1: Alerts & Reminders */}
-          <motion.div 
-            whileHover={{ y: -6, scale: 1.015 }}
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <ShowcaseCard
+            slides={ALERTS_SLIDES}
+            borderColorClass="border-pink-500/90"
+            shadowColorClass="shadow-[0_0_20px_rgba(236,72,153,0.15)]"
+            hoverBorderColorClass="hover:border-pink-400"
+            hoverShadowColorClass="hover:shadow-[0_0_30px_rgba(236,72,153,0.45)]"
+            icon={<ShieldAlert size={28} className="text-pink-400 drop-shadow-[0_0_8px_rgba(236,72,153,0.6)]" />}
+            iconWrapClass="bg-pink-500/10 border-pink-400 text-pink-400 shadow-[0_0_15px_rgba(236,72,153,0.25)]"
+            title="Alerts & Reminders"
+            badge={<span className="px-1.5 py-0.5 rounded bg-pink-500/20 text-[9px] text-pink-300 font-bold animate-pulse">ATP Warn</span>}
+            desc="Track critical CAPS alerts & flags in real-time."
             onClick={() => onNavigate('alerts')}
-            style={{ backgroundColor: '#00013d' }}
-            className={cn(
-              "relative p-6 rounded-[32px] border-2 animate-border-flash-pink shadow-[0_0_20px_rgba(236,72,153,0.15)] flex items-center gap-5 overflow-hidden transition-all duration-300 cursor-pointer group backdrop-blur-md",
-              isDarkMode ? "border-pink-500/40" : "border-pink-500/50"
-            )}
-          >
-            <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-pink-500/10 blur-xl rounded-full" />
-            
-            {/* Neon Pink Icon Wrapper */}
-            <div className="w-16 h-16 rounded-2xl bg-pink-500/10 border-2 border-pink-400 flex items-center justify-center text-pink-400 shadow-[0_0_15px_rgba(236,72,153,0.25)] shrink-0 group-hover:rotate-12 transition-transform">
-              <ShieldAlert size={28} className="drop-shadow-[0_0_8px_rgba(236,72,153,0.6)]" />
-            </div>
-            
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5">
-                <h3 className={cn(
-                  "text-base font-black font-display leading-tight",
-                  isDarkMode ? "text-white" : "text-slate-900"
-                )}>
-                  Alerts & Reminders
-                </h3>
-                <span className="px-1.5 py-0.5 rounded bg-pink-500/20 text-[9px] text-pink-300 font-bold animate-pulse">
-                  ATP Warn
-                </span>
-              </div>
-              <p className={cn(
-                "text-[11px] leading-snug font-medium",
-                isDarkMode ? "text-slate-400" : "text-slate-600"
-              )}>
-                Track critical CAPS alerts & flags in real-time.
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Card 2: Content Factory */}
-          <motion.div 
-            whileHover={{ y: -6, scale: 1.015 }}
+          />
+          <ShowcaseCard
+            slides={CONTENT_FACTORY_SLIDES}
+            borderColorClass="border-purple-500/90"
+            shadowColorClass="shadow-[0_0_20px_rgba(168,85,247,0.15)]"
+            hoverBorderColorClass="hover:border-purple-400"
+            hoverShadowColorClass="hover:shadow-[0_0_30px_rgba(168,85,247,0.45)]"
+            icon={<Sparkles size={28} className="text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]" />}
+            iconWrapClass="bg-purple-500/10 border-purple-400 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.25)]"
+            title="Content Factory"
+            badge={<span className="h-2 w-2 rounded-full bg-purple-500 animate-ping shrink-0 inline-block" />}
+            desc="Generate custom CAPS lesson plans & booklets."
             onClick={() => onNavigate('edu-tools-hub')}
-            style={{ backgroundColor: '#020242' }}
-            className={cn(
-              "relative p-6 rounded-[32px] border-2 animate-border-flash-purple shadow-[0_0_20px_rgba(168,85,247,0.15)] flex items-center gap-5 overflow-hidden transition-all duration-300 cursor-pointer group backdrop-blur-md",
-              isDarkMode ? "border-purple-500/40" : "border-purple-500/50"
-            )}
-          >
-            <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-transparent blur-xl rounded-full" />
-            
-            {/* Neon Violet Icon Wrapper */}
-            <div className="w-16 h-16 rounded-2xl bg-purple-500/10 border-2 border-purple-400 flex items-center justify-center text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.25)] shrink-0 group-hover:scale-105 transition-transform">
-              <Sparkles size={28} className="drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
-            </div>
-            
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5">
-                <h3 className={cn(
-                  "text-base font-black font-display leading-tight",
-                  isDarkMode ? "text-white" : "text-slate-900"
-                )}>
-                  Content Factory
-                </h3>
-                <span className="h-2 w-2 rounded-full bg-purple-500 animate-ping shrink-0" />
-              </div>
-              <p className={cn(
-                "text-[11px] leading-snug font-medium",
-                isDarkMode ? "text-slate-400" : "text-slate-600"
-              )}>
-                Generate custom CAPS lesson plans & booklets.
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Card 3: Planner & Diary */}
-          <motion.div 
-            whileHover={{ y: -6, scale: 1.015 }}
+          />
+          <ShowcaseCard
+            slides={PLANNER_SLIDES}
+            borderColorClass="border-emerald-500/90"
+            shadowColorClass="shadow-[0_0_20px_rgba(16,185,129,0.15)]"
+            hoverBorderColorClass="hover:border-emerald-400"
+            hoverShadowColorClass="hover:shadow-[0_0_30px_rgba(16,185,129,0.45)]"
+            icon={<Calendar size={28} className="text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" />}
+            iconWrapClass="bg-emerald-500/10 border-emerald-400 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.25)]"
+            title="Planner & Diary"
+            badge={null}
+            desc="Manage your CAPS schedules, lessons & reminders."
             onClick={() => onNavigate('planner')}
-            style={{ backgroundColor: '#020242' }}
-            className={cn(
-              "relative p-6 rounded-[32px] border-2 animate-border-flash-emerald shadow-[0_0_20px_rgba(16,185,129,0.15)] flex items-center gap-5 overflow-hidden transition-all duration-300 cursor-pointer group backdrop-blur-md",
-              isDarkMode ? "border-emerald-500/40" : "border-emerald-500/50"
-            )}
-          >
-            <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-emerald-500/10 blur-xl rounded-full" />
-            
-            {/* Neon Emerald Icon Wrapper */}
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border-2 border-emerald-400 flex items-center justify-center text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.25)] shrink-0 group-hover:rotate-6 transition-transform">
-              <Calendar size={28} className="drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-            </div>
-            
-            <div className="space-y-1">
-              <h3 className={cn(
-                "text-base font-black font-display leading-tight",
-                isDarkMode ? "text-white" : "text-slate-900"
-              )}>
-                Planner & Diary
-              </h3>
-              <p className={cn(
-                "text-[11px] leading-snug font-medium",
-                isDarkMode ? "text-slate-400" : "text-slate-600"
-              )}>
-                Manage your CAPS schedules, lessons & reminders.
-              </p>
-            </div>
-          </motion.div>
+          />
         </div>
 
         {/* Quick Functions Deck (Icon-based & Interactive) */}
@@ -510,7 +590,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               whileHover={{ y: -4, scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => onNavigate('teaching', 'lesson-planning')}
-              className="p-3.5 rounded-[20px] bg-slate-950/40 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+              className="p-3.5 rounded-[20px] bg-slate-900/95 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
             >
               <div className="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-400/25 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(6,182,212,0.15)]">
                 <Plus size={18} />
@@ -525,7 +605,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               whileHover={{ y: -4, scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => onNavigate('ocr', 'intelligence-ai')}
-              className="p-3.5 rounded-[20px] bg-slate-950/40 hover:bg-purple-500/10 border border-white/5 hover:border-purple-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+              className="p-3.5 rounded-[20px] bg-slate-900/95 hover:bg-purple-500/10 border border-white/5 hover:border-purple-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
             >
               <div className="w-10 h-10 rounded-full bg-purple-500/10 border border-purple-400/25 text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(168,85,247,0.15)]">
                 <Scan size={18} />
@@ -540,7 +620,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               whileHover={{ y: -4, scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => setIsBroadcastModalOpen(true)}
-              className="p-3.5 rounded-[20px] bg-slate-950/40 hover:bg-pink-500/10 border border-white/5 hover:border-pink-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+              className="p-3.5 rounded-[20px] bg-slate-900/95 hover:bg-pink-500/10 border border-white/5 hover:border-pink-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
             >
               <div className="w-10 h-10 rounded-full bg-pink-500/10 border border-pink-400/25 text-pink-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(236,72,153,0.15)]">
                 <Bell size={18} />
@@ -555,7 +635,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               whileHover={{ y: -4, scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => onNavigate('class-management', 'class-management')}
-              className="p-3.5 rounded-[20px] bg-slate-950/40 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+              className="p-3.5 rounded-[20px] bg-slate-900/95 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
             >
               <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-400/25 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(16,185,129,0.15)]">
                 <UserCheck size={18} />
@@ -570,7 +650,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               whileHover={{ y: -4, scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => onNavigate('reports', 'class-analytics')}
-              className="p-3.5 rounded-[20px] bg-slate-950/40 hover:bg-amber-500/10 border border-white/5 hover:border-amber-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+              className="p-3.5 rounded-[20px] bg-slate-900/95 hover:bg-amber-500/10 border border-white/5 hover:border-amber-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
             >
               <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-400/25 text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(245,158,11,0.15)]">
                 <TrendingUp size={18} />
@@ -585,7 +665,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               whileHover={{ y: -4, scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => onNavigate('archive', 'lesson-planning')}
-              className="p-3.5 rounded-[20px] bg-slate-950/40 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+              className="p-3.5 rounded-[20px] bg-slate-900/95 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
             >
               <div className="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-400/25 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(6,182,212,0.15)]">
                 <BookOpen size={18} />
@@ -600,7 +680,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               whileHover={{ y: -4, scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => onNavigate('weekly-planner', 'lesson-planning')}
-              className="p-3.5 rounded-[20px] bg-slate-950/40 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+              className="p-3.5 rounded-[20px] bg-slate-900/95 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
             >
               <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-400/25 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(16,185,129,0.15)]">
                 <Calendar size={18} />
@@ -634,7 +714,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
           {/* Chart 1: CAPS Performance Trends */}
           <div className={cn(
             "p-6 rounded-[32px] border-2 animate-border-flash-cyan backdrop-blur-md shadow-xl flex flex-col gap-4",
-            isDarkMode ? "bg-slate-900/80" : "bg-slate-900/80"
+            isDarkMode ? "bg-slate-900/95" : "bg-slate-900/95"
           )}>
             <div className="flex justify-between items-start">
               <div className="space-y-1">
@@ -745,7 +825,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
           {/* Chart 2: Student Quest Engagement Metrics */}
           <div className={cn(
             "p-6 rounded-[32px] border-2 animate-border-flash-purple backdrop-blur-md shadow-xl flex flex-col gap-4",
-            isDarkMode ? "bg-slate-900/80" : "bg-slate-900/80"
+            isDarkMode ? "bg-slate-900/95" : "bg-slate-900/95"
           )}>
             <div className="flex justify-between items-start">
               <div className="space-y-1">
@@ -833,7 +913,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             }}
             className={cn(
               "p-6 rounded-[32px] border-2 animate-border-flash-cyan shadow-[0_0_20px_rgba(6,182,212,0.1)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden",
-              isDarkMode ? "bg-slate-900/80 backdrop-blur-md" : "bg-slate-900/80 backdrop-blur-md"
+              isDarkMode ? "bg-slate-900/95 backdrop-blur-md" : "bg-slate-900/95 backdrop-blur-md"
             )}
           >
             <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-cyan-500/10 blur-xl rounded-full" />
@@ -865,7 +945,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             }}
             className={cn(
               "p-6 rounded-[32px] border-2 animate-border-flash-emerald shadow-[0_0_20px_rgba(16,185,129,0.1)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden",
-              isDarkMode ? "bg-slate-900/80 backdrop-blur-md" : "bg-slate-900/80 backdrop-blur-md"
+              isDarkMode ? "bg-slate-900/95 backdrop-blur-md" : "bg-slate-900/95 backdrop-blur-md"
             )}
           >
             <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-emerald-500/10 blur-xl rounded-full" />
@@ -897,7 +977,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             }}
             className={cn(
               "p-6 rounded-[32px] border-2 animate-border-flash-pink shadow-[0_0_20px_rgba(236,72,153,0.1)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden",
-              isDarkMode ? "bg-slate-900/80 backdrop-blur-md" : "bg-slate-900/80 backdrop-blur-md"
+              isDarkMode ? "bg-slate-900/95 backdrop-blur-md" : "bg-slate-900/95 backdrop-blur-md"
             )}
           >
             <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-pink-500/10 blur-xl rounded-full" />
@@ -926,7 +1006,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             onClick={() => setIsBroadcastModalOpen(true)}
             className={cn(
               "p-6 rounded-[32px] border-2 animate-border-flash-purple shadow-[0_0_20px_rgba(168,85,247,0.1)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden",
-              isDarkMode ? "bg-slate-900/80 backdrop-blur-md" : "bg-slate-900/80 backdrop-blur-md"
+              isDarkMode ? "bg-slate-900/95 backdrop-blur-md" : "bg-slate-900/95 backdrop-blur-md"
             )}
           >
             <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-purple-500/10 blur-xl rounded-full" />
@@ -978,10 +1058,10 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
                 placeholder="Search student or subject..."
                 value={gradingSearch}
                 onChange={(e) => setGradingSearch(e.target.value)}
-                className="pl-8 pr-3 py-1.5 rounded-xl bg-slate-900/80 border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-all w-48 sm:w-56"
+                className="pl-8 pr-3 py-1.5 rounded-xl bg-slate-900/95 border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-all w-48 sm:w-56"
               />
             </div>
-            <div className="flex items-center gap-1 bg-slate-900/80 border border-white/10 p-1 rounded-xl">
+            <div className="flex items-center gap-1 bg-slate-900/95 border border-white/10 p-1 rounded-xl">
               {(['all', 'pending', 'graded'] as const).map((mode) => (
                 <button
                   key={mode}
@@ -1003,11 +1083,11 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         {/* Submissions Table Card */}
         <div className={cn(
           "rounded-[32px] border-2 animate-border-flash-cyan backdrop-blur-md overflow-hidden shadow-2xl",
-          isDarkMode ? "bg-slate-900/80" : "bg-slate-900/80"
+          isDarkMode ? "bg-slate-900/95" : "bg-slate-900/95"
         )}>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-900/60 text-slate-400 uppercase tracking-wider text-[10px] border-b border-white/10">
+              <thead className="bg-slate-900/90 text-slate-400 uppercase tracking-wider text-[10px] border-b border-white/10">
                 <tr>
                   <th className="py-3.5 px-5 font-black">Learner</th>
                   <th className="py-3.5 px-5 font-black">Subject / Assignment</th>
@@ -1109,7 +1189,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         {/* Wide Constellation Panel */}
         <div className={cn(
           "relative w-full rounded-[40px] border-2 animate-border-flash-cyan backdrop-blur-md overflow-hidden shadow-2xl",
-          isDarkMode ? "bg-slate-900/80" : "bg-slate-900/80"
+          isDarkMode ? "bg-slate-900/95" : "bg-slate-900/95"
         )}>
           
           {/* Constellation Inner Space BG */}
@@ -1353,7 +1433,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm"
               onClick={() => setIsBroadcastModalOpen(false)}
             />
             {/* Modal Body */}

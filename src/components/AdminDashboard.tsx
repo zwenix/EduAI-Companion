@@ -172,7 +172,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
               { label: 'Classes', value: '86', icon: School, color: 'text-indigo-400' },
               { label: 'API Status', value: errors.length > 0 ? 'Errors Buffered' : 'Optimal', icon: Server, color: errors.length > 0 ? 'text-amber-500' : 'text-brand-cyan' }
             ].map((stat, i) => (
-              <div key={i} className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-6 rounded-[36px] shadow-sm hover:-translate-y-1 transition-transform duration-300`}>
+              <div key={i} className={`${isDarkMode ? 'glass bg-slate-900/90 border border-white/10' : 'bg-white border border-slate-200'} p-6 rounded-[36px] shadow-sm hover:-translate-y-1 transition-transform duration-300`}>
                 <div className="flex justify-between items-start mb-2">
                   <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-100'}`}>
                     <stat.icon size={20} className={stat.color} />
@@ -186,7 +186,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
 
           {/* Recharts System Metrics */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm flex flex-col`}>
+            <div className={`${isDarkMode ? 'glass bg-slate-900/90 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm flex flex-col`}>
               <h3 className={`text-xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>User Growth Trends</h3>
               <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height={300} minWidth={0} minHeight={1}>
@@ -215,7 +215,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
               </div>
             </div>
 
-            <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm flex flex-col`}>
+            <div className={`${isDarkMode ? 'glass bg-slate-900/90 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm flex flex-col`}>
               <h3 className={`text-xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Resource Utilization</h3>
               <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height={300} minWidth={0} minHeight={1}>
@@ -246,7 +246,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
           {/* Recent Logs & Quick Actions */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-6">
-              <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
+              <div className={`${isDarkMode ? 'glass bg-slate-900/90 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
                 <h3 className={`text-2xl font-hand mb-6 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}><ShieldAlert className="text-rose-500" /> Recent Security & Admin Logs</h3>
                 <div className="space-y-4">
                   {[
@@ -299,7 +299,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
         /* Debug Console Tab */
         <div className="space-y-6">
           {/* Explanation panel */}
-          <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm space-y-2`}>
+          <div className={`${isDarkMode ? 'glass bg-slate-900/90 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm space-y-2`}>
             <div className="flex items-center gap-3">
               <div className="p-3 bg-rose-500/10 rounded-2xl text-rose-500">
                 <Bug size={24} />
@@ -315,7 +315,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
 
           {/* Quick Metrics Bar */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-6 rounded-[28px]`}>
+            <div className={`${isDarkMode ? 'glass bg-slate-900/90 border border-white/10' : 'bg-white border border-slate-200'} p-6 rounded-[28px]`}>
               <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Captured Errors</p>
               <h3 className={`text-2xl font-bold mt-1 ${isDarkMode ? 'text-white' : 'text-slate-800'} flex items-center gap-2`}>
                 <AlertTriangle size={20} className={errors.length > 0 ? "text-amber-500 animate-bounce" : "text-emerald-500"} />
@@ -323,14 +323,14 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
               </h3>
             </div>
             
-            <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-6 rounded-[28px]`}>
+            <div className={`${isDarkMode ? 'glass bg-slate-900/90 border border-white/10' : 'bg-white border border-slate-200'} p-6 rounded-[28px]`}>
               <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Current Filter</p>
               <h3 className={`text-2xl font-bold mt-1 ${isDarkMode ? 'text-white' : 'text-slate-800'} uppercase font-mono`}>
                 {providerFilter}
               </h3>
             </div>
 
-            <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-6 rounded-[28px] flex flex-col justify-between`}>
+            <div className={`${isDarkMode ? 'glass bg-slate-900/90 border border-white/10' : 'bg-white border border-slate-200'} p-6 rounded-[28px] flex flex-col justify-between`}>
               <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Diagnostic Actions</p>
               <div className="flex gap-2 mt-1">
                 <button 
@@ -397,7 +397,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
           {/* Main Error Log output */}
           <div className="space-y-4">
             {filteredErrors.length === 0 ? (
-              <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-12 rounded-[36px] text-center space-y-4`}>
+              <div className={`${isDarkMode ? 'glass bg-slate-900/90 border border-white/10' : 'bg-white border border-slate-200'} p-12 rounded-[36px] text-center space-y-4`}>
                 <div className="inline-flex p-4 rounded-full bg-emerald-500/10 text-emerald-400 mb-2">
                   <CheckCircle size={36} />
                 </div>
@@ -421,7 +421,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                       key={err.id}
                       className={`border transition-all duration-200 rounded-3xl overflow-hidden ${
                         isDarkMode 
-                          ? 'bg-slate-900/60 border-white/10 hover:border-white/20' 
+                          ? 'bg-slate-900/90 border-white/10 hover:border-white/20' 
                           : 'bg-white border-slate-200 hover:border-slate-300'
                       }`}
                     >

@@ -672,7 +672,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
             <div className="flex items-center gap-4 mt-4 sm:mt-6 max-w-lg">
               <div className={cn(
                 "flex-1 h-3 sm:h-4 rounded-full overflow-hidden border",
-                isDarkMode ? "bg-slate-950/60 border-white/10" : "bg-transparent border-white/10"
+                isDarkMode ? "bg-slate-900/90 border-white/10" : "bg-transparent border-white/10"
               )}>
                  <motion.div 
                    initial={{ width: 0 }} 
@@ -1006,7 +1006,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                  </div>
 
                  {myAssignments.length === 0 ? (
-                   <div className="text-center p-8 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200">
+                   <div className="text-center p-8 bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-dashed border-slate-200">
                      <BookOpen className="mx-auto h-12 w-12 text-slate-300 mb-2 animate-bounce" />
                      <p className="text-slate-500 font-medium text-sm">No homework assignments from your teachers yet!</p>
                      <p className="text-xs text-slate-400 mt-0.5">Your dashboard is up to date.</p>
@@ -1089,7 +1089,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
             ];
 
             widgetContent = (
-              <div className={`${isDarkMode ? 'glass bg-slate-900/60 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
+              <div className={`${isDarkMode ? 'glass bg-slate-900/90 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
                  <div className="flex justify-between items-center mb-6">
                     <h3 className={`text-2xl font-hand ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Active Quests</h3>
                     <span className="text-xs font-black uppercase tracking-widest text-[#06b6d4] bg-cyan-100 dark:bg-cyan-950/50 px-3 py-1 rounded-full animate-pulse">Personalized Map</span>
@@ -1108,7 +1108,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                           className={`p-5 rounded-[24px] border transition-all duration-300 group cursor-pointer relative overflow-hidden ${
                             completed
                             ? (isDarkMode ? 'border-emerald-500/30 bg-emerald-950/10 opacity-80' : 'border-emerald-200 bg-emerald-50/50 opacity-80')
-                            : (isDarkMode ? 'border-white/15 bg-slate-950/40 hover:border-brand-cyan/60 hover:bg-slate-950/60' : 'border-slate-150 bg-slate-50 hover:border-brand-cyan/40 hover:bg-slate-50/80')
+                            : (isDarkMode ? 'border-white/15 bg-slate-900/80 hover:border-brand-cyan/60 hover:bg-slate-900/90' : 'border-slate-150 bg-slate-50 hover:border-brand-cyan/40 hover:bg-slate-50/80')
                           } shadow-sm`}
                         >
                            {celebrateTaskId === i && (
@@ -1304,7 +1304,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
       {/* SOLVER & GRADER MODAL DIALOG */}
       <AnimatePresence>
         {selectedAssignment && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -1485,7 +1485,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                                 <img src={ocrImage} className="max-h-full object-contain" alt="OCR Preview" />
                                 <button
                                   onClick={() => setOcrImage('')}
-                                  className="absolute top-2 right-2 p-1.5 rounded-full bg-slate-900/60 text-white border-0 cursor-pointer hover:bg-slate-900"
+                                  className="absolute top-2 right-2 p-1.5 rounded-full bg-slate-900/90 text-white border-0 cursor-pointer hover:bg-slate-900"
                                 >
                                   Retake
                                 </button>

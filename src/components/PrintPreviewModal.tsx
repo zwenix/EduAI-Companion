@@ -308,7 +308,7 @@ export default function PrintPreviewModal({
           </div>
 
           {/* Simulated A4 Paper Live View (Right Side on Desktop / Bottom on Mobile) */}
-          <div className={`flex-1 p-4 sm:p-6 lg:p-10 overflow-auto flex justify-center bg-slate-950/40 relative`}>
+          <div className={`flex-1 p-4 sm:p-6 lg:p-10 overflow-auto flex justify-center bg-slate-900/80 relative`}>
             
             {/* Visual Margin Indicators overlay */}
             <div className="absolute top-2 left-6 right-6 hidden xl:flex justify-between text-[10px] font-mono font-bold text-slate-500 select-none pointer-events-none">

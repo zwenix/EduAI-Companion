@@ -1129,7 +1129,7 @@ export default function AutoGrading() {
             <div className="lg:col-span-7 bg-[#0c1024] border border-white/10 rounded-[28px] p-6 flex flex-col justify-center items-center min-h-[360px] shadow-2xl relative group">
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full h-full border-2 border-dashed border-cyan-500/40 rounded-2xl bg-slate-900/40 p-12 text-center flex flex-col items-center justify-center cursor-pointer group-hover:bg-slate-900/60 group-hover:border-cyan-400 transition-all duration-300 my-auto"
+                className="w-full h-full border-2 border-dashed border-cyan-500/40 rounded-2xl bg-slate-900/80 p-12 text-center flex flex-col items-center justify-center cursor-pointer group-hover:bg-slate-900/90 group-hover:border-cyan-400 transition-all duration-300 my-auto"
               >
                 <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-5 group-hover:scale-110 transition-transform shadow-lg">
                   <Upload size={32} />
@@ -1442,7 +1442,7 @@ export default function AutoGrading() {
               <div className="absolute bottom-8 inset-x-0 flex justify-center items-center gap-6">
                 <button 
                   onClick={stopCamera}
-                  className="bg-slate-900/80 backdrop-blur-md text-slate-300 hover:text-white p-3.5 rounded-2xl hover:bg-slate-800 transition-all border border-indigo-500/30 cursor-pointer"
+                  className="bg-slate-900/95 backdrop-blur-md text-slate-300 hover:text-white p-3.5 rounded-2xl hover:bg-slate-800 transition-all border border-indigo-500/30 cursor-pointer"
                 >
                   <X size={22} />
                 </button>
@@ -1464,7 +1464,7 @@ export default function AutoGrading() {
                     className="w-full h-full object-cover opacity-95" 
                   />
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/80 p-10">
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/95 p-10">
                     <div className="w-20 h-20 bg-cyan-500/10 border border-cyan-400/30 rounded-3xl flex items-center justify-center text-cyan-400 mb-4 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
                       {uploadedFiles[activePreviewIndex]?.type === 'pdf' ? (
                         <FileText size={40} />
@@ -1582,7 +1582,7 @@ export default function AutoGrading() {
                     {uploadedFiles.map((file) => {
                       const fileStatus = bulkStatus[file.id] || { status: 'Draft', studentId: 'unassigned' };
                       return (
-                        <div key={file.id} className="p-3 bg-slate-950/60 border border-indigo-500/20 rounded-xl flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                        <div key={file.id} className="p-3 bg-slate-900/90 border border-indigo-500/20 rounded-xl flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                           <div className="space-y-1">
                             <span className="text-xs font-bold text-slate-200 block truncate max-w-[200px]" title={file.name}>
                               {file.name}
@@ -1694,7 +1694,7 @@ export default function AutoGrading() {
 
             {/* If has linked assignment and submissions, show students submissions queue */}
             {selectedAssignmentId && (
-              <div className="space-y-3 pt-2 bg-slate-950/60 p-4 rounded-2xl border border-indigo-500/20">
+              <div className="space-y-3 pt-2 bg-slate-900/90 p-4 rounded-2xl border border-indigo-500/20">
                 <div className="flex justify-between items-center pl-1">
                   <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-cyan-400">
                     Student Submissions ({filteredSubmissions.length})
@@ -1703,7 +1703,7 @@ export default function AutoGrading() {
                 </div>
 
                 {filteredSubmissions.length === 0 ? (
-                  <div className="p-4 bg-slate-900/40 rounded-xl text-center border border-dashed border-indigo-500/20">
+                  <div className="p-4 bg-slate-900/80 rounded-xl text-center border border-dashed border-indigo-500/20">
                     <p className="text-xs text-slate-400 font-medium">No students have submitted this task yet.</p>
                   </div>
                 ) : (
@@ -1740,7 +1740,7 @@ export default function AutoGrading() {
                           className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
                             isChosen
                               ? 'bg-cyan-500/20 border-cyan-400 text-white shadow-[0_0_15px_rgba(6,182,212,0.2)]'
-                              : (isGraded ? 'bg-emerald-950/30 border-emerald-500/30 text-slate-200 hover:bg-slate-800/50' : 'bg-slate-900/60 border-indigo-500/20 text-slate-300 hover:bg-slate-800/50')
+                              : (isGraded ? 'bg-emerald-950/30 border-emerald-500/30 text-slate-200 hover:bg-slate-800/50' : 'bg-slate-900/90 border-indigo-500/20 text-slate-300 hover:bg-slate-800/50')
                           }`}
                         >
                           <div>
@@ -1824,7 +1824,7 @@ export default function AutoGrading() {
             </div>
 
             {/* Report Card Tuning Parameters (Behavioral Dimensions) */}
-            <div className="bg-slate-950/60 p-5 rounded-2xl border border-indigo-500/20 space-y-4">
+            <div className="bg-slate-900/90 p-5 rounded-2xl border border-indigo-500/20 space-y-4">
               <div className="flex items-center gap-2 mb-1">
                 <Brain size={16} className="text-cyan-400" />
                 <h4 className="text-[10px] font-mono font-bold uppercase tracking-widest text-white">Report Card Behavioral Tuning</h4>
@@ -1844,7 +1844,7 @@ export default function AutoGrading() {
                       className={`p-3 rounded-xl border cursor-pointer select-none transition-all flex flex-col gap-1 ${
                         isChecked 
                           ? 'bg-cyan-500/15 border-cyan-400/50 text-white' 
-                          : 'bg-slate-900/60 border-indigo-500/20 text-slate-400 hover:bg-slate-800/50'
+                          : 'bg-slate-900/90 border-indigo-500/20 text-slate-400 hover:bg-slate-800/50'
                       }`}
                     >
                       <div className="flex items-center gap-2">
@@ -1884,7 +1884,7 @@ export default function AutoGrading() {
             
             {uploadedFiles.length > 0 && (
               <div className={`w-full py-5 rounded-2xl font-black uppercase tracking-wider text-xs flex flex-col items-center justify-center gap-4 transition-all border ${
-                isProcessing ? 'bg-cyan-500/10 border-cyan-400/30 text-cyan-300' : 'bg-slate-950/60 border-indigo-500/20 text-slate-300'
+                isProcessing ? 'bg-cyan-500/10 border-cyan-400/30 text-cyan-300' : 'bg-slate-900/90 border-indigo-500/20 text-slate-300'
               }`}>
                 {isProcessing ? (
                   <div className="w-full px-6">
@@ -2123,7 +2123,7 @@ export default function AutoGrading() {
                         <Brain size={16} />
                         Rubric / Memo Adjustments Report
                       </h4>
-                      <p className="text-xs text-slate-300 font-medium mb-3 bg-slate-950/60 p-4 rounded-xl border border-amber-500/20 leading-relaxed">
+                      <p className="text-xs text-slate-300 font-medium mb-3 bg-slate-900/90 p-4 rounded-xl border border-amber-500/20 leading-relaxed">
                         {result.memoCorrectionReport || "The original memo had spelling/content omissions or was missing entirely. The AI corrected and streamlined the rubric for optimal auto-grading accuracy."}
                       </p>
                       {result.correctedMemo && (
@@ -2154,7 +2154,7 @@ export default function AutoGrading() {
                     />
 
                     {/* Clean Formatted Markdown Output Preview */}
-                    <div className="bg-slate-900/60 p-4 rounded-xl border border-dashed border-indigo-500/30">
+                    <div className="bg-slate-900/90 p-4 rounded-xl border border-dashed border-indigo-500/30">
                       <span className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider block mb-2">Rendered Output Preview:</span>
                       <div className="text-slate-200 text-xs leading-relaxed prose prose-invert prose-sm max-w-none markdown-body"
                         dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(marked.parse(editableFeedback) as string) }}
@@ -2228,7 +2228,7 @@ export default function AutoGrading() {
                     <h4 className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider mb-4">Question Breakdown</h4>
                     <div className="space-y-3">
                       {result.marksPerQuestion?.map((mark: string, i: number) => (
-                        <div key={i} className="flex gap-3 items-start p-3.5 bg-slate-900/80 rounded-xl border border-indigo-500/20">
+                        <div key={i} className="flex gap-3 items-start p-3.5 bg-slate-900/95 rounded-xl border border-indigo-500/20">
                           <div className="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-xs font-mono font-black text-cyan-300 shrink-0">
                             {i+1}
                           </div>
@@ -2340,7 +2340,7 @@ export default function AutoGrading() {
         <div className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Student Selection & Analysis */}
-            <div className="bg-slate-900/40 border border-slate-800 rounded-[32px] p-8">
+            <div className="bg-slate-900/80 border border-slate-800 rounded-[32px] p-8">
               <div className="flex items-center gap-4 mb-8">
                 <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
                   <Users size={24} />
@@ -2361,7 +2361,7 @@ export default function AutoGrading() {
                       className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group ${
                         selectedIlpStudentId === stu.id 
                           ? 'bg-emerald-500/10 border-emerald-500/30 ring-1 ring-emerald-500/20' 
-                          : 'bg-slate-900/40 border-slate-800 hover:border-slate-700'
+                          : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -2382,7 +2382,7 @@ export default function AutoGrading() {
 
             {/* Action Panel */}
             <div className="space-y-6">
-              <div className="bg-slate-900/40 border border-slate-800 rounded-[32px] p-8 flex flex-col items-center justify-center text-center min-h-[300px] relative overflow-hidden">
+              <div className="bg-slate-900/80 border border-slate-800 rounded-[32px] p-8 flex flex-col items-center justify-center text-center min-h-[300px] relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent pointer-events-none" />
                 
                 {!selectedIlpStudentId ? (
@@ -2423,13 +2423,13 @@ export default function AutoGrading() {
 
               {/* IDP Status Grid */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-4">
+                <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
                   <div className="text-slate-500 text-[9px] font-black uppercase tracking-widest mb-1">Reports Analyzed</div>
                   <div className="text-xl font-display font-black text-white">
                     {selectedIlpStudentId ? labReports.filter(r => r.studentId === selectedIlpStudentId).length : 0}
                   </div>
                 </div>
-                <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-4">
+                <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
                   <div className="text-slate-500 text-[9px] font-black uppercase tracking-widest mb-1">IDP Last Updated</div>
                   <div className="text-xl font-display font-black text-white">
                     {selectedIlpStudentId ? (dbStudents.find(s => s.id === selectedIlpStudentId)?.idp?.lastUpdated ? 'Recent' : 'Never') : '---'}
@@ -2445,7 +2445,7 @@ export default function AutoGrading() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-slate-900/40 border border-emerald-500/20 rounded-[32px] p-8 shadow-[0_0_50px_rgba(52,211,153,0.1)]"
+                className="bg-slate-900/80 border border-emerald-500/20 rounded-[32px] p-8 shadow-[0_0_50px_rgba(52,211,153,0.1)]"
               >
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-4">
@@ -2497,7 +2497,7 @@ export default function AutoGrading() {
 
                 <div className="space-y-3">
                   {labReports.length === 0 ? (
-                    <div className="p-8 text-center bg-slate-950/60 rounded-2xl border border-dashed border-indigo-500/20 text-slate-400 font-medium text-xs">
+                    <div className="p-8 text-center bg-slate-900/90 rounded-2xl border border-dashed border-indigo-500/20 text-slate-400 font-medium text-xs">
                       Awaiting live workspace events. Try executing any grading tasks to pop-up live logs!
                     </div>
                   ) : (
@@ -2565,7 +2565,7 @@ export default function AutoGrading() {
                     />
                   </div>
 
-                  <div className="overflow-x-auto rounded-2xl border border-indigo-500/20 bg-slate-950/60">
+                  <div className="overflow-x-auto rounded-2xl border border-indigo-500/20 bg-slate-900/90">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
                         <tr className="bg-slate-900 border-b border-indigo-500/20 text-slate-300 font-mono text-[9px] uppercase tracking-wider [&>th]:p-3.5">
@@ -2586,7 +2586,7 @@ export default function AutoGrading() {
                           </tr>
                         ) : (
                           filteredReports.map((report) => (
-                            <tr key={report.id} className="hover:bg-slate-900/60 transition-colors [&>td]:p-3.5">
+                            <tr key={report.id} className="hover:bg-slate-900/90 transition-colors [&>td]:p-3.5">
                               <td>
                                 {report.studentId === 'unassigned' ? (
                                   <div className="space-y-1.5 max-w-[200px]">
@@ -2732,7 +2732,7 @@ export default function AutoGrading() {
                             </div>
                           )}
 
-                          <div className="bg-slate-950/60 p-5 border border-indigo-500/20 rounded-2xl space-y-2">
+                          <div className="bg-slate-900/90 p-5 border border-indigo-500/20 rounded-2xl space-y-2">
                             <h4 className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">RAW FILE TRANSCRIPT</h4>
                             <div className="bg-slate-900 p-3.5 rounded-xl max-h-[140px] overflow-y-auto border border-indigo-500/20">
                               <p className="text-[11px] font-mono text-slate-300 whitespace-pre-wrap leading-relaxed">{selectedReportDetail.extractedText || "No context scanned."}</p>

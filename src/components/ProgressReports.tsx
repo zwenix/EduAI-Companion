@@ -710,7 +710,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
           <button 
             onClick={() => setActiveTab('overview')}
             className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer shadow-lg ${
-              activeTab === 'overview' ? 'bg-brand-cyan text-navy-dark shadow-cyan-500/20' : 'bg-slate-900/80 text-slate-300 hover:text-white border border-white/10'
+              activeTab === 'overview' ? 'bg-brand-cyan text-navy-dark shadow-cyan-500/20' : 'bg-slate-900/95 text-slate-300 hover:text-white border border-white/10'
             }`}
           >
             <TrendingUp size={14} />
@@ -724,7 +724,7 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
               }
             }}
             className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer shadow-lg ${
-              activeTab === 'idp' ? 'bg-brand-cyan text-navy-dark shadow-cyan-500/20' : 'bg-slate-900/80 text-slate-300 hover:text-white border border-white/10'
+              activeTab === 'idp' ? 'bg-brand-cyan text-navy-dark shadow-cyan-500/20' : 'bg-slate-900/95 text-slate-300 hover:text-white border border-white/10'
             }`}
           >
             <Brain size={14} />

@@ -205,7 +205,7 @@ export default function WorksheetQRScannerModal({ isOpen, onClose, onGradingComp
                 stopCamera();
                 onClose();
               }}
-              className="p-2 rounded-full bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
+              className="p-2 rounded-full bg-slate-800/95 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
             >
               <X size={18} />
             </button>

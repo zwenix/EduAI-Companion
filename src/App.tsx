@@ -1660,7 +1660,7 @@ export default function App() {
 
         {/* Header sits above overlay with translucent glass */}
         <header 
-          className={`relative h-16 sm:h-20 lg:h-24 border-b shrink-0 z-50 px-4 lg:px-8 flex items-center justify-between transition-colors duration-500 ${
+          className={`relative h-14 lg:h-14 border-b shrink-0 z-50 px-4 lg:px-8 flex items-center justify-between transition-colors duration-500 ${
             themeMode === 'peach'
               ? 'border-[#dcd4c3]/60 bg-[#efe8d9]/55 backdrop-blur-xl text-[#431407]'
               : 'border-white/10 bg-[#091225]/60 backdrop-blur-xl text-white'
@@ -2363,7 +2363,7 @@ export default function App() {
                 // Normal pages: plain block + overflow-y-auto so content height drives scrolling
                 isFullBleed
                   ? "flex flex-col overflow-hidden p-0"
-                  : "content-scroll-area overflow-y-auto overflow-x-hidden p-4 lg:p-8"
+                  : "content-scroll-area overflow-y-auto overflow-x-hidden p-2 lg:p-4"
               )}
               onClick={() => window.dispatchEvent(new CustomEvent('close-topbar-menus'))}
             >
@@ -2372,7 +2372,7 @@ export default function App() {
                 isFullBleed
                   ? "flex flex-col flex-1 min-h-0 h-full"
                   // IMPORTANT: no min-h-0 / flex here — natural content height is required for outer scroll
-                  : "max-w-7xl mx-auto space-y-6 lg:space-y-8 pb-16"
+                  : "max-w-7xl mx-auto space-y-4 lg:space-y-5 pb-8"
               )}>
                   {categoryOverviewActive ? (
                     <CategoryOverview

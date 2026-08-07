@@ -310,7 +310,7 @@ export default function IllustrationLibrary({ isDarkMode }: { isDarkMode: boolea
                   value={newPrompt}
                   onChange={(e) => setNewPrompt(e.target.value)}
                   placeholder="e.g. A cross-section of the Earth showcasing crust, mantle, outer core and inner core"
-                  className={`w-full text-sm rounded-xl p-3 h-24 ${isDarkMode ? 'bg-slate-900/60 border-white/10 text-white placeholder-slate-500' : 'bg-slate-50 border-2 border-slate-100 text-slate-800 placeholder-slate-400'} focus:outline-none focus:ring-2 focus:ring-indigo-500/50`}
+                  className={`w-full text-sm rounded-xl p-3 h-24 ${isDarkMode ? 'bg-slate-900/90 border-white/10 text-white placeholder-slate-500' : 'bg-slate-50 border-2 border-slate-100 text-slate-800 placeholder-slate-400'} focus:outline-none focus:ring-2 focus:ring-indigo-500/50`}
                 />
               </div>
 
@@ -366,7 +366,7 @@ export default function IllustrationLibrary({ isDarkMode }: { isDarkMode: boolea
             </form>
 
             {statusMessage && (
-              <div className={`mt-4 p-3 rounded-xl border text-xs font-semibold ${isDarkMode ? 'bg-slate-900/80 border-cyan-500/20 text-cyan-400' : 'bg-cyan-50 border-cyan-200 text-cyan-800'} animate-pulse`}>
+              <div className={`mt-4 p-3 rounded-xl border text-xs font-semibold ${isDarkMode ? 'bg-slate-900/95 border-cyan-500/20 text-cyan-400' : 'bg-cyan-50 border-cyan-200 text-cyan-800'} animate-pulse`}>
                 {statusMessage}
               </div>
             )}
@@ -449,7 +449,7 @@ export default function IllustrationLibrary({ isDarkMode }: { isDarkMode: boolea
                            : cat.name === 'Language' ? 'bg-purple-500/20 border-purple-500/30 text-purple-400 font-extrabold shadow-sm'
                            : cat.name === 'Life Skills' ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400 font-extrabold shadow-sm'
                            : 'bg-indigo-500/20 border-indigo-500/30 text-indigo-400 font-extrabold shadow-sm')
-                        : `${isDarkMode ? 'border-white/5 bg-slate-900/40 text-slate-400 hover:text-white hover:bg-slate-900' : 'border-slate-100 bg-white text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`
+                        : `${isDarkMode ? 'border-white/5 bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-900' : 'border-slate-100 bg-white text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`
                     }`}
                   >
                     <IconComp size={13} />
@@ -463,7 +463,7 @@ export default function IllustrationLibrary({ isDarkMode }: { isDarkMode: boolea
             </div>
 
             {/* View Mode Toggle */}
-            <div className={`flex items-center gap-1.5 p-1 rounded-2xl border ${isDarkMode ? 'border-white/5 bg-slate-900/60' : 'border-slate-200 bg-white'}`}>
+            <div className={`flex items-center gap-1.5 p-1 rounded-2xl border ${isDarkMode ? 'border-white/5 bg-slate-900/90' : 'border-slate-200 bg-white'}`}>
               <button
                 onClick={() => setViewMode('grouped')}
                 className={`p-1.5 rounded-xl cursor-pointer transition ${viewMode === 'grouped' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
@@ -572,7 +572,7 @@ export default function IllustrationLibrary({ isDarkMode }: { isDarkMode: boolea
                           {catInfo.items.map((item) => (
                             <motion.div
                               key={item.id}
-                              className={`relative overflow-hidden rounded-[2.5rem] border ${isDarkMode ? 'bg-slate-900/40 border-white/5 hover:border-cyan-500/20' : 'bg-white border-slate-100 hover:border-indigo-500/20'} p-3.5 transition-all shadow-sm ${overrideId === item.id ? 'ring-2 ring-indigo-500' : ''}`}
+                              className={`relative overflow-hidden rounded-[2.5rem] border ${isDarkMode ? 'bg-slate-900/80 border-white/5 hover:border-cyan-500/20' : 'bg-white border-slate-100 hover:border-indigo-500/20'} p-3.5 transition-all shadow-sm ${overrideId === item.id ? 'ring-2 ring-indigo-500' : ''}`}
                               variants={itemVariants}
                             >
                               {/* Image Frame */}
@@ -670,7 +670,7 @@ export default function IllustrationLibrary({ isDarkMode }: { isDarkMode: boolea
                                   {/* Delete */}
                                   <button
                                     onClick={() => handleDelete(item.id)}
-                                    className={`p-1.5 rounded-lg flex items-center justify-center cursor-pointer transition ${isDarkMode ? 'bg-slate-800/60 hover:bg-red-950/40 text-red-400' : 'bg-red-50 hover:bg-red-100 text-red-600'} ml-auto`}
+                                    className={`p-1.5 rounded-lg flex items-center justify-center cursor-pointer transition ${isDarkMode ? 'bg-slate-800/90 hover:bg-red-950/40 text-red-400' : 'bg-red-50 hover:bg-red-100 text-red-600'} ml-auto`}
                                     title="Remove from cloud storage"
                                   >
                                     <Trash2 size={12} />
@@ -727,7 +727,7 @@ export default function IllustrationLibrary({ isDarkMode }: { isDarkMode: boolea
                   {filteredIllustrations.map((item) => (
                     <motion.div
                       key={item.id}
-                      className={`relative overflow-hidden rounded-[2.5rem] border ${isDarkMode ? 'bg-slate-900/40 border-white/5 hover:border-cyan-500/20' : 'bg-white border-slate-100 hover:border-indigo-500/20'} p-3.5 transition-all shadow-sm ${overrideId === item.id ? 'ring-2 ring-indigo-500' : ''}`}
+                      className={`relative overflow-hidden rounded-[2.5rem] border ${isDarkMode ? 'bg-slate-900/80 border-white/5 hover:border-cyan-500/20' : 'bg-white border-slate-100 hover:border-indigo-500/20'} p-3.5 transition-all shadow-sm ${overrideId === item.id ? 'ring-2 ring-indigo-500' : ''}`}
                       variants={itemVariants}
                     >
                       {/* Image Frame */}
@@ -825,7 +825,7 @@ export default function IllustrationLibrary({ isDarkMode }: { isDarkMode: boolea
                           {/* Delete */}
                           <button
                             onClick={() => handleDelete(item.id)}
-                            className={`p-1.5 rounded-lg flex items-center justify-center cursor-pointer transition ${isDarkMode ? 'bg-slate-800/60 hover:bg-red-950/40 text-red-400' : 'bg-red-50 hover:bg-red-100 text-red-600'} ml-auto`}
+                            className={`p-1.5 rounded-lg flex items-center justify-center cursor-pointer transition ${isDarkMode ? 'bg-slate-800/90 hover:bg-red-950/40 text-red-400' : 'bg-red-50 hover:bg-red-100 text-red-600'} ml-auto`}
                             title="Remove from cloud storage"
                           >
                             <Trash2 size={12} />

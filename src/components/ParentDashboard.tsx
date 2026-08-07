@@ -889,7 +889,7 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
 
         <div className={cn(
           "relative z-10 flex gap-4 shrink-0 p-4 rounded-2xl backdrop-blur-sm border w-full md:w-auto",
-          isDarkMode ? "bg-slate-950/60 border-white/10" : "bg-black/15 border-white/5"
+          isDarkMode ? "bg-slate-900/90 border-white/10" : "bg-black/15 border-white/5"
         )}>
           <div>
             <span className="block text-[8px] font-black uppercase text-slate-400 tracking-wider">Overall GPA</span>

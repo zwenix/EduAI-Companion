@@ -562,7 +562,7 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
                     onClick={() => { playSfx('click'); onEnter(); }}
                     className={`glass-neon-card p-5 border flex gap-4 items-start text-left cursor-pointer transition-all ${card.glow}`}
                   >
-                    <div className="w-12 h-12 bg-slate-900/60 border border-white/10 rounded-2xl flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 bg-slate-900/90 border border-white/10 rounded-2xl flex items-center justify-center shrink-0">
                       <CardIcon className={`w-6 h-6 ${card.iconColor}`} />
                     </div>
                     <div>
@@ -633,7 +633,7 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
               onClick={() => { playSfx('click'); onEnter(); }}
               className={`group glass-neon-card p-8 text-center cursor-pointer border transition-all duration-300 ${feature.glow}`}
             >
-              <div className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-6 bg-slate-900/60 border border-white/10 group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-6 bg-slate-900/90 border border-white/10 group-hover:scale-110 transition-transform">
                 <feature.icon className={`w-8 h-8 ${feature.iconBg}`} />
               </div>
               <h3 className="text-xl font-display font-black text-white mb-2">{feature.title}</h3>

@@ -459,7 +459,7 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
   });
 
   return (
-    <div className="full-bleed-page w-full h-full min-h-0 font-sans p-2 sm:p-3 lg:p-4">
+    <div className="full-bleed-page w-full h-full min-h-0 font-sans p-1 sm:p-1 lg:p-2">
       <div className="w-full h-full min-h-0 overflow-hidden bg-[#0c1024] rounded-2xl flex flex-col md:flex-row relative">
         
         {/* LEFT PANEL: Menu */}

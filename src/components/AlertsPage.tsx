@@ -244,7 +244,7 @@ export default function AlertsPage({ isDarkMode, onNavigate, triggerToast }: Ale
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="p-12 rounded-[32px] border border-white/5 bg-slate-800/60 text-center space-y-4"
+              className="p-12 rounded-[32px] border border-white/5 bg-slate-800/90 text-center space-y-4"
             >
               <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-[0_0_15px_rgba(16,185,129,0.15)]">
                 <CheckCircle2 size={28} />
@@ -268,7 +268,7 @@ export default function AlertsPage({ isDarkMode, onNavigate, triggerToast }: Ale
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -50 }}
-                  className={`p-6 rounded-[32px] border-2 bg-slate-900/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all duration-300 relative overflow-hidden ${
+                  className={`p-6 rounded-[32px] border-2 bg-slate-900/95 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all duration-300 relative overflow-hidden ${
                     alert.resolved 
                       ? 'border-white/5 opacity-55' 
                       : isCritical 
