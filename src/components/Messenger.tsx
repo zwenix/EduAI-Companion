@@ -453,7 +453,7 @@ export default function Messenger() {
   );
 
   return (
-    <div className="full-bleed-page w-full h-full min-h-0 p-2 sm:p-3 lg:p-4">
+    <div className="full-bleed-page w-full h-full min-h-0 p-1 sm:p-1 lg:p-2">
       <div className="w-full h-full min-h-0 overflow-hidden bg-[#0c1024] rounded-2xl flex flex-col md:flex-row relative">
       
       {/* LEFT PANEL: Chats & Groups */}
@@ -682,7 +682,7 @@ export default function Messenger() {
 
                     {/* Attachment Card (if any) */}
                     {msg.attachment && (
-                      <div className="mt-3 p-3 rounded-xl bg-slate-950/60 border border-white/10 flex items-center gap-3 max-w-sm">
+                      <div className="mt-3 p-3 rounded-xl bg-slate-900/90 border border-white/10 flex items-center gap-3 max-w-sm">
                         <div className="w-10 h-10 rounded-lg bg-pink-500/20 border border-pink-500/40 flex items-center justify-center text-pink-400 shrink-0">
                           <FileText size={20} />
                         </div>

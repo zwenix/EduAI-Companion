@@ -350,7 +350,7 @@ export default function EduVideoPlayer({ src, prompt, isDarkMode }: EduVideoPlay
       )}
 
       {/* Media Descriptor Segment under Video element */}
-      <div className={cn("p-5 border-t text-center select-text", isDarkMode ? "border-white/10 bg-slate-900/80 text-slate-300" : "border-slate-200 bg-transparent text-slate-700")}>
+      <div className={cn("p-5 border-t text-center select-text", isDarkMode ? "border-white/10 bg-slate-900/95 text-slate-300" : "border-slate-200 bg-transparent text-slate-700")}>
         <p className="font-semibold text-[10px] tracking-widest uppercase text-indigo-500 mb-1.5">Generated Video Prompt</p>
         <p className="font-medium text-sm leading-relaxed max-w-2xl mx-auto italic">
           "{prompt}"

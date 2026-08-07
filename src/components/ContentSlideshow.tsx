@@ -114,7 +114,7 @@ export default function ContentSlideshow({ slides = TOOLBOX_SLIDES, tall = false
 
   return (
     <div className={`w-full h-full rounded-[32px] overflow-hidden relative shadow-2xl border border-cyan-500/30 bg-slate-950 flex flex-col justify-between group select-none ${
-      tall ? 'min-h-[460px] max-h-[560px]' : 'min-h-[340px] max-h-[420px]'
+      tall ? 'min-h-[380px] max-h-[460px]' : 'min-h-[300px] max-h-[380px]'
     }`}>
       {/* Slide Image & Backdrop */}
       <AnimatePresence mode="wait" initial={false}>
@@ -150,14 +150,14 @@ export default function ContentSlideshow({ slides = TOOLBOX_SLIDES, tall = false
 
       {/* Top Header Controls Bar */}
       <div className="relative z-10 p-5 flex items-center justify-between">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 text-[10px] font-black uppercase tracking-widest text-cyan-300 shadow-md">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/95 backdrop-blur-md border border-white/10 text-[10px] font-black uppercase tracking-widest text-cyan-300 shadow-md">
           <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
           <span>Interactive Feature Showcase</span>
         </div>
 
         <button
           onClick={togglePlay}
-          className="p-2 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 text-slate-300 hover:text-white hover:bg-transparent transition-all shadow-md focus:outline-none"
+          className="p-2 rounded-full bg-slate-900/95 backdrop-blur-md border border-white/10 text-slate-300 hover:text-white hover:bg-transparent transition-all shadow-md focus:outline-none"
           title={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
         >
           {isPlaying ? <Pause size={14} /> : <Play size={14} className="ml-0.5 text-cyan-400" />}

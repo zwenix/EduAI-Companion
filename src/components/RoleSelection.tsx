@@ -141,7 +141,7 @@ export default function RoleSelection({ onComplete, onBack }: RoleSelectionProps
                   <div className="absolute w-36 h-36 rounded-full border border-dashed border-brand-cyan/15 animate-reverse-spin scale-100 top-10 pointer-events-none" />
 
                   {/* Mascot Sphere */}
-                  <div className="w-28 h-28 rounded-full bg-slate-900/60 border border-white/15 flex items-center justify-center mb-5 relative overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300 shrink-0">
+                  <div className="w-28 h-28 rounded-full bg-slate-900/90 border border-white/15 flex items-center justify-center mb-5 relative overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300 shrink-0">
                     <div className="absolute inset-0 bg-gradient-to-tr from-brand-pink/20 to-transparent pointer-events-none" />
                     <ToyBrick className="w-12 h-12 text-brand-pink icon-glow-pink" />
                     {/* Mascot character emoji floating inside */}
@@ -186,7 +186,7 @@ export default function RoleSelection({ onComplete, onBack }: RoleSelectionProps
                   <div className="absolute w-36 h-36 rounded-full border border-dashed border-brand-yellow/15 animate-reverse-spin scale-100 top-10 pointer-events-none" />
 
                   {/* Mascot Sphere */}
-                  <div className="w-28 h-28 rounded-full bg-slate-900/60 border border-white/15 flex items-center justify-center mb-5 relative overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300 shrink-0">
+                  <div className="w-28 h-28 rounded-full bg-slate-900/90 border border-white/15 flex items-center justify-center mb-5 relative overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300 shrink-0">
                     <div className="absolute inset-0 bg-gradient-to-tr from-brand-green/20 to-transparent pointer-events-none" />
                     <GraduationCap className="w-12 h-12 text-brand-green icon-glow-green" />
                     {/* Mascot character emoji floating inside */}
@@ -231,7 +231,7 @@ export default function RoleSelection({ onComplete, onBack }: RoleSelectionProps
                   <div className="absolute w-36 h-36 rounded-full border border-dashed border-brand-pink/15 animate-reverse-spin scale-100 top-10 pointer-events-none" />
 
                   {/* Mascot Sphere */}
-                  <div className="w-28 h-28 rounded-full bg-slate-900/60 border border-white/15 flex items-center justify-center mb-5 relative overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300 shrink-0">
+                  <div className="w-28 h-28 rounded-full bg-slate-900/90 border border-white/15 flex items-center justify-center mb-5 relative overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300 shrink-0">
                     <div className="absolute inset-0 bg-gradient-to-tr from-brand-cyan/20 to-transparent pointer-events-none" />
                     <Heart className="w-12 h-12 text-brand-cyan icon-glow-cyan" />
                     {/* Mascot character emoji floating inside */}
@@ -276,7 +276,7 @@ export default function RoleSelection({ onComplete, onBack }: RoleSelectionProps
                   <div className="absolute w-36 h-36 rounded-full border border-dashed border-brand-green/15 animate-reverse-spin scale-100 top-10 pointer-events-none" />
 
                   {/* Mascot Sphere */}
-                  <div className="w-28 h-28 rounded-full bg-slate-900/60 border border-white/15 flex items-center justify-center mb-5 relative overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300 shrink-0">
+                  <div className="w-28 h-28 rounded-full bg-slate-900/90 border border-white/15 flex items-center justify-center mb-5 relative overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300 shrink-0">
                     <div className="absolute inset-0 bg-gradient-to-tr from-brand-yellow/20 to-transparent pointer-events-none" />
                     <Settings className="w-12 h-12 text-brand-yellow icon-glow-yellow" />
                     {/* Mascot character emoji floating inside */}

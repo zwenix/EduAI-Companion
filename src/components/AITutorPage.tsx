@@ -754,7 +754,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
   }, [sessions, searchHistoryQuery, selectedSubjectFilter]);
 
   return (
-    <div className="full-bleed-page flex flex-col lg:flex-row gap-0 h-full min-h-0 w-full min-w-0 overflow-hidden text-white relative font-sans p-2 sm:p-3 lg:p-4">
+    <div className="flex flex-1 min-h-0 w-full min-w-0 overflow-hidden text-white relative font-sans p-0 flex-col lg:flex-row gap-2 lg:gap-3 h-full">
       {/* Subtle ambient glows */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/8 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-10 right-1/3 w-96 h-96 bg-cyan-500/8 rounded-full blur-[140px] pointer-events-none" />
@@ -787,11 +787,11 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
       )}
 
       {viewMode === 'studio' ? (
-        <div className="flex-1 min-h-0 min-w-0 flex gap-2 sm:gap-3 lg:gap-4 w-full h-full overflow-hidden z-20">
+        <div className="flex-1 min-h-0 min-w-0 flex gap-2 lg:gap-3 w-full h-full overflow-hidden z-20">
           {/* 1. LEFT MENU RAIL (Minimised to icon by default, expands when clicked) */}
           <div className="hidden sm:flex h-full min-h-0 shrink-0 gap-2">
             {/* Icon Bar */}
-            <div className="w-14 h-full bg-slate-900/80 border border-white/10 rounded-[28px] py-4 flex flex-col items-center justify-between shadow-xl backdrop-blur-xl shrink-0">
+            <div className="w-14 h-full bg-slate-900/95 border border-white/15 rounded-[16px] py-4 flex flex-col items-center justify-between shadow-xl backdrop-blur-xl shrink-0">
               <div className="flex flex-col items-center gap-3">
                 <button
                   type="button"
@@ -848,7 +848,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   initial={{ width: 0, opacity: 0 }}
                   animate={{ width: 280, opacity: 1 }}
                   exit={{ width: 0, opacity: 0 }}
-                  className="bg-slate-900/95 border border-white/10 rounded-[28px] p-4 flex flex-col gap-4 shadow-2xl backdrop-blur-xl overflow-hidden shrink-0 h-full min-h-0 max-h-full"
+                  className="bg-slate-900/95 border border-white/15 rounded-[16px] p-4 flex flex-col gap-4 shadow-2xl backdrop-blur-xl overflow-hidden shrink-0 h-full min-h-0 max-h-full"
                 >
                   <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
                     <h3 className="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -870,7 +870,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                           placeholder="Search chats..."
                           value={searchHistoryQuery}
                           onChange={e => setSearchHistoryQuery(e.target.value)}
-                          className="w-full bg-slate-800/80 border border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none"
+                          className="w-full bg-slate-800/95 border border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none"
                         />
                       </div>
                       <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-1">
@@ -881,7 +881,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                               key={s.id}
                               onClick={() => { setActiveSessionId(s.id); setLeftMenu(null); }}
                               className={`p-3 rounded-xl border transition-all text-left cursor-pointer group flex items-center justify-between text-xs ${
-                                s.id === activeSessionId ? 'bg-cyan-500/20 border-cyan-500/50 text-white font-bold' : 'bg-slate-800/40 border-white/5 text-slate-300 hover:bg-slate-800 hover:text-white'
+                                s.id === activeSessionId ? 'bg-cyan-500/20 border-cyan-500/50 text-white font-bold' : 'bg-slate-800/80 border-white/5 text-slate-300 hover:bg-slate-800 hover:text-white'
                               }`}
                             >
                               <div className="min-w-0 flex-1 pr-2">
@@ -912,7 +912,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                         type="button"
                         onClick={() => { setSelectedSubjectFilter('All'); }}
                         className={`w-full p-2.5 rounded-xl border text-left text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
-                          selectedSubjectFilter === 'All' ? 'bg-purple-500/20 border-purple-500/50 text-white' : 'bg-slate-800/40 border-white/5 text-slate-300 hover:bg-slate-800'
+                          selectedSubjectFilter === 'All' ? 'bg-purple-500/20 border-purple-500/50 text-white' : 'bg-slate-800/80 border-white/5 text-slate-300 hover:bg-slate-800'
                         }`}
                       >
                         <span>All Subjects</span>
@@ -926,7 +926,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                             type="button"
                             onClick={() => { setSelectedSubjectFilter(sub); setLeftMenu('chats'); }}
                             className={`w-full p-2.5 rounded-xl border text-left text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
-                              selectedSubjectFilter === sub ? 'bg-purple-500/20 border-purple-500/50 text-white' : 'bg-slate-800/40 border-white/5 text-slate-300 hover:bg-slate-800'
+                              selectedSubjectFilter === sub ? 'bg-purple-500/20 border-purple-500/50 text-white' : 'bg-slate-800/80 border-white/5 text-slate-300 hover:bg-slate-800'
                             }`}
                           >
                             <span className="truncate pr-2">{sub}</span>
@@ -964,10 +964,10 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
           </div>
 
           {/* 2. CENTER MAIN CHAT COLUMN — fills remaining height; messages scroll inside */}
-          <div className="flex-1 min-w-0 min-h-0 flex flex-col h-full max-h-full bg-slate-900/75 border border-white/10 rounded-[24px] sm:rounded-[32px] p-3 sm:p-5 lg:p-6 shadow-2xl backdrop-blur-xl relative z-20 overflow-hidden">
+          <div className="flex-1 min-w-0 min-h-0 flex flex-col h-full max-h-full bg-slate-900/95 border border-white/15 rounded-[16px] lg:rounded-[20px] p-3 sm:p-4 lg:p-4 shadow-2xl backdrop-blur-xl relative z-20 overflow-hidden">
             
             {/* Top Header Bar */}
-            <div className="flex flex-wrap items-center justify-between pb-4 border-b border-white/10 gap-3 shrink-0">
+            <div className="flex flex-wrap items-center justify-between pb-3 border-b border-white/10 gap-3 shrink-0">
               <div className="flex items-center gap-3">
                 {onBack && (
                   <button 
@@ -1131,7 +1131,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
             </AnimatePresence>
 
             {/* Message scroll list — sole vertical scroller for the chat */}
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-4 sm:py-6 space-y-6 custom-scrollbar pr-1 sm:pr-2">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-3 sm:py-4 space-y-4 custom-scrollbar pr-1 sm:pr-2">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center min-h-full text-slate-400 px-6 relative overflow-hidden">
                   <div className="relative z-10 flex flex-col items-center">
@@ -1178,7 +1178,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                       className={`p-5 lg:p-6 max-w-[85%] lg:max-w-[78%] shadow-xl ${
                         msg.role === 'user' 
                           ? 'bg-gradient-to-r from-indigo-500/20 to-blue-500/20 border border-indigo-500/40 text-indigo-100 rounded-2xl rounded-tr-sm font-sans shadow-[0_0_20px_rgba(99,102,241,0.15)]' 
-                          : 'bg-gradient-to-r from-slate-900/60 via-slate-900/40 to-slate-900/50 border border-indigo-500/30 text-slate-100 rounded-2xl rounded-tl-sm font-sans shadow-[0_0_25px_rgba(99,102,241,0.1)] backdrop-blur-xl'
+                          : 'bg-slate-900/90 border border-indigo-500/40 text-slate-100 rounded-2xl rounded-tl-sm font-sans shadow-[0_0_25px_rgba(99,102,241,0.1)] backdrop-blur-xl'
                       }`}
                     >
                       {msg.role === 'model' ? (
@@ -1280,9 +1280,9 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
             </div>
 
             {/* Bottom Chat Input Bar */}
-            <div className="pt-4 border-t border-white/10 shrink-0">
+            <div className="pt-3 border-t border-white/10 shrink-0">
               {selectedImage && (
-                <div className="mb-2 relative inline-block bg-slate-800/80 p-2 rounded-xl border border-white/10 shadow-lg">
+                <div className="mb-2 relative inline-block bg-slate-800/95 p-2 rounded-xl border border-white/10 shadow-lg">
                   <img src={selectedImage} alt="Selected preview" className="h-16 w-auto rounded-lg object-contain" />
                   <button
                     type="button"
@@ -1313,7 +1313,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                 />
 
                 {/* Text Entry Prompt Box */}
-                <div className="flex-1 bg-slate-800/60 border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-2 focus-within:border-cyan-500/50 transition-all shadow-inner">
+                <div className="flex-1 bg-slate-800/90 border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-2 focus-within:border-cyan-500/50 transition-all shadow-inner">
                   <input
                     type="text"
                     value={input}
@@ -1352,7 +1352,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
           {/* 3. RIGHT SIDEBAR — fits available height; scrolls internally if needed */}
           <div className={`${isRightMenuOpen ? 'fixed inset-y-4 right-4 z-50 bg-slate-900/95 border border-white/10 p-4 rounded-3xl shadow-2xl overflow-y-auto' : 'hidden'} lg:relative lg:flex lg:w-56 xl:w-64 shrink-0 flex-col gap-3 lg:overflow-y-auto lg:overflow-x-hidden lg:max-h-full lg:min-h-0 custom-scrollbar`}>
             {/* Card 1: Suggested Activities & Topics */}
-            <div className="bg-slate-950/60 border border-indigo-500/30 rounded-[22px] p-3.5 shadow-xl text-left shrink-0 backdrop-blur-xl">
+            <div className="bg-slate-900/90 border border-indigo-500/40 rounded-[16px] p-3.5 shadow-xl text-left shrink-0 backdrop-blur-xl">
               <h3 className="text-xs font-display font-bold text-white mb-2 flex items-center gap-1.5">
                 <Sparkles size={13} className="text-amber-400" />
                 <span>Suggested Activities</span>
@@ -1361,7 +1361,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                 <button
                   type="button"
                   onClick={() => { setInput('Explain Grade 5 Math - Fractions'); handleSend('Explain Grade 5 Math - Fractions'); }}
-                  className="w-full py-1.5 px-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-left hover:border-amber-400 transition-all shadow-sm group cursor-pointer flex items-center justify-between"
+                  className="w-full py-1.5 px-2.5 rounded-xl bg-slate-800/90 border border-indigo-500/40 text-left hover:border-amber-400 transition-all shadow-sm group cursor-pointer flex items-center justify-between"
                 >
                   <span className="text-[11px] font-bold text-white group-hover:text-amber-200">Math - Fractions</span>
                   <Sparkles size={11} className="text-amber-400 shrink-0" />
@@ -1370,7 +1370,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                 <button
                   type="button"
                   onClick={() => { setInput('Explain Science - Solar System'); handleSend('Explain Science - Solar System'); }}
-                  className="w-full py-1.5 px-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-left hover:border-cyan-400 transition-all shadow-sm group cursor-pointer flex items-center justify-between"
+                  className="w-full py-1.5 px-2.5 rounded-xl bg-slate-800/90 border border-indigo-500/40 text-left hover:border-cyan-400 transition-all shadow-sm group cursor-pointer flex items-center justify-between"
                 >
                   <span className="text-[11px] font-bold text-white group-hover:text-cyan-200">Solar System</span>
                   <Sparkles size={11} className="text-cyan-400 shrink-0" />
@@ -1379,7 +1379,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                 <button
                   type="button"
                   onClick={() => { setInput('Let us do an English - Grammar Quiz'); handleSend('Let us do an English - Grammar Quiz'); }}
-                  className="w-full py-1.5 px-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-left hover:border-emerald-400 transition-all shadow-sm group cursor-pointer flex items-center justify-between"
+                  className="w-full py-1.5 px-2.5 rounded-xl bg-slate-800/90 border border-indigo-500/40 text-left hover:border-emerald-400 transition-all shadow-sm group cursor-pointer flex items-center justify-between"
                 >
                   <span className="text-[11px] font-bold text-white group-hover:text-emerald-200">Grammar Quiz</span>
                   <Sparkles size={11} className="text-emerald-400 shrink-0" />
@@ -1388,7 +1388,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
             </div>
 
             {/* Card 2: Interactive Toolset */}
-            <div className="bg-slate-950/60 border border-indigo-500/30 rounded-[22px] p-3.5 shadow-xl text-left shrink-0 backdrop-blur-xl">
+            <div className="bg-slate-900/90 border border-indigo-500/40 rounded-[16px] p-3.5 shadow-xl text-left shrink-0 backdrop-blur-xl">
               <h3 className="text-xs font-display font-bold text-white mb-2 flex items-center gap-1.5">
                 <Monitor size={13} className="text-indigo-400" />
                 <span>Interactive Toolset</span>
@@ -1397,7 +1397,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                 <button
                   type="button"
                   onClick={() => { setInput('Start an Interactive Whiteboard session to draw and visualize math or science concepts.'); handleSend('Start an Interactive Whiteboard session to draw and visualize math or science concepts.'); }}
-                  className="w-full py-1.5 px-2.5 bg-indigo-950/40 border border-indigo-500/20 rounded-xl text-left hover:border-cyan-500/50 transition-all flex items-center gap-2 cursor-pointer group shadow-sm"
+                  className="w-full py-1.5 px-2.5 bg-slate-800/90 border border-indigo-500/30 rounded-xl text-left hover:border-cyan-500/50 transition-all flex items-center gap-2 cursor-pointer group shadow-sm"
                 >
                   <div className="p-1 bg-cyan-500/10 rounded-lg text-cyan-400 group-hover:scale-110 transition-transform shrink-0">
                     <Monitor size={13} />
@@ -1408,7 +1408,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                 <button
                   type="button"
                   onClick={() => { setInput('Activate Voice Tutor Mode. Please talk to me conversationally and ask guiding questions.'); handleSend('Activate Voice Tutor Mode. Please talk to me conversationally and ask guiding questions.'); }}
-                  className="w-full py-1.5 px-2.5 bg-indigo-950/40 border border-indigo-500/20 rounded-xl text-left hover:border-amber-500/50 transition-all flex items-center gap-2 cursor-pointer group shadow-sm"
+                  className="w-full py-1.5 px-2.5 bg-slate-800/90 border border-indigo-500/30 rounded-xl text-left hover:border-amber-500/50 transition-all flex items-center gap-2 cursor-pointer group shadow-sm"
                 >
                   <div className="p-1 bg-amber-500/10 rounded-lg text-amber-400 group-hover:scale-110 transition-transform shrink-0">
                     <Volume2 size={13} />
@@ -1419,7 +1419,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                 <button
                   type="button"
                   onClick={() => { setInput('Let us do a Step-by-Step Solver exercise. Give me a problem and guide me through solving it one step at a time.'); handleSend('Let us do a Step-by-Step Solver exercise. Give me a problem and guide me through solving it one step at a time.'); }}
-                  className="w-full py-1.5 px-2.5 bg-indigo-950/40 border border-indigo-500/20 rounded-xl text-left hover:border-amber-500/50 transition-all flex items-center gap-2 cursor-pointer group shadow-sm"
+                  className="w-full py-1.5 px-2.5 bg-slate-800/90 border border-indigo-500/30 rounded-xl text-left hover:border-amber-500/50 transition-all flex items-center gap-2 cursor-pointer group shadow-sm"
                 >
                   <div className="p-1 bg-amber-500/10 rounded-lg text-amber-400 group-hover:scale-110 transition-transform shrink-0">
                     <Puzzle size={13} />
@@ -1430,7 +1430,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                 <button
                   type="button"
                   onClick={() => { setInput('Explain a core curriculum concept with visual examples and analogies.'); handleSend('Explain a core curriculum concept with visual examples and analogies.'); }}
-                  className="w-full py-1.5 px-2.5 bg-indigo-950/40 border border-indigo-500/20 rounded-xl text-left hover:border-emerald-500/50 transition-all flex items-center gap-2 cursor-pointer group shadow-sm"
+                  className="w-full py-1.5 px-2.5 bg-slate-800/90 border border-indigo-500/30 rounded-xl text-left hover:border-emerald-500/50 transition-all flex items-center gap-2 cursor-pointer group shadow-sm"
                 >
                   <div className="p-1 bg-emerald-500/10 rounded-lg text-emerald-400 group-hover:scale-110 transition-transform shrink-0">
                     <Eye size={13} />
@@ -1455,7 +1455,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
             </button>
           </div>
           {/* LEFT / MAIN COLUMN: CHAT WINDOW CARD */}
-      <div className="flex-1 flex flex-col h-full bg-slate-900/60 border border-white/10 rounded-[32px] p-6 shadow-2xl backdrop-blur-xl relative z-20 overflow-hidden">
+      <div className="flex-1 flex flex-col h-full bg-slate-900/90 border border-white/10 rounded-[32px] p-6 shadow-2xl backdrop-blur-xl relative z-20 overflow-hidden">
         
         {/* Top Header inside Chat Box */}
         <div className="flex items-center justify-between pb-4 border-b border-white/10 shrink-0">
@@ -1751,7 +1751,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
           </button>
 
           {/* Text Input Container */}
-          <div className="flex-1 bg-slate-900/80 border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-3 shadow-inner focus-within:border-cyan-500/50 transition-colors">
+          <div className="flex-1 bg-slate-900/95 border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-3 shadow-inner focus-within:border-cyan-500/50 transition-colors">
             {selectedImage && (
               <div className="relative inline-block shrink-0">
                 <img src={selectedImage} alt="Preview" className="h-9 rounded-lg object-contain border border-white/10 shadow-md" />
@@ -1815,7 +1815,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
       <div className="w-full lg:w-80 shrink-0 flex flex-col gap-6 overflow-y-auto custom-scrollbar relative z-20">
         
         {/* Card 1: Recent Tutoring Topics */}
-        <div className="p-6 rounded-[28px] bg-slate-900/60 border border-white/10 space-y-4 shadow-xl backdrop-blur-xl flex-1 flex flex-col max-h-[500px]">
+        <div className="p-6 rounded-[28px] bg-slate-900/90 border border-white/10 space-y-4 shadow-xl backdrop-blur-xl flex-1 flex flex-col max-h-[500px]">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-display font-bold text-white tracking-tight">
               Recent Tutoring Topics
@@ -1838,7 +1838,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                 placeholder="Search topics..."
                 value={searchHistoryQuery}
                 onChange={e => setSearchHistoryQuery(e.target.value)}
-                className="w-full bg-slate-800/60 border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50"
+                className="w-full bg-slate-800/90 border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50"
               />
             </div>
             
@@ -1847,7 +1847,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
               <button
                 onClick={() => setSelectedSubjectFilter('All')}
                 className={`px-2.5 py-1 rounded-lg whitespace-nowrap font-semibold transition-all ${
-                  selectedSubjectFilter === 'All' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-slate-800/40 text-slate-400 hover:text-white'
+                  selectedSubjectFilter === 'All' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-slate-800/80 text-slate-400 hover:text-white'
                 }`}
               >
                 All ({sessions.length})
@@ -1860,7 +1860,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                     key={sub}
                     onClick={() => setSelectedSubjectFilter(sub)}
                     className={`px-2.5 py-1 rounded-lg whitespace-nowrap font-semibold transition-all ${
-                      selectedSubjectFilter === sub ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-slate-800/40 text-slate-400 hover:text-white'
+                      selectedSubjectFilter === sub ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-slate-800/80 text-slate-400 hover:text-white'
                     }`}
                   >
                     {sub}
@@ -1920,28 +1920,28 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
         </div>
 
         {/* Card 2: AI Tutor Actions */}
-        <div className="p-6 rounded-[28px] bg-slate-900/60 border border-white/10 space-y-3 shadow-xl backdrop-blur-xl shrink-0">
+        <div className="p-6 rounded-[28px] bg-slate-900/90 border border-white/10 space-y-3 shadow-xl backdrop-blur-xl shrink-0">
           <h2 className="text-lg font-display font-bold text-white tracking-tight mb-4">
             AI Tutor Actions
           </h2>
 
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="w-full py-3.5 px-5 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-white/10 hover:border-cyan-500/30 text-slate-200 hover:text-white font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99]"
+            className="w-full py-3.5 px-5 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-white/10 hover:border-cyan-500/30 text-slate-200 hover:text-white font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99]"
           >
             <span>Upload Resource</span>
           </button>
 
           <button
             onClick={handleNewChat}
-            className="w-full py-3.5 px-5 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-white/10 hover:border-cyan-500/30 text-slate-200 hover:text-white font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99]"
+            className="w-full py-3.5 px-5 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-white/10 hover:border-cyan-500/30 text-slate-200 hover:text-white font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99]"
           >
             <span>Clear Chat History</span>
           </button>
 
           <button
             onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-            className="w-full py-3.5 px-5 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-white/10 hover:border-cyan-500/30 text-slate-200 hover:text-white font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99]"
+            className="w-full py-3.5 px-5 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-white/10 hover:border-cyan-500/30 text-slate-200 hover:text-white font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99]"
           >
             <span>Tutor Settings</span>
           </button>

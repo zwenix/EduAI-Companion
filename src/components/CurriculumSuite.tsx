@@ -444,7 +444,7 @@ export default function CurriculumSuite({ isDarkMode, userRole }: { isDarkMode: 
           </h2>
         </div>
         
-        <div className="flex gap-2 bg-slate-900/80 p-1.5 rounded-2xl border border-white/10 overflow-x-auto">
+        <div className="flex gap-2 bg-slate-900/95 p-1.5 rounded-2xl border border-white/10 overflow-x-auto">
           {[
             { id: 'curriculum', label: 'CAPS Syllabus Tree', icon: Map },
             { id: 'lessons', label: 'Lesson & Assessment Studio', icon: FilePlus },

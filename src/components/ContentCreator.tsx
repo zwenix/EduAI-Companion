@@ -234,7 +234,7 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
 
   if (!cleanedHtml || !cleanedHtml.trim()) {
     return (
-      <div className={cn("w-full h-full min-h-[450px] rounded-2xl flex flex-col items-center justify-center p-8 text-center border-2 border-dashed border-cyan-500/20 bg-slate-950/40", className)}>
+      <div className={cn("w-full h-full min-h-[450px] rounded-2xl flex flex-col items-center justify-center p-8 text-center border-2 border-dashed border-cyan-500/20 bg-slate-900/80", className)}>
         <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-4 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
           <Sparkles size={28} className="animate-pulse" />
         </div>
@@ -2651,7 +2651,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[150] flex flex-col p-4 sm:p-8"
               >
-                <div className="flex justify-between items-center bg-slate-900/80 border border-white/10 rounded-2xl p-4 mb-4 backdrop-blur-lg">
+                <div className="flex justify-between items-center bg-slate-900/95 border border-white/10 rounded-2xl p-4 mb-4 backdrop-blur-lg">
                   <div className="flex items-center gap-3">
                     <Sparkles className="text-cyan-400" size={20} />
                     <div>

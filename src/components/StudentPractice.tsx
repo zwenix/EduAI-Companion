@@ -372,7 +372,7 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
                     <Download size={16} /> Export Practice to PDF
                   </button>
                 </div>
-                <div className={`${isDarkMode ? 'bg-slate-900/60 border-white/10 text-slate-200' : 'bg-white text-slate-900 border-slate-200'} p-8 rounded-[36px] border shadow-sm`}>
+                <div className={`${isDarkMode ? 'bg-slate-900/90 border-white/10 text-slate-200' : 'bg-white text-slate-900 border-slate-200'} p-8 rounded-[36px] border shadow-sm`}>
                   <div 
                     dangerouslySetInnerHTML={{ 
                       __html: (result.content || result).trim().startsWith('<') 
@@ -397,7 +397,7 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
                 </div>
               </div>
             ) : (
-               <div className={`${isDarkMode ? 'bg-slate-900/60 border-white/10' : 'bg-slate-50 border-slate-200'} p-12 rounded-[36px] border border-dashed text-center flex flex-col items-center justify-center opacity-70`}>
+               <div className={`${isDarkMode ? 'bg-slate-900/90 border-white/10' : 'bg-slate-50 border-slate-200'} p-12 rounded-[36px] border border-dashed text-center flex flex-col items-center justify-center opacity-70`}>
                  <FileText size={48} className={`${isDarkMode ? 'text-slate-500' : 'text-slate-300'} mb-4`} />
                  <p className={`font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Your generated practice content will appear here.</p>
                </div>

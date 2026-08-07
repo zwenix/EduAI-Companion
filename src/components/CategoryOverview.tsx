@@ -105,7 +105,7 @@ function InteractiveShowcaseCard({
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       onClick={onClick}
-      className={`rounded-[32px] border-2 bg-slate-900/85 p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:brightness-110 transition-all duration-300 cursor-pointer relative overflow-hidden h-full min-h-[340px] select-none ${borderColorClass} ${shadowColorClass} ${hoverBorderColorClass} ${hoverShadowColorClass}`}
+      className={`rounded-[32px] border-2 bg-slate-900/90 p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:brightness-110 transition-all duration-300 cursor-pointer relative overflow-hidden h-full min-h-[340px] select-none ${borderColorClass} ${shadowColorClass} ${hoverBorderColorClass} ${hoverShadowColorClass}`}
     >
       {/* Background Slideshow using Framer Motion (matching the main ContentSlideshow) */}
       <AnimatePresence mode="wait" initial={false}>
@@ -127,7 +127,7 @@ function InteractiveShowcaseCard({
             referrerPolicy="no-referrer"
           />
           {/* Gradient Overlays for optimal readability matching ContentSlideshow */}
-          <div className="absolute inset-0 bg-slate-900/40 pointer-events-none z-0" />
+          <div className="absolute inset-0 bg-slate-900/80 pointer-events-none z-0" />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/50 to-transparent pointer-events-none z-0" />
         </motion.div>
       </AnimatePresence>
@@ -378,7 +378,7 @@ export default function CategoryOverview({
   // Custom Intelligent AI Hub UI (matching Teacher's Toolbox design)
   if (categoryLabel === 'Intelligent AI' || categoryLabel === 'Intelligence AI' || categoryLabel === "AI Tutor's Class") {
     return (
-      <div className="relative p-6 lg:p-10 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
+      <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
         
         {/* Deep Cosmic Background & Subtle Stars */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
@@ -400,7 +400,7 @@ export default function CategoryOverview({
         <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none" />
 
         {/* MAIN TITLE SECTION ("Intelligent AI") */}
-        <div className="relative z-10 text-center my-6">
+        <div className="relative z-10 text-center my-3">
           <div className="inline-flex items-center gap-2 mb-2">
             <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
             <span className="text-xl sm:text-2xl font-display font-bold text-slate-100 tracking-tight">
@@ -417,7 +417,7 @@ export default function CategoryOverview({
         </div>
 
         {/* HERO SHOWCASE SECTION: SLIDESHOW & FEATURE BANNER */}
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-6 max-w-6xl mx-auto w-full items-stretch">
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-3 max-w-6xl mx-auto w-full items-stretch">
           
           {/* LEFT: Intelligent AI Slideshow */}
           <div className="lg:col-span-7 flex flex-col justify-center">
@@ -561,7 +561,7 @@ export default function CategoryOverview({
                 <button
                   key={tool.id}
                   onClick={() => onSelect(tool.id)}
-                  className="px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-indigo-600/30 border border-indigo-500/30 hover:border-cyan-400 text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-indigo-600/30 border border-indigo-500/30 hover:border-cyan-400 text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   <ToolIcon className="w-3.5 h-3.5 text-cyan-400" />
                   <span>{tool.label}</span>
@@ -603,7 +603,7 @@ export default function CategoryOverview({
 
         <div className="relative z-10 max-w-5xl mx-auto w-full space-y-8 my-auto py-8">
           {/* Top Main Banner Card */}
-          <div className="p-8 sm:p-12 rounded-[32px] bg-slate-900/60 border border-white/10 shadow-2xl backdrop-blur-xl text-center relative overflow-hidden">
+          <div className="p-8 sm:p-12 rounded-[32px] bg-slate-900/90 border border-white/10 shadow-2xl backdrop-blur-xl text-center relative overflow-hidden">
             <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-cyan-500/20 rounded-full blur-3xl pointer-events-none" />
             
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-cyan-500/20 border border-white/15 flex items-center justify-center mx-auto mb-4 shadow-lg">
@@ -635,7 +635,7 @@ export default function CategoryOverview({
                   key={item.id}
                   onClick={() => onSelect(item.id)}
                   whileHover={{ y: -4 }}
-                  className="group flex flex-col p-6 sm:p-8 rounded-[28px] bg-slate-900/60 border border-white/10 hover:border-cyan-500/40 hover:bg-slate-900/80 transition-all duration-300 text-left cursor-pointer shadow-xl relative overflow-hidden backdrop-blur-xl"
+                  className="group flex flex-col p-6 sm:p-8 rounded-[28px] bg-slate-900/90 border border-white/10 hover:border-cyan-500/40 hover:bg-slate-900/90 transition-all duration-300 text-left cursor-pointer shadow-xl relative overflow-hidden backdrop-blur-xl"
                 >
                   <div className="flex items-center gap-4 mb-4">
                     <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-cyan-500/20 border border-white/15 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
@@ -661,7 +661,7 @@ export default function CategoryOverview({
   // Dedicated Curriculum & Planning Landing Page
   if (categoryLabel === 'Curriculum and Planning' || categoryLabel === 'Curriculum & Planning') {
     return (
-      <div className="relative p-6 lg:p-10 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
+      <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
         
         {/* Deep Cosmic Background */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(15,23,42,0.9)_0%,rgba(6,11,25,1)_100%)] pointer-events-none rounded-2xl" />
@@ -683,7 +683,7 @@ export default function CategoryOverview({
         <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none" />
 
         {/* MAIN TITLE SECTION ("Curriculum & Planning") */}
-        <div className="relative z-10 text-center my-6">
+        <div className="relative z-10 text-center my-3">
           <div className="inline-flex items-center gap-2 mb-2">
             <Sparkles className="w-5 h-5 text-cyan-400 animate-pulse" />
             <span className="text-xl sm:text-2xl font-display font-bold text-slate-100 tracking-tight">
@@ -700,7 +700,7 @@ export default function CategoryOverview({
         </div>
 
         {/* HERO SHOWCASE SECTION */}
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-6 max-w-6xl mx-auto w-full items-stretch">
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-3 max-w-6xl mx-auto w-full items-stretch">
           
           {/* LEFT: Restored Interactive Content Slideshow */}
           <div className="lg:col-span-7 flex flex-col justify-center">
@@ -765,7 +765,7 @@ export default function CategoryOverview({
           {/* CARD 1: Weekly Planner */}
           <div 
             onClick={() => onSelect('weekly-planner')}
-            className="p-6 rounded-[28px] bg-slate-900/80 border-2 border-cyan-500/50 hover:border-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.2)] hover:shadow-[0_0_40px_rgba(6,182,212,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-cyan-500/50 hover:border-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.2)] hover:shadow-[0_0_40px_rgba(6,182,212,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
           >
             <div className="space-y-3">
               <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
@@ -782,7 +782,7 @@ export default function CategoryOverview({
           {/* CARD 2: Lesson Planner / Content Studio */}
           <div 
             onClick={() => onSelect('teaching')}
-            className="p-6 rounded-[28px] bg-slate-900/80 border-2 border-pink-500/50 hover:border-pink-300 shadow-[0_0_25px_rgba(236,72,153,0.2)] hover:shadow-[0_0_40px_rgba(236,72,153,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-pink-500/50 hover:border-pink-300 shadow-[0_0_25px_rgba(236,72,153,0.2)] hover:shadow-[0_0_40px_rgba(236,72,153,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
           >
             <div className="space-y-3">
               <div className="w-14 h-14 rounded-2xl bg-pink-500/10 border border-pink-500/40 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform">
@@ -799,7 +799,7 @@ export default function CategoryOverview({
           {/* CARD 3: Teacher's Planner & Diary */}
           <div 
             onClick={() => onSelect('planner')}
-            className="p-6 rounded-[28px] bg-slate-900/80 border-2 border-purple-500/50 hover:border-purple-300 shadow-[0_0_25px_rgba(168,85,247,0.2)] hover:shadow-[0_0_40px_rgba(168,85,247,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-purple-500/50 hover:border-purple-300 shadow-[0_0_25px_rgba(168,85,247,0.2)] hover:shadow-[0_0_40px_rgba(168,85,247,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
           >
             <div className="space-y-3">
               <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/40 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
@@ -816,7 +816,7 @@ export default function CategoryOverview({
           {/* CARD 4: CAPS Syllabus Hub */}
           <div 
             onClick={() => onSelect('curriculum')}
-            className="p-6 rounded-[28px] bg-slate-900/80 border-2 border-emerald-500/50 hover:border-emerald-300 shadow-[0_0_25px_rgba(16,185,129,0.2)] hover:shadow-[0_0_40px_rgba(16,185,129,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-emerald-500/50 hover:border-emerald-300 shadow-[0_0_25px_rgba(16,185,129,0.2)] hover:shadow-[0_0_40px_rgba(16,185,129,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
           >
             <div className="space-y-3">
               <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
@@ -833,7 +833,7 @@ export default function CategoryOverview({
           {/* CARD 5: Notifications & Alerts */}
           <div 
             onClick={() => onSelect('alerts')}
-            className="p-6 rounded-[28px] bg-slate-900/80 border-2 border-amber-500/50 hover:border-amber-300 shadow-[0_0_25px_rgba(245,158,11,0.2)] hover:shadow-[0_0_40px_rgba(245,158,11,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-amber-500/50 hover:border-amber-300 shadow-[0_0_25px_rgba(245,158,11,0.2)] hover:shadow-[0_0_40px_rgba(245,158,11,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
           >
             <div className="space-y-3">
               <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/40 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
@@ -850,7 +850,7 @@ export default function CategoryOverview({
           {/* CARD 6: Content Archive */}
           <div 
             onClick={() => onSelect('archive')}
-            className="p-6 rounded-[28px] bg-slate-900/80 border-2 border-indigo-500/50 hover:border-indigo-300 shadow-[0_0_25px_rgba(99,102,241,0.2)] hover:shadow-[0_0_40px_rgba(99,102,241,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-indigo-500/50 hover:border-indigo-300 shadow-[0_0_25px_rgba(99,102,241,0.2)] hover:shadow-[0_0_40px_rgba(99,102,241,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
           >
             <div className="space-y-3">
               <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/40 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
@@ -873,7 +873,7 @@ export default function CategoryOverview({
   // Custom Reports & Portfolios Hub UI (mirrors Teacher's Toolbox design language)
   if (categoryLabel === 'Reports & Portfolios' || categoryLabel === 'Reports & Portfolio') {
     return (
-      <div className="relative p-6 lg:p-10 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
+      <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
         
         {/* Deep Cosmic Background & Subtle Stars */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
@@ -895,7 +895,7 @@ export default function CategoryOverview({
         <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-amber-500/15 rounded-full blur-[120px] pointer-events-none" />
 
         {/* MAIN TITLE SECTION ("Reports & Portfolios") */}
-        <div className="relative z-10 text-center my-6">
+        <div className="relative z-10 text-center my-3">
           <div className="inline-flex items-center gap-2 mb-2">
             <Sparkles className="w-5 h-5 text-cyan-300 animate-pulse" />
             <span className="text-xl sm:text-2xl font-display font-bold text-slate-100 tracking-tight">
@@ -912,7 +912,7 @@ export default function CategoryOverview({
         </div>
 
         {/* HERO SHOWCASE SECTION: FULL-WIDTH INTERACTIVE SLIDESHOW & FEATURED CARD */}
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-6 w-full items-stretch">
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-3 w-full items-stretch">
           
           {/* LEFT: Interactive Reports Slideshow (tall, full-width hero) */}
           <div className="lg:col-span-8 flex flex-col justify-center">
@@ -989,7 +989,7 @@ export default function CategoryOverview({
                 whileHover={{ y: -6 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                 onClick={() => onSelect(item.id)}
-                className={`group flex flex-col p-6 sm:p-7 rounded-[24px] bg-slate-900/75 border hover:brightness-110 hover:-translate-y-1 transition-all duration-300 cursor-pointer relative overflow-hidden ${theme.borderColorClass} ${theme.shadowColorClass} ${theme.hoverBorderColorClass} ${theme.hoverShadowColorClass}`}
+                className={`group flex flex-col p-6 sm:p-7 rounded-[24px] bg-slate-900/95 border hover:brightness-110 hover:-translate-y-1 transition-all duration-300 cursor-pointer relative overflow-hidden ${theme.borderColorClass} ${theme.shadowColorClass} ${theme.hoverBorderColorClass} ${theme.hoverShadowColorClass}`}
               >
                 {/* soft top accent glow */}
                 <div className={`absolute -top-16 -right-16 w-40 h-40 rounded-full blur-3xl pointer-events-none opacity-30 group-hover:opacity-50 transition-opacity ${theme.accentBg}`} />
@@ -1038,7 +1038,7 @@ export default function CategoryOverview({
                 <button
                   key={tool.id}
                   onClick={() => onSelect(tool.id)}
-                  className="px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-cyan-600/30 border border-cyan-500/30 hover:border-cyan-400 text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-cyan-600/30 border border-cyan-500/30 hover:border-cyan-400 text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   <ToolIcon className="w-3.5 h-3.5 text-cyan-400" />
                   <span>{tool.label}</span>
@@ -1064,7 +1064,7 @@ export default function CategoryOverview({
     categoryLabel === 'lesson-planning'
   ) {
     return (
-      <div className="relative p-6 lg:p-10 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
+      <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
         
         {/* Deep Cosmic Background & Subtle Stars */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
@@ -1087,7 +1087,7 @@ export default function CategoryOverview({
 
 
         {/* MAIN TITLE SECTION ("Teacher's Toolbox") */}
-        <div className="relative z-10 text-center my-6">
+        <div className="relative z-10 text-center my-3">
           <div className="inline-flex items-center gap-2 mb-2">
             <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
             <span className="text-xl sm:text-2xl font-display font-bold text-slate-100 tracking-tight">
@@ -1104,7 +1104,7 @@ export default function CategoryOverview({
         </div>
 
         {/* HERO SHOWCASE SECTION: RESTORED CONTENT SLIDESHOW & QR SCANNER BANNER */}
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-6 max-w-6xl mx-auto w-full items-stretch">
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-3 max-w-6xl mx-auto w-full items-stretch">
           
           {/* LEFT: Restored Interactive Content Slideshow */}
           <div className="lg:col-span-7 flex flex-col justify-center">
@@ -1386,7 +1386,7 @@ export default function CategoryOverview({
                 <button
                   key={tool.id}
                   onClick={() => onSelect(tool.id)}
-                  className="px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-indigo-600/30 border border-indigo-500/30 hover:border-cyan-400 text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-indigo-600/30 border border-indigo-500/30 hover:border-cyan-400 text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   <ToolIcon className="w-3.5 h-3.5 text-cyan-400" />
                   <span>{tool.label}</span>

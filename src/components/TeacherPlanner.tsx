@@ -204,7 +204,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
       <button
         key={`day-${d}`}
         onClick={() => selectDay(d)}
-        className={`h-14 border border-white/5 flex flex-col items-center justify-between p-1.5 transition-all relative cursor-pointer hover:bg-slate-800/40 ${
+        className={`h-14 border border-white/5 flex flex-col items-center justify-between p-1.5 transition-all relative cursor-pointer hover:bg-slate-800/80 ${
           isSelected 
             ? 'bg-gradient-to-tr from-cyan-600/30 to-indigo-600/30 border-cyan-400 shadow-[inset_0_0_10px_rgba(6,182,212,0.25)]' 
             : isToday 
@@ -278,7 +278,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
         </div>
 
         <div className="flex gap-4">
-          <div className="px-4 py-3 rounded-2xl bg-slate-900/60 border border-white/5 text-center min-w-[100px]">
+          <div className="px-4 py-3 rounded-2xl bg-slate-900/90 border border-white/5 text-center min-w-[100px]">
             <span className="block text-xl font-black text-emerald-400">
               {events.length}
             </span>
@@ -286,7 +286,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
               Total Items
             </span>
           </div>
-          <div className="px-4 py-3 rounded-2xl bg-slate-900/60 border border-white/5 text-center min-w-[100px]">
+          <div className="px-4 py-3 rounded-2xl bg-slate-900/90 border border-white/5 text-center min-w-[100px]">
             <span className="block text-xl font-black text-indigo-400">
               {Object.keys(diaryNotes).length}
             </span>
@@ -423,7 +423,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, x: -20 }}
-                        className="p-4 rounded-2xl border border-white/5 bg-slate-950/40 hover:bg-slate-950/70 transition-all flex items-start gap-4"
+                        className="p-4 rounded-2xl border border-white/5 bg-slate-900/80 hover:bg-slate-950/70 transition-all flex items-start gap-4"
                       >
                         {/* Bullet / Icon */}
                         <div className={`mt-0.5 px-2 py-1 rounded-lg border text-[9px] font-bold uppercase tracking-widest shrink-0 ${labelMeta.color}`}>
@@ -561,7 +561,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
                   value={newEvent.title}
                   onChange={(e) => setNewEvent(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="e.g. CAPS Math: Addition & Subtraction"
-                  className="w-full bg-slate-950/40 border border-white/5 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400/40"
+                  className="w-full bg-slate-900/80 border border-white/5 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400/40"
                 />
               </div>
 
@@ -572,7 +572,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
                   <select
                     value={newEvent.timeSlot}
                     onChange={(e) => setNewEvent(prev => ({ ...prev, timeSlot: e.target.value }))}
-                    className="w-full bg-slate-950/40 border border-white/5 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400/40"
+                    className="w-full bg-slate-900/80 border border-white/5 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400/40"
                   >
                     <option value="08:00 - 09:00">08:00 - 09:00</option>
                     <option value="09:00 - 10:00">09:00 - 10:00</option>
@@ -590,7 +590,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
                   <select
                     value={newEvent.category}
                     onChange={(e) => setNewEvent(prev => ({ ...prev, category: e.target.value as any }))}
-                    className="w-full bg-slate-950/40 border border-white/5 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400/40"
+                    className="w-full bg-slate-900/80 border border-white/5 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400/40"
                   >
                     <option value="caps-lesson">CAPS Lesson</option>
                     <option value="assessment">Assessment</option>
@@ -608,7 +608,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
                   onChange={(e) => setNewEvent(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Enter lesson goals, required material, or focus pupils..."
                   rows={3}
-                  className="w-full bg-slate-950/40 border border-white/5 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400/40 resize-none"
+                  className="w-full bg-slate-900/80 border border-white/5 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400/40 resize-none"
                 />
               </div>
 

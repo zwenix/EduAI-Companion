@@ -559,7 +559,7 @@ export default function CollaborativeWorkspace({ isDarkMode }: CollaborativeWork
               </div>
 
               {/* Workspace Header */}
-              <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/40 relative z-10">
+              <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/80 relative z-10">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase font-black tracking-widest text-[#7c3aed] bg-indigo-500/10 px-2.5 py-0.5 rounded-full">
@@ -614,7 +614,7 @@ export default function CollaborativeWorkspace({ isDarkMode }: CollaborativeWork
                       value={selectedProject.notes || ''}
                       onChange={(e) => handleNotesChange(e.target.value)}
                       placeholder="Collaborate and type your research or group project summary draft here in real-time together..."
-                      className="w-full flex-1 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 text-xs font-bold leading-relaxed bg-transparent dark:bg-slate-950/40 outline-none focus:border-indigo-500 resize-none"
+                      className="w-full flex-1 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 text-xs font-bold leading-relaxed bg-transparent dark:bg-slate-900/80 outline-none focus:border-indigo-500 resize-none"
                     />
                   </div>
 
@@ -636,14 +636,14 @@ export default function CollaborativeWorkspace({ isDarkMode }: CollaborativeWork
                         value={newTaskTitle}
                         onChange={(e) => setNewTaskTitle(e.target.value)}
                         placeholder="Project sub-task (e.g. Gather chemistry formulas)"
-                        className="flex-1 border border-slate-100 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-indigo-500 bg-transparent dark:bg-slate-950/40"
+                        className="flex-1 border border-slate-100 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-indigo-500 bg-transparent dark:bg-slate-900/80"
                       />
                       <input
                         type="text"
                         value={newTaskAssignee}
                         onChange={(e) => setNewTaskAssignee(e.target.value)}
                         placeholder="Assignee name (optional)"
-                        className="sm:w-[150px] border border-slate-100 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-indigo-500 bg-transparent dark:bg-slate-950/40"
+                        className="sm:w-[150px] border border-slate-100 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-indigo-500 bg-transparent dark:bg-slate-900/80"
                       />
                       <button
                         onClick={handleAddTask}
@@ -746,7 +746,7 @@ export default function CollaborativeWorkspace({ isDarkMode }: CollaborativeWork
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
                       placeholder="Type a group message..."
-                      className="flex-1 border border-slate-100 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-indigo-500 bg-transparent dark:bg-slate-950/40"
+                      className="flex-1 border border-slate-100 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-indigo-500 bg-transparent dark:bg-slate-900/80"
                     />
                     <button
                       type="submit"
@@ -766,7 +766,7 @@ export default function CollaborativeWorkspace({ isDarkMode }: CollaborativeWork
       {/* CREATE PROJECT MODAL */}
       <AnimatePresence>
         {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}

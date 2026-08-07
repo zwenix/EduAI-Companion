@@ -122,7 +122,7 @@ export default function VideoGenerationHistory({
   };
 
   return (
-    <div id="video-generation-history-dashboard" className={cn("w-full mt-12 rounded-3xl p-6 border transition-all", isDarkMode ? "bg-slate-900/40 border-white/10" : "bg-slate-50 border-slate-200")}>
+    <div id="video-generation-history-dashboard" className={cn("w-full mt-12 rounded-3xl p-6 border transition-all", isDarkMode ? "bg-slate-900/80 border-white/10" : "bg-slate-50 border-slate-200")}>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-500">

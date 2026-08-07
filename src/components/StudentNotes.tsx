@@ -298,7 +298,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
                   className={cn(
                     "w-full text-left p-3 rounded-2xl border text-xs transition-all flex flex-col group cursor-pointer shadow-sm hover:shadow-md",
                     isDarkMode 
-                      ? 'bg-slate-900/60 border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10' 
+                      ? 'bg-slate-900/90 border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10' 
                       : 'bg-white border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50'
                   )}
                 >

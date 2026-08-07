@@ -125,7 +125,7 @@ export default function LoadingMascot({
       </div>
 
       {/* Modern fluid wave-bar indicator */}
-      <div className="w-48 h-1.5 bg-slate-800/80 rounded-full mt-6 overflow-hidden border border-white/5 relative">
+      <div className="w-48 h-1.5 bg-slate-800/95 rounded-full mt-6 overflow-hidden border border-white/5 relative">
         {!isMuted ? (
           <motion.div
             animate={{
