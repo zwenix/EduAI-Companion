@@ -371,6 +371,7 @@ export default function App() {
   const [highContrastEnabled, setHighContrastEnabled] = useState(() => localStorage.getItem('eduai_high_contrast') === 'true');
   const [soundMuted, setSoundMuted] = useState(() => localStorage.getItem('eduai_sound_muted') === 'true');
   const [utilityDrawerOpen, setUtilityDrawerOpen] = useState(false);
+  const [isMobileQuickMenuOpen, setIsMobileQuickMenuOpen] = useState(false);
   const [modelStatus, setModelStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const [modelStatusError, setModelStatusError] = useState<string | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -381,6 +382,7 @@ export default function App() {
       setIsProfileDropdownOpen(false);
       setIsThemeMenuOpen(false);
       setIsAccessibilityOpen(false);
+      setIsMobileQuickMenuOpen(false);
     };
     window.addEventListener('close-topbar-menus', handleClose);
     return () => window.removeEventListener('close-topbar-menus', handleClose);
@@ -501,6 +503,7 @@ export default function App() {
     setIsAccessibilityOpen(false);
     setUtilityDrawerOpen(false);
     setMobileSidebarOpen(false);
+    setIsMobileQuickMenuOpen(false);
     window.dispatchEvent(new Event('close-topbar-menus'));
   }, [activeTab, activeCategory, activeCreatorTab, categoryOverviewActive]);
 
@@ -1856,6 +1859,20 @@ export default function App() {
               </AnimatePresence>
             </div>
 
+            {/* Mobile Top Menu / Tools Drawer Trigger Button */}
+            <button
+              onClick={() => setIsMobileQuickMenuOpen(!isMobileQuickMenuOpen)}
+              className={`sm:hidden p-2 px-2.5 rounded-full transition-all flex items-center justify-center gap-1.5 border shadow-sm active:scale-95 cursor-pointer ${
+                isMobileQuickMenuOpen
+                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50 shadow-cyan-500/20'
+                  : 'bg-white/10 text-white border-white/15 hover:bg-white/20'
+              }`}
+              title="Top Menu & Tools"
+            >
+              <Sliders size={16} className={isMobileQuickMenuOpen ? 'text-cyan-400 rotate-90 transition-transform duration-300' : 'transition-transform duration-300'} />
+              <span className="text-[10px] font-black uppercase tracking-wider font-display">Tools</span>
+            </button>
+
             {/* Notifications Dropdown */}
             <NotificationsDropdown isDarkMode={isDarkMode} />
 
@@ -1958,6 +1975,212 @@ export default function App() {
             </div>
           </div>
         </header>
+
+        {/* Slide-Open Mobile Top Menu Bar / Tools Tray */}
+        <AnimatePresence>
+          {isMobileQuickMenuOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: "easeInOut" }}
+              className={`w-full border-b shrink-0 z-40 sm:hidden transition-colors duration-300 overflow-hidden ${
+                isDarkMode
+                  ? 'bg-[#0a1226]/95 border-cyan-500/20 text-white backdrop-blur-xl shadow-2xl'
+                  : themeMode === 'peach'
+                    ? 'bg-[#efe8d9]/95 border-[#dcd4c3] text-[#431407] backdrop-blur-xl shadow-lg'
+                    : 'bg-white/95 border-slate-200 text-slate-800 backdrop-blur-xl shadow-md'
+              }`}
+            >
+              <div className="max-w-7xl mx-auto px-4 py-3 space-y-3 font-sans">
+                {/* Row 1: Themes Selector */}
+                <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-500/15">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 flex items-center gap-1">
+                    <Palette size={13} /> Theme Mode
+                  </span>
+                  <div className="flex items-center gap-1 bg-black/20 p-1 rounded-xl border border-white/10">
+                    <button
+                      onClick={() => {
+                        setThemeMode('light');
+                        localStorage.setItem('eduai_theme_mode', 'light');
+                      }}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                        themeMode === 'light'
+                          ? 'bg-brand-cyan text-white shadow-md'
+                          : 'text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      <Sun size={13} /> Light
+                    </button>
+                    <button
+                      onClick={() => {
+                        setThemeMode('dark');
+                        localStorage.setItem('eduai_theme_mode', 'dark');
+                      }}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                        themeMode === 'dark'
+                          ? 'bg-brand-cyan text-white shadow-md'
+                          : 'text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      <Moon size={13} /> Dark
+                    </button>
+                    <button
+                      onClick={() => {
+                        setThemeMode('peach');
+                        localStorage.setItem('eduai_theme_mode', 'peach');
+                      }}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                        themeMode === 'peach'
+                          ? 'bg-[#ff7c5c] text-white shadow-md'
+                          : 'text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      <Palette size={13} /> Peach
+                    </button>
+                  </div>
+                </div>
+
+                {/* Row 2: Top Menu Action Buttons Listing Grid */}
+                <div className="grid grid-cols-2 gap-2">
+                  {/* AI Engines / Utility Drawer */}
+                  <button
+                    onClick={() => {
+                      setUtilityDrawerOpen(!utilityDrawerOpen);
+                      setIsMobileQuickMenuOpen(false);
+                    }}
+                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs font-bold text-left transition-all active:scale-95 ${
+                      isDarkMode ? 'bg-white/5 hover:bg-white/10 border-white/10 text-white' : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <div className="p-2 rounded-lg bg-cyan-500/20 text-cyan-400 shrink-0">
+                      <Sliders size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate leading-tight">AI Engines</div>
+                      <div className="text-[9px] opacity-70 font-normal truncate">Models & Speed</div>
+                    </div>
+                  </button>
+
+                  {/* Accessibility Helpers */}
+                  <button
+                    onClick={() => {
+                      setIsAccessibilityOpen(!isAccessibilityOpen);
+                      setIsMobileQuickMenuOpen(false);
+                    }}
+                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs font-bold text-left transition-all active:scale-95 ${
+                      isDarkMode ? 'bg-white/5 hover:bg-white/10 border-white/10 text-white' : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0">
+                      <Accessibility size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate leading-tight">Accessibility</div>
+                      <div className="text-[9px] opacity-70 font-normal truncate">Fonts & Contrast</div>
+                    </div>
+                  </button>
+
+                  {/* Settings Page */}
+                  <button
+                    onClick={() => {
+                      changeTab('settings');
+                      setActiveCategory('system-support');
+                      setIsMobileQuickMenuOpen(false);
+                    }}
+                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs font-bold text-left transition-all active:scale-95 ${
+                      isDarkMode ? 'bg-white/5 hover:bg-white/10 border-white/10 text-white' : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <div className="p-2 rounded-lg bg-purple-500/20 text-purple-400 shrink-0">
+                      <IconSettings size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate leading-tight">Settings</div>
+                      <div className="text-[9px] opacity-70 font-normal truncate">System Preferences</div>
+                    </div>
+                  </button>
+
+                  {/* + New Mission */}
+                  {userRole === 'teacher' && (
+                    <button
+                      onClick={() => {
+                        setActiveCategory('content-creator-menu');
+                        setActiveCreatorTab('teaching');
+                        setActiveTab('teaching');
+                        setIsMobileQuickMenuOpen(false);
+                      }}
+                      className="flex items-center gap-2.5 p-2.5 rounded-xl bg-gradient-to-r from-cyan-500/25 to-indigo-500/25 hover:from-cyan-500/35 hover:to-indigo-500/35 border border-cyan-400/30 text-xs font-bold text-left transition-all active:scale-95"
+                    >
+                      <div className="p-2 rounded-lg bg-cyan-500 text-white shrink-0">
+                        <Plus size={16} strokeWidth={3} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-white truncate leading-tight">New Mission</div>
+                        <div className="text-[9px] text-cyan-300 font-normal truncate">Create Content</div>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Offline Sync */}
+                  <button
+                    onClick={() => {
+                      handleOfflineSync();
+                      setIsMobileQuickMenuOpen(false);
+                    }}
+                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs font-bold text-left transition-all active:scale-95 ${
+                      isDarkMode ? 'bg-white/5 hover:bg-white/10 border-white/10 text-white' : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400 shrink-0">
+                      <RefreshCcw size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate leading-tight">Sync Offline</div>
+                      <div className="text-[9px] opacity-70 font-normal truncate">Cache Lessons</div>
+                    </div>
+                  </button>
+
+                  {/* Offline Vault */}
+                  <button
+                    onClick={() => {
+                      setIsOfflineViewerOpen(true);
+                      setIsMobileQuickMenuOpen(false);
+                    }}
+                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs font-bold text-left transition-all active:scale-95 ${
+                      isDarkMode ? 'bg-white/5 hover:bg-white/10 border-white/10 text-white' : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <div className="p-2 rounded-lg bg-blue-500/20 text-blue-400 shrink-0">
+                      <BookOpen size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate leading-tight">Offline Vault</div>
+                      <div className="text-[9px] opacity-70 font-normal truncate">Saved Materials</div>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Quick Search Input */}
+                <div className="pt-1">
+                  <div className="relative w-full">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search lessons, topics, tools..."
+                      className={`w-full pl-9 pr-4 py-2 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-500/50 border ${
+                        isDarkMode
+                          ? 'bg-[#0b1122]/90 border-white/15 text-white placeholder:text-slate-400'
+                          : 'bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400'
+                      }`}
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Horizontal Accessibility Helpers Sliding Panel */}
         <AnimatePresence>
           {isAccessibilityOpen && (

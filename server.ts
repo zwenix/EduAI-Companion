@@ -1478,7 +1478,13 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         }
 
         case "generate-visual": {
-          const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nThe 'content' field in your JSON response MUST be stunningly designed HTML with Tailwind CSS. DO NOT use generic Markdown.`;
+          const effectiveLang = input.language || (input.subject?.includes('Afrikaans') ? 'Afrikaans' : input.subject?.includes('Xhosa') ? 'isiXhosa' : 'English');
+          const langMandate = EduAIPromptEngine.buildLanguageMandate(effectiveLang, input.subject);
+          let systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nThe 'content' field in your JSON response MUST be stunningly designed HTML with Tailwind CSS. DO NOT use generic Markdown.`;
+          if (langMandate) {
+            systemInstruction = `${langMandate}\n\n${systemInstruction}`;
+          }
+
           const isPoster = input.visualType?.toLowerCase().includes('poster');
           const isInfographic = input.visualType?.toLowerCase().includes('infographic') || input.visualType?.toLowerCase().includes('mind map');
           const isLessonDisplay = input.visualType?.toLowerCase().includes('display') || input.visualType?.toLowerCase().includes('chart') || input.visualType?.toLowerCase().includes('wall') || input.visualType?.toLowerCase().includes('lesson display');
@@ -1567,7 +1573,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
           } else {
             prompt = `
               ${visualPrompt}
-              Language: ${input.language}\n            ${input.additionalInstructions ? `User Custom Instructions: ${input.additionalInstructions}` : ""}
+              Language: ${effectiveLang}\n            ${input.additionalInstructions ? `User Custom Instructions: ${input.additionalInstructions}` : ""}
               Style: ${input.style}
               Color: ${input.colorScheme}
               Content Details: ${input.specificContent}
@@ -1579,6 +1585,10 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             } else {
               prompt += `\n\n⚠️ CRITICAL: DO NOT include any illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
             }
+          }
+
+          if (langMandate) {
+            prompt = `${langMandate}\n\n${prompt}\n\n${langMandate}`;
           }
 
           return await executeOrStream({
@@ -1603,7 +1613,9 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         }
 
         case "generate-admin": {
-          const systemInstruction = `${MASTER_SYSTEM_PROMPT}
+          const effectiveLang = input.language || (input.purpose?.includes('Afrikaans') ? 'Afrikaans' : input.purpose?.includes('Xhosa') ? 'isiXhosa' : 'English');
+          const langMandate = EduAIPromptEngine.buildLanguageMandate(effectiveLang);
+          let systemInstruction = `${MASTER_SYSTEM_PROMPT}
 
 You are an expert school administrative document and certificate architect.
 Generate a formal ${input.documentType} for ${input.schoolName || 'the school'}.
@@ -1614,6 +1626,10 @@ STRICT COMPLIANCE & ZERO-HALLUCINATION MANDATES:
 1. ABSOLUTE METADATA ADHERENCE: You MUST explicitly carry through and display the provided metadata fields: School Name ("${input.schoolName || 'Not specified'}"), Date & Time ("${input.timeDate || 'Not specified'}"), Recipient ("${input.recipient || 'Not specified'}"), Venue ("${input.venue || 'Not specified'}"), Class Teacher ("${input.classTeacher || 'Not specified'}"), and School Principal ("${input.schoolPrincipal || 'Not specified'}"). You are STRICTLY FORBIDDEN from dreaming up, inventing, or hallucinating different dates, times, school names, venues, or people's names.
 2. ZERO QUERIES OR PLACEHOLDERS: Do NOT generate query tags (e.g., "[Query: ...]", "[Insert Date]", "[Date Here]", "[Name Here]") or dummy variables. Every parameter value MUST be permanently rendered into the visible text or signature blocks of the HTML document.
 3. CERTIFICATE MANDATE: When generating certificates (e.g. Academic Achievement, Participation), the Date & Time field ("${input.timeDate || 'Not specified'}") MUST be visibly printed on the certificate body as the date of award or issuance. Do not omit or alter it!`;
+
+          if (langMandate) {
+            systemInstruction = `${langMandate}\n\n${systemInstruction}`;
+          }
 
           let prompt = "";
           if (input.existingContent) {

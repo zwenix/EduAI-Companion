@@ -48,11 +48,45 @@ export interface PromptContext {
 export class EduAIPromptEngine {
   
   /**
+   * Build a strict language override mandate for non-English outputs
+   */
+  public static buildLanguageMandate(language: string, subject?: string): string {
+    const lang = (language || '').trim();
+    if (!lang || lang === 'English') return '';
+
+    const langUpper = lang.toUpperCase();
+    return `
+🚨🚨🚨 ABSOLUTE MANDATORY LANGUAGE OVERRIDE DIRECTIVE 🚨🚨🚨
+THE USER HAS REQUESTED THIS ENTIRE MATERIAL TO BE GENERATED 100% ENTIRELY IN ${langUpper}.
+
+CRITICAL MANDATORY INSTRUCTIONS FOR ${langUpper} OUTPUT:
+1. 100% NATIVE ${langUpper} BODY CONTENT: Every single paragraph, sentence, heading, question, multiple-choice choice option, matching item, instruction, teacher script, solution step, memorandum answer, and rubric descriptor MUST BE WRITTEN IN ${langUpper}.
+2. TRANSLATE ALL STRUCTURAL LABELS: Do NOT keep English template headers like "Lesson Plan", "Worksheet", "Grade", "Topic", "Subject", "Name", "Date", "Score", "Question 1", "Teacher Notes", "Objectives", "Memorandum", "Rubric", "Homework". Translate these structural labels natively into ${langUpper}.
+3. ZERO ENGLISH IN OUTPUT: Do not revert or switch back to English at any point in the text. Translate all concepts, stories, instructions, and questions completely into ${langUpper}.
+`;
+  }
+
+  /**
    * Assemble a complete, context-aware prompt for any content type
    */
   static assemblePrompt(context: PromptContext): { system: string; user: string } {
     const phase = this.getPhaseByGrade(context.grade);
     const subjectPalette = this.getSubjectPalette(context.subject);
+    
+    // Infer language if not explicitly set but present in subject name
+    let effectiveLanguage = context.language || 'English';
+    if (context.subject) {
+      if (context.subject.includes('Afrikaans')) effectiveLanguage = 'Afrikaans';
+      else if (context.subject.includes('isiXhosa') || context.subject.includes('Xhosa')) effectiveLanguage = 'isiXhosa';
+      else if (context.subject.includes('Khoekhoegowab') || context.subject.includes('Traditional')) effectiveLanguage = 'Khoekhoegowab (First Traditional Language)';
+      else if (context.subject.includes('isiZulu') || context.subject.includes('Zulu')) effectiveLanguage = 'isiZulu';
+      else if (context.subject.includes('Sesotho')) effectiveLanguage = 'Sesotho';
+      else if (context.subject.includes('Sepedi')) effectiveLanguage = 'Sepedi (Sesotho sa Leboa)';
+      else if (context.subject.includes('Setswana')) effectiveLanguage = 'Setswana';
+      else if (context.subject.includes('Sign Language') || context.subject.includes('SASL')) effectiveLanguage = 'South African Sign Language (SASL)';
+    }
+
+    const langMandate = this.buildLanguageMandate(effectiveLanguage, context.subject);
     
     // Enhance image prompt with context
     const enhancedImagePrompt = this.enhanceImagePrompt(
@@ -94,6 +128,7 @@ You MUST ALSO generate:
     // Inject dynamic values into template
     let userPrompt = this.injectContext(contentTemplate, {
       ...context,
+      language: effectiveLanguage,
       capsCode: context.capsReference || '',
       instructions: context.additionalInstructions || '',
       totalMarks: context.totalMarks || 30,
@@ -118,6 +153,11 @@ You MUST ALSO generate:
 
     systemPrompt += antiSummaryMandate;
     userPrompt += antiSummaryMandate;
+
+    if (langMandate) {
+      systemPrompt = `${langMandate}\n\n${systemPrompt}`;
+      userPrompt = `${langMandate}\n\n${userPrompt}\n\n${langMandate}`;
+    }
 
     if (context.isGroq) {
       systemPrompt = this.compressWhitespace(systemPrompt);

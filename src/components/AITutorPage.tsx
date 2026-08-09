@@ -37,12 +37,18 @@ interface ChatSession {
 
 const LANGUAGES = [
   { value: 'English',   label: 'English' },
-  { value: 'Spanish',   label: 'Spanish' },
-  { value: 'French',    label: 'French' },
-  { value: 'German',    label: 'German' },
-  { value: 'isiZulu',   label: 'isiZulu' },
-  { value: 'isiXhosa',  label: 'isiXhosa' },
   { value: 'Afrikaans', label: 'Afrikaans' },
+  { value: 'isiXhosa',  label: 'isiXhosa' },
+  { value: 'Khoekhoegowab (First Traditional Language)', label: 'Khoekhoegowab (First Traditional Language)' },
+  { value: 'South African Sign Language (SASL)', label: 'South African Sign Language (SASL)' },
+  { value: 'isiZulu',   label: 'isiZulu' },
+  { value: 'Sesotho',   label: 'Sesotho' },
+  { value: 'Sepedi (Sesotho sa Leboa)', label: 'Sepedi (Sesotho sa Leboa)' },
+  { value: 'Setswana',  label: 'Setswana' },
+  { value: 'isiNdebele',label: 'isiNdebele' },
+  { value: 'SiSwati',   label: 'SiSwati' },
+  { value: 'Tshivenda', label: 'Tshivenda' },
+  { value: 'Xitsonga',  label: 'Xitsonga' },
 ];
 
 const VOICES = [
