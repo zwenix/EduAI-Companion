@@ -17,6 +17,7 @@ import {
   ArrowRight,
   TrendingUp,
   UserCheck,
+  HeartHandshake,
   Zap,
   LayoutGrid,
   Calendar,
@@ -642,6 +643,21 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               </div>
               <span className="text-[10px] font-black uppercase text-slate-300 tracking-wider group-hover:text-emerald-300 transition-colors">
                 Manage Class
+              </span>
+            </motion.button>
+
+            {/* Action 4B: Learner Intervention Hub */}
+            <motion.button 
+              whileHover={{ y: -4, scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => onNavigate('learner-intervention', 'class-management')}
+              className="p-3.5 rounded-[20px] bg-slate-900/95 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-400/25 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(6,182,212,0.15)]">
+                <HeartHandshake size={18} />
+              </div>
+              <span className="text-[10px] font-black uppercase text-slate-300 tracking-wider group-hover:text-cyan-300 transition-colors">
+                Learner Intervention
               </span>
             </motion.button>
 

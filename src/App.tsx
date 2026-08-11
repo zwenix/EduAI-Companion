@@ -116,6 +116,7 @@ import CurriculumSuite from './components/CurriculumSuite';
 import ParentDashboard from './components/ParentDashboard';
 import ReaderModeModal from './components/ReaderModeModal';
 import PageOverlay from './components/PageOverlay';
+import { LearnerInterventionHub } from './components/LearnerInterventionHub';
 const teachersToolbox = 'https://i.ibb.co/RGmCJ3jh/teachers-toolbox.png';
 
 
@@ -992,7 +993,8 @@ export default function App() {
           ];
         case 'class-management':
           return [
-            { id: 'class-management', label: 'Class Management', icon: IconClassrooms }
+            { id: 'class-management', label: 'Class Management', icon: IconClassrooms },
+            { id: 'learner-intervention', label: 'Learner Intervention Hub', icon: UserCheck }
           ];
         case 'student-class-management':
           return [
@@ -2701,6 +2703,8 @@ export default function App() {
                       )
                     ) : activeTab === 'class-management' ? (
                       <ClassManagement isDarkMode={isDarkMode} />
+                    ) : activeTab === 'learner-intervention' ? (
+                      <LearnerInterventionHub isDarkMode={isDarkMode} triggerToast={triggerToast} onNavigateTab={(t) => changeTab(t)} />
                     ) : activeTab === 'ocr' ? (
                       <AutoGrading />
                     ) : activeTab === 'archive' ? (
