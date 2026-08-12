@@ -1,11 +1,10 @@
-name: Build Android APK
+name: Build & Release Android APK
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
-      - 'arena/**'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -63,8 +62,23 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > release-notes.md <<'EOF'
+          Automatically built Android APK from commit ${{ github.sha }}.
+
+          - Branch: ${{ github.ref_name }}
+          - Commit: ${{ github.sha }}
+          - Run: [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          EOF
+          gh release create "apk-${{ github.run_id }}" \
+            android/app/build/outputs/apk/debug/app-debug.apk \
+            --title "EduAI Companion APK (build ${{ github.run_number }})" \
+            --notes-file release-notes.md
+
       - name: Publish APK to apk-artifacts branch
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/arena/')
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
