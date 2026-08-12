@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, ArrowRight, ShieldAlert, Rocket, Sparkles } from 'lucide-react';
 import { auth } from '../lib/firebase';
-import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signInAnonymously } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signInAnonymously } from 'firebase/auth';
 import { motion, AnimatePresence } from 'motion/react';
+import { Capacitor } from '@capacitor/core';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
 interface LoginPageProps {
   onSuccess: () => void;
@@ -104,13 +106,39 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
     setError('');
     
     try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      
-      if (result.user) {
-        localStorage.setItem('eduai_user_name', result.user.displayName || '');
-        localStorage.setItem('eduai_user_photo', result.user.photoURL || '');
-        localStorage.setItem('eduai_user_email', result.user.email || '');
+      if (Capacitor.isNativePlatform()) {
+        // Native app (Android/iOS): popups don't exist in a WebView, and Google
+        // blocks embedded-webview OAuth. Use the native Google Sign-In SDK and
+        // exchange the returned idToken for a Firebase credential.
+        const cfg: any = Capacitor.getConfig();
+        const clientId = cfg?.plugins?.GoogleAuth?.clientId;
+        if (!clientId || String(clientId).includes('YOUR_WEB_CLIENT_ID')) {
+          setIsGoogle(false);
+          setError("Google Sign-In isn't configured in this build yet. Set your Firebase 'Web Client ID' in capacitor.config.ts, then rebuild the app.");
+          return;
+        }
+        await GoogleAuth.initialize();
+        const googleUser = await GoogleAuth.signIn();
+        if (!googleUser.authentication?.idToken && !googleUser.idToken) {
+          throw new Error('Google Sign-In returned no ID token.');
+        }
+        const idToken = googleUser.authentication?.idToken || googleUser.idToken;
+        const credential = GoogleAuthProvider.credential(idToken);
+        const result = await signInWithCredential(auth, credential);
+        if (result.user) {
+          localStorage.setItem('eduai_user_name', result.user.displayName || '');
+          localStorage.setItem('eduai_user_photo', result.user.photoURL || '');
+          localStorage.setItem('eduai_user_email', result.user.email || '');
+        }
+      } else {
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+
+        if (result.user) {
+          localStorage.setItem('eduai_user_name', result.user.displayName || '');
+          localStorage.setItem('eduai_user_photo', result.user.photoURL || '');
+          localStorage.setItem('eduai_user_email', result.user.email || '');
+        }
       }
 
       setIsGoogle(false);
@@ -135,7 +163,7 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col md:flex-row relative overflow-hidden bg-[#060919] font-sans text-white select-none">
+    <div className="h-full page-scroll w-full flex flex-col md:flex-row relative bg-[#060919] font-sans text-white select-none">
       
       {/* Cosmic Stars Background */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(15,23,42,0.6)_0%,rgba(6,9,25,1)_100%)] pointer-events-none" />
@@ -304,7 +332,7 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
       </div>
 
       {/* RIGHT COLUMN: Sign Up Glassmorphism Neon Form (Screenshot 2 right half) */}
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-8 lg:p-12 relative z-20">
+      <div className="flex-1 flex items-start md:items-center justify-center p-4 sm:p-8 lg:p-12 relative z-20">
         
         <div className="w-full max-w-[460px] mx-auto">
           <motion.div

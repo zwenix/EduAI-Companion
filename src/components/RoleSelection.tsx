@@ -69,7 +69,7 @@ export default function RoleSelection({ onComplete, onBack }: RoleSelectionProps
   };
 
   return (
-    <main className="min-h-screen cinematic-neon-bg px-4 sm:px-6 py-10 text-white flex flex-col justify-center relative overflow-hidden font-sans select-none">
+    <main className="h-full page-scroll cinematic-neon-bg px-4 sm:px-6 py-10 text-white flex flex-col justify-start md:justify-center relative font-sans select-none">
       {/* 3D Perspective Floor Grid */}
       <div className="perspective-grid" />
 

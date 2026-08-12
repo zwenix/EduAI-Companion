@@ -15,6 +15,7 @@
     "@anthropic-ai/sdk": "^0.91.0",
     "@capacitor/android": "^6.2.1",
     "@capacitor/core": "^6.2.1",
+    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
     "@google/genai": "^1.29.0",
     "@gradio/client": "^2.2.1",
     "@huggingface/inference": "^4.13.15",
@@ -50,6 +51,7 @@
     "vite": "^6.2.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^6.2.1",
     "@firebase/eslint-plugin-security-rules": "^0.0.2",
     "@types/canvas-confetti": "^1.9.0",

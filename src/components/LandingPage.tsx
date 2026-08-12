@@ -98,7 +98,7 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
   };
 
   return (
-    <div className="min-h-screen cinematic-neon-bg relative overflow-x-hidden flex flex-col font-sans text-white select-none">
+    <div className="h-full page-scroll cinematic-neon-bg relative flex flex-col font-sans text-white select-none">
       {/* 3D Perspective Floor Grid */}
       <div className="perspective-grid" />
 

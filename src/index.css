@@ -703,6 +703,18 @@ svg:not(.not-sketchy) {
   touch-action: pan-y;
 }
 
+/* Pre-auth standalone pages (Landing, Login, Role selection) are rendered
+   directly inside #root, which is `overflow: hidden`. Give them their own
+   vertical scroller so nothing gets clipped on phones / in the WebView. */
+.page-scroll {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+  touch-action: pan-y;
+}
+
 /* Full-bleed feature pages (AI Tutor, Messenger, etc.) fill the canvas and
    own their own internal scroll regions — never nest a second outer scroller. */
 .full-bleed-page {
