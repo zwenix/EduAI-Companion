@@ -10,7 +10,7 @@ service cloud.firestore {
 
     function isValidUser(data) {
       return data.keys().size() >= 4
-        && data.keys().size() <= 15
+        && data.keys().size() <= 20
         && data.name is string && data.name.size() <= 100
         && data.email is string && data.email.size() <= 150
         && data.role is string && data.role in ['teacher', 'student', 'learner', 'parent', 'admin']
@@ -24,6 +24,8 @@ service cloud.firestore {
         && (!('dyslexiaTheme' in data) || data.dyslexiaTheme == null || data.dyslexiaTheme is bool)
         && (!('readSpeed' in data) || data.readSpeed == null || data.readSpeed is number)
         && (!('dyscalculiaHelp' in data) || data.dyscalculiaHelp == null || data.dyscalculiaHelp is bool)
+        && (!('presenceStatus' in data) || data.presenceStatus == null || (data.presenceStatus is string && data.presenceStatus in ['online', 'offline', 'inactive']))
+        && (!('lastActive' in data) || data.lastActive == null || data.lastActive is timestamp)
         && (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp);
     }
     match /users/{userId} {
@@ -36,7 +38,8 @@ service cloud.firestore {
                      && (
                         incoming().diff(existing()).affectedKeys().hasOnly([
                           'name', 'school', 'jobTitle', 'phone', 'photoUrl', 'updatedAt', 'role',
-                          'gradeLevel', 'learningPreference', 'dyslexiaTheme', 'readSpeed', 'dyscalculiaHelp'
+                          'gradeLevel', 'learningPreference', 'dyslexiaTheme', 'readSpeed', 'dyscalculiaHelp',
+                          'presenceStatus', 'lastActive'
                         ])
                      );
 
@@ -192,6 +195,7 @@ service cloud.firestore {
       allow get: if isSignedIn() && isValidId(messageId) && (existing().senderId == request.auth.uid || existing().recipientId == request.auth.uid);
       allow list: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
       allow create: if isSignedIn() && isValidId(messageId) && isValidMessage(incoming()) && incoming().createdAt == request.time;
+      allow delete: if isSignedIn() && isValidId(messageId) && (existing().senderId == request.auth.uid || existing().recipientId == request.auth.uid);
     }
 
     function isValidAiSession(data) {
