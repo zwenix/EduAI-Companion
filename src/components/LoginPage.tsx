@@ -155,8 +155,12 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
         setError("The Google Sign-In popup was closed or blocked by the preview iframe. Tip: Click '⚡ QUICK DEMO ACCESS' below to enter instantly without logging in!");
       } else if (errCode === 'auth/popup-blocked' || errMsg.includes('popup-blocked')) {
         setError("Login popup blocked by your browser/iframe. Tip: Click '⚡ QUICK DEMO ACCESS' below to enter instantly!");
+      } else if (/DEVELOPER_ERROR|12500|12501|10[^0-9]|invalid_client|api.*not.*register|not.*configured.*google|shA-1|SHA1|signing certificate|requestIdToken/i.test(errMsg)) {
+        // Native Google Sign-In misconfiguration (most commonly an unregistered
+        // SHA-1 fingerprint, wrong client ID type, or missing OAuth client).
+        setError(`Google Sign-In is not fully configured for this app. ${errCode ? '(' + errCode + ') ' : ''}${errMsg}`);
       } else {
-        setError(errMsg);
+        setError(`${errMsg}${errCode ? ' [' + errCode + ']' : ''}`);
       }
       setIsGoogle(false);
     }

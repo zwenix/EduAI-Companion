@@ -115,7 +115,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
                 console.warn("Splash video element non-fatal fallback triggered:", e.currentTarget.error?.message);
                 setVideoError(true);
               }}
-              className="w-full h-full object-contain max-w-full max-h-full cursor-pointer"
+              className="w-full h-full object-cover max-w-full max-h-full cursor-pointer"
             >
               <source src={splashVideoUrl} type="video/mp4" />
             </video>
