@@ -6,10 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   plugins: {
     GoogleAuth: {
-      // IMPORTANT: replace with YOUR Firebase "Web client ID"
-      // (Firebase Console -> Project settings -> Your apps -> Web app -> Web client ID).
-      // It looks like: 1234567890-xxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
-      clientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
+      clientId: '725068822716-tv8hh929bsagjliekkoq4ptkcfb3gs0k.apps.googleusercontent.com',
       scopes: ['profile', 'email'],
     },
   },
