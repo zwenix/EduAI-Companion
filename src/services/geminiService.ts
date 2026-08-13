@@ -1,6 +1,14 @@
 import axios from "axios";
+import { Capacitor } from "@capacitor/core";
 import { checkAndReportApiError } from "../lib/apiErrorHelper";
 import { callGeminiClientDirect } from "./geminiClient";
+
+// True when running inside the Capacitor native app (Android APK), where there
+// is no Node backend to proxy requests — so we call the AI providers directly.
+const isNativeApp = (): boolean => {
+  try { return typeof Capacitor !== 'undefined' && !!Capacitor.isNativePlatform?.(); }
+  catch { return false; }
+};
 
 // Returns true when the Node backend is unreachable (standalone APK / offline),
 // in which case we fall back to the client-side Gemini engine.
@@ -336,6 +344,12 @@ export const safeJsonParse = (text: string | null | undefined): any => {
  * Route proxy calls to the secure full-stack backend
  */
 export const generateEducationalContent = async (type: string, details: string) => {
+  // Native app: no backend — call Gemini directly.
+  if (isNativeApp()) {
+    const result = await callGeminiClientDirect("generate-educational", { type, details });
+    return result.text || "";
+  }
+
   try {
     const response = await axios.post("/api/gemini/action", {
       action: "generate-educational",
@@ -468,6 +482,23 @@ const _fetchActionSingleBackend = async (action: string, input: any, onProgress?
 // Wrapper that transparently falls back to the client-side Gemini engine when
 // the Node backend is unreachable (e.g. inside the standalone Android APK).
 const _fetchActionSingle = async (action: string, input: any, onProgress?: (partial: any) => void) => {
+  // Native app (Capacitor): there is no backend at all — and Capacitor's local
+  // server can answer unknown routes with a 200 HTML page, which would prevent
+  // an error-based fallback. So go straight to the client-side engine.
+  if (isNativeApp()) {
+    try {
+      const result = await callGeminiClientDirect(action, input);
+      if (onProgress) onProgress(result);
+      if (!result || Object.keys(result).length === 0) {
+        return { content: "Error: No content generated.", imagePrompt: "Classroom scene" };
+      }
+      return result;
+    } catch (clientErr: any) {
+      checkAndReportApiError(clientErr, "Gemini");
+      throw clientErr;
+    }
+  }
+
   try {
     return await _fetchActionSingleBackend(action, input, onProgress);
   } catch (error: any) {
@@ -559,6 +590,9 @@ export const generateAdminDoc = async (input: any, onProgress?: (partial: any) =
 };
 
 export const runOCRScan = async (imageData: string | string[], language: string = 'English', isHandwritten: boolean = true) => {
+  if (isNativeApp()) {
+    return await callGeminiClientDirect("ocr-scan", { imageData, language, isHandwritten });
+  }
   try {
     const response = await axios.post("/api/gemini/action", {
       action: "ocr-scan",
@@ -576,6 +610,9 @@ export const runOCRScan = async (imageData: string | string[], language: string 
 };
 
 export const runOCRAndGrade = async (imageData: string | string[], rubric: string, language: string = 'English', isHandwritten: boolean = true, behavioralAspects?: string[], adjustLateSubmission?: boolean) => {
+  if (isNativeApp()) {
+    return await callGeminiClientDirect("ocr-grade", { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission });
+  }
   try {
     const response = await axios.post("/api/gemini/action", {
       action: "ocr-grade",
@@ -593,6 +630,9 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
 };
 
 export const runTextGrade = async (studentAnswers: string, memo: string, rubric: string, language: string = 'English') => {
+  if (isNativeApp()) {
+    return await callGeminiClientDirect("text-grade", { studentAnswers, memo, rubric, language });
+  }
   try {
     const response = await axios.post("/api/gemini/action", {
       action: "text-grade",
@@ -610,6 +650,10 @@ export const runTextGrade = async (studentAnswers: string, memo: string, rubric:
 };
 
 export const chatWithTutor = async (messages: any[]) => {
+  if (isNativeApp()) {
+    const result = await callGeminiClientDirect("chat", { messages });
+    return result.text || "";
+  }
   try {
     const response = await axios.post("/api/gemini/action", {
       action: "chat",

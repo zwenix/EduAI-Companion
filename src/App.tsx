@@ -456,6 +456,27 @@ export default function App() {
     setModelStatus('checking');
     setModelStatusError(null);
     const testMsg = [{ role: 'user', content: 'Say "connected"' }];
+
+    const testClientEngine = async () => {
+      const text = selectedProvider === 'gemini'
+        ? await chatWithTutor(testMsg)
+        : await callMultiAi(selectedProvider as any, testMsg);
+      if (text && text.trim()) {
+        setModelStatus('connected');
+      } else {
+        setModelStatus('error');
+        setModelStatusError('Empty response from model');
+      }
+    };
+
+    // Native app (APK): no backend — test the client-side engine directly.
+    const isNative = typeof (window as any).Capacitor !== 'undefined' && !!(window as any).Capacitor?.isNativePlatform?.();
+    if (isNative) {
+      try { await testClientEngine(); }
+      catch (e: any) { setModelStatus('error'); setModelStatusError(e?.message || 'Connection failed'); }
+      return;
+    }
+
     try {
       const res = await axios.post(`/api/ai/${selectedProvider}`, {
         messages: testMsg,
@@ -465,23 +486,14 @@ export default function App() {
       if (res.data && res.data.choices && res.data.choices[0]?.message?.content) {
         setModelStatus('connected');
       } else {
-        setModelStatus('error');
-        setModelStatusError('Invalid response format');
+        // Backend returned a non-AI response (e.g. SPA HTML) — fall back to client engine.
+        await testClientEngine();
       }
     } catch (err: any) {
       console.error('Error testing model connection (backend):', err?.message || err);
       // Backend may be unreachable (standalone APK) — test the client-side engine directly.
-      try {
-        const text = selectedProvider === 'gemini'
-          ? await chatWithTutor(testMsg)
-          : await callMultiAi(selectedProvider as any, testMsg);
-        if (text && text.trim()) {
-          setModelStatus('connected');
-        } else {
-          setModelStatus('error');
-          setModelStatusError('Empty response from model');
-        }
-      } catch (clientErr: any) {
+      try { await testClientEngine(); }
+      catch (clientErr: any) {
         console.error('Error testing model connection (client):', clientErr);
         const errMsg = clientErr?.message || 'Connection failed';
         setModelStatus('error');

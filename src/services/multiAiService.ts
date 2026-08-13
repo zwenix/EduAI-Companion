@@ -1,6 +1,12 @@
 import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
 import { checkAndReportApiError } from '../lib/apiErrorHelper';
 import { AI_SECRETS } from '../lib/aiSecrets';
+
+const isNativeApp = (): boolean => {
+  try { return typeof Capacitor !== 'undefined' && !!Capacitor.isNativePlatform?.(); }
+  catch { return false; }
+};
 
 export type AIProvider = 'nvidia-nemotron' | 'nvidia-nemotron-ultra' | 'groq-qwen';
 
@@ -92,6 +98,16 @@ const executeClientOCR = async (base64Image: string, language: string = "eng") =
 };
 
 export const callMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
+  // Native app: no backend — call the provider API directly.
+  if (isNativeApp()) {
+    try {
+      return await executeClientMultiAi(provider, messages, model);
+    } catch (clientErr: any) {
+      checkAndReportApiError(clientErr, provider);
+      throw clientErr;
+    }
+  }
+
   try {
     const response = await axios.post(`/api/ai/${provider}`, { messages, model });
     const msg = response.data.choices[0]?.message || {};
@@ -143,6 +159,9 @@ export const callMultiAi = async (provider: AIProvider, messages: any[], model?:
 };
 
 export const performOCR = async (base64Image: string, language: string = 'eng') => {
+  if (isNativeApp()) {
+    return await executeClientOCR(base64Image, language);
+  }
   try {
     const response = await axios.post('/api/ocr', { image: base64Image, language });
     if (response.data.ParsedResults && response.data.ParsedResults.length > 0) {
