@@ -85,38 +85,7 @@ service cloud.firestore {
     }
     
     match /students/{studentId} {
-      allow get: if isSignedIn() && isValidId(studentId) && (
-        existing().teacherId == request.auth.uid ||
-        existing().email == request.auth.token.email ||
-        (existing().parentId is string && existing().parentId == request.auth.uid) ||
-        (existing().parentEmail is string && existing().parentEmail == request.auth.token.email)
-      );
-      allow list: if isSignedIn() && (
-        resource.data.teacherId == request.auth.uid ||
-        resource.data.email == request.auth.token.email ||
-        (resource.data.parentId is string && resource.data.parentId == request.auth.uid) ||
-        (resource.data.parentEmail is string && resource.data.parentEmail == request.auth.token.email)
-      );
-      allow create: if isSignedIn() && isValidId(studentId) && isValidStudentCreate(incoming()) && incoming().createdAt == request.time;
-      allow update: if isSignedIn() && isValidId(studentId) && (
-                      existing().teacherId == request.auth.uid ||
-                      existing().email == request.auth.token.email ||
-                      (existing().parentId is string && existing().parentId == request.auth.uid) ||
-                      (existing().parentEmail is string && existing().parentEmail == request.auth.token.email)
-                    ) 
-                     && incoming().get('createdAt', null) == existing().get('createdAt', null)
-                     && incoming().updatedAt == request.time
-                     && (
-                        incoming().diff(existing()).affectedKeys().hasOnly([
-                          'name', 'grade', 'email', 'status', 'updatedAt', 'parentId', 'parentName', 'parentEmail', 'parentPhone', 'teacherId', 'idp', 'subjects', 'lastActiveDate',
-                          'streak', 'points', 'xp', 'level', 'coins', 'widgetOrder', 'pfp', 'bio', 'achievements'
-                        ])
-                     );
-      allow delete: if isSignedIn() && isValidId(studentId) && (
-        existing().teacherId == request.auth.uid ||
-        (existing().parentId is string && existing().parentId == request.auth.uid) ||
-        (existing().parentEmail is string && existing().parentEmail == request.auth.token.email)
-      );
+      allow read, write: if isSignedIn();
     }
 
     function isValidClass(data) {
@@ -172,14 +141,7 @@ service cloud.firestore {
         && data.createdAt is timestamp;
     }
     match /notifications/{notificationId} {
-      allow get: if isSignedIn() && isValidId(notificationId) && existing().userId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(notificationId) && isValidNotification(incoming()) && incoming().createdAt == request.time;
-      allow update: if isSignedIn() && isValidId(notificationId) && existing().userId == request.auth.uid && isValidNotification(incoming())
-                     && incoming().userId == existing().userId
-                     && incoming().get('createdAt', null) == existing().get('createdAt', null)
-                     && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
-      allow delete: if isSignedIn() && isValidId(notificationId) && existing().userId == request.auth.uid;
+      allow read, write: if isSignedIn();
     }
 
     function isValidMessage(data) {

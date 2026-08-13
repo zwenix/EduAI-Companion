@@ -114,6 +114,64 @@ const geminiAi = new Proxy({} as GoogleGenAI, {
   }
 });
 
+const generateContentWithFallback = async (options: { model?: string, contents: any, config?: any }) => {
+  const modelsToTry = cachedWorkingModel 
+    ? [cachedWorkingModel, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
+    : ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+  
+  let lastError: any = null;
+  for (const candidate of modelsToTry) {
+    try {
+      const actualOptions = {
+        ...options,
+        model: candidate,
+        config: {
+          maxOutputTokens: 8192,
+          ...(options.config || {})
+        }
+      };
+      const result = await geminiAi.models.generateContent(actualOptions);
+      if (result) {
+        cachedWorkingModel = candidate; // Cache successfully validated model
+        return result;
+      }
+    } catch (err: any) {
+      lastError = err;
+      console.info(`Gemini candidate model '${candidate}' is currently unavailable (${err.message}). Trying alternative...`);
+    }
+  }
+  throw lastError || new Error("All candidate Gemini models were unavailable.");
+};
+
+const generateContentStreamWithFallback = async (options: { model?: string, contents: any, config?: any }) => {
+  const modelsToTry = cachedWorkingModel 
+    ? [cachedWorkingModel, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
+    : ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+  
+  let lastError: any = null;
+  for (const candidate of modelsToTry) {
+    try {
+      const actualOptions = {
+        ...options,
+        model: candidate,
+        config: {
+          maxOutputTokens: 8192,
+          ...(options.config || {})
+        }
+      };
+      const streamResult = await geminiAi.models.generateContentStream(actualOptions);
+      if (streamResult) {
+        cachedWorkingModel = candidate;
+        return streamResult;
+      }
+    } catch (err: any) {
+      lastError = err;
+      console.info(`Gemini candidate streaming model '${candidate}' is currently unavailable (${err.message}). Trying alternative...`);
+    }
+  }
+  throw lastError || new Error("All candidate Gemini streaming models were unavailable.");
+};
+
 
 const app = express();
 
@@ -1190,7 +1248,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
 
   app.post("/api/reports/ildp", async (req, res) => {
     const { studentName, grade, subjects } = req.body;
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = resolveGeminiKey();
     if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
       return res.json(generateLocalFallbackILDP(studentName, grade, subjects));
     }
@@ -1212,8 +1270,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
 
         Make sure your recommendations are encouraging and specifically reference their low/high subjects. Align suggestions with South African CAPS-standards (e.g. SBA, formative tests). Do not format the response with markdown formatting (no backticks, no text like 'json' or explanations), only output a parseable JSON block.
       `;
-      const response = await geminiAi.models.generateContent({
-        model: "gemini-3.6-flash",
+      const response = await generateContentWithFallback({
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -1224,7 +1281,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
       const data = safeJsonParse(text);
       res.json(data);
     } catch (err: any) {
-      console.warn("Gemini ILDP Generation failed, using local builder:", err.message);
+      console.warn("Gemini ILDP Generation failed on all candidate models, using local builder:", err.message);
       res.json(generateLocalFallbackILDP(studentName, grade, subjects));
     }
   });
