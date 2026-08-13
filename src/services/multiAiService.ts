@@ -1,24 +1,25 @@
 import axios from 'axios';
 import { checkAndReportApiError } from '../lib/apiErrorHelper';
+import { AI_SECRETS } from '../lib/aiSecrets';
 
 export type AIProvider = 'nvidia-nemotron' | 'nvidia-nemotron-ultra' | 'groq-qwen';
 
 const executeClientMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
   let url = "https://api.groq.com/openai/v1/chat/completions";
-  let apiKey = ((process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+  let apiKey = ((process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || AI_SECRETS.GROQ_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
   let selectedModel = model;
   const isAltModel = provider === 'nvidia-nemotron' || provider === 'nvidia-nemotron-ultra' || provider === 'groq-qwen';
 
   if (isAltModel) {
     if (provider === 'nvidia-nemotron') {
       url = "https://integrate.api.nvidia.com/v1/chat/completions";
-      apiKey = ((process.env as any).NVIDIA_API_KEY || (import.meta as any).env?.VITE_NVIDIA_API_KEY || (process.env as any).OPENROUTER_API_KEY || (import.meta as any).env?.VITE_OPENROUTER_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+      apiKey = ((process.env as any).NVIDIA_API_KEY || (import.meta as any).env?.VITE_NVIDIA_API_KEY || (process.env as any).OPENROUTER_API_KEY || (import.meta as any).env?.VITE_OPENROUTER_API_KEY || AI_SECRETS.NVIDIA_API_KEY || AI_SECRETS.OPENROUTER_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
       if (!selectedModel || selectedModel === 'nvidia-nemotron') {
         selectedModel = "nvidia/llama-3.3-nemotron-super-49b-v1";
       }
     } else if (provider === 'nvidia-nemotron-ultra' || provider === 'groq-qwen') {
       url = "https://integrate.api.nvidia.com/v1/chat/completions";
-      apiKey = ((process.env as any).NVIDIA_API_KEY || (import.meta as any).env?.VITE_NVIDIA_API_KEY || (process.env as any).OPENROUTER_API_KEY || (import.meta as any).env?.VITE_OPENROUTER_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+      apiKey = ((process.env as any).NVIDIA_API_KEY || (import.meta as any).env?.VITE_NVIDIA_API_KEY || (process.env as any).OPENROUTER_API_KEY || (import.meta as any).env?.VITE_OPENROUTER_API_KEY || AI_SECRETS.NVIDIA_API_KEY || AI_SECRETS.OPENROUTER_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
       if (!selectedModel || selectedModel === 'nvidia-nemotron-ultra' || selectedModel === 'groq-qwen') {
         selectedModel = "nvidia/nemotron-3-ultra-550b-a55b";
       }

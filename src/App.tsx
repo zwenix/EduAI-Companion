@@ -149,6 +149,8 @@ import Helpdesk from './components/Helpdesk';
 import CategoryOverview from './components/CategoryOverview';
 import IllustrationLibrary from './components/IllustrationLibrary';
 import { cleanTextForSpeech } from './services/ttsService';
+import { chatWithTutor } from './services/geminiService';
+import { callMultiAi } from './services/multiAiService';
 import { auth, db } from './lib/firebase';
 import { doc, setDoc, updateDoc, serverTimestamp, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
@@ -453,8 +455,8 @@ export default function App() {
   const checkModelConnection = async (selectedProvider: string) => {
     setModelStatus('checking');
     setModelStatusError(null);
+    const testMsg = [{ role: 'user', content: 'Say "connected"' }];
     try {
-      const testMsg = [{ role: 'user', content: 'Say "connected"' }];
       const res = await axios.post(`/api/ai/${selectedProvider}`, {
         messages: testMsg,
         temperature: 0.1,
@@ -467,10 +469,24 @@ export default function App() {
         setModelStatusError('Invalid response format');
       }
     } catch (err: any) {
-      console.error('Error testing model connection:', err);
-      const errMsg = err.response?.data?.error?.message || err.message || 'Connection failed';
-      setModelStatus('error');
-      setModelStatusError(errMsg);
+      console.error('Error testing model connection (backend):', err?.message || err);
+      // Backend may be unreachable (standalone APK) — test the client-side engine directly.
+      try {
+        const text = selectedProvider === 'gemini'
+          ? await chatWithTutor(testMsg)
+          : await callMultiAi(selectedProvider as any, testMsg);
+        if (text && text.trim()) {
+          setModelStatus('connected');
+        } else {
+          setModelStatus('error');
+          setModelStatusError('Empty response from model');
+        }
+      } catch (clientErr: any) {
+        console.error('Error testing model connection (client):', clientErr);
+        const errMsg = clientErr?.message || 'Connection failed';
+        setModelStatus('error');
+        setModelStatusError(errMsg);
+      }
     }
   };
 

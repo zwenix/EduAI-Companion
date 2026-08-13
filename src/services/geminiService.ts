@@ -1,5 +1,21 @@
 import axios from "axios";
 import { checkAndReportApiError } from "../lib/apiErrorHelper";
+import { callGeminiClientDirect } from "./geminiClient";
+
+// Returns true when the Node backend is unreachable (standalone APK / offline),
+// in which case we fall back to the client-side Gemini engine.
+const isBackendUnavailable = (error: any): boolean => {
+  if (!error) return true;
+  const status = error.response?.status || error.status;
+  // No HTTP response at all → network-level failure (no backend running)
+  if (error.isAxiosError && !error.response) return true;
+  if (error instanceof TypeError) return true;
+  if (status === 404) return true;
+  if (status >= 500) return true;
+  const msg = String(error.message || '').toLowerCase();
+  if (msg.includes('network error') || msg.includes('failed to fetch') || msg.includes('load failed')) return true;
+  return false;
+};
 
 // ─── Prompt Engineering Constants ────────────
 export const MASTER_SYSTEM_PROMPT = `
@@ -342,6 +358,16 @@ export const generateEducationalContent = async (type: string, details: string) 
     
     return resultText;
   } catch (error: any) {
+    if (isBackendUnavailable(error)) {
+      console.warn("[AI Routing] Backend unavailable — using client-side Gemini engine.");
+      try {
+        const result = await callGeminiClientDirect("generate-educational", { type, details });
+        return result.text || "";
+      } catch (clientErr: any) {
+        checkAndReportApiError(clientErr, "Gemini");
+        throw clientErr;
+      }
+    }
     console.error("Express /api/gemini/action failed:", error.message || error);
     checkAndReportApiError(error, "Gemini");
     throw error;
@@ -357,7 +383,7 @@ function isContentTruncated(content: string): boolean {
   return !endsProperly;
 }
 
-const _fetchActionSingle = async (action: string, input: any, onProgress?: (partial: any) => void) => {
+const _fetchActionSingleBackend = async (action: string, input: any, onProgress?: (partial: any) => void) => {
   if (onProgress) {
     const response = await fetch("/api/gemini/action", {
       method: "POST",
@@ -439,6 +465,30 @@ const _fetchActionSingle = async (action: string, input: any, onProgress?: (part
   }
 };
 
+// Wrapper that transparently falls back to the client-side Gemini engine when
+// the Node backend is unreachable (e.g. inside the standalone Android APK).
+const _fetchActionSingle = async (action: string, input: any, onProgress?: (partial: any) => void) => {
+  try {
+    return await _fetchActionSingleBackend(action, input, onProgress);
+  } catch (error: any) {
+    if (!isBackendUnavailable(error)) {
+      throw error;
+    }
+    console.warn(`[AI Routing] Backend unavailable for '${action}' — using client-side Gemini engine.`);
+    try {
+      const result = await callGeminiClientDirect(action, input);
+      if (onProgress) onProgress(result);
+      if (!result || Object.keys(result).length === 0) {
+        return { content: "Error: No content generated.", imagePrompt: "Classroom scene" };
+      }
+      return result;
+    } catch (clientErr: any) {
+      checkAndReportApiError(clientErr, "Gemini");
+      throw clientErr;
+    }
+  }
+};
+
 const executeWithContinuation = async (action: string, input: any, onProgress?: (partial: any) => void) => {
   let attempts = 0;
   let accumulatedContent = "";
@@ -516,6 +566,9 @@ export const runOCRScan = async (imageData: string | string[], language: string 
     });
     return response.data;
   } catch (error: any) {
+    if (isBackendUnavailable(error)) {
+      return await callGeminiClientDirect("ocr-scan", { imageData, language, isHandwritten });
+    }
     console.error("Express /api/gemini/action failed:", error.message || error);
     checkAndReportApiError(error, "Gemini");
     throw error;
@@ -530,6 +583,9 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
     });
     return response.data;
   } catch (error: any) {
+    if (isBackendUnavailable(error)) {
+      return await callGeminiClientDirect("ocr-grade", { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission });
+    }
     console.error("Express /api/gemini/action failed:", error.message || error);
     checkAndReportApiError(error, "Gemini");
     throw error;
@@ -544,6 +600,9 @@ export const runTextGrade = async (studentAnswers: string, memo: string, rubric:
     });
     return response.data;
   } catch (error: any) {
+    if (isBackendUnavailable(error)) {
+      return await callGeminiClientDirect("text-grade", { studentAnswers, memo, rubric, language });
+    }
     console.error("Express /api/gemini/action failed text-grade:", error.message || error);
     checkAndReportApiError(error, "Gemini");
     throw error;
@@ -558,6 +617,10 @@ export const chatWithTutor = async (messages: any[]) => {
     });
     return response.data.text;
   } catch (error: any) {
+    if (isBackendUnavailable(error)) {
+      const result = await callGeminiClientDirect("chat", { messages });
+      return result.text || "";
+    }
     console.error("Express /api/gemini/action failed:", error.message || error);
     checkAndReportApiError(error, "Gemini");
     throw error;

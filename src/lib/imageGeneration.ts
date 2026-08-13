@@ -4,6 +4,7 @@
  */
 
 import { generatePerchanceImageClient } from '../services/perchanceService';
+import { callGeminiClientDirect } from '../services/geminiClient';
 
 export interface ImageGenerationResult {
   url: string;
@@ -49,7 +50,13 @@ export const generateImageGemini = async (
     if (!data.imageUrl) throw new Error('No image URL returned from Gemini');
     return data.imageUrl;
   } catch (error) {
-    console.error('Gemini image generation failed:', error);
+    console.error('Gemini image generation failed (backend), trying client-side engine:', error);
+    try {
+      const data = await callGeminiClientDirect('generate-image', { prompt, width, height });
+      if (data.imageUrl) return data.imageUrl;
+    } catch (clientErr) {
+      console.error('Client-side Gemini image generation failed:', clientErr);
+    }
     throw error;
   }
 };

@@ -110,7 +110,7 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
         // Native app (Android/iOS): popups don't exist in a WebView, and Google
         // blocks embedded-webview OAuth. Use the native Google Sign-In SDK and
         // exchange the returned idToken for a Firebase credential.
-        const cfg: any = Capacitor.getConfig();
+        const cfg: any = (Capacitor as any).getConfig?.() || {};
         const clientId = cfg?.plugins?.GoogleAuth?.clientId;
         if (!clientId || String(clientId).includes('YOUR_WEB_CLIENT_ID')) {
           setIsGoogle(false);
@@ -118,7 +118,7 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
           return;
         }
         await GoogleAuth.initialize();
-        const googleUser = await GoogleAuth.signIn();
+        const googleUser: any = await GoogleAuth.signIn();
         if (!googleUser.authentication?.idToken && !googleUser.idToken) {
           throw new Error('Google Sign-In returned no ID token.');
         }
