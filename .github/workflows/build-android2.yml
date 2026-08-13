@@ -53,6 +53,9 @@ jobs:
       
       - name: Sync web assets to Android
         run: npx cap sync android
+        
+      - name: Use stable debug keystore
+        run: mkdir -p ~/.android && cp signing/android-debug.keystore ~/.android/debug.keystore
 
       - name: Assemble debug APK (auto-signed)
         working-directory: android
