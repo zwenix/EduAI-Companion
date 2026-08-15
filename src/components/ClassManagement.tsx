@@ -1,13 +1,141 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Users, Search, Plus, Edit2, Trash2, Mail, GraduationCap, X, 
-  BookOpen, ChevronRight, Layers, PieChart, Sparkles, Check, MessageSquare, CloudUpload, ArrowLeft, Eye
+  BookOpen, ChevronRight, Layers, PieChart, Sparkles, Check, MessageSquare, CloudUpload, ArrowLeft, Eye,
+  Trophy, Award, Zap, FileSpreadsheet
 } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
+import StudentPortfolio from './StudentPortfolio';
+import { LearnerInterventionHub } from './LearnerInterventionHub';
+
+import bgContentStudio from '../assets/images/content_studio_bg_1785652440860.jpg';
+import bgFoundationHub from '../assets/images/foundation_hub_bg_1785652450982.jpg';
+import bgPracticeZone  from '../assets/images/practice_zone_bg_1785652462543.jpg';
+import bgOcrGrading    from '../assets/images/ocr_grading_bg_1785652474254.jpg';
+import bgAdminLab      from '../assets/images/admin_lab_bg_1785652489555.jpg';
+import bgAnalytics     from '../assets/images/analytics_bg_1785652499527.jpg';
+import bgVisualPosters from '../assets/images/visual_posters_bg_1785652509797.jpg';
+import bgVideoAvatars  from '../assets/images/video_avatars_bg_1785652522004.jpg';
+import bgVaultLibrary  from '../assets/images/vault_library_bg_1785652535683.jpg';
+
+const LEARNERS_SLIDES = [bgFoundationHub, bgPracticeZone, bgVaultLibrary];
+const CLASSES_SLIDES = [bgContentStudio, bgAdminLab, bgOcrGrading];
+const GROUPS_SLIDES = [bgPracticeZone, bgVideoAvatars, bgVisualPosters];
+const INTERVENTION_SLIDES = [bgAnalytics, bgAdminLab, bgVaultLibrary];
+const PORTFOLIO_SLIDES = [bgVisualPosters, bgContentStudio, bgFoundationHub];
+
+function ClassroomShowcaseCard({
+  slides,
+  isActive,
+  onClick,
+  title,
+  subtitle,
+  stat,
+  icon: Icon,
+  actionButton
+}: {
+  slides: string[];
+  isActive: boolean;
+  onClick: () => void;
+  title: string;
+  subtitle: string;
+  stat: string;
+  icon: any;
+  actionButton?: React.ReactNode;
+}) {
+  const [slideIndex, setSlideIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSlideIndex((prev) => (prev + 1) % slides.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [slides.length]);
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.03, y: -4 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      onClick={onClick}
+      className={cn(
+        "p-5 rounded-[24px] border-2 transition-all duration-300 cursor-pointer group relative overflow-hidden backdrop-blur-xl flex flex-col justify-between min-h-[190px] select-none",
+        isActive
+          ? "border-amber-400 bg-slate-900/90 shadow-[0_0_35px_rgba(252,211,77,0.5)] ring-2 ring-amber-400/40 brightness-110"
+          : "border-white/15 bg-slate-900/75 hover:border-cyan-400 hover:shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:brightness-110"
+      )}
+    >
+      {/* Background Slideshow Image with Framer Motion crossfade */}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={slideIndex}
+          initial={{ opacity: 0, scale: 1.05 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.6 }}
+          className="absolute inset-0 z-0 overflow-hidden pointer-events-none"
+        >
+          <img
+            src={slides[slideIndex]}
+            alt={title}
+            className="w-full h-full object-cover opacity-35 filter brightness-90 group-hover:scale-105 transition-transform duration-[5000ms]"
+          />
+          <div className="absolute inset-0 bg-slate-950/75 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent pointer-events-none" />
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Header Info */}
+      <div className="relative z-10 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className={cn(
+            "w-10 h-10 rounded-xl flex items-center justify-center font-bold border shadow-lg transition-transform group-hover:scale-110",
+            isActive
+              ? "bg-amber-500/20 text-amber-300 border-amber-400/50 shadow-[0_0_15px_rgba(252,211,77,0.4)]"
+              : "bg-cyan-500/20 text-cyan-300 border-cyan-400/30"
+          )}>
+            <Icon size={20} />
+          </div>
+
+          <div className="flex items-center gap-2">
+            {isActive && (
+              <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[8px] font-black uppercase tracking-widest shadow-[0_0_10px_rgba(252,211,77,0.8)] animate-pulse">
+                Active View
+              </span>
+            )}
+            {actionButton}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">{subtitle}</p>
+          <h3 className={cn(
+            "text-lg font-black font-display tracking-tight transition-colors mt-0.5",
+            isActive ? "text-amber-300 drop-shadow-[0_0_10px_rgba(252,211,77,0.5)]" : "text-white group-hover:text-cyan-200"
+          )}>
+            {title}
+          </h3>
+        </div>
+      </div>
+
+      {/* Footer Stat */}
+      <div className="relative z-10 pt-2.5 border-t border-white/10 flex items-center justify-between mt-3">
+        <span className="text-xs font-black font-mono text-slate-200">{stat}</span>
+        <span className={cn(
+          "text-[11px] font-bold flex items-center gap-1 transition-colors",
+          isActive ? "text-amber-400" : "text-cyan-400 group-hover:translate-x-1"
+        )}>
+          Explore <ChevronRight size={12} />
+        </span>
+      </div>
+    </motion.div>
+  );
+}
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
+const overlayTeachersToolbox = 'https://i.ibb.co/RGmCJ3jh/teachers-toolbox.png';
 
 interface Student {
   id: string;
@@ -35,7 +163,7 @@ interface StudyGroup {
 }
 
 export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: boolean }) {
-  const [activeTab, setActiveTab] = useState<'learners' | 'classes' | 'study_groups'>('learners');
+  const [activeTab, setActiveTab] = useState<'learners' | 'classes' | 'study_groups' | 'intervention' | 'portfolios'>('learners');
   
   // Data State
   const [students, setStudents] = useState<Student[]>([]);
@@ -115,7 +243,7 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
     return () => { unsubStudents(); unsubClasses(); unsubGroups(); };
   }, []);
 
-  const handleTabChange = (tab: 'learners' | 'classes' | 'study_groups') => {
+  const handleTabChange = (tab: 'learners' | 'classes' | 'study_groups' | 'intervention' | 'portfolios') => {
     setActiveTab(tab);
     setSelectedClass(null);
   };
@@ -459,57 +587,172 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
   });
 
   return (
-    <div className="full-bleed-page w-full h-full min-h-0 font-sans p-1 sm:p-1 lg:p-2">
-      <div className="w-full h-full min-h-0 overflow-hidden bg-[#0c1024] rounded-2xl flex flex-col md:flex-row relative">
-        
-        {/* LEFT PANEL: Menu */}
-        <div className="w-full md:w-64 shrink-0 bg-[#141a2e] border-r border-cyan-500/10 p-5 flex flex-col shadow-xl relative overflow-hidden z-10">
-          <h2 className="text-xl font-display font-black tracking-tight text-white mb-6 flex items-center gap-2">
-            <Sparkles size={20} className="text-cyan-400" /> Admin
-          </h2>
-          <div className="space-y-2">
-            {(['learners', 'classes', 'study_groups'] as const).map(tab => (
-              <button 
-                key={tab}
-                onClick={() => handleTabChange(tab)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm",
-                  activeTab === tab 
-                    ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30" 
-                    : "text-slate-400 hover:bg-white/5 hover:text-white border border-transparent"
-                )}
-              >
-                {tab === 'learners' ? <Users size={18} /> : tab === 'classes' ? <GraduationCap size={18} /> : <MessageSquare size={18} />}
-                {tab === 'learners' ? 'Learners' : tab === 'classes' ? 'Classes' : 'Study Groups'}
-              </button>
-            ))}
+    <div className="full-bleed-page w-full h-full min-h-0 font-sans p-2 sm:p-4 overflow-y-auto relative bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.85)_0%,rgba(8,11,34,1)_100%)] text-slate-100 custom-scrollbar">
+      {/* Background Overlay & Ambient Glows */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-0 opacity-25 mix-blend-overlay bg-cover bg-center" 
+        style={{ backgroundImage: `url(${overlayTeachersToolbox})` }} 
+      />
+      <div className="fixed top-10 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="fixed top-1/3 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="fixed bottom-10 left-1/3 w-96 h-96 bg-amber-500/10 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto relative z-10 space-y-6 pb-12">
+        {/* HERO HEADER */}
+        <div className="text-center pt-2 pb-4">
+          <div className="inline-flex items-center gap-2 mb-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 backdrop-blur-md">
+            <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+            <span className="text-xs sm:text-sm font-display font-bold tracking-wider uppercase">Classes & Learners Hub</span>
+            <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
           </div>
-          
-          <div className="mt-auto pt-6 space-y-3">
-             <div className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl">
-               <p className="text-[10px] text-slate-500 uppercase font-black mb-1">Total Learners</p>
-               <p className="text-xl font-black text-cyan-400 font-mono">{students.length}</p>
-             </div>
-             <div className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl">
-               <p className="text-[10px] text-slate-500 uppercase font-black mb-1">Active Classes</p>
-               <p className="text-xl font-black text-white font-mono">{classes.length}</p>
-             </div>
-          </div>
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.5)]">
+            Learners & Classes
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-2xl mx-auto font-medium">
+            CAPS Learner Rosters • Classrooms & Enrolment • Learner Portfolios • Interactive Study Groups
+          </p>
         </div>
 
-        {/* RIGHT PANEL: Content */}
-        <div className="flex-1 bg-[#0c1024] flex flex-col relative overflow-hidden text-slate-100">
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar bg-[radial-gradient(ellipse_at_top,rgba(20,25,50,0.4)_0%,rgba(12,16,36,0)_100%)]">
+        {/* HERO METRIC SHOWCASE CARDS (Teacher's Toolbox Content Box style with background slideshows) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          {/* Card 1: Learners */}
+          <ClassroomShowcaseCard
+            slides={LEARNERS_SLIDES}
+            isActive={activeTab === 'learners'}
+            onClick={() => handleTabChange('learners')}
+            title="Learners Roster"
+            subtitle="Total Enrolled"
+            stat={`${students.length} Learners`}
+            icon={Users}
+            actionButton={
+              <button 
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setIsAddingLearner(true); }}
+                className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[10px] font-black uppercase tracking-wider transition-all border border-cyan-500/30 cursor-pointer"
+              >
+                + Add
+              </button>
+            }
+          />
 
-      {/* Primary Tab Content Panels */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeTab + (selectedClass ? `-${selectedClass.id}` : '')}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -15 }}
-          transition={{ duration: 0.25 }}
-        >
+          {/* Card 2: Classes */}
+          <ClassroomShowcaseCard
+            slides={CLASSES_SLIDES}
+            isActive={activeTab === 'classes'}
+            onClick={() => handleTabChange('classes')}
+            title="Classes & Subjects"
+            subtitle="Active Classrooms"
+            stat={`${classes.length} Classrooms`}
+            icon={GraduationCap}
+            actionButton={
+              <button 
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setIsAddingClass(true); }}
+                className="px-2.5 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-[10px] font-black uppercase tracking-wider transition-all border border-purple-500/30 cursor-pointer"
+              >
+                + Create
+              </button>
+            }
+          />
+
+          {/* Card 3: Study Groups */}
+          <ClassroomShowcaseCard
+            slides={GROUPS_SLIDES}
+            isActive={activeTab === 'study_groups'}
+            onClick={() => handleTabChange('study_groups')}
+            title="Study Groups"
+            subtitle="Collaborative Channels"
+            stat={`${studyGroups.length} Active Groups`}
+            icon={MessageSquare}
+            actionButton={
+              <button 
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setIsAddingGroup(true); }}
+                className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[10px] font-black uppercase tracking-wider transition-all border border-emerald-500/30 cursor-pointer"
+              >
+                + Assemble
+              </button>
+            }
+          />
+
+          {/* Card 4: Learner Intervention Hub */}
+          <ClassroomShowcaseCard
+            slides={INTERVENTION_SLIDES}
+            isActive={activeTab === 'intervention'}
+            onClick={() => handleTabChange('intervention')}
+            title="Intervention Hub"
+            subtitle="Support Strategy"
+            stat="At-Risk Diagnostics"
+            icon={Zap}
+          />
+
+          {/* Card 5: Learner Portfolios */}
+          <ClassroomShowcaseCard
+            slides={PORTFOLIO_SLIDES}
+            isActive={activeTab === 'portfolios'}
+            onClick={() => handleTabChange('portfolios')}
+            title="Learner Portfolios"
+            subtitle="Achievements & Work"
+            stat="Portfolios Vault"
+            icon={Trophy}
+          />
+        </div>
+
+        {/* PILL NAVIGATION TABS */}
+        <div className="flex flex-wrap justify-center items-center gap-2 max-w-5xl mx-auto p-2 rounded-2xl bg-slate-900/80 border border-cyan-500/30 backdrop-blur-xl shadow-2xl">
+          {[
+            { id: 'learners', label: 'Learners Roster', icon: Users, count: students.length },
+            { id: 'classes', label: 'Classes & Subjects', icon: GraduationCap, count: classes.length },
+            { id: 'study_groups', label: 'Study Groups', icon: MessageSquare, count: studyGroups.length },
+            { id: 'intervention', label: 'Learner Intervention Hub', icon: Zap, count: null },
+            { id: 'portfolios', label: 'Learner Portfolios', icon: Trophy, count: null },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => handleTabChange(tab.id as any)}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer",
+                activeTab === tab.id
+                  ? "bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 text-slate-950 shadow-[0_0_20px_rgba(252,211,77,0.5)] scale-105"
+                  : "bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10"
+              )}
+            >
+              <tab.icon size={16} />
+              <span>{tab.label}</span>
+              {tab.count !== null && (
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ml-1",
+                  activeTab === tab.id ? "bg-slate-950/20 text-slate-950" : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                )}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* TAB CONTENT PANELS */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab + (selectedClass ? `-${selectedClass.id}` : '')}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25 }}
+          >
+            {/* TAB: LEARNER INTERVENTION HUB */}
+            {activeTab === 'intervention' && (
+              <div className="bg-slate-900/60 border border-white/10 rounded-3xl p-2 sm:p-4 backdrop-blur-xl shadow-2xl">
+                <LearnerInterventionHub isDarkMode={isDarkMode} />
+              </div>
+            )}
+
+            {/* TAB: LEARNER PORTFOLIOS */}
+            {activeTab === 'portfolios' && (
+              <div className="bg-slate-900/60 border border-white/10 rounded-3xl p-2 sm:p-4 backdrop-blur-xl shadow-2xl">
+                <StudentPortfolio isDarkMode={isDarkMode} />
+              </div>
+            )}
           {/* TAB 1: LEARNERS ROSTER */}
           {activeTab === 'learners' && (
             <div className="space-y-6">
@@ -1426,8 +1669,6 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
           </div>
         )}
       </AnimatePresence>
-          </div>
-        </div>
       </div>
     </div>
   );

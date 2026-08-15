@@ -1,47 +1,60 @@
 export class NotificationManager {
   static async init(userId?: string) {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      console.warn('Push messaging is not supported');
       return;
     }
 
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Service Worker registered:', registration);
+      const registration = await navigator.serviceWorker.register('/sw.js').catch(() => null);
+      if (!registration) return;
       
-      // Request permission
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        console.warn('Notification permission not granted');
-        return;
+      // If permission is already granted, proceed with subscription setup
+      if ('Notification' in window && Notification.permission === 'granted') {
+        await this.subscribeUser(registration, userId);
       }
+    } catch (error) {
+      // Quiet fail in iframe/preview environments
+    }
+  }
 
-      // Fetch VAPID key from backend
-      const response = await fetch('/api/notifications/vapid-public-key');
-      if (!response.ok) {
-        throw new Error('Failed to fetch VAPID key');
+  static async requestPermissionExplicitly(userId?: string) {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      return false;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        const registration = await navigator.serviceWorker.ready;
+        await this.subscribeUser(registration, userId);
+        return true;
       }
+    } catch (err) {
+      // Permission denied or blocked by iframe environment
+    }
+    return false;
+  }
+
+  private static async subscribeUser(registration: ServiceWorkerRegistration, userId?: string) {
+    try {
+      const response = await fetch('/api/notifications/vapid-public-key');
+      if (!response.ok) return;
       const data = await response.json();
       const publicKey = data.publicKey;
+      if (!publicKey) return;
 
-      // Subscribe to push notifications
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: this.urlBase64ToUint8Array(publicKey)
       });
 
-      // Send subscription to backend
       await fetch('/api/notifications/subscribe', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subscription, userId })
       });
-      console.log('Push notification subscription successful.');
-      
-    } catch (error) {
-      console.error('Error in Service Worker registration / push subscription:', error);
+    } catch (e) {
+      // Non-fatal
     }
   }
 

@@ -116,7 +116,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
   const [searchHistoryQuery, setSearchHistoryQuery] = useState<string>('');
   const [isFoldersOpen, setIsFoldersOpen] = useState(true);
   const [viewMode, setViewMode] = useState<'studio' | 'advanced'>('studio');
-  const [leftMenu, setLeftMenu] = useState<'chats' | 'subjects' | 'archive' | null>(null);
+  const [activeBottomDrawer, setActiveBottomDrawer] = useState<'chats' | 'activities' | 'toolset' | 'archive' | 'settings' | null>(null);
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -172,6 +172,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
   const [userRole, setUserRole] = useState('learner');
   const [studentData, setStudentData] = useState<any>(null);
   const [isRightMenuOpen, setIsRightMenuOpen] = useState(false);
+  const [leftMenu, setLeftMenu] = useState<'chats' | 'activities' | 'tools' | 'archive' | null>(null);
 
   // Daily Study Duration Timer
   const todayStr = new Date().toISOString().split('T')[0];
@@ -760,7 +761,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
   }, [sessions, searchHistoryQuery, selectedSubjectFilter]);
 
   return (
-    <div className="flex flex-1 min-h-0 w-full min-w-0 overflow-hidden text-white relative font-sans p-0 flex-col lg:flex-row gap-2 lg:gap-3 h-full">
+    <div className="flex flex-1 min-h-0 w-full min-w-0 overflow-hidden text-white relative font-sans p-0 flex-row h-full bg-slate-950">
       {/* Subtle ambient glows */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/8 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-10 right-1/3 w-96 h-96 bg-cyan-500/8 rounded-full blur-[140px] pointer-events-none" />
@@ -768,7 +769,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
 
       {/* Time limit blocker overlay */}
       {isTimeLimitReached() && (
-        <div className="absolute inset-0 bg-transparent backdrop-blur-md z-50 flex flex-col items-center justify-center text-center p-8 space-y-6">
+        <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex flex-col items-center justify-center text-center p-8 space-y-6">
           <div className="w-16 h-16 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.3)]">
             <Clock size={32} className="animate-pulse" />
           </div>
@@ -792,730 +793,102 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
         </div>
       )}
 
-      {viewMode === 'studio' ? (
-        <div className="flex-1 min-h-0 min-w-0 flex gap-2 lg:gap-3 w-full h-full overflow-hidden z-20">
-          {/* 1. LEFT MENU RAIL (Minimised to icon by default, expands when clicked) */}
-          <div className="hidden sm:flex h-full min-h-0 shrink-0 gap-2">
-            {/* Icon Bar */}
-            <div className="w-14 h-full bg-slate-900/95 border border-white/15 rounded-[16px] py-4 flex flex-col items-center justify-between shadow-xl backdrop-blur-xl shrink-0">
-              <div className="flex flex-col items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setLeftMenu(leftMenu === 'chats' ? null : 'chats')}
-                  title="Chats History"
-                  className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
-                    leftMenu === 'chats' ? 'bg-cyan-500 text-slate-950 font-bold shadow-[0_0_15px_rgba(34,211,238,0.4)]' : 'text-slate-400 hover:bg-transparent hover:text-white'
-                  }`}
-                >
-                  <MessageSquare size={18} />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setLeftMenu(leftMenu === 'subjects' ? null : 'subjects')}
-                  title="Subjects"
-                  className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
-                    leftMenu === 'subjects' ? 'bg-purple-500 text-white font-bold shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'text-slate-400 hover:bg-transparent hover:text-white'
-                  }`}
-                >
-                  <Folder size={18} />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setLeftMenu(leftMenu === 'archive' ? null : 'archive')}
-                  title="Content Archive"
-                  className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
-                    leftMenu === 'archive' ? 'bg-amber-500 text-slate-950 font-bold shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'text-slate-400 hover:bg-transparent hover:text-white'
-                  }`}
-                >
-                  <Archive size={18} />
-                </button>
-              </div>
-
-              <div className="flex flex-col items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                  title="Tutor Settings"
-                  className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
-                    isSettingsOpen ? 'bg-pink-500 text-white' : 'text-slate-400 hover:bg-transparent hover:text-white'
-                  }`}
-                >
-                  <Settings size={18} />
-                </button>
-              </div>
+      {/* MAIN FULL BLEED CHAT AREA */}
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col h-full bg-slate-950/80 relative z-20 overflow-hidden">
+            
+        {/* Top Header Bar - Full Bleed */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between px-3 sm:px-5 py-2.5 border-b border-white/10 bg-slate-900/80 backdrop-blur-md gap-2.5 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {onBack && (
+              <button 
+                type="button"
+                onClick={onBack} 
+                className="w-8 h-8 rounded-xl bg-white/5 hover:bg-transparent border border-white/10 flex items-center justify-center text-slate-300 transition-all cursor-pointer active:scale-95 shrink-0"
+                title="Exit to main portal"
+              >
+                <ArrowLeft size={15} strokeWidth={2.5} />
+              </button>
+            )}
+            
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyan-500/20 via-purple-500/20 to-pink-500/20 border border-cyan-400/40 flex items-center justify-center p-1 shadow-md shrink-0">
+              <EllyFace className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
 
-            {/* Slide-out Left Drawer Panel when active */}
-            <AnimatePresence>
-              {leftMenu && (
-                <motion.div
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: 280, opacity: 1 }}
-                  exit={{ width: 0, opacity: 0 }}
-                  className="bg-slate-900/95 border border-white/15 rounded-[16px] p-4 flex flex-col gap-4 shadow-2xl backdrop-blur-xl overflow-hidden shrink-0 h-full min-h-0 max-h-full"
-                >
-                  <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
-                    <h3 className="font-display font-bold text-white text-sm flex items-center gap-2">
-                      {leftMenu === 'chats' && <><MessageSquare size={16} className="text-cyan-400" /> <span>Chats History</span></>}
-                      {leftMenu === 'subjects' && <><Folder size={16} className="text-purple-400" /> <span>Subjects</span></>}
-                      {leftMenu === 'archive' && <><Archive size={16} className="text-amber-400" /> <span>Content Archive</span></>}
-                    </h3>
-                    <button type="button" onClick={() => setLeftMenu(null)} className="text-slate-400 hover:text-white p-1 cursor-pointer">
-                      <X size={16} />
-                    </button>
-                  </div>
+            <div className="text-left min-w-0">
+              {/* Same row: Elly + AI Tutor + Grade Selector */}
+              <div className="flex items-center gap-1.5 sm:gap-2 whitespace-nowrap flex-nowrap">
+                <h1 className="text-sm sm:text-base lg:text-lg font-display font-bold text-white tracking-tight flex items-center gap-1.5 shrink-0">
+                  <span>Elly</span>
+                  <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-cyan-400 bg-cyan-950/70 px-1.5 sm:px-2 py-0.5 rounded-full border border-cyan-500/30 shrink-0">
+                    AI Tutor
+                  </span>
+                </h1>
 
-                  {leftMenu === 'chats' && (
-                    <div className="flex-1 flex flex-col gap-3 overflow-hidden">
-                      <div className="relative shrink-0">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={13} />
-                        <input
-                          type="text"
-                          placeholder="Search chats..."
-                          value={searchHistoryQuery}
-                          onChange={e => setSearchHistoryQuery(e.target.value)}
-                          className="w-full bg-slate-800/95 border border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none"
-                        />
-                      </div>
-                      <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-1">
-                        {sessions
-                          .filter(s => !searchHistoryQuery || s.title.toLowerCase().includes(searchHistoryQuery.toLowerCase()) || s.messages.some(m => m.text.toLowerCase().includes(searchHistoryQuery.toLowerCase())))
-                          .map(s => (
-                            <div
-                              key={s.id}
-                              onClick={() => { setActiveSessionId(s.id); setLeftMenu(null); }}
-                              className={`p-3 rounded-xl border transition-all text-left cursor-pointer group flex items-center justify-between text-xs ${
-                                s.id === activeSessionId ? 'bg-cyan-500/20 border-cyan-500/50 text-white font-bold' : 'bg-slate-800/80 border-white/5 text-slate-300 hover:bg-slate-800 hover:text-white'
-                              }`}
-                            >
-                              <div className="min-w-0 flex-1 pr-2">
-                                <div className="truncate">{s.title || 'Discussion'}</div>
-                                <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
-                                  {s.subject || 'General'}
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={(e) => handleDeleteChat(s.id, e)}
-                                className="opacity-0 group-hover:opacity-100 p-1 hover:text-rose-400 text-slate-500 transition-all cursor-pointer"
-                                title="Delete session"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {leftMenu === 'subjects' && (
-                    <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-1">
-                      <p className="text-[11px] text-slate-400 mb-2">Filter sessions by subject folder:</p>
-                      <button
-                        type="button"
-                        onClick={() => { setSelectedSubjectFilter('All'); }}
-                        className={`w-full p-2.5 rounded-xl border text-left text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
-                          selectedSubjectFilter === 'All' ? 'bg-purple-500/20 border-purple-500/50 text-white' : 'bg-slate-800/80 border-white/5 text-slate-300 hover:bg-slate-800'
-                        }`}
-                      >
-                        <span>All Subjects</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-transparent">{sessions.length}</span>
-                      </button>
-                      {folders.map(sub => {
-                        const count = sessions.filter(s => (s.subject || 'General') === sub).length;
-                        return (
-                          <button
-                            key={sub}
-                            type="button"
-                            onClick={() => { setSelectedSubjectFilter(sub); setLeftMenu('chats'); }}
-                            className={`w-full p-2.5 rounded-xl border text-left text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
-                              selectedSubjectFilter === sub ? 'bg-purple-500/20 border-purple-500/50 text-white' : 'bg-slate-800/80 border-white/5 text-slate-300 hover:bg-slate-800'
-                            }`}
-                          >
-                            <span className="truncate pr-2">{sub}</span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-transparent">{count}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {leftMenu === 'archive' && (
-                    <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1 text-left">
-                      <p className="text-[11px] text-slate-400">Stored images, worksheets, and generated AI materials across your sessions:</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {sessions.flatMap(s => s.messages.filter(m => m.image).map((m, idx) => ({ url: m.image, title: s.title, date: s.updatedAt, id: s.id + idx }))).map((item, i) => (
-                          <div key={i} className="relative group rounded-xl overflow-hidden border border-white/10 bg-black/40 aspect-square">
-                            <img src={item.url} alt="Archived" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-end text-[10px]">
-                              <span className="text-white font-bold truncate">{item.title}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      {sessions.flatMap(s => s.messages.filter(m => m.image)).length === 0 && (
-                        <div className="text-center py-8 text-slate-500 text-xs">
-                          <Archive size={24} className="mx-auto mb-2 opacity-40" />
-                          No archived files yet. Upload a document or worksheet in chat!
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* 2. CENTER MAIN CHAT COLUMN — fills remaining height; messages scroll inside */}
-          <div className="flex-1 min-w-0 min-h-0 flex flex-col h-full max-h-full bg-slate-900/95 border border-white/15 rounded-[16px] lg:rounded-[20px] p-3 sm:p-4 lg:p-4 shadow-2xl backdrop-blur-xl relative z-20 overflow-hidden">
-            
-            {/* Top Header Bar */}
-            <div className="flex flex-wrap items-center justify-between pb-3 border-b border-white/10 gap-3 shrink-0">
-              <div className="flex items-center gap-3">
-                {onBack && (
-                  <button 
-                    type="button"
-                    onClick={onBack} 
-                    className="w-9 h-9 rounded-xl bg-white/5 hover:bg-transparent border border-white/10 flex items-center justify-center text-slate-300 transition-all cursor-pointer active:scale-95 shrink-0"
-                    title="Exit to main portal"
-                  >
-                    <ArrowLeft size={16} strokeWidth={2.5} />
-                  </button>
-                )}
-                
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500/20 via-purple-500/20 to-pink-500/20 border border-cyan-400/40 flex items-center justify-center p-1 shadow-md">
-                  <EllyFace className="w-8 h-8" />
-                </div>
-
-                <div className="text-left">
-                  <h1 className="text-lg lg:text-xl font-display font-bold text-white tracking-tight flex items-center gap-2">
-                    <span>Elly</span>
-                    <span className="text-[10px] uppercase tracking-widest text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded-full border border-cyan-500/30">
-                      AI Tutor
-                    </span>
-                  </h1>
-                  <p className="text-[11px] text-slate-400">Intelligent Learning & Homework Companion</p>
-                </div>
-              </div>
-
-              {/* Top Buttons: Grade Level, Language, Voice Model, New Chat */}
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Grade Level */}
-                <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-2.5 py-1.5 rounded-xl">
-                  <GraduationCap size={14} className="text-amber-400 shrink-0" />
+                {/* Compact Grade Level Selector on the same line */}
+                <div className="flex items-center gap-1 bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-0.5 rounded-lg shrink-0 transition-colors">
+                  <GraduationCap size={12} className="text-amber-400 shrink-0" />
                   <select
                     value={studentGrade}
                     onChange={e => handleGradeChange(e.target.value)}
-                    className="bg-transparent text-xs text-white font-bold outline-none cursor-pointer [&>option]:bg-[#070b19] [&>option]:text-white"
+                    className="bg-transparent text-[11px] sm:text-xs text-white font-bold outline-none cursor-pointer max-w-[85px] sm:max-w-[120px] truncate [&>option]:bg-[#070b19] [&>option]:text-white"
                   >
-                    <option value="All Grades">All Grades (Open Mode)</option>
-                    <option value="Grades R-12">Grades R-12 (Adaptive)</option>
+                    <option value="All Grades">All Grades</option>
+                    <option value="Grades R-12">Grades R-12</option>
                     <option value="Grade R">Grade R</option>
                     {Array.from({ length: 12 }, (_, i) => i + 1).map(num => (
                       <option key={num} value={`Grade ${num}`}>{`Grade ${num}`}</option>
                     ))}
                   </select>
                 </div>
-
-                {/* Language */}
-                <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-2.5 py-1.5 rounded-xl">
-                  <select
-                    value={language}
-                    onChange={e => setLanguage(e.target.value)}
-                    className="bg-transparent text-xs text-white font-bold outline-none cursor-pointer [&>option]:bg-[#070b19] [&>option]:text-white"
-                  >
-                    {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-                  </select>
-                </div>
-
-                {/* Voice Model */}
-                <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-2.5 py-1.5 rounded-xl">
-                  <Volume2 size={14} className="text-pink-400 shrink-0" />
-                  <select
-                    value={voice}
-                    onChange={e => setVoice(e.target.value)}
-                    className="bg-transparent text-xs text-white font-bold outline-none cursor-pointer max-w-[120px] sm:max-w-none truncate [&>option]:bg-[#070b19] [&>option]:text-white"
-                  >
-                    {allVoices.map((v, i) => <option key={`${v.value}-${i}`} value={v.value}>{v.label}</option>)}
-                  </select>
-                </div>
-
-                {/* New Chat */}
-                <button
-                  type="button"
-                  onClick={handleNewChat}
-                  className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 text-slate-950 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-lg active:scale-95 cursor-pointer shrink-0"
-                >
-                  <Plus size={14} strokeWidth={3} />
-                  <span>New Chat</span>
-                </button>
-
-                {/* Clear Chat History */}
-                <button
-                  type="button"
-                  onClick={handleClearAllHistory}
-                  className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer shrink-0"
-                  title="Clear All Chat History"
-                >
-                  <Trash2 size={14} />
-                  <span className="hidden sm:inline">Clear</span>
-                </button>
-                
-                {/* Mobile Tools Toggle */}
-                <button
-                  type="button"
-                  onClick={() => setIsRightMenuOpen(!isRightMenuOpen)}
-                  className="lg:hidden bg-slate-800 border border-white/10 hover:bg-slate-700 text-cyan-400 px-2 py-1.5 rounded-xl text-xs font-black transition-all flex items-center justify-center shadow-lg active:scale-95 cursor-pointer shrink-0"
-                  title="Toggle Tools"
-                >
-                  {isRightMenuOpen ? <X size={16} strokeWidth={2.5} /> : <Menu size={16} strokeWidth={2.5} />}
-                </button>
               </div>
+              <p className="text-[10px] text-slate-400 truncate">Intelligent Learning & Homework Companion</p>
             </div>
-
-            {/* Collapsible Settings Drawer */}
-            <AnimatePresence>
-              {isSettingsOpen && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="bg-transparent border-b border-white/10 py-4 shrink-0 overflow-hidden backdrop-blur-xl relative z-30"
-                >
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
-                    <div className="flex flex-col">
-                      <label className="text-[9px] uppercase font-black text-brand-cyan mb-1 tracking-wider">Target Grade</label>
-                      <select 
-                        value={studentGrade} 
-                        onChange={e => handleGradeChange(e.target.value)}
-                        className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-transparent transition-all"
-                      >
-                        <option value="All Grades">All Grades (Open Mode)</option>
-                        <option value="Grades R-12">Grades R-12 (Adaptive)</option>
-                        <option value="Grade R">Grade R</option>
-                        {Array.from({ length: 12 }, (_, i) => i + 1).map(num => (
-                          <option key={num} value={`Grade ${num}`}>{`Grade ${num}`}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex flex-col">
-                      <label className="text-[9px] uppercase font-black text-brand-cyan mb-1 tracking-wider">Subject Folder</label>
-                      <select 
-                        value={activeSession?.subject || 'General'}
-                        onChange={e => handleMoveSessionToFolder(e.target.value)}
-                        className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-transparent transition-all"
-                      >
-                        {folders.map(f => <option key={f} value={f}>{f}</option>)}
-                      </select>
-                    </div>
-                    <div className="flex flex-col">
-                      <label className="text-[9px] uppercase font-black text-brand-cyan mb-1 tracking-wider">Language</label>
-                      <select 
-                        value={language} 
-                        onChange={e => setLanguage(e.target.value)}
-                        className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-transparent transition-all"
-                      >
-                        {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-                      </select>
-                    </div>
-                    <div className="flex flex-col">
-                      <label className="text-[9px] uppercase font-black text-brand-cyan mb-1 tracking-wider">Voice Character</label>
-                      <select 
-                        value={voice} 
-                        onChange={e => setVoice(e.target.value)}
-                        className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-transparent transition-all"
-                      >
-                        {allVoices.map((v, i) => <option key={`${v.value}-${i}`} value={v.value}>{v.label}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Message scroll list — sole vertical scroller for the chat */}
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-3 sm:py-4 space-y-4 custom-scrollbar pr-1 sm:pr-2">
-              {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center min-h-full text-slate-400 px-6 relative overflow-hidden">
-                  <div className="relative z-10 flex flex-col items-center">
-                    <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-cyan-500/20 via-purple-500/20 to-pink-500/20 border border-cyan-400/30 p-2 shadow-[0_0_30px_rgba(34,211,238,0.2)] flex items-center justify-center mb-4">
-                      <EllyFace className="w-16 h-16" />
-                    </div>
-                    <h2 className="text-2xl lg:text-3xl font-display font-bold text-white text-center mb-2">
-                      Hi! I'm Elly, your AI Tutor
-                    </h2>
-                    <p className="text-center text-xs sm:text-sm text-slate-300 max-w-md font-normal leading-relaxed mb-6 font-sans">
-                      I'm here to help you understand tricky homework concepts, explain any subject step-by-step, or practice for exams. Type a question, use your microphone to speak, or upload a worksheet!
-                    </p>
-
-                    {/* Suggestions Row */}
-                    <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg">
-                      {SUGGESTIONS.map((s) => (
-                        <button
-                          key={s.text}
-                          disabled={isLoading}
-                          onClick={() => handleSend(s.text)}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all duration-300 cursor-pointer active:scale-95 ${s.color}`}
-                        >
-                          ✨ {s.text}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                messages.map((msg, i) => (
-                  <div key={i} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start text-left'}`}>
-                    {msg.role === 'model' && (
-                      <motion.div 
-                        whileHover={{ scale: 1.05 }}
-                        className="w-9 h-9 flex flex-col items-center justify-center shrink-0 shadow-lg border border-indigo-500/40 rounded-xl overflow-hidden bg-[#1E293B] mt-1"
-                      >
-                        <EllyFace className="w-7 h-7" />
-                      </motion.div>
-                    )}
-                    
-                    <motion.div 
-                      initial={{ scale: 0.98, opacity: 0, y: 10 }}
-                      animate={{ scale: 1, opacity: 1, y: 0 }}
-                      className={`p-5 lg:p-6 max-w-[85%] lg:max-w-[78%] shadow-xl ${
-                        msg.role === 'user' 
-                          ? 'bg-gradient-to-r from-indigo-500/20 to-blue-500/20 border border-indigo-500/40 text-indigo-100 rounded-2xl rounded-tr-sm font-sans shadow-[0_0_20px_rgba(99,102,241,0.15)]' 
-                          : 'bg-slate-900/90 border border-indigo-500/40 text-slate-100 rounded-2xl rounded-tl-sm font-sans shadow-[0_0_25px_rgba(99,102,241,0.1)] backdrop-blur-xl'
-                      }`}
-                    >
-                      {msg.role === 'model' ? (
-                        <div className="flex flex-col gap-4">
-                          <div className="prose prose-xs lg:prose-sm max-w-none prose-p:leading-relaxed prose-invert markdown-body"
-                            dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(marked.parse(msg.text) as string) }}
-                          />
-                          {visuals[i] && (
-                            <div className="pt-2 border-t border-indigo-500/20">
-                              <AiImage prompt={`Educational illustration showing: ${msg.text.substring(0, 300)}`} aspectRatio="video" className="w-full max-w-sm rounded-xl border border-indigo-500/30 shadow-lg" />
-                            </div>
-                          )}
-
-                          {/* Action buttons at bottom of bot bubble */}
-                          <div className="flex flex-wrap items-center justify-between pt-3 border-t border-indigo-500/20 text-xs gap-2">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <button
-                                type="button"
-                                className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors border text-[11px] font-bold cursor-pointer ${
-                                  isAudioPlaying === i
-                                    ? isAudioPaused
-                                      ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md'
-                                      : 'bg-indigo-500/20 border-indigo-400 text-indigo-300 shadow-lg'
-                                    : 'bg-white/5 text-slate-300 border-white/10 hover:bg-transparent hover:text-white'
-                                }`}
-                                onClick={() => handlePlayAudio(msg.text, i)}
-                                disabled={isTtsLoading === i}
-                              >
-                                {isTtsLoading === i ? <Loader2 className="w-3 h-3 animate-spin text-indigo-400" /> : isAudioPlaying === i && !isAudioPaused ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                                <span>{isAudioPlaying === i ? (isAudioPaused ? "Resume Audio" : "Pause Audio") : "Listen"}</span>
-                              </button>
-                              {isAudioPlaying === i && (
-                                <button
-                                  type="button"
-                                  className="px-2.5 py-1 rounded-lg flex items-center gap-1.5 bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25 transition-colors text-[11px] font-bold cursor-pointer"
-                                  onClick={handleStopAudio}
-                                  title="Stop Voice"
-                                >
-                                  <Square className="w-3 h-3 fill-current" />
-                                  <span>Stop</span>
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors border text-[11px] font-bold cursor-pointer ${
-                                  visuals[i] 
-                                    ? 'bg-indigo-500/30 text-indigo-200 border-indigo-500/50 shadow-lg' 
-                                    : 'bg-white/5 text-slate-300 border-white/10 hover:bg-transparent hover:text-white'
-                                }`}
-                                onClick={() => setVisuals(prev => ({...prev, [i]: !prev[i]}))}
-                              >
-                                <ImageIcon className="w-3 h-3 text-indigo-400" />
-                                <span>{visuals[i] ? "Hide Image" : "Generate Topic Image"}</span>
-                              </button>
-                            </div>
-
-                            <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-400">
-                              <span 
-                                onClick={() => handleExportPDF(msg.text)} 
-                                className="hover:underline cursor-pointer opacity-90 text-indigo-300"
-                              >
-                                [Download PDF]
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div>
-                          {msg.image && (
-                            <img src={msg.image} alt="Uploaded" className="max-w-[180px] lg:max-w-[220px] rounded-xl object-contain mb-1.5 border border-white/10 shadow-md" />
-                          )}
-                          <p className="text-xs lg:text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                        </div>
-                      )}
-                    </motion.div>
-                  </div>
-                ))
-              )}
-              {isLoading && (
-                <div className="flex items-start gap-3 text-left">
-                  <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-brand-cyan animate-pulse">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <div className="bg-indigo-900/20 border border-indigo-500/30 rounded-2xl rounded-tl-none px-5 py-4 flex flex-col gap-2 min-w-[220px] shadow-lg">
-                    <div className="flex justify-between items-center text-[10px] font-bold text-indigo-200">
-                      <span>Elly is formulating...</span>
-                      <span>{generationProgress}%</span>
-                    </div>
-                    <div className="w-full h-1 rounded-full overflow-hidden bg-white/10">
-                      <div
-                        className="h-full bg-gradient-to-r from-cyan-400 to-indigo-400 transition-all duration-300"
-                        style={{ width: `${generationProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Bottom Chat Input Bar */}
-            <div className="pt-3 border-t border-white/10 shrink-0">
-              {selectedImage && (
-                <div className="mb-2 relative inline-block bg-slate-800/95 p-2 rounded-xl border border-white/10 shadow-lg">
-                  <img src={selectedImage} alt="Selected preview" className="h-16 w-auto rounded-lg object-contain" />
-                  <button
-                    type="button"
-                    onClick={() => setSelectedImage(null)}
-                    className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 shadow-md hover:bg-red-600 scale-75 cursor-pointer"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              )}
-              
-              <form onSubmit={e => { e.preventDefault(); if (input.trim() || selectedImage) { handleSend(); } }} className="flex items-center gap-3">
-                {/* File Upload Icon */}
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  title="Upload Worksheet or Image"
-                  className="p-2.5 rounded-2xl bg-white/5 hover:bg-transparent text-slate-300 hover:text-cyan-400 border border-white/10 transition-all cursor-pointer shrink-0"
-                >
-                  <ImageIcon size={18} />
-                </button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImageUpload}
-                  accept="image/*,.pdf,.doc,.docx"
-                  className="hidden"
-                />
-
-                {/* Text Entry Prompt Box */}
-                <div className="flex-1 bg-slate-800/90 border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-2 focus-within:border-cyan-500/50 transition-all shadow-inner">
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    placeholder="Ask Elly anything or type your prompt..."
-                    className="w-full bg-transparent border-0 focus:outline-none text-xs sm:text-sm text-white placeholder:text-slate-500 font-sans"
-                  />
-
-                  {/* Microphone Icon for Voice Entry */}
-                  <button
-                    type="button"
-                    onClick={handleVoiceInput}
-                    title={isRecording ? "Stop Recording" : "Voice Input"}
-                    className={`p-1.5 rounded-xl transition-all cursor-pointer ${
-                      isRecording ? "bg-red-500 text-white animate-pulse" : "text-slate-400 hover:text-cyan-400"
-                    }`}
-                  >
-                    <Mic size={18} />
-                  </button>
-                </div>
-
-                {/* Send Button */}
-                <button
-                  type="submit"
-                  disabled={(!input.trim() && !selectedImage) || isLoading}
-                  className="w-10 h-10 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 disabled:opacity-40 hover:opacity-90 font-bold flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer shrink-0"
-                  title="Send Prompt"
-                >
-                  {isLoading ? <Loader2 size={18} className="animate-spin text-white" /> : <Send size={18} strokeWidth={2.5} />}
-                </button>
-              </form>
-            </div>
-
           </div>
 
-          {/* 3. RIGHT SIDEBAR — fits available height; scrolls internally if needed */}
-          <div className={`${isRightMenuOpen ? 'fixed inset-y-4 right-4 z-50 bg-slate-900/95 border border-white/10 p-4 rounded-3xl shadow-2xl overflow-y-auto' : 'hidden'} lg:relative lg:flex lg:w-56 xl:w-64 shrink-0 flex-col gap-3 lg:overflow-y-auto lg:overflow-x-hidden lg:max-h-full lg:min-h-0 custom-scrollbar`}>
-            {/* Card 1: Suggested Activities & Topics */}
-            <div className="bg-slate-900/90 border border-indigo-500/40 rounded-[16px] p-3.5 shadow-xl text-left shrink-0 backdrop-blur-xl">
-              <h3 className="text-xs font-display font-bold text-white mb-2 flex items-center gap-1.5">
-                <Sparkles size={13} className="text-amber-400" />
-                <span>Suggested Activities</span>
-              </h3>
-              <div className="space-y-1.5">
-                <button
-                  type="button"
-                  onClick={() => { setInput('Explain Grade 5 Math - Fractions'); handleSend('Explain Grade 5 Math - Fractions'); }}
-                  className="w-full py-1.5 px-2.5 rounded-xl bg-slate-800/90 border border-indigo-500/40 text-left hover:border-amber-400 transition-all shadow-sm group cursor-pointer flex items-center justify-between"
-                >
-                  <span className="text-[11px] font-bold text-white group-hover:text-amber-200">Math - Fractions</span>
-                  <Sparkles size={11} className="text-amber-400 shrink-0" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => { setInput('Explain Science - Solar System'); handleSend('Explain Science - Solar System'); }}
-                  className="w-full py-1.5 px-2.5 rounded-xl bg-slate-800/90 border border-indigo-500/40 text-left hover:border-cyan-400 transition-all shadow-sm group cursor-pointer flex items-center justify-between"
-                >
-                  <span className="text-[11px] font-bold text-white group-hover:text-cyan-200">Solar System</span>
-                  <Sparkles size={11} className="text-cyan-400 shrink-0" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => { setInput('Let us do an English - Grammar Quiz'); handleSend('Let us do an English - Grammar Quiz'); }}
-                  className="w-full py-1.5 px-2.5 rounded-xl bg-slate-800/90 border border-indigo-500/40 text-left hover:border-emerald-400 transition-all shadow-sm group cursor-pointer flex items-center justify-between"
-                >
-                  <span className="text-[11px] font-bold text-white group-hover:text-emerald-200">Grammar Quiz</span>
-                  <Sparkles size={11} className="text-emerald-400 shrink-0" />
-                </button>
-              </div>
+          {/* Top Buttons: Language & Voice Model (side-by-side in same row, compact size), New Chat, Clear */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap shrink-0">
+            {/* Language Selector */}
+            <div className="flex items-center gap-1 bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 rounded-lg shrink-0 transition-colors">
+              <select
+                value={language}
+                onChange={e => setLanguage(e.target.value)}
+                className="bg-transparent text-[11px] sm:text-xs text-white font-semibold outline-none cursor-pointer max-w-[80px] sm:max-w-[105px] truncate [&>option]:bg-[#070b19] [&>option]:text-white"
+              >
+                {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+              </select>
             </div>
 
-            {/* Card 2: Interactive Toolset */}
-            <div className="bg-slate-900/90 border border-indigo-500/40 rounded-[16px] p-3.5 shadow-xl text-left shrink-0 backdrop-blur-xl">
-              <h3 className="text-xs font-display font-bold text-white mb-2 flex items-center gap-1.5">
-                <Monitor size={13} className="text-indigo-400" />
-                <span>Interactive Toolset</span>
-              </h3>
-              <div className="space-y-1.5">
-                <button
-                  type="button"
-                  onClick={() => { setInput('Start an Interactive Whiteboard session to draw and visualize math or science concepts.'); handleSend('Start an Interactive Whiteboard session to draw and visualize math or science concepts.'); }}
-                  className="w-full py-1.5 px-2.5 bg-slate-800/90 border border-indigo-500/30 rounded-xl text-left hover:border-cyan-500/50 transition-all flex items-center gap-2 cursor-pointer group shadow-sm"
-                >
-                  <div className="p-1 bg-cyan-500/10 rounded-lg text-cyan-400 group-hover:scale-110 transition-transform shrink-0">
-                    <Monitor size={13} />
-                  </div>
-                  <span className="text-[11px] font-bold text-white group-hover:text-cyan-300 truncate">Whiteboard Canvas</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => { setInput('Activate Voice Tutor Mode. Please talk to me conversationally and ask guiding questions.'); handleSend('Activate Voice Tutor Mode. Please talk to me conversationally and ask guiding questions.'); }}
-                  className="w-full py-1.5 px-2.5 bg-slate-800/90 border border-indigo-500/30 rounded-xl text-left hover:border-amber-500/50 transition-all flex items-center gap-2 cursor-pointer group shadow-sm"
-                >
-                  <div className="p-1 bg-amber-500/10 rounded-lg text-amber-400 group-hover:scale-110 transition-transform shrink-0">
-                    <Volume2 size={13} />
-                  </div>
-                  <span className="text-[11px] font-bold text-white group-hover:text-amber-200 truncate">Voice Tutor Mode</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => { setInput('Let us do a Step-by-Step Solver exercise. Give me a problem and guide me through solving it one step at a time.'); handleSend('Let us do a Step-by-Step Solver exercise. Give me a problem and guide me through solving it one step at a time.'); }}
-                  className="w-full py-1.5 px-2.5 bg-slate-800/90 border border-indigo-500/30 rounded-xl text-left hover:border-amber-500/50 transition-all flex items-center gap-2 cursor-pointer group shadow-sm"
-                >
-                  <div className="p-1 bg-amber-500/10 rounded-lg text-amber-400 group-hover:scale-110 transition-transform shrink-0">
-                    <Puzzle size={13} />
-                  </div>
-                  <span className="text-[11px] font-bold text-white group-hover:text-amber-200 truncate">Step-by-Step Solver</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => { setInput('Explain a core curriculum concept with visual examples and analogies.'); handleSend('Explain a core curriculum concept with visual examples and analogies.'); }}
-                  className="w-full py-1.5 px-2.5 bg-slate-800/90 border border-indigo-500/30 rounded-xl text-left hover:border-emerald-500/50 transition-all flex items-center gap-2 cursor-pointer group shadow-sm"
-                >
-                  <div className="p-1 bg-emerald-500/10 rounded-lg text-emerald-400 group-hover:scale-110 transition-transform shrink-0">
-                    <Eye size={13} />
-                  </div>
-                  <span className="text-[11px] font-bold text-white group-hover:text-emerald-200 truncate">Concept Visualizer</span>
-                </button>
-              </div>
+            {/* Voice Model Selector (right next to Language Selector in the same row) */}
+            <div className="flex items-center gap-1 bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 rounded-lg shrink-0 transition-colors">
+              <Volume2 size={12} className="text-pink-400 shrink-0" />
+              <select
+                value={voice}
+                onChange={e => setVoice(e.target.value)}
+                className="bg-transparent text-[11px] sm:text-xs text-white font-semibold outline-none cursor-pointer max-w-[80px] sm:max-w-[105px] truncate [&>option]:bg-[#070b19] [&>option]:text-white"
+              >
+                {allVoices.map((v, i) => <option key={`${v.value}-${i}`} value={v.value}>{v.label}</option>)}
+              </select>
             </div>
-          </div>
-        </div>
-      ) : null}
 
-      {false && (
-        <>
-          <div className="flex justify-between items-center w-full mb-4 z-20">
+            {/* New Chat */}
             <button
               type="button"
-              onClick={() => setViewMode('studio')}
-              className="bg-transparent hover:bg-transparent text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+              onClick={handleNewChat}
+              className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 text-slate-950 px-2.5 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-black transition-all flex items-center gap-1 shadow-md active:scale-95 cursor-pointer shrink-0"
             >
-              <span>← Back to Interactive Learning Studio</span>
+              <Plus size={13} strokeWidth={3} />
+              <span>New Chat</span>
             </button>
-          </div>
-          {/* LEFT / MAIN COLUMN: CHAT WINDOW CARD */}
-      <div className="flex-1 flex flex-col h-full bg-slate-900/90 border border-white/10 rounded-[32px] p-6 shadow-2xl backdrop-blur-xl relative z-20 overflow-hidden">
-        
-        {/* Top Header inside Chat Box */}
-        <div className="flex items-center justify-between pb-4 border-b border-white/10 shrink-0">
-          <div className="flex items-center gap-3">
-            {onBack && (
-              <button 
-                onClick={onBack} 
-                className="w-9 h-9 rounded-xl bg-white/5 hover:bg-transparent border border-white/10 flex items-center justify-center text-slate-300 transition-all cursor-pointer active:scale-95 shrink-0"
-                title="Exit to main portal"
-              >
-                <ArrowLeft size={16} strokeWidth={2.5} />
-              </button>
-            )}
-            
-            <div className="p-2.5 bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-cyan-500/20 rounded-xl border border-white/15 flex items-center justify-center shadow-md">
-              <Brain size={22} className="text-brand-cyan" />
-            </div>
 
-            <div className="text-left">
-              <h1 className="text-lg lg:text-xl font-display font-bold text-white tracking-tight flex items-center gap-2">
-                <span>AI Tutor Support</span>
-                {activeSession && activeSession.title !== 'New Discussion' && (
-                  <span className="text-xs text-cyan-400 font-mono font-normal bg-cyan-950/40 px-2 py-0.5 rounded-md border border-cyan-500/20">
-                    {activeSession.title}
-                  </span>
-                )}
-              </h1>
-              {activeSession && (
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                  <select
-                    value={activeSession.subject}
-                    onChange={(e) => handleMoveSessionToFolder(e.target.value)}
-                    className="bg-transparent text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-brand-cyan focus:outline-none cursor-pointer border-0 p-0 [&>option]:bg-[#070b19] [&>option]:text-white"
-                  >
-                    {folders.map(f => <option key={f} value={f}>{f}</option>)}
-                  </select>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-              title="Tutor Customization Parameters"
-              className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer active:scale-95 shrink-0 ${
-                isSettingsOpen 
-                  ? 'bg-brand-cyan/20 text-brand-cyan border-brand-cyan/40 shadow-[0_0_12px_rgba(34,211,238,0.35)]' 
-                  : 'bg-white/5 text-slate-300 border-white/10 hover:bg-transparent hover:text-white'
-              }`}
+            {/* Clear Chat History */}
+            <button
+              type="button"
+              onClick={handleClearAllHistory}
+              className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 active:scale-95 cursor-pointer shrink-0"
+              title="Clear All Chat History"
             >
-              <Settings size={14} className={isSettingsOpen ? 'rotate-45 transition-transform' : 'transition-transform'} />
-              <span className="hidden sm:inline">Settings</span>
+              <Trash2 size={13} />
+              <span className="hidden sm:inline">Clear</span>
             </button>
           </div>
         </div>
@@ -1527,7 +900,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="bg-transparent border-b border-white/10 py-4 shrink-0 overflow-hidden backdrop-blur-xl relative z-30"
+              className="bg-slate-900/95 border-b border-white/10 px-4 sm:px-6 py-4 shrink-0 overflow-hidden backdrop-blur-xl relative z-30"
             >
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
                 <div className="flex flex-col">
@@ -1537,6 +910,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                     onChange={e => handleGradeChange(e.target.value)}
                     className="bg-white/5 border border-white/10 outline-none text-white text-xs py-1.5 px-2.5 rounded-lg [&>option]:bg-[#0B1122] [&>option]:text-white cursor-pointer hover:bg-transparent transition-all"
                   >
+                    <option value="All Grades">All Grades (Open Mode)</option>
                     <option value="Grades R-12">Grades R-12 (Adaptive)</option>
                     <option value="Grade R">Grade R</option>
                     {Array.from({ length: 12 }, (_, i) => i + 1).map(num => (
@@ -1574,38 +948,28 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                     {allVoices.map((v, i) => <option key={`${v.value}-${i}`} value={v.value}>{v.label}</option>)}
                   </select>
                 </div>
-                
-                {/* Mobile Menu Toggle */}
-                <button
-                  type="button"
-                  onClick={() => setIsRightMenuOpen(!isRightMenuOpen)}
-                  className="lg:hidden w-9 h-9 rounded-xl bg-white/5 hover:bg-transparent border border-white/10 flex items-center justify-center text-cyan-400 transition-all cursor-pointer mt-3"
-                  title="Toggle Tools"
-                >
-                  {isRightMenuOpen ? <X size={16} strokeWidth={2.5} /> : <Menu size={16} strokeWidth={2.5} />}
-                </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Message scroll list */}
-        <div className="flex-1 overflow-y-auto py-6 space-y-6 custom-scrollbar pr-2">
+        {/* Message scroll list — sole vertical scroller for the chat */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 sm:px-6 lg:px-8 py-3 sm:py-4 space-y-4 custom-scrollbar">
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-400 px-6 relative overflow-hidden">
+            <div className="flex flex-col items-center justify-center min-h-full text-slate-400 px-6 relative overflow-hidden">
               <div className="relative z-10 flex flex-col items-center">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-cyan-500/20 border border-white/15 p-2 shadow-[0_0_25px_rgba(34,211,238,0.2)] flex items-center justify-center mb-5">
+                <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-cyan-500/20 via-purple-500/20 to-pink-500/20 border border-cyan-400/30 p-2 shadow-[0_0_30px_rgba(34,211,238,0.2)] flex items-center justify-center mb-4">
                   <EllyFace className="w-16 h-16" />
                 </div>
                 <h2 className="text-2xl lg:text-3xl font-display font-bold text-white text-center mb-2">
-                  AI Tutor Support
+                  Hi! I'm Elly, your AI Tutor
                 </h2>
-                <p className="text-center text-xs lg:text-sm text-slate-300 max-w-md font-normal leading-relaxed mb-6 font-sans">
-                  A localized AI companion for homework grading, concept explanations, and curriculum support. Ask a question or choose a subject below!
+                <p className="text-center text-xs sm:text-sm text-slate-300 max-w-md font-normal leading-relaxed mb-6 font-sans">
+                  I'm here to help you understand tricky homework concepts, explain any subject step-by-step, or practice for exams. Type a question, use your microphone to speak, or upload a worksheet!
                 </p>
 
                 {/* Suggestions Row */}
-                <div className="flex flex-wrap items-center justify-center gap-2 max-w-md">
+                <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg">
                   {SUGGESTIONS.map((s) => (
                     <button
                       key={s.text}
@@ -1625,7 +989,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                 {msg.role === 'model' && (
                   <motion.div 
                     whileHover={{ scale: 1.05 }}
-                    className="w-9 h-9 flex flex-col items-center justify-center shrink-0 shadow-lg border border-purple-500/40 rounded-xl overflow-hidden bg-[#1E293B] mt-1"
+                    className="w-9 h-9 flex flex-col items-center justify-center shrink-0 shadow-lg border border-indigo-500/40 rounded-xl overflow-hidden bg-[#1E293B] mt-1"
                   >
                     <EllyFace className="w-7 h-7" />
                   </motion.div>
@@ -1636,8 +1000,8 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   className={`p-5 lg:p-6 max-w-[85%] lg:max-w-[78%] shadow-xl ${
                     msg.role === 'user' 
-                      ? 'bg-gradient-to-r from-cyan-500/20 to-teal-500/20 border border-cyan-500/40 text-cyan-100 rounded-2xl rounded-tr-sm font-sans shadow-[0_0_20px_rgba(34,211,238,0.15)]' 
-                      : 'bg-gradient-to-r from-purple-900/40 via-purple-900/20 to-pink-900/30 border border-purple-500/40 text-purple-100 rounded-2xl rounded-tl-sm font-sans shadow-[0_0_25px_rgba(168,85,247,0.15)]'
+                      ? 'bg-gradient-to-r from-indigo-500/20 to-blue-500/20 border border-indigo-500/40 text-indigo-100 rounded-2xl rounded-tr-sm font-sans shadow-[0_0_20px_rgba(99,102,241,0.15)]' 
+                      : 'bg-slate-900/90 border border-indigo-500/40 text-slate-100 rounded-2xl rounded-tl-sm font-sans shadow-[0_0_25px_rgba(99,102,241,0.1)] backdrop-blur-xl'
                   }`}
                 >
                   {msg.role === 'model' ? (
@@ -1646,13 +1010,13 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                         dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(marked.parse(msg.text) as string) }}
                       />
                       {visuals[i] && (
-                        <div className="pt-2 border-t border-white/10">
-                          <AiImage prompt={`Educational illustration showing: ${msg.text.substring(0, 300)}`} aspectRatio="video" className="w-full max-w-sm rounded-xl" />
+                        <div className="pt-2 border-t border-indigo-500/20">
+                          <AiImage prompt={`Educational illustration showing: ${msg.text.substring(0, 300)}`} aspectRatio="video" className="w-full max-w-sm rounded-xl border border-indigo-500/30 shadow-lg" />
                         </div>
                       )}
 
                       {/* Action buttons at bottom of bot bubble */}
-                      <div className="flex flex-wrap items-center justify-between pt-3 border-t border-purple-500/20 text-xs gap-2">
+                      <div className="flex flex-wrap items-center justify-between pt-3 border-t border-indigo-500/20 text-xs gap-2">
                         <div className="flex items-center gap-2 flex-wrap">
                           <button
                             type="button"
@@ -1660,13 +1024,13 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                               isAudioPlaying === i
                                 ? isAudioPaused
                                   ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md'
-                                  : 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-lg'
+                                  : 'bg-indigo-500/20 border-indigo-400 text-indigo-300 shadow-lg'
                                 : 'bg-white/5 text-slate-300 border-white/10 hover:bg-transparent hover:text-white'
                             }`}
                             onClick={() => handlePlayAudio(msg.text, i)}
                             disabled={isTtsLoading === i}
                           >
-                            {isTtsLoading === i ? <Loader2 className="w-3 h-3 animate-spin text-cyan-400" /> : isAudioPlaying === i && !isAudioPaused ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                            {isTtsLoading === i ? <Loader2 className="w-3 h-3 animate-spin text-indigo-400" /> : isAudioPlaying === i && !isAudioPaused ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
                             <span>{isAudioPlaying === i ? (isAudioPaused ? "Resume Audio" : "Pause Audio") : "Listen"}</span>
                           </button>
                           {isAudioPlaying === i && (
@@ -1684,37 +1048,35 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                             type="button"
                             className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors border text-[11px] font-bold cursor-pointer ${
                               visuals[i] 
-                                ? 'bg-purple-500/30 text-purple-200 border-purple-500/50 shadow-lg' 
+                                ? 'bg-indigo-500/30 text-indigo-200 border-indigo-500/50 shadow-lg' 
                                 : 'bg-white/5 text-slate-300 border-white/10 hover:bg-transparent hover:text-white'
                             }`}
                             onClick={() => setVisuals(prev => ({...prev, [i]: !prev[i]}))}
                           >
-                            <ImageIcon className="w-3 h-3" />
+                            <ImageIcon className="w-3 h-3 text-indigo-400" />
                             <span>{visuals[i] ? "Hide Image" : "Generate Topic Image"}</span>
                           </button>
                         </div>
 
-                        <div className="flex items-center gap-3 font-bold text-cyan-300">
-                          <span className="hover:underline cursor-pointer opacity-90">[Download Full Lesson Plan PDF]</span>
-                          <span className="hover:underline cursor-pointer opacity-90">[Launch Interactive Exercise]</span>
+                        <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-400">
+                          <span 
+                            onClick={() => handleExportPDF(msg.text)} 
+                            className="hover:underline cursor-pointer opacity-90 text-indigo-300"
+                          >
+                            [Download PDF]
+                          </span>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-2">
+                    <div>
                       {msg.image && (
                         <img src={msg.image} alt="Uploaded" className="max-w-[180px] lg:max-w-[220px] rounded-xl object-contain mb-1.5 border border-white/10 shadow-md" />
                       )}
                       <p className="text-xs lg:text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                     </div>
-                  )} 
+                  )}
                 </motion.div>
-                
-                {msg.role === 'user' && (
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-teal-500 border border-cyan-300/50 p-0.5 flex items-center justify-center shrink-0 text-slate-950 shadow-lg mt-1 font-bold">
-                    <User className="w-5 h-5 text-slate-950" />
-                  </div>
-                )}
               </div>
             ))
           )}
@@ -1723,14 +1085,14 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
               <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-brand-cyan animate-pulse">
                 <Sparkles className="w-4 h-4" />
               </div>
-              <div className="bg-purple-900/20 border border-purple-500/30 rounded-2xl rounded-tl-none px-5 py-4 flex flex-col gap-2 min-w-[220px] shadow-lg">
-                <div className="flex justify-between items-center text-[10px] font-bold text-purple-200">
+              <div className="bg-indigo-900/20 border border-indigo-500/30 rounded-2xl rounded-tl-none px-5 py-4 flex flex-col gap-2 min-w-[220px] shadow-lg">
+                <div className="flex justify-between items-center text-[10px] font-bold text-indigo-200">
                   <span>Elly is formulating...</span>
                   <span>{generationProgress}%</span>
                 </div>
-                <div className="w-full h-1 rounded-full overflow-hidden bg-transparent">
-                  <div 
-                    className="h-full bg-gradient-to-r from-cyan-400 to-purple-400 transition-all duration-300"
+                <div className="w-full h-1 rounded-full overflow-hidden bg-white/10">
+                  <div
+                    className="h-full bg-gradient-to-r from-cyan-400 to-indigo-400 transition-all duration-300"
                     style={{ width: `${generationProgress}%` }}
                   />
                 </div>
@@ -1740,222 +1102,419 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* BOTTOM INPUT BAR (Matching Screenshot 2) */}
-        <div className="pt-4 border-t border-white/10 shrink-0 flex items-center gap-3 relative z-20">
-          {/* Voice Input Glowing Button */}
-          <button
-            onClick={handleMicClick}
-            disabled={isLoading}
-            className={`px-5 lg:px-6 py-3 rounded-2xl border font-bold text-xs sm:text-sm flex items-center gap-2.5 transition-all shrink-0 cursor-pointer shadow-lg active:scale-95 ${
-              isRecording
-                ? 'border-red-400 bg-red-500/20 text-red-300 shadow-[0_0_25px_rgba(239,68,68,0.3)] animate-pulse'
-                : 'border-cyan-400/80 bg-cyan-500/15 text-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:bg-cyan-500/25'
-            }`}
-          >
-            <Mic size={18} className={isRecording ? "text-red-400 animate-bounce" : "text-brand-cyan"} />
-            <span>{isRecording ? "Listening..." : "Voice Input"}</span>
-          </button>
-
-          {/* Text Input Container */}
-          <div className="flex-1 bg-slate-900/95 border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-3 shadow-inner focus-within:border-cyan-500/50 transition-colors">
-            {selectedImage && (
-              <div className="relative inline-block shrink-0">
-                <img src={selectedImage} alt="Preview" className="h-9 rounded-lg object-contain border border-white/10 shadow-md" />
-                <button 
-                  onClick={() => setSelectedImage(null)}
-                  className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 shadow-md hover:bg-red-600 scale-75 cursor-pointer"
-                >
-                  <X size={10} />
-                </button>
-              </div>
-            )}
-
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleImageUpload} 
-              accept="image/*" 
-              className="hidden" 
-            />
-            
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="p-1.5 rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-transparent transition-all shrink-0 cursor-pointer"
-              title="Attach Homework Photo"
-            >
-              <ImageIcon size={18} className="text-slate-400 hover:text-cyan-400" />
-            </button>
-
-            <input
-              type="text"
-              placeholder={isRecording ? "Listening to your voice..." : "Type your query here..."}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !isLoading && (input.trim() || selectedImage) && handleSend()}
-              className="w-full bg-transparent border-0 focus:outline-none text-xs sm:text-sm text-white placeholder:text-slate-500 font-sans"
-              disabled={isLoading}
-            />
-
-            {isAudioPlaying !== null && (
-              <button 
-                onClick={handleStopAudio} 
-                className="w-8 h-8 rounded-xl bg-red-500 text-white shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all shrink-0 cursor-pointer shadow-red-500/10"
-              >
-                <Square className="w-3 h-3" />
-              </button>
-            )}
-
-            <button 
-              onClick={() => handleSend()} 
-              disabled={isLoading || (!input.trim() && !selectedImage)} 
-              className="p-2 rounded-xl bg-transparent hover:bg-transparent text-slate-400 hover:text-cyan-400 disabled:opacity-40 transition-all shrink-0 cursor-pointer"
-              title="Send query"
-            >
-              <Send size={18} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* RIGHT SIDEBAR PANEL (Matching Screenshot 2) */}
-      <div className="w-full lg:w-80 shrink-0 flex flex-col gap-6 overflow-y-auto custom-scrollbar relative z-20">
-        
-        {/* Card 1: Recent Tutoring Topics */}
-        <div className="p-6 rounded-[28px] bg-slate-900/90 border border-white/10 space-y-4 shadow-xl backdrop-blur-xl flex-1 flex flex-col max-h-[500px]">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-display font-bold text-white tracking-tight">
-              Recent Tutoring Topics
-            </h2>
-            <button 
-              onClick={handleNewChat}
-              className="p-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 transition-colors border border-cyan-500/30 text-xs font-bold flex items-center gap-1 shrink-0"
-              title="New Discussion"
-            >
-              <Plus size={14} />
-            </button>
-          </div>
-
-          {/* Search & Folder Filter inside Recent Topics card so all existing fields/menus are preserved */}
-          <div className="space-y-2 shrink-0">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
-              <input 
-                type="text"
-                placeholder="Search topics..."
-                value={searchHistoryQuery}
-                onChange={e => setSearchHistoryQuery(e.target.value)}
-                className="w-full bg-slate-800/90 border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50"
-              />
-            </div>
-            
-            {/* Subject filter tabs */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar text-[11px]">
+        {/* Bottom Chat Input Bar - Full Bleed */}
+        <div className="px-3 sm:px-5 py-3 border-t border-white/10 bg-slate-900/80 backdrop-blur-md shrink-0">
+          {selectedImage && (
+            <div className="mb-2 relative inline-block bg-slate-800/95 p-2 rounded-xl border border-white/10 shadow-lg">
+              <img src={selectedImage} alt="Selected preview" className="h-16 w-auto rounded-lg object-contain" />
               <button
-                onClick={() => setSelectedSubjectFilter('All')}
-                className={`px-2.5 py-1 rounded-lg whitespace-nowrap font-semibold transition-all ${
-                  selectedSubjectFilter === 'All' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                type="button"
+                onClick={() => setSelectedImage(null)}
+                className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 shadow-md hover:bg-red-600 scale-75 cursor-pointer"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+          
+          <form onSubmit={e => { e.preventDefault(); if (input.trim() || selectedImage) { handleSend(); } }} className="flex items-center gap-3">
+            {/* File Upload Icon */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              title="Upload Worksheet or Image"
+              className="p-2.5 rounded-2xl bg-white/5 hover:bg-transparent text-slate-300 hover:text-cyan-400 border border-white/10 transition-all cursor-pointer shrink-0"
+            >
+              <ImageIcon size={18} />
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              accept="image/*,.pdf,.doc,.docx"
+              className="hidden"
+            />
+
+            {/* Text Entry Prompt Box */}
+            <div className="flex-1 bg-slate-800/90 border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-2 focus-within:border-cyan-500/50 transition-all shadow-inner">
+              <input
+                type="text"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                placeholder="Ask Elly anything or type your prompt..."
+                className="w-full bg-transparent border-0 focus:outline-none text-xs sm:text-sm text-white placeholder:text-slate-500 font-sans"
+              />
+
+              {/* Microphone Icon for Voice Entry */}
+              <button
+                type="button"
+                onClick={handleVoiceInput}
+                title={isRecording ? "Stop Recording" : "Voice Input"}
+                className={`p-1.5 rounded-xl transition-all cursor-pointer ${
+                  isRecording ? "bg-red-500 text-white animate-pulse" : "text-slate-400 hover:text-cyan-400"
                 }`}
               >
-                All ({sessions.length})
+                <Mic size={18} />
               </button>
-              {folders.slice(0, 4).map(sub => {
-                const count = sessions.filter(s => s.subject === sub).length;
-                if (count === 0 && selectedSubjectFilter !== sub) return null;
-                return (
-                  <button
-                    key={sub}
-                    onClick={() => setSelectedSubjectFilter(sub)}
-                    className={`px-2.5 py-1 rounded-lg whitespace-nowrap font-semibold transition-all ${
-                      selectedSubjectFilter === sub ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-slate-800/80 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {sub}
-                  </button>
-                );
-              })}
             </div>
-          </div>
 
-          {/* Topics List */}
-          <div className="flex-1 overflow-y-auto space-y-2.5 custom-scrollbar pr-1">
-            {Object.entries(groupedSessions).map(([groupTitle, list]) => {
-              if (list.length === 0) return null;
-              return (
-                <div key={groupTitle} className="space-y-1.5">
-                  <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1 mt-2">{groupTitle}</span>
-                  {list.map(s => {
-                    const isActive = s.id === activeSessionId;
-                    return (
-                      <div
-                        key={s.id}
-                        onClick={() => setActiveSessionId(s.id)}
-                        className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between text-sm cursor-pointer group relative ${
-                          isActive 
-                            ? 'bg-slate-800 border-cyan-500/60 text-white shadow-[0_0_15px_rgba(34,211,238,0.15)]' 
-                            : 'bg-slate-800/50 border-white/10 text-slate-300 hover:border-cyan-500/30 hover:bg-slate-800 hover:text-white'
-                        }`}
-                      >
-                        <div className="min-w-0 flex-1 pr-2">
-                          <p className="truncate font-bold leading-snug">{s.title || 'New Discussion'}</p>
-                          <span className="text-[10px] text-slate-400 font-mono block mt-0.5">{s.subject}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button 
-                            onClick={(e) => handleDeleteChat(s.id, e)}
-                            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-transparent text-rose-400 transition-opacity"
-                            title="Delete topic"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                          <FileText size={16} className={`transition-colors ${isActive ? 'text-cyan-400' : 'text-slate-500 group-hover:text-cyan-400'}`} />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-
-            {sessions.length === 0 && (
-              <div className="text-center py-8 text-slate-500 text-xs font-medium">
-                No recent topics found. Click + to start!
-              </div>
-            )}
-          </div>
+            {/* Send Button */}
+            <button
+              type="submit"
+              disabled={(!input.trim() && !selectedImage) || isLoading}
+              className="w-10 h-10 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 disabled:opacity-40 hover:opacity-90 font-bold flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer shrink-0"
+              title="Send Prompt"
+            >
+              {isLoading ? <Loader2 size={18} className="animate-spin text-white" /> : <Send size={18} strokeWidth={2.5} />}
+            </button>
+          </form>
         </div>
-
-        {/* Card 2: AI Tutor Actions */}
-        <div className="p-6 rounded-[28px] bg-slate-900/90 border border-white/10 space-y-3 shadow-xl backdrop-blur-xl shrink-0">
-          <h2 className="text-lg font-display font-bold text-white tracking-tight mb-4">
-            AI Tutor Actions
-          </h2>
-
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full py-3.5 px-5 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-white/10 hover:border-cyan-500/30 text-slate-200 hover:text-white font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99]"
-          >
-            <span>Upload Resource</span>
-          </button>
-
-          <button
-            onClick={handleNewChat}
-            className="w-full py-3.5 px-5 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-white/10 hover:border-cyan-500/30 text-slate-200 hover:text-white font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99]"
-          >
-            <span>Clear Chat History</span>
-          </button>
-
-          <button
-            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-            className="w-full py-3.5 px-5 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-white/10 hover:border-cyan-500/30 text-slate-200 hover:text-white font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99]"
-          >
-            <span>Tutor Settings</span>
-          </button>
-        </div>
-
       </div>
-        </>
-      )}
+
+      {/* RIGHT-HAND SIDE VERTICAL NAVIGATION BAR */}
+      <div className="w-14 sm:w-16 lg:w-44 bg-slate-900/95 border-l border-white/10 flex flex-col items-center lg:items-stretch py-3 px-1.5 sm:px-2 gap-1.5 shrink-0 z-30 justify-between h-full">
+        {/* Top menu items */}
+        <div className="flex flex-col items-center lg:items-stretch gap-1.5 w-full">
+          <div className="hidden lg:block px-2 py-1 mb-1 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-white/5">
+            Tutor Menu
+          </div>
+
+          {/* Chats Button */}
+          <button
+            type="button"
+            onClick={() => setLeftMenu(leftMenu === 'chats' ? null : 'chats')}
+            className={`w-full p-2.5 lg:px-3 lg:py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center lg:justify-start gap-2.5 transition-all cursor-pointer ${
+              leftMenu === 'chats' ? 'bg-cyan-500 text-slate-950 font-bold shadow-[0_0_12px_rgba(34,211,238,0.4)]' : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10'
+            }`}
+            title="Chat History"
+          >
+            <MessageSquare size={16} className={leftMenu === 'chats' ? 'text-slate-950 shrink-0' : 'text-cyan-400 shrink-0'} />
+            <span className="hidden lg:inline whitespace-nowrap">Chats</span>
+          </button>
+
+          {/* Activities Button */}
+          <button
+            type="button"
+            onClick={() => setLeftMenu(leftMenu === 'activities' ? null : 'activities')}
+            className={`w-full p-2.5 lg:px-3 lg:py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center lg:justify-start gap-2.5 transition-all cursor-pointer ${
+              leftMenu === 'activities' ? 'bg-amber-500 text-slate-950 font-bold shadow-[0_0_12px_rgba(245,158,11,0.4)]' : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10'
+            }`}
+            title="Suggested Activities"
+          >
+            <Sparkles size={16} className={leftMenu === 'activities' ? 'text-slate-950 shrink-0' : 'text-amber-400 shrink-0'} />
+            <span className="hidden lg:inline whitespace-nowrap">Activities</span>
+          </button>
+
+          {/* Interactive Tools Button */}
+          <button
+            type="button"
+            onClick={() => setLeftMenu(leftMenu === 'tools' ? null : 'tools')}
+            className={`w-full p-2.5 lg:px-3 lg:py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center lg:justify-start gap-2.5 transition-all cursor-pointer ${
+              leftMenu === 'tools' ? 'bg-indigo-500 text-white font-bold shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10'
+            }`}
+            title="Interactive Tools"
+          >
+            <Monitor size={16} className={leftMenu === 'tools' ? 'text-white shrink-0' : 'text-indigo-400 shrink-0'} />
+            <span className="hidden lg:inline whitespace-nowrap">Tools</span>
+          </button>
+
+          {/* Archive Button */}
+          <button
+            type="button"
+            onClick={() => setLeftMenu(leftMenu === 'archive' ? null : 'archive')}
+            className={`w-full p-2.5 lg:px-3 lg:py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center lg:justify-start gap-2.5 transition-all cursor-pointer ${
+              leftMenu === 'archive' ? 'bg-emerald-500 text-slate-950 font-bold shadow-[0_0_12px_rgba(16,185,129,0.4)]' : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10'
+            }`}
+            title="Media Archive"
+          >
+            <Archive size={16} className={leftMenu === 'archive' ? 'text-slate-950 shrink-0' : 'text-emerald-400 shrink-0'} />
+            <span className="hidden lg:inline whitespace-nowrap">Archive</span>
+          </button>
+        </div>
+
+        {/* Bottom Menu Items (Settings) */}
+        <div className="flex flex-col items-center lg:items-stretch w-full pt-2 border-t border-white/10">
+          <button
+            type="button"
+            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+            className={`w-full p-2.5 lg:px-3 lg:py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center lg:justify-start gap-2.5 transition-all cursor-pointer ${
+              isSettingsOpen ? 'bg-pink-500 text-white font-bold shadow-[0_0_12px_rgba(236,72,153,0.4)]' : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10'
+            }`}
+            title="Tutor Settings"
+          >
+            <Settings size={16} className={isSettingsOpen ? 'text-white shrink-0' : 'text-pink-400 shrink-0'} />
+            <span className="hidden lg:inline whitespace-nowrap">Settings</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Drawers / Overlays with strict viewable height constraint */}
+      <AnimatePresence>
+        {leftMenu && (
+          <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-3 sm:p-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.96 }}
+              className="w-full max-w-lg max-h-[80vh] flex flex-col bg-slate-900 border border-white/15 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl overflow-hidden"
+            >
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
+                <div className="flex items-center gap-2">
+                  {leftMenu === 'chats' && (
+                    <>
+                      <div className="w-8 h-8 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                        <MessageSquare size={18} />
+                      </div>
+                      <h3 className="font-display font-bold text-white text-sm">Chat History & Folders</h3>
+                    </>
+                  )}
+                  {leftMenu === 'activities' && (
+                    <>
+                      <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
+                        <Sparkles size={18} />
+                      </div>
+                      <h3 className="font-display font-bold text-white text-sm">Suggested Activities</h3>
+                    </>
+                  )}
+                  {leftMenu === 'tools' && (
+                    <>
+                      <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                        <Monitor size={18} />
+                      </div>
+                      <h3 className="font-display font-bold text-white text-sm">Interactive Toolset</h3>
+                    </>
+                  )}
+                  {leftMenu === 'archive' && (
+                    <>
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                        <Archive size={18} />
+                      </div>
+                      <h3 className="font-display font-bold text-white text-sm">Content & Media Archive</h3>
+                    </>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLeftMenu(null)}
+                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Drawer Content */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar pt-3 min-h-0">
+                {/* CHATS CONTENT */}
+                {leftMenu === 'chats' && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+                        <input
+                          type="text"
+                          placeholder="Search past chats..."
+                          value={searchHistoryQuery}
+                          onChange={e => setSearchHistoryQuery(e.target.value)}
+                          className="w-full bg-slate-800/90 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { handleNewChat(); setLeftMenu(null); }}
+                        className="px-3 py-2 bg-cyan-500 text-slate-950 rounded-xl font-bold text-xs flex items-center gap-1 hover:opacity-90 transition-all cursor-pointer whitespace-nowrap"
+                      >
+                        <Plus size={14} /> New Chat
+                      </button>
+                    </div>
+
+                    <div className="space-y-1.5 max-h-[50vh] overflow-y-auto custom-scrollbar pr-1">
+                      {sessions
+                        .filter(s => !searchHistoryQuery || s.title.toLowerCase().includes(searchHistoryQuery.toLowerCase()) || s.messages.some(m => m.text.toLowerCase().includes(searchHistoryQuery.toLowerCase())))
+                        .map(s => (
+                          <div
+                            key={s.id}
+                            onClick={() => { setActiveSessionId(s.id); setLeftMenu(null); }}
+                            className={`p-3 rounded-xl border transition-all text-left cursor-pointer group flex items-center justify-between text-xs ${
+                              s.id === activeSessionId ? 'bg-cyan-500/20 border-cyan-500/50 text-white font-bold' : 'bg-slate-800/80 border-white/5 text-slate-300 hover:bg-slate-800 hover:text-white'
+                            }`}
+                          >
+                            <div className="min-w-0 flex-1 pr-2">
+                              <div className="truncate font-medium">{s.title || 'Discussion'}</div>
+                              <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                                <span>{s.subject || 'General'}</span>
+                                <span>•</span>
+                                <span>{new Date(s.updatedAt).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteChat(s.id, e)}
+                              className="p-1 hover:text-rose-400 text-slate-500 transition-all cursor-pointer"
+                              title="Delete session"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      {sessions.length === 0 && (
+                        <div className="text-center py-8 text-slate-500 text-xs">
+                          No chat history yet. Start a discussion above!
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* SUGGESTED ACTIVITIES CONTENT */}
+                {leftMenu === 'activities' && (
+                  <div className="space-y-2.5">
+                    <p className="text-xs text-slate-400">Choose a quick curriculum activity to begin learning right away:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setInput('Explain Grade 5 Math - Fractions with visual step-by-step examples'); handleSend('Explain Grade 5 Math - Fractions with visual step-by-step examples'); setLeftMenu(null); }}
+                        className="p-3 rounded-xl bg-slate-800/90 border border-amber-500/30 text-left hover:border-amber-400 transition-all group cursor-pointer flex flex-col justify-between gap-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white group-hover:text-amber-200">Math - Fractions</span>
+                          <Sparkles size={14} className="text-amber-400" />
+                        </div>
+                        <span className="text-[11px] text-slate-400">Visual breakdowns of numerators, denominators and improper fractions.</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => { setInput('Explain Science - Solar System with planetary facts and scale models'); handleSend('Explain Science - Solar System with planetary facts and scale models'); setLeftMenu(null); }}
+                        className="p-3 rounded-xl bg-slate-800/90 border border-cyan-500/30 text-left hover:border-cyan-400 transition-all group cursor-pointer flex flex-col justify-between gap-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white group-hover:text-cyan-200">Solar System</span>
+                          <Sparkles size={14} className="text-cyan-400" />
+                        </div>
+                        <span className="text-[11px] text-slate-400">Planets, orbits, asteroid belts, and cosmic exploration.</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => { setInput('Let us do an English - Grammar Quiz testing parts of speech and punctuation'); handleSend('Let us do an English - Grammar Quiz testing parts of speech and punctuation'); setLeftMenu(null); }}
+                        className="p-3 rounded-xl bg-slate-800/90 border border-emerald-500/30 text-left hover:border-emerald-400 transition-all group cursor-pointer flex flex-col justify-between gap-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white group-hover:text-emerald-200">Grammar Quiz</span>
+                          <Sparkles size={14} className="text-emerald-400" />
+                        </div>
+                        <span className="text-[11px] text-slate-400">Interactive quick checks on verbs, nouns, adjectives, and syntax.</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => { setInput('Teach me about South African Geography, provinces and capital cities'); handleSend('Teach me about South African Geography, provinces and capital cities'); setLeftMenu(null); }}
+                        className="p-3 rounded-xl bg-slate-800/90 border border-purple-500/30 text-left hover:border-purple-400 transition-all group cursor-pointer flex flex-col justify-between gap-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white group-hover:text-purple-200">SA Geography</span>
+                          <Sparkles size={14} className="text-purple-400" />
+                        </div>
+                        <span className="text-[11px] text-slate-400">Provinces, capitals, natural landmarks, and biomes.</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* INTERACTIVE TOOLSET CONTENT */}
+                {leftMenu === 'tools' && (
+                  <div className="space-y-2.5">
+                    <p className="text-xs text-slate-400">Launch specialized AI teaching modes and pedagogical tools:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setInput('Start an Interactive Whiteboard session to draw and visualize math or science concepts.'); handleSend('Start an Interactive Whiteboard session to draw and visualize math or science concepts.'); setLeftMenu(null); }}
+                        className="p-3 bg-slate-800/90 border border-cyan-500/30 rounded-xl text-left hover:border-cyan-400 transition-all flex items-start gap-3 cursor-pointer group"
+                      >
+                        <div className="p-2 bg-cyan-500/10 rounded-xl text-cyan-400 group-hover:scale-110 transition-transform shrink-0">
+                          <Monitor size={16} />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-white group-hover:text-cyan-300">Whiteboard Canvas</h4>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Interactive board for diagrams, equations, and visual learning.</p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => { setInput('Activate Voice Tutor Mode. Please talk to me conversationally and ask guiding questions.'); handleSend('Activate Voice Tutor Mode. Please talk to me conversationally and ask guiding questions.'); setLeftMenu(null); }}
+                        className="p-3 bg-slate-800/90 border border-amber-500/30 rounded-xl text-left hover:border-amber-400 transition-all flex items-start gap-3 cursor-pointer group"
+                      >
+                        <div className="p-2 bg-amber-500/10 rounded-xl text-amber-400 group-hover:scale-110 transition-transform shrink-0">
+                          <Volume2 size={16} />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-white group-hover:text-amber-200">Voice Tutor Mode</h4>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Conversational voice loop with Socratic guiding questions.</p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => { setInput('Let us do a Step-by-Step Solver exercise. Give me a problem and guide me through solving it one step at a time.'); handleSend('Let us do a Step-by-Step Solver exercise. Give me a problem and guide me through solving it one step at a time.'); setLeftMenu(null); }}
+                        className="p-3 bg-slate-800/90 border border-purple-500/30 rounded-xl text-left hover:border-purple-400 transition-all flex items-start gap-3 cursor-pointer group"
+                      >
+                        <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400 group-hover:scale-110 transition-transform shrink-0">
+                          <Puzzle size={16} />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-white group-hover:text-purple-200">Step-by-Step Solver</h4>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Socratic problem-solving coach with phased hints.</p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => { setInput('Explain a core curriculum concept with visual examples and analogies.'); handleSend('Explain a core curriculum concept with visual examples and analogies.'); setLeftMenu(null); }}
+                        className="p-3 bg-slate-800/90 border border-emerald-500/30 rounded-xl text-left hover:border-emerald-400 transition-all flex items-start gap-3 cursor-pointer group"
+                      >
+                        <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-400 group-hover:scale-110 transition-transform shrink-0">
+                          <Eye size={16} />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-white group-hover:text-emerald-200">Concept Visualizer</h4>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Transform abstract lessons into vivid analogies and charts.</p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ARCHIVE CONTENT */}
+                {leftMenu === 'archive' && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-slate-400">Stored images, worksheets, and uploaded resources across your sessions:</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[50vh] overflow-y-auto custom-scrollbar pr-1">
+                      {sessions.flatMap(s => s.messages.filter(m => m.image).map((m, idx) => ({ url: m.image, title: s.title, date: s.updatedAt, id: s.id + idx }))).map((item, i) => (
+                        <div key={i} className="relative group rounded-xl overflow-hidden border border-white/10 bg-black/40 aspect-square">
+                          <img src={item.url} alt="Archived" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-end text-[10px]">
+                            <span className="text-white font-bold truncate">{item.title}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {sessions.flatMap(s => s.messages.filter(m => m.image)).length === 0 && (
+                      <div className="text-center py-8 text-slate-500 text-xs">
+                        <Archive size={24} className="mx-auto mb-2 opacity-40" />
+                        No archived files yet. Upload a document or worksheet in chat!
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+

@@ -1072,7 +1072,7 @@ export default function AutoGrading() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-12 pb-20">
+    <div className="w-full flex-1 flex flex-col min-h-0 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
       {/* Premium Notification Toast alerts */}
       <AnimatePresence>
         {localToast.show && (

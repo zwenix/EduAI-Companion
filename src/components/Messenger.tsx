@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Search, Send, Paperclip, Smile, Sparkles, 
   Users, FileText, Plus, MessageSquare, X, RefreshCw,
-  ChevronDown, Trash2
+  ChevronDown, Trash2, ArrowLeft, PanelLeftClose, PanelLeftOpen, Menu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../lib/firebase';
@@ -148,6 +148,8 @@ export default function Messenger() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedSections, setExpandedSections] = useState({ chats: true, collaborations: false, contacts: false });
   const [deletedThreadIds, setDeletedThreadIds] = useState<Set<string>>(new Set());
+  const [mobileShowChat, setMobileShowChat] = useState<boolean>(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   
   // Real data state
   const [dbUsers, setDbUsers] = useState<UserContact[]>([]);
@@ -642,7 +644,7 @@ export default function Messenger() {
     return (
       <button
         key={thread.id}
-        onClick={() => setActiveThreadId(thread.id)}
+        onClick={() => { setActiveThreadId(thread.id); setMobileShowChat(true); }}
         className={`w-full text-left p-3 rounded-2xl transition-all flex items-center gap-3 relative cursor-pointer group ${
           isActive
             ? 'bg-[#1a142c] border border-pink-500/30 shadow-[0_4px_20px_rgba(236,72,153,0.15)]'
@@ -715,7 +717,7 @@ export default function Messenger() {
     return (
       <button
         key={contact.id}
-        onClick={() => setActiveThreadId(directId)}
+        onClick={() => { setActiveThreadId(directId); setMobileShowChat(true); }}
         className={`w-full text-left p-3 rounded-2xl transition-all flex items-center gap-3 relative cursor-pointer group ${
           isActive
             ? 'bg-[#1a142c] border border-pink-500/30'
@@ -760,10 +762,12 @@ export default function Messenger() {
       <div className="w-full h-full min-h-0 overflow-hidden bg-[#0c1024] rounded-2xl flex flex-col md:flex-row relative">
       
       {/* LEFT PANEL: Chats / Collaborations / Contacts */}
-      <div className="w-full md:w-80 xl:w-96 shrink-0 bg-[#141a2e] border-r border-cyan-500/10 p-4 flex flex-col shadow-xl relative overflow-hidden z-10 min-h-0 h-full">
+      <div className={`w-full ${isSidebarCollapsed ? 'md:w-20' : 'md:w-80 xl:w-96'} shrink-0 bg-[#141a2e] border-r border-cyan-500/10 p-3 sm:p-4 flex flex-col shadow-xl relative overflow-hidden z-10 min-h-0 h-full transition-all duration-300 ${
+        mobileShowChat ? 'hidden md:flex' : 'flex'
+      }`}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-display font-black tracking-tight text-white">Messenger</h2>
+            {!isSidebarCollapsed && <h2 className="text-lg font-display font-black tracking-tight text-white">Messenger</h2>}
             <button
               type="button"
               onClick={handleRefreshChats}
@@ -772,42 +776,54 @@ export default function Messenger() {
             >
               <RefreshCw size={14} />
             </button>
+            <button
+              type="button"
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="hidden md:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all ml-1"
+              title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {isSidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+            </button>
           </div>
-          <button 
-            type="button" 
-            onClick={() => setShowNewChatModal(true)}
-            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg transition-all active:scale-95 cursor-pointer"
-            title="Start New Conversation"
-          >
-            <Plus size={14} />
-            <span>New Chat</span>
-          </button>
+          {!isSidebarCollapsed && (
+            <button 
+              type="button" 
+              onClick={() => setShowNewChatModal(true)}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg transition-all active:scale-95 cursor-pointer"
+              title="Start New Conversation"
+            >
+              <Plus size={14} />
+              <span>New Chat</span>
+            </button>
+          )}
         </div>
 
         {/* Search Bar */}
-        <div className="relative mb-3">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-          <input
-            type="text"
-            placeholder="Search chats, collaborations & contacts..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#11162d] border border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50 transition-all font-medium"
-          />
-        </div>
+        {!isSidebarCollapsed && (
+          <div className="relative mb-3">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+            <input
+              type="text"
+              placeholder="Search chats, collaborations & contacts..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#11162d] border border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50 transition-all font-medium"
+            />
+          </div>
+        )}
 
         {/* Sections */}
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1">
           {/* Chats (expanded by default) */}
           <SidebarSection
-            title="Chats"
+            title={isSidebarCollapsed ? "Chat" : "Chats"}
             count={filteredChats.length + (generalThread && matchesSearch(generalThread.title) ? 1 : 0)}
             open={expandedSections.chats}
             onToggle={() => setExpandedSections(s => ({ ...s, chats: !s.chats }))}
           >
             {generalThread && matchesSearch(generalThread.title) && !deletedThreadIds.has(generalThread.id) && renderThreadItem(generalThread)}
             {filteredChats.length === 0 ? (
-              <p className="text-center py-4 text-slate-500 text-[11px]">No chat history yet. Start a conversation from Contacts.</p>
+              <p className="text-center py-4 text-slate-500 text-[11px]">No chat history yet.</p>
             ) : (
               filteredChats.map(renderThreadItem)
             )}
@@ -815,7 +831,7 @@ export default function Messenger() {
 
           {/* Collaborations (collapsed by default) */}
           <SidebarSection
-            title="Collaborations"
+            title={isSidebarCollapsed ? "Collab" : "Collaborations"}
             count={filteredCollabs.length}
             open={expandedSections.collaborations}
             onToggle={() => setExpandedSections(s => ({ ...s, collaborations: !s.collaborations }))}
@@ -829,7 +845,7 @@ export default function Messenger() {
 
           {/* Contacts (collapsed by default) */}
           <SidebarSection
-            title="Contacts"
+            title={isSidebarCollapsed ? "Contacts" : "Contacts"}
             count={filteredContacts.length}
             open={expandedSections.contacts}
             onToggle={() => setExpandedSections(s => ({ ...s, contacts: !s.contacts }))}
@@ -844,14 +860,27 @@ export default function Messenger() {
       </div>
 
       {/* RIGHT PANEL: Active Chat Stream */}
-      <div className="flex-1 bg-[#0c1024] flex flex-col relative overflow-hidden h-full">
+      <div className={`flex-1 bg-[#0c1024] flex flex-col relative overflow-hidden h-full ${
+        !mobileShowChat ? 'hidden md:flex' : 'flex'
+      }`}>
         
         {/* Top Header Bar */}
-        <div className="p-4 sm:p-5 border-b border-white/10 bg-transparent backdrop-blur-md flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5 min-w-0">
+        <div className="p-3 sm:p-5 border-b border-white/10 bg-transparent backdrop-blur-md flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+            {/* Mobile Back Button */}
+            <button
+              type="button"
+              onClick={() => setMobileShowChat(false)}
+              className="md:hidden p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 hover:text-white flex items-center gap-1 text-xs font-bold transition-all shrink-0 cursor-pointer"
+              title="Back to Conversations"
+            >
+              <ArrowLeft size={16} />
+              <span className="hidden sm:inline">Chats</span>
+            </button>
+
             <div className="shrink-0">
               {activeThread.type === 'group' ? (
-                <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-cyan-900/60 via-purple-900/60 to-slate-800 border border-cyan-500/30 flex items-center justify-center text-cyan-300">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-tr from-cyan-900/60 via-purple-900/60 to-slate-800 border border-cyan-500/30 flex items-center justify-center text-cyan-300">
                   <Users size={18} />
                 </div>
               ) : (
@@ -859,7 +888,7 @@ export default function Messenger() {
                   src={activeThread.avatar || getAvatarUrl({ name: activeThread.title })} 
                   alt={activeThread.title} 
                   referrerPolicy="no-referrer"
-                  className="w-11 h-11 rounded-full object-cover border border-white/15 bg-slate-800"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover border border-white/15 bg-slate-800"
                   onError={(e) => {
                     const target = e.currentTarget as HTMLImageElement;
                     target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(activeThread.title)}&backgroundColor=1e293b`;

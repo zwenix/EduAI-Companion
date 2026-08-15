@@ -165,7 +165,7 @@ import {
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
 const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDarkMode, themeMode, role }: { id?: string, icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean, isDarkMode?: boolean, themeMode?: string, role?: string | null }) => {
-  const displayLabel = id === 'teacher-dashboard-menu' && label !== 'Home' && role !== 'student' ? 'Chalkboard' : label;
+  const displayLabel = id === 'teacher-dashboard-menu' && role !== 'student' ? "Dashboard" : label;
 
   return (
     <button
@@ -836,12 +836,12 @@ export default function App() {
     
     if (r === 'teacher') {
       return [
-        { id: 'teacher-dashboard-menu', label: 'Classroom Chalkboard', icon: IconHome },
+        { id: 'teacher-dashboard-menu', label: "Dashboard", icon: IconHome },
         { id: 'lesson-planning', label: "Teacher's Toolbox", icon: IconCurriculum },
         { id: 'curriculum-planning', label: 'Curriculum & Planning', icon: IconMagicPlanner },
         { id: 'intelligence-ai', label: 'Intelligent AI', icon: SmartBotTutorIcon },
         { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
-        { id: 'class-analytics', label: 'Reports & Portfolios', icon: IconAnalytics },
+        { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
         { id: 'student-class-management', label: 'Message & Collaborate', icon: IconClassrooms },
         { id: 'system-support', label: 'Settings', icon: IconSettings },
       ];
@@ -852,7 +852,7 @@ export default function App() {
         { id: 'teacher-dashboard-menu', label: firstLabel, icon: IconHome },
         { id: 'lesson-planning', label: 'My Class', icon: IconCurriculum },
         { id: 'intelligence-ai', label: "AI Tutor's Class", icon: SmartBotTutorIcon },
-        { id: 'class-analytics', label: 'Reports & Portfolios', icon: IconAnalytics },
+        { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
         { id: 'student-class-management', label: 'Chat & Messenger', icon: IconClassrooms },
         { id: 'system-support', label: 'System support', icon: IconSettings },
       ];
@@ -864,7 +864,7 @@ export default function App() {
       { id: 'curriculum-planning', label: 'Curriculum & Planning', icon: IconMagicPlanner },
       { id: 'intelligence-ai', label: 'Intelligent AI', icon: SmartBotTutorIcon },
       { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
-      { id: 'class-analytics', label: 'Reports & Portfolios', icon: IconAnalytics },
+      { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
       { id: 'student-class-management', label: 'Chat & Messenger', icon: IconClassrooms },
       { id: 'system-support', label: 'System support', icon: IconSettings },
     ];
@@ -887,7 +887,7 @@ export default function App() {
           ];
         case 'intelligence-ai':
           return [
-            { id: 'ai-tutor', label: 'AI Tutor Helpers', icon: SmartBotTutorIcon }
+            { id: 'ai-tutor', label: 'Tutor', icon: SmartBotTutorIcon }
           ];
         case 'class-analytics':
           return [
@@ -918,7 +918,7 @@ export default function App() {
       switch (catId) {
         case 'teacher-dashboard-menu':
           return [
-            { id: 'dashboard', label: 'Parent Dashboard Hub', icon: IconHome }
+            { id: 'dashboard', label: 'Parent Dashboard', icon: IconHome }
           ];
         case 'lesson-planning':
           return [];
@@ -952,7 +952,7 @@ export default function App() {
       switch (catId) {
         case 'teacher-dashboard-menu':
           return [
-            { id: 'dashboard', label: 'Admin Dashboard Hub', icon: IconHome }
+            { id: 'dashboard', label: 'Admin Dashboard', icon: IconHome }
           ];
         case 'lesson-planning':
           return [
@@ -960,8 +960,8 @@ export default function App() {
           ];
         case 'intelligence-ai':
           return [
-            { id: 'ai-tutor', label: 'AI System Controls', icon: SmartBotTutorIcon },
-            { id: 'ocr', label: 'OCR Grading Logs', icon: QuizQuestsIcon }
+            { id: 'ai-tutor', label: 'Tutor', icon: SmartBotTutorIcon },
+            { id: 'ocr', label: 'Autograder', icon: QuizQuestsIcon }
           ];
         case 'class-analytics':
           return [
@@ -989,7 +989,7 @@ export default function App() {
       switch (catId) {
         case 'teacher-dashboard-menu':
           return [
-            { id: 'dashboard', label: 'Teacher Dashboard', icon: IconHome }
+            { id: 'dashboard', label: 'Dashboard', icon: IconHome }
           ];
         case 'lesson-planning':
           return [
@@ -1010,19 +1010,19 @@ export default function App() {
           ];
         case 'intelligence-ai':
           return [
-            { id: 'ai-tutor', label: 'AI Tutor Support', icon: SmartBotTutorIcon },
-            { id: 'ocr', label: "Teacher's Auto-Grading Lab", icon: SuperWorksheetsIcon }
+            { id: 'ai-tutor', label: 'Tutor', icon: SmartBotTutorIcon },
+            { id: 'ocr', label: 'Autograder', icon: SuperWorksheetsIcon }
           ];
         case 'class-analytics':
           return [
-            { id: 'reports', label: 'Progress Reports', icon: ProgressTrophiesIcon },
-            { id: 'portfolios', label: 'Learner Personal Portfolios', icon: SuperWorksheetsIcon },
+            { id: 'reports', label: 'Progress Reports & Analytics', icon: ProgressTrophiesIcon },
             { id: 'curriculum', label: 'CAPS & Gamification Hub', icon: QuizQuestsIcon }
           ];
         case 'class-management':
           return [
             { id: 'class-management', label: 'Class Management', icon: IconClassrooms },
-            { id: 'learner-intervention', label: 'Learner Intervention Hub', icon: UserCheck }
+            { id: 'learner-intervention', label: 'Learner Intervention Hub', icon: UserCheck },
+            { id: 'portfolios', label: 'Learner Profiles & Portfolios', icon: SuperWorksheetsIcon }
           ];
         case 'student-class-management':
           return [
@@ -1059,6 +1059,29 @@ export default function App() {
     return 'teacher-dashboard-menu';
   };
 
+  const shortenTitleForTopBar = (raw: string): string => {
+    if (!raw) return '';
+    const l = raw.toLowerCase();
+    if (l === 'ai-tutor' || l.includes('ai tutor') || l.includes('tutor')) return 'Tutor';
+    if (l === 'ocr' || l.includes('auto-grading') || l.includes('autograder') || l.includes('grading')) return 'Autograder';
+    if (l.includes('chalkboard') || l.includes('dashboard') || l === 'home') return 'Dashboard';
+    if (l.includes('toolbox') || l.includes('content creator') || l.includes('content studio') || l.includes('edu-tools')) return 'Toolbox';
+    if (l.includes('curriculum')) return 'Curriculum';
+    if (l.includes('intelligence ai') || l.includes('intelligent ai')) return 'Intelligent AI';
+    if (l.includes('classes') || l.includes('class management') || l.includes('learners')) return 'Class Management';
+    if (l.includes('reports') || l.includes('analytics')) return 'Analytics & Reports';
+    if (l.includes('messenger') || l.includes('message') || l.includes('communicator')) return 'Messenger';
+    if (l.includes('weekly planner')) return 'Weekly Planner';
+    if (l.includes('planner') || l.includes('diary')) return 'Planner';
+    if (l.includes('alerts') || l.includes('notifications')) return 'Alerts';
+    if (l.includes('intervention')) return 'Learner Intervention';
+    if (l.includes('portfolio')) return 'Portfolios';
+    if (l.includes('settings') || l.includes('system support')) return 'Settings';
+    if (l.includes('helpdesk') || l.includes('help')) return 'Helpdesk';
+    if (l.includes('video')) return 'Video Lab';
+    return raw;
+  };
+
   const getPageTitle = () => {
     if (activeCreatorTab) {
       switch (activeCreatorTab) {
@@ -1075,45 +1098,67 @@ export default function App() {
         default:
           return activeCreatorTab.charAt(0).toUpperCase() + activeCreatorTab.slice(1);
       }
-    }
-
-    if (categoryOverviewActive) {
+    } else if (categoryOverviewActive) {
       const cat = sidebarCategories.find(c => c.id === categoryOverviewActive);
-      if (cat) return cat.label;
-    }
-
-    switch (activeTab) {
-      case 'dashboard':
-        return userRole === 'teacher' ? 'Home' : userRole === 'student' ? 'Student Dashboard' : userRole === 'parent' ? 'Parent Dashboard' : 'Admin Dashboard';
-      case 'teaching':
-        return 'Lesson Planner';
-      case 'alerts':
-        return 'Alerts & Reminders';
-      case 'archive':
-        return 'Content Archive';
-      case 'planner':
-        return "Teacher's Planner & Diary";
-      case 'reports':
-        return 'Reports & Portfolios';
-      case 'class-management':
-        return 'Classes & Learners';
-      case 'settings':
-        return 'Settings';
-      case 'ai-tutor':
-        return 'Intelligent AI';
-      case 'ocr':
-        return "Teacher's Auto-Grading Lab";
-      case 'messenger':
-        return 'Message & Collaborate';
-      case 'video':
-        return 'Video Lab Studio';
-      default:
-        for (const cat of sidebarCategories) {
-          const subTabs = getSubTabsForCategory(cat.id, userRole);
-          const tab = subTabs.find(t => t.id === activeTab);
-          if (tab) return tab.label;
+      if (cat) return cat.label === "Teacher's Chalkboard" ? 'Dashboard' : cat.label;
+      return categoryOverviewActive === 'teacher-dashboard-menu' ? 'Dashboard' : categoryOverviewActive;
+    } else {
+      switch (activeTab) {
+        case 'dashboard':
+          return userRole === 'student' ? 'Student Dashboard' : userRole === 'parent' ? 'Parent Dashboard' : userRole === 'admin' ? 'Admin Dashboard' : 'Dashboard';
+        case 'teaching':
+          return 'Lesson Planner';
+        case 'ai-tutor':
+          return 'Tutor';
+        case 'ocr':
+          return 'Autograder';
+        case 'weekly-planner':
+          return 'Weekly Planner';
+        case 'planner':
+          return "Teacher's Planner";
+        case 'curriculum':
+          return 'Curriculum & CAPS';
+        case 'archive':
+          return 'Content Archive';
+        case 'illustrations':
+          return 'Illustration Library';
+        case 'alerts':
+          return 'Alerts & Reminders';
+        case 'reports':
+          return 'Analytics & Reports';
+        case 'class-management':
+          return 'Class Management';
+        case 'learner-intervention':
+          return 'Learner Intervention';
+        case 'portfolios':
+          return 'Portfolios';
+        case 'messenger':
+          return 'Messenger';
+        case 'settings':
+          return 'Settings';
+        case 'helpdesk':
+          return 'Helpdesk';
+        case 'faq':
+          return 'Support FAQ';
+        case 'video':
+          return 'Video Lab';
+        case 'student-practice':
+          return 'Practice Zone';
+        case 'collaborative-workspace':
+          return 'Collaborative Workspace';
+        case 'student-notes':
+          return 'Class Notes';
+        default: {
+          for (const cat of sidebarCategories) {
+            const subTabs = getSubTabsForCategory(cat.id, userRole);
+            const tab = subTabs.find(t => t.id === activeTab);
+            if (tab) {
+              return tab.label;
+            }
+          }
+          return activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
         }
-        return activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
+      }
     }
   };
 
@@ -1459,7 +1504,9 @@ export default function App() {
                   window.dispatchEvent(new CustomEvent('close-topbar-menus'));
                   setActiveCategory(cat.id);
                   const subTabs = getSubTabsForCategory(cat.id, userRole);
-                  if (subTabs.length <= 1 || cat.id === 'teacher-dashboard-menu') {
+                  if (cat.id === 'intelligence-ai') {
+                    setCategoryOverviewActive('intelligence-ai');
+                  } else if (subTabs.length <= 1 || cat.id === 'teacher-dashboard-menu') {
                     setCategoryOverviewActive(null);
                     if (subTabs.length > 0) {
                       const targetSubTab = subTabs[0].id;
@@ -2593,14 +2640,15 @@ export default function App() {
           <AnimatePresence mode="wait">
             {(() => {
               // Full-bleed tabs fill the content canvas and own internal scroll (no outer page scroll / max-width box).
-              const FULL_BLEED_TABS = ['ai-tutor', 'messenger', 'settings', 'helpdesk', 'class-management'];
+              const FULL_BLEED_TABS = ['ai-tutor', 'ocr', 'messenger', 'settings', 'helpdesk', 'class-management'];
               const isFullBleed = FULL_BLEED_TABS.includes(activeTab) && !categoryOverviewActive;
               const currentSubTabs = getSubTabsForCategory(activeCategory, userRole);
               const showHubBack =
                 !categoryOverviewActive &&
                 !isFullBleed &&
                 currentSubTabs.length > 1 &&
-                activeCategory !== 'teacher-dashboard-menu';
+                activeCategory !== 'teacher-dashboard-menu' &&
+                activeCategory !== 'intelligence-ai';
               const catLabel = sidebarCategories.find(c => c.id === activeCategory)?.label || '';
 
               return (
@@ -2625,7 +2673,7 @@ export default function App() {
                 isFullBleed
                   ? "flex flex-col flex-1 min-h-0 h-full"
                   // IMPORTANT: no min-h-0 / flex here — natural content height is required for outer scroll
-                  : "max-w-7xl mx-auto space-y-4 lg:space-y-5 pb-8"
+                  : "w-full max-w-full mx-auto space-y-4 lg:space-y-5 pb-8 px-1 sm:px-2 lg:px-4"
               )}>
                   {categoryOverviewActive ? (
                     <CategoryOverview
@@ -2689,6 +2737,12 @@ export default function App() {
                         if (tabId === 'edu-tools-hub' || tabId === 'lesson-planning-landing') {
                           setActiveCategory('lesson-planning');
                           setCategoryOverviewActive('lesson-planning');
+                        } else if (tabId === 'alerts-planner' || tabId === 'alerts-planner-landing') {
+                          setActiveCategory('curriculum-planning');
+                          setCategoryOverviewActive('alerts-planner');
+                        } else if (tabId === 'ai-tutor-landing' || tabId === 'intelligence-ai-landing') {
+                          setActiveCategory('intelligence-ai');
+                          setCategoryOverviewActive('intelligence-ai');
                         } else if (tabId === 'teaching') {
                           setActiveCreatorTab('teaching');
                           setActiveTab('teaching');
@@ -2744,7 +2798,7 @@ export default function App() {
                     ) : activeTab === 'illustrations' ? (
                       <IllustrationLibrary isDarkMode={isDarkMode} />
                     ) : activeTab === 'ai-tutor' ? (
-                      <AITutorPage onBack={() => setActiveTab('dashboard')} />
+                      <AITutorPage onBack={() => { setActiveTab('dashboard'); setActiveCategory('teacher-dashboard-menu'); }} />
                     ) : activeTab === 'student-practice' ? (
                       <StudentPractice isDarkMode={isDarkMode} />
                     ) : activeTab === 'collaborative-workspace' ? (
@@ -2864,29 +2918,6 @@ export default function App() {
           </AnimatePresence>
         </div>
       </main>
-
-      {/* Floating Action Button */}
-      {!isMobile && (
-        <button 
-          onClick={() => {
-            setActiveTab('ai-tutor');
-            setActiveCategory('intelligence-ai');
-          }}
-          className="fixed bottom-6 right-6 w-16 h-16 bg-cyan-500 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.6)] hover:scale-110 active:scale-95 transition-all z-50 group border-none cursor-pointer"
-          style={{ boxShadow: '0 0 35px rgba(6,182,212,1)' }}
-          title="Ask AI Tutor"
-        >
-          <img 
-            alt="Chat" 
-            className="w-10 h-10 opacity-95 group-hover:rotate-6 transition-transform" 
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7zewRMyV--kCZaHJSO_9x4qxRG3o69WfH4n9leN13ztwgzvFzeOJQYDn6jpdMAoXYrBxfDCl29siyH7vDmw68cTdENIjUO-r06T5MTNnFzbOSuE4tPHDtv1ci1c1jh1fmU0nkqEcnEMXr_tgOu0CCS5xi1xseKuCGk8aU9ebquaZXWwLaa-uyXygeY1pkCoMNpfcvnLrO-fz73IT66HLSczmeQ9_IQdzQKXK3xIFk3X8k0zPFzAXBeg" 
-            referrerPolicy="no-referrer"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-        </button>
-      )}
 
       {/* App Components */}
       <AnimatePresence>

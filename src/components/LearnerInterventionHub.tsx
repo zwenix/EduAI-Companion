@@ -34,6 +34,8 @@ import {
 } from 'lucide-react';
 import { generateEducationalContent } from '../services/geminiService';
 
+const overlayTeachersToolbox = 'https://i.ibb.co/RGmCJ3jh/teachers-toolbox.png';
+
 interface LearnerInterventionProfile {
   id: string;
   learnerName: string;
@@ -402,33 +404,38 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* TOP HERO BANNER & PORTAL NAVIGATION */}
-        <div className={`relative overflow-hidden rounded-[32px] p-6 lg:p-8 border shadow-xl ${
+        <div className={`relative overflow-hidden rounded-[32px] p-6 lg:p-8 border shadow-2xl transition-all ${
           isDarkMode
-            ? 'bg-gradient-to-r from-[#0b172a] via-[#0d213a] to-[#12192d] border-cyan-500/20 shadow-cyan-950/20'
+            ? 'bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.9)_0%,rgba(8,11,34,1)_100%)] border-amber-500/30 shadow-[0_0_50px_rgba(245,158,11,0.15)] text-slate-100'
             : 'bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border-slate-800 shadow-slate-200'
         }`}>
-          {/* Background Glow Accents */}
-          <div className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+          {/* Background Overlay & Ambient Glows */}
+          <div 
+            className="absolute inset-0 pointer-events-none z-0 opacity-25 mix-blend-overlay bg-cover bg-center" 
+            style={{ backgroundImage: `url(${overlayTeachersToolbox})` }} 
+          />
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-amber-500/15 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-purple-500/15 rounded-full blur-[120px] pointer-events-none" />
 
-          <div className="relative z-10 space-y-4">
+          <div className="relative z-10 space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 text-xs font-bold uppercase tracking-widest font-display">
-                <HeartHandshake size={14} className="text-cyan-400" />
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 backdrop-blur-md text-xs font-bold uppercase tracking-widest font-display">
+                <HeartHandshake size={15} className="text-amber-400 animate-pulse" />
                 <span>DBE SIAS & CAPS Inclusive Education Portal</span>
               </div>
-              <div className="text-xs text-slate-400 font-medium">
+              <div className="text-xs text-amber-300/80 font-mono font-bold tracking-wider uppercase">
                 Official School-Based Support Team (SBST) Suite
               </div>
             </div>
 
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-              <div className="space-y-1.5 max-w-2xl">
-                <h1 className="text-2xl lg:text-4xl font-black font-display tracking-tight text-white flex items-center gap-3">
+              <div className="space-y-2 max-w-2xl">
+                <h1 className="text-3xl lg:text-5xl font-black font-display tracking-tight text-amber-300 drop-shadow-[0_0_25px_rgba(252,211,77,0.5)] flex items-center gap-3">
                   <span>Learner Intervention Hub</span>
-                  <Sparkles size={26} className="text-cyan-400 animate-pulse" />
+                  <Sparkles size={30} className="text-amber-300 animate-pulse" />
                 </h1>
-                <p className="text-xs lg:text-sm text-slate-300 leading-relaxed font-semibold">
+                <p className="text-xs lg:text-sm text-slate-300 leading-relaxed font-medium">
                   Diagnose student learning barriers, generate CAPS-aligned Individualized Learning Plans (ILPs), scaffolded remedial exercises, and actionable intervention timetables.
                 </p>
               </div>
@@ -441,9 +448,9 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
                     setWizardStep(1);
                     setSelectedProfile(null);
                   }}
-                  className="px-5 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-black uppercase tracking-wider font-display shadow-lg shadow-cyan-500/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 border-none cursor-pointer"
+                  className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider font-display shadow-[0_0_25px_rgba(252,211,77,0.4)] hover:shadow-[0_0_35px_rgba(252,211,77,0.7)] transition-all hover:scale-105 active:scale-95 flex items-center gap-2 border border-amber-200/50 cursor-pointer"
                 >
-                  <Plus size={16} strokeWidth={3} />
+                  <Plus size={18} strokeWidth={3} />
                   <span>New Learner Wizard</span>
                 </button>
               </div>

@@ -26,25 +26,28 @@ const isProviderFailure = (error: any): boolean => {
     : responseObj?.message || JSON.stringify(responseObj);
   const combinedMessage = `${rawMessage} ${responseMessage}`.toLowerCase();
   
-  // Credentials errors (401, 402, 403), rate limit (429), server errors (5xx), or missing key keyword matches should fall back.
+  // Any provider failure (status, network, quota, credentials, etc.) should fall back to Gemini
   const isTransient = 
-    status === 401 || status === 402 || status === 403 || status === 429 ||
+    status === 401 || status === 402 || status === 403 || status === 404 || status === 429 ||
     status === 500 || status === 502 || status === 503 || status === 504 ||
     combinedMessage.includes('quota') || 
     combinedMessage.includes('timeout') ||
-    combinedMessage.includes('network error') ||
+    combinedMessage.includes('network') ||
     combinedMessage.includes('not configured') ||
     combinedMessage.includes('api key') ||
     combinedMessage.includes('unauthorized') ||
+    combinedMessage.includes('unavailable') ||
+    combinedMessage.includes('transitioning') ||
+    combinedMessage.includes('fallback') ||
     combinedMessage.includes('invalid key');
 
   if (isTransient) {
-    console.warn(`[AI Routing] Transient or missing key error detected (${status || 'N/A'}): ${combinedMessage}. Triggering fallback.`);
+    console.log(`[AI Routing] Alternative model requested fallback (${status || 'N/A'}). Seamlessly routing to Gemini.`);
   } else {
-    console.error(`[AI Routing] Client/Validation error detected. No fallback triggered:`, error);
+    console.log(`[AI Routing] Routing request to primary Gemini fallback.`);
   }
   
-  return isTransient;
+  return true;
 };
 
 export const generateEducationalContent = async (type: string, details: string, provider: string = 'gemini') => {

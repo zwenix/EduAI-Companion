@@ -28,7 +28,8 @@ import {
   CheckCircle2,
   Clock,
   FileText,
-  Check
+  Check,
+  Brain
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -58,20 +59,20 @@ import bgVaultLibrary from '../assets/images/vault_library_bg_1785652535683.jpg'
 const TEACHING_OUTER_SLIDES = [bgContentStudio, bgAnalytics, bgFoundationHub, bgAdminLab, bgVisualPosters];
 
 // Per-card slideshow sets — each card cycles its own imagery like the toolbox cards
-const ALERTS_SLIDES = [
-  { image: bgAdminLab, title: 'Alerts' },
-  { image: bgAnalytics, title: 'Reminders' },
-  { image: bgVaultLibrary, title: 'ATP Warn' },
+const ALERTS_DIARY_PLANNER_SLIDES = [
+  { image: bgAdminLab, title: 'Alerts & Reminders' },
+  { image: bgPracticeZone, title: 'Schedule & Calendar' },
+  { image: bgVaultLibrary, title: 'ATP Deadline Warn' },
 ];
 const CONTENT_FACTORY_SLIDES = [
   { image: bgContentStudio, title: 'Content Studio' },
   { image: bgFoundationHub, title: 'Foundation Hub' },
   { image: bgVisualPosters, title: 'Visual Lab' },
 ];
-const PLANNER_SLIDES = [
-  { image: bgPracticeZone, title: 'Planner' },
-  { image: bgVideoAvatars, title: 'Diary' },
-  { image: bgVaultLibrary, title: 'Calendar' },
+const AUTOGRADER_TUTOR_SLIDES = [
+  { image: bgOcrGrading, title: 'AI OCR Autograder' },
+  { image: bgPracticeZone, title: 'AI Tutor Class' },
+  { image: bgAnalytics, title: 'Diagnostic Analytics' },
 ];
 
 function ShowcaseCard({
@@ -535,17 +536,17 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
 
         <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6">
           <ShowcaseCard
-            slides={ALERTS_SLIDES}
+            slides={ALERTS_DIARY_PLANNER_SLIDES}
             borderColorClass="border-pink-500/90"
             shadowColorClass="shadow-[0_0_20px_rgba(236,72,153,0.15)]"
             hoverBorderColorClass="hover:border-pink-400"
             hoverShadowColorClass="hover:shadow-[0_0_30px_rgba(236,72,153,0.45)]"
-            icon={<ShieldAlert size={28} className="text-pink-400 drop-shadow-[0_0_8px_rgba(236,72,153,0.6)]" />}
+            icon={<Calendar size={28} className="text-pink-400 drop-shadow-[0_0_8px_rgba(236,72,153,0.6)]" />}
             iconWrapClass="bg-pink-500/10 border-pink-400 text-pink-400 shadow-[0_0_15px_rgba(236,72,153,0.25)]"
-            title="Alerts & Reminders"
-            badge={<span className="px-1.5 py-0.5 rounded bg-pink-500/20 text-[9px] text-pink-300 font-bold animate-pulse">ATP Warn</span>}
-            desc="Track critical CAPS alerts & flags in real-time."
-            onClick={() => onNavigate('alerts')}
+            title="Alerts & Diary Planner"
+            badge={<span className="px-1.5 py-0.5 rounded bg-pink-500/20 text-[9px] text-pink-300 font-bold animate-pulse">ATP & Schedule</span>}
+            desc="Track CAPS alerts, weekly timetables & diary reminders."
+            onClick={() => onNavigate('alerts-planner', 'curriculum-planning')}
           />
           <ShowcaseCard
             slides={CONTENT_FACTORY_SLIDES}
@@ -561,17 +562,17 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             onClick={() => onNavigate('edu-tools-hub')}
           />
           <ShowcaseCard
-            slides={PLANNER_SLIDES}
-            borderColorClass="border-emerald-500/90"
-            shadowColorClass="shadow-[0_0_20px_rgba(16,185,129,0.15)]"
-            hoverBorderColorClass="hover:border-emerald-400"
-            hoverShadowColorClass="hover:shadow-[0_0_30px_rgba(16,185,129,0.45)]"
-            icon={<Calendar size={28} className="text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" />}
-            iconWrapClass="bg-emerald-500/10 border-emerald-400 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.25)]"
-            title="Planner & Diary"
-            badge={null}
-            desc="Manage your CAPS schedules, lessons & reminders."
-            onClick={() => onNavigate('planner')}
+            slides={AUTOGRADER_TUTOR_SLIDES}
+            borderColorClass="border-cyan-500/90"
+            shadowColorClass="shadow-[0_0_20px_rgba(6,182,212,0.15)]"
+            hoverBorderColorClass="hover:border-cyan-400"
+            hoverShadowColorClass="hover:shadow-[0_0_30px_rgba(6,182,212,0.45)]"
+            icon={<Brain size={28} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />}
+            iconWrapClass="bg-cyan-500/10 border-cyan-400 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)]"
+            title="AI Autograder & Tutor"
+            badge={<span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-[9px] text-cyan-300 font-bold animate-pulse">AI Engine</span>}
+            desc="Auto-grade papers with camera OCR & interact with AI Tutors."
+            onClick={() => onNavigate('intelligence-ai-landing', 'intelligence-ai')}
           />
         </div>
 
@@ -1049,8 +1050,8 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
       </motion.div>
 
       {/* Grading Overview Section */}
-      <motion.div variants={itemVariants} className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <motion.div variants={itemVariants} className="space-y-4 w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-display font-black tracking-widest text-cyan-400 uppercase">
@@ -1096,13 +1097,13 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
           </div>
         </div>
 
-        {/* Submissions Table Card */}
+        {/* Submissions Table Card - Stretched to fill full width & page */}
         <div className={cn(
-          "rounded-[32px] border-2 animate-border-flash-cyan backdrop-blur-md overflow-hidden shadow-2xl",
+          "rounded-[32px] border-2 animate-border-flash-cyan backdrop-blur-md overflow-hidden shadow-2xl w-full min-w-full flex-1 min-h-[420px] flex flex-col justify-between",
           isDarkMode ? "bg-slate-900/95" : "bg-slate-900/95"
         )}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto w-full flex-1">
+            <table className="w-full text-left text-xs min-w-full">
               <thead className="bg-slate-900/90 text-slate-400 uppercase tracking-wider text-[10px] border-b border-white/10">
                 <tr>
                   <th className="py-3.5 px-5 font-black">Learner</th>

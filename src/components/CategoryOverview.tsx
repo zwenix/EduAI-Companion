@@ -409,15 +409,15 @@ export default function CategoryOverview({
             <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
           </div>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)]">
-            AI Hub
+            AI Studio
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
-            Personalized AI Tutoring • Optical Script Analysis • Adaptive Curriculum Support
+            Personalized Tutor • Auto-Grading Lab • Adaptive Curriculum Support
           </p>
         </div>
 
         {/* HERO SHOWCASE SECTION: SLIDESHOW & FEATURE BANNER */}
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-3 max-w-6xl mx-auto w-full items-stretch">
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-3 w-full max-w-full mx-auto items-stretch">
           
           {/* LEFT: Intelligent AI Slideshow */}
           <div className="lg:col-span-7 flex flex-col justify-center">
@@ -477,7 +477,7 @@ export default function CategoryOverview({
         </div>
 
         {/* Feature Grid */}
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-6xl mx-auto w-full my-4 items-stretch">
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 w-full max-w-full mx-auto my-4 items-stretch">
           
           {/* CARD 1: AI Tutor (Orange/Amber Border Glow) */}
           <motion.div
@@ -654,6 +654,185 @@ export default function CategoryOverview({
             })}
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Dedicated Alerts & Diary Planner Landing Page
+  if (
+    categoryLabel === 'Alerts & Diary Planner' ||
+    categoryLabel === 'alerts-planner' ||
+    categoryLabel === 'Alerts & Reminders' ||
+    categoryLabel === 'Planner & Diary' ||
+    categoryLabel === 'Notifications & Planning Reminders'
+  ) {
+    const ALERTS_CARD_SLIDES = [
+      { image: bgAdminLab, title: 'Alerts & ATP Reminders', description: 'Monitor CAPS curriculum pace, learner risk flags, and deadline warnings.' },
+      { image: bgAnalytics, title: 'Risk Diagnostics', description: 'Identify struggling learners and generate early intervention warnings.' },
+    ];
+    const PLANNER_CARD_SLIDES = [
+      { image: bgPracticeZone, title: "Teacher's Schedule & Diary", description: 'Organize weekly timetables, school calendar logs, and CAPS task reminders.' },
+      { image: bgVideoAvatars, title: 'Personal Diary Notes', description: 'Keep private teacher notes, meeting agendas, and period logs.' },
+    ];
+    const BROADCAST_CARD_SLIDES = [
+      { image: bgAdminLab, title: 'School Broadcast Memos', description: 'Draft parent letters, administrative notices, and emergency school bulletins.' },
+      { image: bgVaultLibrary, title: 'Parent Portal Notices', description: 'Publish announcements directly to parent and learner communication channels.' },
+    ];
+
+    return (
+      <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
+        
+        {/* Deep Cosmic Background */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(25,18,48,0.95)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
+        
+        {/* Background Overlay */}
+        <div 
+          className="absolute inset-0 z-0 opacity-30 pointer-events-none mix-blend-overlay"
+          style={{
+            backgroundImage: `url(${overlayTeachersToolbox})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        />
+
+        {/* Soft Ambient Radial Glows */}
+        <div className="absolute top-10 left-1/4 w-96 h-96 bg-pink-600/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-cyan-500/15 rounded-full blur-[120px] pointer-events-none" />
+
+        {/* MAIN TITLE SECTION ("Alerts & Diary Planner") */}
+        <div className="relative z-10 text-center my-3">
+          <div className="inline-flex items-center gap-2 mb-2">
+            <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+            <span className="text-xl sm:text-2xl font-display font-bold text-slate-100 tracking-tight">
+              Alerts &
+            </span>
+            <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+          </div>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)]">
+            Diary Planner
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
+            CAPS Timetables • ATP Deadline Alerts • Teacher's Diary Logs • Broadcast Memos
+          </p>
+        </div>
+
+        {/* INTERACTIVE FEATURE SHOWCASE GRID (Same UI style as Teacher's Toolbox) */}
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 my-4 max-w-6xl mx-auto w-full">
+          
+          {/* Card 1: Critical Alerts & Reminders */}
+          <InteractiveShowcaseCard
+            slides={ALERTS_CARD_SLIDES}
+            borderColorClass="border-pink-500/80"
+            shadowColorClass="shadow-[0_0_25px_rgba(236,72,153,0.25)]"
+            hoverBorderColorClass="hover:border-pink-400"
+            hoverShadowColorClass="hover:shadow-[0_0_40px_rgba(236,72,153,0.5)]"
+            glowColorClass="bg-pink-500/10"
+            onClick={() => onSelect('alerts')}
+          >
+            <div className="space-y-4 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-pink-500/20 border border-pink-400/40 text-pink-300 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(236,72,153,0.3)]">
+                <Bell size={28} className="animate-pulse" />
+              </div>
+              <div>
+                <span className="px-2.5 py-0.5 rounded-full bg-pink-500/20 text-[10px] font-black uppercase text-pink-300 tracking-wider">
+                  CAPS & ATP Flags
+                </span>
+                <h3 className="text-2xl font-display font-black text-white mt-1">
+                  Alerts & Reminders
+                </h3>
+                <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                  Track curriculum pacing alerts, ATP deadline warnings, and struggling learner risk indicators in real-time.
+                </p>
+              </div>
+              <button className="px-4 py-2 rounded-xl bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 font-bold text-xs border border-pink-400/30 transition-all cursor-pointer">
+                View Alerts →
+              </button>
+            </div>
+          </InteractiveShowcaseCard>
+
+          {/* Card 2: Teacher's Diary & Schedule */}
+          <InteractiveShowcaseCard
+            slides={PLANNER_CARD_SLIDES}
+            borderColorClass="border-emerald-500/80"
+            shadowColorClass="shadow-[0_0_25px_rgba(16,185,129,0.25)]"
+            hoverBorderColorClass="hover:border-emerald-400"
+            hoverShadowColorClass="hover:shadow-[0_0_40px_rgba(16,185,129,0.5)]"
+            glowColorClass="bg-emerald-500/10"
+            onClick={() => onSelect('planner')}
+          >
+            <div className="space-y-4 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+                <Calendar size={28} />
+              </div>
+              <div>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-[10px] font-black uppercase text-emerald-300 tracking-wider">
+                  Weekly Timetables
+                </span>
+                <h3 className="text-2xl font-display font-black text-white mt-1">
+                  Planner & Diary
+                </h3>
+                <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                  Manage weekly CAPS schedules, personal diary logs, classroom period planners, and lesson calendars.
+                </p>
+              </div>
+              <button className="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-xs border border-emerald-400/30 transition-all cursor-pointer">
+                Open Planner →
+              </button>
+            </div>
+          </InteractiveShowcaseCard>
+
+          {/* Card 3: Broadcast Memos & Notices */}
+          <InteractiveShowcaseCard
+            slides={BROADCAST_CARD_SLIDES}
+            borderColorClass="border-cyan-500/80"
+            shadowColorClass="shadow-[0_0_25px_rgba(6,182,212,0.25)]"
+            hoverBorderColorClass="hover:border-cyan-400"
+            hoverShadowColorClass="hover:shadow-[0_0_40px_rgba(6,182,212,0.5)]"
+            glowColorClass="bg-cyan-500/10"
+            onClick={() => onSelect('weekly-planner')}
+          >
+            <div className="space-y-4 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+                <FileText size={28} />
+              </div>
+              <div>
+                <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-[10px] font-black uppercase text-cyan-300 tracking-wider">
+                  School Communications
+                </span>
+                <h3 className="text-2xl font-display font-black text-white mt-1">
+                  Broadcast Memos
+                </h3>
+                <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                  Draft parent letters, administrative announcements, emergency bulletins, and school circulars.
+                </p>
+              </div>
+              <button className="px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-bold text-xs border border-cyan-400/30 transition-all cursor-pointer">
+                Weekly Timetable →
+              </button>
+            </div>
+          </InteractiveShowcaseCard>
+
+        </div>
+
+        {/* SUBTAB QUICK NAVIGATION BAR */}
+        <div className="relative z-10 pt-4 border-t border-white/10 flex flex-wrap justify-center items-center gap-3">
+          {subTabs.map(st => {
+            const Icon = st.icon || Calendar;
+            return (
+              <button
+                key={st.id}
+                onClick={() => onSelect(st.id)}
+                className="px-4 py-2 rounded-xl bg-slate-900/80 hover:bg-amber-500/20 border border-white/10 hover:border-amber-400/40 text-slate-200 hover:text-amber-300 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg"
+              >
+                <Icon size={16} className="text-amber-400" />
+                <span>{st.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
       </div>
     );
   }
@@ -870,8 +1049,8 @@ export default function CategoryOverview({
     );
   }
 
-  // Custom Reports & Portfolios Hub UI (mirrors Teacher's Toolbox design language)
-  if (categoryLabel === 'Reports & Portfolios' || categoryLabel === 'Reports & Portfolio') {
+  // Custom Analytics & Reports Hub UI (mirrors Teacher's Toolbox design language)
+  if (categoryLabel === 'Analytics & Reports' || categoryLabel === 'Reports & Portfolios' || categoryLabel === 'Reports & Portfolio') {
     return (
       <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
         
@@ -894,20 +1073,20 @@ export default function CategoryOverview({
         <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-amber-500/15 rounded-full blur-[120px] pointer-events-none" />
 
-        {/* MAIN TITLE SECTION ("Reports & Portfolios") */}
+        {/* MAIN TITLE SECTION ("Analytics & Reports") */}
         <div className="relative z-10 text-center my-3">
           <div className="inline-flex items-center gap-2 mb-2">
             <Sparkles className="w-5 h-5 text-cyan-300 animate-pulse" />
             <span className="text-xl sm:text-2xl font-display font-bold text-slate-100 tracking-tight">
-              Reports &
+              Analytics &
             </span>
             <Sparkles className="w-5 h-5 text-cyan-300 animate-pulse" />
           </div>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-cyan-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(34,211,238,0.6)]">
-            Portfolios
+            Reports
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
-            Progress Reports • Learner Portfolios • CAPS & Gamification
+            Progress Reports • Academic Analytics • CAPS & Gamification Hub
           </p>
         </div>
 
@@ -1028,7 +1207,7 @@ export default function CategoryOverview({
         {/* BOTTOM QUICK SHORTCUTS STRIP */}
         <div className="relative z-10 pt-6 border-t border-cyan-500/20 text-center">
           <p className="text-xs font-mono font-bold text-cyan-300 uppercase tracking-widest mb-3">
-            Reports & Portfolios Modules
+            Analytics & Reports Modules
           </p>
           <div className="flex flex-wrap justify-center items-center gap-3">
             {subTabs.map((tool) => {

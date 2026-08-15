@@ -103,7 +103,7 @@ export const callMultiAi = async (provider: AIProvider, messages: any[], model?:
     try {
       return await executeClientMultiAi(provider, messages, model);
     } catch (clientErr: any) {
-      checkAndReportApiError(clientErr, provider);
+      console.log(`[AI Routing] Native client call for ${provider} failed, transitioning to Gemini fallback.`);
       throw clientErr;
     }
   }
@@ -114,47 +114,11 @@ export const callMultiAi = async (provider: AIProvider, messages: any[], model?:
     return msg.content || msg.reasoning_content || "";
   } catch (error: any) {
     const status = error.response?.status;
-    if (status === 404 || !error.response) {
-      console.warn(`Express backend /api/ai/${provider} returned 404 or network issue. Running direct browser fallback...`);
-      try {
-        return await executeClientMultiAi(provider, messages, model);
-      } catch (clientErr: any) {
-        const errMsg = String(clientErr?.message || "").toLowerCase();
-        if (!errMsg.includes("not configured") && !errMsg.includes("api key") && !errMsg.includes("unauthorized")) {
-          checkAndReportApiError(clientErr, provider);
-        }
-        throw clientErr;
-      }
-    }
-
     const backendError = error.response?.data?.error || {};
-    const errorMsg = typeof backendError === 'string' ? backendError : backendError?.message || '';
+    const errorMsg = typeof backendError === 'string' ? backendError : backendError?.message || error?.message || '';
 
-    // Handle 402/401 credit limit or missing key gracefully without error logs
-    if (status === 402 || status === 401 || errorMsg.toLowerCase().includes('credit') || errorMsg.toLowerCase().includes('insufficient') || errorMsg.toLowerCase().includes('afford') || errorMsg.toLowerCase().includes('not configured') || errorMsg.toLowerCase().includes('api key')) {
-      console.log(`[AI Routing] Provider ${provider} credentials not configured or budget reached. Automatically transitioning to Gemini.`);
-      throw new Error(`Provider credentials not configured or budget reached, seamlessly transitioning to Gemini.`);
-    }
-
-    if (status) {
-      console.log(`[AI Routing] API transition for ${provider} (Status: ${status})`);
-    } else {
-      console.log(`[AI Routing] Transitioning from ${provider}`);
-    }
-    
-    if (status === 401) {
-      throw new Error(`Unauthorized (401): Your ${provider} API key is invalid or has expired. Please check your AI Studio settings and ensure the key has no trailing spaces.`);
-    }
-
-    // Report potential network issues on other backend status failures as well
-    if (!error.response || status >= 500) {
-      const errMsg = String(errorMsg || error?.message || "").toLowerCase();
-      if (!errMsg.includes("not configured") && !errMsg.includes("api key") && !errMsg.includes("credit")) {
-        checkAndReportApiError(error, provider);
-      }
-    }
-
-    throw new Error(errorMsg || (typeof backendError === 'string' ? backendError : JSON.stringify(backendError)) || `Failed to call ${provider} (Status: ${status || 'Unknown'})`);
+    console.log(`[AI Routing] Provider ${provider} unavailable or transitioned (Status: ${status || 'Network'}). Seamlessly routing to Gemini.`);
+    throw new Error(`Provider ${provider} unavailable, transitioning to Gemini fallback: ${errorMsg}`);
   }
 };
 

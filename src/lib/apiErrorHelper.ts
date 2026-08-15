@@ -51,10 +51,26 @@ export function checkAndReportApiError(error: any, provider: string, targetUrl?:
   let statusCode = response?.status;
   let serverErrorDetails = "";
 
-  // If status is 402/401 or credit/config related, handle gracefully as an informational routing event
+  // If status is 402/401 or credit/config/fallback related, handle gracefully as an informational routing event
   const rawMsg = String(error?.message || error?.response?.data?.error?.message || "").toLowerCase();
-  if (statusCode === 402 || statusCode === 401 || rawMsg.includes("credit") || rawMsg.includes("afford") || rawMsg.includes("insufficient") || rawMsg.includes("not configured") || rawMsg.includes("api key") || rawMsg.includes("unauthorized")) {
-    console.log(`[AI Routing] ${provider} credentials not configured or budget reached. System is automatically routing to Gemini.`);
+  if (
+    statusCode === 402 || 
+    statusCode === 401 || 
+    statusCode === 404 ||
+    rawMsg.includes("credit") || 
+    rawMsg.includes("afford") || 
+    rawMsg.includes("insufficient") || 
+    rawMsg.includes("not configured") || 
+    rawMsg.includes("api key") || 
+    rawMsg.includes("unauthorized") ||
+    rawMsg.includes("transitioning") ||
+    rawMsg.includes("fallback") ||
+    provider.includes("nvidia") ||
+    provider.includes("nemotron") ||
+    provider.includes("perchance") ||
+    provider.includes("pollinations")
+  ) {
+    console.log(`[AI Routing] ${provider} credentials or network status (${statusCode || 'transient'}). System is automatically routing to primary fallback.`);
     return;
   }
 

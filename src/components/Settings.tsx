@@ -394,13 +394,72 @@ export default function Settings({
              {activeSubTab === 'ai' && (
                 <div className="space-y-6">
                    <h2 className="text-3xl font-black text-white">AI Configuration</h2>
-                   <div className="p-8 rounded-[40px] border border-white/5 bg-white/5 space-y-4">
-                      <p className="text-slate-400 text-sm">Configure primary LLM providers and pedagogical alignment constraints.</p>
-                      <div className="flex items-center gap-4 p-4 bg-navy-dark/50 rounded-2xl border border-white/5">
-                         <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center text-violet-400 font-bold">G</div>
-                         <div>
-                            <p className="text-white font-bold text-sm">Gemini 3.6 Flash</p>
-                            <p className="text-[10px] text-slate-500 uppercase font-black">Active Provider</p>
+                   <div className="p-8 rounded-[40px] border border-white/5 bg-white/5 space-y-6">
+                      <div>
+                         <h4 className="text-white font-bold text-base mb-1">Text Generation Engine</h4>
+                         <p className="text-slate-400 text-xs mb-4">Primary reasoning and lesson authoring engine. Alternative models fall back to Gemini automatically.</p>
+                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="p-4 rounded-2xl border border-brand-cyan/40 bg-brand-cyan/10 flex items-start gap-3">
+                               <div className="w-8 h-8 rounded-xl bg-brand-cyan/20 flex items-center justify-center text-brand-cyan font-black text-xs shrink-0">1</div>
+                               <div>
+                                  <div className="flex items-center gap-2">
+                                     <span className="text-white font-bold text-xs">Gemini 3.7 Flash</span>
+                                     <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase">Primary</span>
+                                  </div>
+                                  <p className="text-[10px] text-slate-400 mt-1">CAPS Lesson Planning, Auto-Grading & Voice Tutor</p>
+                               </div>
+                            </div>
+                            <div className="p-4 rounded-2xl border border-white/10 bg-navy-dark/40 flex items-start gap-3">
+                               <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-black text-xs shrink-0">2</div>
+                               <div>
+                                  <span className="text-white font-bold text-xs">NVIDIA Nemotron 49B</span>
+                                  <p className="text-[10px] text-slate-400 mt-1">Llama 3.3 Nemotron Super • Fallback: Gemini</p>
+                               </div>
+                            </div>
+                            <div className="p-4 rounded-2xl border border-white/10 bg-navy-dark/40 flex items-start gap-3">
+                               <div className="w-8 h-8 rounded-xl bg-violet-500/20 flex items-center justify-center text-violet-400 font-black text-xs shrink-0">3</div>
+                               <div>
+                                  <span className="text-white font-bold text-xs">NVIDIA Nemotron Ultra 550B</span>
+                                  <p className="text-[10px] text-slate-400 mt-1">Nemotron 3 Ultra 550B • Fallback: Gemini</p>
+                               </div>
+                            </div>
+                         </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-white/5">
+                         <h4 className="text-white font-bold text-base mb-1">Creative Image Generator</h4>
+                         <p className="text-slate-400 text-xs mb-4">Priority pipeline for classroom graphics, illustrated worksheets, and visual aids.</p>
+                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="p-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 flex items-start gap-3">
+                               <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400 font-black text-xs shrink-0">1</div>
+                               <div>
+                                  <div className="flex items-center gap-2">
+                                     <span className="text-white font-bold text-xs">Perchance AI</span>
+                                     <span className="px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-black uppercase">Primary</span>
+                                  </div>
+                                  <p className="text-[10px] text-slate-400 mt-1">Perchance AI Text-to-Image (No quota limits)</p>
+                               </div>
+                            </div>
+                            <div className="p-4 rounded-2xl border border-white/10 bg-navy-dark/40 flex items-start gap-3">
+                               <div className="w-8 h-8 rounded-xl bg-sky-500/20 flex items-center justify-center text-sky-400 font-black text-xs shrink-0">2</div>
+                               <div>
+                                  <div className="flex items-center gap-2">
+                                     <span className="text-white font-bold text-xs">Google Imagen 3</span>
+                                     <span className="px-1.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 text-[9px] font-black uppercase">Secondary</span>
+                                  </div>
+                                  <p className="text-[10px] text-slate-400 mt-1">High-fidelity educational renders</p>
+                               </div>
+                            </div>
+                            <div className="p-4 rounded-2xl border border-white/10 bg-navy-dark/40 flex items-start gap-3">
+                               <div className="w-8 h-8 rounded-xl bg-pink-500/20 flex items-center justify-center text-pink-400 font-black text-xs shrink-0">3</div>
+                               <div>
+                                  <div className="flex items-center gap-2">
+                                     <span className="text-white font-bold text-xs">Pollinations AI</span>
+                                     <span className="px-1.5 py-0.5 rounded-full bg-pink-500/20 text-pink-300 text-[9px] font-black uppercase">Fallback</span>
+                                  </div>
+                                  <p className="text-[10px] text-slate-400 mt-1">Instant reliable fallback generation</p>
+                               </div>
+                            </div>
                          </div>
                       </div>
                    </div>

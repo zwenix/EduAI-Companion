@@ -116,8 +116,8 @@ const geminiAi = new Proxy({} as GoogleGenAI, {
 
 const generateContentWithFallback = async (options: { model?: string, contents: any, config?: any }) => {
   const modelsToTry = cachedWorkingModel 
-    ? [cachedWorkingModel, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
-    : ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+    ? [cachedWorkingModel, "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
+    : ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
   
   let lastError: any = null;
   for (const candidate of modelsToTry) {
@@ -145,8 +145,8 @@ const generateContentWithFallback = async (options: { model?: string, contents: 
 
 const generateContentStreamWithFallback = async (options: { model?: string, contents: any, config?: any }) => {
   const modelsToTry = cachedWorkingModel 
-    ? [cachedWorkingModel, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
-    : ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+    ? [cachedWorkingModel, "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
+    : ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
   
   let lastError: any = null;
   for (const candidate of modelsToTry) {
@@ -618,8 +618,8 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         const systemInstruction = systemMessages?.map((m: any) => m.content).join("\n\n");
 
         const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
-          : ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+          ? [cachedWorkingModel, "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
+          : ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
         let lastError: any = null;
         let response: any = null;
 
@@ -1160,7 +1160,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
 
     console.log(`[IMAGE GEN LOG] Requested image generation -> Provider: ${provider} | Prompt: "${styledPrompt.slice(0, 80)}"`);
 
-    if (provider === "gemini-imagen") {
+    if (provider === "gemini-imagen" || provider === "gemini") {
       const apiKey = resolveGeminiKey();
       if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
         const modelsToTry = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
@@ -1183,7 +1183,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             }
             if (foundBase64) {
               console.log(`[IMAGE GEN LOG] Image successfully generated with model: Gemini (${m})`);
-              return res.json({ url: `data:image/jpeg;base64,${foundBase64}`, provider: 'gemini', model: m });
+              return res.json({ url: `data:image/jpeg;base64,${foundBase64}`, imageUrl: `data:image/jpeg;base64,${foundBase64}`, provider: 'gemini', model: m });
             }
           } catch (err1: any) {
             console.warn(`[IMAGE GEN LOG] Gemini generation failed with ${m}, trying next...`, err1.message);
@@ -1195,7 +1195,7 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
       const seed = Math.floor(Math.random() * 100000);
       const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=1024&height=1024&nologo=true&model=turbo&enhance=true&seed=${seed}`;
       console.log("[IMAGE GEN LOG] Returning direct fallback URL -> Model: Pollinations Turbo");
-      return res.json({ url: fallbackUrl, isFallback: true, provider: 'pollinations', model: 'Pollinations-Turbo' });
+      return res.json({ url: fallbackUrl, imageUrl: fallbackUrl, isFallback: true, provider: 'pollinations', model: 'Pollinations-Turbo' });
     }
 
     if (provider === "perchance" || provider === "pollinations") {
@@ -1295,12 +1295,12 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
     }
 
     try {
-      const model = "gemini-3.6-flash";
+      const model = "gemini-3.7-flash";
 
       const generateContentWithFallback = async (options: { model: string, contents: any, config?: any }) => {
         const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
-          : ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+          ? [cachedWorkingModel, "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
+          : ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
         
         let lastError: any = null;
         for (const candidate of modelsToTry) {
@@ -1328,8 +1328,8 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
 
       const generateContentStreamWithFallback = async (options: { model: string, contents: any, config?: any }) => {
         const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
-          : ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+          ? [cachedWorkingModel, "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
+          : ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
         
         let lastError: any = null;
         for (const candidate of modelsToTry) {
@@ -1941,6 +1941,44 @@ STRICT COMPLIANCE & ZERO-HALLUCINATION MANDATES:
           }, false);
         }
 
+        case "generate-image": {
+          const { prompt: imagePrompt, width = 1024, height = 1024 } = input || {};
+          let styledPrompt = imagePrompt || "";
+          const styleSuffix = ", 3D vector, 3D cute icon, 3D animation Disney character style";
+          if (styledPrompt && !styledPrompt.toLowerCase().includes("3d vector") && !styledPrompt.toLowerCase().includes("3d cute icon")) {
+            styledPrompt += styleSuffix;
+          }
+
+          const imageModels = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
+          for (const m of imageModels) {
+            try {
+              const response = await geminiAi.models.generateContent({
+                model: m,
+                contents: { parts: [{ text: styledPrompt }] },
+                config: { imageConfig: { aspectRatio: "1:1" } }
+              });
+              let foundBase64 = null;
+              if (response.candidates && response.candidates[0]?.content?.parts) {
+                for (const part of response.candidates[0].content.parts) {
+                  if (part.inlineData && part.inlineData.data) {
+                    foundBase64 = part.inlineData.data;
+                    break;
+                  }
+                }
+              }
+              if (foundBase64) {
+                return res.json({ imageUrl: `data:image/jpeg;base64,${foundBase64}`, url: `data:image/jpeg;base64,${foundBase64}` });
+              }
+            } catch (err1: any) {
+              console.warn(`[GEMINI ACTION] Image generation failed with ${m}, trying next...`, err1.message);
+            }
+          }
+
+          const seed = Math.floor(Math.random() * 100000);
+          const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=${width}&height=${height}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
+          return res.json({ imageUrl: fallbackUrl, url: fallbackUrl });
+        }
+
         default:
           return res.status(400).json({ error: "Unsupported action" });
       }
@@ -1961,7 +1999,7 @@ STRICT COMPLIANCE & ZERO-HALLUCINATION MANDATES:
         timestamp: new Date().toISOString(),
         provider: 'gemini',
         endpoint: `/api/gemini/action`,
-        model: 'gemini-3.6-flash',
+        model: 'gemini-3.7-flash',
         error: errMsg,
         rawResponse: error.response?.data || error.stack || error.message || String(error),
         requestPayload: {
