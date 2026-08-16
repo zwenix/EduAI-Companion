@@ -34,40 +34,33 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
     const video = videoRef.current;
     if (video && !videoError) {
       video.defaultMuted = true;
-      video.muted = isMuted;
+      video.muted = true;
       video.playsInline = true;
       video.loop = true;
-
-      const safePlay = () => {
-        if (!videoRef.current) return;
-        const playPromise = videoRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise.catch((err) => {
-            // Silently attach gesture listener if autoplay is restricted by browser policy
-            if (err.name !== 'AbortError') {
-              const playOnInteract = () => {
-                if (videoRef.current && videoRef.current.paused) {
-                  videoRef.current.play().catch(() => {});
-                }
-                window.removeEventListener('click', playOnInteract);
-                window.removeEventListener('touchstart', playOnInteract);
-                window.removeEventListener('keydown', playOnInteract);
-              };
-              window.addEventListener('click', playOnInteract);
-              window.addEventListener('touchstart', playOnInteract);
-              window.addEventListener('keydown', playOnInteract);
+      video.load();
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn("Initial autoplay attempt delayed or waiting for interaction:", err);
+          const playOnInteract = () => {
+            if (videoRef.current) {
+              videoRef.current.play().catch(() => {});
             }
-          });
-        }
-      };
-
-      safePlay();
+            window.removeEventListener('click', playOnInteract);
+            window.removeEventListener('touchstart', playOnInteract);
+            window.removeEventListener('keydown', playOnInteract);
+          };
+          window.addEventListener('click', playOnInteract);
+          window.addEventListener('touchstart', playOnInteract);
+          window.addEventListener('keydown', playOnInteract);
+        });
+      }
     }
 
     return () => {
       clearTimeout(timer);
     };
-  }, [videoError, isMuted]);
+  }, [videoError]);
 
   const toggleMute = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -100,28 +93,31 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onVideoEnd }) => {
         >
             <video
               ref={videoRef}
-              src={splashVideoUrl || '/splash.mp4'}
               autoPlay
               loop
               muted={isMuted}
               playsInline
               webkit-playsinline="true"
               preload="auto"
+              onLoadedData={() => {
+                if (videoRef.current) {
+                  videoRef.current.play().catch(() => {});
+                }
+              }}
+              onCanPlay={() => {
+                if (videoRef.current) {
+                  videoRef.current.play().catch((err) => {
+                    console.warn("Autoplay blocked, user interaction required:", err);
+                  });
+                }
+              }}
               onError={(e) => {
                 console.warn("Splash video element non-fatal fallback triggered:", e.currentTarget.error?.message);
-                // Try fallback path if imported url failed
-                if (videoRef.current && videoRef.current.src !== window.location.origin + '/splash.mp4') {
-                  videoRef.current.src = '/splash.mp4';
-                  videoRef.current.load();
-                  videoRef.current.play().catch(() => {});
-                } else {
-                  setVideoError(true);
-                }
+                setVideoError(true);
               }}
               className="w-full h-full object-cover max-w-full max-h-full cursor-pointer"
             >
               <source src={splashVideoUrl} type="video/mp4" />
-              <source src="/splash.mp4" type="video/mp4" />
             </video>
 
           {/* Video Control Buttons Overlay */}

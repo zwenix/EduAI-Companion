@@ -1394,6 +1394,22 @@ export default function App() {
     />;
   }
 
+  // Full-screen AI Tutor: span the entire UI with zero app chrome (no sidebar / top header).
+  if (activeTab === 'ai-tutor' && !categoryOverviewActive && !activeCreatorTab) {
+    return (
+      <div className="fixed inset-0 z-[90] bg-slate-950 overflow-hidden">
+        <AITutorPage
+          onBack={() => {
+            setActiveTab('dashboard');
+            setActiveCategory('teacher-dashboard-menu');
+            setCategoryOverviewActive(null);
+            setActiveCreatorTab(null);
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <MotionConfig reducedMotion="never">
       <div className={`flex h-[100dvh] max-h-[100dvh] app-shell ${isDarkMode ? 'bg-[#091225]' : themeMode === 'peach' ? 'bg-[#efe8d9] peach-theme' : 'bg-[#091225]'} font-sans selection:bg-brand-cyan/30 overflow-hidden transition-colors duration-500`}>

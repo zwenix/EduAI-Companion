@@ -77,31 +77,58 @@ import Logo from './Logo';
 
 const EllyFace = ({ className = "w-16 h-16" }: { className?: string }) => (
   <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={`${className} shrink-0`}>
+    <defs>
+      <linearGradient id="ellyBody" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#22d3ee" />
+        <stop offset="55%" stopColor="#6366f1" />
+        <stop offset="100%" stopColor="#a855f7" />
+      </linearGradient>
+      <linearGradient id="ellyEar" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#0ea5e9" />
+        <stop offset="100%" stopColor="#0284c7" />
+      </linearGradient>
+      <radialGradient id="ellyShine" cx="0.35" cy="0.3" r="0.65">
+        <stop offset="0%" stopColor="#ffffff" stopOpacity="0.5" />
+        <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+      </radialGradient>
+    </defs>
+
     {/* Left Ear */}
-    <path d="M22 45 C8 40 4 62 14 76 C24 86 35 72 35 56 Z" fill="#38bdf8" fillOpacity="0.85" />
+    <path d="M26 43 C11 37 3 61 14 79 C23 92 37 79 39 62 C40 53 34 46 26 43 Z" fill="url(#ellyEar)" />
+    <path d="M20 53 C13 51 9 63 15 73 C20 80 27 73 28 64 C29 58 25 53 20 53 Z" fill="#bae6fd" fillOpacity="0.5" />
     {/* Right Ear */}
-    <path d="M78 45 C92 40 96 62 86 76 C76 86 65 72 65 56 Z" fill="#38bdf8" fillOpacity="0.85" />
+    <path d="M74 43 C89 37 97 61 86 79 C77 92 63 79 61 62 C60 53 66 46 74 43 Z" fill="url(#ellyEar)" />
+    <path d="M80 53 C87 51 91 63 85 73 C80 80 73 73 72 64 C71 58 75 53 80 53 Z" fill="#bae6fd" fillOpacity="0.5" />
+
     {/* Head */}
-    <circle cx="50" cy="56" r="23" fill="#0284c7" />
+    <circle cx="50" cy="56" r="23" fill="url(#ellyBody)" stroke="#0e7490" strokeOpacity="0.35" strokeWidth="1.5" />
+    <ellipse cx="41" cy="45" rx="14" ry="11" fill="url(#ellyShine)" />
+
     {/* Trunk */}
-    <path d="M43 66 C43 78 36 88 44 94 C52 100 59 88 57 76 L57 66 Z" fill="#0369a1" />
+    <path d="M43 66 C43 78 35 89 43 96 C51 103 60 89 57 76 L57 66 Z" fill="url(#ellyBody)" stroke="#0e7490" strokeOpacity="0.25" strokeWidth="1" />
+
     {/* Eyes */}
-    <circle cx="42" cy="51" r="3.5" fill="#ffffff" />
-    <circle cx="42" cy="51" r="1.8" fill="#0f172a" />
-    <circle cx="58" cy="51" r="3.5" fill="#ffffff" />
-    <circle cx="58" cy="51" r="1.8" fill="#0f172a" />
+    <ellipse cx="41" cy="52" rx="4.2" ry="4.8" fill="#ffffff" />
+    <circle cx="41.5" cy="52.5" r="2.4" fill="#0f172a" />
+    <circle cx="42.3" cy="51.2" r="0.9" fill="#ffffff" />
+    <ellipse cx="59" cy="52" rx="4.2" ry="4.8" fill="#ffffff" />
+    <circle cx="58.5" cy="52.5" r="2.4" fill="#0f172a" />
+    <circle cx="57.7" cy="51.2" r="0.9" fill="#ffffff" />
+
     {/* Cheek blush */}
-    <ellipse cx="36" cy="58" rx="3" ry="1.5" fill="#f43f5e" fillOpacity="0.4" />
-    <ellipse cx="64" cy="58" rx="3" ry="1.5" fill="#f43f5e" fillOpacity="0.4" />
-    {/* Smile on trunk root */}
-    <path d="M45 63 Q50 66 55 63" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
-    {/* Graduation Cap Base (Mortarboard) */}
-    <polygon points="50,14 82,24 50,34 18,24" fill="#1e293b" stroke="#fcd34d" strokeWidth="2" />
-    {/* Cap Skull cap */}
-    <path d="M34 29 L34 41 Q50 49 66 41 L66 29 Z" fill="#334155" />
+    <ellipse cx="35" cy="59" rx="3.2" ry="1.8" fill="#f43f5e" fillOpacity="0.45" />
+    <ellipse cx="65" cy="59" rx="3.2" ry="1.8" fill="#f43f5e" fillOpacity="0.45" />
+
+    {/* Smile */}
+    <path d="M45 63.5 Q50 67 55 63.5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" fill="none" />
+
+    {/* Graduation Cap (Mortarboard) */}
+    <polygon points="50,13 84,24 50,35 16,24" fill="#1e293b" stroke="#fcd34d" strokeWidth="2" strokeLinejoin="round" />
+    {/* Skull cap */}
+    <path d="M34 29 L34 42 Q50 50 66 42 L66 29 Z" fill="#334155" />
     {/* Gold Tassel */}
-    <path d="M50 24 L72 31 L72 48" stroke="#fcd34d" strokeWidth="2.5" strokeLinecap="round" />
-    <circle cx="72" cy="49" r="3" fill="#fcd34d" />
+    <path d="M50 24 L74 31 L74 47" stroke="#fcd34d" strokeWidth="2.4" strokeLinecap="round" fill="none" />
+    <circle cx="74" cy="49" r="3" fill="#fcd34d" />
   </svg>
 );
 
@@ -845,8 +872,8 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
             </div>
           </div>
 
-          {/* Top Buttons: Language & Voice Model (side-by-side in same row, compact size), New Chat, Clear */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap shrink-0">
+          {/* Top Buttons: Tutor menu, Language & Voice Model, New Chat, Clear */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap shrink-0">
             {/* Language Selector */}
             <div className="flex items-center gap-1 bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 rounded-lg shrink-0 transition-colors">
               <select
@@ -890,6 +917,50 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
               <Trash2 size={13} />
               <span className="hidden sm:inline">Clear</span>
             </button>
+
+            {/* Tutor menu — relocated from the removed right-hand nav so the chat area is fully full-bleed */}
+            <div className="flex items-center gap-1 pl-1.5 ml-1 border-l border-white/10 shrink-0">
+              <button
+                type="button"
+                onClick={() => setLeftMenu(leftMenu === 'chats' ? null : 'chats')}
+                title="Chat History"
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${leftMenu === 'chats' ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.4)]' : 'bg-white/5 text-cyan-300 hover:bg-white/10 border-white/10'}`}
+              >
+                <MessageSquare size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setLeftMenu(leftMenu === 'activities' ? null : 'activities')}
+                title="Suggested Activities"
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${leftMenu === 'activities' ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.4)]' : 'bg-white/5 text-amber-300 hover:bg-white/10 border-white/10'}`}
+              >
+                <Sparkles size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setLeftMenu(leftMenu === 'tools' ? null : 'tools')}
+                title="Interactive Tools"
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${leftMenu === 'tools' ? 'bg-indigo-500 text-white border-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.4)]' : 'bg-white/5 text-indigo-300 hover:bg-white/10 border-white/10'}`}
+              >
+                <Monitor size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setLeftMenu(leftMenu === 'archive' ? null : 'archive')}
+                title="Media Archive"
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${leftMenu === 'archive' ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-white/5 text-emerald-300 hover:bg-white/10 border-white/10'}`}
+              >
+                <Archive size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                title="Tutor Settings"
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${isSettingsOpen ? 'bg-pink-500 text-white border-pink-400 shadow-[0_0_10px_rgba(236,72,153,0.4)]' : 'bg-white/5 text-pink-300 hover:bg-white/10 border-white/10'}`}
+              >
+                <Settings size={13} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1168,83 +1239,6 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
               {isLoading ? <Loader2 size={18} className="animate-spin text-white" /> : <Send size={18} strokeWidth={2.5} />}
             </button>
           </form>
-        </div>
-      </div>
-
-      {/* RIGHT-HAND SIDE VERTICAL NAVIGATION BAR */}
-      <div className="w-14 sm:w-16 lg:w-44 bg-slate-900/95 border-l border-white/10 flex flex-col items-center lg:items-stretch py-3 px-1.5 sm:px-2 gap-1.5 shrink-0 z-30 justify-between h-full">
-        {/* Top menu items */}
-        <div className="flex flex-col items-center lg:items-stretch gap-1.5 w-full">
-          <div className="hidden lg:block px-2 py-1 mb-1 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-white/5">
-            Tutor Menu
-          </div>
-
-          {/* Chats Button */}
-          <button
-            type="button"
-            onClick={() => setLeftMenu(leftMenu === 'chats' ? null : 'chats')}
-            className={`w-full p-2.5 lg:px-3 lg:py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center lg:justify-start gap-2.5 transition-all cursor-pointer ${
-              leftMenu === 'chats' ? 'bg-cyan-500 text-slate-950 font-bold shadow-[0_0_12px_rgba(34,211,238,0.4)]' : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10'
-            }`}
-            title="Chat History"
-          >
-            <MessageSquare size={16} className={leftMenu === 'chats' ? 'text-slate-950 shrink-0' : 'text-cyan-400 shrink-0'} />
-            <span className="hidden lg:inline whitespace-nowrap">Chats</span>
-          </button>
-
-          {/* Activities Button */}
-          <button
-            type="button"
-            onClick={() => setLeftMenu(leftMenu === 'activities' ? null : 'activities')}
-            className={`w-full p-2.5 lg:px-3 lg:py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center lg:justify-start gap-2.5 transition-all cursor-pointer ${
-              leftMenu === 'activities' ? 'bg-amber-500 text-slate-950 font-bold shadow-[0_0_12px_rgba(245,158,11,0.4)]' : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10'
-            }`}
-            title="Suggested Activities"
-          >
-            <Sparkles size={16} className={leftMenu === 'activities' ? 'text-slate-950 shrink-0' : 'text-amber-400 shrink-0'} />
-            <span className="hidden lg:inline whitespace-nowrap">Activities</span>
-          </button>
-
-          {/* Interactive Tools Button */}
-          <button
-            type="button"
-            onClick={() => setLeftMenu(leftMenu === 'tools' ? null : 'tools')}
-            className={`w-full p-2.5 lg:px-3 lg:py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center lg:justify-start gap-2.5 transition-all cursor-pointer ${
-              leftMenu === 'tools' ? 'bg-indigo-500 text-white font-bold shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10'
-            }`}
-            title="Interactive Tools"
-          >
-            <Monitor size={16} className={leftMenu === 'tools' ? 'text-white shrink-0' : 'text-indigo-400 shrink-0'} />
-            <span className="hidden lg:inline whitespace-nowrap">Tools</span>
-          </button>
-
-          {/* Archive Button */}
-          <button
-            type="button"
-            onClick={() => setLeftMenu(leftMenu === 'archive' ? null : 'archive')}
-            className={`w-full p-2.5 lg:px-3 lg:py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center lg:justify-start gap-2.5 transition-all cursor-pointer ${
-              leftMenu === 'archive' ? 'bg-emerald-500 text-slate-950 font-bold shadow-[0_0_12px_rgba(16,185,129,0.4)]' : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10'
-            }`}
-            title="Media Archive"
-          >
-            <Archive size={16} className={leftMenu === 'archive' ? 'text-slate-950 shrink-0' : 'text-emerald-400 shrink-0'} />
-            <span className="hidden lg:inline whitespace-nowrap">Archive</span>
-          </button>
-        </div>
-
-        {/* Bottom Menu Items (Settings) */}
-        <div className="flex flex-col items-center lg:items-stretch w-full pt-2 border-t border-white/10">
-          <button
-            type="button"
-            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-            className={`w-full p-2.5 lg:px-3 lg:py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center lg:justify-start gap-2.5 transition-all cursor-pointer ${
-              isSettingsOpen ? 'bg-pink-500 text-white font-bold shadow-[0_0_12px_rgba(236,72,153,0.4)]' : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10'
-            }`}
-            title="Tutor Settings"
-          >
-            <Settings size={16} className={isSettingsOpen ? 'text-white shrink-0' : 'text-pink-400 shrink-0'} />
-            <span className="hidden lg:inline whitespace-nowrap">Settings</span>
-          </button>
         </div>
       </div>
 
