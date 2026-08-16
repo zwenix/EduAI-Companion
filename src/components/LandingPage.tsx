@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Sparkles, 
   ChevronRight, 
@@ -27,6 +27,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import Logo from './Logo';
 import ContentSlideshow from './ContentSlideshow';
+import ClassroomBackground from './ClassroomBackground';
 import {
   MagicLessonsIcon,
   SuperWorksheetsIcon,
@@ -41,25 +42,11 @@ interface LandingPageProps {
 }
 
 export default function LandingPage({ onEnter }: LandingPageProps) {
-  const [stars, setStars] = useState<{ id: number; x: number; y: number; size: number; delay: number; speed: number }[]>([]);
   const [activeLessonPhase, setActiveLessonPhase] = useState<'engage' | 'explore' | 'evaluate'>('engage');
   const [hoveredPlanet, setHoveredPlanet] = useState<number | null>(null);
   const [selectedPlanet, setSelectedPlanet] = useState<number | null>(null);
   const [interactiveMascotHover, setInteractiveMascotHover] = useState(false);
   const [soundMuted, setSoundMuted] = useState(true);
-
-  useEffect(() => {
-    // Generate random stars for background
-    const newStars = Array.from({ length: 60 }).map((_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 2 + 1.2,
-      delay: Math.random() * 5,
-      speed: Math.random() * 4 + 2,
-    }));
-    setStars(newStars);
-  }, []);
 
   // Simple feedback audio function
   const playSfx = (type: 'hover' | 'click' | 'power') => {
@@ -98,41 +85,10 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
   };
 
   return (
-    <div className="h-full page-scroll cinematic-neon-bg relative flex flex-col font-sans text-white select-none">
-      {/* 3D Perspective Floor Grid */}
-      <div className="perspective-grid" />
-
-      {/* Futuristic Grid Overlay Scanlines */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_4px,3px_100%] pointer-events-none z-10 opacity-35" />
-
-      {/* Floating Stars particles */}
-      {stars.map((star) => (
-        <motion.div
-          key={star.id}
-          className="absolute rounded-full bg-white"
-          style={{
-            left: `${star.x}%`,
-            top: `${star.y}%`,
-            width: `${star.size}px`,
-            height: `${star.size}px`,
-          }}
-          animate={{
-            opacity: [0.15, 0.9, 0.15],
-            y: [0, -15, 0],
-          }}
-          transition={{
-            duration: star.speed,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: star.delay,
-          }}
-        />
-      ))}
-
-      {/* Ambient Lighting Orbs */}
-      <div className="absolute top-[10%] left-[15%] w-[450px] h-[450px] bg-brand-cyan/15 rounded-full blur-[130px] pointer-events-none mix-blend-screen" />
-      <div className="absolute top-[35%] right-[8%] w-[500px] h-[500px] bg-brand-pink/15 rounded-full blur-[140px] pointer-events-none mix-blend-screen" />
-      <div className="absolute bottom-[10%] left-[25%] w-[480px] h-[480px] bg-brand-green/12 rounded-full blur-[130px] pointer-events-none mix-blend-screen" />
+    <div className="h-full page-scroll relative flex flex-col font-sans text-white select-none">
+      {/* Animated classroom background — multiracial children + well-dressed
+          teacher, with educational icons exploding outwards */}
+      <ClassroomBackground />
 
       {/* Top Navigation Header */}
       <motion.nav 

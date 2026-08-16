@@ -73,37 +73,11 @@ const SUGGESTIONS = [
   { text: "Tell a Joke", color: "border-teal-500/50 shadow-[0_0_8px_rgba(20,184,166,0.2)] text-teal-200 bg-teal-950/30 hover:bg-teal-950/50" },
 ];
 
-import Logo from './Logo';
+import EllyMascot from './Mascot';
 
-const EllyFace = ({ className = "w-16 h-16" }: { className?: string }) => (
-  <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={`${className} shrink-0`}>
-    {/* Left Ear */}
-    <path d="M22 45 C8 40 4 62 14 76 C24 86 35 72 35 56 Z" fill="#38bdf8" fillOpacity="0.85" />
-    {/* Right Ear */}
-    <path d="M78 45 C92 40 96 62 86 76 C76 86 65 72 65 56 Z" fill="#38bdf8" fillOpacity="0.85" />
-    {/* Head */}
-    <circle cx="50" cy="56" r="23" fill="#0284c7" />
-    {/* Trunk */}
-    <path d="M43 66 C43 78 36 88 44 94 C52 100 59 88 57 76 L57 66 Z" fill="#0369a1" />
-    {/* Eyes */}
-    <circle cx="42" cy="51" r="3.5" fill="#ffffff" />
-    <circle cx="42" cy="51" r="1.8" fill="#0f172a" />
-    <circle cx="58" cy="51" r="3.5" fill="#ffffff" />
-    <circle cx="58" cy="51" r="1.8" fill="#0f172a" />
-    {/* Cheek blush */}
-    <ellipse cx="36" cy="58" rx="3" ry="1.5" fill="#f43f5e" fillOpacity="0.4" />
-    <ellipse cx="64" cy="58" rx="3" ry="1.5" fill="#f43f5e" fillOpacity="0.4" />
-    {/* Smile on trunk root */}
-    <path d="M45 63 Q50 66 55 63" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
-    {/* Graduation Cap Base (Mortarboard) */}
-    <polygon points="50,14 82,24 50,34 18,24" fill="#1e293b" stroke="#fcd34d" strokeWidth="2" />
-    {/* Cap Skull cap */}
-    <path d="M34 29 L34 41 Q50 49 66 41 L66 29 Z" fill="#334155" />
-    {/* Gold Tassel */}
-    <path d="M50 24 L72 31 L72 48" stroke="#fcd34d" strokeWidth="2.5" strokeLinecap="round" />
-    <circle cx="72" cy="49" r="3" fill="#fcd34d" />
-  </svg>
-);
+// Elly 2.0 — redesigned mascot inspired by the EduAI Companion logo
+// (circular glowing emblem badge, cyan→blue gradient, friendly smile, sparkles)
+const EllyFace = EllyMascot;
 
 export default function AITutorPage({ onBack }: { onBack?: () => void }) {
   const { provider, ttsProvider } = useAi();
