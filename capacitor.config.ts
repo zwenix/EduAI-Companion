@@ -1,4 +1,5 @@
 import type { CapacitorConfig } from '@capacitor/cli';
+import { FIREBASE_WEB_CLIENT_ID, GOOGLE_AUTH_SCOPES } from './src/config/googleAuth';
 
 const config: CapacitorConfig = {
   appId: 'com.eduaicompanion.app',
@@ -6,8 +7,11 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   plugins: {
     GoogleAuth: {
-      clientId: '725068822716-tv8hh929bsagjliekkoq4ptkcfb3gs0k.apps.googleusercontent.com',
-      scopes: ['profile', 'email'],
+      // The Android plugin uses this Web OAuth client ID to request the ID
+      // token that Firebase Authentication exchanges for a user session.
+      clientId: FIREBASE_WEB_CLIENT_ID,
+      androidClientId: FIREBASE_WEB_CLIENT_ID,
+      scopes: GOOGLE_AUTH_SCOPES,
     },
   },
 };
