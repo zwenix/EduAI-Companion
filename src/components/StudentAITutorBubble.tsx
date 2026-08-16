@@ -23,13 +23,10 @@ type LocalChatMessage = {
 
 const STORAGE_KEY = 'eduai_floating_tutor_history';
 
-import Logo from './Logo';
+import EllyMascot from './Mascot';
 
-const EllyFaceMini = ({ className = "w-10 h-10" }: { className?: string }) => (
-  <div className={`${className} relative flex items-center justify-center overflow-hidden shrink-0`}>
-    <Logo className="w-full h-full object-contain" />
-  </div>
-);
+// Elly 2.0 — redesigned mascot inspired by the EduAI Companion logo
+const EllyFaceMini = EllyMascot;
 
 export default function StudentAITutorBubble({ isDarkMode, student }: StudentAITutorBubbleProps) {
   const { provider } = useAi();

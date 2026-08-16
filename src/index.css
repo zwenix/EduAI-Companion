@@ -423,6 +423,50 @@ svg:not(.not-sketchy) {
 }
 
 /* ==========================================================================
+   CLASSROOM LANDING BACKGROUND — animated scene + exploding education icons
+   ========================================================================== */
+
+/* Educational symbols & icons burst outwards from the chalkboard area */
+@keyframes eduai-explode {
+  0% {
+    transform: translate(0, 0) scale(0.25) rotate(0deg);
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(var(--ex-x, 0vmin), var(--ex-y, 0vmin)) scale(1.15) rotate(var(--ex-r, 0deg));
+    opacity: 0;
+  }
+}
+
+.eduai-explode {
+  animation-name: eduai-explode;
+  animation-timing-function: cubic-bezier(0.16, 0.8, 0.45, 1);
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+
+/* Gentle parallax drift for the classroom scene */
+@keyframes eduai-classroom-drift {
+  0%, 100% {
+    transform: scale(1.03) translateY(0px);
+  }
+  50% {
+    transform: scale(1.07) translateY(-12px);
+  }
+}
+
+.eduai-classroom-drift {
+  animation: eduai-classroom-drift 16s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* ==========================================================================
    CINEMATIC NEON THEME ADDITIONS
    ========================================================================== */
 
