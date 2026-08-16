@@ -118,12 +118,28 @@ export default function ClassroomBackground() {
 
   return (
     <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none select-none" aria-hidden="true">
-      {/* Classroom scene (multiracial children + chubby well-dressed female teacher) */}
-      <div className={`absolute inset-0 ${prefersReducedMotion ? '' : 'eduai-classroom-drift'}`}>
+      {/* Ambient fill: a heavily blurred, zoomed copy of the scene. It only ever
+          paints the letterbox/pillarbox margins left over by `object-contain`
+          below, so the viewport never shows dead bars on any aspect ratio. */}
+      <img
+        src={classroomBg}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover scale-110 blur-3xl opacity-60"
+        draggable={false}
+        decoding="async"
+        aria-hidden="true"
+      />
+
+      {/* Classroom scene (African children + chubby well-dressed female teacher).
+          `object-contain` guarantees the ENTIRE artwork is visible on every
+          screen — phone portrait, tablet and desktop alike — with nothing
+          cropped off the sides or the top. The small inset gives the drift
+          animation room to move without ever clipping an edge. */}
+      <div className={`absolute inset-[10px] ${prefersReducedMotion ? '' : 'eduai-classroom-drift'}`}>
         <img
           src={classroomBg}
           alt=""
-          className="w-full h-full object-cover object-[50%_42%]"
+          className="w-full h-full object-contain object-center"
           draggable={false}
           decoding="async"
           fetchPriority="high"
