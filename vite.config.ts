@@ -16,7 +16,11 @@ export default defineConfig(({mode}) => {
         srcDir: 'src',
         filename: 'sw.js',
         injectManifest: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,ttf,mp4}'],
+          // Video is deliberately excluded: the splash mp4 ships as two ~3 MB
+          // copies (hashed asset + /splash.mp4), and precaching them forced a
+          // ~6 MB download on first load before the app became usable. The
+          // video is fetched normally and cached by the browser instead.
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,ttf}'],
           maximumFileSizeToCacheInBytes: 10000000,
         },
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],

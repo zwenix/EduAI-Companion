@@ -452,18 +452,74 @@ svg:not(.not-sketchy) {
 }
 
 /* Gentle parallax drift for the classroom scene */
+/* Gentle "breathing" drift for the landing scene.
+
+   IMPORTANT: this must never scale ABOVE 1 and must not translate. The image
+   is rendered with `object-contain` so the whole classroom picture stays
+   visible on every viewport; zooming past 1 (or shifting it) would crop the
+   edges back off again on narrow phone screens. Shrinking is always safe. */
 @keyframes eduai-classroom-drift {
   0%, 100% {
-    transform: scale(1.03) translateY(0px);
+    transform: scale(1);
   }
   50% {
-    transform: scale(1.07) translateY(-12px);
+    transform: scale(0.972);
   }
 }
 
 .eduai-classroom-drift {
   animation: eduai-classroom-drift 16s ease-in-out infinite;
   will-change: transform;
+}
+
+/* Accessibility: stop the landing-page background motion for users who
+   ask their OS to reduce animation. The scene stays, it just holds still. */
+@media (prefers-reduced-motion: reduce) {
+  .eduai-classroom-drift,
+  .eduai-explode {
+    animation: none !important;
+  }
+
+  .eduai-explode {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   ELLY 2.0 MASCOT — subtle signs of life
+   ========================================================================== */
+
+/* Occasional friendly blink */
+@keyframes eduai-elly-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95%, 97%      { transform: scaleY(0.08); }
+}
+
+/* Electron dots orbiting the emblem badge */
+@keyframes eduai-elly-orbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.eduai-elly-blink {
+  animation: eduai-elly-blink 6.5s ease-in-out infinite;
+}
+
+.eduai-elly-orbit {
+  animation: eduai-elly-orbit 14s linear infinite;
+}
+
+/* Explicit opt-out (animated={false}) and reduced-motion users */
+.eduai-elly-static .eduai-elly-blink,
+.eduai-elly-static .eduai-elly-orbit {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eduai-elly-blink,
+  .eduai-elly-orbit {
+    animation: none !important;
+  }
 }
 
 /* ==========================================================================
@@ -695,6 +751,138 @@ svg:not(.not-sketchy) {
 
 .animate-border-flash-emerald {
   animation: border-flash-emerald 2.5s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   MOBILE: no idle flashing — glow on hover / selection only
+   --------------------------------------------------------------------------
+   On touch devices the 2.5s infinite border-flash loop reads as constant
+   strobing across every dashboard card, which is distracting and hurts
+   battery. Desktop (fine pointer, >=768px) keeps the original look exactly.
+
+   Here the loop is switched off and replaced by a calm STATIC border plus a
+   soft resting glow. The brighter glow is then applied only on press
+   (:active), keyboard focus, or an explicitly selected state — never idle.
+   ========================================================================== */
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .animate-border-flash-cyan,
+  .animate-border-flash-pink,
+  .animate-border-flash-purple,
+  .animate-border-flash-emerald,
+  .animate-neon-pulse-green,
+  .animate-neon-pulse-cyan,
+  .animate-neon-pulse-pink {
+    /* Kill the infinite loop — borders must never flash. */
+    animation: none !important;
+    transition: border-color 220ms ease, box-shadow 220ms ease;
+  }
+
+  /* --- Resting state: steady border, whisper-soft glow --- */
+  .animate-border-flash-cyan {
+    border-color: rgba(6, 182, 212, 0.32);
+    box-shadow: 0 0 6px rgba(6, 182, 212, 0.12);
+  }
+  .animate-border-flash-pink {
+    border-color: rgba(236, 72, 153, 0.32);
+    box-shadow: 0 0 6px rgba(236, 72, 153, 0.12);
+  }
+  .animate-border-flash-purple {
+    border-color: rgba(168, 85, 247, 0.32);
+    box-shadow: 0 0 6px rgba(168, 85, 247, 0.12);
+  }
+  .animate-border-flash-emerald {
+    border-color: rgba(16, 185, 129, 0.32);
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.12);
+  }
+  .animate-neon-pulse-green {
+    box-shadow: 0 0 10px rgba(0, 255, 159, 0.28), inset 0 0 5px rgba(0, 255, 159, 0.12);
+  }
+  .animate-neon-pulse-cyan {
+    box-shadow: 0 0 10px rgba(0, 179, 255, 0.28), inset 0 0 5px rgba(0, 179, 255, 0.12);
+  }
+  .animate-neon-pulse-pink {
+    box-shadow: 0 0 10px rgba(255, 0, 212, 0.28), inset 0 0 5px rgba(255, 0, 212, 0.12);
+  }
+
+  /* --- Active / selected state: the glow the animation used to peak at --- */
+  .animate-border-flash-cyan:hover,
+  .animate-border-flash-cyan:active,
+  .animate-border-flash-cyan:focus-visible,
+  .animate-border-flash-cyan.is-selected,
+  .animate-border-flash-cyan[data-selected='true'],
+  .animate-border-flash-cyan[aria-selected='true'],
+  .animate-border-flash-cyan[aria-expanded='true'],
+  .animate-border-flash-cyan[data-state='open'],
+  .animate-border-flash-cyan[data-state='active'] {
+    border-color: rgba(6, 182, 212, 0.6);
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.45), inset 0 0 10px rgba(6, 182, 212, 0.3);
+  }
+
+  .animate-border-flash-pink:hover,
+  .animate-border-flash-pink:active,
+  .animate-border-flash-pink:focus-visible,
+  .animate-border-flash-pink.is-selected,
+  .animate-border-flash-pink[data-selected='true'],
+  .animate-border-flash-pink[aria-selected='true'],
+  .animate-border-flash-pink[aria-expanded='true'],
+  .animate-border-flash-pink[data-state='open'],
+  .animate-border-flash-pink[data-state='active'] {
+    border-color: rgba(236, 72, 153, 0.6);
+    box-shadow: 0 0 20px rgba(236, 72, 153, 0.45), inset 0 0 10px rgba(236, 72, 153, 0.3);
+  }
+
+  .animate-border-flash-purple:hover,
+  .animate-border-flash-purple:active,
+  .animate-border-flash-purple:focus-visible,
+  .animate-border-flash-purple.is-selected,
+  .animate-border-flash-purple[data-selected='true'],
+  .animate-border-flash-purple[aria-selected='true'],
+  .animate-border-flash-purple[aria-expanded='true'],
+  .animate-border-flash-purple[data-state='open'],
+  .animate-border-flash-purple[data-state='active'] {
+    border-color: rgba(168, 85, 247, 0.6);
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.45), inset 0 0 10px rgba(168, 85, 247, 0.3);
+  }
+
+  .animate-border-flash-emerald:hover,
+  .animate-border-flash-emerald:active,
+  .animate-border-flash-emerald:focus-visible,
+  .animate-border-flash-emerald.is-selected,
+  .animate-border-flash-emerald[data-selected='true'],
+  .animate-border-flash-emerald[aria-selected='true'],
+  .animate-border-flash-emerald[aria-expanded='true'],
+  .animate-border-flash-emerald[data-state='open'],
+  .animate-border-flash-emerald[data-state='active'] {
+    border-color: rgba(16, 185, 129, 0.6);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.45), inset 0 0 10px rgba(16, 185, 129, 0.3);
+  }
+
+  .animate-neon-pulse-green:hover,
+  .animate-neon-pulse-green:active,
+  .animate-neon-pulse-green:focus-visible,
+  .animate-neon-pulse-green.is-selected,
+  .animate-neon-pulse-green[data-selected='true'],
+  .animate-neon-pulse-green[aria-selected='true'] {
+    box-shadow: 0 0 22px rgba(0, 255, 159, 0.65), inset 0 0 12px rgba(0, 255, 159, 0.3);
+  }
+
+  .animate-neon-pulse-cyan:hover,
+  .animate-neon-pulse-cyan:active,
+  .animate-neon-pulse-cyan:focus-visible,
+  .animate-neon-pulse-cyan.is-selected,
+  .animate-neon-pulse-cyan[data-selected='true'],
+  .animate-neon-pulse-cyan[aria-selected='true'] {
+    box-shadow: 0 0 22px rgba(0, 179, 255, 0.65), inset 0 0 12px rgba(0, 179, 255, 0.3);
+  }
+
+  .animate-neon-pulse-pink:hover,
+  .animate-neon-pulse-pink:active,
+  .animate-neon-pulse-pink:focus-visible,
+  .animate-neon-pulse-pink.is-selected,
+  .animate-neon-pulse-pink[data-selected='true'],
+  .animate-neon-pulse-pink[aria-selected='true'] {
+    box-shadow: 0 0 22px rgba(255, 0, 212, 0.65), inset 0 0 12px rgba(255, 0, 212, 0.3);
+  }
 }
 
 
