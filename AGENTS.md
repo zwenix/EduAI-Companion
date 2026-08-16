@@ -34,7 +34,31 @@ Under no circumstances is any agent permitted to map the user's selected models 
 
 ---
 
-## 🎨 2. STYLING & LAYOUT INTEGRITY FOR GENERATED CONTENT
+## 🖼️ 2. ASSET PROTECTION — NEVER REPLACE OR OVERWRITE ASSETS (CRITICAL)
+
+The binary assets in their folders are original, carefully-uploaded files that MUST NEVER be replaced, regenerated, overwritten, downscaled, re-encoded, or deleted. Treat them as immutable source-of-truth files.
+
+### Protected Asset Locations
+* **`assets/`** — Brand logo (`assets/logo.png`) and any video files (e.g. `assets/splash-screen.mp4`).
+* **`public/`** — All public assets, including:
+  * `public/icons/**` — the hand-crafted sidebar/tool icons (`screen.png` + `code.html` per icon folder).
+  * `public/overlays/**` — page overlay/background images.
+  * `public/splash.mp4` and any other media referenced directly by URL.
+* **`src/assets/`** — Bundled assets, including:
+  * `src/assets/images/**` — dashboard/overlay/screenshot backgrounds.
+  * `src/assets/overlays/**` — mirrored overlay images.
+  * `src/assets/splash.mp4`, `src/assets/logo.png`.
+
+### Strict Rules
+* **DO NOT** modify, resize, compress, re-encode, or "optimize" any of the above files.
+* **DO NOT** swap them for AI-generated or placeholder alternatives, even if a hosted URL appears broken at runtime — verify the actual repository file first.
+* **DO NOT** delete or rename these files or their parent folders.
+* If a file appears corrupted, **recover it from git history** (e.g. a previous valid commit) rather than replacing it with a new file. Only if no valid copy exists anywhere in history may the user be asked to re-provide the original.
+* When adding a *new* asset, place it in the correct existing folder and never overwrite an existing file of the same name without explicit user approval.
+
+---
+
+## 🎨 3. STYLING & LAYOUT INTEGRITY FOR GENERATED CONTENT
 
 The generated materials (such as CAPS Lesson Plans, Worksheets, and Interactive Materials) must maintain an impeccable level of design, structure, and visual detail.
 
@@ -47,7 +71,7 @@ The generated materials (such as CAPS Lesson Plans, Worksheets, and Interactive 
 
 ---
 
-## 🔒 3. PROTECTION OF BUILT-IN PROMPTS
+## 🔒 4. PROTECTION OF BUILT-IN PROMPTS
 
 * The prompt engineering templates located in the project (e.g., in `src/lib/prompt-engine.ts`, `src/services/unifiedAiService.ts`, etc.) contain meticulous, reverse-engineered CAPS instruction layouts.
 * **DO NOT** alter the semantic structure of these prompts or compress them in a way that degrades content richness.
@@ -55,11 +79,11 @@ The generated materials (such as CAPS Lesson Plans, Worksheets, and Interactive 
 
 ---
 
-## 📖 4. COMPREHENSIVE CONTENT GENERATION ENGINE CONFIGURATIONS
+## 📖 5. COMPREHENSIVE CONTENT GENERATION ENGINE CONFIGURATIONS
 
 The following sections define the explicit guidelines, prompt configurations, and layouts for all non-video content types supported by this application.
 
-### 4.1 CAPS Lesson Plans & Unit Plans
+### 5.1 CAPS Lesson Plans & Unit Plans
 * **Target Audience**: Teachers and educators. Must be structured as a detailed instructional guide.
 * **Core Layout Structure**:
   1. **Visual Header**: Full-width gradient banner color-coded to the learning area/subject.
@@ -79,7 +103,7 @@ The following sections define the explicit guidelines, prompt configurations, an
   10. **Values & Life Skills integration**.
   11. **Appended Learner Worksheet**: Added *only* if requested by the user, appended cleanly at the bottom.
 
-### 4.2 Diagnostic & Print-Ready Worksheets
+### 5.2 Diagnostic & Print-Ready Worksheets
 * **Visual Standards**:
   * **Header Badge**: A prominent box containing `"NAME: ______________ DATE: ______________"` styled with dotted fields.
   * **Score Cards**: A distinct, highlighted capsule block styled with a thick yellow/amber border indicating `"SCORE: ________ / [MARKS] Marks"` placed in the top or bottom right.
@@ -87,39 +111,39 @@ The following sections define the explicit guidelines, prompt configurations, an
   * **Option Containers**: Avoid circular pill bounds (`rounded-full`) for wrapped lines to prevent border clipping. Use robust containers with `rounded-2xl` padding instead.
   * **Visual Elements**: Bold question numbers styled as numbered circles, responsive options styled as tap-friendly boxes, and plenty of visual breathing room.
 
-### 4.3 Study Guides & Learning Notes
+### 5.3 Study Guides & Learning Notes
 * **Target Audience**: Learners revising key curricular concepts.
 * **Visual Standards**:
   * Clean, multi-column layouts using bento grids to compartmentalize ideas.
   * **Aesthetic Accents**: Highlighted formula panels, key vocabulary callouts, and margin spaces for learner notes.
   * **Critical Thinking**: "Think Deeper" badges and visual lightbulb callout blocks designed with deep text contrast to spark intellectual curiosity.
 
-### 4.4 Formal Assessments & Rubrics
+### 5.4 Formal Assessments & Rubrics
 * **Tests & Quizzes**:
   * Structured exam-style formatting with clear mark allocations per sub-question (e.g., `[5 Marks]` aligned to the right-hand margin).
   * **Diagnostic Answer Key (Memo)**: A complete, fully calculated step-by-step marking guidelines section matching the exam structure exactly.
 * **Rubrics**:
   * Perfectly aligned HTML grid tables mapping core Criteria (vertical axes) against Performance Levels 1 to 4 or 1 to 7 (horizontal axes) with exhaustive performance descriptors in each grid cell. No empty placeholders!
 
-### 4.5 Visual Posters & Infographics
+### 5.5 Visual Posters & Infographics
 * **Strict Restriction**: **NO assessment tasks, fill-in-the-blanks, or test questions allowed.** These are visual-only teaching tools.
 * **Visual Standards**:
   * **Hero Illustration**: A dedicated center-stage container depicting the core topic in a clean, semi-realistic children's non-fiction digital book design.
   * **Typography**: Highly scannable display fonts, punchy headers with appropriate leading, short action-oriented bullet lists, and context-specific emojis. No long, dense paragraphs of prose.
 
-### 4.6 Report Comments, Curriculum Maps, & Progress Trackers
+### 5.6 Report Comments, Curriculum Maps, & Progress Trackers
 * **Report Comments**: Generates supportive, constructive individual learner evaluations detailing strengths, identified areas for remedial support, and action-oriented improvement strategies in standard CAPS terminology.
 * **Curriculum Maps**: Grid-based sequencing planners detailing topic timelines, ATP alignments, and progression pacing across terms 1 to 4.
 * **Progress Trackers**: Clean progress dashboard components that visualize performance metrics, completion rates, and formative milestone tracking.
 
 ---
 
-## 📹 5. VIDEO GENERATION ENGINE (OMNIHUMAN-1 PRESERVATION MANDATE)
+## 📹 6. VIDEO GENERATION ENGINE (OMNIHUMAN-1 PRESERVATION MANDATE)
 
 > [!CAUTION]
 > **Video Content Generation is currently highly sensitive.** Do NOT alter, refactor, or attempt to replace the current Video Generation pipelines. The current OmniHuman-1 engine is the ONLY verified working solution that bypasses failing API systems.
 
-### 5.1 Gradio Streaming Integration
+### 6.1 Gradio Streaming Integration
 * **OmniHuman-1 core mechanism**: Connects client-side directly to the free Hugging Face space `multimodalart/self-forcing` using the `@gradio/client` Node module.
 * **Backend Endpoint (`/api/video/generate`)**:
   * Accepts `prompt`, `model`, `seed`, and `fps`.
@@ -130,6 +154,6 @@ The following sections define the explicit guidelines, prompt configurations, an
   * Correctly resolves nested response payloads, checking `result.data[0].video.url`, `result.data[0].url`, or string-match protocols before resolving.
   * **Resilient Fallback Policy**: If Gradio returns a timeout, connection error, or queue rejection, it MUST NOT throw a visible error. Instead, it falls back seamlessly to `matchEducationalVideo(promptText)` which scans local keywords against preset high-quality educational MP4 files and returns them as a successfully resolved video payload. This prevents user frustration and guarantees a perfect user experience under any network condition.
 
-### 5.2 Status Inquiries (`/api/video/status/:id`)
+### 6.2 Status Inquiries (`/api/video/status/:id`)
 * Continues polling the `omniJobs` map to deliver responsive video generation progress updates to the frontend without blocking server execution loops.
 * Retains compatibility with the optional `replicate` video client should the user provide valid Replicate API credentials.
