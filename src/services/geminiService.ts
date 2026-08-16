@@ -1,14 +1,9 @@
 import axios from "axios";
-import { Capacitor } from "@capacitor/core";
 import { checkAndReportApiError } from "../lib/apiErrorHelper";
 import { callGeminiClientDirect } from "./geminiClient";
-
 // True when running inside the Capacitor native app (Android APK), where there
 // is no Node backend to proxy requests — so we call the AI providers directly.
-const isNativeApp = (): boolean => {
-  try { return typeof Capacitor !== 'undefined' && !!Capacitor.isNativePlatform?.(); }
-  catch { return false; }
-};
+import { isNativeApp } from "../lib/platform";
 
 // Returns true when the Node backend is unreachable (standalone APK / offline),
 // in which case we fall back to the client-side Gemini engine.

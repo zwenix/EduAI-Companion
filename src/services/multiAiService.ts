@@ -1,12 +1,7 @@
 import axios from 'axios';
-import { Capacitor } from '@capacitor/core';
 import { checkAndReportApiError } from '../lib/apiErrorHelper';
 import { AI_SECRETS } from '../lib/aiSecrets';
-
-const isNativeApp = (): boolean => {
-  try { return typeof Capacitor !== 'undefined' && !!Capacitor.isNativePlatform?.(); }
-  catch { return false; }
-};
+import { isNativeApp } from '../lib/platform';
 
 export type AIProvider = 'nvidia-nemotron' | 'nvidia-nemotron-ultra' | 'groq-qwen';
 

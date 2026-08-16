@@ -1,4 +1,5 @@
 import { TTSProvider } from '../contexts/AiContext';
+import { isNativeApp } from '../lib/platform';
 
 
 let currentAudio: HTMLAudioElement | null = null;
@@ -104,6 +105,13 @@ export const speakText = async (text: string, provider: TTSProvider, language: s
 
   const sanitizedText = cleanTextForSpeech(text);
   if (!sanitizedText.trim()) return;
+
+  // Native app (APK): the HF/Google TTS routes are backend proxies that do not
+  // exist here — Capacitor answers them with an HTML page, so every request
+  // wasted a round trip before falling back. Use the on-device voice directly.
+  if (isNativeApp() && provider !== 'browser') {
+    return await speakWithBrowser(sanitizedText, language, voice);
+  }
 
   if (provider === 'groq-whisper') {
     try {

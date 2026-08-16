@@ -306,24 +306,41 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
 <body>
   ${cleanedHtml}
   <script>
-    const hydrateImages = () => {
-      const images = document.querySelectorAll('.eduai-async-image:not([data-hydrated="true"])');
-      images.forEach(img => {
-        img.dataset.hydrated = "true";
-        const prompt = img.dataset.eduaiPrompt ? decodeURIComponent(img.dataset.eduaiPrompt) : null;
-        const seed = parseInt(img.dataset.eduaiSeed || '0');
-        if (prompt && window.parent) {
-          const reqId = Math.random().toString();
-          img.dataset.reqId = reqId;
-          const listener = (e) => {
-            if (e.data && e.data.type === 'EDUAI_IMAGE_RESULT' && e.data.id === reqId) {
-              img.src = e.data.url;
-              window.removeEventListener('message', listener);
-            }
-          };
-          window.addEventListener('message', listener);
-          window.parent.postMessage({ type: 'EDUAI_GENERATE_IMAGE', prompt, seed, id: reqId }, '*');
+    // Each illustration already ships with a working src (direct image API, or
+    // the backend proxy on web). We only ask the host app to regenerate through
+    // the configured provider chain if that direct URL actually fails to load,
+    // so a slow/blocked provider can never leave an empty placeholder behind.
+    const requestFromHost = (img) => {
+      if (img.dataset.hydrated === "true") return;
+      img.dataset.hydrated = "true";
+      const prompt = img.dataset.eduaiPrompt ? decodeURIComponent(img.dataset.eduaiPrompt) : null;
+      const seed = parseInt(img.dataset.eduaiSeed || '0');
+      if (!prompt || !window.parent) return;
+      const reqId = Math.random().toString();
+      img.dataset.reqId = reqId;
+      const listener = (e) => {
+        if (e.data && e.data.type === 'EDUAI_IMAGE_RESULT' && e.data.id === reqId) {
+          if (e.data.url) img.src = e.data.url;
+          window.removeEventListener('message', listener);
         }
+      };
+      window.addEventListener('message', listener);
+      window.parent.postMessage({ type: 'EDUAI_GENERATE_IMAGE', prompt, seed, id: reqId }, '*');
+    };
+
+    const hydrateImages = () => {
+      const images = document.querySelectorAll('.eduai-async-image:not([data-bound="true"])');
+      images.forEach(img => {
+        img.dataset.bound = "true";
+        const src = img.getAttribute('src') || '';
+        // No usable src (legacy blank pixel) → generate immediately.
+        if (!src || src.startsWith('data:image/gif')) {
+          requestFromHost(img);
+          return;
+        }
+        img.addEventListener('error', () => requestFromHost(img), { once: true });
+        // Already failed before the listener attached.
+        if (img.complete && img.naturalWidth === 0) requestFromHost(img);
       });
     };
     const observer = new MutationObserver(hydrateImages);
