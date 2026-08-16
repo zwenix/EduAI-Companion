@@ -128,10 +128,13 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
       `;
     }
 
-    // Fallback/First-generation flow
-    const provider = typeof window !== 'undefined'
-      ? window.localStorage.getItem('eduai_image_provider') || 'perchance'
-      : 'perchance';
+    // Fallback/First-generation flow. Perchance is web-only, so the badge must
+    // not advertise it inside the APK.
+    const defaultProvider = isNativeApp() ? 'gemini-imagen' : 'perchance';
+    let provider = typeof window !== 'undefined'
+      ? window.localStorage.getItem('eduai_image_provider') || defaultProvider
+      : defaultProvider;
+    if (isNativeApp() && provider === 'perchance') provider = 'gemini-imagen';
 
     const isLogoOrStamp = /logo|stamp|seal|crest|badge|signature|certificate|emblem/i.test(cleanPrompt);
     const enhancedPrompt = isLogoOrStamp
