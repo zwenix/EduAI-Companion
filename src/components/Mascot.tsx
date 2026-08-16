@@ -9,16 +9,24 @@ import React from 'react';
  * elephant ears + graduation cap) so she still feels like the same buddy,
  * now wearing the brand's visual identity.
  */
-export default function EllyMascot({ className = 'w-16 h-16' }: { className?: string }) {
+export default function EllyMascot({
+  className = 'w-16 h-16',
+  animated = true,
+}: {
+  className?: string;
+  /** Set false to render Elly perfectly still (print/export views). */
+  animated?: boolean;
+}) {
   const uid = React.useId().replace(/[^a-zA-Z0-9]/g, '');
   const gid = (name: string) => `${name}_${uid}`;
+  const anim = animated ? '' : ' eduai-elly-static';
 
   return (
     <svg
-      viewBox="0 0 120 120"
+      viewBox="-6 -6 132 132"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={`${className} shrink-0 drop-shadow-[0_6px_18px_rgba(56,189,248,0.45)]`}
+      className={`${className}${anim} shrink-0 drop-shadow-[0_6px_18px_rgba(56,189,248,0.45)]`}
       role="img"
       aria-label="Elly, the EduAI Companion mascot"
     >
@@ -48,10 +56,12 @@ export default function EllyMascot({ className = 'w-16 h-16' }: { className?: st
         </radialGradient>
       </defs>
 
-      {/* Logo-style emblem orbit ring + electron dots */}
+      {/* Logo-style emblem orbit ring + electron dots (dots orbit the emblem) */}
       <circle cx="60" cy="62" r="40" stroke={`url(#${gid('ringGrad')})`} strokeWidth="2.5" opacity="0.5" />
-      <circle cx="20" cy="62" r="3" fill="#22d3ee" opacity="0.9" />
-      <circle cx="100" cy="62" r="3" fill="#e879f9" opacity="0.9" />
+      <g className="eduai-elly-orbit" style={{ transformOrigin: '60px 62px' }}>
+        <circle cx="20" cy="62" r="3" fill="#22d3ee" opacity="0.9" />
+        <circle cx="100" cy="62" r="3" fill="#e879f9" opacity="0.9" />
+      </g>
 
       {/* Left & Right flappy elephant ears */}
       <path
@@ -77,13 +87,15 @@ export default function EllyMascot({ className = 'w-16 h-16' }: { className?: st
       {/* soft top highlight, like the logo's gloss */}
       <circle cx="60" cy="62" r="29" fill={`url(#${gid('faceGlow')})`} />
 
-      {/* Friendly eyes with logo-style sparkle highlights */}
-      <ellipse cx="49" cy="57" rx="6.5" ry="8" fill="#ffffff" />
-      <ellipse cx="71" cy="57" rx="6.5" ry="8" fill="#ffffff" />
-      <circle cx="49.5" cy="59" r="3.6" fill="#0b1b4d" />
-      <circle cx="71.5" cy="59" r="3.6" fill="#0b1b4d" />
-      <circle cx="47.6" cy="56.6" r="1.5" fill="#ffffff" />
-      <circle cx="69.6" cy="56.6" r="1.5" fill="#ffffff" />
+      {/* Friendly eyes with logo-style sparkle highlights (they blink) */}
+      <g className="eduai-elly-blink" style={{ transformOrigin: '60px 57px' }}>
+        <ellipse cx="49" cy="57" rx="6.5" ry="8" fill="#ffffff" />
+        <ellipse cx="71" cy="57" rx="6.5" ry="8" fill="#ffffff" />
+        <circle cx="49.5" cy="59" r="3.6" fill="#0b1b4d" />
+        <circle cx="71.5" cy="59" r="3.6" fill="#0b1b4d" />
+        <circle cx="47.6" cy="56.6" r="1.5" fill="#ffffff" />
+        <circle cx="69.6" cy="56.6" r="1.5" fill="#ffffff" />
+      </g>
 
       {/* Cheek blushes */}
       <ellipse cx="40" cy="67" rx="4" ry="2.6" fill="#f472b6" opacity="0.55" />

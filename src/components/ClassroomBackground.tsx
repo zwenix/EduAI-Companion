@@ -17,7 +17,7 @@ import {
   Dna,
   Languages,
 } from 'lucide-react';
-import classroomBg from '../assets/images/classroom_bg.png';
+import classroomBg from '../assets/images/classroom_bg.jpg';
 
 /**
  * Animated landing-page background:
@@ -62,7 +62,26 @@ const ICON_SETS: { Icon: React.ComponentType<{ className?: string; style?: React
 
 const EMOJI_SET = ['🎓', '✏️', '📚', '🔬', '🧪', '⭐', '🚀', '🔢', '🌍', '🎨', '🎵', '💡', '⚛️', '📐', '🎹', '🧮'];
 
+/** Respects the OS "reduce motion" accessibility setting. */
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = React.useState(
+    () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
+  );
+
+  React.useEffect(() => {
+    const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (!mq) return;
+    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  return reduced;
+}
+
 export default function ClassroomBackground() {
+  const prefersReducedMotion = usePrefersReducedMotion();
+
   const particles = useMemo<Particle[]>(() => {
     const arr: Particle[] = [];
     const total = 26;
@@ -100,12 +119,14 @@ export default function ClassroomBackground() {
   return (
     <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none select-none" aria-hidden="true">
       {/* Classroom scene (multiracial children + chubby well-dressed female teacher) */}
-      <div className="absolute inset-0 eduai-classroom-drift">
+      <div className={`absolute inset-0 ${prefersReducedMotion ? '' : 'eduai-classroom-drift'}`}>
         <img
           src={classroomBg}
           alt=""
           className="w-full h-full object-cover object-[50%_42%]"
           draggable={false}
+          decoding="async"
+          fetchPriority="high"
         />
       </div>
 
@@ -116,8 +137,9 @@ export default function ClassroomBackground() {
       {/* Neon scanline sheen (brand consistency) */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.22)_50%),linear-gradient(90deg,rgba(255,0,0,0.02),rgba(0,255,0,0.01),rgba(0,0,255,0.02))] bg-[length:100%_4px,3px_100%] opacity-30" />
 
-      {/* Educational symbols & icons exploding outwards from the lesson area */}
-      {particles.map((p) => (
+      {/* Educational symbols & icons exploding outwards from the lesson area.
+          Skipped entirely when the user prefers reduced motion. */}
+      {!prefersReducedMotion && particles.map((p) => (
         <div
           key={p.id}
           className="absolute left-1/2 top-[38%] eduai-explode"

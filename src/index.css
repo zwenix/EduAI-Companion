@@ -466,6 +466,56 @@ svg:not(.not-sketchy) {
   will-change: transform;
 }
 
+/* Accessibility: stop the landing-page background motion for users who
+   ask their OS to reduce animation. The scene stays, it just holds still. */
+@media (prefers-reduced-motion: reduce) {
+  .eduai-classroom-drift,
+  .eduai-explode {
+    animation: none !important;
+  }
+
+  .eduai-explode {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   ELLY 2.0 MASCOT — subtle signs of life
+   ========================================================================== */
+
+/* Occasional friendly blink */
+@keyframes eduai-elly-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95%, 97%      { transform: scaleY(0.08); }
+}
+
+/* Electron dots orbiting the emblem badge */
+@keyframes eduai-elly-orbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.eduai-elly-blink {
+  animation: eduai-elly-blink 6.5s ease-in-out infinite;
+}
+
+.eduai-elly-orbit {
+  animation: eduai-elly-orbit 14s linear infinite;
+}
+
+/* Explicit opt-out (animated={false}) and reduced-motion users */
+.eduai-elly-static .eduai-elly-blink,
+.eduai-elly-static .eduai-elly-orbit {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eduai-elly-blink,
+  .eduai-elly-orbit {
+    animation: none !important;
+  }
+}
+
 /* ==========================================================================
    CINEMATIC NEON THEME ADDITIONS
    ========================================================================== */

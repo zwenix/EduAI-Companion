@@ -1,23 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  Sparkles, 
-  ChevronRight, 
-  Blocks, 
-  Palette, 
-  Smile, 
-  Award, 
-  ToyBrick, 
-  BookOpen, 
-  Play, 
-  Compass, 
-  GraduationCap, 
-  LineChart, 
-  Layers, 
+import {
+  Sparkles,
+  ChevronRight,
+  Blocks,
+  LineChart,
+  Layers,
   ExternalLink,
   Laptop,
-  ArrowRight,
-  Orbit,
-  Star,
   Users,
   Zap,
   Volume2,
@@ -45,7 +34,6 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
   const [activeLessonPhase, setActiveLessonPhase] = useState<'engage' | 'explore' | 'evaluate'>('engage');
   const [hoveredPlanet, setHoveredPlanet] = useState<number | null>(null);
   const [selectedPlanet, setSelectedPlanet] = useState<number | null>(null);
-  const [interactiveMascotHover, setInteractiveMascotHover] = useState(false);
   const [soundMuted, setSoundMuted] = useState(true);
 
   // Simple feedback audio function
