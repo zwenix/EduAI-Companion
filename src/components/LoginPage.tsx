@@ -5,6 +5,7 @@ import { GoogleAuthProvider, signInWithPopup, signInWithCredential, signInWithEm
 import { motion, AnimatePresence } from 'motion/react';
 import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { FIREBASE_WEB_CLIENT_ID, GOOGLE_AUTH_SCOPES } from '../config/googleAuth';
 
 interface LoginPageProps {
   onSuccess: () => void;
@@ -110,14 +111,13 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
         // Native app (Android/iOS): popups don't exist in a WebView, and Google
         // blocks embedded-webview OAuth. Use the native Google Sign-In SDK and
         // exchange the returned idToken for a Firebase credential.
-        const cfg: any = (Capacitor as any).getConfig?.() || {};
-        const clientId = cfg?.plugins?.GoogleAuth?.clientId;
-        if (!clientId || String(clientId).includes('YOUR_WEB_CLIENT_ID')) {
-          setIsGoogle(false);
-          setError("Google Sign-In isn't configured in this build yet. Set your Firebase 'Web Client ID' in capacitor.config.ts, then rebuild the app.");
-          return;
-        }
-        await GoogleAuth.initialize();
+        // Capacitor does not expose capacitor.config.ts through a public
+        // getConfig() runtime API. Pass the Web client ID directly so native
+        // initialization cannot be blocked by an empty runtime config lookup.
+        await GoogleAuth.initialize({
+          clientId: FIREBASE_WEB_CLIENT_ID,
+          scopes: GOOGLE_AUTH_SCOPES,
+        });
         const googleUser: any = await GoogleAuth.signIn();
         if (!googleUser.authentication?.idToken && !googleUser.idToken) {
           throw new Error('Google Sign-In returned no ID token.');
