@@ -4,7 +4,12 @@ import App from './App.tsx';
 import './index.css';
 
 import { AiProvider } from './contexts/AiContext.tsx';
-import { generateImageWithFallback } from './lib/imageGeneration.ts';
+import { installImageRecovery } from './lib/imageRecovery.ts';
+
+// Catch generated illustrations whose direct URL fails (most importantly the
+// backend-only /api/image-proxy route inside the Android APK) and re-resolve
+// them through the provider chain instead of leaving a blank placeholder.
+installImageRecovery();
 
 
 import { NotificationManager } from './lib/notifications/NotificationManager';

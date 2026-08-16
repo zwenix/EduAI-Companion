@@ -1,10 +1,22 @@
 /**
  * EduAI Companion - Multi-Provider Image Generation System
- * UPDATED: Perchance is now the PRIMARY image generator, followed by Gemini, then Pollinations.
+ *
+ * Provider chain is user-selectable (Settings → Creative Image Generator) and
+ * degrades gracefully:
+ *   perchance (browser only) → gemini (backend or baked-in client key) → pollinations
+ *
+ * IMPORTANT (Android / Capacitor): the native APK ships without the Node
+ * backend, and Capacitor's local server answers unknown routes such as
+ * `/api/...` with a 200 HTML page. Any provider that depends on the backend
+ * must therefore be skipped on native, otherwise images silently resolve to
+ * HTML and render as broken placeholders. Perchance is also skipped on native
+ * because its cross-origin iframe bridge never resolves inside the WebView and
+ * would block every illustration for 15s before falling through.
  */
 
 import { generatePerchanceImageClient } from '../services/perchanceService';
 import { callGeminiClientDirect } from '../services/geminiClient';
+import { isNativeApp } from './platform';
 
 export interface ImageGenerationResult {
   url: string;
@@ -30,11 +42,44 @@ const ASPECT_RATIOS = {
   landscape: { width: 1024, height: 768 }
 };
 
+/** Direct, dependency-free image URL — works on web AND inside the APK. */
+export const buildPollinationsUrl = (
+  prompt: string,
+  width: number = 1024,
+  height: number = 1024,
+  seed: number = Math.floor(Math.random() * 100000)
+): string => {
+  const cleanPrompt = prompt.length > 1000 ? `${prompt.substring(0, 997)}...` : prompt;
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=${width}&height=${height}&seed=${seed}&nologo=true&model=turbo&enhance=true`;
+};
+
+/**
+ * URL to use directly inside an `<img src>` (no async round trip).
+ * Web keeps the backend proxy (it bypasses school-network filters); the native
+ * app has no backend, so it points straight at the public image API.
+ */
+export const buildDirectImageUrl = (
+  prompt: string,
+  width: number = 800,
+  height: number = 600,
+  seed: number = Math.floor(Math.random() * 100000)
+): string => {
+  if (isNativeApp()) return buildPollinationsUrl(prompt, width, height, seed);
+  return `/api/image-proxy?prompt=${encodeURIComponent(prompt)}&width=${width}&height=${height}&seed=${seed}`;
+};
+
 export const generateImageGemini = async (
   prompt: string,
   width: number = 1024,
   height: number = 1024
 ): Promise<string> => {
+  // Native app: no backend to proxy through — use the client SDK directly.
+  if (isNativeApp()) {
+    const data = await callGeminiClientDirect('generate-image', { prompt, width, height });
+    if (data?.imageUrl) return data.imageUrl;
+    throw new Error('No image URL returned from client-side Gemini engine');
+  }
+
   try {
     const response = await fetch('/api/gemini/action', {
       method: 'POST',
@@ -67,6 +112,12 @@ export const generateImagePerchance = async (
   height: number = 1024,
   seed: number = Math.floor(Math.random() * 10000)
 ): Promise<string> => {
+  // The Perchance bridge relies on a cross-origin iframe + postMessage, which
+  // is not reachable from the Capacitor WebView.
+  if (isNativeApp()) {
+    throw new Error('Perchance is not available in the native app');
+  }
+
   try {
     if (typeof window !== 'undefined') {
       try {
@@ -76,7 +127,7 @@ export const generateImagePerchance = async (
         console.warn('Perchance client-side iframe generation timed out or failed, transitioning to backend proxy...', clientErr);
       }
     }
-    
+
     // Fallback to backend proxy if client-side fails
     const response = await fetch('/api/images/generate', {
       method: 'POST',
@@ -101,14 +152,19 @@ export const generateImagePollinations = async (
   seed: number = Math.floor(Math.random() * 10000)
 ): Promise<string> => {
   // Direct, reliable public API fallback that bypasses backend proxy issues entirely
-  const encodedPrompt = encodeURIComponent(prompt);
-  const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
-  
-  // Verify the image loads by creating a temporary image object
-  return new Promise((resolve, reject) => {
+  const imageUrl = buildPollinationsUrl(prompt, width, height, seed);
+
+  // Verify the image loads by creating a temporary image object. If the probe
+  // cannot run (or stalls), still hand back the URL — the <img> tag itself will
+  // retry the fetch and Android is far more tolerant than the probe.
+  if (typeof Image === 'undefined') return imageUrl;
+
+  return new Promise((resolve) => {
     const img = new Image();
-    img.onload = () => resolve(imageUrl);
-    img.onerror = () => reject(new Error("Pollinations image failed to load"));
+    const done = () => resolve(imageUrl);
+    img.onload = done;
+    img.onerror = done;
+    setTimeout(done, 25000);
     img.src = imageUrl;
   });
 };
@@ -128,20 +184,33 @@ export const generateImageWithFallback = async (
     styledPrompt += styleSuffix;
   }
 
-  // UPDATED: Perchance is now the default and primary provider
+  const native = isNativeApp();
+
   const preferredProvider = typeof window !== 'undefined'
-    ? window.localStorage.getItem('eduai_image_provider') || 'perchance'
+    ? window.localStorage.getItem('eduai_image_provider') || (native ? 'gemini-imagen' : 'perchance')
     : 'perchance';
 
-  console.log(`[Image Gen] Preferred provider: ${preferredProvider}`);
+  // Normalise the stored settings value onto the internal provider ids.
+  const normalise = (p: string): 'perchance' | 'gemini' | 'pollinations' =>
+    p === 'gemini-imagen' || p === 'gemini' ? 'gemini'
+      : p === 'pollinations' ? 'pollinations'
+        : 'perchance';
 
-  // UPDATED: Priority chain is now Perchance -> Gemini -> Pollinations
-  const order: Array<'perchance' | 'gemini' | 'pollinations'> = ['perchance', 'gemini', 'pollinations'];
+  const preferred = normalise(preferredProvider);
+
+  // Honour the user's choice first, then walk the remaining providers.
+  const defaultOrder: Array<'perchance' | 'gemini' | 'pollinations'> = ['perchance', 'gemini', 'pollinations'];
+  let order = [preferred, ...defaultOrder.filter((p) => p !== preferred)];
+
+  // Perchance cannot work inside the APK — drop it so images are not delayed.
+  if (native) order = order.filter((p) => p !== 'perchance');
+
+  console.log(`[Image Gen] Preferred provider: ${preferred}${native ? ' (native app)' : ''} | chain: ${order.join(' → ')}`);
 
   for (const prov of order) {
     if (prov === 'perchance') {
       try {
-        console.log('[Image Gen] Attempting Perchance (Primary)...');
+        console.log('[Image Gen] Attempting Perchance...');
         const imageUrl = await generateImagePerchance(styledPrompt, width, height, seed);
         return { url: imageUrl, provider: 'perchance', prompt: styledPrompt, width, height };
       } catch (error) {
@@ -149,7 +218,7 @@ export const generateImageWithFallback = async (
       }
     } else if (prov === 'gemini') {
       try {
-        console.log('[Image Gen] Attempting Gemini (Secondary)...');
+        console.log('[Image Gen] Attempting Gemini...');
         const imageUrl = await generateImageGemini(styledPrompt, width, height);
         return { url: imageUrl, provider: 'gemini', prompt: styledPrompt, width, height };
       } catch (error) {
@@ -157,7 +226,7 @@ export const generateImageWithFallback = async (
       }
     } else if (prov === 'pollinations') {
       try {
-        console.log('[Image Gen] Attempting Pollinations (Tertiary)...');
+        console.log('[Image Gen] Attempting Pollinations...');
         const imageUrl = await generateImagePollinations(styledPrompt, width, height, seed);
         return { url: imageUrl, provider: 'pollinations', prompt: styledPrompt, width, height };
       } catch (error) {
@@ -168,11 +237,9 @@ export const generateImageWithFallback = async (
 
   // Absolute fallback: Direct Pollinations URL if all promises reject
   console.log('[Image Gen] All providers failed. Defaulting to Pollinations direct URL...');
-  const encodedPrompt = encodeURIComponent(styledPrompt);
-  const fallbackUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
-  
+
   return {
-    url: fallbackUrl,
+    url: buildPollinationsUrl(styledPrompt, width, height, seed),
     provider: 'pollinations',
     prompt: styledPrompt,
     width,
@@ -211,5 +278,7 @@ export default {
   generateImageGemini,
   generateImagePerchance,
   generateImagePollinations,
-  enhanceEducationalImagePrompt
+  enhanceEducationalImagePrompt,
+  buildDirectImageUrl,
+  buildPollinationsUrl
 };

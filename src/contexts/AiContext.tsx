@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { isNativeApp } from '../lib/platform';
 
 export type AIProvider = 'gemini' | 'nvidia-nemotron' | 'nvidia-nemotron-ultra';
 export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
@@ -59,11 +60,16 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   const [imageProvider, setImageProvider] = useState<ImageProvider>(() => {
+    // Perchance drives generation through a cross-origin iframe bridge, which
+    // never resolves inside the Capacitor WebView — so the native app defaults
+    // to Gemini Imagen (baked-in key) instead of stalling on every image.
+    const fallback: ImageProvider = isNativeApp() ? 'gemini-imagen' : 'perchance';
     try {
       const saved = localStorage.getItem('eduai_image_provider') as any;
-      return saved && VALID_IMAGE.includes(saved) ? saved : 'perchance';
+      if (saved === 'perchance' && isNativeApp()) return 'gemini-imagen';
+      return saved && VALID_IMAGE.includes(saved) ? saved : fallback;
     } catch {
-      return 'perchance';
+      return fallback;
     }
   });
 

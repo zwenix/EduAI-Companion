@@ -1,5 +1,7 @@
 import { collection, onSnapshot, query, setDoc, doc, Timestamp } from 'firebase/firestore';
 import { db, auth } from './firebase';
+import { buildDirectImageUrl, buildPollinationsUrl } from './imageGeneration';
+import { isNativeApp } from './platform';
 
 /**
  * EduAI Companion - Custom Image Placeholder Replacer & Firestore Cache
@@ -126,27 +128,42 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
       `;
     }
 
-    // Fallback/First-generation flow
-    const provider = typeof window !== 'undefined'
-      ? window.localStorage.getItem('eduai_image_provider') || 'perchance'
-      : 'perchance';
+    // Fallback/First-generation flow. Perchance is web-only, so the badge must
+    // not advertise it inside the APK.
+    const defaultProvider = isNativeApp() ? 'gemini-imagen' : 'perchance';
+    let provider = typeof window !== 'undefined'
+      ? window.localStorage.getItem('eduai_image_provider') || defaultProvider
+      : defaultProvider;
+    if (isNativeApp() && provider === 'perchance') provider = 'gemini-imagen';
 
     const isLogoOrStamp = /logo|stamp|seal|crest|badge|signature|certificate|emblem/i.test(cleanPrompt);
     const enhancedPrompt = isLogoOrStamp
       ? `${cleanPrompt}, clean professional vector logo, official school crest stamp seal aesthetic, crisp graphic design, high contrast, pure white background, masterpiece 4k vector graphic`
       : `${cleanPrompt}, professional educational illustration, clean aesthetic design, crisp render, sharp focus, vibrant lighting, pure white background, natural beauty, 4k resolution`;
     
-    // Use the backend proxy to bypass school network firewalls blocking external generation sites
-    const imageUrl = `/api/image-proxy?prompt=${encodeURIComponent(enhancedPrompt)}&width=800&height=600&seed=${seed}`;
+    // Web: use the backend proxy to bypass school network firewalls blocking
+    // external generation sites. Native app (APK): there is no backend — the
+    // Capacitor server answers /api/* with a 200 HTML page, which is what made
+    // every illustration render as a broken placeholder. Point straight at the
+    // public image API instead.
+    const imageUrl = buildDirectImageUrl(enhancedPrompt, 800, 600, seed);
 
-    // Async save to firestore in background (non-blocking)
-    IllustrationCache.save(cleanPrompt, imageUrl);
+    // Cache an absolute URL only. A relative `/api/image-proxy?...` URL would be
+    // written to Firestore by the web app and then resolve to nothing when the
+    // same illustration is opened inside the APK.
+    if (!isNativeApp() && imageUrl.startsWith('/')) {
+      IllustrationCache.save(cleanPrompt, buildPollinationsUrl(enhancedPrompt, 800, 600, seed));
+    } else {
+      // Async save to firestore in background (non-blocking)
+      IllustrationCache.save(cleanPrompt, imageUrl);
+    }
 
     return `
 <div class="my-6 overflow-hidden rounded-[2rem] border-2 border-dashed border-slate-300 p-2 bg-slate-50/50 hover:bg-slate-100 transition-all duration-300 max-w-full print:break-inside-avoid print:border-none print:p-0 print:m-0 print:shadow-none shadow-sm">
   <img data-eduai-prompt="${encodeURIComponent(enhancedPrompt)}"
        data-eduai-seed="${seed}"
-       src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+       src="${imageUrl}"
+       loading="lazy"
        alt="${cleanPrompt}" 
        title="${cleanPrompt}"
        class="eduai-async-image w-full object-cover rounded-[1.8rem] aspect-[4/3] max-h-[360px] border border-slate-100 shadow-inner print:rounded-none print:shadow-none" 

@@ -92,6 +92,8 @@ const stripMarkdownWrapper = (text: string) => {
 };
 
 import { replaceImagePlaceholders } from './lib/imageReplacer';
+import { useAndroidBackButton } from './lib/useAndroidBackButton';
+import { isNativeApp } from './lib/platform';
 import ContentCreator from './components/ContentCreator';
 import Messenger from './components/Messenger';
 import ProgressReports from './components/ProgressReports';
@@ -407,8 +409,31 @@ export default function App() {
 
     const testPromises = candidates.map(async (candidate) => {
       const startTime = performance.now();
+      const testMsg = [{ role: 'user', content: 'Say "OK"' }];
+
+      // Native app (APK): there is no Node backend, so exercise the same
+      // client-side engines the app actually uses for generation.
+      const measureClient = async () => {
+        const text = candidate.id === 'gemini'
+          ? await chatWithTutor(testMsg)
+          : await callMultiAi(candidate.id as any, testMsg);
+        if (text && String(text).trim()) {
+          results[candidate.id] = Math.round(performance.now() - startTime);
+        } else {
+          results[candidate.id] = 'failed';
+        }
+      };
+
+      if (isNativeApp()) {
+        try { await measureClient(); }
+        catch (err) {
+          console.warn(`Speed test failed for ${candidate.id}:`, err);
+          results[candidate.id] = 'failed';
+        }
+        return;
+      }
+
       try {
-        const testMsg = [{ role: 'user', content: 'Say "OK"' }];
         const res = await axios.post(`/api/ai/${candidate.id}`, {
           messages: testMsg,
           temperature: 0.1,
@@ -422,8 +447,12 @@ export default function App() {
           results[candidate.id] = 'failed';
         }
       } catch (err) {
-        console.warn(`Speed test failed for ${candidate.id}:`, err);
-        results[candidate.id] = 'failed';
+        console.warn(`Speed test failed for ${candidate.id} (backend), trying client engine:`, err);
+        try { await measureClient(); }
+        catch (clientErr) {
+          console.warn(`Client speed test failed for ${candidate.id}:`, clientErr);
+          results[candidate.id] = 'failed';
+        }
       }
     });
 
@@ -470,8 +499,7 @@ export default function App() {
     };
 
     // Native app (APK): no backend — test the client-side engine directly.
-    const isNative = typeof (window as any).Capacitor !== 'undefined' && !!(window as any).Capacitor?.isNativePlatform?.();
-    if (isNative) {
+    if (isNativeApp()) {
       try { await testClientEngine(); }
       catch (e: any) { setModelStatus('error'); setModelStatusError(e?.message || 'Connection failed'); }
       return;
@@ -654,6 +682,65 @@ export default function App() {
     window.addEventListener('api-blocked-or-unreachable', onApiError);
     return () => window.removeEventListener('api-blocked-or-unreachable', onApiError);
   }, []);
+
+  // ── Android hardware back button ──────────────────────────────────────────
+  // Route the device back button through the app's own navigation instead of
+  // letting Capacitor close the app on the first press. Order matters: dismiss
+  // transient UI first, then unwind screens, and only offer to exit from the
+  // dashboard.
+  useAndroidBackButton(() => {
+    // 0. Pre-authentication screens unwind to the landing page first
+    if (needsRoleSetup) { setNeedsRoleSetup(false); setShowDashboard(false); setShowLogin(true); return true; }
+    if (showLogin) { setShowLogin(false); return true; }
+    if (!showDashboard) return false; // Landing page → confirm exit
+
+    // 1. Modals & fullscreen overlays
+    if (isOfflineReaderOpen) { setIsOfflineReaderOpen(false); return true; }
+    if (apiBlockedAlert) { setApiBlockedAlert(null); return true; }
+    if (isOfflineViewerOpen) {
+      if (selectedOfflineMaterial) { setSelectedOfflineMaterial(null); return true; }
+      setIsOfflineViewerOpen(false);
+      return true;
+    }
+
+    // 2. Drawers, dropdowns and the mobile Tools tray
+    if (isMobileQuickMenuOpen) { setIsMobileQuickMenuOpen(false); return true; }
+    if (utilityDrawerOpen) { setUtilityDrawerOpen(false); return true; }
+    if (isAccessibilityOpen) { setIsAccessibilityOpen(false); return true; }
+    if (isProfileDropdownOpen) { setIsProfileDropdownOpen(false); return true; }
+    if (isThemeMenuOpen) { setIsThemeMenuOpen(false); return true; }
+    if (headerCabinetOpen) { setHeaderCabinetOpen(false); return true; }
+    if (isMobileSidebarOpen) { setMobileSidebarOpen(false); return true; }
+
+    // 3. Let the focused feature page handle it (chat threads, wizards, …).
+    //    A page marks the press as consumed by calling preventDefault().
+    const pageEvent = new CustomEvent('eduai-back-request', { cancelable: true });
+    const notConsumedByPage = window.dispatchEvent(pageEvent);
+    if (!notConsumedByPage) return true;
+
+    // 4. Drill out of a content-creator sub-tab, then to the category overview
+    if (activeCreatorTab) { setActiveCreatorTab(null); return true; }
+
+    // 5. Walk the in-app navigation history
+    if (previousTabs.length > 0) { goBack(); return true; }
+
+    if (categoryOverviewActive) {
+      setCategoryOverviewActive(null);
+      setActiveTab('dashboard');
+      setActiveCategory('teacher-dashboard-menu');
+      return true;
+    }
+
+    // 6. Any non-dashboard screen returns home before we consider exiting
+    if (activeTab !== 'dashboard') {
+      setActiveTab('dashboard');
+      setActiveCategory('teacher-dashboard-menu');
+      return true;
+    }
+
+    // 7. At the dashboard: nothing left to unwind → confirm exit
+    return false;
+  }, () => triggerToast('Press back again to exit EduAI Companion', 'info'));
 
   const installPWAApp = async () => {
     if (!deferredPrompt) {
@@ -1746,12 +1833,15 @@ export default function App() {
               : 'border-white/10 bg-[#091225]/60 backdrop-blur-xl text-white'
           }`}
         >
-          {/* Left Side: Navigation (Home & Back Buttons) */}
-          <div className="flex items-center gap-3">
+          {/* Left Side: Navigation (Home & Back Buttons).
+              `min-w-0` + a truncating title stop this group from growing past
+              the viewport on phones — it used to squeeze the right-hand cluster
+              (and the Tools button with it) off the edge of the screen. */}
+          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-shrink">
             {isMobile && (
               <button 
                 onClick={() => setMobileSidebarOpen(true)}
-                className="p-2 rounded-xl bg-white/5 text-white hover:bg-white/10"
+                className="p-2 rounded-xl bg-white/5 text-white hover:bg-white/10 shrink-0"
               >
                 <Menu size={20} />
               </button>
@@ -1760,14 +1850,14 @@ export default function App() {
             {/* Navigation Buttons */}
             <button 
               onClick={goBack}
-              className="p-2 rounded-xl hover:bg-white/10 text-white transition-all"
+              className="p-2 rounded-xl hover:bg-white/10 text-white transition-all shrink-0"
               title="Go Back"
             >
               <ArrowLeft size={18} />
             </button>
             <button 
               onClick={goUp}
-              className="p-2 rounded-xl hover:bg-white/10 text-white transition-all"
+              className="hidden min-[380px]:flex p-2 rounded-xl hover:bg-white/10 text-white transition-all shrink-0"
               title="Navigate One Screen Up"
             >
               <ArrowUp size={18} />
@@ -1779,22 +1869,22 @@ export default function App() {
                 setCategoryOverviewActive(null);
                 setActiveCategory('teacher-dashboard-menu');
               }}
-              className="p-2 rounded-xl hover:bg-white/10 text-white transition-all"
+              className="p-2 rounded-xl hover:bg-white/10 text-white transition-all shrink-0"
               title="Classroom Chalkboard"
             >
               <IconHome size={18} />
             </button>
 
             {/* Page/Branding Title */}
-            <div className="flex items-center ml-2 border-l border-white/10 pl-4 py-1">
-              <span className="font-display font-black tracking-tight text-xs sm:text-base lg:text-lg text-white text-glow-cyan animate-fade-in">
+            <div className="hidden sm:flex items-center ml-2 border-l border-white/10 pl-4 py-1 min-w-0">
+              <span className="font-display font-black tracking-tight text-xs sm:text-base lg:text-lg text-white text-glow-cyan animate-fade-in truncate">
                 {getPageTitle()}
               </span>
             </div>
           </div>
 
           {/* Right Side: Profile dropdown, notifications, day/night & settings drawer */}
-          <div className="flex items-center gap-2 lg:gap-3">
+          <div className="flex items-center gap-2 lg:gap-3 shrink-0">
             {userRole === 'teacher' ? (
               <>
                 {/* Search the galaxy */}
@@ -2596,9 +2686,17 @@ export default function App() {
                             : 'bg-slate-50 border border-slate-200 text-slate-705 focus:border-orange-500 shadow-sm'
                       }`}
                     >
-                      <option value="perchance">Perchance AI Text-to-Image (Primary - Recommended)</option>
-                      <option value="gemini-imagen">Google Imagen 3 (Secondary)</option>
-                      <option value="pollinations">Pollinations AI Turbo (Tertiary)</option>
+                      <option value="perchance" disabled={isNativeApp()}>
+                        {isNativeApp()
+                          ? 'Perchance AI Text-to-Image (Web only)'
+                          : 'Perchance AI Text-to-Image (Primary - Recommended)'}
+                      </option>
+                      <option value="gemini-imagen">
+                        Google Imagen 3 {isNativeApp() ? '(Primary - Recommended)' : '(Secondary)'}
+                      </option>
+                      <option value="pollinations">
+                        Pollinations AI Turbo {isNativeApp() ? '(Fallback)' : '(Tertiary)'}
+                      </option>
                     </select>
                   </div>
 
