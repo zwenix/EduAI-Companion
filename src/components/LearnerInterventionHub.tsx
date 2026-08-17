@@ -33,8 +33,9 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { generateEducationalContent } from '../services/geminiService';
+import bgInterventionSupport from '../assets/images/intervention_support_bg_1786952984.jpg';
 
-const overlayTeachersToolbox = 'https://i.ibb.co/RGmCJ3jh/teachers-toolbox.png';
+const overlayTeachersToolbox = bgInterventionSupport;
 
 interface LearnerInterventionProfile {
   id: string;

@@ -17,6 +17,8 @@ import {
   Sparkles,
   ArrowLeft
 } from 'lucide-react';
+import bgPlannerDiary from '../assets/images/planner_diary_bg_1786975832.jpg';
+import bgPlannerNotes from '../assets/images/planner_notes_bg_1786975832.jpg';
 
 interface PlannerEvent {
   id: string;
@@ -250,7 +252,14 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
     <div className="text-white p-6 md:p-8 space-y-6">
       
       {/* Visual Header Banner */}
-      <div className="relative p-6 md:p-8 rounded-[32px] overflow-hidden border border-white/5 bg-gradient-to-r from-emerald-900/40 via-[#0a0f24] to-indigo-950/40 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div 
+        className="relative p-6 md:p-8 rounded-[32px] overflow-hidden border border-white/5 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6"
+        style={{
+          backgroundImage: `linear-gradient(to right, rgba(6,78,59,0.55), rgba(10,15,36,0.75) 55%, rgba(30,27,75,0.55)), url(${bgPlannerDiary})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
         <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl -z-10" />
         <div className="absolute -bottom-10 -left-10 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl -z-10" />
         
@@ -465,7 +474,14 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
           </div>
 
           {/* Daily Personal Diary & Reflection Notes */}
-          <div className="rounded-[32px] border-2 animate-border-flash-purple bg-transparent p-6 md:p-8 shadow-xl relative overflow-hidden backdrop-blur-md">
+          <div 
+            className="rounded-[32px] border-2 animate-border-flash-purple p-6 md:p-8 shadow-xl relative overflow-hidden backdrop-blur-md"
+            style={{
+              backgroundImage: `linear-gradient(rgba(5,10,25,0.84), rgba(5,10,25,0.84)), url(${bgPlannerNotes})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
+          >
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-2xl rounded-full" />
             
             <div className="flex items-center justify-between mb-4">

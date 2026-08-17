@@ -38,21 +38,32 @@ import WorksheetQRScannerModal from './WorksheetQRScannerModal';
 const cn = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(' ');
 
 // Generated background images for interactive showcases
-import bgContentStudio from '../assets/images/content_studio_bg_1785652440860.jpg';
-import bgFoundationHub from '../assets/images/foundation_hub_bg_1785652450982.jpg';
-import bgPracticeZone  from '../assets/images/practice_zone_bg_1785652462543.jpg';
-import bgOcrGrading    from '../assets/images/ocr_grading_bg_1785652474254.jpg';
-import bgAdminLab      from '../assets/images/admin_lab_bg_1785652489555.jpg';
-import bgAnalytics     from '../assets/images/analytics_bg_1785652499527.jpg';
-import bgVisualPosters from '../assets/images/visual_posters_bg_1785652509797.jpg';
-import bgVideoAvatars  from '../assets/images/video_avatars_bg_1785652522004.jpg';
-import bgVaultLibrary  from '../assets/images/vault_library_bg_1785652535683.jpg';
 import imgAssessment   from '../assets/images/assessment_screenshot_1784286266626.jpg';
-import imgGames        from '../assets/images/games_overlay_1785535062476.jpg';
-import imgPersonalized from '../assets/images/personalized_overlay_1785535051900.jpg';
-const overlayTeachersToolbox = 'https://i.ibb.co/RGmCJ3jh/teachers-toolbox.png';
-const overlayIntelligentAi = 'https://i.ibb.co/22bDqWm/intelligent-ai.png';
-const overlayMessageCollaborate = 'https://i.ibb.co/SXyQK2df/message-collaborate.png';
+import bgClassesRegister     from '../assets/images/classes_register_bg_1786952984.jpg';
+import bgClassesSeating      from '../assets/images/classes_seating_bg_1786952984.jpg';
+import bgInterventionFlags   from '../assets/images/intervention_flags_bg_1786952984.jpg';
+import bgInterventionSupport from '../assets/images/intervention_support_bg_1786952984.jpg';
+import bgLearnerPortfolio    from '../assets/images/learner_portfolio_bg_1786952984.jpg';
+import bgPortfolioFeedback   from '../assets/images/portfolio_feedback_bg_1786952984.jpg';
+import bgLandingToolbox      from '../assets/images/landing_toolbox_bg_1786962597.jpg';
+import bgLandingCurriculum   from '../assets/images/landing_curriculum_bg_1786962597.jpg';
+import bgLandingAlerts       from '../assets/images/landing_alerts_bg_1786962597.jpg';
+import bgLandingAi           from '../assets/images/landing_ai_bg_1786962597.jpg';
+import bgLandingAnalytics    from '../assets/images/landing_analytics_bg_1786962597.jpg';
+import bgLandingMessage      from '../assets/images/landing_message_bg_1786962597.jpg';
+import bgLandingClasses      from '../assets/images/landing_classes_bg_1786962597.jpg';
+import bgLandingSettings     from '../assets/images/landing_settings_bg_1786962597.jpg';
+import bgToolboxContentStudio from '../assets/images/toolbox_content_studio_bg_1786962597.jpg';
+import bgToolboxFoundationHub from '../assets/images/toolbox_foundation_hub_bg_1786968958.jpg';
+import bgToolboxPracticeZone  from '../assets/images/toolbox_practice_zone_bg_1786968958.jpg';
+import bgToolboxOcr           from '../assets/images/toolbox_ocr_bg_1786968958.jpg';
+import bgToolboxVisualLab     from '../assets/images/toolbox_visual_lab_bg_1786968958.jpg';
+import bgToolboxVideoAvatars  from '../assets/images/toolbox_video_avatars_bg_1786968958.jpg';
+import bgToolboxVault         from '../assets/images/toolbox_vault_bg_1786968958.jpg';
+import bgAiTutor              from '../assets/images/ai_tutor_bg_1786968958.jpg';
+import bgGamesHub             from '../assets/images/games_hub_bg_1786968958.jpg';
+import bgMessageChat          from '../assets/images/message_chat_bg_1786968958.jpg';
+import bgMessageWorkspace     from '../assets/images/message_workspace_bg_1786968958.jpg';
 
 interface SubTabItem {
   id: string;
@@ -141,24 +152,74 @@ function InteractiveShowcaseCard({
 }
 
 const CAPS_TOOLS_SLIDES = [
-  { image: bgContentStudio, title: 'Content Studio', description: 'Create rich CAPS lesson plans and curriculum booklets.' },
-  { image: bgFoundationHub, title: 'Foundation Hub (R-3)', description: 'Primary grade templates, trace-and-copy tracing sheets.' }
+  { image: bgToolboxContentStudio, title: 'Content Studio', description: 'Create rich CAPS lesson plans and curriculum booklets.' },
+  { image: bgToolboxFoundationHub, title: 'Foundation Hub (R-3)', description: 'Primary grade templates, trace-and-copy tracing sheets.' }
 ];
 
 const QUIZ_WIZARD_SLIDES = [
-  { image: bgPracticeZone, title: 'Practice Zone', description: 'Engage students with diagnostic quizzes and practice drills.' },
-  { image: bgOcrGrading, title: 'Auto-Grading OCR', description: 'Scan physical printed answer sheets using camera in seconds.' }
+  { image: bgToolboxPracticeZone, title: 'Practice Zone', description: 'Engage students with diagnostic quizzes and practice drills.' },
+  { image: bgToolboxOcr, title: 'Auto-Grading OCR', description: 'Scan physical printed answer sheets using camera in seconds.' }
 ];
 
 const ADMIN_REPORTS_SLIDES = [
-  { image: bgAdminLab, title: 'Admin Lab & Notices', description: 'Draft newsletter letters to parents and administrative announcements.' },
-  { image: bgAnalytics, title: 'Analytics & Comments', description: 'Generate individual learner comments and track key performance metrics.' }
+  { image: bgLandingMessage, title: 'Admin Lab & Notices', description: 'Draft newsletter letters to parents and administrative announcements.' },
+  { image: bgLandingAnalytics, title: 'Analytics & Comments', description: 'Generate individual learner comments and track key performance metrics.' }
 ];
 
 const MEDIA_TOOLS_SLIDES = [
-  { image: bgVisualPosters, title: 'Visual Lab Posters', description: 'Design educational infographics and vivid classroom science posters.' },
-  { image: bgVideoAvatars, title: 'Video Avatars', description: 'Produce captivating teacher video guides using digital presentation avatars.' },
-  { image: bgVaultLibrary, title: 'Vault & Library', description: 'Securely archive all generated templates, rubrics, and study guides.' }
+  { image: bgToolboxVisualLab, title: 'Visual Lab Posters', description: 'Design educational infographics and vivid classroom science posters.' },
+  { image: bgToolboxVideoAvatars, title: 'Video Avatars', description: 'Produce captivating teacher video guides using digital presentation avatars.' },
+  { image: bgToolboxVault, title: 'Vault & Library', description: 'Securely archive all generated templates, rubrics, and study guides.' }
+];
+
+/* ---------------------------------------------------------------------------
+   CLASSES & LEARNERS HUB — mirrors the Teacher's Toolbox landing layout with
+   dedicated hero slideshow + per-module animated showcase slides.
+--------------------------------------------------------------------------- */
+const CLASSES_LEARNERS_HERO_SLIDES = [
+  {
+    title: 'Classrooms Manager',
+    tag: 'CLASS REGISTERS',
+    badgeColor: 'from-pink-500 to-rose-600',
+    description: 'Manage digital learner registers, parent records, class lists and visual seating profiles for every grade you teach — all POPIA-safe.',
+    image: bgClassesRegister,
+  },
+  {
+    title: 'Learner Intervention Hub',
+    tag: 'EARLY SUPPORT',
+    badgeColor: 'from-cyan-500 to-blue-600',
+    description: 'Spot struggling learners early with SIAS-aligned risk flags and design personalised support plans together with parents and the SBST.',
+    image: bgInterventionFlags,
+  },
+  {
+    title: 'Living Learner Portfolios',
+    tag: 'CONTINUOUS ASSESSMENT',
+    badgeColor: 'from-emerald-500 to-teal-600',
+    description: 'Browse continuous homework, custom marks, achievements and personalised teacher feedback in one living portfolio per learner.',
+    image: bgLearnerPortfolio,
+  },
+  {
+    title: 'Feedback & Parent Notes',
+    tag: 'POPIA SAFE',
+    badgeColor: 'from-amber-500 to-orange-600',
+    description: 'Send warm, constructive feedback and parent communication notes that travel straight back to every learner and family.',
+    image: bgPortfolioFeedback,
+  },
+];
+
+const CLASS_MANAGER_CARD_SLIDES = [
+  { image: bgClassesRegister, title: 'Learner Registers', description: 'Digital class lists, learner details and parent contact records.' },
+  { image: bgClassesSeating, title: 'Seating Profiles', description: 'Visual seating plans and attendance grids for every classroom.' },
+];
+
+const INTERVENTION_CARD_SLIDES = [
+  { image: bgInterventionFlags, title: 'Early-Warning Flags', description: 'Spot struggling learners and trigger SIAS-aligned classroom support.' },
+  { image: bgInterventionSupport, title: 'Support Plans', description: 'Personalised intervention plans agreed with parents and caregivers.' },
+];
+
+const PORTFOLIO_CARD_SLIDES = [
+  { image: bgLearnerPortfolio, title: 'Living Portfolios', description: 'Continuous work, marks and achievements collected in one place.' },
+  { image: bgPortfolioFeedback, title: 'Teacher Feedback', description: 'Personalised feedback notes that travel back to every learner.' },
 ];
 
 /* ---------------------------------------------------------------------------
@@ -170,7 +231,7 @@ const REPORTS_HERO_SLIDES = [
     tag: 'PERFORMANCE',
     badgeColor: 'from-cyan-500 to-blue-600',
     description: 'Visualize continuous class performance metrics with mark distribution charts, term trends, and achievement baselines for targeted interventions.',
-    image: bgAnalytics,
+    image: bgLandingAnalytics,
   },
   {
     title: 'Assessment Insights & Mark Book',
@@ -184,51 +245,51 @@ const REPORTS_HERO_SLIDES = [
     tag: 'SHOWCASE WORK',
     badgeColor: 'from-amber-500 to-orange-600',
     description: 'Browse continuous learner homework submissions, academic portfolios, custom marks, and personalized teacher feedback in one living portfolio.',
-    image: imgPersonalized,
+    image: bgLearnerPortfolio,
   },
   {
     title: 'CAPS & Gamification Hub',
     tag: 'REWARDS',
     badgeColor: 'from-purple-500 to-indigo-600',
     description: 'Map CAPS outcomes to engaging gamified quests and reward systems that keep learners motivated while you track curriculum mastery.',
-    image: imgGames,
+    image: bgGamesHub,
   },
   {
     title: 'Mark Distribution & Term Trends',
     tag: 'VISUALISATION',
     badgeColor: 'from-rose-500 to-pink-600',
     description: 'Compare class performance across subjects and terms with interactive mark-distribution bands, averages, and pass-rate baselines.',
-    image: bgPracticeZone,
+    image: bgLandingAnalytics,
   },
   {
     title: 'Report Comments & Parent Notices',
     tag: 'COMMENT READY',
     badgeColor: 'from-sky-500 to-indigo-600',
     description: 'Generate constructive, CAPS-standard individual learner report comments and polished parent communication notices in seconds.',
-    image: bgAdminLab,
+    image: bgLandingMessage,
   },
   {
     title: 'Portfolio Reviews & Feedback',
     tag: 'FEEDBACK',
     badgeColor: 'from-teal-500 to-emerald-600',
     description: 'Review learner portfolios, mark submissions, and leave personalized feedback that travels straight back to each student.',
-    image: bgVaultLibrary,
+    image: bgPortfolioFeedback,
   },
 ];
 
 const REPORTS_CARD_SLIDES = [
-  { image: bgAnalytics, title: 'Progress Analytics', description: 'Continuous performance tracking, charts and baselines.' },
+  { image: bgLandingAnalytics, title: 'Progress Analytics', description: 'Continuous performance tracking, charts and baselines.' },
   { image: imgAssessment, title: 'Assessments', description: 'Term trends, mark distribution and SBA insights.' },
 ];
 
 const PORTFOLIOS_CARD_SLIDES = [
-  { image: imgPersonalized, title: 'Learner Portfolios', description: 'Living collections of work, marks and feedback.' },
-  { image: bgVaultLibrary, title: 'Vault & Library', description: 'Safely archived academic artefacts and study guides.' },
+  { image: bgLearnerPortfolio, title: 'Learner Portfolios', description: 'Living collections of work, marks and feedback.' },
+  { image: bgPortfolioFeedback, title: 'Portfolio Feedback', description: 'Personalised feedback notes that travel back to learners.' },
 ];
 
 const GAMIFICATION_CARD_SLIDES = [
-  { image: imgGames, title: 'Gamification Hub', description: 'Quests, badges and reward systems for motivation.' },
-  { image: bgPracticeZone, title: 'Practice Zone', description: 'Diagnostic quizzes and skill-mastery drills.' },
+  { image: bgGamesHub, title: 'Gamification Hub', description: 'Quests, badges and reward systems for motivation.' },
+  { image: bgToolboxPracticeZone, title: 'Practice Zone', description: 'Diagnostic quizzes and skill-mastery drills.' },
 ];
 
 interface ReportsCardTheme {
@@ -387,7 +448,7 @@ export default function CategoryOverview({
         <div 
           className="absolute inset-0 z-0 opacity-20 pointer-events-none"
           style={{
-            backgroundImage: `url(${overlayIntelligentAi})`,
+            backgroundImage: `url(${bgLandingAi})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat'
@@ -432,7 +493,12 @@ export default function CategoryOverview({
             onClick={() => onSelect('ai-tutor')}
             className="lg:col-span-5 flex flex-col justify-between p-6 rounded-[32px] bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-indigo-950/80 border-2 border-amber-500/40 hover:border-amber-300 shadow-[0_0_30px_rgba(251,191,36,0.2)] hover:shadow-[0_0_50px_rgba(251,191,36,0.4)] hover:brightness-110 relative overflow-hidden group transition-all duration-300 cursor-pointer"
           >
-            <div className="space-y-4">
+            {/* Background image (animated showcase) */}
+            <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
+              <img src={bgAiTutor} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="absolute inset-0 bg-slate-950/70" />
+            </div>
+            <div className="space-y-4 relative z-10">
               <div className="flex items-center justify-between">
                 <span className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-[10px] font-black uppercase tracking-widest text-amber-300 flex items-center gap-1.5">
                   <Brain size={12} className="text-amber-300" />
@@ -467,7 +533,7 @@ export default function CategoryOverview({
             </div>
 
             <button
-              className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-600 to-amber-700 hover:from-amber-400 hover:to-orange-500 text-white font-display font-black text-xs shadow-[0_0_20px_rgba(251,191,36,0.4)] hover:shadow-[0_0_30px_rgba(251,191,36,0.7)] transition-all cursor-pointer flex items-center justify-center gap-2 border border-amber-300/40"
+              className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-600 to-amber-700 relative hover:from-amber-400 hover:to-orange-500 text-white font-display font-black text-xs shadow-[0_0_20px_rgba(251,191,36,0.4)] hover:shadow-[0_0_30px_rgba(251,191,36,0.7)] transition-all cursor-pointer flex items-center justify-center gap-2 border border-amber-300/40"
             >
               <Sparkles size={16} />
               <span>Launch AI Tutor Now</span>
@@ -487,7 +553,12 @@ export default function CategoryOverview({
             onClick={() => onSelect('ai-tutor')}
             className="rounded-[32px] border-2 border-orange-500/90 bg-transparent shadow-[0_0_30px_rgba(249,115,22,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-orange-400 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(249,115,22,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
-            <div className="space-y-4 w-full h-full flex flex-col items-center justify-between">
+            {/* Background image (animated showcase) */}
+            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+              <img src={bgAiTutor} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="absolute inset-0 bg-slate-950/75" />
+            </div>
+            <div className="space-y-4 w-full h-full flex flex-col items-center justify-between relative z-10">
               <div className="w-20 h-20 rounded-3xl bg-orange-500/10 border-2 border-orange-500/50 flex items-center justify-center text-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.4)] group-hover:scale-110 group-hover:bg-orange-500/20 group-hover:shadow-[0_0_30px_rgba(249,115,22,0.6)] transition-all duration-300">
                 <Brain size={44} />
               </div>
@@ -519,7 +590,12 @@ export default function CategoryOverview({
             onClick={() => onSelect('ocr')}
             className="rounded-[32px] border-2 border-cyan-400/90 bg-transparent shadow-[0_0_30px_rgba(34,211,238,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-cyan-300 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(34,211,238,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
-            <div className="space-y-4 w-full h-full flex flex-col items-center justify-between">
+            {/* Background image (animated showcase) */}
+            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+              <img src={bgToolboxOcr} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="absolute inset-0 bg-slate-950/75" />
+            </div>
+            <div className="space-y-4 w-full h-full flex flex-col items-center justify-between relative z-10">
               <div className="w-20 h-20 rounded-3xl bg-cyan-500/10 border-2 border-cyan-400/50 flex items-center justify-center text-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.4)] group-hover:scale-110 group-hover:bg-cyan-500/20 group-hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] transition-all duration-300">
                 <ScanLine size={44} />
               </div>
@@ -592,7 +668,7 @@ export default function CategoryOverview({
         <div 
           className="absolute inset-0 z-0 opacity-20 pointer-events-none"
           style={{
-            backgroundImage: `url(${overlayMessageCollaborate})`,
+            backgroundImage: `url(${bgLandingMessage})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat'
@@ -629,6 +705,11 @@ export default function CategoryOverview({
                 : item.id === 'student-practice'
                 ? 'Interactive AI-guided practice exercises, quizzes, and skill mastery drills.'
                 : item.desc || 'Explore collaborative tools and live communication channels.';
+              const cardBg = item.id === 'messenger'
+                ? bgMessageChat
+                : item.id === 'collaborative-workspace'
+                ? bgMessageWorkspace
+                : bgAiTutor;
 
               return (
                 <motion.button
@@ -637,7 +718,13 @@ export default function CategoryOverview({
                   whileHover={{ y: -4 }}
                   className="group flex flex-col p-6 sm:p-8 rounded-[28px] bg-slate-900/90 border border-white/10 hover:border-cyan-500/40 hover:bg-slate-900/90 transition-all duration-300 text-left cursor-pointer shadow-xl relative overflow-hidden backdrop-blur-xl"
                 >
-                  <div className="flex items-center gap-4 mb-4">
+                  {/* Background image (animated showcase) */}
+                  <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+                    <img src={cardBg} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <div className="absolute inset-0 bg-slate-950/75" />
+                  </div>
+
+                  <div className="flex items-center gap-4 mb-4 relative z-10">
                     <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-cyan-500/20 border border-white/15 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
                       <ItemIcon size={26} className="text-white" />
                     </div>
@@ -646,7 +733,7 @@ export default function CategoryOverview({
                     </h3>
                   </div>
 
-                  <p className="text-sm sm:text-base text-slate-300 font-normal leading-relaxed">
+                  <p className="text-sm sm:text-base text-slate-300 font-normal leading-relaxed relative z-10">
                     {desc}
                   </p>
                 </motion.button>
@@ -667,16 +754,16 @@ export default function CategoryOverview({
     categoryLabel === 'Notifications & Planning Reminders'
   ) {
     const ALERTS_CARD_SLIDES = [
-      { image: bgAdminLab, title: 'Alerts & ATP Reminders', description: 'Monitor CAPS curriculum pace, learner risk flags, and deadline warnings.' },
-      { image: bgAnalytics, title: 'Risk Diagnostics', description: 'Identify struggling learners and generate early intervention warnings.' },
+      { image: bgLandingAlerts, title: 'Alerts & ATP Reminders', description: 'Monitor CAPS curriculum pace, learner risk flags, and deadline warnings.' },
+      { image: bgInterventionFlags, title: 'Risk Diagnostics', description: 'Identify struggling learners and generate early intervention warnings.' },
     ];
     const PLANNER_CARD_SLIDES = [
-      { image: bgPracticeZone, title: "Teacher's Schedule & Diary", description: 'Organize weekly timetables, school calendar logs, and CAPS task reminders.' },
-      { image: bgVideoAvatars, title: 'Personal Diary Notes', description: 'Keep private teacher notes, meeting agendas, and period logs.' },
+      { image: bgLandingCurriculum, title: "Teacher's Schedule & Diary", description: 'Organize weekly timetables, school calendar logs, and CAPS task reminders.' },
+      { image: bgLandingAlerts, title: 'Personal Diary Notes', description: 'Keep private teacher notes, meeting agendas, and period logs.' },
     ];
     const BROADCAST_CARD_SLIDES = [
-      { image: bgAdminLab, title: 'School Broadcast Memos', description: 'Draft parent letters, administrative notices, and emergency school bulletins.' },
-      { image: bgVaultLibrary, title: 'Parent Portal Notices', description: 'Publish announcements directly to parent and learner communication channels.' },
+      { image: bgLandingMessage, title: 'School Broadcast Memos', description: 'Draft parent letters, administrative notices, and emergency school bulletins.' },
+      { image: bgInterventionSupport, title: 'Parent Portal Notices', description: 'Publish announcements directly to parent and learner communication channels.' },
     ];
 
     return (
@@ -689,7 +776,7 @@ export default function CategoryOverview({
         <div 
           className="absolute inset-0 z-0 opacity-30 pointer-events-none mix-blend-overlay"
           style={{
-            backgroundImage: `url(${overlayTeachersToolbox})`,
+            backgroundImage: `url(${bgLandingAlerts})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat'
@@ -849,7 +936,7 @@ export default function CategoryOverview({
         <div 
           className="absolute inset-0 z-0 opacity-30 pointer-events-none mix-blend-overlay"
           style={{
-            backgroundImage: `url(${overlayTeachersToolbox})`,
+            backgroundImage: `url(${bgLandingCurriculum})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat'
@@ -944,16 +1031,21 @@ export default function CategoryOverview({
           {/* CARD 1: Weekly Planner */}
           <div 
             onClick={() => onSelect('weekly-planner')}
-            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-cyan-500/50 hover:border-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.2)] hover:shadow-[0_0_40px_rgba(6,182,212,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-cyan-500/50 hover:border-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.2)] hover:shadow-[0_0_40px_rgba(6,182,212,0.4)] transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
           >
-            <div className="space-y-3">
+            {/* Background image (animated showcase) */}
+            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+              <img src={bgLandingCurriculum} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="absolute inset-0 bg-slate-950/75" />
+            </div>
+            <div className="space-y-3 relative z-10">
               <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
                 <Calendar size={28} />
               </div>
               <h3 className="text-xl font-display font-black text-white group-hover:text-cyan-300">Weekly Planner</h3>
               <p className="text-xs text-slate-300 leading-relaxed">Schedule weekly lesson milestones, timetable periods, and term pacing.</p>
             </div>
-            <button className="mt-4 px-4 py-2 rounded-xl bg-cyan-500/20 text-cyan-300 font-bold text-xs hover:bg-cyan-500/30 transition-all text-center">
+            <button className="mt-4 px-4 py-2 rounded-xl bg-cyan-500/20 text-cyan-300 font-bold text-xs hover:bg-cyan-500/30 transition-all text-center relative">
               Open Weekly Planner →
             </button>
           </div>
@@ -961,16 +1053,21 @@ export default function CategoryOverview({
           {/* CARD 2: Lesson Planner / Content Studio */}
           <div 
             onClick={() => onSelect('teaching')}
-            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-pink-500/50 hover:border-pink-300 shadow-[0_0_25px_rgba(236,72,153,0.2)] hover:shadow-[0_0_40px_rgba(236,72,153,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-pink-500/50 hover:border-pink-300 shadow-[0_0_25px_rgba(236,72,153,0.2)] hover:shadow-[0_0_40px_rgba(236,72,153,0.4)] transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
           >
-            <div className="space-y-3">
+            {/* Background image (animated showcase) */}
+            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+              <img src={bgToolboxContentStudio} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="absolute inset-0 bg-slate-950/75" />
+            </div>
+            <div className="space-y-3 relative z-10">
               <div className="w-14 h-14 rounded-2xl bg-pink-500/10 border border-pink-500/40 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform">
                 <BookOpen size={28} />
               </div>
               <h3 className="text-xl font-display font-black text-white group-hover:text-pink-300">Lesson Architect</h3>
               <p className="text-xs text-slate-300 leading-relaxed">Create step-by-step CAPS lesson plans, worksheets, and teaching aids.</p>
             </div>
-            <button className="mt-4 px-4 py-2 rounded-xl bg-pink-500/20 text-pink-300 font-bold text-xs hover:bg-pink-500/30 transition-all text-center">
+            <button className="mt-4 px-4 py-2 rounded-xl bg-pink-500/20 text-pink-300 font-bold text-xs hover:bg-pink-500/30 transition-all text-center relative">
               Open Lesson Architect →
             </button>
           </div>
@@ -978,16 +1075,21 @@ export default function CategoryOverview({
           {/* CARD 3: Teacher's Planner & Diary */}
           <div 
             onClick={() => onSelect('planner')}
-            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-purple-500/50 hover:border-purple-300 shadow-[0_0_25px_rgba(168,85,247,0.2)] hover:shadow-[0_0_40px_rgba(168,85,247,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-purple-500/50 hover:border-purple-300 shadow-[0_0_25px_rgba(168,85,247,0.2)] hover:shadow-[0_0_40px_rgba(168,85,247,0.4)] transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
           >
-            <div className="space-y-3">
+            {/* Background image (animated showcase) */}
+            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+              <img src={bgLandingAlerts} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="absolute inset-0 bg-slate-950/75" />
+            </div>
+            <div className="space-y-3 relative z-10">
               <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/40 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
                 <FileText size={28} />
               </div>
               <h3 className="text-xl font-display font-black text-white group-hover:text-purple-300">Teacher's Diary</h3>
               <p className="text-xs text-slate-300 leading-relaxed">Personal teaching log, daily reflections, reminders, and class task lists.</p>
             </div>
-            <button className="mt-4 px-4 py-2 rounded-xl bg-purple-500/20 text-purple-300 font-bold text-xs hover:bg-purple-500/30 transition-all text-center">
+            <button className="mt-4 px-4 py-2 rounded-xl bg-purple-500/20 text-purple-300 font-bold text-xs hover:bg-purple-500/30 transition-all text-center relative">
               Open Teacher's Diary →
             </button>
           </div>
@@ -995,16 +1097,21 @@ export default function CategoryOverview({
           {/* CARD 4: CAPS Syllabus Hub */}
           <div 
             onClick={() => onSelect('curriculum')}
-            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-emerald-500/50 hover:border-emerald-300 shadow-[0_0_25px_rgba(16,185,129,0.2)] hover:shadow-[0_0_40px_rgba(16,185,129,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-emerald-500/50 hover:border-emerald-300 shadow-[0_0_25px_rgba(16,185,129,0.2)] hover:shadow-[0_0_40px_rgba(16,185,129,0.4)] transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
           >
-            <div className="space-y-3">
+            {/* Background image (animated showcase) */}
+            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+              <img src={bgLandingCurriculum} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="absolute inset-0 bg-slate-950/75" />
+            </div>
+            <div className="space-y-3 relative z-10">
               <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
                 <Layers size={28} />
               </div>
               <h3 className="text-xl font-display font-black text-white group-hover:text-emerald-300">CAPS Syllabus Hub</h3>
               <p className="text-xs text-slate-300 leading-relaxed">Full South African CAPS curriculum documents, assessment plans, and topics.</p>
             </div>
-            <button className="mt-4 px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold text-xs hover:bg-emerald-500/30 transition-all text-center">
+            <button className="mt-4 px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold text-xs hover:bg-emerald-500/30 transition-all text-center relative">
               Explore CAPS Hub →
             </button>
           </div>
@@ -1012,16 +1119,21 @@ export default function CategoryOverview({
           {/* CARD 5: Notifications & Alerts */}
           <div 
             onClick={() => onSelect('alerts')}
-            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-amber-500/50 hover:border-amber-300 shadow-[0_0_25px_rgba(245,158,11,0.2)] hover:shadow-[0_0_40px_rgba(245,158,11,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-amber-500/50 hover:border-amber-300 shadow-[0_0_25px_rgba(245,158,11,0.2)] hover:shadow-[0_0_40px_rgba(245,158,11,0.4)] transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
           >
-            <div className="space-y-3">
+            {/* Background image (animated showcase) */}
+            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+              <img src={bgLandingAlerts} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="absolute inset-0 bg-slate-950/75" />
+            </div>
+            <div className="space-y-3 relative z-10">
               <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/40 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
                 <Bell size={28} />
               </div>
               <h3 className="text-xl font-display font-black text-white group-hover:text-amber-300">Notifications & Alerts</h3>
               <p className="text-xs text-slate-300 leading-relaxed">Stay updated with planning reminders, assignment deadlines, and alerts.</p>
             </div>
-            <button className="mt-4 px-4 py-2 rounded-xl bg-amber-500/20 text-amber-300 font-bold text-xs hover:bg-amber-500/30 transition-all text-center">
+            <button className="mt-4 px-4 py-2 rounded-xl bg-amber-500/20 text-amber-300 font-bold text-xs hover:bg-amber-500/30 transition-all text-center relative">
               View Notifications →
             </button>
           </div>
@@ -1029,16 +1141,21 @@ export default function CategoryOverview({
           {/* CARD 6: Content Archive */}
           <div 
             onClick={() => onSelect('archive')}
-            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-indigo-500/50 hover:border-indigo-300 shadow-[0_0_25px_rgba(99,102,241,0.2)] hover:shadow-[0_0_40px_rgba(99,102,241,0.4)] transition-all cursor-pointer group flex flex-col justify-between"
+            className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-indigo-500/50 hover:border-indigo-300 shadow-[0_0_25px_rgba(99,102,241,0.2)] hover:shadow-[0_0_40px_rgba(99,102,241,0.4)] transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
           >
-            <div className="space-y-3">
+            {/* Background image (animated showcase) */}
+            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+              <img src={bgLandingToolbox} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="absolute inset-0 bg-slate-950/75" />
+            </div>
+            <div className="space-y-3 relative z-10">
               <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/40 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
                 <Archive size={28} />
               </div>
               <h3 className="text-xl font-display font-black text-white group-hover:text-indigo-300">Content Archive</h3>
               <p className="text-xs text-slate-300 leading-relaxed">Access all saved plans, exported workbooks, and generated teaching resources.</p>
             </div>
-            <button className="mt-4 px-4 py-2 rounded-xl bg-indigo-500/20 text-indigo-300 font-bold text-xs hover:bg-indigo-500/30 transition-all text-center">
+            <button className="mt-4 px-4 py-2 rounded-xl bg-indigo-500/20 text-indigo-300 font-bold text-xs hover:bg-indigo-500/30 transition-all text-center relative">
               Open Archive →
             </button>
           </div>
@@ -1061,7 +1178,7 @@ export default function CategoryOverview({
         <div 
           className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-overlay"
           style={{
-            backgroundImage: `url(${bgAnalytics})`,
+            backgroundImage: `url(${bgLandingAnalytics})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat'
@@ -1231,6 +1348,289 @@ export default function CategoryOverview({
     );
   }
 
+  // Custom Classes & Learners Hub UI (mirrors Teacher's Toolbox design language)
+  if (
+    categoryLabel === 'Classes & Learners' ||
+    categoryLabel === 'Classrooms Manager' ||
+    categoryLabel === 'Classes & Learners Hub'
+  ) {
+    return (
+      <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
+        
+        {/* Deep Cosmic Background & Subtle Stars */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
+        
+        {/* Classes & Learners Background Overlay */}
+        <div 
+          className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-overlay"
+          style={{
+            backgroundImage: `url(${bgLandingClasses})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        />
+
+        {/* Soft Ambient Radial Glows */}
+        <div className="absolute top-10 left-1/4 w-96 h-96 bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-pink-600/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-cyan-500/15 rounded-full blur-[120px] pointer-events-none" />
+
+        {/* MAIN TITLE SECTION ("Classes & Learners") */}
+        <div className="relative z-10 text-center my-3">
+          <div className="inline-flex items-center gap-2 mb-2">
+            <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+            <span className="text-xl sm:text-2xl font-display font-bold text-slate-100 tracking-tight">
+              Classes &
+            </span>
+            <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+          </div>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)]">
+            Learners
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
+            Classrooms Manager • Learner Intervention Hub • Living Learner Profiles & Portfolios
+          </p>
+        </div>
+
+        {/* HERO SHOWCASE SECTION: SLIDESHOW & CLASSROOMS MANAGER FEATURE BANNER */}
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-3 max-w-6xl mx-auto w-full items-stretch">
+          
+          {/* LEFT: Interactive Classes & Learners Slideshow */}
+          <div className="lg:col-span-7 flex flex-col justify-center">
+            <ContentSlideshow slides={CLASSES_LEARNERS_HERO_SLIDES} />
+          </div>
+
+          {/* RIGHT: Classrooms Manager Featured Card */}
+          <motion.div 
+            whileHover={{ scale: 1.02, y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            onClick={() => onSelect('class-management')}
+            className="lg:col-span-5 flex flex-col justify-between p-6 rounded-[32px] bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-emerald-950/80 border-2 border-emerald-500/40 hover:border-emerald-300 shadow-[0_0_30px_rgba(16,185,129,0.25)] hover:shadow-[0_0_50px_rgba(16,185,129,0.5)] hover:brightness-110 relative overflow-hidden group transition-all duration-300 cursor-pointer"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-[10px] font-black uppercase tracking-widest text-emerald-300 flex items-center gap-1.5">
+                  <Zap size={12} className="text-amber-300" />
+                  POPIA-SAFE CLASS CONTROL
+                </span>
+                <GraduationCap size={24} className="text-emerald-400 animate-pulse group-hover:scale-110 transition-transform duration-300" />
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-display font-black text-white group-hover:text-emerald-200 transition-colors">
+                  Classrooms Manager
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed mt-2">
+                  Register learners, manage parent contact records, and design visual seating profiles for every classroom — all inside one secure South African classroom hub!
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  <span>Digital learner registers & parent records</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  <span>Visual seating profiles & attendance grids</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  <span>POPIA-compliant class data protection</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={(e) => { e.stopPropagation(); onSelect('class-management'); }}
+              className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-700 hover:from-emerald-400 hover:to-teal-500 text-white font-display font-black text-xs shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.7)] transition-all cursor-pointer flex items-center justify-center gap-2 border border-emerald-300/40"
+            >
+              <GraduationCap size={16} />
+              <span>Launch Classrooms Manager</span>
+            </button>
+          </motion.div>
+
+        </div>
+
+        {/* 3 NEON GLOW MODULE CARDS GRID (Interactive Slideshow Showcases) */}
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto w-full my-4 items-stretch">
+          
+          {/* CARD 1: Classrooms Manager (Pink/Magenta Border Glow) */}
+          <InteractiveShowcaseCard
+            slides={CLASS_MANAGER_CARD_SLIDES}
+            borderColorClass="border-pink-500/90"
+            shadowColorClass="shadow-[0_0_30px_rgba(236,72,153,0.35)]"
+            hoverBorderColorClass="hover:border-pink-400"
+            hoverShadowColorClass="hover:shadow-[0_0_50px_rgba(236,72,153,0.65)]"
+            glowColorClass="shadow-[0_0_20px_rgba(236,72,153,0.4)] group-hover:bg-pink-500/20 group-hover:shadow-[0_0_30px_rgba(236,72,153,0.6)]"
+            onClick={() => onSelect('class-management')}
+          >
+            <div className="space-y-4 w-full h-full flex flex-col items-center justify-between">
+              {/* Custom Pink Classroom Icon */}
+              <div className="w-20 h-20 rounded-3xl bg-pink-500/10 border-2 border-pink-500/50 flex items-center justify-center text-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.4)] group-hover:scale-110 group-hover:bg-pink-500/20 group-hover:shadow-[0_0_30px_rgba(236,72,153,0.6)] transition-all duration-300">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 21h18" stroke="#ec4899" strokeWidth="2" />
+                  <path d="M4 3h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="#ec4899" strokeWidth="2" />
+                  <path d="M8 10l2 2-2 2" stroke="#ec4899" strokeWidth="2" />
+                  <line x1="12" y1="14" x2="17" y2="14" stroke="#ec4899" strokeWidth="2" />
+                  <line x1="7" y1="21" x2="9" y2="17" stroke="#ec4899" strokeWidth="2" />
+                  <line x1="17" y1="21" x2="15" y2="17" stroke="#ec4899" strokeWidth="2" />
+                </svg>
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-pink-300 transition-colors mb-2">
+                  Classrooms Manager
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                  Manage learner registers, parent information, class lists, and visual seating profiles for every grade you teach.
+                </p>
+              </div>
+
+              {/* Sub-action Pills */}
+              <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSelect('class-management'); }}
+                  className="px-3 py-1.5 rounded-full bg-pink-500/10 hover:bg-pink-500/30 border border-pink-500/40 text-[11px] font-bold text-pink-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
+                >
+                  📋 Learner Registers
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSelect('class-management'); }}
+                  className="px-3 py-1.5 rounded-full bg-pink-500/10 hover:bg-pink-500/30 border border-pink-500/40 text-[11px] font-bold text-pink-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
+                >
+                  🪑 Seating Profiles
+                </button>
+              </div>
+            </div>
+          </InteractiveShowcaseCard>
+
+          {/* CARD 2: Learner Intervention Hub (Cyan/Blue Border Glow) */}
+          <InteractiveShowcaseCard
+            slides={INTERVENTION_CARD_SLIDES}
+            borderColorClass="border-cyan-400/90"
+            shadowColorClass="shadow-[0_0_30px_rgba(34,211,238,0.35)]"
+            hoverBorderColorClass="hover:border-cyan-300"
+            hoverShadowColorClass="hover:shadow-[0_0_50px_rgba(34,211,238,0.65)]"
+            glowColorClass="shadow-[0_0_20px_rgba(34,211,238,0.4)] group-hover:bg-cyan-500/20 group-hover:shadow-[0_0_30px_rgba(34,211,238,0.6)]"
+            onClick={() => onSelect('learner-intervention')}
+          >
+            <div className="space-y-4 w-full h-full flex flex-col items-center justify-between">
+              {/* Custom Cyan Support Heart/Shield Icon */}
+              <div className="w-20 h-20 rounded-3xl bg-cyan-500/10 border-2 border-cyan-400/50 flex items-center justify-center text-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.4)] group-hover:scale-110 group-hover:bg-cyan-500/20 group-hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] transition-all duration-300">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 21s-7.5-4.6-9.5-9A5.5 5.5 0 0 1 12 6.5 5.5 5.5 0 0 1 21.5 12c-2 4.4-9.5 9-9.5 9z" stroke="#22d3ee" strokeWidth="2" />
+                  <path d="M9.5 12h5" stroke="#22d3ee" strokeWidth="2" />
+                </svg>
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-cyan-200 transition-colors mb-2">
+                  Learner Intervention Hub
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                  Flag struggling learners early with SIAS-aligned risk indicators and design personalised support plans with parents.
+                </p>
+              </div>
+
+              {/* Sub-action Pills */}
+              <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSelect('learner-intervention'); }}
+                  className="px-3 py-1.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/30 border border-cyan-500/40 text-[11px] font-bold text-cyan-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
+                >
+                  ⚠️ Risk Flags
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSelect('learner-intervention'); }}
+                  className="px-3 py-1.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/30 border border-cyan-500/40 text-[11px] font-bold text-cyan-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
+                >
+                  🩺 Support Plans
+                </button>
+              </div>
+            </div>
+          </InteractiveShowcaseCard>
+
+          {/* CARD 3: Learner Profiles & Portfolios (Emerald/Green Border Glow) */}
+          <InteractiveShowcaseCard
+            slides={PORTFOLIO_CARD_SLIDES}
+            borderColorClass="border-emerald-400/90"
+            shadowColorClass="shadow-[0_0_30px_rgba(52,211,153,0.35)]"
+            hoverBorderColorClass="hover:border-emerald-300"
+            hoverShadowColorClass="hover:shadow-[0_0_50px_rgba(52,211,153,0.65)]"
+            glowColorClass="shadow-[0_0_20px_rgba(52,211,153,0.4)] group-hover:bg-emerald-500/20 group-hover:shadow-[0_0_30px_rgba(52,211,153,0.6)]"
+            onClick={() => onSelect('portfolios')}
+          >
+            <div className="space-y-4 w-full h-full flex flex-col items-center justify-between">
+              {/* Custom Emerald Portfolio Folder Icon */}
+              <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 border-2 border-emerald-400/50 flex items-center justify-center text-emerald-300 shadow-[0_0_20px_rgba(52,211,153,0.4)] group-hover:scale-110 group-hover:bg-emerald-500/20 group-hover:shadow-[0_0_30px_rgba(52,211,153,0.6)] transition-all duration-300">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" stroke="#34d399" strokeWidth="2" />
+                  <path d="M12 13.5l1.2 2.4 2.6.4-1.9 1.85.45 2.6-2.35-1.25-2.35 1.25.45-2.6L8.2 16.3l2.6-.4 1.2-2.4z" stroke="#34d399" strokeWidth="2" strokeLinejoin="round" />
+                </svg>
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-emerald-200 transition-colors mb-2">
+                  Learner Profiles & Portfolios
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                  Browse living portfolios of continuous homework, custom marks, and personalised teacher feedback for every learner.
+                </p>
+              </div>
+
+              {/* Sub-action Pills */}
+              <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSelect('portfolios'); }}
+                  className="px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
+                >
+                  🗂️ Living Portfolios
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSelect('portfolios'); }}
+                  className="px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
+                >
+                  💬 Teacher Feedback
+                </button>
+              </div>
+            </div>
+          </InteractiveShowcaseCard>
+
+        </div>
+
+        {/* BOTTOM QUICK SHORTCUTS STRIP */}
+        <div className="relative z-10 pt-6 border-t border-emerald-500/20 text-center">
+          <p className="text-xs font-mono font-bold text-emerald-300 uppercase tracking-widest mb-3">
+            Classes & Learners Modules
+          </p>
+          <div className="flex flex-wrap justify-center items-center gap-3">
+            {[
+              { id: 'class-management', label: 'Classrooms Manager', icon: GraduationCap },
+              { id: 'learner-intervention', label: 'Intervention Hub', icon: UserCheck },
+              { id: 'portfolios', label: 'Profiles & Portfolios', icon: FolderKanban },
+            ].map(tool => {
+              const ToolIcon = tool.icon;
+              return (
+                <button
+                  key={tool.id}
+                  onClick={() => onSelect(tool.id)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-emerald-600/30 border border-emerald-500/30 hover:border-emerald-400 text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <ToolIcon className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{tool.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+      </div>
+    );
+  }
+
   // Custom Teacher's Toolbox / Edu-Tools Hub UI
   if (
     categoryLabel === 'Edu-Tools Hub' || 
@@ -1252,7 +1652,7 @@ export default function CategoryOverview({
         <div 
           className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-overlay"
           style={{
-            backgroundImage: `url(${overlayTeachersToolbox})`,
+            backgroundImage: `url(${bgLandingToolbox})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat'
@@ -1676,6 +2076,13 @@ export default function CategoryOverview({
       <div className={`p-8 rounded-[40px] relative overflow-hidden border ${
         isDarkMode ? 'bg-indigo-950/20 border-indigo-500/25' : 'bg-[#fff5ee] border-[#ffebd6] shadow-sm'
       }`}>
+        {/* Background image (generated showcase) */}
+        {isDarkMode && (
+          <div className="absolute inset-0 z-0 opacity-35 pointer-events-none">
+            <img src={bgLandingSettings} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-slate-950/70" />
+          </div>
+        )}
         <div className="relative z-10 flex items-center gap-4">
           <div className={`p-4 rounded-[24px] ${isDarkMode ? 'bg-indigo-500/10 text-brand-cyan' : 'bg-brand-yellow/20 text-slate-700'}`}>
             <Icon size={32} />

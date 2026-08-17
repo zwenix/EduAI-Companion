@@ -45,34 +45,41 @@ import {
 } from 'recharts';
 
 // Slideshow background images for Teaching Command Center (matching Teacher's Toolbox)
-import bgContentStudio from '../assets/images/content_studio_bg_1785652440860.jpg';
-import bgFoundationHub from '../assets/images/foundation_hub_bg_1785652450982.jpg';
 import bgPracticeZone from '../assets/images/practice_zone_bg_1785652462543.jpg';
 import bgOcrGrading from '../assets/images/ocr_grading_bg_1785652474254.jpg';
 import bgAdminLab from '../assets/images/admin_lab_bg_1785652489555.jpg';
 import bgAnalytics from '../assets/images/analytics_bg_1785652499527.jpg';
-import bgVisualPosters from '../assets/images/visual_posters_bg_1785652509797.jpg';
 import bgVideoAvatars from '../assets/images/video_avatars_bg_1785652522004.jpg';
 import bgVaultLibrary from '../assets/images/vault_library_bg_1785652535683.jpg';
 
 // Outer container continuous slideshow (rotates through key toolbox imagery)
-const TEACHING_OUTER_SLIDES = [bgContentStudio, bgAnalytics, bgFoundationHub, bgAdminLab, bgVisualPosters];
+import bgLandingToolbox from '../assets/images/landing_toolbox_bg_1786962597.jpg';
+import bgLandingCurriculum from '../assets/images/landing_curriculum_bg_1786962597.jpg';
+import bgLandingAlerts from '../assets/images/landing_alerts_bg_1786962597.jpg';
+import bgLandingAi from '../assets/images/landing_ai_bg_1786962597.jpg';
+import bgLandingAnalytics from '../assets/images/landing_analytics_bg_1786962597.jpg';
+import bgLandingMessage from '../assets/images/landing_message_bg_1786962597.jpg';
+import bgToolboxContentStudio from '../assets/images/toolbox_content_studio_bg_1786962597.jpg';
+import bgToolboxVisualLab from '../assets/images/toolbox_visual_lab_bg_1786968958.jpg';
+import bgToolboxOcr from '../assets/images/toolbox_ocr_bg_1786968958.jpg';
+
+const TEACHING_OUTER_SLIDES = [bgToolboxContentStudio, bgLandingAnalytics, bgLandingCurriculum, bgLandingMessage, bgLandingToolbox];
 
 // Per-card slideshow sets — each card cycles its own imagery like the toolbox cards
 const ALERTS_DIARY_PLANNER_SLIDES = [
-  { image: bgAdminLab, title: 'Alerts & Reminders' },
-  { image: bgPracticeZone, title: 'Schedule & Calendar' },
-  { image: bgVaultLibrary, title: 'ATP Deadline Warn' },
+  { image: bgLandingAlerts, title: 'Alerts & Reminders' },
+  { image: bgLandingCurriculum, title: 'Schedule & Calendar' },
+  { image: bgLandingAnalytics, title: 'ATP Deadline Warn' },
 ];
 const CONTENT_FACTORY_SLIDES = [
-  { image: bgContentStudio, title: 'Content Studio' },
-  { image: bgFoundationHub, title: 'Foundation Hub' },
-  { image: bgVisualPosters, title: 'Visual Lab' },
+  { image: bgToolboxContentStudio, title: 'Content Studio' },
+  { image: bgLandingCurriculum, title: 'Foundation Hub' },
+  { image: bgToolboxVisualLab, title: 'Visual Lab' },
 ];
 const AUTOGRADER_TUTOR_SLIDES = [
-  { image: bgOcrGrading, title: 'AI OCR Autograder' },
-  { image: bgPracticeZone, title: 'AI Tutor Class' },
-  { image: bgAnalytics, title: 'Diagnostic Analytics' },
+  { image: bgToolboxOcr, title: 'AI OCR Autograder' },
+  { image: bgLandingAi, title: 'AI Tutor Class' },
+  { image: bgLandingAnalytics, title: 'Diagnostic Analytics' },
 ];
 
 function ShowcaseCard({

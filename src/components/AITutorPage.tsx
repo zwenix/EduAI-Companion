@@ -14,8 +14,6 @@ import { speakText, stopSpeaking, pauseSpeaking, resumeSpeaking } from '../servi
 import AiImage from './AiImage';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
-const overlayAiTutor = 'https://i.ibb.co/chSwj5SL/ai-tutor.png';
-
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
 type ChatMessage = {
