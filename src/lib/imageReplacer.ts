@@ -118,11 +118,11 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
   <div class="px-4 py-2 border-t border-dashed border-slate-150 mt-2 bg-slate-50/55 rounded-b-[1.5rem] flex items-center justify-between print:hidden select-none">
     <div class="flex items-center gap-2">
       <span class="text-xs">💾</span>
-      <p class="text-[9px] uppercase tracking-widest font-black text-emerald-600 leading-none">
+      <p class="text-[7px] uppercase tracking-widest font-black leading-none" style="color: rgba(10,15,33,0.3);">
         Cached Library Asset: ${cleanPrompt.slice(0, 45)}${cleanPrompt.length > 45 ? '...' : ''}
       </p>
     </div>
-    <span class="text-[8px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold select-none uppercase">Synced</span>
+    <span class="text-[7px] px-1.5 py-0.5 rounded bg-slate-100 font-bold select-none uppercase" style="color: rgba(10,15,33,0.3);">Synced</span>
   </div>
 </div>
       `;
