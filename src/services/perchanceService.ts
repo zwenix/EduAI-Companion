@@ -63,7 +63,8 @@ export async function generatePerchanceImageClient(
   prompt: string,
   width: number = 1024,
   height: number = 1024,
-  seed?: number
+  seed?: number,
+  timeoutMs: number = 15000
 ): Promise<string> {
   await ensurePerchanceIframe();
 
@@ -132,11 +133,12 @@ export async function generatePerchanceImageClient(
       return;
     }
 
-    // Increased timeout to 15 seconds as AI generation can take time
+    // Timeout as AI generation can take time (shorter on native so the chain
+    // falls through to Gemini/Pollinations without stalling every image).
     timeoutId = setTimeout(() => {
       cleanup();
-      console.warn(`[Perchance AI] Request ${requestId} timed out after 15s. Transitioning to fallback.`);
+      console.warn(`[Perchance AI] Request ${requestId} timed out after ${timeoutMs}ms. Transitioning to fallback.`);
       reject(new Error("Perchance iframe generation timed out"));
-    }, 15000);
+    }, timeoutMs);
   });
 }

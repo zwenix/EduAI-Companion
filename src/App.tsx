@@ -2686,16 +2686,14 @@ export default function App() {
                             : 'bg-slate-50 border border-slate-200 text-slate-705 focus:border-orange-500 shadow-sm'
                       }`}
                     >
-                      <option value="perchance" disabled={isNativeApp()}>
-                        {isNativeApp()
-                          ? 'Perchance AI Text-to-Image (Web only)'
-                          : 'Perchance AI Text-to-Image (Primary - Recommended)'}
+                      <option value="perchance">
+                        Perchance AI Text-to-Image (Primary - Recommended)
                       </option>
                       <option value="gemini-imagen">
-                        Google Imagen 3 {isNativeApp() ? '(Primary - Recommended)' : '(Secondary)'}
+                        Google Imagen 3 (Secondary)
                       </option>
                       <option value="pollinations">
-                        Pollinations AI Turbo {isNativeApp() ? '(Fallback)' : '(Tertiary)'}
+                        Pollinations AI Turbo (Tertiary - Fallback)
                       </option>
                     </select>
                   </div>
