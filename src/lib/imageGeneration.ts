@@ -1,17 +1,21 @@
 /**
  * EduAI Companion - Multi-Provider Image Generation System
  *
- * Provider chain is user-selectable (Settings → Creative Image Generator) and
- * degrades gracefully:
- *   perchance (browser only) → gemini (backend or baked-in client key) → pollinations
+ * Provider priority (identical on web AND inside the Android APK):
+ *   1. Perchance AI          (primary)
+ *   2. Google Imagen-3 / Gemini (secondary)
+ *   3. Pollinations AI       (tertiary + final fallback)
+ *
+ * The chain is user-selectable (Settings → Creative Image Generator) and
+ * degrades gracefully: whichever provider the user picks is tried first, then
+ * the remaining providers follow in the order above. Perchance is always part
+ * of the chain — never dropped on native.
  *
  * IMPORTANT (Android / Capacitor): the native APK ships without the Node
  * backend, and Capacitor's local server answers unknown routes such as
- * `/api/...` with a 200 HTML page. Any provider that depends on the backend
- * must therefore be skipped on native, otherwise images silently resolve to
- * HTML and render as broken placeholders. Perchance is also skipped on native
- * because its cross-origin iframe bridge never resolves inside the WebView and
- * would block every illustration for 15s before falling through.
+ * `/api/...` with a 200 HTML page. Any provider that depends on the backend is
+ * therefore routed to the hosted backend through an absolute URL on native,
+ * while the web app keeps using same-origin relative paths.
  */
 
 import { generatePerchanceImageClient } from '../services/perchanceService';
@@ -40,6 +44,19 @@ const ASPECT_RATIOS = {
   video: { width: 1024, height: 576 },
   portrait: { width: 768, height: 1024 },
   landscape: { width: 1024, height: 768 }
+};
+
+/**
+ * Hosted backend origin used by the native APK (no local Node backend). The web
+ * app talks to its own origin via relative paths; the APK points here so
+ * backend-backed providers (Perchance proxy, Gemini proxy) still resolve.
+ */
+export const NATIVE_BACKEND_BASE = 'https://eduai-companion.vercel.app';
+
+/** Resolve an API path against the right origin for the current runtime. */
+export const buildApiUrl = (path: string): string => {
+  if (isNativeApp()) return `${NATIVE_BACKEND_BASE.replace(/\/$/, '')}${path}`;
+  return path;
 };
 
 /** Direct, dependency-free image URL — works on web AND inside the APK. */
@@ -81,7 +98,7 @@ export const generateImageGemini = async (
   }
 
   try {
-    const response = await fetch('/api/gemini/action', {
+    const response = await fetch(buildApiUrl('/api/gemini/action'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -112,24 +129,27 @@ export const generateImagePerchance = async (
   height: number = 1024,
   seed: number = Math.floor(Math.random() * 10000)
 ): Promise<string> => {
-  // The Perchance bridge relies on a cross-origin iframe + postMessage, which
-  // is not reachable from the Capacitor WebView.
-  if (isNativeApp()) {
-    throw new Error('Perchance is not available in the native app');
-  }
-
+  // Perchance is the PRIMARY generator on every platform. It is attempted via:
+  //   1) the client-side iframe bridge (real Perchance), then
+  //   2) the hosted backend proxy (absolute URL on native).
+  // The WebView cannot reach a same-origin `/api` route, so native always uses
+  // the absolute backend URL — never a broken relative path.
   try {
     if (typeof window !== 'undefined') {
       try {
-        const clientUrl = await generatePerchanceImageClient(prompt, width, height, seed);
+        // Native WebViews can be slow to settle the cross-origin iframe; give it
+        // a shorter window so the chain falls through without a long stall.
+        const clientUrl = await generatePerchanceImageClient(
+          prompt, width, height, seed, isNativeApp() ? 6000 : 15000
+        );
         if (clientUrl) return clientUrl;
       } catch (clientErr) {
         console.warn('Perchance client-side iframe generation timed out or failed, transitioning to backend proxy...', clientErr);
       }
     }
 
-    // Fallback to backend proxy if client-side fails
-    const response = await fetch('/api/images/generate', {
+    // Fallback to the backend proxy if the client-side iframe fails.
+    const response = await fetch(buildApiUrl('/api/images/generate'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt, provider: 'perchance', width, height, seed })
@@ -186,8 +206,9 @@ export const generateImageWithFallback = async (
 
   const native = isNativeApp();
 
+  // Perchance is the default/primary generator on every platform.
   const preferredProvider = typeof window !== 'undefined'
-    ? window.localStorage.getItem('eduai_image_provider') || (native ? 'gemini-imagen' : 'perchance')
+    ? window.localStorage.getItem('eduai_image_provider') || 'perchance'
     : 'perchance';
 
   // Normalise the stored settings value onto the internal provider ids.
@@ -198,19 +219,18 @@ export const generateImageWithFallback = async (
 
   const preferred = normalise(preferredProvider);
 
-  // Honour the user's choice first, then walk the remaining providers.
+  // Fixed priority: Perchance → Gemini → Pollinations. The user's chosen
+  // provider is promoted to the front, but every provider stays in the chain —
+  // including Perchance on native (it was wrongly dropped in an earlier build).
   const defaultOrder: Array<'perchance' | 'gemini' | 'pollinations'> = ['perchance', 'gemini', 'pollinations'];
-  let order = [preferred, ...defaultOrder.filter((p) => p !== preferred)];
-
-  // Perchance cannot work inside the APK — drop it so images are not delayed.
-  if (native) order = order.filter((p) => p !== 'perchance');
+  const order = [preferred, ...defaultOrder.filter((p) => p !== preferred)];
 
   console.log(`[Image Gen] Preferred provider: ${preferred}${native ? ' (native app)' : ''} | chain: ${order.join(' → ')}`);
 
   for (const prov of order) {
     if (prov === 'perchance') {
       try {
-        console.log('[Image Gen] Attempting Perchance...');
+        console.log('[Image Gen] Attempting Perchance (Primary)...');
         const imageUrl = await generateImagePerchance(styledPrompt, width, height, seed);
         return { url: imageUrl, provider: 'perchance', prompt: styledPrompt, width, height };
       } catch (error) {
@@ -218,7 +238,7 @@ export const generateImageWithFallback = async (
       }
     } else if (prov === 'gemini') {
       try {
-        console.log('[Image Gen] Attempting Gemini...');
+        console.log('[Image Gen] Attempting Gemini Imagen (Secondary)...');
         const imageUrl = await generateImageGemini(styledPrompt, width, height);
         return { url: imageUrl, provider: 'gemini', prompt: styledPrompt, width, height };
       } catch (error) {
@@ -226,7 +246,7 @@ export const generateImageWithFallback = async (
       }
     } else if (prov === 'pollinations') {
       try {
-        console.log('[Image Gen] Attempting Pollinations...');
+        console.log('[Image Gen] Attempting Pollinations (Tertiary)...');
         const imageUrl = await generateImagePollinations(styledPrompt, width, height, seed);
         return { url: imageUrl, provider: 'pollinations', prompt: styledPrompt, width, height };
       } catch (error) {
@@ -280,5 +300,6 @@ export default {
   generateImagePollinations,
   enhanceEducationalImagePrompt,
   buildDirectImageUrl,
-  buildPollinationsUrl
+  buildPollinationsUrl,
+  buildApiUrl
 };

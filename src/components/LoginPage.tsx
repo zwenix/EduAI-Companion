@@ -5,7 +5,7 @@ import { GoogleAuthProvider, signInWithPopup, signInWithCredential, signInWithEm
 import { motion, AnimatePresence } from 'motion/react';
 import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
-import { FIREBASE_WEB_CLIENT_ID, GOOGLE_AUTH_SCOPES } from '../config/googleAuth';
+import { FIREBASE_WEB_CLIENT_ID, GOOGLE_AUTH_SCOPES, ANDROID_APP_PACKAGE_NAME, ANDROID_DEBUG_SHA1 } from '../config/googleAuth';
 
 interface LoginPageProps {
   onSuccess: () => void;
@@ -145,7 +145,8 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
       onSuccess();
     } catch (err: any) {
       const errMsg = err?.message || String(err);
-      const errCode = err?.code || "";
+      const errCode = String(err?.code || "");
+      const combined = `${errMsg} ${errCode}`.trim();
 
       if (errCode !== 'auth/popup-closed-by-user' && !errMsg.includes('popup-closed-by-user') && errCode !== 'auth/popup-blocked' && !errMsg.includes('popup-blocked')) {
         console.error("Google Auth error:", err);
@@ -155,7 +156,12 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
         setError("The Google Sign-In popup was closed or blocked by the preview iframe. Tip: Click '⚡ QUICK DEMO ACCESS' below to enter instantly without logging in!");
       } else if (errCode === 'auth/popup-blocked' || errMsg.includes('popup-blocked')) {
         setError("Login popup blocked by your browser/iframe. Tip: Click '⚡ QUICK DEMO ACCESS' below to enter instantly!");
-      } else if (/DEVELOPER_ERROR|12500|12501|10[^0-9]|invalid_client|api.*not.*register|not.*configured.*google|shA-1|SHA1|signing certificate|requestIdToken/i.test(errMsg)) {
+      } else if (Capacitor.isNativePlatform() && (errCode === '10' || /DEVELOPER_ERROR|ApiException:?\s*10|12500|12501/i.test(combined))) {
+        // Native Google Sign-In error code 10 (DEVELOPER_ERROR): the OAuth
+        // client is misconfigured. Almost always the signing SHA-1 fingerprint
+        // below is not registered against the Android OAuth client.
+        setError(`Google Sign-In isn't configured for this Android build. In Google Cloud Console → Credentials, create an "Android" OAuth client with package name ${ANDROID_APP_PACKAGE_NAME} and SHA-1 ${ANDROID_DEBUG_SHA1}.`);
+      } else if (/DEVELOPER_ERROR|12500|12501|10[^0-9]|invalid_client|api.*not.*register|not.*configured.*google|shA-1|SHA1|signing certificate|requestIdToken/i.test(combined)) {
         // Native Google Sign-In misconfiguration (most commonly an unregistered
         // SHA-1 fingerprint, wrong client ID type, or missing OAuth client).
         setError(`Google Sign-In is not fully configured for this app. ${errCode ? '(' + errCode + ') ' : ''}${errMsg}`);
