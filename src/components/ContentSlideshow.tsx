@@ -6,6 +6,9 @@ import imgLessonPlan from '../assets/images/lesson_plan_screenshot_1784286235763
 import imgUnitPlan from '../assets/images/unit_plan_screenshot_1784286250293.jpg';
 import imgAssessment from '../assets/images/assessment_screenshot_1784286266626.jpg';
 import imgStudyGuide from '../assets/images/study_guide_screenshot_1784286281497.jpg';
+import bgLandingAi from '../assets/images/landing_ai_bg_1786962597.jpg';
+import bgLandingAnalytics from '../assets/images/landing_analytics_bg_1786962597.jpg';
+import bgOcrGrading from '../assets/images/ocr_grading_bg_1785652474254.jpg';
 
 export interface Slide {
   title: string;
@@ -53,21 +56,24 @@ export const INTELLIGENT_AI_SLIDES: Slide[] = [
     tag: 'PERSONALIZED',
     badgeColor: 'from-amber-500 to-orange-600',
     description: 'A localized AI companion for homework grading, concept explanations, and curriculum support, adaptive to each student’s grade and learning style.',
-    icon: Brain
+    icon: Brain,
+    image: bgLandingAi
   },
   {
     title: 'OCR Auto-Grading',
     tag: 'AI VISION',
     badgeColor: 'from-cyan-500 to-blue-600',
     description: 'Leverage AI vision to scan physical student answer sheets, detect handwritten text, and perform objective auto-grading automatically.',
-    icon: ScanLine
+    icon: ScanLine,
+    image: bgOcrGrading
   },
   {
     title: 'Adaptive Learning Path',
     tag: 'DATA DRIVEN',
     badgeColor: 'from-emerald-500 to-teal-600',
     description: 'Analyze student performance metrics and generate personalized revision packs and skill mastery drills to close knowledge gaps.',
-    icon: UserCircle2
+    icon: UserCircle2,
+    image: bgLandingAnalytics
   }
 ];
 

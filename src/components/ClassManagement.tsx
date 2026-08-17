@@ -19,12 +19,21 @@ import bgAnalytics     from '../assets/images/analytics_bg_1785652499527.jpg';
 import bgVisualPosters from '../assets/images/visual_posters_bg_1785652509797.jpg';
 import bgVideoAvatars  from '../assets/images/video_avatars_bg_1785652522004.jpg';
 import bgVaultLibrary  from '../assets/images/vault_library_bg_1785652535683.jpg';
+import bgClassesRegister    from '../assets/images/classes_register_bg_1786952984.jpg';
+import bgClassesSeating     from '../assets/images/classes_seating_bg_1786952984.jpg';
+import bgInterventionFlags  from '../assets/images/intervention_flags_bg_1786952984.jpg';
+import bgInterventionSupport from '../assets/images/intervention_support_bg_1786952984.jpg';
+import bgLearnerPortfolio   from '../assets/images/learner_portfolio_bg_1786952984.jpg';
+import bgPortfolioFeedback  from '../assets/images/portfolio_feedback_bg_1786952984.jpg';
+import bgLandingClasses     from '../assets/images/landing_classes_bg_1786962597.jpg';
+import bgLandingMessage     from '../assets/images/landing_message_bg_1786962597.jpg';
+import bgLandingAnalytics   from '../assets/images/landing_analytics_bg_1786962597.jpg';
 
-const LEARNERS_SLIDES = [bgFoundationHub, bgPracticeZone, bgVaultLibrary];
-const CLASSES_SLIDES = [bgContentStudio, bgAdminLab, bgOcrGrading];
-const GROUPS_SLIDES = [bgPracticeZone, bgVideoAvatars, bgVisualPosters];
-const INTERVENTION_SLIDES = [bgAnalytics, bgAdminLab, bgVaultLibrary];
-const PORTFOLIO_SLIDES = [bgVisualPosters, bgContentStudio, bgFoundationHub];
+const LEARNERS_SLIDES = [bgClassesRegister, bgClassesSeating, bgLearnerPortfolio];
+const CLASSES_SLIDES = [bgLandingClasses, bgClassesSeating, bgClassesRegister];
+const GROUPS_SLIDES = [bgLandingClasses, bgLandingMessage, bgClassesSeating];
+const INTERVENTION_SLIDES = [bgInterventionFlags, bgInterventionSupport, bgLandingAnalytics];
+const PORTFOLIO_SLIDES = [bgLearnerPortfolio, bgPortfolioFeedback, bgClassesRegister];
 
 function ClassroomShowcaseCard({
   slides,
@@ -135,7 +144,7 @@ function ClassroomShowcaseCard({
 }
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
-const overlayTeachersToolbox = 'https://i.ibb.co/RGmCJ3jh/teachers-toolbox.png';
+const CLASS_MANAGEMENT_OVERLAY = bgLandingClasses;
 
 interface Student {
   id: string;
@@ -591,7 +600,7 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
       {/* Background Overlay & Ambient Glows */}
       <div 
         className="fixed inset-0 pointer-events-none z-0 opacity-25 mix-blend-overlay bg-cover bg-center" 
-        style={{ backgroundImage: `url(${overlayTeachersToolbox})` }} 
+        style={{ backgroundImage: `url(${CLASS_MANAGEMENT_OVERLAY})` }} 
       />
       <div className="fixed top-10 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="fixed top-1/3 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />

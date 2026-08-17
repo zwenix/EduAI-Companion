@@ -1,16 +1,18 @@
 // src/lib/overlays.ts
-// Local overlay image assets from public/overlays for pristine resolution and offline support.
-const classroomChalkboard = '/overlays/dashboard.png';
-const teachersToolbox     = '/overlays/toolbox.png';
-const intelligentAi       = '/overlays/magic-lessons.png';
-const classesLearners     = '/overlays/class-manager.png';
-const analytics           = '/overlays/personalized.png';
-const messageCollaborate  = '/overlays/resource-library.png';
-const settings            = '/overlays/settings.png';
-const contentFactory      = '/overlays/magic-lessons.png';
+// Page overlay background images. Newly generated landing-page plates live in
+// src/assets/images (bundled + hashed); the original public/overlays PNGs are
+// retained untouched as protected assets.
+import classroomChalkboard from '../assets/images/landing_dashboard_bg_1786962597.jpg';
+import teachersToolbox     from '../assets/images/landing_toolbox_bg_1786962597.jpg';
+import intelligentAi       from '../assets/images/landing_ai_bg_1786962597.jpg';
+import classesLearners     from '../assets/images/landing_classes_bg_1786962597.jpg';
+import analytics           from '../assets/images/landing_analytics_bg_1786962597.jpg';
+import messageCollaborate  from '../assets/images/landing_message_bg_1786962597.jpg';
+import settings            from '../assets/images/landing_settings_bg_1786962597.jpg';
+import contentFactory      from '../assets/images/toolbox_content_studio_bg_1786962597.jpg';
+import learnerPortfolios   from '../assets/images/learner_portfolio_bg_1786952984.jpg';
 const practiceExercises   = '/overlays/super-worksheets.png';
 const contentArchive      = '/overlays/resource-library.png';
-const learnerPortfolios   = '/overlays/personalized.png';
 const capsGamificationHub = '/overlays/games.png';
 const aiTutor             = '/overlays/ai-tutor.png';
 
