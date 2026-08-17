@@ -11,10 +11,10 @@ import messageCollaborate  from '../assets/images/landing_message_bg_1786962597.
 import settings            from '../assets/images/landing_settings_bg_1786962597.jpg';
 import contentFactory      from '../assets/images/toolbox_content_studio_bg_1786962597.jpg';
 import learnerPortfolios   from '../assets/images/learner_portfolio_bg_1786952984.jpg';
-const practiceExercises   = '/overlays/super-worksheets.png';
-const contentArchive      = '/overlays/resource-library.png';
-const capsGamificationHub = '/overlays/games.png';
-const aiTutor             = '/overlays/ai-tutor.png';
+import practiceExercises   from '../assets/images/toolbox_practice_zone_bg_1786968958.jpg';
+import contentArchive      from '../assets/images/toolbox_vault_bg_1786968958.jpg';
+import capsGamificationHub from '../assets/images/games_hub_bg_1786968958.jpg';
+import aiTutor             from '../assets/images/ai_tutor_bg_1786968958.jpg';
 
 /** The thirteen rooms, by their current page id. */
 export const OVERLAY_REGISTRY = {

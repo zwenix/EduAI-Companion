@@ -45,13 +45,10 @@ import {
 } from 'recharts';
 
 // Slideshow background images for Teaching Command Center (matching Teacher's Toolbox)
-import bgContentStudio from '../assets/images/content_studio_bg_1785652440860.jpg';
-import bgFoundationHub from '../assets/images/foundation_hub_bg_1785652450982.jpg';
 import bgPracticeZone from '../assets/images/practice_zone_bg_1785652462543.jpg';
 import bgOcrGrading from '../assets/images/ocr_grading_bg_1785652474254.jpg';
 import bgAdminLab from '../assets/images/admin_lab_bg_1785652489555.jpg';
 import bgAnalytics from '../assets/images/analytics_bg_1785652499527.jpg';
-import bgVisualPosters from '../assets/images/visual_posters_bg_1785652509797.jpg';
 import bgVideoAvatars from '../assets/images/video_avatars_bg_1785652522004.jpg';
 import bgVaultLibrary from '../assets/images/vault_library_bg_1785652535683.jpg';
 
@@ -63,6 +60,8 @@ import bgLandingAi from '../assets/images/landing_ai_bg_1786962597.jpg';
 import bgLandingAnalytics from '../assets/images/landing_analytics_bg_1786962597.jpg';
 import bgLandingMessage from '../assets/images/landing_message_bg_1786962597.jpg';
 import bgToolboxContentStudio from '../assets/images/toolbox_content_studio_bg_1786962597.jpg';
+import bgToolboxVisualLab from '../assets/images/toolbox_visual_lab_bg_1786968958.jpg';
+import bgToolboxOcr from '../assets/images/toolbox_ocr_bg_1786968958.jpg';
 
 const TEACHING_OUTER_SLIDES = [bgToolboxContentStudio, bgLandingAnalytics, bgLandingCurriculum, bgLandingMessage, bgLandingToolbox];
 
@@ -75,10 +74,10 @@ const ALERTS_DIARY_PLANNER_SLIDES = [
 const CONTENT_FACTORY_SLIDES = [
   { image: bgToolboxContentStudio, title: 'Content Studio' },
   { image: bgLandingCurriculum, title: 'Foundation Hub' },
-  { image: bgLandingToolbox, title: 'Visual Lab' },
+  { image: bgToolboxVisualLab, title: 'Visual Lab' },
 ];
 const AUTOGRADER_TUTOR_SLIDES = [
-  { image: bgOcrGrading, title: 'AI OCR Autograder' },
+  { image: bgToolboxOcr, title: 'AI OCR Autograder' },
   { image: bgLandingAi, title: 'AI Tutor Class' },
   { image: bgLandingAnalytics, title: 'Diagnostic Analytics' },
 ];

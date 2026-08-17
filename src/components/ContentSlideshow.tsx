@@ -6,9 +6,9 @@ import imgLessonPlan from '../assets/images/lesson_plan_screenshot_1784286235763
 import imgUnitPlan from '../assets/images/unit_plan_screenshot_1784286250293.jpg';
 import imgAssessment from '../assets/images/assessment_screenshot_1784286266626.jpg';
 import imgStudyGuide from '../assets/images/study_guide_screenshot_1784286281497.jpg';
-import bgLandingAi from '../assets/images/landing_ai_bg_1786962597.jpg';
 import bgLandingAnalytics from '../assets/images/landing_analytics_bg_1786962597.jpg';
-import bgOcrGrading from '../assets/images/ocr_grading_bg_1785652474254.jpg';
+import bgAiTutor from '../assets/images/ai_tutor_bg_1786968958.jpg';
+import bgToolboxOcr from '../assets/images/toolbox_ocr_bg_1786968958.jpg';
 
 export interface Slide {
   title: string;
@@ -57,7 +57,7 @@ export const INTELLIGENT_AI_SLIDES: Slide[] = [
     badgeColor: 'from-amber-500 to-orange-600',
     description: 'A localized AI companion for homework grading, concept explanations, and curriculum support, adaptive to each student’s grade and learning style.',
     icon: Brain,
-    image: bgLandingAi
+    image: bgAiTutor
   },
   {
     title: 'OCR Auto-Grading',
@@ -65,7 +65,7 @@ export const INTELLIGENT_AI_SLIDES: Slide[] = [
     badgeColor: 'from-cyan-500 to-blue-600',
     description: 'Leverage AI vision to scan physical student answer sheets, detect handwritten text, and perform objective auto-grading automatically.',
     icon: ScanLine,
-    image: bgOcrGrading
+    image: bgToolboxOcr
   },
   {
     title: 'Adaptive Learning Path',

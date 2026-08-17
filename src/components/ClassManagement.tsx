@@ -10,15 +10,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import StudentPortfolio from './StudentPortfolio';
 import { LearnerInterventionHub } from './LearnerInterventionHub';
 
-import bgContentStudio from '../assets/images/content_studio_bg_1785652440860.jpg';
-import bgFoundationHub from '../assets/images/foundation_hub_bg_1785652450982.jpg';
-import bgPracticeZone  from '../assets/images/practice_zone_bg_1785652462543.jpg';
-import bgOcrGrading    from '../assets/images/ocr_grading_bg_1785652474254.jpg';
-import bgAdminLab      from '../assets/images/admin_lab_bg_1785652489555.jpg';
-import bgAnalytics     from '../assets/images/analytics_bg_1785652499527.jpg';
-import bgVisualPosters from '../assets/images/visual_posters_bg_1785652509797.jpg';
-import bgVideoAvatars  from '../assets/images/video_avatars_bg_1785652522004.jpg';
-import bgVaultLibrary  from '../assets/images/vault_library_bg_1785652535683.jpg';
 import bgClassesRegister    from '../assets/images/classes_register_bg_1786952984.jpg';
 import bgClassesSeating     from '../assets/images/classes_seating_bg_1786952984.jpg';
 import bgInterventionFlags  from '../assets/images/intervention_flags_bg_1786952984.jpg';
@@ -28,10 +19,11 @@ import bgPortfolioFeedback  from '../assets/images/portfolio_feedback_bg_1786952
 import bgLandingClasses     from '../assets/images/landing_classes_bg_1786962597.jpg';
 import bgLandingMessage     from '../assets/images/landing_message_bg_1786962597.jpg';
 import bgLandingAnalytics   from '../assets/images/landing_analytics_bg_1786962597.jpg';
+import bgMessageWorkspace   from '../assets/images/message_workspace_bg_1786968958.jpg';
 
 const LEARNERS_SLIDES = [bgClassesRegister, bgClassesSeating, bgLearnerPortfolio];
 const CLASSES_SLIDES = [bgLandingClasses, bgClassesSeating, bgClassesRegister];
-const GROUPS_SLIDES = [bgLandingClasses, bgLandingMessage, bgClassesSeating];
+const GROUPS_SLIDES = [bgMessageWorkspace, bgLandingClasses, bgLandingMessage];
 const INTERVENTION_SLIDES = [bgInterventionFlags, bgInterventionSupport, bgLandingAnalytics];
 const PORTFOLIO_SLIDES = [bgLearnerPortfolio, bgPortfolioFeedback, bgClassesRegister];
 

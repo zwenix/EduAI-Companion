@@ -38,18 +38,7 @@ import WorksheetQRScannerModal from './WorksheetQRScannerModal';
 const cn = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(' ');
 
 // Generated background images for interactive showcases
-import bgContentStudio from '../assets/images/content_studio_bg_1785652440860.jpg';
-import bgFoundationHub from '../assets/images/foundation_hub_bg_1785652450982.jpg';
-import bgPracticeZone  from '../assets/images/practice_zone_bg_1785652462543.jpg';
-import bgOcrGrading    from '../assets/images/ocr_grading_bg_1785652474254.jpg';
-import bgAdminLab      from '../assets/images/admin_lab_bg_1785652489555.jpg';
-import bgAnalytics     from '../assets/images/analytics_bg_1785652499527.jpg';
-import bgVisualPosters from '../assets/images/visual_posters_bg_1785652509797.jpg';
-import bgVideoAvatars  from '../assets/images/video_avatars_bg_1785652522004.jpg';
-import bgVaultLibrary  from '../assets/images/vault_library_bg_1785652535683.jpg';
 import imgAssessment   from '../assets/images/assessment_screenshot_1784286266626.jpg';
-import imgGames        from '../assets/images/games_overlay_1785535062476.jpg';
-import imgPersonalized from '../assets/images/personalized_overlay_1785535051900.jpg';
 import bgClassesRegister     from '../assets/images/classes_register_bg_1786952984.jpg';
 import bgClassesSeating      from '../assets/images/classes_seating_bg_1786952984.jpg';
 import bgInterventionFlags   from '../assets/images/intervention_flags_bg_1786952984.jpg';
@@ -65,6 +54,16 @@ import bgLandingMessage      from '../assets/images/landing_message_bg_178696259
 import bgLandingClasses      from '../assets/images/landing_classes_bg_1786962597.jpg';
 import bgLandingSettings     from '../assets/images/landing_settings_bg_1786962597.jpg';
 import bgToolboxContentStudio from '../assets/images/toolbox_content_studio_bg_1786962597.jpg';
+import bgToolboxFoundationHub from '../assets/images/toolbox_foundation_hub_bg_1786968958.jpg';
+import bgToolboxPracticeZone  from '../assets/images/toolbox_practice_zone_bg_1786968958.jpg';
+import bgToolboxOcr           from '../assets/images/toolbox_ocr_bg_1786968958.jpg';
+import bgToolboxVisualLab     from '../assets/images/toolbox_visual_lab_bg_1786968958.jpg';
+import bgToolboxVideoAvatars  from '../assets/images/toolbox_video_avatars_bg_1786968958.jpg';
+import bgToolboxVault         from '../assets/images/toolbox_vault_bg_1786968958.jpg';
+import bgAiTutor              from '../assets/images/ai_tutor_bg_1786968958.jpg';
+import bgGamesHub             from '../assets/images/games_hub_bg_1786968958.jpg';
+import bgMessageChat          from '../assets/images/message_chat_bg_1786968958.jpg';
+import bgMessageWorkspace     from '../assets/images/message_workspace_bg_1786968958.jpg';
 
 interface SubTabItem {
   id: string;
@@ -154,12 +153,12 @@ function InteractiveShowcaseCard({
 
 const CAPS_TOOLS_SLIDES = [
   { image: bgToolboxContentStudio, title: 'Content Studio', description: 'Create rich CAPS lesson plans and curriculum booklets.' },
-  { image: bgLandingCurriculum, title: 'CAPS Curriculum Planning', description: 'Map ATP-aligned topics, unit plans and foundation-phase learning materials.' }
+  { image: bgToolboxFoundationHub, title: 'Foundation Hub (R-3)', description: 'Primary grade templates, trace-and-copy tracing sheets.' }
 ];
 
 const QUIZ_WIZARD_SLIDES = [
-  { image: bgPracticeZone, title: 'Practice Zone', description: 'Engage students with diagnostic quizzes and practice drills.' },
-  { image: bgOcrGrading, title: 'Auto-Grading OCR', description: 'Scan physical printed answer sheets using camera in seconds.' }
+  { image: bgToolboxPracticeZone, title: 'Practice Zone', description: 'Engage students with diagnostic quizzes and practice drills.' },
+  { image: bgToolboxOcr, title: 'Auto-Grading OCR', description: 'Scan physical printed answer sheets using camera in seconds.' }
 ];
 
 const ADMIN_REPORTS_SLIDES = [
@@ -168,9 +167,9 @@ const ADMIN_REPORTS_SLIDES = [
 ];
 
 const MEDIA_TOOLS_SLIDES = [
-  { image: bgVisualPosters, title: 'Visual Lab Posters', description: 'Design educational infographics and vivid classroom science posters.' },
-  { image: bgVideoAvatars, title: 'Video Avatars', description: 'Produce captivating teacher video guides using digital presentation avatars.' },
-  { image: bgVaultLibrary, title: 'Vault & Library', description: 'Securely archive all generated templates, rubrics, and study guides.' }
+  { image: bgToolboxVisualLab, title: 'Visual Lab Posters', description: 'Design educational infographics and vivid classroom science posters.' },
+  { image: bgToolboxVideoAvatars, title: 'Video Avatars', description: 'Produce captivating teacher video guides using digital presentation avatars.' },
+  { image: bgToolboxVault, title: 'Vault & Library', description: 'Securely archive all generated templates, rubrics, and study guides.' }
 ];
 
 /* ---------------------------------------------------------------------------
@@ -253,7 +252,7 @@ const REPORTS_HERO_SLIDES = [
     tag: 'REWARDS',
     badgeColor: 'from-purple-500 to-indigo-600',
     description: 'Map CAPS outcomes to engaging gamified quests and reward systems that keep learners motivated while you track curriculum mastery.',
-    image: imgGames,
+    image: bgGamesHub,
   },
   {
     title: 'Mark Distribution & Term Trends',
@@ -289,8 +288,8 @@ const PORTFOLIOS_CARD_SLIDES = [
 ];
 
 const GAMIFICATION_CARD_SLIDES = [
-  { image: imgGames, title: 'Gamification Hub', description: 'Quests, badges and reward systems for motivation.' },
-  { image: bgPracticeZone, title: 'Practice Zone', description: 'Diagnostic quizzes and skill-mastery drills.' },
+  { image: bgGamesHub, title: 'Gamification Hub', description: 'Quests, badges and reward systems for motivation.' },
+  { image: bgToolboxPracticeZone, title: 'Practice Zone', description: 'Diagnostic quizzes and skill-mastery drills.' },
 ];
 
 interface ReportsCardTheme {
@@ -496,7 +495,7 @@ export default function CategoryOverview({
           >
             {/* Background image (animated showcase) */}
             <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
-              <img src={bgLandingAi} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <img src={bgAiTutor} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               <div className="absolute inset-0 bg-slate-950/70" />
             </div>
             <div className="space-y-4 relative z-10">
@@ -556,7 +555,7 @@ export default function CategoryOverview({
           >
             {/* Background image (animated showcase) */}
             <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
-              <img src={bgLandingAi} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <img src={bgAiTutor} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               <div className="absolute inset-0 bg-slate-950/75" />
             </div>
             <div className="space-y-4 w-full h-full flex flex-col items-center justify-between relative z-10">
@@ -593,7 +592,7 @@ export default function CategoryOverview({
           >
             {/* Background image (animated showcase) */}
             <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
-              <img src={bgOcrGrading} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <img src={bgToolboxOcr} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               <div className="absolute inset-0 bg-slate-950/75" />
             </div>
             <div className="space-y-4 w-full h-full flex flex-col items-center justify-between relative z-10">
@@ -707,10 +706,10 @@ export default function CategoryOverview({
                 ? 'Interactive AI-guided practice exercises, quizzes, and skill mastery drills.'
                 : item.desc || 'Explore collaborative tools and live communication channels.';
               const cardBg = item.id === 'messenger'
-                ? bgLandingMessage
+                ? bgMessageChat
                 : item.id === 'collaborative-workspace'
-                ? bgLandingClasses
-                : bgLandingAi;
+                ? bgMessageWorkspace
+                : bgAiTutor;
 
               return (
                 <motion.button
