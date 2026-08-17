@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import bgWeeklyPlanner from '../assets/images/weekly_planner_bg_1786975832.jpg';
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -444,7 +445,15 @@ export const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({
   }, [weekDays]);
 
   return (
-    <div className={`min-h-0 ${isDarkMode ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-900'} pb-16`}>
+    <div
+      className={`min-h-0 ${isDarkMode ? 'text-gray-100' : 'bg-gray-50 text-gray-900'} pb-16`}
+      style={isDarkMode ? {
+        backgroundImage: `linear-gradient(rgba(3,7,17,0.86), rgba(3,7,17,0.86)), url(${bgWeeklyPlanner})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      } : undefined}
+    >
       {/* Top Banner */}
       <div className={`${isDarkMode ? 'bg-gray-900 border-b border-gray-800' : 'bg-white border-b border-gray-200'} shadow-sm`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">

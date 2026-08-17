@@ -119,7 +119,8 @@ import ParentDashboard from './components/ParentDashboard';
 import ReaderModeModal from './components/ReaderModeModal';
 import PageOverlay from './components/PageOverlay';
 import { LearnerInterventionHub } from './components/LearnerInterventionHub';
-const teachersToolbox = 'https://i.ibb.co/RGmCJ3jh/teachers-toolbox.png';
+import bgContentFactory from './assets/images/toolbox_content_studio_bg_1786962597.jpg';
+const teachersToolbox = bgContentFactory;
 
 
 

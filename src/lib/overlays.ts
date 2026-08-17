@@ -15,6 +15,9 @@ import practiceExercises   from '../assets/images/toolbox_practice_zone_bg_17869
 import contentArchive      from '../assets/images/toolbox_vault_bg_1786968958.jpg';
 import capsGamificationHub from '../assets/images/games_hub_bg_1786968958.jpg';
 import aiTutor             from '../assets/images/ai_tutor_bg_1786968958.jpg';
+import alertsReminders     from '../assets/images/alerts_reminders_bg_1786975832.jpg';
+import plannerDiary        from '../assets/images/planner_diary_bg_1786975832.jpg';
+import weeklyPlanner       from '../assets/images/weekly_planner_bg_1786975832.jpg';
 
 /** The thirteen rooms, by their current page id. */
 export const OVERLAY_REGISTRY = {
@@ -31,6 +34,9 @@ export const OVERLAY_REGISTRY = {
   'learner-portfolios':    learnerPortfolios,
   'caps-gamification-hub': capsGamificationHub,
   'ai-tutor':              aiTutor,
+  'alerts-reminders':      alertsReminders,
+  'planner-diary':         plannerDiary,
+  'weekly-planner':        weeklyPlanner,
 } as const;
 
 export type OverlayRoute = keyof typeof OVERLAY_REGISTRY;
@@ -75,8 +81,8 @@ const ALIASES: Record<string, OverlayRoute> = {
   // AI Tutor
   tutor: 'ai-tutor', 'ai-tutor-companion': 'ai-tutor', elly: 'ai-tutor',
   // Curriculum & Planning
-  'curriculum-planning': 'teachers-toolbox', 'weekly-planner': 'teachers-toolbox',
-  planner: 'teachers-toolbox', curriculum: 'teachers-toolbox', alerts: 'settings',
+  'curriculum-planning': 'teachers-toolbox', 'weekly-planner': 'weekly-planner',
+  planner: 'planner-diary', curriculum: 'teachers-toolbox', alerts: 'alerts-reminders',
   illustrations: 'content-factory', visual: 'content-factory', video: 'content-factory',
   admin: 'settings', grade1: 'teachers-toolbox',
   'collaborative-workspace': 'message-collaborate', 'student-notes': 'learner-portfolios',
