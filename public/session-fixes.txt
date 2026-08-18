@@ -1,0 +1,362 @@
+diff --git a/.github/workflows/build-android2.yml b/.github/workflows/build-android2.yml
+index 4fc5500..9b6deb8 100644
+--- a/.github/workflows/build-android2.yml
++++ b/.github/workflows/build-android2.yml
+@@ -57,6 +57,12 @@ jobs:
+       - name: Use stable debug keystore
+         run: mkdir -p ~/.android && cp signing/android-debug.keystore ~/.android/debug.keystore
+ 
++      - name: Print Google Sign-In registration fingerprints
++        run: |
++          echo "=== Google Cloud Console → Credentials → OAuth client ID (type: Android) ==="
++          echo "Package name: com.eduaicompanion.app"
++          keytool -list -v -keystore signing/android-debug.keystore -storepass android -alias androiddebugkey 2>/dev/null | grep -E "SHA1:|SHA256:" || true
++
+       - name: Assemble debug APK (auto-signed)
+         working-directory: android
+         run: ./gradlew assembleDebug --no-daemon
+@@ -78,7 +84,15 @@ jobs:
+           - Branch: ${{ github.ref_name }}
+           - Commit: ${{ github.sha }}
+           - Run: [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
++
++          ## Google Sign-In registration (required once in Google Cloud Console)
++          Register an OAuth client ID of type "Android" with:
++          - Package name: com.eduaicompanion.app
+           EOF
++          echo "- SHA-1: \`$(keytool -list -v -keystore signing/android-debug.keystore -storepass android -alias androiddebugkey 2>/dev/null | grep 'SHA1:' | sed 's/^.*: //' | tr -d '[:space:]')\`" >> release-notes.md
++          echo "- SHA-256: \`$(keytool -list -v -keystore signing/android-debug.keystore -storepass android -alias androiddebugkey 2>/dev/null | grep 'SHA256:' | sed 's/^.*: //' | tr -d '[:space:]')\`" >> release-notes.md
++          echo "" >> release-notes.md
++          echo "It must be created in the same GCP project as the web client ID (project number 725068822716)." >> release-notes.md
+           gh release create "apk-${{ github.run_id }}" \
+             android/app/build/outputs/apk/debug/app-debug.apk \
+             --title "EduAI Companion APK (build ${{ github.run_number }})" \
+diff --git a/AGENTS.md b/AGENTS.md
+index f648a45..2279cd3 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -48,6 +48,13 @@ The binary assets in their folders are original, carefully-uploaded files that M
+   * `src/assets/images/**` — dashboard/overlay/screenshot backgrounds.
+   * `src/assets/overlays/**` — mirrored overlay images.
+   * `src/assets/splash.mp4`, `src/assets/logo.png`.
++* **`signing/android-debug.keystore`** — the Android signing keystore used by
++  the CI APK builds. Regenerating or replacing it changes the SHA-1 fingerprint
++  (`73:BB:00:87:CF:0B:C5:43:B7:60:37:01:03:CE:D3:47:9E:5E:D5:FD`) that Google Sign-In
++  depends on and **breaks Android Google Sign-In** for every installed user.
++  If a new keystore is ever required, the new SHA-1/SHA-256 MUST be registered
++  in Google Cloud Console (see `GOOGLE_SIGNIN_ANDROID_SETUP.md`) and updated in
++  `src/config/googleAuth.ts`.
+ 
+ ### Strict Rules
+ * **DO NOT** modify, resize, compress, re-encode, or "optimize" any of the above files.
+@@ -71,6 +78,57 @@ The generated materials (such as CAPS Lesson Plans, Worksheets, and Interactive
+ 
+ ---
+ 
++## 🚫 3b. UI DESIGN FREEZE — CONTENT BOXES / MENU CARDS (CRITICAL)
++
++The interactive content boxes and menu cards on the sidebar landing pages and
++dashboards are **frozen designs**. Do NOT change their styling, layout,
++animation behaviour, hover/selection glow, borders, or slideshow mechanics
++under any circumstances. This design language was hard-won — regressions here
++have burned users repeatedly (flashing borders, dead slideshows, lost hover
++glows).
++
++**Protected components & patterns:**
++
++* `src/components/CategoryOverview.tsx`
++  * `InteractiveShowcaseCard` — border/shadow/hover glow classes, background
++    slideshow crossfade (`AnimatePresence`), slide timings, dark veils.
++  * `ContentSlideshow` (in `src/components/ContentSlideshow.tsx`) — hero
++    slideshow behaviour, controls, indicator dots.
++  * All custom landing branches (Teacher's Toolbox, Intelligent AI, Classes &
++    Learners, Analytics & Reports, Message & Collaborate, Alerts & Diary
++    Planner, Curriculum & Planning, Help/Support Desk).
++* `src/components/TeacherDashboard.tsx` — `ShowcaseCard`,
++  `TeachingOuterSlideshow`, the Teaching Command Center box
++  (`animate-border-flash-cyan`).
++* `src/components/ClassManagement.tsx` — `ClassroomShowcaseCard` (active/hover
++  glow states).
++* Glow/steady-state CSS in `src/index.css`:
++  `.glass-neon-card`, `.hover-neon-*`, `.animate-neon-pulse-*`,
++  `.animate-border-flash-*` — these are intentionally **steady** (never
++  flashing); they must keep `animation: none !important` and only brighten on
++  hover/selection.
++* `src/components/PageOverlay.tsx` + `src/lib/overlays.ts` — the page overlay
++  must stay a **dark, ambient backdrop** (dimmed artwork, opacity floor 0.25
++  for normal blend, `brightness(0.55)` filter). Never restore the old 0.55+
++  bright veil.
++
++**What IS allowed on these boxes:**
++
++* Swapping the slide images (background artwork) via the slide-array constants,
++  as long as arrays stay module-scope constants and images are pre-warmed
++  (`new Image()`) for flash-free crossfades.
++* Copy changes (titles/descriptions) that do not alter the visual structure.
++
++**What is NOT allowed:**
++
++* Adding/removing/changing border classes, shadow/glow classes, hover classes,
++  `AnimatePresence` configuration, slide intervals, or dark veils.
++* Adding flash/pulse/blink animations to any content box or menu card.
++* Making the page overlay or landing backgrounds brighter than their current
++  dimmed state.
++
++---
++
+ ## 🔒 4. PROTECTION OF BUILT-IN PROMPTS
+ 
+ * The prompt engineering templates located in the project (e.g., in `src/lib/prompt-engine.ts`, `src/services/unifiedAiService.ts`, etc.) contain meticulous, reverse-engineered CAPS instruction layouts.
+diff --git a/GOOGLE_SIGNIN_ANDROID_SETUP.md b/GOOGLE_SIGNIN_ANDROID_SETUP.md
+new file mode 100644
+index 0000000..56b21b9
+--- /dev/null
++++ b/GOOGLE_SIGNIN_ANDROID_SETUP.md
+@@ -0,0 +1,97 @@
++# Google Sign-In on Android — Setup & Troubleshooting 🔐
++
++This is the definitive checklist for the native Android Google Sign-In flow used
++by the EduAI Companion APK. The most common failure is Google Sign-In error
++**code 10 (DEVELOPER_ERROR / 12501)** with a message like:
++
++> Google sign-in isn't configured for this Android build… create an OAuth
++> client with package name `com.eduaicompanion.app` and SHA-1 `73:BB:…`
++
++That error means: the **OAuth client ID of type "Android"** matching the
++installed APK's package name **and** signing fingerprint does not exist in the
++**Google Cloud project that owns the web client ID** the app uses.
++
++---
++
++## 1. The identities that must match
++
++| Item | Value |
++| :--- | :--- |
++| Package name | `com.eduaicompanion.app` |
++| Web client ID (used by the app) | `725068822716-tv8hh929bsagjliekkoq4ptkcfb3gs0k.apps.googleusercontent.com` |
++| GCP project number (must own the OAuth client) | `725068822716` |
++| Firebase project (linked to that GCP project) | `gen-lang-client-0448588221` |
++| Debug signing keystore (committed) | `signing/android-debug.keystore` (password `android`, alias `androiddebugkey`) |
++| Debug keystore SHA-1 (verified) | `73:BB:00:87:CF:0B:C5:43:B7:60:37:01:03:CE:D3:47:9E:5E:D5:FD` |
++| Debug keystore SHA-256 (verified) | `F6:92:B7:34:F6:91:BF:55:76:A5:07:D0:78:C6:ED:8F:9F:BA:72:A1:20:A3:2A:39:BA:FD:EF:B4:AF:D7:B9:5A` |
++
++> The fingerprints above are generated from the committed keystore itself. The
++> CI workflow (`build-android2.yml`) copies this exact keystore into the build,
++> so every CI APK presents **exactly** these fingerprints.
++
++## 2. Registering the Android OAuth client
++
++1. Open **Google Cloud Console** → select the project
++   `gen-lang-client-0448588221` (project number `725068822716`).
++   ⚠️ This is the single most common mistake: creating the client in a
++   *different* GCP project looks "configured" in both consoles but Google
++   Sign-In still fails.
++2. **APIs & Services → Credentials → + CREATE CREDENTIALS → OAuth client ID.**
++3. Application type: **Android**.
++4. Package name: `com.eduaicompanion.app`.
++5. SHA-1 certificate fingerprint: the value from the table above.
++   (You can also add the SHA-256 fingerprint — Google accepts either.)
++6. Create. You do **not** need a google-services.json for the Capacitor
++   plugin, but if one is added to the Android project it must come from the
++   same Firebase project.
++
++Adding the SHA-1 in the **Firebase console** (Project settings → Your apps →
++Android app → SHA certificate fingerprints) does the same thing — it creates
++the Android OAuth client in the GCP project linked to that Firebase project.
++If you did it there and it still fails, confirm that the Firebase project's
++linked GCP project is actually `gen-lang-client-0448588221` (Project settings →
++Integrations → Google Cloud).
++
++## 3. OAuth consent screen
++
++1. **APIs & Services → OAuth consent screen** (same project).
++2. Fill in the app name and a **support email** (this is mandatory).
++3. Add the scopes `openid`, `profile`, `email` if prompted.
++4. Publish the consent screen (or add the test account as a test user while in
++   "Testing" mode).
++
++## 4. "I registered everything but it still fails"
++
++Then the installed APK presents a **different fingerprint** than the one you
++registered. Check which SHA-1 the installed build actually presents:
++
++```bash
++# The SHA-1 your local debug builds present (Android Studio / gradlew without
++# the repo keystore):
++keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android | grep SHA1
++
++# Or extract it from the installed APK:
++apksigner verify --print-certs path/to/app.apk   # shows SHA-256; convert if needed
++```
++
++- **Built the APK yourself?** Your machine's debug keystore differs from the
++  repo's committed one — register *your* fingerprint (or install the CI APK
++  from the GitHub Releases page instead).
++- **Downloaded the APK from the GitHub release?** It uses the committed
++  keystore — the table values above are correct; re-check steps 1–3, especially
++  the GCP project selection.
++- **Uploaded to Google Play?** Play App Signing re-signs the app with Google's
++  key. Register the **App signing certificate** SHA-1 shown in Play Console →
++  Setup → App signing (both the app-signing and upload certificates if
++  needed).
++
++## 5. Code pointers
++
++- `src/config/googleAuth.ts` — web client ID, scopes, package name and the
++  verified keystore fingerprints.
++- `capacitor.config.ts` — `GoogleAuth` plugin configuration (clientId /
++  androidClientId / scopes).
++- `src/components/LoginPage.tsx` — native sign-in flow and the friendly
++  error message shown for DEVELOPER_ERROR.
++- `.github/workflows/build-android2.yml` — copies the committed keystore and
++  prints the fingerprints in the build log and release notes.
+diff --git a/src/App.tsx b/src/App.tsx
+index 5f6d3b5..e63e793 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -119,7 +119,8 @@ import ParentDashboard from './components/ParentDashboard';
+ import ReaderModeModal from './components/ReaderModeModal';
+ import PageOverlay from './components/PageOverlay';
+ import { LearnerInterventionHub } from './components/LearnerInterventionHub';
+-const teachersToolbox = 'https://i.ibb.co/RGmCJ3jh/teachers-toolbox.png';
++import bgContentFactory from './assets/images/toolbox_content_studio_bg_1786962597.jpg';
++const teachersToolbox = bgContentFactory;
+ 
+ 
+ 
+@@ -930,7 +931,7 @@ export default function App() {
+         { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
+         { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
+         { id: 'student-class-management', label: 'Message & Collaborate', icon: IconClassrooms },
+-        { id: 'system-support', label: 'Settings', icon: IconSettings },
++        { id: 'system-support', label: 'Help/Support Desk', icon: IconSettings },
+       ];
+     }
+     
+@@ -941,7 +942,7 @@ export default function App() {
+         { id: 'intelligence-ai', label: "AI Tutor's Class", icon: SmartBotTutorIcon },
+         { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
+         { id: 'student-class-management', label: 'Chat & Messenger', icon: IconClassrooms },
+-        { id: 'system-support', label: 'System support', icon: IconSettings },
++        { id: 'system-support', label: 'Help/Support Desk', icon: IconSettings },
+       ];
+     }
+ 
+@@ -953,7 +954,7 @@ export default function App() {
+       { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
+       { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
+       { id: 'student-class-management', label: 'Chat & Messenger', icon: IconClassrooms },
+-      { id: 'system-support', label: 'System support', icon: IconSettings },
++      { id: 'system-support', label: 'Help/Support Desk', icon: IconSettings },
+     ];
+   };
+ 
+@@ -1823,7 +1824,7 @@ export default function App() {
+       {/* Main Content — navy canvas end-to-end so overlay never leaves white bands */}
+       <main className={`flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden relative app-main-surface ${isDarkMode ? 'dark-theme' : themeMode === 'peach' ? 'peach-theme' : ''} transition-colors duration-500`}>
+         {/* Full-main overlay plate (behind header + content) so top/bottom never flash white */}
+-        <PageOverlay route={activeTab} blend="normal" opacity={0.8} vignette={false} drift={false} />
++        <PageOverlay route={activeTab} blend="normal" opacity={0.45} vignette={false} drift={false} />
+ 
+         {/* Header sits above overlay with translucent glass */}
+         <header 
+@@ -2773,9 +2774,44 @@ export default function App() {
+               )}>
+                   {categoryOverviewActive ? (
+                     <CategoryOverview
+-                      categoryLabel={sidebarCategories.find(c => c.id === categoryOverviewActive)?.label || ''}
+-                      categoryIcon={sidebarCategories.find(c => c.id === categoryOverviewActive)?.icon}
+-                      subTabs={getSubTabsForCategory(categoryOverviewActive, userRole)}
++                      categoryLabel={
++                        (() => {
++                          const cat = sidebarCategories.find(c => c.id === categoryOverviewActive);
++                          if (cat) return cat.label;
++                          // Landing pages reached through dashboard shortcuts use
++                          // aliases that are not sidebar categories. Resolve them
++                          // here so the CategoryOverview custom landing always
++                          // receives a label (undefined crashed the header icon).
++                          const ALIAS_LABELS: Record<string, string> = {
++                            'alerts-planner': 'Alerts & Diary Planner',
++                            'alerts-planner-landing': 'Alerts & Diary Planner',
++                            'lesson-planning-landing': "Teacher's Toolbox",
++                            'intelligence-ai-landing': 'Intelligent AI',
++                            'edu-tools-hub': "Teacher's Toolbox",
++                          };
++                          return ALIAS_LABELS[categoryOverviewActive] || 'Modules';
++                        })()
++                      }
++                      categoryIcon={
++                        (() => {
++                          const cat = sidebarCategories.find(c => c.id === categoryOverviewActive);
++                          if (cat) return cat.icon;
++                          const ALIAS_ICONS: Record<string, any> = {
++                            'alerts-planner': Bell,
++                            'alerts-planner-landing': Bell,
++                            'lesson-planning-landing': IconCurriculum,
++                            'intelligence-ai-landing': SmartBotTutorIcon,
++                            'edu-tools-hub': IconCurriculum,
++                          };
++                          return ALIAS_ICONS[categoryOverviewActive] || IconHome;
++                        })()
++                      }
++                      subTabs={getSubTabsForCategory(
++                        categoryOverviewActive === 'alerts-planner' || categoryOverviewActive === 'alerts-planner-landing'
++                          ? 'curriculum-planning'
++                          : categoryOverviewActive,
++                        userRole
++                      )}
+                       isDarkMode={isDarkMode}
+                       onSelect={(tabId) => {
+                         setCategoryOverviewActive(null);
+diff --git a/src/assets/images/ai_tutor_bg_1786968958.jpg b/src/assets/images/ai_tutor_bg_1786968958.jpg
+new file mode 100644
+index 0000000..6e3634e
+Binary files /dev/null and b/src/assets/images/ai_tutor_bg_1786968958.jpg differ
+diff --git a/src/assets/images/alerts_reminders_bg_1786975832.jpg b/src/assets/images/alerts_reminders_bg_1786975832.jpg
+new file mode 100644
+index 0000000..190af58
+Binary files /dev/null and b/src/assets/images/alerts_reminders_bg_1786975832.jpg differ
+diff --git a/src/assets/images/classes_register_bg_1786952984.jpg b/src/assets/images/classes_register_bg_1786952984.jpg
+new file mode 100644
+index 0000000..e54a5b0
+Binary files /dev/null and b/src/assets/images/classes_register_bg_1786952984.jpg differ
+diff --git a/src/assets/images/classes_seating_bg_1786952984.jpg b/src/assets/images/classes_seating_bg_1786952984.jpg
+new file mode 100644
+index 0000000..8b7dfd5
+Binary files /dev/null and b/src/assets/images/classes_seating_bg_1786952984.jpg differ
+diff --git a/src/assets/images/faq_bg_1786975832.jpg b/src/assets/images/faq_bg_1786975832.jpg
+new file mode 100644
+index 0000000..6b19278
+Binary files /dev/null and b/src/assets/images/faq_bg_1786975832.jpg differ
+diff --git a/src/assets/images/games_hub_bg_1786968958.jpg b/src/assets/images/games_hub_bg_1786968958.jpg
+new file mode 100644
+index 0000000..3d13544
+Binary files /dev/null and b/src/assets/images/games_hub_bg_1786968958.jpg differ
+diff --git a/src/assets/images/helpdesk_bg_1786975832.jpg b/src/assets/images/helpdesk_bg_1786975832.jpg
+new file mode 100644
+index 0000000..4a8d8c9
+Binary files /dev/null and b/src/assets/images/helpdesk_bg_1786975832.jpg differ
+diff --git a/src/assets/images/intervention_flags_bg_1786952984.jpg b/src/assets/images/intervention_flags_bg_1786952984.jpg
+new file mode 100644
+index 0000000..1d8791d
+Binary files /dev/null and b/src/assets/images/intervention_flags_bg_1786952984.jpg differ
+diff --git a/src/assets/images/intervention_support_bg_1786952984.jpg b/src/assets/images/intervention_support_bg_1786952984.jpg
+new file mode 100644
+index 0000000..5bab691
+Binary files /dev/null and b/src/assets/images/intervention_support_bg_1786952984.jpg differ
+diff --git a/src/assets/images/landing_ai_bg_1786962597.jpg b/src/assets/images/landing_ai_bg_1786962597.jpg
+new file mode 100644
+index 0000000..739f95a
+Binary files /dev/null and b/src/assets/images/landing_ai_bg_1786962597.jpg differ
+diff --git a/src/assets/images/landing_alerts_bg_1786962597.jpg b/src/assets/images/landing_alerts_bg_1786962597.jpg
+new file mode 100644
+index 0000000..c73789a
+Binary files /dev/null and b/src/assets/images/landing_alerts_bg_1786962597.jpg differ
+diff --git a/src/assets/images/landing_analytics_bg_1786962597.jpg b/src/assets/images/landing_analytics_bg_1786962597.jpg
+new file mode 100644
+index 0000000..60a1a55
+Binary files /dev/null and b/src/assets/images/landing_analytics_bg_1786962597.jpg differ
+diff --git a/src/assets/images/landing_classes_bg_1786962597.jpg b/src/assets/images/landing_classes_bg_1786962597.jpg
+new file mode 100644
+index 0000000..3367170
+Binary files /dev/null and b/src/assets/images/landing_classes_bg_1786962
