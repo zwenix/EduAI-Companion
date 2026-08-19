@@ -199,8 +199,9 @@ export const generateImageWithFallback = async (
   const seed = options.seed ?? Math.floor(Math.random() * 10000);
 
   let styledPrompt = prompt;
-  const styleSuffix = ", 3D vector, 3D cute icon, 3D animation Disney character style, educational, high quality, vibrant colors";
-  if (styledPrompt && !styledPrompt.toLowerCase().includes("3d vector") && !styledPrompt.toLowerCase().includes("3d cute icon")) {
+  const styleSuffix = ", Disney 3D Animation Character and 3D Cute Icon, educational, high quality, vibrant colours";
+  const lowerPrompt = styledPrompt.toLowerCase();
+  if (styledPrompt && (!lowerPrompt.includes("disney 3d animation character") || !lowerPrompt.includes("3d cute icon"))) {
     styledPrompt += styleSuffix;
   }
 

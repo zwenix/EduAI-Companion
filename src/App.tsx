@@ -37,7 +37,6 @@ import {
   Archive,
   UserCircle,
   Image,
-  FlaskConical,
   Palette,
   Sparkles,
   Blocks,
@@ -119,10 +118,6 @@ import ParentDashboard from './components/ParentDashboard';
 import ReaderModeModal from './components/ReaderModeModal';
 import PageOverlay from './components/PageOverlay';
 import { LearnerInterventionHub } from './components/LearnerInterventionHub';
-import bgContentFactory from './assets/images/toolbox_content_studio_bg_1786962597.jpg';
-const teachersToolbox = bgContentFactory;
-
-
 
 import { TeacherPlanner } from './components/TeacherPlanner';
 import { WeeklyPlanner } from './components/WeeklyPlanner';
@@ -2962,34 +2957,18 @@ export default function App() {
                         userRole={userRole || 'teacher'}
                       />
                     ) : activeTab === 'teaching' ? (
-                      <div className={`p-8 rounded-[40px] text-center relative overflow-hidden flex flex-col items-center justify-center min-h-[440px] space-y-6 border ${isDarkMode ? 'border-white/5 bg-slate-950 animate-fade-in' : 'border-slate-200 bg-white shadow-xl'}`}>
-                        {/* Background Image Overlay */}
-                        <img 
-                          src={teachersToolbox} 
-                          alt="" 
-                          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" 
-                          referrerPolicy="no-referrer"
-                        />
-                        {/* Overlay to guarantee high text contrast and visual harmony */}
-                        <div className={`absolute inset-0 ${isDarkMode ? 'bg-slate-950/65' : 'bg-white/80'} pointer-events-none`} />
-
-                        {/* Foreground Content */}
-                        <div className="relative z-10 flex flex-col items-center justify-center space-y-6">
-                          <div className="w-20 h-20 rounded-[28px] bg-brand-cyan/20 text-[#00d2ff] flex items-center justify-center animate-bounce">
-                            <FlaskConical size={40} />
-                          </div>
-                          <h3 className={`text-2xl font-black font-display ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Content Factory</h3>
-                          <p className={`text-sm ${isDarkMode ? 'text-slate-300' : 'text-slate-600'} max-w-sm leading-relaxed font-semibold`}>
-                            The CAPS-aligned AI curriculum content editor is open in a workspace hub overlay. Rubrics, worksheets, and exams are active inside the studio.
-                          </p>
-                          <button
-                            onClick={() => setActiveCreatorTab('teaching')}
-                            className="bg-[#00d2ff] hover:bg-[#00d2ff]/90 text-[#0F172A] font-extrabold px-8 py-3.5 rounded-full shadow-lg hover:shadow-cyan-500/20 shadow-cyan-500/10 transition-all font-display hover:scale-105 active:scale-95 border-none outline-none cursor-pointer"
-                          >
-                            Re-open Creator Studio Overlay
-                          </button>
-                        </div>
-                      </div>
+                      <ContentCreator
+                        initialTab={activeCreatorTab || 'teaching'}
+                        onClose={() => {
+                          setActiveCreatorTab(null);
+                          setCategoryOverviewActive(null);
+                          setActiveCategory('teacher-dashboard-menu');
+                          setActiveTab('dashboard');
+                        }}
+                        isDarkMode={isDarkMode}
+                        userName={userName}
+                        userRole={userRole}
+                      />
                     ) : activeTab === 'helpdesk' || activeTab === 'faq' ? (
                       <Helpdesk
                         isDarkMode={isDarkMode}
@@ -3039,20 +3018,9 @@ export default function App() {
         </div>
       </main>
 
-      {/* App Components */}
-      <AnimatePresence>
-        {activeCreatorTab && (
-          <ContentCreator 
-            isOpen={!!activeCreatorTab} 
-            initialTab={activeCreatorTab}
-            onClose={() => setActiveCreatorTab(null)} 
-            isDarkMode={isDarkMode}
-            isSidebarOpen={isSidebarOpen}
-            userName={userName}
-            userRole={userRole}
-          />
-        )}
-      </AnimatePresence>
+      {/* Content Factory is rendered in the normal page route above, not as a
+          fixed modal. This keeps the app shell navigation and page scroll
+          available during generation. */}
 
       {/* Offline sync success/error notifications or generic toast */}
       <AnimatePresence>

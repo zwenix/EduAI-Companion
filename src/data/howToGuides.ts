@@ -72,7 +72,7 @@ export const HOW_TO_GUIDES: HowToGuide[] = [
     openLabel: 'Open Content Studio',
     what: 'Content Studio (Teacher’s Toolbox → Content Factory) writes CAPS-aligned lesson plans, worksheets, exams, study guides, memos and rubrics in South African classroom language.',
     steps: [
-      { title: 'Open the studio', body: 'Sidebar → Teacher’s Toolbox → Content Studio, or tap New Mission in the top bar. The studio opens as a full overlay.' },
+      { title: 'Open the studio', body: 'Sidebar → Teacher’s Toolbox → Content Studio, or tap New Mission in the top bar. The studio opens as a full page inside the app shell, with the sidebar and navigation still available.' },
       { title: 'Choose the lab', body: 'Content Studio = lessons & worksheets. Visual Lab = posters. Video Lab = teacher videos. Admin Lab = parent letters. Foundation Phase = Grades R–3.' },
       { title: 'Set Grade, Subject, Type, Topic', body: 'Tap the four setup chips. Pick Grade R–12, a CAPS subject, a type (Lesson Plan, Worksheet, Controlled Test…), then a topic from the list or type your own.' },
       { title: 'Optional extras', body: 'Open Advanced Parameters to set language (isiZulu, Afrikaans, etc.), term, duration, learner count, CAPS pacing, differentiation, SIAS adaptations, and AI illustrations.' },

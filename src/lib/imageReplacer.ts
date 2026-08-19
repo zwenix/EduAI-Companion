@@ -2,6 +2,7 @@ import { collection, onSnapshot, query, setDoc, doc, Timestamp } from 'firebase/
 import { db, auth } from './firebase';
 import { buildDirectImageUrl, buildPollinationsUrl } from './imageGeneration';
 import { isNativeApp } from './platform';
+import { EDUCATIONAL_IMAGE_STYLE } from './prompt-priority';
 
 /**
  * EduAI Companion - Custom Image Placeholder Replacer & Firestore Cache
@@ -136,9 +137,13 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
       : defaultProvider;
 
     const isLogoOrStamp = /logo|stamp|seal|crest|badge|signature|certificate|emblem/i.test(cleanPrompt);
+    const styleDirective = `, ${EDUCATIONAL_IMAGE_STYLE}, educational, high quality, vibrant colours`;
+    const promptWithStyle = cleanPrompt.toLowerCase().includes('disney 3d animation character') && cleanPrompt.toLowerCase().includes('3d cute icon')
+      ? cleanPrompt
+      : `${cleanPrompt}${styleDirective}`;
     const enhancedPrompt = isLogoOrStamp
-      ? `${cleanPrompt}, clean professional vector logo, official school crest stamp seal aesthetic, crisp graphic design, high contrast, pure white background, masterpiece 4k vector graphic`
-      : `${cleanPrompt}, professional educational illustration, clean aesthetic design, crisp render, sharp focus, vibrant lighting, pure white background, natural beauty, 4k resolution`;
+      ? `${promptWithStyle}, clean professional vector logo, official school crest stamp seal aesthetic, crisp graphic design, high contrast, pure white background, masterpiece 4k vector graphic`
+      : `${promptWithStyle}, professional educational illustration, clean aesthetic design, crisp render, sharp focus, vibrant lighting, pure white background, natural beauty, 4k resolution`;
     
     // Web: use the backend proxy to bypass school network firewalls blocking
     // external generation sites. Native app (APK): there is no backend — the

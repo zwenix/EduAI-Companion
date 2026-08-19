@@ -126,7 +126,7 @@ For every imagePrompt field, use this enhanced structure:
 "Professional educational illustration for South African Grade [X] [Subject]: [Topic].
 
 STYLE SPECIFICATION:
-• Art Style: [Choose one: Semi-realistic digital painting / Modern flat illustration / Watercolor and ink / 3D rendered educational art / Mixed media collage]
+• Art Style: Disney 3D Animation Character and 3D Cute Icon for every educational illustration. This is mandatory; do not substitute a generic art-style preset.
 • Mood: [Choose one: Inspiring and uplifting / Curious and exploratory / Warm and welcoming / Professional and academic / Playful and engaging]
 • Tone: Age-appropriate for Grade [X] learners
 

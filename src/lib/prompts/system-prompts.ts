@@ -168,7 +168,7 @@ DESIGN SPECIFICATIONS:
    - Spectacular hero illustration
    - Topic clearly depicted
    - South African context
-   - Semi-realistic or professional vector style
+   - Disney 3D Animation Character and 3D Cute Icon style
    - 300 DPI quality
 
 4. Content Blocks:
