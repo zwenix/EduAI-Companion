@@ -19,6 +19,7 @@ import AiImage from './AiImage';
 import EduVideoPlayer from './EduVideoPlayer';
 import VideoGenerationHistory from './VideoGenerationHistory';
 import { PromptQualityValidator } from '../lib/prompt-validator';
+import { EDUCATIONAL_IMAGE_STYLE } from '../lib/prompt-priority';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 import { printContent, downloadAsHTML, downloadAsPDF } from '../lib/printUtils';
@@ -28,7 +29,6 @@ import PrintPreviewModal from './PrintPreviewModal';
 import { PosterPreview } from './PosterPreview';
 import VideoLabConsole from './VideoLabConsole';
 import FoundationPhaseArchitect from './FoundationPhaseArchitect';
-import PageOverlay from './PageOverlay';
 import { GRADE_2_DATA_HANDLING_WORKSHEET } from '../data/grade2DataHandlingWorksheet';
 import { db, auth } from '../lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -125,7 +125,7 @@ const LANGUAGES = ['English', 'Afrikaans', 'isiZulu', 'isiXhosa', 'Sesotho', 'Se
 const DIFFICULTIES = ['Easy (Lower Order Thinking)', 'Medium (Mixed)', 'Challenging (Higher Order)', 'Mixed (Bloom\'s Progression)'];
 const TERMS = ['Term 1', 'Term 2', 'Term 3', 'Term 4'];
 const COLOR_SCHEMES = ['Bright Primary Colors', 'Pastel Soft', 'School Navy & Gold', 'Green & Nature', 'Monochrome Professional', 'Rainbow Fun'];
-const VISUAL_STYLES = ['Modern & Clean', 'Playful Cartoon', 'Professional Academic', 'Bold & Graphic', 'Minimalist'];
+const VISUAL_STYLES = [EDUCATIONAL_IMAGE_STYLE, 'Modern & Clean', 'Playful Cartoon', 'Professional Academic', 'Bold & Graphic', 'Minimalist'];
 const TONES = ['Formal & Professional', 'Warm & Friendly', 'Informative & Clear', 'Urgent & Important'];
 const FONT_STYLES = [
   'Standard System (Inter)',
@@ -500,13 +500,11 @@ interface ContentCreatorProps {
   isDarkMode: boolean;
   userName: string;
   userRole: string | null;
-  isOpen?: boolean;
   onClose?: () => void;
   initialTab?: string;
-  isSidebarOpen?: boolean;
 }
 
-export default function ContentCreator({ isDarkMode, userName, userRole, isOpen, onClose, initialTab, isSidebarOpen }: ContentCreatorProps) {
+export default function ContentCreator({ isDarkMode, userName, userRole, onClose, initialTab }: ContentCreatorProps) {
   // ─── State Management ────────────────────────────────────────────────────
   
   // UI State
@@ -574,7 +572,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   const [v_customPrompt, setV_CustomPrompt] = useState('');
   const [v_topic, setV_Topic] = useState('');
   const [v_colorScheme, setV_ColorScheme] = useState('Bright Primary Colors');
-  const [v_visualStyle, setV_VisualStyle] = useState('Modern & Clean');
+  const [v_visualStyle, setV_VisualStyle] = useState(EDUCATIONAL_IMAGE_STYLE);
   const [v_dimensions, setV_Dimensions] = useState('A4');
   const [v_generateImage, setV_GenerateImage] = useState(true);
   const [v_currentVariation, setV_CurrentVariation] = useState(0);
@@ -673,6 +671,15 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   }, []);
 
   useEffect(() => {
+    // App navigation now keeps this generator mounted as a page. Sync the
+    // selected lab when a dashboard shortcut changes initialTab without
+    // remounting the page.
+    if (initialTab && GENERATOR_GROUPS.some(group => group.id === initialTab)) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  useEffect(() => {
     // Update topics when subject changes
     const gradeKey = getGradeKey(t_grade);
     if (gradeKey && (educationalData as any)[gradeKey] && t_subject && (educationalData as any)[gradeKey][t_subject]) {
@@ -724,7 +731,9 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
     const isWorksheet = t_type === 'Worksheet';
     const isDataHandling = t_topic && (t_topic.toLowerCase().includes('data') || t_topic.toLowerCase().includes('handling') || t_topic.toLowerCase().includes('sort'));
 
-    if (isGrade2 && isMath && isWorksheet && isDataHandling) {
+    // Keep the curated quick-start only when no instructor brief is present;
+    // a typed brief must always be allowed to change the result.
+    if (isGrade2 && isMath && isWorksheet && isDataHandling && !t_customPrompt.trim()) {
       setIsGenerating(true);
       setGenerationProgress(0);
       setGenerationPhase('Pre-forging CAPS Grade 2 Data Handling Worksheet...');
@@ -753,7 +762,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
         rubric: GRADE_2_DATA_HANDLING_WORKSHEET.rubric,
         assessmentCriteria: 'Data collection, representation in a pictograph, and data analysis comparison.',
         successIndicators: ['Identifies and sorts South African animals', 'Draws fruit circles inside the pictograph', 'Compares numbers and reads the bar graph correctly'],
-        imagePrompt: 'Premium educational 3D vector illustration of South African wildlife and fruits.'
+        imagePrompt: `Premium educational ${EDUCATIONAL_IMAGE_STYLE} illustration of South African wildlife and fruits.`
       };
 
       setTeachingResult(result);
@@ -877,6 +886,8 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
         colorScheme: v_colorScheme,
         style: v_visualStyle,
         dimensions: v_dimensions,
+        language: 'English',
+        additionalInstructions: v_customPrompt,
         generateImage: v_generateImage
       }, provider, (partial) => {
         if (partial && Object.keys(partial).length > 0) {
@@ -1401,12 +1412,14 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
   
   return (
     <div className={cn(
-      "fixed inset-0 z-40 flex flex-col overflow-hidden transition-all duration-300",
-      isDarkMode ? "bg-transparent" : "bg-transparent",
-      isSidebarOpen ? "lg:pl-[240px]" : "lg:pl-[84px]"
+      "w-full min-h-full flex flex-col transition-all duration-300",
+      isDarkMode ? "text-white" : "text-slate-900"
     )}>
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-full max-h-screen overflow-hidden">
+      {/* Content Factory is a first-class page inside the app shell. It no
+          longer sits above the shell as a fixed modal/overlay, so the app's
+          normal navigation, sidebar, URL history, and page scrolling remain
+          available while generating content. */}
+      <div className="w-full flex flex-col">
         {/* Top Navigation Bar */}
         <header className={cn(
           "sticky top-0 z-40 border-b backdrop-blur-xl shrink-0",
@@ -1483,7 +1496,6 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
 
         {/* Page Content */}
         <main className="relative flex-1 p-4 sm:p-8 overflow-y-auto overflow-x-hidden">
-          <PageOverlay route="toolbox" />
           <div className="relative z-10">
           {/* Content Factory Title */}
           <div className="text-center mb-6 sm:mb-10">
@@ -1959,13 +1971,20 @@ export default function ContentCreator({ isDarkMode, userName, userRole, isOpen,
                     </div>
                   )}
 
-                  {/* Custom Action Prompt Script */}
+                  {/* Instructor brief — intentionally surfaced as the primary
+                      creative input instead of a low-priority optional note. */}
                   <div className="pt-2 space-y-1.5">
-                    <label className={cn("text-[10px] font-black uppercase tracking-widest block ml-1", isDarkMode ? "text-purple-400" : "text-purple-600")}>
-                      Action Prompt Script (Optional)
-                    </label>
+                    <div className="flex items-center justify-between gap-3 ml-1">
+                      <label className={cn("text-[10px] font-black uppercase tracking-widest", isDarkMode ? "text-purple-400" : "text-purple-600")}>
+                        Instructor Brief — Highest Priority
+                      </label>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400">Overrides presets</span>
+                    </div>
+                    <p className={cn("text-[10px] ml-1", isDarkMode ? "text-slate-400" : "text-slate-500")}>
+                      Your instructions guide the topic, examples, structure, and visual details. Preset options only fill in what you leave unspecified.
+                    </p>
                     <textarea 
-                      placeholder="Type your custom instructions here... E.g., Focus specifically on the history of the Khoisan people..."
+                      placeholder="Tell EduAI exactly what to create... E.g., Focus specifically on the history of the Khoisan people, use these three examples, and include a timeline."
                       value={activeTab === 'teaching' ? t_customPrompt : activeTab === 'visual' ? v_customPrompt : a_customPrompt}
                       onChange={(e) => {
                         const val = e.target.value;

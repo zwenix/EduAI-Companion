@@ -14,6 +14,7 @@ import {
 
 import { callMultiAi, performOCR, AIProvider } from './multiAiService';
 import { EduAIPromptEngine } from '../lib/prompt-engine';
+import { buildInstructorPriority, EDUCATIONAL_IMAGE_STYLE } from '../lib/prompt-priority';
 
 const isProviderFailure = (error: any): boolean => {
   const status = error.response?.status || error.status;
@@ -239,14 +240,19 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini',
     visualPrompt = `Create a highly visual display, not a worksheet, for Grade ${input.grade} ${input.subject} on topic ${input.topic}. Ensure it is styled beautifully.`;
   }
 
+  const instructorPriority = buildInstructorPriority(input.additionalInstructions);
+  const selectedVisualStyle = input.style || EDUCATIONAL_IMAGE_STYLE;
   const prompt = `
+    ${instructorPriority}
     ${visualPrompt}
-    Language: ${input.language}
-    Style: ${input.style}
-    Color: ${input.colorScheme}
-    Content Details: ${input.specificContent}
-    Quantity: ${input.quantity}
-    Additional Info: ${IMAGE_PROMPT_GOLDEN_RULE}
+    Language: ${input.language || 'English'}
+    Selected visual style (supporting default only): ${selectedVisualStyle}
+    Colour scheme (supporting default only): ${input.colorScheme || 'Bright Primary Colors'}
+    Content details (supporting default only): ${input.specificContent || 'Use the instructor brief and topic.'}
+    Quantity (supporting default only): ${input.quantity || 'A complete classroom-ready visual aid'}
+    Image style requirement: ${IMAGE_PROMPT_GOLDEN_RULE}
+    ${input.generateImage ? `Use ${EDUCATIONAL_IMAGE_STYLE} for every illustration placeholder and imagePrompt.` : 'Do not include image placeholders.'}
+    ${instructorPriority}
 
     Return as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
     {

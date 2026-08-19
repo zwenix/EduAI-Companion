@@ -20,6 +20,7 @@ import {
   TEST_GENERATOR_TEMPLATE,
   PROGRESS_TRACKER_TEMPLATE
 } from './prompts/assessment-templates';
+import { buildInstructorPriority, EDUCATIONAL_IMAGE_STYLE } from './prompt-priority';
 
 export interface PromptContext {
   contentType: 'worksheet' | 'poster' | 'study-guide' | 'infographic' | 
@@ -125,7 +126,10 @@ You MUST ALSO generate:
       `;
     }
     
-    // Inject dynamic values into template
+    // Inject dynamic values into template. The instructor brief is deliberately
+    // placed before and after the preset template so it cannot be lost inside a
+    // long prompt or treated as an optional afterthought by a provider.
+    const instructorPriority = buildInstructorPriority(context.additionalInstructions);
     let userPrompt = this.injectContext(contentTemplate, {
       ...context,
       language: effectiveLanguage,
@@ -138,6 +142,9 @@ You MUST ALSO generate:
       phase,
       ...subjectPalette
     });
+    if (instructorPriority) {
+      userPrompt = `${instructorPriority}\n\n${userPrompt}\n\n${instructorPriority}`;
+    }
     
     // Enhance system prompt with phase-specific guidance
     let systemPrompt = ENHANCED_MASTER_PROMPT
@@ -377,7 +384,7 @@ Output format: raw JSON (no markdown block wrapper). Escaped double quotes.`;
     const randomElement = saElements[Math.floor(Math.random() * saElements.length)];
     
     return `Professional educational illustration for South African ${phase} (Grade ${grade}) ${subject}: ${topic}. 
-Style: Semi-realistic digital painting, children's non-fiction book aesthetic. 
+Style: ${EDUCATIONAL_IMAGE_STYLE}, children's non-fiction book aesthetic.
 Composition: Hero layout with ${phaseGuidance[phase] || 'balanced details'}. 
 Cultural context: Include recognizable South African elements like ${randomElement}. 
 Color palette: ${palette.primary} primary with ${palette.accent} accents, harmonious and accessible. 

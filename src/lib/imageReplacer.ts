@@ -2,6 +2,7 @@ import { collection, onSnapshot, query, setDoc, doc, Timestamp } from 'firebase/
 import { db, auth } from './firebase';
 import { buildDirectImageUrl, buildPollinationsUrl } from './imageGeneration';
 import { isNativeApp } from './platform';
+import { EDUCATIONAL_IMAGE_STYLE } from './prompt-priority';
 
 /**
  * EduAI Companion - Custom Image Placeholder Replacer & Firestore Cache
@@ -134,11 +135,20 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
     const provider = typeof window !== 'undefined'
       ? window.localStorage.getItem('eduai_image_provider') || defaultProvider
       : defaultProvider;
+    const providerChain = provider === 'gemini-imagen'
+      ? 'Google Imagen (Secondary) → Pollinations → Perchance'
+      : provider === 'pollinations'
+        ? 'Pollinations (Tertiary) → Perchance → Google Imagen'
+        : 'Perchance (Primary) → Pollinations → Google Imagen';
 
     const isLogoOrStamp = /logo|stamp|seal|crest|badge|signature|certificate|emblem/i.test(cleanPrompt);
+    const styleDirective = `, ${EDUCATIONAL_IMAGE_STYLE}, educational, high quality, vibrant colours`;
+    const promptWithStyle = cleanPrompt.toLowerCase().includes('disney 3d animation character') && cleanPrompt.toLowerCase().includes('3d cute icon')
+      ? cleanPrompt
+      : `${cleanPrompt}${styleDirective}`;
     const enhancedPrompt = isLogoOrStamp
-      ? `${cleanPrompt}, clean professional vector logo, official school crest stamp seal aesthetic, crisp graphic design, high contrast, pure white background, masterpiece 4k vector graphic`
-      : `${cleanPrompt}, professional educational illustration, clean aesthetic design, crisp render, sharp focus, vibrant lighting, pure white background, natural beauty, 4k resolution`;
+      ? `${promptWithStyle}, clean professional vector logo, official school crest stamp seal aesthetic, crisp graphic design, high contrast, pure white background, masterpiece 4k vector graphic`
+      : `${promptWithStyle}, professional educational illustration, clean aesthetic design, crisp render, sharp focus, vibrant lighting, pure white background, natural beauty, 4k resolution`;
     
     // Web: use the backend proxy to bypass school network firewalls blocking
     // external generation sites. Native app (APK): there is no backend — the
@@ -175,7 +185,7 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
         CAPS Illustration: ${cleanPrompt.slice(0, 45)}${cleanPrompt.length > 45 ? '...' : ''}
       </p>
     </div>
-    <span class="eduai-illustration-label px-2 py-0.5 rounded bg-slate-100 font-bold select-none uppercase">Model: ${provider === 'gemini-imagen' ? 'Gemini Imagen-3' : provider === 'perchance' ? 'Perchance AI Text-to-Image' : 'Pollinations Turbo'}</span>
+    <span class="eduai-illustration-label px-2 py-0.5 rounded bg-slate-100 font-bold select-none uppercase">Image chain: ${providerChain}</span>
   </div>
 </div>
     `;

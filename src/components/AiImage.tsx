@@ -154,7 +154,7 @@ export default function AiImage({
               ? 'Perchance AI Text-to-Image (Primary)' 
               : provider === 'gemini' 
                 ? 'Gemini Imagen-3' 
-                : 'Pollinations (Fallback)'
+                : 'Pollinations AI (Tertiary / Fallback)'
           }
         </div>
       )}

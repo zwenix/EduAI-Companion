@@ -34,6 +34,7 @@ CRITICAL VISUAL DESIGN & ILLUSTRATION RULE:
 - You must aggressively break up and punctuate all text with detailed, custom, context-relevant inline illustration or diagram placeholders inside brackets, e.g., \`[Illustration: <detailed, highly-specific visual prompt>]\` or \`[Diagram: <detailed labels and flow-chart prompt>]\`. 
 - Each key concept card, section, or bento-grid block inside posters and visual aids must contain its own dedicated illustration placeholder. 
 - Keep text inside poster blocks exceptionally brief, punchy, action-oriented, and presented in bullet lists or highlighted capsules with relevant South African emojis (e.g. 🇿🇦, 🦁, 🏔️) rather than raw explanatory prose.
+- Every educational image and illustration must use the exact style: Disney 3D Animation Character and 3D Cute Icon. Do not substitute a generic art-style preset.
 
 Your outputs must match or exceed the professional quality of our signature EduAI templates: clean, extremely modern, highly vibrant, and interactive layouts. Use full-width background color banners, excellent visual hierarchy, clear instructions, bold answer lines/boxes, scoring areas, educational illustrations/diagrams, and total print-readiness.
 
@@ -53,7 +54,7 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
 `;
 
 export const IMAGE_PROMPT_GOLDEN_RULE = `
-World-class masterpiece work of art, crisp render, sharp focus, charmingly aesthetic design, 4k, soft lighting, masterpiece emoji-style figurine 3D render, 3D Disney Character render, pure white background, natural beauty, ultra-detailed 3D digital asset, vibrant colors, perfect composition, no text overlays (text will be added separately), no borders, no frames, no watermarks, museum-quality detail
+World-class educational illustration, crisp render, sharp focus, charming design, 4k, soft lighting, Disney 3D Animation Character and 3D Cute Icon style, pure white or clean classroom background, natural beauty, ultra-detailed 3D digital asset, vibrant colours, perfect composition, no text overlays (text will be added separately), no borders, no frames, no watermarks
 `;
 
 const repairTruncatedJson = (jsonStr: string): string => {

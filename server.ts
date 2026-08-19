@@ -1,5 +1,6 @@
 import { CAPS_LESSON_PLAN_SYSTEM_PROMPT } from "./src/lib/prompts/caps-lesson-plan-prompt";
 import { EduAIPromptEngine } from "./src/lib/prompt-engine";
+import { buildInstructorPriority, EDUCATIONAL_IMAGE_STYLE } from "./src/lib/prompt-priority";
 import express from "express";
 import path from "path";
 import fs from "fs";
@@ -188,6 +189,7 @@ CRITICAL VISUAL DESIGN & ILLUSTRATION RULE:
 - You must aggressively break up and punctuate all text with detailed, custom, context-relevant inline illustration or diagram placeholders inside brackets, e.g., \`[Illustration: <detailed, highly-specific visual prompt in South African context>]\` or \`[Diagram: <detailed labels and flow-chart prompt>]\`. 
 - Each key concept card, section, or bento-grid block inside posters and visual aids must contain its own dedicated illustration placeholder. 
 - Keep text inside poster blocks exceptionally brief, punchy, action-oriented, and presented in bullet lists or highlighted capsules with relevant South African emojis (e.g. 🇿🇦, 🦁, 🏔️) rather than raw explanatory prose.
+- Every educational image and illustration must use the exact style: Disney 3D Animation Character and 3D Cute Icon. Do not substitute a generic art-style preset.
 
 Your outputs must match or exceed the professional quality of our signature EduAI templates: clean, extremely modern, highly vibrant, and interactive layouts. Use full-width background color banners, excellent visual hierarchy, clear instructions, bold answer lines/boxes, scoring areas, educational illustrations/diagrams, and total print-readiness.
 
@@ -213,7 +215,7 @@ VISUAL STYLING DOCTRINE (Follow these for all HTML output):
 `;
 
   const IMAGE_PROMPT_GOLDEN_RULE = `
-World-class masterpiece work of art, crisp render, sharp focus, charmingly aesthetic design, 4k, soft lighting, masterpiece emoji-style figurine 3D render, 3D Disney Character render, pure white background, natural beauty, ultra-detailed 3D digital asset, vibrant colors, perfect composition, no text overlays (text will be added separately), no borders, no frames, no watermarks, museum-quality detail
+World-class educational illustration, crisp render, sharp focus, charming design, 4k, soft lighting, Disney 3D Animation Character and 3D Cute Icon style, pure white or clean classroom background, natural beauty, ultra-detailed 3D digital asset, vibrant colours, perfect composition, no text overlays (text will be added separately), no borders, no frames, no watermarks
 `;
 
   const repairTruncatedJson = (jsonStr: string): string => {
@@ -1151,10 +1153,11 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
   app.post("/api/images/generate", async (req, res) => {
     const { prompt, provider } = req.body;
     
-    // Augment prompt to ensure 3D vector, 3D cute icon, 3D Disney character style is applied
+    // Augment every generated image with the Content Factory educational style.
     let styledPrompt = prompt || "";
-    const styleSuffix = ", 3D vector, 3D cute icon, 3D animation Disney character style";
-    if (styledPrompt && !styledPrompt.toLowerCase().includes("3d vector") && !styledPrompt.toLowerCase().includes("3d cute icon")) {
+    const styleSuffix = ", Disney 3D Animation Character and 3D Cute Icon, educational, high quality, vibrant colours";
+    const lowerPrompt = styledPrompt.toLowerCase();
+    if (styledPrompt && (!lowerPrompt.includes("disney 3d animation character") || !lowerPrompt.includes("3d cute icon"))) {
       styledPrompt += styleSuffix;
     }
 
@@ -1406,8 +1409,9 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
         case "generate-image": {
           const { prompt: imagePrompt, width, height } = input || {};
           let styledPrompt = imagePrompt || "";
-          const styleSuffix = ", 3D vector, 3D cute icon, 3D animation Disney character style";
-          if (styledPrompt && !styledPrompt.toLowerCase().includes("3d vector") && !styledPrompt.toLowerCase().includes("3d cute icon")) {
+          const styleSuffix = ", Disney 3D Animation Character and 3D Cute Icon, educational, high quality, vibrant colours";
+          const lowerPrompt = styledPrompt.toLowerCase();
+          if (styledPrompt && (!lowerPrompt.includes("disney 3d animation character") || !lowerPrompt.includes("3d cute icon"))) {
             styledPrompt += styleSuffix;
           }
 
@@ -1549,7 +1553,6 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
           const isFlashcard = input.visualType?.toLowerCase().includes('flashcard') || input.visualType?.toLowerCase().includes('learning card');
 
           let visualPrompt = "";
-          if (input.additionalInstructions) { visualPrompt += `\n\nUser Custom Instructions: ${input.additionalInstructions}\n`; }
           if (isPoster) {
             visualPrompt = `
               Create an exceptionally polished, high-resolution educational poster layout on the CAPS topic: "${input.topic}" for South African Grade ${input.grade} ${input.subject} classrooms.
@@ -1624,24 +1627,28 @@ World-class masterpiece work of art, crisp render, sharp focus, charmingly aesth
             visualPrompt = `Create a highly visual display, not a worksheet, for Grade ${input.grade} ${input.subject} on topic ${input.topic}. Ensure it is styled beautifully.`;
           }
 
+          const instructorPriority = buildInstructorPriority(input.additionalInstructions);
+          const selectedVisualStyle = input.style || EDUCATIONAL_IMAGE_STYLE;
           let prompt = "";
           if (input.existingContent) {
             prompt = `The previous visual aid content generation was truncated due to character limits. Here is the content generated so far:\n\n${input.existingContent}\n\nCRITICAL INSTRUCTION: Continue generating the rest of the visual aid seamlessly from exactly where it left off. Do not repeat anything already generated. Complete all remaining sections until the document is 100% complete.`;
           } else {
             prompt = `
+              ${instructorPriority}
               ${visualPrompt}
-              Language: ${effectiveLang}\n            ${input.additionalInstructions ? `User Custom Instructions: ${input.additionalInstructions}` : ""}
-              Style: ${input.style}
-              Color: ${input.colorScheme}
-              Content Details: ${input.specificContent}
-              Quantity: ${input.quantity}
-              Additional Info: ${IMAGE_PROMPT_GOLDEN_RULE}
+              Language: ${effectiveLang}
+              Selected visual style (use only when the instructor brief does not specify another): ${selectedVisualStyle}
+              Colour scheme (supporting default only): ${input.colorScheme || 'Bright Primary Colors'}
+              Content Details (supporting default only): ${input.specificContent || 'Use the instructor brief and topic.'}
+              Quantity (supporting default only): ${input.quantity || 'A complete classroom-ready visual aid'}
+              Image style requirement: ${IMAGE_PROMPT_GOLDEN_RULE}
             `;
             if (input.generateImage) {
-              prompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 2-3 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of an educational graphic depicting the topic in South African context>]. Place them strategically inside the HTML to visually break up the text. The system will replace them with actual AI generated images.`;
+              prompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: Include at least 2-3 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of an educational graphic depicting the topic in South African context>]. The illustration must use ${EDUCATIONAL_IMAGE_STYLE}. Place them strategically inside the HTML; the system will replace them with generated images.`;
             } else {
-              prompt += `\n\n⚠️ CRITICAL: DO NOT include any illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
+              prompt += `\n\n⚠️ CRITICAL: DO NOT include illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
             }
+            prompt += `\n\n${instructorPriority}`;
           }
 
           if (langMandate) {
@@ -1944,8 +1951,9 @@ STRICT COMPLIANCE & ZERO-HALLUCINATION MANDATES:
         case "generate-image": {
           const { prompt: imagePrompt, width = 1024, height = 1024 } = input || {};
           let styledPrompt = imagePrompt || "";
-          const styleSuffix = ", 3D vector, 3D cute icon, 3D animation Disney character style";
-          if (styledPrompt && !styledPrompt.toLowerCase().includes("3d vector") && !styledPrompt.toLowerCase().includes("3d cute icon")) {
+          const styleSuffix = ", Disney 3D Animation Character and 3D Cute Icon, educational, high quality, vibrant colours";
+          const lowerPrompt = styledPrompt.toLowerCase();
+          if (styledPrompt && (!lowerPrompt.includes("disney 3d animation character") || !lowerPrompt.includes("3d cute icon"))) {
             styledPrompt += styleSuffix;
           }
 

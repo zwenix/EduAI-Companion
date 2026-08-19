@@ -59,8 +59,8 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   const [imageProvider, setImageProvider] = useState<ImageProvider>(() => {
-    // Perchance is the PRIMARY image generator on every platform (web and the
-    // native APK alike) — never downgraded to Gemini Imagen on native.
+    // Perchance is the PRIMARY image generator on every platform. Its first
+    // fallback is Pollinations AI; Gemini/Imagen remains the secondary choice.
     const fallback: ImageProvider = 'perchance';
     try {
       const saved = localStorage.getItem('eduai_image_provider') as any;

@@ -10,6 +10,7 @@ import { GoogleGenAI } from '@google/genai';
 import { AI_SECRETS } from '../lib/aiSecrets';
 import { MASTER_SYSTEM_PROMPT, IMAGE_PROMPT_GOLDEN_RULE, safeJsonParse } from './geminiService';
 import { EduAIPromptEngine } from '../lib/prompt-engine';
+import { buildInstructorPriority, EDUCATIONAL_IMAGE_STYLE } from '../lib/prompt-priority';
 
 const GEMINI_MODELS = [
   'gemini-3.7-flash',
@@ -156,18 +157,21 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
         visualPrompt = `Create a highly visual display, not a worksheet, for Grade ${input.grade} ${input.subject} on topic ${input.topic}. Ensure it is styled beautifully.`;
       }
 
+      const instructorPriority = buildInstructorPriority(input.additionalInstructions);
+      const selectedVisualStyle = input.style || EDUCATIONAL_IMAGE_STYLE;
       let prompt = '';
       if (input.existingContent) {
-        prompt = `The previous visual aid content generation was truncated due to character limits. Here is the content generated so far:\n\n${input.existingContent}\n\nCRITICAL INSTRUCTION: Continue generating the rest of the visual aid seamlessly from exactly where it left off. Do not repeat anything already generated. Complete all remaining sections until the document is 100% complete.`;
+        prompt = `The previous visual aid content generation was truncated due to character limits. Here is the content generated so far:\n\n${input.existingContent}\n\nCRITICAL INSTRUCTION: Continue the visual aid seamlessly from exactly where it left off. Do not repeat anything already generated.`;
       } else {
-        prompt = `${visualPrompt}\nLanguage: ${effectiveLang}\n${input.additionalInstructions ? `User Custom Instructions: ${input.additionalInstructions}` : ''}\nStyle: ${input.style}\nColor: ${input.colorScheme}\nContent Details: ${input.specificContent}\nQuantity: ${input.quantity}\nAdditional Info: ${IMAGE_PROMPT_GOLDEN_RULE}`;
+        prompt = `${instructorPriority}\n${visualPrompt}\nLanguage: ${effectiveLang}\nSelected visual style (supporting default only): ${selectedVisualStyle}\nColour scheme (supporting default only): ${input.colorScheme || 'Bright Primary Colors'}\nContent details (supporting default only): ${input.specificContent || 'Use the instructor brief and topic.'}\nImage style requirement: ${IMAGE_PROMPT_GOLDEN_RULE}`;
         if (input.generateImage) {
-          prompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 2-3 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of an educational graphic depicting the topic in South African context>].`;
+          prompt += `\n\nCRITICAL ILLUSTRATION REQUIREMENT: Include 2-3 detailed [Illustration: ...] placeholders using ${EDUCATIONAL_IMAGE_STYLE}.`;
         } else {
-          prompt += `\n\n⚠️ CRITICAL: DO NOT include any illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
+          prompt += `\n\nCRITICAL: Do not include illustration or image placeholders.`;
         }
-        prompt += JSON_VISUAL_HINT;
+        prompt += `\n\n${instructorPriority}`;
       }
+      prompt += JSON_VISUAL_HINT;
       if (langMandate) prompt = `${langMandate}\n\n${prompt}\n\n${langMandate}`;
 
       const response = await generateWithFallback({
@@ -284,8 +288,9 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
     case 'generate-image': {
       const { prompt: imagePrompt, width, height } = input || {};
       let styledPrompt = imagePrompt || '';
-      const styleSuffix = ', 3D vector, 3D cute icon, 3D animation Disney character style';
-      if (styledPrompt && !styledPrompt.toLowerCase().includes('3d vector') && !styledPrompt.toLowerCase().includes('3d cute icon')) {
+      const styleSuffix = ', Disney 3D Animation Character and 3D Cute Icon, educational, high quality, vibrant colours';
+      const lowerPrompt = styledPrompt.toLowerCase();
+      if (styledPrompt && (!lowerPrompt.includes('disney 3d animation character') || !lowerPrompt.includes('3d cute icon'))) {
         styledPrompt += styleSuffix;
       }
       const aspectRatio = (width || 1024) > (height || 1024) ? '16:9' : (width || 1024) < (height || 1024) ? '9:16' : '1:1';

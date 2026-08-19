@@ -2,14 +2,14 @@
  * EduAI Companion - Multi-Provider Image Generation System
  *
  * Provider priority (identical on web AND inside the Android APK):
- *   1. Perchance AI          (primary)
- *   2. Google Imagen-3 / Gemini (secondary)
- *   3. Pollinations AI       (tertiary + final fallback)
+ *   1. Perchance AI             (primary → Pollinations AI)
+ *   2. Google Imagen / Gemini   (secondary → Pollinations AI)
+ *   3. Pollinations AI          (tertiary → Perchance AI)
  *
- * The chain is user-selectable (Settings → Creative Image Generator) and
- * degrades gracefully: whichever provider the user picks is tried first, then
- * the remaining providers follow in the order above. Perchance is always part
- * of the chain — never dropped on native.
+ * The default starts with Perchance. A deliberate provider choice in Settings
+ * can make Gemini or Pollinations the first attempt, but the provider-specific
+ * fallback graph remains fixed and every provider stays available. Perchance
+ * is never dropped on native.
  *
  * IMPORTANT (Android / Capacitor): the native APK ships without the Node
  * backend, and Capacitor's local server answers unknown routes such as
@@ -38,6 +38,30 @@ export interface ImageGenerationOptions {
   model?: string;
   seed?: number;
 }
+
+export type ImageProviderId = 'perchance' | 'gemini' | 'pollinations';
+
+/**
+ * Provider roles and their explicit first fallback. The second entry in each
+ * list is a final recovery path so a manually selected provider can still use
+ * the complete pipeline without creating a retry loop.
+ */
+export const IMAGE_PROVIDER_PRIORITY: readonly ImageProviderId[] = [
+  'perchance',
+  'gemini',
+  'pollinations'
+];
+
+export const IMAGE_PROVIDER_FALLBACKS: Record<ImageProviderId, readonly ImageProviderId[]> = {
+  perchance: ['pollinations', 'gemini'],
+  gemini: ['pollinations', 'perchance'],
+  pollinations: ['perchance', 'gemini']
+};
+
+export const getImageProviderOrder = (preferred: ImageProviderId): ImageProviderId[] => [
+  preferred,
+  ...IMAGE_PROVIDER_FALLBACKS[preferred]
+];
 
 const ASPECT_RATIOS = {
   square: { width: 1024, height: 1024 },
@@ -129,11 +153,11 @@ export const generateImagePerchance = async (
   height: number = 1024,
   seed: number = Math.floor(Math.random() * 10000)
 ): Promise<string> => {
-  // Perchance is the PRIMARY generator on every platform. It is attempted via:
-  //   1) the client-side iframe bridge (real Perchance), then
-  //   2) the hosted backend proxy (absolute URL on native).
-  // The WebView cannot reach a same-origin `/api` route, so native always uses
-  // the absolute backend URL — never a broken relative path.
+  // Perchance is the PRIMARY generator on every platform and is attempted via
+  // the real client-side iframe bridge. If the bridge is unavailable, this
+  // function throws so the explicit outer fallback goes to Pollinations AI.
+  // Keeping the hand-off here explicit prevents a Pollinations response from
+  // being misreported as a successful Perchance generation.
   try {
     if (typeof window !== 'undefined') {
       try {
@@ -144,21 +168,13 @@ export const generateImagePerchance = async (
         );
         if (clientUrl) return clientUrl;
       } catch (clientErr) {
-        console.warn('Perchance client-side iframe generation timed out or failed, transitioning to backend proxy...', clientErr);
+        console.warn('Perchance client-side iframe generation timed out or failed, handing off to Pollinations AI...', clientErr);
       }
     }
 
-    // Fallback to the backend proxy if the client-side iframe fails.
-    const response = await fetch(buildApiUrl('/api/images/generate'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, provider: 'perchance', width, height, seed })
-    });
-
-    if (!response.ok) throw new Error(`Perchance API failed: ${response.status}`);
-    const data = await response.json();
-    if (!data.url) throw new Error('No image URL returned from Perchance');
-    return data.url;
+    // Do not disguise a Pollinations response as Perchance. Let the outer
+    // provider graph perform the explicit Perchance → Pollinations fallback.
+    throw new Error('Perchance AI is unavailable; use the Pollinations AI fallback');
   } catch (error) {
     console.error('Perchance image generation failed:', error);
     throw error;
@@ -174,17 +190,31 @@ export const generateImagePollinations = async (
   // Direct, reliable public API fallback that bypasses backend proxy issues entirely
   const imageUrl = buildPollinationsUrl(prompt, width, height, seed);
 
-  // Verify the image loads by creating a temporary image object. If the probe
-  // cannot run (or stalls), still hand back the URL — the <img> tag itself will
-  // retry the fetch and Android is far more tolerant than the probe.
+  // Verify the image loads before reporting success. A failed or timed-out
+  // probe rejects so the configured next provider can take over.
   if (typeof Image === 'undefined') return imageUrl;
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const img = new Image();
-    const done = () => resolve(imageUrl);
-    img.onload = done;
-    img.onerror = done;
-    setTimeout(done, 25000);
+    let settled = false;
+    const timeoutId = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error('Pollinations AI image request timed out'));
+    }, 25000);
+
+    img.onload = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      resolve(imageUrl);
+    };
+    img.onerror = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      reject(new Error('Pollinations AI image request failed'));
+    };
     img.src = imageUrl;
   });
 };
@@ -199,8 +229,9 @@ export const generateImageWithFallback = async (
   const seed = options.seed ?? Math.floor(Math.random() * 10000);
 
   let styledPrompt = prompt;
-  const styleSuffix = ", 3D vector, 3D cute icon, 3D animation Disney character style, educational, high quality, vibrant colors";
-  if (styledPrompt && !styledPrompt.toLowerCase().includes("3d vector") && !styledPrompt.toLowerCase().includes("3d cute icon")) {
+  const styleSuffix = ", Disney 3D Animation Character and 3D Cute Icon, educational, high quality, vibrant colours";
+  const lowerPrompt = styledPrompt.toLowerCase();
+  if (styledPrompt && (!lowerPrompt.includes("disney 3d animation character") || !lowerPrompt.includes("3d cute icon"))) {
     styledPrompt += styleSuffix;
   }
 
@@ -211,52 +242,54 @@ export const generateImageWithFallback = async (
     ? window.localStorage.getItem('eduai_image_provider') || 'perchance'
     : 'perchance';
 
-  // Normalise the stored settings value onto the internal provider ids.
-  const normalise = (p: string): 'perchance' | 'gemini' | 'pollinations' =>
+  // Normalise the stored settings value onto the internal provider ids. The
+  // default remains Perchance, while a deliberate Settings selection can make
+  // Gemini or Pollinations the first attempt for that request.
+  const normalise = (p: string): ImageProviderId =>
     p === 'gemini-imagen' || p === 'gemini' ? 'gemini'
       : p === 'pollinations' ? 'pollinations'
         : 'perchance';
 
   const preferred = normalise(preferredProvider);
+  const order = getImageProviderOrder(preferred);
 
-  // Fixed priority: Perchance → Gemini → Pollinations. The user's chosen
-  // provider is promoted to the front, but every provider stays in the chain —
-  // including Perchance on native (it was wrongly dropped in an earlier build).
-  const defaultOrder: Array<'perchance' | 'gemini' | 'pollinations'> = ['perchance', 'gemini', 'pollinations'];
-  const order = [preferred, ...defaultOrder.filter((p) => p !== preferred)];
-
-  console.log(`[Image Gen] Preferred provider: ${preferred}${native ? ' (native app)' : ''} | chain: ${order.join(' → ')}`);
+  console.log(`[Image Gen] Provider priority: ${IMAGE_PROVIDER_PRIORITY.join(' → ')} | selected: ${preferred}${native ? ' (native app)' : ''} | fallback chain: ${order.join(' → ')}`);
 
   for (const prov of order) {
     if (prov === 'perchance') {
       try {
-        console.log('[Image Gen] Attempting Perchance (Primary)...');
+        const role = preferred === 'perchance' ? 'Primary' : 'Fallback';
+        console.log(`[Image Gen] Attempting Perchance AI (${role})...`);
         const imageUrl = await generateImagePerchance(styledPrompt, width, height, seed);
         return { url: imageUrl, provider: 'perchance', prompt: styledPrompt, width, height };
       } catch (error) {
-        console.warn('[Image Gen] Perchance failed, trying next fallback...', error);
+        console.warn('[Image Gen] Perchance AI failed; continuing to its configured fallback...', error);
       }
     } else if (prov === 'gemini') {
       try {
-        console.log('[Image Gen] Attempting Gemini Imagen (Secondary)...');
+        const role = preferred === 'gemini' ? 'Secondary' : 'Final Recovery';
+        console.log(`[Image Gen] Attempting Gemini/Imagen (Google) (${role})...`);
         const imageUrl = await generateImageGemini(styledPrompt, width, height);
         return { url: imageUrl, provider: 'gemini', prompt: styledPrompt, width, height };
       } catch (error) {
-        console.warn('[Image Gen] Gemini failed, trying next fallback...', error);
+        console.warn('[Image Gen] Gemini/Imagen failed; continuing to its configured fallback...', error);
       }
     } else if (prov === 'pollinations') {
       try {
-        console.log('[Image Gen] Attempting Pollinations (Tertiary)...');
+        const role = preferred === 'pollinations' ? 'Tertiary' : 'Fallback';
+        console.log(`[Image Gen] Attempting Pollinations AI (${role})...`);
         const imageUrl = await generateImagePollinations(styledPrompt, width, height, seed);
         return { url: imageUrl, provider: 'pollinations', prompt: styledPrompt, width, height };
       } catch (error) {
-        console.warn('[Image Gen] Pollinations failed.', error);
+        console.warn('[Image Gen] Pollinations AI failed; continuing to its configured fallback...', error);
       }
     }
   }
 
-  // Absolute fallback: Direct Pollinations URL if all promises reject
-  console.log('[Image Gen] All providers failed. Defaulting to Pollinations direct URL...');
+  // Absolute network-safe fallback. At this point both the configured primary
+  // provider and its fallback path have failed, so return a direct Pollinations
+  // URL for the <img> element to retry rather than leaving a blank asset.
+  console.log('[Image Gen] All provider attempts failed. Returning a direct Pollinations AI URL...');
 
   return {
     url: buildPollinationsUrl(styledPrompt, width, height, seed),

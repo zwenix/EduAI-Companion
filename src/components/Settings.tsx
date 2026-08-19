@@ -437,7 +437,7 @@ export default function Settings({
                                      <span className="text-white font-bold text-xs">Perchance AI</span>
                                      <span className="px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-black uppercase">Primary</span>
                                   </div>
-                                  <p className="text-[10px] text-slate-400 mt-1">Perchance AI Text-to-Image (No quota limits)</p>
+                                  <p className="text-[10px] text-slate-400 mt-1">Primary generator · falls back to Pollinations AI</p>
                                </div>
                             </div>
                             <div className="p-4 rounded-2xl border border-white/10 bg-navy-dark/40 flex items-start gap-3">
@@ -447,7 +447,7 @@ export default function Settings({
                                      <span className="text-white font-bold text-xs">Google Imagen 3</span>
                                      <span className="px-1.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 text-[9px] font-black uppercase">Secondary</span>
                                   </div>
-                                  <p className="text-[10px] text-slate-400 mt-1">High-fidelity educational renders</p>
+                                  <p className="text-[10px] text-slate-400 mt-1">Secondary generator · falls back to Pollinations AI</p>
                                </div>
                             </div>
                             <div className="p-4 rounded-2xl border border-white/10 bg-navy-dark/40 flex items-start gap-3">
@@ -457,7 +457,7 @@ export default function Settings({
                                      <span className="text-white font-bold text-xs">Pollinations AI</span>
                                      <span className="px-1.5 py-0.5 rounded-full bg-pink-500/20 text-pink-300 text-[9px] font-black uppercase">Fallback</span>
                                   </div>
-                                  <p className="text-[10px] text-slate-400 mt-1">Instant reliable fallback generation</p>
+                                  <p className="text-[10px] text-slate-400 mt-1">Tertiary generator · falls back to Perchance AI</p>
                                </div>
                             </div>
                          </div>
