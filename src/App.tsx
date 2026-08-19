@@ -996,7 +996,7 @@ export default function App() {
         case 'system-support':
           return [
             { id: 'settings', label: 'Settings', icon: IconSettings },
-            { id: 'helpdesk', label: 'Help', icon: IconHelpSupport },
+            { id: 'helpdesk', label: 'How-To', icon: IconHelpSupport },
             { id: 'faq', label: 'Support', icon: IconHelpSupport }
           ];
         default:
@@ -1030,7 +1030,7 @@ export default function App() {
         case 'system-support':
           return [
             { id: 'settings', label: 'Settings', icon: IconSettings },
-            { id: 'helpdesk', label: 'Help', icon: IconHelpSupport },
+            { id: 'helpdesk', label: 'How-To', icon: IconHelpSupport },
             { id: 'faq', label: 'Support', icon: IconHelpSupport }
           ];
         default:
@@ -1066,7 +1066,7 @@ export default function App() {
         case 'system-support':
           return [
             { id: 'settings', label: 'Settings', icon: IconSettings },
-            { id: 'helpdesk', label: 'Help', icon: IconHelpSupport },
+            { id: 'helpdesk', label: 'How-To', icon: IconHelpSupport },
             { id: 'faq', label: 'Support', icon: IconHelpSupport }
           ];
         default:
@@ -1119,7 +1119,7 @@ export default function App() {
         case 'system-support':
           return [
             { id: 'settings', label: 'Settings', icon: IconSettings },
-            { id: 'helpdesk', label: 'Help', icon: IconHelpSupport },
+            { id: 'helpdesk', label: 'How-To', icon: IconHelpSupport },
             { id: 'faq', label: 'Support', icon: IconHelpSupport }
           ];
         default:
@@ -1225,9 +1225,9 @@ export default function App() {
         case 'settings':
           return 'Settings';
         case 'helpdesk':
-          return 'Helpdesk';
+          return 'How-To Walkthroughs';
         case 'faq':
-          return 'Support FAQ';
+          return 'Support & FAQ';
         case 'video':
           return 'Video Lab';
         case 'student-practice':
@@ -2737,7 +2737,7 @@ export default function App() {
           <AnimatePresence mode="wait">
             {(() => {
               // Full-bleed tabs fill the content canvas and own internal scroll (no outer page scroll / max-width box).
-              const FULL_BLEED_TABS = ['ai-tutor', 'ocr', 'messenger', 'settings', 'helpdesk', 'class-management'];
+              const FULL_BLEED_TABS = ['ai-tutor', 'ocr', 'messenger', 'settings', 'helpdesk', 'faq', 'class-management'];
               const isFullBleed = FULL_BLEED_TABS.includes(activeTab) && !categoryOverviewActive;
               const currentSubTabs = getSubTabsForCategory(activeCategory, userRole);
               const showHubBack =
@@ -2990,31 +2990,19 @@ export default function App() {
                           </button>
                         </div>
                       </div>
-                    ) : activeTab === 'helpdesk' ? (
-                      <Helpdesk isDarkMode={isDarkMode} />
-                    ) : activeTab === 'faq' ? (
-                      <div className={`p-8 rounded-[40px] ${isDarkMode ? 'bg-slate-900/60 border border-white/5' : 'bg-white border border-slate-200 shadow-xl'}`}>
-                        <h2 className="text-3xl font-display font-black mb-2 flex items-center gap-3">
-                          <span>🤝 Support & Knowledge Base</span>
-                        </h2>
-                        <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'} mb-8 font-medium`}>
-                          Find answers to common questions about South African CAPS curriculum coverage and EduAI Companion platform features.
-                        </p>
-                        
-                        <div className="space-y-4">
-                          {[
-                            { q: "📚 Is the curriculum aligned with South African CAPS standards?", a: "Yes, 100%! All content created, lessons compiled, and rubrics generated map directly with the Department of Basic Education (DBE) South African National Curriculum Assessment Policy Statements (CAPS) requirements across Grades 1 to 12." },
-                            { q: "🤖 Which AI model powers the tutoring system?", a: "EduAI is powered by advanced multi-model intelligence, featuring state-of-the-art models like Google Gemini, NVIDIA Llama 3.3 Nemotron Super 49B, and NVIDIA Nemotron-3 Ultra 550B. These models offer ultra-fast localized explanations, using rands (R), local currencies, and South African historical/geographic contexts." },
-                            { q: "📶 Can I use this application offline?", a: "Absolutely! Simply click on the 'INSTALL OFFLINE APP' button in the sidebar to download our Progressive Web App (PWA). Your downloaded study guides, textbook revisions, and completed portfolio tasks are cached on your local device for instant access without a stable internet connection." },
-                            { q: "🛡️ How is my data protected?", a: "We adhere to strict POPIA (Protection of Personal Information Act) regulation compliance. Student assessments or raw photos are processed securely and never shared with third-party advertising engines." }
-                          ].map((item, idx) => (
-                            <div key={idx} className={`p-6 rounded-[24px] ${isDarkMode ? 'bg-white/5 hover:bg-white/[0.08]' : 'bg-slate-50 hover:bg-slate-100'} transition-all`}>
-                              <h4 className={`text-base font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'} mb-2`}>{item.q}</h4>
-                              <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'} leading-relaxed font-semibold`}>{item.a}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                    ) : activeTab === 'helpdesk' || activeTab === 'faq' ? (
+                      <Helpdesk
+                        isDarkMode={isDarkMode}
+                        initialPane={activeTab === 'faq' ? 'faqs' : 'howtos'}
+                        onNavigate={(tabId) => {
+                          if (['teaching', 'visual', 'video', 'admin', 'grade1'].includes(tabId)) {
+                            setActiveCreatorTab(tabId);
+                            setActiveTab('teaching');
+                          } else {
+                            changeTab(tabId);
+                          }
+                        }}
+                      />
                     ) : ( 
                       <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200 shadow-sm'} p-12 rounded-[48px] text-center min-h-[500px] flex flex-col items-center justify-center`}>
                         <Logo className="w-40 h-40 mb-8" />

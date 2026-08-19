@@ -2116,9 +2116,9 @@ export default function CategoryOverview({
       case 'settings':
         return 'Configure default AI providers, secure API quotas, application privacy toggles, accessibility controls, and custom model nodes.';
       case 'helpdesk':
-        return 'Submit priority educator support queries and explore comprehensive platform usage guidelines.';
+        return 'Watch short how-to clips for Content Studio, Intervention, the CAPS calendar, Messenger, and every other classroom tool.';
       case 'faq':
-        return 'Read common questions regarding CAPS curriculum alignment, offline availability, security compliance, and platform specifications.';
+        return 'Search answers about CAPS alignment, SIAS levels, calendar vs diary, Messenger, offline use, and POPIA.';
       case 'student-practice':
         return 'Engage in custom-designed quizzes, educational games, and learning exercises synced to active curriculum files.';
       case 'student-notes':
