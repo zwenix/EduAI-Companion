@@ -260,6 +260,12 @@ PRINT OPTIMIZATION:
 3. ACCESSIBLE ILLUSTRATION PLACEHOLDERS & PRINTABLE DESCRIPTIONS:
    • Every placeholder tag [Illustration: <vivid, detailed visual prompt in South African context>] MUST have a self-contained, descriptive prompt.
    • The placeholder prompt text serves as both AI generation prompt and accompanying printable visual description for print-only or offline usage.
+   • Any visible caption / badge / label under a generated image or illustration placeholder MUST use the class "eduai-illustration-label" (7px, dark navy #0a0f21 at 30% opacity). NEVER use green, lime, or emerald text for these labels.
+
+4. TEMPLATE COMPLIANCE (EXCLUDING APP HEADER):
+   • Follow the provided HTML body template exactly for the document article.
+   • Do NOT generate an application chrome header, product title bar, sidebar, or "EduAI Companion" navigation header — the host application already provides that.
+   • Keep only the document-specific subject banner (topic title, CAPS badges, grade/term metadata) from the template. Never invent a second app header.
 
 Every output must be:
 ✦ Teacher-proud (professional enough to display in classroom)

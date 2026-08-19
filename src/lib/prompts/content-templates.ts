@@ -244,6 +244,8 @@ BUILT-IN DIFFERENTIATION STRATEGIES SECTION (MANDATORY):
 
 ILLUSTRATION PLACEHOLDERS & PRINTABLE DESCRIPTIONS:
 • Include at least 2-3 inline illustration placeholders using the exact format: [Illustration: <vivid visual prompt in South African context>]. Ensure the prompt inside is detailed as it acts as both the AI image generator prompt and a printable text description for offline print-only usage.
+• Any caption or label rendered under a generated image / placeholder MUST use class "eduai-illustration-label" (7px, dark navy #0a0f21 at 30% opacity). Never use green text for these labels.
+• Follow this HTML body template exactly. Do NOT generate an application chrome / product header — the host app already provides the header. Start from the document article body (keep only the compact subject banner).
 
 FOOTER:
 • Subtle design with branding
