@@ -121,26 +121,26 @@ function ShowcaseCard({
       onClick={onClick}
       className={`rounded-[32px] border-2 bg-slate-900/90 p-6 text-center flex flex-col items-center justify-center gap-4 group hover:brightness-110 transition-all duration-300 cursor-pointer relative overflow-hidden min-h-[200px] select-none ${borderColorClass} ${shadowColorClass} ${hoverBorderColorClass} ${hoverShadowColorClass}`}
     >
-      <AnimatePresence mode="wait" initial={false}>
+      {/* Showcase plate — steady crossfade, no blank gap (fixes perceived flashing) */}
+      <AnimatePresence initial={false}>
         <motion.div
           key={idx}
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.6, ease: 'easeInOut' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.85, ease: 'easeInOut' }}
           className="absolute inset-0 z-0 overflow-hidden rounded-[32px]"
         >
-          <motion.img
-            initial={{ scale: 1.15 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 6, ease: 'easeOut' }}
+          <img
             src={current.image}
             alt={current.title}
-            className="w-full h-full object-cover opacity-[0.38] group-hover:opacity-[0.45] transition-opacity duration-500"
+            loading="eager"
+            decoding="sync"
+            className="w-full h-full object-cover opacity-[0.46] group-hover:opacity-[0.56] filter brightness-[0.98] transition-opacity duration-700"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-slate-950/45 pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/40 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-slate-950/40 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/35 to-transparent pointer-events-none" />
         </motion.div>
       </AnimatePresence>
       <div className="relative z-10 w-full flex flex-col items-center gap-3">
@@ -315,26 +315,25 @@ const studentEngagementData = [
 function TeachingOuterSlideshow() {
   const [idx, setIdx] = React.useState(0);
   React.useEffect(() => {
-    const t = setInterval(() => setIdx((p) => (p + 1) % TEACHING_OUTER_SLIDES.length), 4000);
+    const t = setInterval(() => setIdx((p) => (p + 1) % TEACHING_OUTER_SLIDES.length), 4500);
     return () => clearInterval(t);
   }, []);
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence initial={false}>
       <motion.div
         key={idx}
-        initial={{ opacity: 0, scale: 1.03 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.98 }}
-        transition={{ duration: 0.7, ease: 'easeInOut' }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.9, ease: 'easeInOut' }}
         className="absolute inset-0 z-0 overflow-hidden rounded-[28px]"
       >
-        <motion.img
-          initial={{ scale: 1.08 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 7, ease: 'easeOut' }}
+        <img
           src={TEACHING_OUTER_SLIDES[idx]}
           alt=""
-          className="w-full h-full object-cover opacity-40"
+          loading="eager"
+          decoding="sync"
+          className="w-full h-full object-cover opacity-[0.42] group-hover:opacity-[0.48] transition-opacity duration-700"
           referrerPolicy="no-referrer"
         />
       </motion.div>

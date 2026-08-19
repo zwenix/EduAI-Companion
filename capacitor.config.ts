@@ -16,11 +16,16 @@ const config: CapacitorConfig = {
   },
   plugins: {
     GoogleAuth: {
-      // The Android plugin uses this Web OAuth client ID to request the ID
-      // token that Firebase Authentication exchanges for a user session.
+      // The Web OAuth client ID is used on both web and Android to request the
+      // Google ID token that Firebase exchanges for a session. It must live in
+      // the same Google Cloud project as the Android OAuth client (package
+      // com.eduaicompanion.app + SHA-1 73:BB:…:FD). See GOOGLE_SIGNIN_ANDROID_SETUP.md
+      // and src/config/googleAuth.ts for registration steps.
       clientId: FIREBASE_WEB_CLIENT_ID,
       androidClientId: FIREBASE_WEB_CLIENT_ID,
+      serverClientId: FIREBASE_WEB_CLIENT_ID,
       scopes: GOOGLE_AUTH_SCOPES,
+      forceCodeForRefreshToken: false,
     },
   },
 };

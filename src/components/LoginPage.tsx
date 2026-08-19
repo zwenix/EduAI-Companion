@@ -107,31 +107,54 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
     setError('');
     
     try {
-      if (Capacitor.isNativePlatform()) {
+      const isNative = Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios';
+      if (isNative) {
         // Native app (Android/iOS): popups don't exist in a WebView, and Google
         // blocks embedded-webview OAuth. Use the native Google Sign-In SDK and
         // exchange the returned idToken for a Firebase credential.
+        //
         // Capacitor does not expose capacitor.config.ts through a public
         // getConfig() runtime API. Pass the Web client ID directly so native
         // initialization cannot be blocked by an empty runtime config lookup.
-        await GoogleAuth.initialize({
-          clientId: FIREBASE_WEB_CLIENT_ID,
-          scopes: GOOGLE_AUTH_SCOPES,
-        });
-        const googleUser: any = await GoogleAuth.signIn();
-        if (!googleUser.authentication?.idToken && !googleUser.idToken) {
-          throw new Error('Google Sign-In returned no ID token.');
+        // serverClientId / androidClientId are also supplied so the Android
+        // plugin resolves the same Web client even before strings.xml is patched.
+        try {
+          await GoogleAuth.initialize({
+            clientId: FIREBASE_WEB_CLIENT_ID,
+            scopes: GOOGLE_AUTH_SCOPES,
+            grantOfflineAccess: false as any,
+          });
+        } catch (initErr: any) {
+          // initialize is idempotent; a second call after config sync can throw
+          // "already initialized" on some plugin versions — safe to ignore.
+          const msg = String(initErr?.message || initErr);
+          if (!/already/i.test(msg)) console.warn('GoogleAuth.initialize note:', initErr);
         }
-        const idToken = googleUser.authentication?.idToken || googleUser.idToken;
-        const credential = GoogleAuthProvider.credential(idToken);
+        const googleUser: any = await GoogleAuth.signIn();
+        // The plugin returns idToken in multiple shapes across versions:
+        //   - googleUser.authentication.idToken (preferred)
+        //   - googleUser.idToken (flat)
+        //   - googleUser.authentication.id_token
+        const idToken: string | undefined =
+          googleUser?.authentication?.idToken ||
+          googleUser?.idToken ||
+          googleUser?.authentication?.id_token;
+        if (!idToken) {
+          console.error('GoogleAuth signIn payload:', googleUser);
+          throw new Error('Google Sign-In returned no ID token. The Android OAuth client may be misconfigured or the SHA-1 is not registered.');
+        }
+        // Firebase accepts (idToken) alone; accessToken is optional but forwarded when present.
+        const accessToken: string | undefined = googleUser?.authentication?.accessToken || undefined;
+        const credential = GoogleAuthProvider.credential(idToken, accessToken || null);
         const result = await signInWithCredential(auth, credential);
         if (result.user) {
-          localStorage.setItem('eduai_user_name', result.user.displayName || '');
-          localStorage.setItem('eduai_user_photo', result.user.photoURL || '');
-          localStorage.setItem('eduai_user_email', result.user.email || '');
+          localStorage.setItem('eduai_user_name', result.user.displayName || googleUser?.name || '');
+          localStorage.setItem('eduai_user_photo', result.user.photoURL || googleUser?.imageUrl || '');
+          localStorage.setItem('eduai_user_email', result.user.email || googleUser?.email || '');
         }
       } else {
         const provider = new GoogleAuthProvider();
+        GOOGLE_AUTH_SCOPES.forEach((s) => provider.addScope(s));
         const result = await signInWithPopup(auth, provider);
 
         if (result.user) {
@@ -156,15 +179,19 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
         setError("The Google Sign-In popup was closed or blocked by the preview iframe. Tip: Click '⚡ QUICK DEMO ACCESS' below to enter instantly without logging in!");
       } else if (errCode === 'auth/popup-blocked' || errMsg.includes('popup-blocked')) {
         setError("Login popup blocked by your browser/iframe. Tip: Click '⚡ QUICK DEMO ACCESS' below to enter instantly!");
-      } else if (Capacitor.isNativePlatform() && (errCode === '10' || /DEVELOPER_ERROR|ApiException:?\s*10|12500|12501/i.test(combined))) {
+      } else if ((Capacitor.isNativePlatform() || /android|ios/i.test(Capacitor.getPlatform())) && (errCode === '10' || /DEVELOPER_ERROR|ApiException:?\s*10|12500|12501/i.test(combined))) {
         // Native Google Sign-In error code 10 (DEVELOPER_ERROR): the OAuth
         // client is misconfigured. Almost always the signing SHA-1 fingerprint
-        // below is not registered against the Android OAuth client.
-        setError(`Google Sign-In isn't configured for this Android build. In Google Cloud Console → Credentials, create an "Android" OAuth client with package name ${ANDROID_APP_PACKAGE_NAME} and SHA-1 ${ANDROID_DEBUG_SHA1}.`);
+        // below is not registered against the Android OAuth client, or the
+        // OAuth client lives in a different Google Cloud project than the Web
+        // client ID.
+        setError(
+          `Google Sign-In isn't configured for this Android build (code 10). In Google Cloud Console → Credentials (project gen-lang-client-0448588221), create an "Android" OAuth client with package name ${ANDROID_APP_PACKAGE_NAME} and SHA-1 ${ANDROID_DEBUG_SHA1}. Also confirm the OAuth consent screen has a support email and is published, and that you installed the APK built with signing/android-debug.keystore. Local debug builds use a different SHA-1 — register yours or install the CI release APK.`
+        );
       } else if (/DEVELOPER_ERROR|12500|12501|10[^0-9]|invalid_client|api.*not.*register|not.*configured.*google|shA-1|SHA1|signing certificate|requestIdToken/i.test(combined)) {
         // Native Google Sign-In misconfiguration (most commonly an unregistered
         // SHA-1 fingerprint, wrong client ID type, or missing OAuth client).
-        setError(`Google Sign-In is not fully configured for this app. ${errCode ? '(' + errCode + ') ' : ''}${errMsg}`);
+        setError(`Google Sign-In is not fully configured for this app. ${errCode ? '(' + errCode + ') ' : ''}${errMsg} — Verify the Android OAuth client (package ${ANDROID_APP_PACKAGE_NAME}, SHA-1 ${ANDROID_DEBUG_SHA1}) exists in the same project as web client ${FIREBASE_WEB_CLIENT_ID}.`);
       } else {
         setError(`${errMsg}${errCode ? ' [' + errCode + ']' : ''}`);
       }

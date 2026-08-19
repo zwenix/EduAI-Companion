@@ -122,24 +122,23 @@ export default function ContentSlideshow({ slides = TOOLBOX_SLIDES, tall = false
     <div className={`w-full h-full rounded-[32px] overflow-hidden relative shadow-2xl border border-cyan-500/30 bg-slate-950 flex flex-col justify-between group select-none ${
       tall ? 'min-h-[380px] max-h-[460px]' : 'min-h-[300px] max-h-[380px]'
     }`}>
-      {/* Slide Image & Backdrop */}
-      <AnimatePresence mode="wait" initial={false}>
+      {/* Slide Image & Backdrop — steady crossfade, no blank gap (fixes flash between slides) */}
+      <AnimatePresence initial={false}>
         <motion.div
           key={index}
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.6, ease: 'easeInOut' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.85, ease: 'easeInOut' }}
           className="absolute inset-0 z-0 overflow-hidden"
         >
           {currentSlide.image ? (
-            <motion.img
-              initial={{ scale: 1.15 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 6, ease: 'easeOut' }}
+            <img
               src={currentSlide.image}
               alt={currentSlide.title}
-              className="w-full h-full object-cover opacity-50 filter brightness-90"
+              loading="eager"
+              decoding="sync"
+              className="w-full h-full object-cover opacity-[0.52] filter brightness-[0.96] group-hover:opacity-[0.58] transition-opacity duration-700"
               referrerPolicy="no-referrer"
             />
           ) : (
@@ -223,7 +222,7 @@ export default function ContentSlideshow({ slides = TOOLBOX_SLIDES, tall = false
                   className={`h-1.5 rounded-full transition-all duration-300 ${
                     i === index
                       ? 'w-7 bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]'
-                      : 'w-2 bg-transparent hover:bg-transparent'
+                      : 'w-2 bg-white/25 hover:bg-white/40'
                   }`}
                 />
               </button>

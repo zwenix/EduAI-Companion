@@ -14,10 +14,16 @@ export const GOOGLE_AUTH_SCOPES = ['profile', 'email'];
 //   - SHA-1 certificate fingerprint (debug signing keystore at
 //     signing/android-debug.keystore, password "android")
 //
-// If the APK is signed with a different keystore (e.g. a release keystore),
-// register THAT keystore's SHA-1 instead. Google Sign-In error code 10
-// ("Something went wrong" / DEVELOPER_ERROR) means this fingerprint is
-// missing or out of date.
+// If the APK is signed with a different keystore (e.g. a release keystore
+// or Google Play App Signing), register THAT keystore's SHA-1 instead.
+// Google Sign-In error code 10 ("Something went wrong" / DEVELOPER_ERROR)
+// means this fingerprint is missing, the OAuth client is in the wrong
+// project, or the consent screen is not published.
+//
+// The workflow .github/workflows/build-android2.yml copies the committed
+// keystore and patches android/app/src/main/res/values/strings.xml with
+// server_client_id so the native plugin always resolves the Web client ID
+// even without a google-services.json.
 export const ANDROID_APP_PACKAGE_NAME = 'com.eduaicompanion.app';
 
 export const ANDROID_DEBUG_SHA1 =
@@ -25,3 +31,6 @@ export const ANDROID_DEBUG_SHA1 =
 
 export const ANDROID_DEBUG_SHA256 =
   'F6:92:B7:34:F6:91:BF:55:76:A5:07:D0:78:C6:ED:8F:9F:BA:72:A1:20:A3:2A:39:BA:FD:EF:B4:AF:D7:B9:5A';
+
+// Ring-friendly alias kept for older docs/scripts.
+export const FIREBASE_ANDROID_PACKAGE = ANDROID_APP_PACKAGE_NAME;

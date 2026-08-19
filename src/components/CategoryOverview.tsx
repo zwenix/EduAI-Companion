@@ -135,28 +135,29 @@ function InteractiveShowcaseCard({
       onClick={onClick}
       className={`rounded-[32px] border-2 bg-slate-900/90 p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:brightness-110 transition-all duration-300 cursor-pointer relative overflow-hidden h-full min-h-[340px] select-none ${borderColorClass} ${shadowColorClass} ${hoverBorderColorClass} ${hoverShadowColorClass}`}
     >
-      {/* Background Slideshow using Framer Motion (matching the main ContentSlideshow) */}
-      <AnimatePresence mode="wait" initial={false}>
+      {/* Background Slideshow — steady crossfade, never blank/flashing.
+          Images overlap during the fade (no mode="wait" gap) and drift very
+          slowly so the thematic plate stays visible at all times. */}
+      <AnimatePresence initial={false}>
         <motion.div
           key={slideIndex}
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.6, ease: 'easeInOut' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.9, ease: 'easeInOut' }}
           className="absolute inset-0 z-0 overflow-hidden"
         >
-          <motion.img
-            initial={{ scale: 1.15 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 6, ease: 'easeOut' }}
+          <img
             src={currentSlide.image}
             alt={currentSlide.title}
-            className="w-full h-full object-cover opacity-[0.40] filter brightness-95 group-hover:scale-105 transition-transform duration-[6000ms]"
+            loading="eager"
+            decoding="sync"
+            className="w-full h-full object-cover opacity-[0.46] group-hover:opacity-[0.56] filter brightness-[0.98] transition-opacity duration-700"
             referrerPolicy="no-referrer"
           />
-          {/* Gradient Overlays for optimal readability matching ContentSlideshow */}
-          <div className="absolute inset-0 bg-slate-900/80 pointer-events-none z-0" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/50 to-transparent pointer-events-none z-0" />
+          {/* Readability veil — keeps foreground text crisp without hiding the plate */}
+          <div className="absolute inset-0 bg-slate-900/55 pointer-events-none z-0" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/35 to-transparent pointer-events-none z-0" />
         </motion.div>
       </AnimatePresence>
 
