@@ -30,7 +30,8 @@ import {
   FolderKanban,
   BarChart3,
   PieChart,
-  Medal
+  Medal,
+  Users
 } from 'lucide-react';
 import ContentSlideshow, { INTELLIGENT_AI_SLIDES } from './ContentSlideshow';
 import WorksheetQRScannerModal from './WorksheetQRScannerModal';
@@ -64,6 +65,22 @@ import bgAiTutor              from '../assets/images/ai_tutor_bg_1786968958.jpg'
 import bgGamesHub             from '../assets/images/games_hub_bg_1786968958.jpg';
 import bgMessageChat          from '../assets/images/message_chat_bg_1786968958.jpg';
 import bgMessageWorkspace     from '../assets/images/message_workspace_bg_1786968958.jpg';
+import bgClassesHubLive          from '../assets/images/classes_hub_live_1787490001.jpg';
+import bgClassesRegisterLive     from '../assets/images/classes_register_live_1787490001.jpg';
+import bgClassesSeatingLive      from '../assets/images/classes_seating_live_1787490001.jpg';
+import bgClassesAttendanceLive   from '../assets/images/classes_attendance_live_1787490001.jpg';
+import bgInterventionSiasLive    from '../assets/images/intervention_sias_live_1787490001.jpg';
+import bgInterventionParentLive  from '../assets/images/intervention_parent_live_1787490001.jpg';
+import bgPortfolioLivingLive     from '../assets/images/portfolio_living_live_1787490001.jpg';
+import bgPortfolioFeedbackLive   from '../assets/images/portfolio_feedback_live_1787490001.jpg';
+
+function prewarmImages(urls: string[]) {
+  if (typeof window === 'undefined') return;
+  urls.forEach((src) => {
+    const img = new Image();
+    img.src = src;
+  });
+}
 
 interface SubTabItem {
   id: string;
@@ -182,45 +199,88 @@ const CLASSES_LEARNERS_HERO_SLIDES = [
     tag: 'CLASS REGISTERS',
     badgeColor: 'from-pink-500 to-rose-600',
     description: 'Manage digital learner registers, parent records, class lists and visual seating profiles for every grade you teach — all POPIA-safe.',
-    image: bgClassesRegister,
+    image: bgClassesHubLive,
+  },
+  {
+    title: 'Live Class Register',
+    tag: 'ATTENDANCE IN MOTION',
+    badgeColor: 'from-fuchsia-500 to-pink-600',
+    description: 'Mark the roll as hands go up — holographic class lists and parent contact tiles stay with you as you walk the room.',
+    image: bgClassesRegisterLive,
+  },
+  {
+    title: 'Seating & Attendance',
+    tag: 'VISUAL CLASS CONTROL',
+    badgeColor: 'from-violet-500 to-indigo-600',
+    description: 'Arrange seating profiles and take attendance with a living classroom grid that matches how your learners actually sit.',
+    image: bgClassesSeatingLive,
   },
   {
     title: 'Learner Intervention Hub',
     tag: 'EARLY SUPPORT',
     badgeColor: 'from-cyan-500 to-blue-600',
     description: 'Spot struggling learners early with SIAS-aligned risk flags and design personalised support plans together with parents and the SBST.',
-    image: bgInterventionFlags,
+    image: bgInterventionSiasLive,
   },
   {
     title: 'Living Learner Portfolios',
     tag: 'CONTINUOUS ASSESSMENT',
     badgeColor: 'from-emerald-500 to-teal-600',
     description: 'Browse continuous homework, custom marks, achievements and personalised teacher feedback in one living portfolio per learner.',
-    image: bgLearnerPortfolio,
+    image: bgPortfolioLivingLive,
   },
   {
     title: 'Feedback & Parent Notes',
     tag: 'POPIA SAFE',
     badgeColor: 'from-amber-500 to-orange-600',
     description: 'Send warm, constructive feedback and parent communication notes that travel straight back to every learner and family.',
-    image: bgPortfolioFeedback,
+    image: bgPortfolioFeedbackLive,
   },
 ];
 
 const CLASS_MANAGER_CARD_SLIDES = [
-  { image: bgClassesRegister, title: 'Learner Registers', description: 'Digital class lists, learner details and parent contact records.' },
-  { image: bgClassesSeating, title: 'Seating Profiles', description: 'Visual seating plans and attendance grids for every classroom.' },
+  { image: bgClassesRegisterLive, title: 'Learner Registers', description: 'Digital class lists, learner details and parent contact records.' },
+  { image: bgClassesHubLive, title: 'Classroom Hub', description: 'One POPIA-safe view of every grade you teach.' },
+  { image: bgClassesRegister, title: 'Parent Records', description: 'Keep caregiver contacts ready for every learner.' },
+];
+
+const ATTENDANCE_CARD_SLIDES = [
+  { image: bgClassesSeatingLive, title: 'Seating Profiles', description: 'Visual seating plans that match how the class actually sits.' },
+  { image: bgClassesAttendanceLive, title: 'Attendance Walk', description: 'Mark the roll as you move between desks.' },
+  { image: bgClassesSeating, title: 'Attendance Grids', description: 'Living attendance grids for every classroom.' },
 ];
 
 const INTERVENTION_CARD_SLIDES = [
-  { image: bgInterventionFlags, title: 'Early-Warning Flags', description: 'Spot struggling learners and trigger SIAS-aligned classroom support.' },
-  { image: bgInterventionSupport, title: 'Support Plans', description: 'Personalised intervention plans agreed with parents and caregivers.' },
+  { image: bgInterventionSiasLive, title: 'Early-Warning Flags', description: 'Spot struggling learners and trigger SIAS-aligned classroom support.' },
+  { image: bgInterventionParentLive, title: 'Parent Support Plans', description: 'Personalised intervention plans agreed with parents and caregivers.' },
+  { image: bgInterventionFlags, title: 'SIAS Risk Review', description: 'One-on-one support reviews with the SBST in mind.' },
+  { image: bgInterventionSupport, title: 'Caregiver Meetings', description: 'Warm, constructive family conversations about next steps.' },
 ];
 
 const PORTFOLIO_CARD_SLIDES = [
-  { image: bgLearnerPortfolio, title: 'Living Portfolios', description: 'Continuous work, marks and achievements collected in one place.' },
-  { image: bgPortfolioFeedback, title: 'Teacher Feedback', description: 'Personalised feedback notes that travel back to every learner.' },
+  { image: bgPortfolioLivingLive, title: 'Living Portfolios', description: 'Continuous work, marks and achievements collected in one place.' },
+  { image: bgPortfolioFeedbackLive, title: 'Teacher Feedback', description: 'Personalised feedback notes that travel back to every learner.' },
+  { image: bgLearnerPortfolio, title: 'Showcase Work', description: 'A living book of homework, stars and term growth.' },
+  { image: bgPortfolioFeedback, title: 'Celebrating Progress', description: 'Share marked work and next steps with every family.' },
 ];
+
+prewarmImages([
+  bgClassesHubLive,
+  bgClassesRegisterLive,
+  bgClassesSeatingLive,
+  bgClassesAttendanceLive,
+  bgInterventionSiasLive,
+  bgInterventionParentLive,
+  bgPortfolioLivingLive,
+  bgPortfolioFeedbackLive,
+  bgClassesRegister,
+  bgClassesSeating,
+  bgInterventionFlags,
+  bgInterventionSupport,
+  bgLearnerPortfolio,
+  bgPortfolioFeedback,
+  bgLandingClasses,
+]);
 
 /* ---------------------------------------------------------------------------
    REPORTS & PORTFOLIOS HUB — hero slideshow + per-module showcase slides
@@ -1360,11 +1420,11 @@ export default function CategoryOverview({
         {/* Deep Cosmic Background & Subtle Stars */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
         
-        {/* Classes & Learners Background Overlay */}
+        {/* Classes & Learners Background Overlay — slow drift, no header baked into art */}
         <div 
-          className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-overlay"
+          className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-overlay landing-bg-drift"
           style={{
-            backgroundImage: `url(${bgLandingClasses})`,
+            backgroundImage: `url(${bgClassesHubLive})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat'
@@ -1389,7 +1449,7 @@ export default function CategoryOverview({
             Learners
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
-            Classrooms Manager • Learner Intervention Hub • Living Learner Profiles & Portfolios
+            Classrooms Manager • Attendance & Parent Records • Learner Intervention Hub • Living Portfolios
           </p>
         </div>
 
@@ -1409,7 +1469,11 @@ export default function CategoryOverview({
             onClick={() => onSelect('class-management')}
             className="lg:col-span-5 flex flex-col justify-between p-6 rounded-[32px] bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-emerald-950/80 border-2 border-emerald-500/40 hover:border-emerald-300 shadow-[0_0_30px_rgba(16,185,129,0.25)] hover:shadow-[0_0_50px_rgba(16,185,129,0.5)] hover:brightness-110 relative overflow-hidden group transition-all duration-300 cursor-pointer"
           >
-            <div className="space-y-4">
+            <div className="absolute inset-0 z-0 opacity-35 pointer-events-none">
+              <img src={bgClassesRegisterLive} alt="" className="w-full h-full object-cover landing-bg-drift" referrerPolicy="no-referrer" />
+              <div className="absolute inset-0 bg-slate-950/70" />
+            </div>
+            <div className="space-y-4 relative z-10">
               <div className="flex items-center justify-between">
                 <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-[10px] font-black uppercase tracking-widest text-emerald-300 flex items-center gap-1.5">
                   <Zap size={12} className="text-amber-300" />
@@ -1445,7 +1509,7 @@ export default function CategoryOverview({
 
             <button
               onClick={(e) => { e.stopPropagation(); onSelect('class-management'); }}
-              className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-700 hover:from-emerald-400 hover:to-teal-500 text-white font-display font-black text-xs shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.7)] transition-all cursor-pointer flex items-center justify-center gap-2 border border-emerald-300/40"
+              className="relative z-10 mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-700 hover:from-emerald-400 hover:to-teal-500 text-white font-display font-black text-xs shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.7)] transition-all cursor-pointer flex items-center justify-center gap-2 border border-emerald-300/40"
             >
               <GraduationCap size={16} />
               <span>Launch Classrooms Manager</span>
@@ -1454,8 +1518,8 @@ export default function CategoryOverview({
 
         </div>
 
-        {/* 3 NEON GLOW MODULE CARDS GRID (Interactive Slideshow Showcases) */}
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto w-full my-4 items-stretch">
+        {/* 2x2 NEON GLOW MODULE CARDS GRID (mirrors Teacher's Toolbox) */}
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-6xl mx-auto w-full my-4 items-stretch">
           
           {/* CARD 1: Classrooms Manager (Pink/Magenta Border Glow) */}
           <InteractiveShowcaseCard
@@ -1599,6 +1663,47 @@ export default function CategoryOverview({
             </div>
           </InteractiveShowcaseCard>
 
+          {/* CARD 4: Attendance & Parent Records (Amber/Orange Border Glow) */}
+          <InteractiveShowcaseCard
+            slides={ATTENDANCE_CARD_SLIDES}
+            borderColorClass="border-orange-500/90"
+            shadowColorClass="shadow-[0_0_30px_rgba(249,115,22,0.35)]"
+            hoverBorderColorClass="hover:border-orange-400"
+            hoverShadowColorClass="hover:shadow-[0_0_50px_rgba(249,115,22,0.65)]"
+            glowColorClass="shadow-[0_0_20px_rgba(249,115,22,0.4)] group-hover:bg-orange-500/20 group-hover:shadow-[0_0_30px_rgba(249,115,22,0.6)]"
+            onClick={() => onSelect('class-management')}
+          >
+            <div className="space-y-4 w-full h-full flex flex-col items-center justify-between">
+              <div className="w-20 h-20 rounded-3xl bg-orange-500/10 border-2 border-orange-500/50 flex items-center justify-center text-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.4)] group-hover:scale-110 group-hover:bg-orange-500/20 group-hover:shadow-[0_0_30px_rgba(249,115,22,0.6)] transition-all duration-300">
+                <Users size={44} />
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-orange-300 transition-colors mb-2">
+                  Attendance & Parent Records
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                  Walk the room, mark the roll, and keep POPIA-safe parent contact records ready for every learner in the class.
+                </p>
+              </div>
+
+              <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSelect('class-management'); }}
+                  className="px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/30 border border-orange-500/40 text-[11px] font-bold text-orange-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
+                >
+                  ✅ Attendance Walk
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSelect('class-management'); }}
+                  className="px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/30 border border-orange-500/40 text-[11px] font-bold text-orange-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
+                >
+                  👨‍👩‍👧 Parent Records
+                </button>
+              </div>
+            </div>
+          </InteractiveShowcaseCard>
+
         </div>
 
         {/* BOTTOM QUICK SHORTCUTS STRIP */}
@@ -1609,13 +1714,14 @@ export default function CategoryOverview({
           <div className="flex flex-wrap justify-center items-center gap-3">
             {[
               { id: 'class-management', label: 'Classrooms Manager', icon: GraduationCap },
+              { id: 'class-management', label: 'Attendance & Parents', icon: Users },
               { id: 'learner-intervention', label: 'Intervention Hub', icon: UserCheck },
               { id: 'portfolios', label: 'Profiles & Portfolios', icon: FolderKanban },
             ].map(tool => {
               const ToolIcon = tool.icon;
               return (
                 <button
-                  key={tool.id}
+                  key={`${tool.id}-${tool.label}`}
                   onClick={() => onSelect(tool.id)}
                   className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-emerald-600/30 border border-emerald-500/30 hover:border-emerald-400 text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
                 >

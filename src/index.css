@@ -931,3 +931,31 @@ svg:not(.not-sketchy) {
   0%   { filter: brightness(0.92); }
   100% { filter: brightness(1.12); }
 }
+
+/* Slow Ken-Burns drift for landing-page backdrop plates only (never on menu cards). */
+@keyframes landing-bg-drift {
+  0%   { background-position: 30% 40%; transform: scale(1); }
+  100% { background-position: 70% 60%; transform: scale(1.06); }
+}
+
+.landing-bg-drift {
+  animation: landing-bg-drift 22s ease-in-out infinite alternate;
+  will-change: transform, background-position;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-bg-drift {
+    animation: none !important;
+  }
+}
+
+/* Generated-content image / placeholder labels:
+   smaller type, dark navy, 30% opacity — never green. */
+.eduai-illustration-label,
+[data-eduai-illustration-label] {
+  font-size: 7px !important;
+  line-height: 1.2 !important;
+  color: rgba(10, 15, 33, 0.3) !important;
+  letter-spacing: 0.12em;
+  font-weight: 900;
+}

@@ -96,7 +96,7 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
 <div class="my-4 p-4 border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50 text-slate-700 font-medium text-xs shadow-sm print:break-inside-avoid">
   <div class="flex items-center gap-2 mb-1">
     <span class="text-base">📸</span>
-    <strong class="font-bold text-slate-900 uppercase tracking-wider text-[10px]">Illustration Placeholder & Printable Description:</strong>
+    <strong class="eduai-illustration-label font-bold uppercase tracking-wider">Illustration Placeholder & Printable Description:</strong>
   </div>
   <p class="italic text-slate-600 font-serif leading-relaxed">${cleanPrompt}</p>
 </div>
@@ -118,11 +118,11 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
   <div class="px-4 py-2 border-t border-dashed border-slate-150 mt-2 bg-slate-50/55 rounded-b-[1.5rem] flex items-center justify-between print:hidden select-none">
     <div class="flex items-center gap-2">
       <span class="text-xs">💾</span>
-      <p class="text-[7px] uppercase tracking-widest font-black leading-none" style="color: rgba(10,15,33,0.3);">
+      <p class="eduai-illustration-label uppercase tracking-widest font-black leading-none">
         Cached Library Asset: ${cleanPrompt.slice(0, 45)}${cleanPrompt.length > 45 ? '...' : ''}
       </p>
     </div>
-    <span class="text-[7px] px-1.5 py-0.5 rounded bg-slate-100 font-bold select-none uppercase" style="color: rgba(10,15,33,0.3);">Synced</span>
+    <span class="eduai-illustration-label px-1.5 py-0.5 rounded bg-slate-100 font-bold select-none uppercase">Synced</span>
   </div>
 </div>
       `;
@@ -171,11 +171,11 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
   <div class="px-4 py-2 border-t border-dashed border-slate-200 mt-2 bg-white/50 rounded-b-[1.5rem] flex items-center justify-between print:hidden select-none">
     <div class="flex items-center gap-2">
       <span class="text-xs">🎨</span>
-      <p class="text-[9px] uppercase tracking-widest font-black text-slate-500 leading-none">
+      <p class="eduai-illustration-label uppercase tracking-widest font-black leading-none">
         CAPS Illustration: ${cleanPrompt.slice(0, 45)}${cleanPrompt.length > 45 ? '...' : ''}
       </p>
     </div>
-    <span class="text-[8px] px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 font-bold select-none uppercase">Model: ${provider === 'gemini-imagen' ? 'Gemini Imagen-3' : provider === 'perchance' ? 'Perchance AI Text-to-Image' : 'Pollinations Turbo'}</span>
+    <span class="eduai-illustration-label px-2 py-0.5 rounded bg-slate-100 font-bold select-none uppercase">Model: ${provider === 'gemini-imagen' ? 'Gemini Imagen-3' : provider === 'perchance' ? 'Perchance AI Text-to-Image' : 'Pollinations Turbo'}</span>
   </div>
 </div>
     `;

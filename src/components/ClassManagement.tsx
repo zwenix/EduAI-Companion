@@ -20,12 +20,20 @@ import bgLandingClasses     from '../assets/images/landing_classes_bg_1786962597
 import bgLandingMessage     from '../assets/images/landing_message_bg_1786962597.jpg';
 import bgLandingAnalytics   from '../assets/images/landing_analytics_bg_1786962597.jpg';
 import bgMessageWorkspace   from '../assets/images/message_workspace_bg_1786968958.jpg';
+import bgClassesHubLive         from '../assets/images/classes_hub_live_1787490001.jpg';
+import bgClassesRegisterLive    from '../assets/images/classes_register_live_1787490001.jpg';
+import bgClassesSeatingLive     from '../assets/images/classes_seating_live_1787490001.jpg';
+import bgClassesAttendanceLive  from '../assets/images/classes_attendance_live_1787490001.jpg';
+import bgInterventionSiasLive   from '../assets/images/intervention_sias_live_1787490001.jpg';
+import bgInterventionParentLive from '../assets/images/intervention_parent_live_1787490001.jpg';
+import bgPortfolioLivingLive    from '../assets/images/portfolio_living_live_1787490001.jpg';
+import bgPortfolioFeedbackLive  from '../assets/images/portfolio_feedback_live_1787490001.jpg';
 
-const LEARNERS_SLIDES = [bgClassesRegister, bgClassesSeating, bgLearnerPortfolio];
-const CLASSES_SLIDES = [bgLandingClasses, bgClassesSeating, bgClassesRegister];
-const GROUPS_SLIDES = [bgMessageWorkspace, bgLandingClasses, bgLandingMessage];
-const INTERVENTION_SLIDES = [bgInterventionFlags, bgInterventionSupport, bgLandingAnalytics];
-const PORTFOLIO_SLIDES = [bgLearnerPortfolio, bgPortfolioFeedback, bgClassesRegister];
+const LEARNERS_SLIDES = [bgClassesRegisterLive, bgClassesHubLive, bgClassesRegister, bgLearnerPortfolio];
+const CLASSES_SLIDES = [bgClassesAttendanceLive, bgClassesSeatingLive, bgLandingClasses, bgClassesSeating];
+const GROUPS_SLIDES = [bgMessageWorkspace, bgClassesHubLive, bgLandingClasses, bgLandingMessage];
+const INTERVENTION_SLIDES = [bgInterventionSiasLive, bgInterventionParentLive, bgInterventionFlags, bgInterventionSupport, bgLandingAnalytics];
+const PORTFOLIO_SLIDES = [bgPortfolioLivingLive, bgPortfolioFeedbackLive, bgLearnerPortfolio, bgPortfolioFeedback];
 
 function ClassroomShowcaseCard({
   slides,
@@ -136,7 +144,7 @@ function ClassroomShowcaseCard({
 }
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
-const CLASS_MANAGEMENT_OVERLAY = bgLandingClasses;
+const CLASS_MANAGEMENT_OVERLAY = bgClassesHubLive;
 
 interface Student {
   id: string;
