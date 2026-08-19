@@ -135,6 +135,11 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
     const provider = typeof window !== 'undefined'
       ? window.localStorage.getItem('eduai_image_provider') || defaultProvider
       : defaultProvider;
+    const providerChain = provider === 'gemini-imagen'
+      ? 'Google Imagen (Secondary) → Pollinations → Perchance'
+      : provider === 'pollinations'
+        ? 'Pollinations (Tertiary) → Perchance → Google Imagen'
+        : 'Perchance (Primary) → Pollinations → Google Imagen';
 
     const isLogoOrStamp = /logo|stamp|seal|crest|badge|signature|certificate|emblem/i.test(cleanPrompt);
     const styleDirective = `, ${EDUCATIONAL_IMAGE_STYLE}, educational, high quality, vibrant colours`;
@@ -180,7 +185,7 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
         CAPS Illustration: ${cleanPrompt.slice(0, 45)}${cleanPrompt.length > 45 ? '...' : ''}
       </p>
     </div>
-    <span class="eduai-illustration-label px-2 py-0.5 rounded bg-slate-100 font-bold select-none uppercase">Model: ${provider === 'gemini-imagen' ? 'Gemini Imagen-3' : provider === 'perchance' ? 'Perchance AI Text-to-Image' : 'Pollinations Turbo'}</span>
+    <span class="eduai-illustration-label px-2 py-0.5 rounded bg-slate-100 font-bold select-none uppercase">Image chain: ${providerChain}</span>
   </div>
 </div>
     `;

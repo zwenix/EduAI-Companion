@@ -7,7 +7,7 @@
 // route, which does not exist inside the Android APK — and re-resolves it
 // through the configured provider chain.
 
-import { generateImageWithFallback, buildPollinationsUrl } from './imageGeneration';
+import { generateImageWithFallback } from './imageGeneration';
 
 const RETRY_ATTR = 'data-eduai-retry';
 const MAX_RETRIES = 2;
@@ -24,15 +24,10 @@ const recover = async (img: HTMLImageElement) => {
 
   const seed = parseInt(img.getAttribute('data-eduai-seed') || '0', 10) || Math.floor(Math.random() * 100000);
 
-  // First retry: swap straight to the public image API (fast, no round trip).
-  if (attempts === 0) {
-    img.src = buildPollinationsUrl(prompt, 800, 600, seed);
-    return;
-  }
-
-  // Second retry: walk the full provider chain (Gemini client engine, etc.).
+  // Walk the configured provider graph immediately. This preserves the
+  // explicit fallback relationships instead of retrying Pollinations first.
   try {
-    const result = await generateImageWithFallback({ prompt, width: 800, height: 600, seed: seed + 1 });
+    const result = await generateImageWithFallback({ prompt, width: 800, height: 600, seed: seed + attempts });
     if (result?.url) img.src = result.url;
   } catch (err) {
     console.warn('[Image Recovery] Could not regenerate illustration:', err);

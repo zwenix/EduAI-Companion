@@ -2683,13 +2683,13 @@ export default function App() {
                       }`}
                     >
                       <option value="perchance">
-                        Perchance AI Text-to-Image (Primary - Recommended)
+                        Perchance AI Text-to-Image (Primary → Pollinations fallback)
                       </option>
                       <option value="gemini-imagen">
-                        Google Imagen 3 (Secondary)
+                        Google Imagen 3 (Secondary → Pollinations fallback)
                       </option>
                       <option value="pollinations">
-                        Pollinations AI Turbo (Tertiary - Fallback)
+                        Pollinations AI Turbo (Tertiary → Perchance fallback)
                       </option>
                     </select>
                   </div>
