@@ -76,23 +76,26 @@ function ClassroomShowcaseCard({
           : "border-white/15 bg-slate-900/75 hover:border-cyan-400 hover:shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:brightness-110"
       )}
     >
-      {/* Background Slideshow Image with Framer Motion crossfade */}
-      <AnimatePresence mode="wait" initial={false}>
+      {/* Background Slideshow — steady crossfade, never shows a blank/white gap */}
+      <AnimatePresence initial={false}>
         <motion.div
           key={slideIndex}
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.6 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.85, ease: 'easeInOut' }}
           className="absolute inset-0 z-0 overflow-hidden pointer-events-none"
         >
           <img
             src={slides[slideIndex]}
             alt={title}
-            className="w-full h-full object-cover opacity-35 filter brightness-90 group-hover:scale-105 transition-transform duration-[5000ms]"
+            loading="eager"
+            decoding="sync"
+            className="w-full h-full object-cover opacity-[0.46] group-hover:opacity-[0.58] filter brightness-[0.98] transition-opacity duration-700"
+            referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-slate-950/75 pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-slate-950/60 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/35 to-transparent pointer-events-none" />
         </motion.div>
       </AnimatePresence>
 

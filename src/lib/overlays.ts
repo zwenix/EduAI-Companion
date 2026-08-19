@@ -18,6 +18,9 @@ import aiTutor             from '../assets/images/ai_tutor_bg_1786968958.jpg';
 import alertsReminders     from '../assets/images/alerts_reminders_bg_1786975832.jpg';
 import plannerDiary        from '../assets/images/planner_diary_bg_1786975832.jpg';
 import weeklyPlanner       from '../assets/images/weekly_planner_bg_1786975832.jpg';
+import helpdeskBg          from '../assets/images/helpdesk_bg_1786975832.jpg';
+import ocrGradingBg        from '../assets/images/toolbox_ocr_bg_1786968958.jpg';
+import interventionSupport from '../assets/images/intervention_support_bg_1786952984.jpg';
 
 /** The thirteen rooms, by their current page id. */
 export const OVERLAY_REGISTRY = {
@@ -37,6 +40,9 @@ export const OVERLAY_REGISTRY = {
   'alerts-reminders':      alertsReminders,
   'planner-diary':         plannerDiary,
   'weekly-planner':        weeklyPlanner,
+  'helpdesk':              helpdeskBg,
+  'ocr-grading':           ocrGradingBg,
+  'learner-intervention':  interventionSupport,
 } as const;
 
 export type OverlayRoute = keyof typeof OVERLAY_REGISTRY;
@@ -86,6 +92,11 @@ const ALIASES: Record<string, OverlayRoute> = {
   illustrations: 'content-factory', visual: 'content-factory', video: 'content-factory',
   admin: 'settings', grade1: 'teachers-toolbox',
   'collaborative-workspace': 'message-collaborate', 'student-notes': 'learner-portfolios',
+  // Standalone feature pages (outside the hub CategoryOverview) — each has its own dedicated plate
+  ocr: 'ocr-grading', 'ocr-grading': 'ocr-grading',
+  'learner-intervention': 'learner-intervention',
+  intervention: 'learner-intervention', 'intervention-hub': 'learner-intervention',
+  help: 'helpdesk', faq: 'helpdesk', support: 'helpdesk',
   // Settings
   preferences: 'settings', config: 'settings',
 };
