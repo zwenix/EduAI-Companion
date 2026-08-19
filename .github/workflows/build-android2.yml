@@ -1,18 +1,14 @@
 name: Build & Release Android APK
-
 on:
   push:
     branches:
       - main
   workflow_dispatch:
-
 permissions:
   contents: write
-
 concurrency:
   group: android-apk-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -20,31 +16,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
           api-level: 34
           build-tools: 34.0.0
-
       - name: Install dependencies
         run: npm ci
-
       - name: Build web bundle
         run: npm run build
-
       - name: Add Android platform
         run: npx cap add android
         
@@ -56,34 +46,41 @@ jobs:
         
       - name: Use stable debug keystore
         run: mkdir -p ~/.android && cp signing/android-debug.keystore ~/.android/debug.keystore
-
+      - name: Print Google Sign-In registration fingerprints
+        run: |
+          echo "=== Google Cloud Console → Credentials → OAuth client ID (type: Android) ==="
+          echo "Package name: com.eduaicompanion.app"
+          keytool -list -v -keystore signing/android-debug.keystore -storepass android -alias androiddebugkey 2>/dev/null | grep -E "SHA1:|SHA256:" || true
       - name: Assemble debug APK (auto-signed)
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
-
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: EduAI-Companion-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cat > release-notes.md <<'EOF'
           Automatically built Android APK from commit ${{ github.sha }}.
-
           - Branch: ${{ github.ref_name }}
           - Commit: ${{ github.sha }}
           - Run: [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          ## Google Sign-In registration (required once in Google Cloud Console)
+          Register an OAuth client ID of type "Android" with:
+          - Package name: com.eduaicompanion.app
           EOF
+          echo "- SHA-1: \`$(keytool -list -v -keystore signing/android-debug.keystore -storepass android -alias androiddebugkey 2>/dev/null | grep 'SHA1:' | sed 's/^.*: //' | tr -d '[:space:]')\`" >> release-notes.md
+          echo "- SHA-256: \`$(keytool -list -v -keystore signing/android-debug.keystore -storepass android -alias androiddebugkey 2>/dev/null | grep 'SHA256:' | sed 's/^.*: //' | tr -d '[:space:]')\`" >> release-notes.md
+          echo "" >> release-notes.md
+          echo "It must be created in the same GCP project as the web client ID (project number 725068822716)." >> release-notes.md
           gh release create "apk-${{ github.run_id }}" \
             android/app/build/outputs/apk/debug/app-debug.apk \
             --title "EduAI Companion APK (build ${{ github.run_number }})" \
             --notes-file release-notes.md
-
       - name: Publish APK to apk-artifacts branch
         run: |
           set -euo pipefail
