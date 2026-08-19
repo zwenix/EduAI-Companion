@@ -931,7 +931,7 @@ export default function App() {
         { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
         { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
         { id: 'student-class-management', label: 'Message & Collaborate', icon: IconClassrooms },
-        { id: 'system-support', label: 'Settings', icon: IconSettings },
+        { id: 'system-support', label: 'Help/Support Desk', icon: IconSettings },
       ];
     }
     
@@ -942,7 +942,7 @@ export default function App() {
         { id: 'intelligence-ai', label: "AI Tutor's Class", icon: SmartBotTutorIcon },
         { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
         { id: 'student-class-management', label: 'Chat & Messenger', icon: IconClassrooms },
-        { id: 'system-support', label: 'System support', icon: IconSettings },
+        { id: 'system-support', label: 'Help/Support Desk', icon: IconSettings },
       ];
     }
 
@@ -954,7 +954,7 @@ export default function App() {
       { id: 'class-management', label: 'Classes & Learners', icon: IconClassrooms },
       { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
       { id: 'student-class-management', label: 'Chat & Messenger', icon: IconClassrooms },
-      { id: 'system-support', label: 'System support', icon: IconSettings },
+      { id: 'system-support', label: 'Help/Support Desk', icon: IconSettings },
     ];
   };
 
@@ -1824,7 +1824,7 @@ export default function App() {
       {/* Main Content — navy canvas end-to-end so overlay never leaves white bands */}
       <main className={`flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden relative app-main-surface ${isDarkMode ? 'dark-theme' : themeMode === 'peach' ? 'peach-theme' : ''} transition-colors duration-500`}>
         {/* Full-main overlay plate (behind header + content) so top/bottom never flash white */}
-        <PageOverlay route={activeTab} blend="normal" opacity={0.8} vignette={false} drift={false} />
+        <PageOverlay route={activeTab} blend="normal" opacity={0.45} vignette={false} drift={false} />
 
         {/* Header sits above overlay with translucent glass */}
         <header 
@@ -2774,9 +2774,44 @@ export default function App() {
               )}>
                   {categoryOverviewActive ? (
                     <CategoryOverview
-                      categoryLabel={sidebarCategories.find(c => c.id === categoryOverviewActive)?.label || ''}
-                      categoryIcon={sidebarCategories.find(c => c.id === categoryOverviewActive)?.icon}
-                      subTabs={getSubTabsForCategory(categoryOverviewActive, userRole)}
+                      categoryLabel={
+                        (() => {
+                          const cat = sidebarCategories.find(c => c.id === categoryOverviewActive);
+                          if (cat) return cat.label;
+                          // Landing pages reached through dashboard shortcuts use
+                          // aliases that are not sidebar categories. Resolve them
+                          // here so the CategoryOverview custom landing always
+                          // receives a label (undefined crashed the header icon).
+                          const ALIAS_LABELS: Record<string, string> = {
+                            'alerts-planner': 'Alerts & Diary Planner',
+                            'alerts-planner-landing': 'Alerts & Diary Planner',
+                            'lesson-planning-landing': "Teacher's Toolbox",
+                            'intelligence-ai-landing': 'Intelligent AI',
+                            'edu-tools-hub': "Teacher's Toolbox",
+                          };
+                          return ALIAS_LABELS[categoryOverviewActive] || 'Modules';
+                        })()
+                      }
+                      categoryIcon={
+                        (() => {
+                          const cat = sidebarCategories.find(c => c.id === categoryOverviewActive);
+                          if (cat) return cat.icon;
+                          const ALIAS_ICONS: Record<string, any> = {
+                            'alerts-planner': Bell,
+                            'alerts-planner-landing': Bell,
+                            'lesson-planning-landing': IconCurriculum,
+                            'intelligence-ai-landing': SmartBotTutorIcon,
+                            'edu-tools-hub': IconCurriculum,
+                          };
+                          return ALIAS_ICONS[categoryOverviewActive] || IconHome;
+                        })()
+                      }
+                      subTabs={getSubTabsForCategory(
+                        categoryOverviewActive === 'alerts-planner' || categoryOverviewActive === 'alerts-planner-landing'
+                          ? 'curriculum-planning'
+                          : categoryOverviewActive,
+                        userRole
+                      )}
                       isDarkMode={isDarkMode}
                       onSelect={(tabId) => {
                         setCategoryOverviewActive(null);

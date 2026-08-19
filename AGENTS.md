@@ -48,6 +48,13 @@ The binary assets in their folders are original, carefully-uploaded files that M
   * `src/assets/images/**` — dashboard/overlay/screenshot backgrounds.
   * `src/assets/overlays/**` — mirrored overlay images.
   * `src/assets/splash.mp4`, `src/assets/logo.png`.
+* **`signing/android-debug.keystore`** — the Android signing keystore used by
+  the CI APK builds. Regenerating or replacing it changes the SHA-1 fingerprint
+  (`73:BB:00:87:CF:0B:C5:43:B7:60:37:01:03:CE:D3:47:9E:5E:D5:FD`) that Google Sign-In
+  depends on and **breaks Android Google Sign-In** for every installed user.
+  If a new keystore is ever required, the new SHA-1/SHA-256 MUST be registered
+  in Google Cloud Console (see `GOOGLE_SIGNIN_ANDROID_SETUP.md`) and updated in
+  `src/config/googleAuth.ts`.
 
 ### Strict Rules
 * **DO NOT** modify, resize, compress, re-encode, or "optimize" any of the above files.
@@ -68,6 +75,57 @@ The generated materials (such as CAPS Lesson Plans, Worksheets, and Interactive 
   * Never summarize or truncate sections into generic placeholders or rudimentary notes.
 * **Smart Parsing**:
   * Use the robust HTML tag-closing parser (`closeOpenHtmlTags` helper in both `server.ts` and `src/services/geminiService.ts`) to repair any output cutoff due to API token limits without crashing the page layout.
+
+---
+
+## 🚫 3b. UI DESIGN FREEZE — CONTENT BOXES / MENU CARDS (CRITICAL)
+
+The interactive content boxes and menu cards on the sidebar landing pages and
+dashboards are **frozen designs**. Do NOT change their styling, layout,
+animation behaviour, hover/selection glow, borders, or slideshow mechanics
+under any circumstances. This design language was hard-won — regressions here
+have burned users repeatedly (flashing borders, dead slideshows, lost hover
+glows).
+
+**Protected components & patterns:**
+
+* `src/components/CategoryOverview.tsx`
+  * `InteractiveShowcaseCard` — border/shadow/hover glow classes, background
+    slideshow crossfade (`AnimatePresence`), slide timings, dark veils.
+  * `ContentSlideshow` (in `src/components/ContentSlideshow.tsx`) — hero
+    slideshow behaviour, controls, indicator dots.
+  * All custom landing branches (Teacher's Toolbox, Intelligent AI, Classes &
+    Learners, Analytics & Reports, Message & Collaborate, Alerts & Diary
+    Planner, Curriculum & Planning, Help/Support Desk).
+* `src/components/TeacherDashboard.tsx` — `ShowcaseCard`,
+  `TeachingOuterSlideshow`, the Teaching Command Center box
+  (`animate-border-flash-cyan`).
+* `src/components/ClassManagement.tsx` — `ClassroomShowcaseCard` (active/hover
+  glow states).
+* Glow/steady-state CSS in `src/index.css`:
+  `.glass-neon-card`, `.hover-neon-*`, `.animate-neon-pulse-*`,
+  `.animate-border-flash-*` — these are intentionally **steady** (never
+  flashing); they must keep `animation: none !important` and only brighten on
+  hover/selection.
+* `src/components/PageOverlay.tsx` + `src/lib/overlays.ts` — the page overlay
+  must stay a **dark, ambient backdrop** (dimmed artwork, opacity floor 0.25
+  for normal blend, `brightness(0.55)` filter). Never restore the old 0.55+
+  bright veil.
+
+**What IS allowed on these boxes:**
+
+* Swapping the slide images (background artwork) via the slide-array constants,
+  as long as arrays stay module-scope constants and images are pre-warmed
+  (`new Image()`) for flash-free crossfades.
+* Copy changes (titles/descriptions) that do not alter the visual structure.
+
+**What is NOT allowed:**
+
+* Adding/removing/changing border classes, shadow/glow classes, hover classes,
+  `AnimatePresence` configuration, slide intervals, or dark veils.
+* Adding flash/pulse/blink animations to any content box or menu card.
+* Making the page overlay or landing backgrounds brighter than their current
+  dimmed state.
 
 ---
 
