@@ -4,6 +4,20 @@ import imgCalendar from '../assets/images/howto_calendar_1787492001.jpg';
 import imgMessenger from '../assets/images/howto_messenger_1787492001.jpg';
 import imgClasses from '../assets/images/howto_classes_1787492001.jpg';
 import imgAutograde from '../assets/images/howto_autograde_1787492001.jpg';
+// Real, playable walkthrough clips (rendered by scripts/make-howto-clips.mjs).
+// Each clip has one 4-second segment per step with burned-in captions.
+import videoFirstLogin from '../assets/videos/howto_first-login.mp4';
+import videoContentStudio from '../assets/videos/howto_content-studio.mp4';
+import videoVisualAdmin from '../assets/videos/howto_visual-admin.mp4';
+import videoIntervention from '../assets/videos/howto_intervention.mp4';
+import videoCalendar from '../assets/videos/howto_calendar.mp4';
+import videoDiary from '../assets/videos/howto_diary.mp4';
+import videoMessenger from '../assets/videos/howto_messenger.mp4';
+import videoClasses from '../assets/videos/howto_classes.mp4';
+import videoAutograde from '../assets/videos/howto_autograde.mp4';
+import videoTutor from '../assets/videos/howto_tutor.mp4';
+import videoReports from '../assets/videos/howto_reports.mp4';
+import videoSettings from '../assets/videos/howto_settings.mp4';
 
 export type HowToCategory =
   | 'start'
@@ -26,12 +40,17 @@ export interface HowToGuide {
   category: HowToCategory;
   minutes: string;
   image: string;
+  /** Real MP4 clip — one segment per step, loops. */
+  video: string;
   openTab?: string;
   openLabel?: string;
   what: string;
   steps: HowToStep[];
   tip: string;
 }
+
+/** Seconds each step plays for inside the generated clip (keep in sync with scripts/make-howto-clips.mjs). */
+export const CLIP_SECONDS_PER_STEP = 4;
 
 export const HOW_TO_CATEGORIES: { id: HowToCategory | 'all'; label: string }[] = [
   { id: 'all', label: 'All guides' },
@@ -52,6 +71,7 @@ export const HOW_TO_GUIDES: HowToGuide[] = [
     category: 'start',
     minutes: '4 min',
     image: imgClasses,
+    video: videoFirstLogin,
     what: 'EduAI Companion is organised as hubs in the left sidebar. Teachers land on the Dashboard, then open Toolbox, Classes, Planning, Messenger, or Help.',
     steps: [
       { title: 'Sign in', body: 'Use Google Sign-In or email. After login, choose Teacher, Student, Parent, or Admin. You can switch role later from your profile menu.' },
@@ -68,6 +88,7 @@ export const HOW_TO_GUIDES: HowToGuide[] = [
     category: 'create',
     minutes: '6 min',
     image: imgContent,
+    video: videoContentStudio,
     openTab: 'teaching',
     openLabel: 'Open Content Studio',
     what: 'Content Studio (Teacher’s Toolbox → Content Factory) writes CAPS-aligned lesson plans, worksheets, exams, study guides, memos and rubrics in South African classroom language.',
@@ -87,6 +108,7 @@ export const HOW_TO_GUIDES: HowToGuide[] = [
     category: 'create',
     minutes: '4 min',
     image: imgContent,
+    video: videoVisualAdmin,
     openTab: 'visual',
     openLabel: 'Open Visual Lab',
     what: 'Use Visual Lab for classroom posters and flashcards, Admin Lab for parent notices and certificates, and Foundation Hub for large-print Grade R–3 work.',
@@ -105,6 +127,7 @@ export const HOW_TO_GUIDES: HowToGuide[] = [
     category: 'learners',
     minutes: '8 min',
     image: imgIntervention,
+    video: videoIntervention,
     openTab: 'learner-intervention',
     openLabel: 'Open Intervention Hub',
     what: 'The Learner Intervention Hub is the SIAS / SBST workspace. It builds an Individualized Learning Plan, remedial worksheet, 6-week timetable and parent guide for one learner.',
@@ -124,6 +147,7 @@ export const HOW_TO_GUIDES: HowToGuide[] = [
     category: 'plan',
     minutes: '6 min',
     image: imgCalendar,
+    video: videoCalendar,
     openTab: 'weekly-planner',
     openLabel: 'Open Weekly Planner',
     what: 'The Weekly Planner is a live CAPS timetable stored in Firestore. Teachers schedule lessons, assessments, homework, meetings and school events. Students only see events marked for them or for everyone.',
@@ -143,6 +167,7 @@ export const HOW_TO_GUIDES: HowToGuide[] = [
     category: 'plan',
     minutes: '3 min',
     image: imgCalendar,
+    video: videoDiary,
     openTab: 'planner',
     openLabel: 'Open Teacher’s Diary',
     what: 'The Teacher’s Planner & Diary is your private log: reflections, reminders, and class notes. It sits next to the shared Weekly Planner but is not the class timetable.',
@@ -160,6 +185,7 @@ export const HOW_TO_GUIDES: HowToGuide[] = [
     category: 'message',
     minutes: '5 min',
     image: imgMessenger,
+    video: videoMessenger,
     openTab: 'messenger',
     openLabel: 'Open Messenger',
     what: 'Messenger is the POPIA-minded school chat. You get a General Classroom Hub, study-group channels, collaboration workspaces, and one-to-one chats with enrolled learners, colleagues and parents.',
@@ -179,6 +205,7 @@ export const HOW_TO_GUIDES: HowToGuide[] = [
     category: 'learners',
     minutes: '5 min',
     image: imgClasses,
+    video: videoClasses,
     openTab: 'class-management',
     openLabel: 'Open Classrooms Manager',
     what: 'Classrooms Manager holds digital registers, class lists, parent contacts and seating. It is the source of names used by Messenger, portfolios and intervention.',
@@ -198,6 +225,7 @@ export const HOW_TO_GUIDES: HowToGuide[] = [
     category: 'assess',
     minutes: '5 min',
     image: imgAutograde,
+    video: videoAutograde,
     openTab: 'ocr',
     openLabel: 'Open Autograder',
     what: 'Print a worksheet from Content Studio (it can carry a QR). Scan the paper with the camera, or upload a photo. The Autograder reads handwriting against your memo.',
@@ -216,6 +244,7 @@ export const HOW_TO_GUIDES: HowToGuide[] = [
     category: 'create',
     minutes: '3 min',
     image: imgContent,
+    video: videoTutor,
     openTab: 'ai-tutor',
     openLabel: 'Open AI Tutor',
     what: 'The tutor explains CAPS topics, drills skills, and can speak. It uses rands, local names and South African examples.',
@@ -233,6 +262,7 @@ export const HOW_TO_GUIDES: HowToGuide[] = [
     category: 'assess',
     minutes: '4 min',
     image: imgIntervention,
+    video: videoReports,
     openTab: 'reports',
     openLabel: 'Open Analytics',
     what: 'Analytics & Reports shows class trends. Learner Portfolios collect homework, marks and teacher comments in one living file.',
@@ -250,6 +280,7 @@ export const HOW_TO_GUIDES: HowToGuide[] = [
     category: 'settings',
     minutes: '3 min',
     image: imgClasses,
+    video: videoSettings,
     openTab: 'settings',
     openLabel: 'Open Settings',
     what: 'Settings hold account, theme, and privacy. The header Tools tray holds AI engines and accessibility so you can change them on any page.',

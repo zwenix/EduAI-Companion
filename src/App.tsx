@@ -2742,6 +2742,9 @@ export default function App() {
               const showHubBack =
                 !categoryOverviewActive &&
                 !isFullBleed &&
+                // Content Factory (teaching) is a full first-class studio page with
+                // its own header — no "Back to Hub" pill above it.
+                activeTab !== 'teaching' &&
                 currentSubTabs.length > 1 &&
                 activeCategory !== 'teacher-dashboard-menu' &&
                 activeCategory !== 'intelligence-ai';

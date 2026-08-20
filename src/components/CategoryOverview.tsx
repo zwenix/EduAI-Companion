@@ -39,7 +39,7 @@ import WorksheetQRScannerModal from './WorksheetQRScannerModal';
 const cn = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(' ');
 
 // Dim feature showcase slideshow for hub backgrounds — low opacity, never overpowers menus
-function HubDimSlideshow({ images, opacity = 0.22 }: { images: string[]; opacity?: number }) {
+export function HubDimSlideshow({ images, opacity = 0.22 }: { images: string[]; opacity?: number }) {
   const [idx, setIdx] = useState(0);
   useEffect(() => {
     if (images.length <= 1) return;

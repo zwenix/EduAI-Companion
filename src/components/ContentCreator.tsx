@@ -1413,27 +1413,40 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
     )}>
       {/* Content Factory is a first-class page inside the app shell. */}
       <div className="w-full flex flex-col">
-        {/* Page Content */}
-        <main className="relative flex-1 p-4 sm:p-8 overflow-y-auto overflow-x-hidden">
-          <div className="relative z-10">
-          {/* Content Factory Title */}
-          <div className="text-center mb-6 sm:mb-10">
-            <h1 className={cn(
-              "text-3xl sm:text-5xl font-black mb-2 sm:mb-3 tracking-tight uppercase",
-              isDarkMode ? "text-white" : "text-slate-900"
-            )}>
-              Content Factory
-            </h1>
-            <p className={cn(
-              "text-xs sm:text-sm",
-              isDarkMode ? "text-slate-400" : "text-slate-600"
-            )}>
-              Create immersive educational content with AI-powered precision
-            </p>
-          </div>
+        {/* Page Content — the app shell owns scrolling, so no nested scroller here */}
+        <main className="relative w-full p-4 sm:p-6 lg:p-8">
+          <div className="relative z-10 max-w-6xl mx-auto">
+          {/* Content Factory Header Band */}
+          <div className="relative overflow-hidden rounded-[28px] border border-cyan-500/20 bg-[#0b1226]/95 backdrop-blur-xl shadow-2xl mb-6 sm:mb-8">
+            <div className="absolute -top-24 -left-16 w-72 h-72 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -right-16 w-72 h-72 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative flex flex-col sm:flex-row items-center gap-5 p-6 sm:p-8 text-center sm:text-left">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-3xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 border-2 border-cyan-400/40 flex items-center justify-center shadow-[0_0_24px_rgba(6,182,212,0.35)]">
+                <Sparkles size={34} className="text-cyan-300" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-center sm:justify-start gap-2 mb-2 flex-wrap">
+                  <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-400/30 text-[9px] font-black uppercase tracking-widest text-cyan-300">CAPS · SA Classroom</span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-violet-500/15 border border-violet-400/30 text-[9px] font-black uppercase tracking-widest text-violet-300">AI Powered</span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-[9px] font-black uppercase tracking-widest text-emerald-300">Instant Print &amp; PDF</span>
+                </div>
+                <h1 className={cn(
+                  "text-2xl sm:text-4xl font-black tracking-tight uppercase",
+                  isDarkMode ? "text-white" : "text-slate-900"
+                )}>
+                  Content Factory
+                </h1>
+                <p className={cn(
+                  "text-xs sm:text-sm mt-1",
+                  isDarkMode ? "text-slate-400" : "text-slate-600"
+                )}>
+                  Create immersive educational content with AI-powered precision — lessons, worksheets, posters, videos and parent letters.
+                </p>
+              </div>
+            </div>
 
-          {/* Studio Selector Tabs */}
-          <div className="flex flex-wrap justify-center gap-2.5 sm:gap-3.5 mb-6 sm:mb-8">
+            {/* Studio Selector Tabs — pinned inside the header band */}
+            <div className="relative flex flex-wrap justify-center gap-2.5 sm:gap-3 px-4 sm:px-8 pb-5 sm:pb-6">
             {GENERATOR_GROUPS.map((group) => {
               const isActive = activeTab === group.id;
               
@@ -1483,6 +1496,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                 </button>
               );
             })}
+            </div>
           </div>
 
           {/* Module-specific Layout routing */}
