@@ -32,10 +32,11 @@ export const GOOGLE_AUTH_SCOPES = ['profile', 'email'];
 // project, or the consent screen is not published.
 //
 // The workflow .github/workflows/build-android2.yml copies the committed
-// keystore, installs a repo-root google-services.json into android/app/ when
-// present, and patches android/app/src/main/res/values/strings.xml with
-// server_client_id so the native plugin always resolves the Web client ID
-// even without a google-services.json.
+// keystore, and scripts/wire-google-signin.mjs (added to CI as one workflow
+// step by the repo owner — see docs/build-android2.workflow.yml) installs a
+// repo-root google-services.json into android/app/ when present and patches
+// android/app/src/main/res/values/strings.xml with server_client_id so the
+// native plugin's fallback resolves this Web client ID too.
 export const ANDROID_APP_PACKAGE_NAME = 'com.eduaicompanion.app';
 
 export const ANDROID_DEBUG_SHA1 =
