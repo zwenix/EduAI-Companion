@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, ArrowRight, ShieldAlert, Rocket, Sparkles } from 'lucide-react';
 import { auth } from '../lib/firebase';
-import { GoogleAuthProvider, signInWithPopup, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signInAnonymously } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signInAnonymously, sendPasswordResetEmail } from 'firebase/auth';
 import { motion, AnimatePresence } from 'motion/react';
 import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
@@ -21,7 +21,49 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
   const [isGoogle, setIsGoogle] = useState(false);
   const [error, setError] = useState('');
   const [stars, setStars] = useState<{ id: number; x: number; y: number; size: number; delay: number }[]>([]);
+
+  // Forgot-password flow
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetSent, setResetSent] = useState('');
   const isIframe = typeof window !== 'undefined' && window.self !== window.top;
+
+  // Persist the profile fields every Google path uses.
+  const persistGoogleUser = (u: any) => {
+    if (!u) return;
+    localStorage.setItem('eduai_user_name', u.displayName || '');
+    localStorage.setItem('eduai_user_photo', u.photoURL || '');
+    localStorage.setItem('eduai_user_email', u.email || '');
+  };
+
+  useEffect(() => {
+    // Consume the result of a Google redirect sign-in (used as a fallback
+    // when popups are blocked, e.g. inside sandboxed iframes or strict
+    // browsers). If the user just returned from accounts.google.com, this
+    // completes the sign-in without any further taps.
+    let cancelled = false;
+    getRedirectResult(auth)
+      .then((result) => {
+        if (cancelled || !result?.user) return;
+        persistGoogleUser(result.user);
+        onSuccess();
+      })
+      .catch((redirectErr: any) => {
+        if (cancelled) return;
+        const code = String(redirectErr?.code || '');
+        const msg = String(redirectErr?.message || '');
+        console.error('Google redirect sign-in failed:', redirectErr);
+        if (code === 'auth/unauthorized-domain' || /unauthorized-domain/i.test(msg)) {
+          setError(`Google blocked this sign-in because the current domain is not allowlisted. In Firebase console → Authentication → Settings → Authorized domains, add: ${window.location.hostname}. Then reload and try again.`);
+        } else {
+          setError(`Google redirect sign-in failed${code ? ` (${code})` : ''}. ${msg}`);
+        }
+      });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     // Generate twinkling stars for cosmic background
@@ -102,6 +144,46 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError('');
+    setResetSent('');
+    const targetEmail = resetEmail.trim();
+    if (!targetEmail) {
+      setResetError('Enter your account email first.');
+      return;
+    }
+    setResetLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, targetEmail);
+      // Same message for success vs unknown-email so the form does not leak
+      // which addresses are registered.
+      setResetSent(`If ${targetEmail} is registered on EduAI, a password reset link is on its way. Check your inbox (and spam folder).`);
+    } catch (err: any) {
+      const code = String(err?.code || '');
+      if (code === 'auth/user-not-found') {
+        setResetSent(`If ${targetEmail} is registered on EduAI, a password reset link is on its way. Check your inbox (and spam folder).`);
+      } else if (code === 'auth/invalid-email' || /invalid-email/i.test(String(err?.message || ''))) {
+        setResetError('That email address does not look valid. Check the spelling.');
+      } else if (code === 'auth/too-many-requests' || /too-many-requests/i.test(String(err?.message || ''))) {
+        setResetError('Too many reset attempts. Wait a few minutes and try again.');
+      } else {
+        setResetError(`Could not send the reset link${code ? ` (${code})` : ''}: ${String(err?.message || err)}`);
+      }
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const openForgotMode = () => {
+    setIsSignUp(false);
+    setForgotMode(true);
+    setError('');
+    setResetError('');
+    setResetSent('');
+    setResetEmail(email.trim());
+  };
+
   const handleGoogle = async () => {
     setIsGoogle(true);
     setError('');
@@ -155,12 +237,27 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
       } else {
         const provider = new GoogleAuthProvider();
         GOOGLE_AUTH_SCOPES.forEach((s) => provider.addScope(s));
-        const result = await signInWithPopup(auth, provider);
+        provider.setCustomParameters({ prompt: 'select_account' });
 
-        if (result.user) {
-          localStorage.setItem('eduai_user_name', result.user.displayName || '');
-          localStorage.setItem('eduai_user_photo', result.user.photoURL || '');
-          localStorage.setItem('eduai_user_email', result.user.email || '');
+        try {
+          const result = await signInWithPopup(auth, provider);
+          if (result.user) persistGoogleUser(result.user);
+        } catch (popupErr: any) {
+          const popupCode = String(popupErr?.code || '');
+          const popupMsg = String(popupErr?.message || '');
+          // Popups are blocked inside sandboxed iframes and strict browsers.
+          // Fall back to the full-page redirect flow — Google allows redirects
+          // from iframes, and the result is consumed on the next page load by
+          // getRedirectResult above.
+          if (
+            popupCode === 'auth/popup-blocked' ||
+            popupCode === 'auth/popup-closed-by-user' ||
+            /popup/i.test(popupMsg)
+          ) {
+            await signInWithRedirect(auth, provider);
+            return; // the browser is navigating away — do not touch loading state
+          }
+          throw popupErr;
         }
       }
 
@@ -179,6 +276,13 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
         setError("The Google Sign-In popup was closed or blocked by the preview iframe. Tip: Click '⚡ QUICK DEMO ACCESS' below to enter instantly without logging in!");
       } else if (errCode === 'auth/popup-blocked' || errMsg.includes('popup-blocked')) {
         setError("Login popup blocked by your browser/iframe. Tip: Click '⚡ QUICK DEMO ACCESS' below to enter instantly!");
+      } else if (errCode === 'auth/unauthorized-domain' || /unauthorized-domain/i.test(combined)) {
+        // The current host is not allowlisted in Firebase Auth.
+        setError(`This domain isn't allowlisted for Google Sign-In yet. In Firebase console → Authentication → Settings → Authorized domains, add "${window.location.hostname}", then reload this page.`);
+      } else if (/redirect_uri_mismatch|invalid_client|unauthorized origin/i.test(combined)) {
+        // The OAuth client in GCP does not list the origin that just asked for
+        // consent. Most common after swapping/recreating the Web client.
+        setError(`Google rejected this sign-in request (${errCode || 'client/origin mismatch'}). In Google Cloud Console → project gen-lang-client-0448588221 → APIs & Services → Credentials → the "Web application" client (…-cmk737dpv1620nicbriuoji883vk4dg6), add ${window.location.origin} under "Authorized JavaScript origins", and add https://gen-lang-client-0448588221.firebaseapp.com/__/auth/handler under "Authorized redirect URIs". Wait a few minutes, then try again.`);
       } else if ((Capacitor.isNativePlatform() || /android|ios/i.test(Capacitor.getPlatform())) && (errCode === '10' || /DEVELOPER_ERROR|ApiException:?\s*10|12500|12501/i.test(combined))) {
         // Native Google Sign-In error code 10 (DEVELOPER_ERROR): the OAuth
         // client is misconfigured. Almost always the signing SHA-1 fingerprint
@@ -186,12 +290,16 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
         // OAuth client lives in a different Google Cloud project than the Web
         // client ID.
         setError(
-          `Google Sign-In isn't configured for this Android build (code 10). In Google Cloud Console → Credentials (project gen-lang-client-0448588221), create an "Android" OAuth client with package name ${ANDROID_APP_PACKAGE_NAME} and SHA-1 ${ANDROID_DEBUG_SHA1}. Also confirm the OAuth consent screen has a support email and is published, and that you installed the APK built with signing/android-debug.keystore. Local debug builds use a different SHA-1 — register yours or install the CI release APK.`
+          `Google Sign-In isn't configured for this Android build (code 10). In Google Cloud Console → Credentials (project gen-lang-client-0448588221), create an "Android" OAuth client with package name ${ANDROID_APP_PACKAGE_NAME} and SHA-1 ${ANDROID_DEBUG_SHA1}. The Web client ID the app uses must be ${FIREBASE_WEB_CLIENT_ID} — if that client was deleted or replaced in GCP, restore it or update src/config/googleAuth.ts. Also confirm the OAuth consent screen has a support email and is published (or your Google account is listed as a test user), and that you installed the APK built with signing/android-debug.keystore. Local debug builds use a different SHA-1 — register yours or install the CI release APK.`
         );
       } else if (/DEVELOPER_ERROR|12500|12501|10[^0-9]|invalid_client|api.*not.*register|not.*configured.*google|shA-1|SHA1|signing certificate|requestIdToken/i.test(combined)) {
         // Native Google Sign-In misconfiguration (most commonly an unregistered
         // SHA-1 fingerprint, wrong client ID type, or missing OAuth client).
-        setError(`Google Sign-In is not fully configured for this app. ${errCode ? '(' + errCode + ') ' : ''}${errMsg} — Verify the Android OAuth client (package ${ANDROID_APP_PACKAGE_NAME}, SHA-1 ${ANDROID_DEBUG_SHA1}) exists in the same project as web client ${FIREBASE_WEB_CLIENT_ID}.`);
+        setError(`Google Sign-In is not fully configured for this app. ${errCode ? '(' + errCode + ') ' : ''}${errMsg} — Verify the Android OAuth client (package ${ANDROID_APP_PACKAGE_NAME}, SHA-1 ${ANDROID_DEBUG_SHA1}) exists in the same GCP project as web client ${FIREBASE_WEB_CLIENT_ID} (project 725068822716). If that web client was deleted or regenerated in GCP, update src/config/googleAuth.ts to the current client ID.`);
+      } else if (/access_denied|disallowed_useragent|oauth2/i.test(combined) && !(Capacitor.isNativePlatform() || /android|ios/i.test(Capacitor.getPlatform()))) {
+        // Usually the OAuth consent screen is in "Testing" mode and the
+        // account is not a test user, or the app is in a restricted mode.
+        setError(`Google blocked this sign-in (${errCode || 'access_denied'}). Check that the OAuth consent screen in project gen-lang-client-0448588221 is published (or your email is added under "Test users"), and that the Google Sign-In provider is enabled in Firebase → Authentication → Sign-in methods.`);
       } else {
         setError(`${errMsg}${errCode ? ' [' + errCode + ']' : ''}`);
       }
@@ -381,7 +489,13 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
             {/* Top Card Title (Exactly matching screenshot 2) */}
             <div className="text-center mb-7">
               <h1 className="text-3xl sm:text-4xl font-display font-black tracking-tight leading-tight">
-                {isSignUp ? (
+                {forgotMode ? (
+                  <>
+                    <span className="text-cyan-300 drop-shadow-[0_0_12px_rgba(0,211,238,0.8)]">Forgot Your</span>{" "}
+                    <br />
+                    <span className="text-pink-400 drop-shadow-[0_0_12px_rgba(255,0,212,0.8)]">Password?</span>
+                  </>
+                ) : isSignUp ? (
                   <>
                     <span className="text-cyan-300 drop-shadow-[0_0_12px_rgba(0,211,238,0.8)]">Sign Up for Your</span>{" "}
                     <br />
@@ -395,6 +509,11 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
                   </>
                 )}
               </h1>
+              {forgotMode && (
+                <p className="text-xs text-slate-300 mt-2 font-medium">
+                  Enter your account email and we'll send you a secure link to choose a new password.
+                </p>
+              )}
             </div>
 
             {/* Sandbox iframe notification */}
@@ -417,6 +536,53 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
             )}
 
             {/* Form */}
+            {forgotMode ? (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                {resetSent && (
+                  <div className="p-4 bg-emerald-500/15 border border-emerald-400/40 text-emerald-200 rounded-2xl text-xs font-medium text-center leading-relaxed">
+                    {resetSent}
+                  </div>
+                )}
+                {resetError && (
+                  <div className="p-3 bg-rose-500/20 text-rose-200 border border-rose-500/40 rounded-2xl font-bold text-xs text-center">
+                    {resetError}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-200 mb-1.5 ml-1">
+                    Account Email
+                  </label>
+                  <div className="relative">
+                    <input 
+                      type="email" 
+                      value={resetEmail}
+                      onChange={e => setResetEmail(e.target.value)}
+                      placeholder="you@school.edu.za"
+                      className="w-full h-12 bg-transparent border border-cyan-400/50 focus:border-cyan-300 focus:shadow-[0_0_15px_rgba(0,211,238,0.5)] rounded-2xl px-4 text-white placeholder-slate-500 font-bold text-sm outline-none transition-all"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={resetLoading}
+                  className="w-full h-13 mt-6 rounded-2xl font-display font-black text-base text-white tracking-widest bg-gradient-to-r from-cyan-600 via-cyan-500 to-blue-600 border-2 border-cyan-400 shadow-[0_0_25px_rgba(0,211,238,0.6)] hover:shadow-[0_0_35px_rgba(0,211,238,0.85)] hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer uppercase flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {resetLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-white" />
+                  ) : (
+                    <span>Send Reset Link</span>
+                  )}
+                </button>
+
+                <p className="text-[11px] text-slate-400 text-center leading-relaxed pt-1">
+                  The reset link arrives by email and expires shortly. For Google sign-in accounts, use your Google account recovery instead.
+                </p>
+              </form>
+            ) : (
             <form onSubmit={handleLogin} className="space-y-4">
               
               {/* Name Field (Sign Up Mode) */}
@@ -477,6 +643,17 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
                     required
                   />
                 </div>
+                {!isSignUp && (
+                  <div className="text-right mt-1.5">
+                    <button 
+                      type="button" 
+                      onClick={openForgotMode}
+                      className="text-cyan-300 text-[11px] font-bold hover:text-cyan-200 hover:underline transition-colors focus:outline-none"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Big CTA Button (Matching Screenshot 2: "SIGN UP" glowing magenta pill) */}
@@ -527,22 +704,33 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
                 </button>
               </div>
             </form>
+            )}
 
             {/* Bottom Toggle Link (Exactly matching screenshot 2: "Already have an account? Sign In") */}
             <div className="mt-6 text-center">
-              <p className="text-sm font-sans text-slate-300">
-                {isSignUp ? "Already have an account?" : "Don't have an account?"}{' '}
+              {forgotMode ? (
                 <button 
                   type="button" 
-                  onClick={() => {
-                    setIsSignUp(!isSignUp);
-                    setError('');
-                  }}
-                  className="text-cyan-300 font-black italic hover:text-cyan-200 transition-colors focus:outline-none hover:underline ml-1"
+                  onClick={() => { setForgotMode(false); setError(''); }}
+                  className="text-cyan-300 font-black italic hover:text-cyan-200 transition-colors focus:outline-none hover:underline"
                 >
-                  {isSignUp ? "Sign In" : "Sign Up"}
+                  ← Back to Log In
                 </button>
-              </p>
+              ) : (
+                <p className="text-sm font-sans text-slate-300">
+                  {isSignUp ? "Already have an account?" : "Don't have an account?"}{' '}
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setIsSignUp(!isSignUp);
+                      setError('');
+                    }}
+                    className="text-cyan-300 font-black italic hover:text-cyan-200 transition-colors focus:outline-none hover:underline ml-1"
+                  >
+                    {isSignUp ? "Sign In" : "Sign Up"}
+                  </button>
+                </p>
+              )}
             </div>
 
           </motion.div>

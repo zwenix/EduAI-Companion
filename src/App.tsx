@@ -69,7 +69,8 @@ import {
   Baby,
   Puzzle,
   Sprout,
-  Heart
+  Heart,
+  KeyRound
 } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'motion/react';
 import { marked } from 'marked';
@@ -212,6 +213,8 @@ export default function App() {
   const [userName, setUserName] = useState<string>('Leo');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [previousTabs, setPreviousTabs] = useState<string[]>([]);
+  // Which Settings subtab to open (used by the profile menu's Password & Security shortcut)
+  const [settingsSection, setSettingsSection] = useState<string>('personal');
   const [activeCategory, setActiveCategory] = useState('teacher-dashboard-menu');
   const [categoryOverviewActive, setCategoryOverviewActive] = useState<string | null>(null);
   const [categoryActiveSubTab, setCategoryActiveSubTab] = useState<Record<string, string>>({
@@ -2110,10 +2113,16 @@ export default function App() {
                     
                     <div className="p-2 space-y-1 font-sans">
                       <button 
-                        onClick={() => { changeTab('settings'); setIsProfileDropdownOpen(false); }}
+                        onClick={() => { setSettingsSection('personal'); changeTab('settings'); setIsProfileDropdownOpen(false); }}
                         className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors text-left ${isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-50 text-slate-700'}`}
                       >
                         <IconSettings size={16} /> My Settings
+                      </button>
+                      <button 
+                        onClick={() => { setSettingsSection('security'); changeTab('settings'); setIsProfileDropdownOpen(false); }}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors text-left ${isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-50 text-slate-700'}`}
+                      >
+                        <KeyRound size={16} /> Password &amp; Security
                       </button>
                       <button 
                         onClick={() => { setNeedsRoleSetup(true); setIsProfileDropdownOpen(false); }}
@@ -2742,6 +2751,9 @@ export default function App() {
               const showHubBack =
                 !categoryOverviewActive &&
                 !isFullBleed &&
+                // Content Factory (teaching) is a full first-class studio page with
+                // its own header — no "Back to Hub" pill above it.
+                activeTab !== 'teaching' &&
                 currentSubTabs.length > 1 &&
                 activeCategory !== 'teacher-dashboard-menu' &&
                 activeCategory !== 'intelligence-ai';
@@ -2959,6 +2971,7 @@ export default function App() {
                         installPWAApp={installPWAApp}
                         isAlreadyInstalled={isAlreadyInstalled}
                         userRole={userRole || 'teacher'}
+                        initialSection={settingsSection}
                       />
                     ) : activeTab === 'teaching' ? (
                       <ContentCreator
