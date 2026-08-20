@@ -190,6 +190,14 @@ export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigat
     setShowLanding(false);
   };
 
+  // Walkthroughs are interactive step clips rather than external video files.
+  // Restart from frame one when Play is pressed after a clip has completed.
+  const toggleClipPlayback = () => {
+    if (!openGuide) return;
+    if (!isPlaying && stepIndex >= openGuide.steps.length - 1) setStepIndex(0);
+    setIsPlaying((playing) => !playing);
+  };
+
   const goToFeature = (tabId?: string) => {
     if (!tabId || !onNavigate) return;
     onNavigate(tabId);
@@ -460,7 +468,7 @@ export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigat
                       {/* Play overlay */}
                       <button
                         type="button"
-                        onClick={() => setIsPlaying((p) => !p)}
+                        onClick={toggleClipPlayback}
                         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-white/90 hover:bg-white text-[#0c1024] flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.5)] hover:scale-105 transition-all"
                         aria-label={isPlaying ? 'Pause clip' : 'Play clip'}
                       >
@@ -480,7 +488,7 @@ export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigat
                           <p className="text-slate-300 text-xs mt-1">{openGuide.subtitle}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <button type="button" onClick={() => setIsPlaying((p) => !p)} className="flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500 hover:bg-cyan-400 text-[#071018] text-[11px] font-black uppercase tracking-wider cursor-pointer">
+                          <button type="button" onClick={toggleClipPlayback} className="flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500 hover:bg-cyan-400 text-[#071018] text-[11px] font-black uppercase tracking-wider cursor-pointer">
                             {isPlaying ? <Pause size={13} /> : <Play size={13} />}{isPlaying ? 'Pause clip' : 'Play clip'}
                           </button>
                           {openGuide.openTab && onNavigate && (
