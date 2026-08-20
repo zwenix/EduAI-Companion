@@ -609,7 +609,7 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
       <div className="fixed top-1/3 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="fixed bottom-10 left-1/3 w-96 h-96 bg-amber-500/10 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto relative z-10 space-y-6 pb-12">
+      <div className="max-w-7xl mx-auto relative z-10 space-y-4 pb-6">
         {/* HERO HEADER */}
         <div className="text-center pt-2 pb-4">
           <div className="inline-flex items-center gap-2 mb-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 backdrop-blur-md">
@@ -710,39 +710,7 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
           />
         </div>
 
-        {/* PILL NAVIGATION TABS */}
-        <div className="flex flex-wrap justify-center items-center gap-2 max-w-5xl mx-auto p-2 rounded-2xl bg-slate-900/80 border border-cyan-500/30 backdrop-blur-xl shadow-2xl">
-          {[
-            { id: 'learners', label: 'Learners Roster', icon: Users, count: students.length },
-            { id: 'classes', label: 'Classes & Subjects', icon: GraduationCap, count: classes.length },
-            { id: 'study_groups', label: 'Study Groups', icon: MessageSquare, count: studyGroups.length },
-            { id: 'intervention', label: 'Learner Intervention Hub', icon: Zap, count: null },
-            { id: 'portfolios', label: 'Learner Portfolios', icon: Trophy, count: null },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id as any)}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer",
-                activeTab === tab.id
-                  ? "bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 text-slate-950 shadow-[0_0_20px_rgba(252,211,77,0.5)] scale-105"
-                  : "bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10"
-              )}
-            >
-              <tab.icon size={16} />
-              <span>{tab.label}</span>
-              {tab.count !== null && (
-                <span className={cn(
-                  "px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ml-1",
-                  activeTab === tab.id ? "bg-slate-950/20 text-slate-950" : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-                )}>
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
+        {/* TAB CONTENT PANELS — pill bar removed per design: showcase cards above are the navigation, this shifts content up to use full page */}
         {/* TAB CONTENT PANELS */}
         <AnimatePresence mode="wait">
           <motion.div

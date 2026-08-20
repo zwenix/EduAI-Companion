@@ -38,6 +38,33 @@ import WorksheetQRScannerModal from './WorksheetQRScannerModal';
 
 const cn = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(' ');
 
+// Dim feature showcase slideshow for hub backgrounds — low opacity, never overpowers menus
+function HubDimSlideshow({ images, opacity = 0.22 }: { images: string[]; opacity?: number }) {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (images.length <= 1) return;
+    const t = setInterval(() => setIdx((p) => (p + 1) % images.length), 5200);
+    return () => clearInterval(t);
+  }, [images.length]);
+  return (
+    <div className="absolute inset-0 z-0 overflow-hidden rounded-2xl pointer-events-none">
+      <div className="absolute inset-0 bg-[#060a14] pointer-events-none" />
+      {images.map((src, i) => (
+        <img
+          key={src + i}
+          src={src}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1200ms]"
+          style={{ opacity: i === idx ? opacity : 0, transitionProperty: 'opacity' }}
+          referrerPolicy="no-referrer"
+        />
+      ))}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#060a14]/85 via-[#0a1028]/55 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.35)_0%,transparent_65%)] pointer-events-none" />
+    </div>
+  );
+}
+
 // Generated background images for interactive showcases
 import imgAssessment   from '../assets/images/assessment_screenshot_1784286266626.jpg';
 import bgClassesRegister     from '../assets/images/classes_register_bg_1786952984.jpg';
@@ -502,24 +529,13 @@ export default function CategoryOverview({
     return (
       <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
         
-        {/* Deep Cosmic Background & Subtle Stars */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
-
-        {/* Intelligent AI Background Overlay */}
-        <div 
-          className="absolute inset-0 z-0 opacity-20 pointer-events-none"
-          style={{
-            backgroundImage: `url(${bgLandingAi})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat'
-          }}
-        />
+        {/* Dim showcase slideshow background — never overpowers menus */}
+        <HubDimSlideshow images={[bgLandingAi, bgAiTutor, bgToolboxOcr, bgLandingAnalytics]} opacity={0.24} />
         
-        {/* Soft Ambient Radial Glows */}
-        <div className="absolute top-10 left-1/4 w-96 h-96 bg-purple-600/15 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none" />
+        {/* Soft Ambient Glows — very subtle so slideshow stays dim */}
+        <div className="absolute top-10 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-emerald-500/8 rounded-full blur-[120px] pointer-events-none" />
 
         {/* MAIN TITLE SECTION ("Intelligent AI") */}
         <div className="relative z-10 text-center my-3">
@@ -555,7 +571,7 @@ export default function CategoryOverview({
             className="lg:col-span-5 flex flex-col justify-between p-6 rounded-[32px] bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-indigo-950/80 border-2 border-amber-500/40 hover:border-amber-300 shadow-[0_0_30px_rgba(251,191,36,0.2)] hover:shadow-[0_0_50px_rgba(251,191,36,0.4)] hover:brightness-110 relative overflow-hidden group transition-all duration-300 cursor-pointer"
           >
             {/* Background image (animated showcase) */}
-            <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
+            <div className="absolute inset-0 z-0 opacity-[0.24] pointer-events-none">
               <img src={bgAiTutor} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               <div className="absolute inset-0 bg-slate-950/70" />
             </div>
@@ -615,7 +631,7 @@ export default function CategoryOverview({
             className="rounded-[32px] border-2 border-orange-500/90 bg-transparent shadow-[0_0_30px_rgba(249,115,22,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-orange-400 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(249,115,22,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
             {/* Background image (animated showcase) */}
-            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+            <div className="absolute inset-0 z-0 opacity-[0.22] pointer-events-none">
               <img src={bgAiTutor} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               <div className="absolute inset-0 bg-slate-950/75" />
             </div>
@@ -652,7 +668,7 @@ export default function CategoryOverview({
             className="rounded-[32px] border-2 border-cyan-400/90 bg-transparent shadow-[0_0_30px_rgba(34,211,238,0.35)] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:border-cyan-300 hover:bg-[#141a42] hover:brightness-110 hover:shadow-[0_0_50px_rgba(34,211,238,0.65)] transition-all duration-300 cursor-pointer relative overflow-hidden"
           >
             {/* Background image (animated showcase) */}
-            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+            <div className="absolute inset-0 z-0 opacity-[0.22] pointer-events-none">
               <img src={bgToolboxOcr} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               <div className="absolute inset-0 bg-slate-950/75" />
             </div>
@@ -723,20 +739,12 @@ export default function CategoryOverview({
     return (
       <div className="relative p-6 sm:p-8 lg:p-10 overflow-hidden rounded-2xl text-white flex flex-col justify-start font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
         {/* Glowing cosmic curves/waves in background */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(15,23,60,0.8)_0%,rgba(7,10,24,1)_100%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(15,23,60,0.45)_0%,rgba(7,10,24,1)_100%)] pointer-events-none" />
         
-        {/* Message Collaborate Overlay */}
-        <div 
-          className="absolute inset-0 z-0 opacity-20 pointer-events-none"
-          style={{
-            backgroundImage: `url(${bgLandingMessage})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat'
-          }}
-        />
-        <div className="absolute top-1/3 -left-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
-        <div className="absolute bottom-10 -right-20 w-96 h-96 bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
+        {/* Dim showcase slideshow background */}
+        <HubDimSlideshow images={[bgLandingMessage, bgMessageChat, bgMessageWorkspace, bgLandingAi]} opacity={0.24} />
+        <div className="absolute top-1/3 -left-20 w-96 h-96 bg-cyan-500/8 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-10 -right-20 w-96 h-96 bg-purple-600/8 rounded-full blur-[140px] pointer-events-none" />
 
         <div className="relative z-10 max-w-5xl mx-auto w-full space-y-8 my-auto py-8">
           {/* Top Main Banner Card */}
@@ -780,7 +788,7 @@ export default function CategoryOverview({
                   className="group flex flex-col p-6 sm:p-8 rounded-[28px] bg-slate-900/90 border border-white/10 hover:border-cyan-500/40 hover:bg-slate-900/90 transition-all duration-300 text-left cursor-pointer shadow-xl relative overflow-hidden backdrop-blur-xl"
                 >
                   {/* Background image (animated showcase) */}
-                  <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+                  <div className="absolute inset-0 z-0 opacity-[0.22] pointer-events-none">
                     <img src={cardBg} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     <div className="absolute inset-0 bg-slate-950/75" />
                   </div>
@@ -830,24 +838,13 @@ export default function CategoryOverview({
     return (
       <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
         
-        {/* Deep Cosmic Background */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(25,18,48,0.95)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
-        
-        {/* Background Overlay */}
-        <div 
-          className="absolute inset-0 z-0 opacity-30 pointer-events-none mix-blend-overlay"
-          style={{
-            backgroundImage: `url(${bgLandingAlerts})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat'
-          }}
-        />
+        {/* Dim showcase slideshow background */}
+        <HubDimSlideshow images={[bgLandingAlerts, bgInterventionFlags, bgLandingCurriculum, bgLandingMessage]} opacity={0.24} />
 
-        {/* Soft Ambient Radial Glows */}
-        <div className="absolute top-10 left-1/4 w-96 h-96 bg-pink-600/15 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-cyan-500/15 rounded-full blur-[120px] pointer-events-none" />
+        {/* Soft glows — subtle */}
+        <div className="absolute top-10 left-1/4 w-96 h-96 bg-pink-600/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
 
         {/* MAIN TITLE SECTION ("Alerts & Diary Planner") */}
         <div className="relative z-10 text-center my-3">
@@ -991,7 +988,7 @@ export default function CategoryOverview({
       <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
         
         {/* Deep Cosmic Background */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(15,23,42,0.9)_0%,rgba(6,11,25,1)_100%)] pointer-events-none rounded-2xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(15,23,42,0.55)_0%,rgba(6,11,25,1)_100%)] pointer-events-none rounded-2xl" />
         
         {/* Background Overlay */}
         <div 
@@ -1095,7 +1092,7 @@ export default function CategoryOverview({
             className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-cyan-500/50 hover:border-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.2)] hover:shadow-[0_0_40px_rgba(6,182,212,0.4)] transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
           >
             {/* Background image (animated showcase) */}
-            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+            <div className="absolute inset-0 z-0 opacity-[0.22] pointer-events-none">
               <img src={bgLandingCurriculum} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               <div className="absolute inset-0 bg-slate-950/75" />
             </div>
@@ -1117,7 +1114,7 @@ export default function CategoryOverview({
             className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-pink-500/50 hover:border-pink-300 shadow-[0_0_25px_rgba(236,72,153,0.2)] hover:shadow-[0_0_40px_rgba(236,72,153,0.4)] transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
           >
             {/* Background image (animated showcase) */}
-            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+            <div className="absolute inset-0 z-0 opacity-[0.22] pointer-events-none">
               <img src={bgToolboxContentStudio} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               <div className="absolute inset-0 bg-slate-950/75" />
             </div>
@@ -1139,7 +1136,7 @@ export default function CategoryOverview({
             className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-purple-500/50 hover:border-purple-300 shadow-[0_0_25px_rgba(168,85,247,0.2)] hover:shadow-[0_0_40px_rgba(168,85,247,0.4)] transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
           >
             {/* Background image (animated showcase) */}
-            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+            <div className="absolute inset-0 z-0 opacity-[0.22] pointer-events-none">
               <img src={bgLandingAlerts} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               <div className="absolute inset-0 bg-slate-950/75" />
             </div>
@@ -1161,7 +1158,7 @@ export default function CategoryOverview({
             className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-emerald-500/50 hover:border-emerald-300 shadow-[0_0_25px_rgba(16,185,129,0.2)] hover:shadow-[0_0_40px_rgba(16,185,129,0.4)] transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
           >
             {/* Background image (animated showcase) */}
-            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+            <div className="absolute inset-0 z-0 opacity-[0.22] pointer-events-none">
               <img src={bgLandingCurriculum} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               <div className="absolute inset-0 bg-slate-950/75" />
             </div>
@@ -1183,7 +1180,7 @@ export default function CategoryOverview({
             className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-amber-500/50 hover:border-amber-300 shadow-[0_0_25px_rgba(245,158,11,0.2)] hover:shadow-[0_0_40px_rgba(245,158,11,0.4)] transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
           >
             {/* Background image (animated showcase) */}
-            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+            <div className="absolute inset-0 z-0 opacity-[0.22] pointer-events-none">
               <img src={bgLandingAlerts} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               <div className="absolute inset-0 bg-slate-950/75" />
             </div>
@@ -1205,7 +1202,7 @@ export default function CategoryOverview({
             className="p-6 rounded-[28px] bg-slate-900/90 border-2 border-indigo-500/50 hover:border-indigo-300 shadow-[0_0_25px_rgba(99,102,241,0.2)] hover:shadow-[0_0_40px_rgba(99,102,241,0.4)] transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
           >
             {/* Background image (animated showcase) */}
-            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+            <div className="absolute inset-0 z-0 opacity-[0.22] pointer-events-none">
               <img src={bgLandingToolbox} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               <div className="absolute inset-0 bg-slate-950/75" />
             </div>
@@ -1233,11 +1230,11 @@ export default function CategoryOverview({
       <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
         
         {/* Deep Cosmic Background & Subtle Stars */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.45)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
         
         {/* Analytics Background Overlay */}
         <div 
-          className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-overlay"
+          className="absolute inset-0 z-0 opacity-[0.22] pointer-events-none"
           style={{
             backgroundImage: `url(${bgLandingAnalytics})`,
             backgroundSize: 'cover',
@@ -1419,7 +1416,7 @@ export default function CategoryOverview({
       <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
         
         {/* Deep Cosmic Background & Subtle Stars */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.45)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
         
         {/* Classes & Learners Background Overlay — slow drift, no header baked into art */}
         <div 
@@ -1753,11 +1750,11 @@ export default function CategoryOverview({
       <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
         
         {/* Deep Cosmic Background & Subtle Stars */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.8)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.45)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
         
         {/* Teachers Toolbox Background Overlay */}
         <div 
-          className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-overlay"
+          className="absolute inset-0 z-0 opacity-[0.22] pointer-events-none"
           style={{
             backgroundImage: `url(${bgLandingToolbox})`,
             backgroundSize: 'cover',
