@@ -1961,45 +1961,6 @@ STRICT COMPLIANCE & ZERO-HALLUCINATION MANDATES:
           }, false);
         }
 
-        case "generate-image": {
-          const { prompt: imagePrompt, width = 1024, height = 1024 } = input || {};
-          let styledPrompt = imagePrompt || "";
-          const styleSuffix = ", Disney 3D Animation Character and 3D Cute Icon, educational, high quality, vibrant colours";
-          const lowerPrompt = styledPrompt.toLowerCase();
-          if (styledPrompt && (!lowerPrompt.includes("disney 3d animation character") || !lowerPrompt.includes("3d cute icon"))) {
-            styledPrompt += styleSuffix;
-          }
-
-          const imageModels = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
-          for (const m of imageModels) {
-            try {
-              const response = await geminiAi.models.generateContent({
-                model: m,
-                contents: { parts: [{ text: styledPrompt }] },
-                config: { imageConfig: { aspectRatio: "1:1" } }
-              });
-              let foundBase64 = null;
-              if (response.candidates && response.candidates[0]?.content?.parts) {
-                for (const part of response.candidates[0].content.parts) {
-                  if (part.inlineData && part.inlineData.data) {
-                    foundBase64 = part.inlineData.data;
-                    break;
-                  }
-                }
-              }
-              if (foundBase64) {
-                return res.json({ imageUrl: `data:image/jpeg;base64,${foundBase64}`, url: `data:image/jpeg;base64,${foundBase64}` });
-              }
-            } catch (err1: any) {
-              console.warn(`[GEMINI ACTION] Image generation failed with ${m}, trying next...`, err1.message);
-            }
-          }
-
-          const seed = Math.floor(Math.random() * 100000);
-          const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=${width}&height=${height}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
-          return res.json({ imageUrl: fallbackUrl, url: fallbackUrl });
-        }
-
         default:
           return res.status(400).json({ error: "Unsupported action" });
       }
