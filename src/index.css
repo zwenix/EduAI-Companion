@@ -821,46 +821,6 @@ svg:not(.not-sketchy) {
   overflow: hidden;
 }
 
-/* Dim feature-showcase backdrop behind the navigation. The artwork changes at
-   a deliberately slow pace and stays beneath a navy veil, so labels remain the
-   strongest visual element. */
-aside.app-shell::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.16;
-  background: center / cover no-repeat url('./assets/images/landing_ai_bg_1786962597.jpg');
-  filter: saturate(0.72) contrast(0.9);
-  animation: sidebar-showcase 30s steps(1, end) infinite, sidebar-showcase-drift 10s ease-in-out infinite alternate;
-}
-
-aside.app-shell::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(5, 10, 25, 0.65), rgba(5, 10, 25, 0.90));
-}
-
-aside.app-shell > * { position: relative; z-index: 1; }
-
-@keyframes sidebar-showcase {
-  0%, 32% { background-image: url('./assets/images/landing_ai_bg_1786962597.jpg'); }
-  33%, 65% { background-image: url('./assets/images/toolbox_content_studio_bg_1786962597.jpg'); }
-  66%, 100% { background-image: url('./assets/images/helpdesk_bg_1786975832.jpg'); }
-}
-@keyframes sidebar-showcase-drift {
-  from { background-position: 45% center; }
-  to { background-position: 55% center; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  aside.app-shell::before { animation: none; }
-}
-
 /* Consistent steady interaction glow for bordered controls/cards. Selection is
    represented by common ARIA/data states and never uses a flashing animation. */
 .app-shell :is(button, [role='button'], [role='tab'], .group)[class*='border'] {

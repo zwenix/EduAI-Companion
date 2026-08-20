@@ -196,9 +196,6 @@ const SIDEBAR_MENU = [
   { id: 'settings', label: 'Settings', icon: Settings2 },
 ];
 
-// Top navigation tabs
-const TOP_TABS = ['DASHBOARD', 'CLASSROOMS', 'ARCHIVE'];
-
 // ─── Shared UI Components (Simulating Shadcn) ───────────────────────────────
 
 const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle = "Standard System (Inter)" }: { html: string; minHeight?: string; className?: string; fontStyle?: string }) => {
@@ -509,7 +506,6 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
   
   // UI State
   const [activeTab, setActiveTab] = useState(initialTab || 'teaching');
-  const [activeTopTab, setActiveTopTab] = useState('DASHBOARD');
   const [activePreviewTab, setActivePreviewTab] = useState<'content' | 'memo' | 'rubric'>('content');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -1415,85 +1411,8 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
       "w-full min-h-full flex flex-col transition-all duration-300",
       isDarkMode ? "text-white" : "text-slate-900"
     )}>
-      {/* Content Factory is a first-class page inside the app shell. It no
-          longer sits above the shell as a fixed modal/overlay, so the app's
-          normal navigation, sidebar, URL history, and page scrolling remain
-          available while generating content. */}
+      {/* Content Factory is a first-class page inside the app shell. */}
       <div className="w-full flex flex-col">
-        {/* Top Navigation Bar */}
-        <header className={cn(
-          "sticky top-0 z-40 border-b backdrop-blur-xl shrink-0",
-          isDarkMode 
-            ? "bg-transparent border-white/10" 
-            : "bg-transparent border-slate-200"
-        )}>
-          <div className="flex flex-wrap items-center justify-between gap-4 px-4 sm:px-8 py-3 sm:py-4">
-            {/* Top Tabs & Exit Button */}
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-              {onClose && (
-                <button
-                  onClick={onClose}
-                  className={cn(
-                    "p-2 px-3 rounded-xl transition-all flex items-center gap-1.5 text-[10px] sm:text-xs font-black uppercase tracking-widest border cursor-pointer shrink-0",
-                    isDarkMode 
-                      ? "border-white/10 hover:bg-white/5 text-slate-300 hover:text-white"
-                      : "border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-slate-900"
-                  )}
-                >
-                  <ArrowLeft size={14} />
-                  <span className="hidden sm:inline">Exit Studio</span>
-                </button>
-              )}
-
-              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto">
-                {TOP_TABS.map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTopTab(tab)}
-                    className={cn(
-                      "px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap",
-                      activeTopTab === tab
-                        ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/25"
-                        : isDarkMode
-                        ? "text-slate-400 hover:text-white hover:bg-white/5"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-                    )}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* User Profile & Notifications */}
-            <div className="flex items-center gap-3 sm:gap-4 ml-auto sm:ml-0">
-              <button className={cn(
-                "relative p-2 rounded-xl transition-all shrink-0",
-                isDarkMode ? "hover:bg-white/5 text-slate-400" : "hover:bg-slate-100 text-slate-600"
-              )}>
-                <Bell size={18} />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              </button>
-              
-              <div className={cn(
-                "flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-xl border shrink-0",
-                isDarkMode 
-                  ? "bg-white/5 border-white/10" 
-                  : "bg-slate-100 border-slate-200"
-              )}>
-                <UserCircle size={24} className="text-cyan-400" />
-                <span className={cn(
-                  "text-xs sm:text-sm font-bold hidden md:inline",
-                  isDarkMode ? "text-white" : "text-slate-900"
-                )}>
-                  Commander {userName}
-                </span>
-                <ChevronDown size={14} className="text-slate-400" />
-              </div>
-            </div>
-          </div>
-        </header>
-
         {/* Page Content */}
         <main className="relative flex-1 p-4 sm:p-8 overflow-y-auto overflow-x-hidden">
           <div className="relative z-10">
@@ -1520,33 +1439,33 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
               
               let activeStyle = "bg-gradient-to-r from-cyan-500 to-blue-600 text-white border-cyan-300 shadow-lg shadow-cyan-500/30 scale-[1.03]";
               let inactiveStyle = isDarkMode
-                ? "bg-cyan-950/40 border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-400"
-                : "bg-cyan-50 border-cyan-200 text-cyan-800 hover:bg-cyan-100";
+                ? "bg-[#0a1226]/90 border-cyan-500/30 text-cyan-300 hover:bg-[#122044] hover:border-cyan-400"
+                : "bg-[#0a1226]/90 border-cyan-500/30 text-cyan-300 hover:bg-[#122044]";
               let iconColor = "text-cyan-400";
 
               if (group.id === 'visual') {
                 activeStyle = "bg-gradient-to-r from-purple-500 via-fuchsia-600 to-indigo-600 text-white border-purple-300 shadow-lg shadow-purple-500/30 scale-[1.03]";
                 inactiveStyle = isDarkMode
-                  ? "bg-purple-950/40 border-purple-500/30 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400"
-                  : "bg-purple-50 border-purple-200 text-purple-800 hover:bg-purple-100";
+                  ? "bg-[#0a1226]/90 border-purple-500/30 text-purple-300 hover:bg-[#122044] hover:border-purple-400"
+                  : "bg-[#0a1226]/90 border-purple-500/30 text-purple-300 hover:bg-[#122044]";
                 iconColor = "text-purple-400";
               } else if (group.id === 'video') {
                 activeStyle = "bg-gradient-to-r from-rose-500 via-pink-600 to-orange-500 text-white border-rose-300 shadow-lg shadow-rose-500/30 scale-[1.03]";
                 inactiveStyle = isDarkMode
-                  ? "bg-rose-950/40 border-rose-500/30 text-rose-300 hover:bg-rose-500/20 hover:border-rose-400"
-                  : "bg-rose-50 border-rose-200 text-rose-800 hover:bg-rose-100";
+                  ? "bg-[#0a1226]/90 border-rose-500/30 text-rose-300 hover:bg-[#122044] hover:border-rose-400"
+                  : "bg-[#0a1226]/90 border-rose-500/30 text-rose-300 hover:bg-[#122044]";
                 iconColor = "text-rose-400";
               } else if (group.id === 'admin') {
                 activeStyle = "bg-gradient-to-r from-emerald-500 via-teal-600 to-blue-600 text-white border-emerald-300 shadow-lg shadow-emerald-500/30 scale-[1.03]";
                 inactiveStyle = isDarkMode
-                  ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-400"
-                  : "bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100";
+                  ? "bg-[#0a1226]/90 border-emerald-500/30 text-emerald-300 hover:bg-[#122044] hover:border-emerald-400"
+                  : "bg-[#0a1226]/90 border-emerald-500/30 text-emerald-300 hover:bg-[#122044]";
                 iconColor = "text-emerald-400";
               } else if (group.id === 'grade1') {
                 activeStyle = "bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-white border-amber-300 shadow-lg shadow-amber-500/30 scale-[1.03]";
                 inactiveStyle = isDarkMode
-                  ? "bg-amber-950/40 border-amber-500/30 text-amber-300 hover:bg-amber-500/20 hover:border-amber-400"
-                  : "bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100";
+                  ? "bg-[#0a1226]/90 border-amber-500/30 text-amber-300 hover:bg-[#122044] hover:border-amber-400"
+                  : "bg-[#0a1226]/90 border-amber-500/30 text-amber-300 hover:bg-[#122044]";
                 iconColor = "text-amber-400";
               }
 
@@ -1600,8 +1519,8 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                 className={cn(
                   "rounded-3xl border-2 p-6 backdrop-blur-xl animate-border-flash-cyan",
                   isDarkMode
-                    ? "bg-transparent shadow-2xl shadow-black/20"
-                    : "bg-transparent shadow-xl shadow-slate-200/50"
+                    ? "bg-[#0a1226]/95 border-cyan-500/30 shadow-2xl shadow-black/50"
+                    : "bg-[#0b142c] text-white border-cyan-500/30 shadow-2xl"
                 )}
               >
                 <h2 className={cn(
@@ -1662,7 +1581,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                               {selectedValue && (
                                 <div className={cn(
                                   "px-2 py-1 rounded-lg text-[10px] font-bold truncate border text-center animate-fadeIn",
-                                  isDarkMode ? "bg-white/5 border-white/10 text-cyan-300" : "bg-slate-50 border-slate-200 text-cyan-700"
+                                  isDarkMode ? "bg-[#060c1d] border-cyan-500/30 text-cyan-300" : "bg-[#060c1d] border-cyan-500/30 text-cyan-300"
                                 )}>
                                   {selectedValue}
                                 </div>
@@ -1674,7 +1593,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
 
                       {/* Active Setup Content Area - Minimized/Collapsed when activeSetupTab is null */}
                       {activeSetupTab && (
-                        <div className={cn("p-4 rounded-2xl border transition-all animate-fadeIn", isDarkMode ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200")}>
+                        <div className={cn("p-4 rounded-2xl border transition-all animate-fadeIn", isDarkMode ? "bg-[#060c1d] border-cyan-500/30 shadow-inner" : "bg-[#060c1d] text-white border-cyan-500/30 shadow-inner")}>
                           {activeSetupTab === 'grade' && (
                             <div className="space-y-3">
                               <Label className="text-xs font-black uppercase tracking-wider">Select Grade Level (R-12)</Label>
@@ -1708,7 +1627,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                                         "py-2 px-2.5 rounded-xl border text-xs font-bold transition-all text-center cursor-pointer",
                                         isSel 
                                           ? "bg-cyan-500 text-white border-cyan-400 shadow-md shadow-cyan-500/30" 
-                                          : isDarkMode ? "bg-white/5 border-white/10 text-slate-300 hover:bg-transparent" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                                          : isDarkMode ? "bg-[#0d1733] border-white/10 text-slate-200 hover:bg-[#152554] hover:text-white hover:border-cyan-400/40" : "bg-[#0d1733] border-white/10 text-slate-200 hover:bg-[#152554] hover:text-white hover:border-cyan-400/40"
                                       )}
                                     >
                                       {grade}
@@ -1758,7 +1677,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                                           "py-2.5 px-3 rounded-xl border text-xs font-bold transition-all text-left truncate",
                                           isSel 
                                             ? "bg-purple-600 text-white border-purple-500 shadow-md shadow-purple-500/30" 
-                                            : isDarkMode ? "bg-white/5 border-white/10 text-slate-300 hover:bg-transparent" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                                            : isDarkMode ? "bg-[#0d1733] border-white/10 text-slate-200 hover:bg-[#152554] hover:text-white hover:border-purple-400/40" : "bg-[#0d1733] border-white/10 text-slate-200 hover:bg-[#152554] hover:text-white hover:border-purple-400/40"
                                         )}
                                       >
                                         {subj}
@@ -1809,7 +1728,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                                   activeTab === 'teaching' ? TEACHING_CATEGORIES :
                                   activeTab === 'visual' ? VISUAL_TYPES : ADMIN_TYPES
                                 ).map(([cat, types]) => (
-                                  <div key={cat} className={cn("p-3 rounded-xl border", isDarkMode ? "bg-black/20 border-white/10" : "bg-white border-slate-200")}>
+                                  <div key={cat} className={cn("p-3 rounded-xl border", isDarkMode ? "bg-[#0a1226] border-white/10" : "bg-[#0a1226] text-white border-white/10")}>
                                     <div className="text-[10px] font-black uppercase tracking-widest text-purple-400 mb-2">{cat}</div>
                                     <div className="space-y-1.5">
                                       {types.map(t => {
@@ -1826,10 +1745,10 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                                               setActiveSetupTab(null);
                                             }}
                                             className={cn(
-                                              "w-full text-left py-1.5 px-2.5 rounded-lg border text-xs font-bold transition-all",
+                                              "w-full text-left py-1.5 px-2.5 rounded-lg border text-xs font-bold transition-all cursor-pointer",
                                               isSel
                                                 ? "bg-cyan-500 text-white border-cyan-400 shadow-sm"
-                                                : isDarkMode ? "bg-white/5 border-white/5 text-slate-300 hover:bg-transparent" : "bg-slate-50 border-slate-100 text-slate-700 hover:bg-slate-100"
+                                                : isDarkMode ? "bg-[#0e1938] border-white/10 text-slate-200 hover:bg-[#182958] hover:text-white" : "bg-[#0e1938] border-white/10 text-slate-200 hover:bg-[#182958] hover:text-white"
                                             )}
                                           >
                                             {t}
@@ -1873,10 +1792,10 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                                                   setActiveSetupTab(null);
                                                 }}
                                                 className={cn(
-                                                  "py-2 px-3 rounded-xl border text-xs font-bold text-left transition-all",
+                                                  "py-2 px-3 rounded-xl border text-xs font-bold text-left transition-all cursor-pointer",
                                                   isSel
                                                     ? "bg-emerald-600 text-white border-emerald-500 shadow-md"
-                                                    : isDarkMode ? "bg-white/5 border-white/10 text-slate-300 hover:bg-transparent" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                                                    : isDarkMode ? "bg-[#0d1733] border-white/10 text-slate-200 hover:bg-[#152554] hover:text-white hover:border-emerald-400/40" : "bg-[#0d1733] border-white/10 text-slate-200 hover:bg-[#152554] hover:text-white hover:border-emerald-400/40"
                                                 )}
                                               >
                                                 {topic}
@@ -1905,7 +1824,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                                         <button
                                           type="button"
                                           onClick={() => setActiveSetupTab(null)}
-                                          className="mt-5 px-3 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl"
+                                          className="mt-5 px-3 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl cursor-pointer"
                                         >
                                           Done
                                         </button>
@@ -1927,7 +1846,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                                   <button
                                     type="button"
                                     onClick={() => setActiveSetupTab(null)}
-                                    className="px-3 py-2 bg-cyan-600 text-white text-xs font-bold rounded-xl"
+                                    className="px-3 py-2 bg-cyan-600 text-white text-xs font-bold rounded-xl cursor-pointer"
                                   >
                                     Done
                                   </button>
@@ -1975,12 +1894,12 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                       creative input instead of a low-priority optional note. */}
                   <div className="pt-2 space-y-1.5">
                     <div className="flex items-center justify-between gap-3 ml-1">
-                      <label className={cn("text-[10px] font-black uppercase tracking-widest", isDarkMode ? "text-purple-400" : "text-purple-600")}>
+                      <label className={cn("text-[10px] font-black uppercase tracking-widest", isDarkMode ? "text-purple-400" : "text-purple-300")}>
                         Instructor Brief — Highest Priority
                       </label>
                       <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400">Overrides presets</span>
                     </div>
-                    <p className={cn("text-[10px] ml-1", isDarkMode ? "text-slate-400" : "text-slate-500")}>
+                    <p className={cn("text-[10px] ml-1", isDarkMode ? "text-slate-400" : "text-slate-300")}>
                       Your instructions guide the topic, examples, structure, and visual details. Preset options only fill in what you leave unspecified.
                     </p>
                     <textarea 
@@ -1995,8 +1914,8 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                       className={cn(
                         "w-full h-20 border text-xs font-medium rounded-xl p-2.5 focus:outline-none focus:ring-1 transition-all resize-none",
                         isDarkMode 
-                          ? "bg-transparent border-white/10 text-slate-200 focus:border-purple-400 focus:ring-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.05)]" 
-                          : "bg-white border-slate-200 text-slate-800 focus:border-purple-500 focus:ring-purple-500"
+                          ? "bg-[#060c1d] border-cyan-500/30 text-slate-100 placeholder:text-slate-500 focus:border-purple-400 focus:ring-purple-400 shadow-inner" 
+                          : "bg-[#060c1d] border-cyan-500/30 text-white placeholder:text-slate-400 focus:border-purple-500 focus:ring-purple-500 shadow-inner"
                       )}
                     />
                   </div>
@@ -2244,8 +2163,8 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                 className={cn(
                   "rounded-3xl border-2 p-6 backdrop-blur-xl flex flex-col justify-between animate-border-flash-purple",
                   isDarkMode
-                    ? "bg-transparent shadow-2xl shadow-black/20"
-                    : "bg-transparent shadow-xl shadow-slate-200/50"
+                    ? "bg-[#0a1226]/95 border-purple-500/30 shadow-2xl shadow-black/50"
+                    : "bg-[#0b142c] text-white border-purple-500/30 shadow-2xl"
                 )}
                 id="preview-panel"
               >
@@ -2267,7 +2186,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                           onClick={() => setShowPrintPreviewModal(true)}
                           className={cn(
                             "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border shadow-sm",
-                            isDarkMode ? "bg-transparent text-cyan-300 border-white/20 hover:bg-transparent" : "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100"
+                            isDarkMode ? "bg-white/10 text-cyan-300 border-white/20 hover:bg-white/20" : "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100"
                           )}
                           title="Toggle A4 Print Preview Mode"
                         >
@@ -2364,7 +2283,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                           {/* Progress container */}
                           <div className={cn(
                             "text-center z-10 p-8 rounded-2xl border max-w-sm w-full shadow-2xl flex flex-col items-center justify-center",
-                            isDarkMode ? "bg-transparent border-cyan-500/20" : "bg-white border-slate-200/80"
+                            isDarkMode ? "bg-[#060c1d] border-cyan-500/30 text-white" : "bg-[#060c1d] border-cyan-500/30 text-white"
                           )}>
                             {/* Rotating glowing rings */}
                             <div className="relative w-28 h-28 mb-6 flex items-center justify-center">
@@ -2389,7 +2308,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                               {/* Centered Percentage */}
                               <span className={cn(
                                 "text-3xl font-black tracking-tight z-10 font-mono",
-                                isDarkMode ? "text-cyan-400" : "text-cyan-600"
+                                isDarkMode ? "text-cyan-400" : "text-cyan-400"
                               )}>
                                 {Math.round(generationProgress)}%
                               </span>
@@ -2398,7 +2317,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                             {/* Linear progress bar */}
                             <div className={cn(
                               "w-full h-2.5 rounded-full overflow-hidden mb-4 p-0.5 shadow-inner border",
-                              isDarkMode ? "bg-slate-800 border-slate-700/50" : "bg-slate-100 border-slate-200"
+                              isDarkMode ? "bg-slate-800 border-slate-700/50" : "bg-slate-800 border-slate-700/50"
                             )}>
                               <motion.div
                                 className="h-full bg-gradient-to-r from-cyan-500 via-emerald-400 to-cyan-400 rounded-full shadow-[0_0_10px_rgba(34,211,238,0.5)]"
@@ -2412,13 +2331,13 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                             <div className="space-y-1.5 w-full">
                               <p className={cn(
                                 "text-xs font-black uppercase tracking-widest",
-                                isDarkMode ? "text-cyan-400" : "text-cyan-600"
+                                isDarkMode ? "text-cyan-400" : "text-cyan-400"
                               )}>
                                 Forging Content
                               </p>
                               <p className={cn(
                                 "text-xs font-medium font-sans h-12 flex items-center justify-center px-2 leading-relaxed transition-all duration-300",
-                                isDarkMode ? "text-slate-300" : "text-slate-600"
+                                isDarkMode ? "text-slate-300" : "text-slate-300"
                               )}>
                                 {generationPhase}
                               </p>
@@ -2439,13 +2358,13 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                       return (
                         <div className={cn(
                           "rounded-3xl border-2 border-dashed flex flex-col items-center justify-center p-12 text-center min-h-[400px]",
-                          isDarkMode ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200"
+                          isDarkMode ? "bg-[#060c1d]/90 border-cyan-500/30 text-white" : "bg-[#060c1d]/90 border-cyan-500/30 text-white"
                         )}>
                           <div className="w-16 h-16 rounded-2xl bg-cyan-400/10 flex items-center justify-center mb-4 text-cyan-400">
                             <Zap size={32} />
                           </div>
-                          <h3 className={cn("text-lg font-bold mb-2", isDarkMode ? "text-white" : "text-slate-900")}>Ready to Forge?</h3>
-                          <p className="text-sm text-slate-400 max-w-xs mx-auto">
+                          <h3 className={cn("text-lg font-bold mb-2", isDarkMode ? "text-white" : "text-white")}>Ready to Forge?</h3>
+                          <p className="text-sm text-slate-300 max-w-xs mx-auto">
                             Select your CAPS parameters on the left and click "GENERATE" to witness AI education magic.
                           </p>
                         </div>
@@ -2505,7 +2424,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                                 "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
                                 activePreviewTab === 'content'
                                   ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25 font-black"
-                                  : "bg-white/5 text-slate-400 hover:text-white"
+                                  : "bg-[#0d1733] border border-white/10 text-slate-300 hover:text-white"
                               )}
                             >
                               Lesson Material
@@ -2517,7 +2436,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                                   "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
                                   activePreviewTab === 'memo'
                                     ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25 font-black"
-                                    : "bg-white/5 text-slate-400 hover:text-white"
+                                    : "bg-[#0d1733] border border-white/10 text-slate-300 hover:text-white"
                                 )}
                               >
                                 Expert Memo
@@ -2530,7 +2449,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                                   "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
                                   activePreviewTab === 'rubric'
                                     ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25 font-black"
-                                    : "bg-white/5 text-slate-400 hover:text-white"
+                                    : "bg-[#0d1733] border border-white/10 text-slate-300 hover:text-white"
                                 )}
                               >
                                 Marks Rubric
