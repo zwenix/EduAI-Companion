@@ -188,6 +188,10 @@ export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigat
     setIsPlaying(false);
     setActiveTab('howtos');
     setShowLanding(false);
+    setTimeout(() => {
+      const el = document.getElementById('helpdesk-content-scroll');
+      if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 50);
   };
 
   // Walkthroughs are interactive step clips rather than external video files.
@@ -233,150 +237,152 @@ export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigat
   // Landing view — mirrors Intelligent AI / Teacher's Toolbox
   if (showLanding && (activeTab === 'howtos' || activeTab === 'faqs')) {
     return (
-      <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
-        {/* Deep Cosmic Background */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.85)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
-        {/* Helpdesk Background Overlay — dim showcase, never overpowers */}
-        <div
-          className="absolute inset-0 z-0 opacity-[0.22] pointer-events-none"
-          style={{
-            backgroundImage: `url(${bgHelpdesk})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-          }}
-        />
-        <div className="absolute inset-0 z-0 opacity-[0.18] pointer-events-none" style={{ backgroundImage: `url(${imgContent})`, backgroundSize: 'cover', backgroundPosition: '30% 50%', mixBlendMode: 'overlay' as any }} />
-        {/* Soft glows */}
-        <div className="absolute top-10 left-1/4 w-96 h-96 bg-cyan-600/12 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-violet-500/12 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="full-bleed-page w-full h-full min-h-0 overflow-y-auto custom-scrollbar p-2 sm:p-4">
+        <div className="relative p-4 lg:p-6 rounded-2xl text-white flex flex-col justify-between font-sans min-h-full bg-[#070b1a] border border-cyan-500/20 shadow-2xl">
+          {/* Deep Cosmic Background */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.85)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
+          {/* Helpdesk Background Overlay — dim showcase, never overpowers */}
+          <div
+            className="absolute inset-0 z-0 opacity-[0.22] pointer-events-none rounded-2xl"
+            style={{
+              backgroundImage: `url(${bgHelpdesk})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+            }}
+          />
+          <div className="absolute inset-0 z-0 opacity-[0.18] pointer-events-none rounded-2xl" style={{ backgroundImage: `url(${imgContent})`, backgroundSize: 'cover', backgroundPosition: '30% 50%', mixBlendMode: 'overlay' as any }} />
+          {/* Soft glows */}
+          <div className="absolute top-10 left-1/4 w-96 h-96 bg-cyan-600/12 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-violet-500/12 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
 
-        {/* Title */}
-        <div className="relative z-10 text-center my-3">
-          <div className="inline-flex items-center gap-2 mb-2">
-            <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
-            <span className="text-xl sm:text-2xl font-display font-bold text-slate-100 tracking-tight">Help &</span>
-            <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+          {/* Title */}
+          <div className="relative z-10 text-center my-3">
+            <div className="inline-flex items-center gap-2 mb-2">
+              <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+              <span className="text-xl sm:text-2xl font-display font-bold text-slate-100 tracking-tight">Help &</span>
+              <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+            </div>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)]">Support Desk</h1>
+            <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">Self-serve walkthrough clips • CAPS & POPiA knowledge base • Contact tickets</p>
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)]">Support Desk</h1>
-          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">Self-serve walkthrough clips • CAPS & POPiA knowledge base • Contact tickets</p>
-        </div>
 
-        {/* Hero: slideshow + featured */}
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-3 w-full max-w-full mx-auto items-stretch">
-          <div className="lg:col-span-7 flex flex-col justify-center">
-            <ContentSlideshow slides={HELP_HERO_SLIDES as any} />
+          {/* Hero: slideshow + featured */}
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-3 w-full max-w-full mx-auto items-stretch">
+            <div className="lg:col-span-7 flex flex-col justify-center">
+              <ContentSlideshow slides={HELP_HERO_SLIDES as any} />
+            </div>
+            <motion.div
+              whileHover={{ scale: 1.02, y: -4 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => { setActiveTab('contact'); setShowLanding(false); }}
+              className="lg:col-span-5 flex flex-col justify-between p-6 rounded-[32px] bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-emerald-950/80 border-2 border-emerald-500/40 hover:border-emerald-300 shadow-[0_0_30px_rgba(16,185,129,0.22)] hover:shadow-[0_0_50px_rgba(16,185,129,0.45)] hover:brightness-110 relative overflow-hidden group cursor-pointer transition-all duration-300"
+            >
+              <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+                <img src={imgMessenger} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-slate-950/70" />
+              </div>
+              <div className="space-y-4 relative z-10">
+                <div className="flex items-center justify-between">
+                  <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-[10px] font-black uppercase tracking-widest text-emerald-300 flex items-center gap-1.5"><MessageCircle size={12} />HUMAN HELP</span>
+                  <LifeBuoy size={22} className="text-emerald-400 animate-pulse group-hover:scale-110 transition-transform" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-display font-black text-white group-hover:text-emerald-200 transition-colors">Contact Support</h3>
+                  <p className="text-xs text-slate-300 leading-relaxed mt-2">Send a note that is saved on this device. Every clip has an Open Feature button to take you directly to the live page.</p>
+                </div>
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center gap-2 text-xs text-slate-300"><CheckCircle2 size={14} className="text-emerald-400" /><span>Tickets stay on this device</span></div>
+                  <div className="flex items-center gap-2 text-xs text-slate-300"><CheckCircle2 size={14} className="text-emerald-400" /><span>Jump to the real tool from any clip</span></div>
+                  <div className="flex items-center gap-2 text-xs text-slate-300"><CheckCircle2 size={14} className="text-emerald-400" /><span>Knowledge base first — most answers are there</span></div>
+                </div>
+              </div>
+              <button className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-700 hover:from-emerald-400 hover:to-teal-500 text-white font-display font-black text-xs shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.7)] transition-all flex items-center justify-center gap-2 border border-emerald-300/40 cursor-pointer">
+                <Send size={16} /> Open Contact Support
+              </button>
+            </motion.div>
           </div>
-          <motion.div
-            whileHover={{ scale: 1.02, y: -4 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => { setActiveTab('contact'); setShowLanding(false); }}
-            className="lg:col-span-5 flex flex-col justify-between p-6 rounded-[32px] bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-emerald-950/80 border-2 border-emerald-500/40 hover:border-emerald-300 shadow-[0_0_30px_rgba(16,185,129,0.22)] hover:shadow-[0_0_50px_rgba(16,185,129,0.45)] hover:brightness-110 relative overflow-hidden group cursor-pointer transition-all duration-300"
-          >
-            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
-              <img src={imgMessenger} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              <div className="absolute inset-0 bg-slate-950/70" />
-            </div>
-            <div className="space-y-4 relative z-10">
-              <div className="flex items-center justify-between">
-                <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-[10px] font-black uppercase tracking-widest text-emerald-300 flex items-center gap-1.5"><MessageCircle size={12} />HUMAN HELP</span>
-                <LifeBuoy size={22} className="text-emerald-400 animate-pulse group-hover:scale-110 transition-transform" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-display font-black text-white group-hover:text-emerald-200 transition-colors">Contact Support</h3>
-                <p className="text-xs text-slate-300 leading-relaxed mt-2">Send a note that is saved on this device. Every clip has an Open Feature button to take you directly to the live page.</p>
-              </div>
-              <div className="space-y-2 pt-1">
-                <div className="flex items-center gap-2 text-xs text-slate-300"><CheckCircle2 size={14} className="text-emerald-400" /><span>Tickets stay on this device</span></div>
-                <div className="flex items-center gap-2 text-xs text-slate-300"><CheckCircle2 size={14} className="text-emerald-400" /><span>Jump to the real tool from any clip</span></div>
-                <div className="flex items-center gap-2 text-xs text-slate-300"><CheckCircle2 size={14} className="text-emerald-400" /><span>Knowledge base first — most answers are there</span></div>
-              </div>
-            </div>
-            <button className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-700 hover:from-emerald-400 hover:to-teal-500 text-white font-display font-black text-xs shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.7)] transition-all flex items-center justify-center gap-2 border border-emerald-300/40">
-              <Send size={16} /> Open Contact Support
-            </button>
-          </motion.div>
-        </div>
 
-        {/* Feature cards */}
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 my-4 max-w-6xl mx-auto w-full items-stretch">
-          {/* Walkthrough Clips */}
-          <motion.div whileHover={{ scale: 1.03, y: -6 }} whileTap={{ scale: 0.98 }} onClick={() => { setActiveTab('howtos'); setShowLanding(false); }} className="rounded-[28px] border-2 border-cyan-500/80 bg-slate-900/90 p-6 text-center flex flex-col items-center justify-between group hover:border-cyan-400 hover:shadow-[0_0_40px_rgba(6,182,212,0.5)] hover:brightness-110 shadow-[0_0_24px_rgba(6,182,212,0.22)] transition-all duration-300 cursor-pointer relative overflow-hidden min-h-[300px]">
-            <div className="absolute inset-0 z-0 opacity-[0.30] pointer-events-none">
-              <img src={imgContent} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              <div className="absolute inset-0 bg-slate-950/72" />
-            </div>
-            <div className="relative z-10 space-y-3 flex flex-col items-center justify-between h-full">
-              <div className="w-14 h-14 rounded-2xl bg-cyan-500/15 border border-cyan-400/40 flex items-center justify-center text-cyan-300 group-hover:scale-110 transition-transform shadow-[0_0_18px_rgba(6,182,212,0.35)]"><Clapperboard size={26} /></div>
-              <div>
-                <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-[10px] font-black uppercase tracking-widest text-cyan-200 border border-cyan-400/20">Self-serve</span>
-                <h3 className="text-xl font-display font-black text-white mt-2 group-hover:text-cyan-200 transition-colors">Walkthrough Clips</h3>
-                <p className="text-xs text-slate-300 mt-2 leading-relaxed">6–8 min clips for every hub. Play, follow the steps, then Open Feature to the live page.</p>
+          {/* Feature cards */}
+          <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 my-4 max-w-6xl mx-auto w-full items-stretch">
+            {/* Walkthrough Clips */}
+            <motion.div whileHover={{ scale: 1.03, y: -6 }} whileTap={{ scale: 0.98 }} onClick={() => { setActiveTab('howtos'); setShowLanding(false); }} className="rounded-[28px] border-2 border-cyan-500/80 bg-slate-900/90 p-6 text-center flex flex-col items-center justify-between group hover:border-cyan-400 hover:shadow-[0_0_40px_rgba(6,182,212,0.5)] hover:brightness-110 shadow-[0_0_24px_rgba(6,182,212,0.22)] transition-all duration-300 cursor-pointer relative overflow-hidden min-h-[300px]">
+              <div className="absolute inset-0 z-0 opacity-[0.30] pointer-events-none">
+                <img src={imgContent} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-slate-950/72" />
               </div>
-              <span className="px-4 py-2 rounded-xl bg-cyan-500/15 text-cyan-200 font-bold text-xs border border-cyan-400/30 group-hover:bg-cyan-500/25 transition-colors">Explore Clips →</span>
-            </div>
-          </motion.div>
-          {/* Knowledge Base */}
-          <motion.div whileHover={{ scale: 1.03, y: -6 }} whileTap={{ scale: 0.98 }} onClick={() => { setActiveTab('faqs'); setShowLanding(false); }} className="rounded-[28px] border-2 border-violet-500/80 bg-slate-900/90 p-6 text-center flex flex-col items-center justify-between group hover:border-violet-400 hover:shadow-[0_0_40px_rgba(139,92,246,0.5)] hover:brightness-110 shadow-[0_0_24px_rgba(139,92,246,0.22)] transition-all duration-300 cursor-pointer relative overflow-hidden min-h-[300px]">
-            <div className="absolute inset-0 z-0 opacity-[0.30] pointer-events-none">
-              <img src={bgHelpdesk} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              <div className="absolute inset-0 bg-slate-950/72" />
-            </div>
-            <div className="relative z-10 space-y-3 flex flex-col items-center justify-between h-full">
-              <div className="w-14 h-14 rounded-2xl bg-violet-500/15 border border-violet-400/40 flex items-center justify-center text-violet-300 group-hover:scale-110 transition-transform shadow-[0_0_18px_rgba(139,92,246,0.35)]"><BookOpen size={26} /></div>
-              <div>
-                <span className="px-2.5 py-0.5 rounded-full bg-violet-500/15 text-[10px] font-black uppercase tracking-widest text-violet-200 border border-violet-400/20">CAPS & POPiA</span>
-                <h3 className="text-xl font-display font-black text-white mt-2 group-hover:text-violet-200 transition-colors">Knowledge Base</h3>
-                <p className="text-xs text-slate-300 mt-2 leading-relaxed">Searchable answers on SIAS, calendar vs diary, Messenger, OCR, CAPS alignment.</p>
+              <div className="relative z-10 space-y-3 flex flex-col items-center justify-between h-full">
+                <div className="w-14 h-14 rounded-2xl bg-cyan-500/15 border border-cyan-400/40 flex items-center justify-center text-cyan-300 group-hover:scale-110 transition-transform shadow-[0_0_18px_rgba(6,182,212,0.35)]"><Clapperboard size={26} /></div>
+                <div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-[10px] font-black uppercase tracking-widest text-cyan-200 border border-cyan-400/20">Self-serve</span>
+                  <h3 className="text-xl font-display font-black text-white mt-2 group-hover:text-cyan-200 transition-colors">Walkthrough Clips</h3>
+                  <p className="text-xs text-slate-300 mt-2 leading-relaxed">6–8 min clips for every hub. Play, follow the steps, then Open Feature to the live page.</p>
+                </div>
+                <span className="px-4 py-2 rounded-xl bg-cyan-500/15 text-cyan-200 font-bold text-xs border border-cyan-400/30 group-hover:bg-cyan-500/25 transition-colors">Explore Clips →</span>
               </div>
-              <span className="px-4 py-2 rounded-xl bg-violet-500/15 text-violet-200 font-bold text-xs border border-violet-400/30 group-hover:bg-violet-500/25 transition-colors">Search FAQs →</span>
-            </div>
-          </motion.div>
-          {/* Contact */}
-          <motion.div whileHover={{ scale: 1.03, y: -6 }} whileTap={{ scale: 0.98 }} onClick={() => { setActiveTab('contact'); setShowLanding(false); }} className="rounded-[28px] border-2 border-emerald-500/80 bg-slate-900/90 p-6 text-center flex flex-col items-center justify-between group hover:border-emerald-400 hover:shadow-[0_0_40px_rgba(16,185,129,0.5)] hover:brightness-110 shadow-[0_0_24px_rgba(16,185,129,0.22)] transition-all duration-300 cursor-pointer relative overflow-hidden min-h-[300px]">
-            <div className="absolute inset-0 z-0 opacity-[0.30] pointer-events-none">
-              <img src={imgMessenger} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              <div className="absolute inset-0 bg-slate-950/72" />
-            </div>
-            <div className="relative z-10 space-y-3 flex flex-col items-center justify-between h-full">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-400/40 flex items-center justify-center text-emerald-300 group-hover:scale-110 transition-transform shadow-[0_0_18px_rgba(16,185,129,0.35)]"><MessageCircle size={26} /></div>
-              <div>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-[10px] font-black uppercase tracking-widest text-emerald-200 border border-emerald-400/20">Human help</span>
-                <h3 className="text-xl font-display font-black text-white mt-2 group-hover:text-emerald-200 transition-colors">Contact Support</h3>
-                <p className="text-xs text-slate-300 mt-2 leading-relaxed">Send a ticket saved on this device. Include what you were doing and which page.</p>
+            </motion.div>
+            {/* Knowledge Base */}
+            <motion.div whileHover={{ scale: 1.03, y: -6 }} whileTap={{ scale: 0.98 }} onClick={() => { setActiveTab('faqs'); setShowLanding(false); }} className="rounded-[28px] border-2 border-violet-500/80 bg-slate-900/90 p-6 text-center flex flex-col items-center justify-between group hover:border-violet-400 hover:shadow-[0_0_40px_rgba(139,92,246,0.5)] hover:brightness-110 shadow-[0_0_24px_rgba(139,92,246,0.22)] transition-all duration-300 cursor-pointer relative overflow-hidden min-h-[300px]">
+              <div className="absolute inset-0 z-0 opacity-[0.30] pointer-events-none">
+                <img src={bgHelpdesk} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-slate-950/72" />
               </div>
-              <span className="px-4 py-2 rounded-xl bg-emerald-500/15 text-emerald-200 font-bold text-xs border border-emerald-400/30 group-hover:bg-emerald-500/25 transition-colors">Send a Note →</span>
-            </div>
-          </motion.div>
-          {/* Tickets */}
-          <motion.div whileHover={{ scale: 1.03, y: -6 }} whileTap={{ scale: 0.98 }} onClick={() => { setActiveTab('tickets'); setShowLanding(false); }} className="rounded-[28px] border-2 border-amber-500/80 bg-slate-900/90 p-6 text-center flex flex-col items-center justify-between group hover:border-amber-400 hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] hover:brightness-110 shadow-[0_0_24px_rgba(245,158,11,0.22)] transition-all duration-300 cursor-pointer relative overflow-hidden min-h-[300px]">
-            <div className="absolute inset-0 z-0 opacity-[0.30] pointer-events-none">
-              <img src={imgCalendar} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              <div className="absolute inset-0 bg-slate-950/72" />
-            </div>
-            <div className="relative z-10 space-y-3 flex flex-col items-center justify-between h-full">
-              <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-400/40 flex items-center justify-center text-amber-300 group-hover:scale-110 transition-transform shadow-[0_0_18px_rgba(245,158,11,0.35)]"><Mail size={26} /></div>
-              <div>
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-[10px] font-black uppercase tracking-widest text-amber-200 border border-amber-400/20">On device</span>
-                <h3 className="text-xl font-display font-black text-white mt-2 group-hover:text-amber-200 transition-colors">My Tickets {tickets.length ? `(${tickets.length})` : ''}</h3>
-                <p className="text-xs text-slate-300 mt-2 leading-relaxed">Review notes you sent. They stay in your browser storage.</p>
+              <div className="relative z-10 space-y-3 flex flex-col items-center justify-between h-full">
+                <div className="w-14 h-14 rounded-2xl bg-violet-500/15 border border-violet-400/40 flex items-center justify-center text-violet-300 group-hover:scale-110 transition-transform shadow-[0_0_18px_rgba(139,92,246,0.35)]"><BookOpen size={26} /></div>
+                <div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-violet-500/15 text-[10px] font-black uppercase tracking-widest text-violet-200 border border-violet-400/20">CAPS & POPiA</span>
+                  <h3 className="text-xl font-display font-black text-white mt-2 group-hover:text-violet-200 transition-colors">Knowledge Base</h3>
+                  <p className="text-xs text-slate-300 mt-2 leading-relaxed">Searchable answers on SIAS, calendar vs diary, Messenger, OCR, CAPS alignment.</p>
+                </div>
+                <span className="px-4 py-2 rounded-xl bg-violet-500/15 text-violet-200 font-bold text-xs border border-violet-400/30 group-hover:bg-violet-500/25 transition-colors">Search FAQs →</span>
               </div>
-              <span className="px-4 py-2 rounded-xl bg-amber-500/15 text-amber-200 font-bold text-xs border border-amber-400/30 group-hover:bg-amber-500/25 transition-colors">View Tickets →</span>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Search + categories quick access */}
-        <div className="relative z-10 mt-6 p-4 rounded-2xl bg-slate-900/60 border border-white/5 backdrop-blur flex flex-col sm:flex-row gap-3 items-center justify-between">
-          <div className="flex-1 w-full relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); if (e.target.value) setShowLanding(false); }} placeholder="Search how-tos — calendar, SIAS, messenger, OCR…" className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#0b101c] border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500/50" />
+            </motion.div>
+            {/* Contact */}
+            <motion.div whileHover={{ scale: 1.03, y: -6 }} whileTap={{ scale: 0.98 }} onClick={() => { setActiveTab('contact'); setShowLanding(false); }} className="rounded-[28px] border-2 border-emerald-500/80 bg-slate-900/90 p-6 text-center flex flex-col items-center justify-between group hover:border-emerald-400 hover:shadow-[0_0_40px_rgba(16,185,129,0.5)] hover:brightness-110 shadow-[0_0_24px_rgba(16,185,129,0.22)] transition-all duration-300 cursor-pointer relative overflow-hidden min-h-[300px]">
+              <div className="absolute inset-0 z-0 opacity-[0.30] pointer-events-none">
+                <img src={imgMessenger} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-slate-950/72" />
+              </div>
+              <div className="relative z-10 space-y-3 flex flex-col items-center justify-between h-full">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-400/40 flex items-center justify-center text-emerald-300 group-hover:scale-110 transition-transform shadow-[0_0_18px_rgba(16,185,129,0.35)]"><MessageCircle size={26} /></div>
+                <div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-[10px] font-black uppercase tracking-widest text-emerald-200 border border-emerald-400/20">Human help</span>
+                  <h3 className="text-xl font-display font-black text-white mt-2 group-hover:text-emerald-200 transition-colors">Contact Support</h3>
+                  <p className="text-xs text-slate-300 mt-2 leading-relaxed">Send a ticket saved on this device. Include what you were doing and which page.</p>
+                </div>
+                <span className="px-4 py-2 rounded-xl bg-emerald-500/15 text-emerald-200 font-bold text-xs border border-emerald-400/30 group-hover:bg-emerald-500/25 transition-colors">Send a Note →</span>
+              </div>
+            </motion.div>
+            {/* Tickets */}
+            <motion.div whileHover={{ scale: 1.03, y: -6 }} whileTap={{ scale: 0.98 }} onClick={() => { setActiveTab('tickets'); setShowLanding(false); }} className="rounded-[28px] border-2 border-amber-500/80 bg-slate-900/90 p-6 text-center flex flex-col items-center justify-between group hover:border-amber-400 hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] hover:brightness-110 shadow-[0_0_24px_rgba(245,158,11,0.22)] transition-all duration-300 cursor-pointer relative overflow-hidden min-h-[300px]">
+              <div className="absolute inset-0 z-0 opacity-[0.30] pointer-events-none">
+                <img src={imgCalendar} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-slate-950/72" />
+              </div>
+              <div className="relative z-10 space-y-3 flex flex-col items-center justify-between h-full">
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-400/40 flex items-center justify-center text-amber-300 group-hover:scale-110 transition-transform shadow-[0_0_18px_rgba(245,158,11,0.35)]"><Mail size={26} /></div>
+                <div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-[10px] font-black uppercase tracking-widest text-amber-200 border border-amber-400/20">On device</span>
+                  <h3 className="text-xl font-display font-black text-white mt-2 group-hover:text-amber-200 transition-colors">My Tickets {tickets.length ? `(${tickets.length})` : ''}</h3>
+                  <p className="text-xs text-slate-300 mt-2 leading-relaxed">Review notes you sent. They stay in your browser storage.</p>
+                </div>
+                <span className="px-4 py-2 rounded-xl bg-amber-500/15 text-amber-200 font-bold text-xs border border-amber-400/30 group-hover:bg-amber-500/25 transition-colors">View Tickets →</span>
+              </div>
+            </motion.div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {HOW_TO_CATEGORIES.slice(0, 4).map((c) => (
-              <button key={c.id} onClick={() => { setCategory(c.id as any); setActiveTab('howtos'); setShowLanding(false); }} className="px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider border bg-white/5 border-white/10 text-slate-300 hover:text-white hover:border-cyan-400/30 transition-colors">{c.label}</button>
-            ))}
+
+          {/* Search + categories quick access */}
+          <div className="relative z-10 mt-6 p-4 rounded-2xl bg-slate-900/60 border border-white/5 backdrop-blur flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div className="flex-1 w-full relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); if (e.target.value) { setShowLanding(false); setActiveTab('howtos'); } }} placeholder="Search how-tos — calendar, SIAS, messenger, OCR…" className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#0b101c] border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500/50" />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {HOW_TO_CATEGORIES.slice(0, 4).map((c) => (
+                <button key={c.id} onClick={() => { setCategory(c.id as any); setActiveTab('howtos'); setShowLanding(false); }} className="px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider border bg-white/5 border-white/10 text-slate-300 hover:text-white hover:border-cyan-400/30 transition-colors cursor-pointer">{c.label}</button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -389,7 +395,7 @@ export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigat
       <div className="w-full h-full min-h-0 overflow-hidden bg-[#0c1024] rounded-2xl flex flex-col md:flex-row relative">
         <div className="w-full md:w-64 bg-[#141a2e] border-r border-cyan-500/10 flex flex-col pt-6 pb-6 shadow-xl shrink-0 z-10">
           <div className="px-6 mb-6 flex items-center gap-3">
-            <button onClick={() => setShowLanding(true)} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-colors" title="Back to Help Hub">
+            <button onClick={() => setShowLanding(true)} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-colors cursor-pointer" title="Back to Help Hub">
               <ChevronLeft size={16} />
             </button>
             <div className="w-10 h-10 rounded-xl bg-cyan-900/40 border border-cyan-500/30 flex items-center justify-center shrink-0">
@@ -415,13 +421,13 @@ export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigat
             </button>
           </div>
           <div className="px-4 mt-auto pt-6 border-t border-white/5 space-y-2">
-            <button onClick={() => setShowLanding(true)} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold border border-white/10 transition-colors">
+            <button onClick={() => setShowLanding(true)} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold border border-white/10 transition-colors cursor-pointer">
               <ArrowUpRight size={14} /> Back to Support Hub
             </button>
           </div>
         </div>
 
-        <div className="flex-1 bg-gradient-to-br from-[#0c1024] to-[#0a0e1c] p-4 sm:p-8 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 bg-gradient-to-br from-[#0c1024] to-[#0a0e1c] p-4 sm:p-8 overflow-y-auto custom-scrollbar" id="helpdesk-content-scroll">
           <div className="max-w-5xl mx-auto space-y-6">
             <div className="text-left flex items-center justify-between">
               <div>

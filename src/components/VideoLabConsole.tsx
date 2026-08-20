@@ -237,7 +237,7 @@ export default function VideoLabConsole({
 
         {/* Sidebar Controls */}
         <div className="flex flex-col gap-4">
-          <div className="flex-1 bg-white/5 border border-white/10 rounded-[32px] p-6 flex flex-col gap-8 shadow-2xl backdrop-blur-xl">
+          <div className="flex-1 bg-[#0a1226]/95 border border-cyan-500/30 rounded-[32px] p-6 flex flex-col gap-8 shadow-2xl backdrop-blur-xl">
             <div className="flex items-center gap-2 text-[10px] font-black text-white uppercase tracking-widest border-b border-white/10 pb-4">
               <Settings2 size={14} className="text-purple-400" />
               <span>Control Board</span>
@@ -250,7 +250,7 @@ export default function VideoLabConsole({
                 <select 
                   value={vid_model} 
                   onChange={(e) => setVid_Model?.(e.target.value)}
-                  className="w-full bg-transparent border border-white/10 text-slate-200 text-xs font-semibold rounded-xl p-2.5 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.05)]"
+                  className="w-full bg-[#060c1d] border border-cyan-500/30 text-slate-200 text-xs font-semibold rounded-xl p-2.5 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.05)]"
                 >
                   <option value="omnihuman-1" className="bg-slate-900">Omnihuman-1 (Gradio Streaming)</option>
                   <option value="replicate-minimax" className="bg-slate-900">Minimax Video</option>
@@ -265,7 +265,7 @@ export default function VideoLabConsole({
                   placeholder="Type your prompt here... E.g., A cinematic shot of a lion roaring in the African savanna..." 
                   value={vid_prompt} 
                   onChange={(e) => setVid_Prompt?.(e.target.value)} 
-                  className="w-full h-20 bg-transparent border border-white/10 text-slate-200 text-xs font-medium rounded-xl p-2.5 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all resize-none shadow-[0_0_15px_rgba(168,85,247,0.05)]"
+                  className="w-full h-20 bg-[#060c1d] border border-cyan-500/30 text-slate-200 text-xs font-medium rounded-xl p-2.5 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all resize-none shadow-[0_0_15px_rgba(168,85,247,0.05)]"
                 />
               </div>
 
@@ -278,7 +278,7 @@ export default function VideoLabConsole({
                       type="number" 
                       value={vid_seed} 
                       onChange={(e) => setVid_Seed?.(Number(e.target.value))} 
-                      className="w-full h-9 bg-transparent border border-white/10 text-slate-250 text-xs font-medium rounded-xl px-3 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                      className="w-full h-9 bg-[#060c1d] border border-cyan-500/30 text-slate-250 text-xs font-medium rounded-xl px-3 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
                     />
                   </div>
                   <div className="space-y-1.5 text-left">
@@ -302,11 +302,11 @@ export default function VideoLabConsole({
             </div>
 
             <div className="mt-auto space-y-3 pt-6 border-t border-white/5">
-               <button className="w-full flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-transparent border border-white/10 rounded-2xl transition-all group">
+               <button className="w-full flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all group">
                   <span className="text-xs font-bold text-slate-300">Camera Presets</span>
                   <ChevronRight size={14} className="text-slate-500 group-hover:translate-x-1 transition-transform" />
                </button>
-               <button className="w-full flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-transparent border border-white/10 rounded-2xl transition-all group">
+               <button className="w-full flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all group">
                   <span className="text-xs font-bold text-slate-300">Lighting Override</span>
                   <ChevronRight size={14} className="text-slate-500 group-hover:translate-x-1 transition-transform" />
                </button>
@@ -316,7 +316,7 @@ export default function VideoLabConsole({
       </div>
 
       {/* Footer Area with Progress */}
-      <div className="bg-white/5 border border-white/10 rounded-[32px] p-6 flex flex-col sm:flex-row items-center gap-6 shadow-2xl">
+      <div className="bg-[#0a1226]/95 border border-cyan-500/30 rounded-[32px] p-6 flex flex-col sm:flex-row items-center gap-6 shadow-2xl">
         <div className="flex-1 w-full space-y-3">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">

@@ -131,7 +131,7 @@ export default function FoundationPhaseArchitect({
         {/* Left Column: Parameters */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           {/* Global Parameters */}
-          <div className="bg-white/5 border border-white/10 rounded-[32px] p-6 flex flex-col gap-6 shadow-2xl backdrop-blur-xl">
+          <div className="bg-[#0a1226]/95 border border-cyan-500/30 rounded-[32px] p-6 flex flex-col gap-6 shadow-2xl backdrop-blur-xl">
              <div className="flex items-center gap-2 text-[10px] font-black text-white uppercase tracking-widest border-b border-white/10 pb-4">
               <Settings2 size={14} className="text-cyan-400" />
               <span>Global Parameters</span>
@@ -140,17 +140,17 @@ export default function FoundationPhaseArchitect({
             <div className="space-y-6">
               {/* Difficulty Curve */}
               <div className="space-y-3">
-                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Difficulty Curve</label>
-                 <div className="grid grid-cols-3 gap-1 bg-black/40 p-1 rounded-2xl border border-white/5">
+                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Difficulty Curve</label>
+                 <div className="grid grid-cols-3 gap-1 bg-[#060c1d] p-1 rounded-2xl border border-cyan-500/20">
                     {(['linear', 'adaptive', 'stepped'] as const).map(mode => (
                       <button
                         key={mode}
                         onClick={() => setDifficulty(mode)}
                         className={cn(
-                          "py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all",
+                          "py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer",
                           difficulty === mode 
                             ? "bg-cyan-500/20 text-cyan-400 shadow-[inset_0_0_15px_rgba(6,182,212,0.1)] border border-cyan-400/20"
-                            : "text-slate-500 hover:text-slate-300"
+                            : "text-slate-400 hover:text-slate-200"
                         )}
                       >
                         {mode}
@@ -161,20 +161,20 @@ export default function FoundationPhaseArchitect({
 
               {/* Vocabulary Level */}
               <div className="space-y-3">
-                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Target Vocabulary Level</label>
+                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Vocabulary Level</label>
                  <div className="flex items-center justify-between gap-4">
                     <button 
                       onClick={() => onGradeChange?.("Grade R")}
-                      className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-transparent border border-white/10 rounded-xl transition-all text-slate-400"
+                      className="w-10 h-10 flex items-center justify-center bg-[#0d1733] hover:bg-[#152554] border border-white/10 rounded-xl transition-all text-slate-300 cursor-pointer"
                     >
                        <RotateCcw size={16} />
                     </button>
-                    <div className="flex-1 h-10 flex items-center justify-center bg-black/40 border border-white/5 rounded-xl">
+                    <div className="flex-1 h-10 flex items-center justify-center bg-[#060c1d] border border-cyan-500/20 rounded-xl">
                        <span className="text-xs font-black text-cyan-400 uppercase tracking-widest">{grade}</span>
                     </div>
                     <button 
                       onClick={() => onGradeChange?.("Grade 3")}
-                      className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-transparent border border-white/10 rounded-xl transition-all text-slate-400"
+                      className="w-10 h-10 flex items-center justify-center bg-[#0d1733] hover:bg-[#152554] border border-white/10 rounded-xl transition-all text-slate-300 cursor-pointer"
                     >
                        <Plus size={16} />
                     </button>
@@ -183,9 +183,9 @@ export default function FoundationPhaseArchitect({
 
               {/* Interaction Mode */}
               <div className="space-y-3">
-                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Interaction Mode</label>
+                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Interaction Mode</label>
                  <div className="relative">
-                    <button className="w-full flex items-center justify-between px-4 py-3 bg-black/40 hover:bg-black/50 border border-white/5 rounded-xl text-left transition-all group">
+                    <button className="w-full flex items-center justify-between px-4 py-3 bg-[#060c1d] hover:bg-[#0d1733] border border-cyan-500/20 rounded-xl text-left transition-all group cursor-pointer">
                        <span className="text-xs font-bold text-slate-300">Drag and Drop</span>
                        <ChevronDown size={14} className="text-slate-500 group-hover:text-slate-300 transition-colors" />
                     </button>
@@ -195,7 +195,7 @@ export default function FoundationPhaseArchitect({
           </div>
 
           {/* Learning Goals */}
-          <div className="bg-white/5 border border-white/10 rounded-[32px] p-6 flex flex-col gap-6 shadow-2xl backdrop-blur-xl flex-1">
+          <div className="bg-[#0a1226]/95 border border-cyan-500/30 rounded-[32px] p-6 flex flex-col gap-6 shadow-2xl backdrop-blur-xl flex-1">
              <div className="flex items-center gap-2 text-[10px] font-black text-white uppercase tracking-widest border-b border-white/10 pb-4">
               <Sparkles size={14} className="text-purple-400" />
               <span>Learning Goals</span>
@@ -203,14 +203,14 @@ export default function FoundationPhaseArchitect({
 
             <div className="flex flex-wrap gap-2">
                {goals.map(goal => (
-                 <div key={goal} className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-xl group hover:border-white/20 transition-all">
+                 <div key={goal} className="flex items-center gap-2 px-3 py-2 bg-[#0d1733] border border-white/10 rounded-xl group hover:border-cyan-400/40 transition-all">
                     <span className="text-[10px] font-bold text-slate-300">{goal}</span>
-                    <button onClick={() => removeGoal(goal)} className="text-slate-500 hover:text-rose-400 transition-colors">
+                    <button onClick={() => removeGoal(goal)} className="text-slate-500 hover:text-rose-400 transition-colors cursor-pointer">
                        <X size={12} />
                     </button>
                  </div>
                ))}
-               <button onClick={addGoal} className="flex items-center gap-2 px-3 py-2 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-cyan-400 hover:bg-cyan-500/20 transition-all">
+               <button onClick={addGoal} className="flex items-center gap-2 px-3 py-2 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-cyan-400 hover:bg-cyan-500/20 transition-all cursor-pointer">
                   <Plus size={12} />
                   <span className="text-[10px] font-black uppercase tracking-widest">Add Goal</span>
                </button>
@@ -237,7 +237,7 @@ export default function FoundationPhaseArchitect({
 
         {/* Right Column: Preview Area */}
         <div className="lg:col-span-3 flex flex-col gap-4">
-           <div className="w-full bg-white/5 border border-white/10 rounded-2xl sm:rounded-[32px] p-1 flex flex-col overflow-hidden shadow-2xl relative min-h-[350px] sm:min-h-[500px]">
+           <div className="w-full bg-[#0a1226]/95 border border-cyan-500/30 rounded-2xl sm:rounded-[32px] p-1 flex flex-col overflow-hidden shadow-2xl relative min-h-[350px] sm:min-h-[500px]">
               {/* Header */}
               <div className="flex items-center justify-between p-4 px-6 border-b border-white/5">
                  <div className="flex items-center gap-2 text-[10px] font-black text-white uppercase tracking-widest">
