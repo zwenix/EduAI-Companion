@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, ArrowRight, ShieldAlert, Rocket, Sparkles } from 'lucide-react';
 import { auth } from '../lib/firebase';
-import { GoogleAuthProvider, signInWithPopup, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signInAnonymously } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signInAnonymously, sendPasswordResetEmail } from 'firebase/auth';
 import { motion, AnimatePresence } from 'motion/react';
 import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
@@ -21,6 +21,13 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
   const [isGoogle, setIsGoogle] = useState(false);
   const [error, setError] = useState('');
   const [stars, setStars] = useState<{ id: number; x: number; y: number; size: number; delay: number }[]>([]);
+
+  // Forgot-password flow
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetSent, setResetSent] = useState('');
   const isIframe = typeof window !== 'undefined' && window.self !== window.top;
 
   useEffect(() => {
@@ -100,6 +107,46 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
       setIsLoading(false);
       onSuccess();
     }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError('');
+    setResetSent('');
+    const targetEmail = resetEmail.trim();
+    if (!targetEmail) {
+      setResetError('Enter your account email first.');
+      return;
+    }
+    setResetLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, targetEmail);
+      // Same message for success vs unknown-email so the form does not leak
+      // which addresses are registered.
+      setResetSent(`If ${targetEmail} is registered on EduAI, a password reset link is on its way. Check your inbox (and spam folder).`);
+    } catch (err: any) {
+      const code = String(err?.code || '');
+      if (code === 'auth/user-not-found') {
+        setResetSent(`If ${targetEmail} is registered on EduAI, a password reset link is on its way. Check your inbox (and spam folder).`);
+      } else if (code === 'auth/invalid-email' || /invalid-email/i.test(String(err?.message || ''))) {
+        setResetError('That email address does not look valid. Check the spelling.');
+      } else if (code === 'auth/too-many-requests' || /too-many-requests/i.test(String(err?.message || ''))) {
+        setResetError('Too many reset attempts. Wait a few minutes and try again.');
+      } else {
+        setResetError(`Could not send the reset link${code ? ` (${code})` : ''}: ${String(err?.message || err)}`);
+      }
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const openForgotMode = () => {
+    setIsSignUp(false);
+    setForgotMode(true);
+    setError('');
+    setResetError('');
+    setResetSent('');
+    setResetEmail(email.trim());
   };
 
   const handleGoogle = async () => {
@@ -381,7 +428,13 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
             {/* Top Card Title (Exactly matching screenshot 2) */}
             <div className="text-center mb-7">
               <h1 className="text-3xl sm:text-4xl font-display font-black tracking-tight leading-tight">
-                {isSignUp ? (
+                {forgotMode ? (
+                  <>
+                    <span className="text-cyan-300 drop-shadow-[0_0_12px_rgba(0,211,238,0.8)]">Forgot Your</span>{" "}
+                    <br />
+                    <span className="text-pink-400 drop-shadow-[0_0_12px_rgba(255,0,212,0.8)]">Password?</span>
+                  </>
+                ) : isSignUp ? (
                   <>
                     <span className="text-cyan-300 drop-shadow-[0_0_12px_rgba(0,211,238,0.8)]">Sign Up for Your</span>{" "}
                     <br />
@@ -395,6 +448,11 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
                   </>
                 )}
               </h1>
+              {forgotMode && (
+                <p className="text-xs text-slate-300 mt-2 font-medium">
+                  Enter your account email and we'll send you a secure link to choose a new password.
+                </p>
+              )}
             </div>
 
             {/* Sandbox iframe notification */}
@@ -417,6 +475,53 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
             )}
 
             {/* Form */}
+            {forgotMode ? (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                {resetSent && (
+                  <div className="p-4 bg-emerald-500/15 border border-emerald-400/40 text-emerald-200 rounded-2xl text-xs font-medium text-center leading-relaxed">
+                    {resetSent}
+                  </div>
+                )}
+                {resetError && (
+                  <div className="p-3 bg-rose-500/20 text-rose-200 border border-rose-500/40 rounded-2xl font-bold text-xs text-center">
+                    {resetError}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-200 mb-1.5 ml-1">
+                    Account Email
+                  </label>
+                  <div className="relative">
+                    <input 
+                      type="email" 
+                      value={resetEmail}
+                      onChange={e => setResetEmail(e.target.value)}
+                      placeholder="you@school.edu.za"
+                      className="w-full h-12 bg-transparent border border-cyan-400/50 focus:border-cyan-300 focus:shadow-[0_0_15px_rgba(0,211,238,0.5)] rounded-2xl px-4 text-white placeholder-slate-500 font-bold text-sm outline-none transition-all"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={resetLoading}
+                  className="w-full h-13 mt-6 rounded-2xl font-display font-black text-base text-white tracking-widest bg-gradient-to-r from-cyan-600 via-cyan-500 to-blue-600 border-2 border-cyan-400 shadow-[0_0_25px_rgba(0,211,238,0.6)] hover:shadow-[0_0_35px_rgba(0,211,238,0.85)] hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer uppercase flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {resetLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-white" />
+                  ) : (
+                    <span>Send Reset Link</span>
+                  )}
+                </button>
+
+                <p className="text-[11px] text-slate-400 text-center leading-relaxed pt-1">
+                  The reset link arrives by email and expires shortly. For Google sign-in accounts, use your Google account recovery instead.
+                </p>
+              </form>
+            ) : (
             <form onSubmit={handleLogin} className="space-y-4">
               
               {/* Name Field (Sign Up Mode) */}
@@ -477,6 +582,17 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
                     required
                   />
                 </div>
+                {!isSignUp && (
+                  <div className="text-right mt-1.5">
+                    <button 
+                      type="button" 
+                      onClick={openForgotMode}
+                      className="text-cyan-300 text-[11px] font-bold hover:text-cyan-200 hover:underline transition-colors focus:outline-none"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Big CTA Button (Matching Screenshot 2: "SIGN UP" glowing magenta pill) */}
@@ -527,22 +643,33 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
                 </button>
               </div>
             </form>
+            )}
 
             {/* Bottom Toggle Link (Exactly matching screenshot 2: "Already have an account? Sign In") */}
             <div className="mt-6 text-center">
-              <p className="text-sm font-sans text-slate-300">
-                {isSignUp ? "Already have an account?" : "Don't have an account?"}{' '}
+              {forgotMode ? (
                 <button 
                   type="button" 
-                  onClick={() => {
-                    setIsSignUp(!isSignUp);
-                    setError('');
-                  }}
-                  className="text-cyan-300 font-black italic hover:text-cyan-200 transition-colors focus:outline-none hover:underline ml-1"
+                  onClick={() => { setForgotMode(false); setError(''); }}
+                  className="text-cyan-300 font-black italic hover:text-cyan-200 transition-colors focus:outline-none hover:underline"
                 >
-                  {isSignUp ? "Sign In" : "Sign Up"}
+                  ← Back to Log In
                 </button>
-              </p>
+              ) : (
+                <p className="text-sm font-sans text-slate-300">
+                  {isSignUp ? "Already have an account?" : "Don't have an account?"}{' '}
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setIsSignUp(!isSignUp);
+                      setError('');
+                    }}
+                    className="text-cyan-300 font-black italic hover:text-cyan-200 transition-colors focus:outline-none hover:underline ml-1"
+                  >
+                    {isSignUp ? "Sign In" : "Sign Up"}
+                  </button>
+                </p>
+              )}
             </div>
 
           </motion.div>

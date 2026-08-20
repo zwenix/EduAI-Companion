@@ -12,6 +12,7 @@ import { auth, db } from '../lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
 import ProfileSettings from './ProfileSettings';
+import PasswordSecurity from './PasswordSecurity';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
@@ -25,6 +26,8 @@ interface SettingsProps {
   installPWAApp?: () => void;
   isAlreadyInstalled?: boolean;
   userRole?: string;
+  /** Which subtab to open on mount / when the value changes (e.g. 'security'). */
+  initialSection?: string;
 }
 
 export default function Settings({ 
@@ -36,7 +39,8 @@ export default function Settings({
   isAppInstallable = false,
   installPWAApp,
   isAlreadyInstalled = false,
-  userRole
+  userRole,
+  initialSection
 }: SettingsProps) {
   const { provider, ocrProvider, ttsProvider, imageProvider, setProvider, setOcrProvider, setTtsProvider, setImageProvider } = useAi();
   const [notifications, setNotifications] = useState(true);
@@ -65,8 +69,15 @@ export default function Settings({
   const [readSpeed, setReadSpeed] = useState(() => Number(localStorage.getItem('eduai_read_speed') || '1.0'));
   const [dyscalculiaHelp, setDyscalculiaHelp] = useState(() => localStorage.getItem('eduai_dyscalculia') === 'true');
   
-  const [activeSubTab, setActiveSubTab] = useState('personal');
+  const [activeSubTab, setActiveSubTab] = useState(initialSection || 'personal');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Deep-link support: when the app shell asks for a section (e.g. the
+  // header profile menu's "Password & Security"), switch to it even if
+  // Settings is already mounted.
+  useEffect(() => {
+    if (initialSection) setActiveSubTab(initialSection);
+  }, [initialSection]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -253,7 +264,7 @@ export default function Settings({
   const subTabs = [
     { id: 'personal', label: 'Profile Settings', icon: User },
     { id: 'accessibility', label: 'Accessibility', icon: Palette },
-    { id: 'security', label: 'Security', icon: Lock },
+    { id: 'security', label: 'Password & Security', icon: Lock },
     { id: 'ai', label: 'AI Configuration', icon: Activity },
     { id: 'pwa', label: 'App Install (PWA)', icon: Smartphone },
     { id: 'billing', label: 'Plan & Billing', icon: CreditCard },
@@ -382,13 +393,7 @@ export default function Settings({
 
              {/* Keeping other tabs simpler for now or mapping them if I can find them */}
              {activeSubTab === 'security' && (
-                <div className="space-y-6">
-                   <h2 className="text-3xl font-black text-white">Security Matrix</h2>
-                   <div className="p-8 rounded-[40px] border border-white/5 bg-white/5 space-y-4">
-                      <p className="text-slate-400 text-sm">Update your authentication credentials and manage active sessions across devices.</p>
-                      <button className="bg-white/5 hover:bg-white/10 text-white px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all">Change Secret Key</button>
-                   </div>
-                </div>
+                <PasswordSecurity isDarkMode={isDarkMode} />
              )}
 
              {activeSubTab === 'ai' && (

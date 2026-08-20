@@ -599,7 +599,7 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
   });
 
   return (
-    <div className="full-bleed-page w-full h-full min-h-0 font-sans p-2 sm:p-4 overflow-y-auto relative bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.85)_0%,rgba(8,11,34,1)_100%)] text-slate-100 custom-scrollbar">
+    <div className="w-full h-full min-h-0 font-sans p-2 sm:p-4 overflow-y-auto overflow-x-hidden overscroll-contain relative bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.85)_0%,rgba(8,11,34,1)_100%)] text-slate-100 custom-scrollbar">
       {/* Background Overlay & Ambient Glows */}
       <div 
         className="fixed inset-0 pointer-events-none z-0 opacity-25 mix-blend-overlay bg-cover bg-center" 
