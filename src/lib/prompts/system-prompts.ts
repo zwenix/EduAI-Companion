@@ -203,9 +203,18 @@ OUTPUT: Complete HTML with Tailwind CSS, printable format, complete and producti
 export const getSystemPrompt = (contentType: string): string => {
   const typeMap: Record<string, string> = {
     'worksheet': SYSTEM_PROMPTS.WORKSHEET,
+    'homework-task': SYSTEM_PROMPTS.WORKSHEET,
+    'classroom-exercise': SYSTEM_PROMPTS.WORKSHEET,
+    'group-activity': SYSTEM_PROMPTS.WORKSHEET,
+    'flashcards': SYSTEM_PROMPTS.WORKSHEET,
     'lesson-plan': SYSTEM_PROMPTS.LESSON_PLAN,
     'poster': SYSTEM_PROMPTS.VISUAL_AID,
     'wall-chart': SYSTEM_PROMPTS.VISUAL_AID,
+    'educational-poster': SYSTEM_PROMPTS.VISUAL_AID,
+    'word-wall': SYSTEM_PROMPTS.VISUAL_AID,
+    'vocabulary-display': SYSTEM_PROMPTS.VISUAL_AID,
+    'classroom-rules-poster': SYSTEM_PROMPTS.VISUAL_AID,
+    'topic-anchor-chart': SYSTEM_PROMPTS.VISUAL_AID,
     'infographic': SYSTEM_PROMPTS.INFOGRAPHIC,
     'mind-map': SYSTEM_PROMPTS.INFOGRAPHIC,
     'mind map': SYSTEM_PROMPTS.INFOGRAPHIC,
@@ -221,7 +230,8 @@ export const getSystemPrompt = (contentType: string): string => {
     'study-guide': SYSTEM_PROMPTS.STUDY_GUIDE
   };
 
-  return typeMap[contentType] || SYSTEM_PROMPTS.WORKSHEET;
+  const normalizedType = contentType.trim().toLowerCase().replace(/[\s_]+/g, '-');
+  return typeMap[normalizedType] || SYSTEM_PROMPTS.WORKSHEET;
 };
 
 /**

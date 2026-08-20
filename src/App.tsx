@@ -1821,9 +1821,12 @@ export default function App() {
         {/* Full-main overlay plate (behind header + content) so top/bottom never flash white */}
         <PageOverlay route={activeTab} blend="normal" opacity={0.45} vignette={false} drift={false} />
 
-        {/* Header sits above overlay with translucent glass */}
+        {/* The former top utility/menu bar was removed so every route can use the
+            full viewport. Navigation lives in the sidebar; mobile keeps a small,
+            non-obstructive floating sidebar trigger below. */}
         <header 
-          className={`relative h-14 lg:h-14 border-b shrink-0 z-50 px-4 lg:px-8 flex items-center justify-between transition-colors duration-500 ${
+          aria-hidden="true"
+          className={`hidden ${
             themeMode === 'peach'
               ? 'border-[#dcd4c3]/60 bg-[#efe8d9]/55 backdrop-blur-xl text-[#431407]'
               : 'border-white/10 bg-[#091225]/60 backdrop-blur-xl text-white'
@@ -2138,6 +2141,17 @@ export default function App() {
             </div>
           </div>
         </header>
+
+        {isMobile && !isMobileSidebarOpen && (
+          <button
+            type="button"
+            onClick={() => setMobileSidebarOpen(true)}
+            className="fixed top-3 left-3 z-[55] h-10 w-10 rounded-xl border border-cyan-400/40 bg-[#091225]/85 text-cyan-200 backdrop-blur-xl shadow-[0_0_20px_rgba(34,211,238,0.28)] hover:border-cyan-300 hover:shadow-[0_0_28px_rgba(34,211,238,0.55)] transition-all flex items-center justify-center"
+            aria-label="Open navigation"
+          >
+            <Menu size={20} />
+          </button>
+        )}
 
         {/* Slide-Open Mobile Top Menu Bar / Tools Tray */}
         <AnimatePresence>
