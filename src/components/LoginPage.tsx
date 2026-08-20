@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, ArrowRight, ShieldAlert, Rocket, Sparkles } from 'lucide-react';
 import { auth } from '../lib/firebase';
-import { GoogleAuthProvider, signInWithPopup, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signInAnonymously, sendPasswordResetEmail } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signInAnonymously, sendPasswordResetEmail } from 'firebase/auth';
 import { motion, AnimatePresence } from 'motion/react';
 import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
@@ -29,6 +29,41 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
   const [resetError, setResetError] = useState('');
   const [resetSent, setResetSent] = useState('');
   const isIframe = typeof window !== 'undefined' && window.self !== window.top;
+
+  // Persist the profile fields every Google path uses.
+  const persistGoogleUser = (u: any) => {
+    if (!u) return;
+    localStorage.setItem('eduai_user_name', u.displayName || '');
+    localStorage.setItem('eduai_user_photo', u.photoURL || '');
+    localStorage.setItem('eduai_user_email', u.email || '');
+  };
+
+  useEffect(() => {
+    // Consume the result of a Google redirect sign-in (used as a fallback
+    // when popups are blocked, e.g. inside sandboxed iframes or strict
+    // browsers). If the user just returned from accounts.google.com, this
+    // completes the sign-in without any further taps.
+    let cancelled = false;
+    getRedirectResult(auth)
+      .then((result) => {
+        if (cancelled || !result?.user) return;
+        persistGoogleUser(result.user);
+        onSuccess();
+      })
+      .catch((redirectErr: any) => {
+        if (cancelled) return;
+        const code = String(redirectErr?.code || '');
+        const msg = String(redirectErr?.message || '');
+        console.error('Google redirect sign-in failed:', redirectErr);
+        if (code === 'auth/unauthorized-domain' || /unauthorized-domain/i.test(msg)) {
+          setError(`Google blocked this sign-in because the current domain is not allowlisted. In Firebase console → Authentication → Settings → Authorized domains, add: ${window.location.hostname}. Then reload and try again.`);
+        } else {
+          setError(`Google redirect sign-in failed${code ? ` (${code})` : ''}. ${msg}`);
+        }
+      });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     // Generate twinkling stars for cosmic background
@@ -202,12 +237,27 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
       } else {
         const provider = new GoogleAuthProvider();
         GOOGLE_AUTH_SCOPES.forEach((s) => provider.addScope(s));
-        const result = await signInWithPopup(auth, provider);
+        provider.setCustomParameters({ prompt: 'select_account' });
 
-        if (result.user) {
-          localStorage.setItem('eduai_user_name', result.user.displayName || '');
-          localStorage.setItem('eduai_user_photo', result.user.photoURL || '');
-          localStorage.setItem('eduai_user_email', result.user.email || '');
+        try {
+          const result = await signInWithPopup(auth, provider);
+          if (result.user) persistGoogleUser(result.user);
+        } catch (popupErr: any) {
+          const popupCode = String(popupErr?.code || '');
+          const popupMsg = String(popupErr?.message || '');
+          // Popups are blocked inside sandboxed iframes and strict browsers.
+          // Fall back to the full-page redirect flow — Google allows redirects
+          // from iframes, and the result is consumed on the next page load by
+          // getRedirectResult above.
+          if (
+            popupCode === 'auth/popup-blocked' ||
+            popupCode === 'auth/popup-closed-by-user' ||
+            /popup/i.test(popupMsg)
+          ) {
+            await signInWithRedirect(auth, provider);
+            return; // the browser is navigating away — do not touch loading state
+          }
+          throw popupErr;
         }
       }
 
@@ -226,6 +276,13 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
         setError("The Google Sign-In popup was closed or blocked by the preview iframe. Tip: Click '⚡ QUICK DEMO ACCESS' below to enter instantly without logging in!");
       } else if (errCode === 'auth/popup-blocked' || errMsg.includes('popup-blocked')) {
         setError("Login popup blocked by your browser/iframe. Tip: Click '⚡ QUICK DEMO ACCESS' below to enter instantly!");
+      } else if (errCode === 'auth/unauthorized-domain' || /unauthorized-domain/i.test(combined)) {
+        // The current host is not allowlisted in Firebase Auth.
+        setError(`This domain isn't allowlisted for Google Sign-In yet. In Firebase console → Authentication → Settings → Authorized domains, add "${window.location.hostname}", then reload this page.`);
+      } else if (/redirect_uri_mismatch|invalid_client|unauthorized origin/i.test(combined)) {
+        // The OAuth client in GCP does not list the origin that just asked for
+        // consent. Most common after swapping/recreating the Web client.
+        setError(`Google rejected this sign-in request (${errCode || 'client/origin mismatch'}). In Google Cloud Console → project gen-lang-client-0448588221 → APIs & Services → Credentials → the "Web application" client (…-cmk737dpv1620nicbriuoji883vk4dg6), add ${window.location.origin} under "Authorized JavaScript origins", and add https://gen-lang-client-0448588221.firebaseapp.com/__/auth/handler under "Authorized redirect URIs". Wait a few minutes, then try again.`);
       } else if ((Capacitor.isNativePlatform() || /android|ios/i.test(Capacitor.getPlatform())) && (errCode === '10' || /DEVELOPER_ERROR|ApiException:?\s*10|12500|12501/i.test(combined))) {
         // Native Google Sign-In error code 10 (DEVELOPER_ERROR): the OAuth
         // client is misconfigured. Almost always the signing SHA-1 fingerprint
@@ -233,12 +290,16 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
         // OAuth client lives in a different Google Cloud project than the Web
         // client ID.
         setError(
-          `Google Sign-In isn't configured for this Android build (code 10). In Google Cloud Console → Credentials (project gen-lang-client-0448588221), create an "Android" OAuth client with package name ${ANDROID_APP_PACKAGE_NAME} and SHA-1 ${ANDROID_DEBUG_SHA1}. Also confirm the OAuth consent screen has a support email and is published, and that you installed the APK built with signing/android-debug.keystore. Local debug builds use a different SHA-1 — register yours or install the CI release APK.`
+          `Google Sign-In isn't configured for this Android build (code 10). In Google Cloud Console → Credentials (project gen-lang-client-0448588221), create an "Android" OAuth client with package name ${ANDROID_APP_PACKAGE_NAME} and SHA-1 ${ANDROID_DEBUG_SHA1}. The Web client ID the app uses must be ${FIREBASE_WEB_CLIENT_ID} — if that client was deleted or replaced in GCP, restore it or update src/config/googleAuth.ts. Also confirm the OAuth consent screen has a support email and is published (or your Google account is listed as a test user), and that you installed the APK built with signing/android-debug.keystore. Local debug builds use a different SHA-1 — register yours or install the CI release APK.`
         );
       } else if (/DEVELOPER_ERROR|12500|12501|10[^0-9]|invalid_client|api.*not.*register|not.*configured.*google|shA-1|SHA1|signing certificate|requestIdToken/i.test(combined)) {
         // Native Google Sign-In misconfiguration (most commonly an unregistered
         // SHA-1 fingerprint, wrong client ID type, or missing OAuth client).
-        setError(`Google Sign-In is not fully configured for this app. ${errCode ? '(' + errCode + ') ' : ''}${errMsg} — Verify the Android OAuth client (package ${ANDROID_APP_PACKAGE_NAME}, SHA-1 ${ANDROID_DEBUG_SHA1}) exists in the same project as web client ${FIREBASE_WEB_CLIENT_ID}.`);
+        setError(`Google Sign-In is not fully configured for this app. ${errCode ? '(' + errCode + ') ' : ''}${errMsg} — Verify the Android OAuth client (package ${ANDROID_APP_PACKAGE_NAME}, SHA-1 ${ANDROID_DEBUG_SHA1}) exists in the same GCP project as web client ${FIREBASE_WEB_CLIENT_ID} (project 725068822716). If that web client was deleted or regenerated in GCP, update src/config/googleAuth.ts to the current client ID.`);
+      } else if (/access_denied|disallowed_useragent|oauth2/i.test(combined) && !(Capacitor.isNativePlatform() || /android|ios/i.test(Capacitor.getPlatform()))) {
+        // Usually the OAuth consent screen is in "Testing" mode and the
+        // account is not a test user, or the app is in a restricted mode.
+        setError(`Google blocked this sign-in (${errCode || 'access_denied'}). Check that the OAuth consent screen in project gen-lang-client-0448588221 is published (or your email is added under "Test users"), and that the Google Sign-In provider is enabled in Firebase → Authentication → Sign-in methods.`);
       } else {
         setError(`${errMsg}${errCode ? ' [' + errCode + ']' : ''}`);
       }

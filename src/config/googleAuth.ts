@@ -1,8 +1,19 @@
 // OAuth client IDs are public identifiers, not secrets. Keep the native
 // Capacitor configuration and the runtime initialization on this single value
 // so Android always requests a Firebase-compatible Google ID token.
+//
+// IMPORTANT — this value MUST be an OAuth client ID of type "Web application"
+// that currently EXISTS in Google Cloud Console:
+//   project: gen-lang-client-0448588221 (project number 725068822716)
+//   APIs & Services → Credentials → OAuth 2.0 Client IDs
+//
+// The previous client (…-tv8hh929bsagjliekkoq4ptkcfb3gs0k) was replaced by the
+// client whose `client_secret_…json` was downloaded from GCP:
+//   client ID: 725068822716-cmk737dpv1620nicbriuoji883vk4dg6
+// If Google Sign-In fails with "invalid_client" / error 10 / 12501, the first
+// thing to verify is that THIS ID still exists in the GCP project above.
 export const FIREBASE_WEB_CLIENT_ID =
-  '725068822716-tv8hh929bsagjliekkoq4ptkcfb3gs0k.apps.googleusercontent.com';
+  '725068822716-cmk737dpv1620nicbriuoji883vk4dg6.apps.googleusercontent.com';
 
 export const GOOGLE_AUTH_SCOPES = ['profile', 'email'];
 
@@ -21,7 +32,8 @@ export const GOOGLE_AUTH_SCOPES = ['profile', 'email'];
 // project, or the consent screen is not published.
 //
 // The workflow .github/workflows/build-android2.yml copies the committed
-// keystore and patches android/app/src/main/res/values/strings.xml with
+// keystore, installs a repo-root google-services.json into android/app/ when
+// present, and patches android/app/src/main/res/values/strings.xml with
 // server_client_id so the native plugin always resolves the Web client ID
 // even without a google-services.json.
 export const ANDROID_APP_PACKAGE_NAME = 'com.eduaicompanion.app';
