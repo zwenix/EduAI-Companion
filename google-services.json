@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "725068822716",
+    "project_id": "gen-lang-client-0448588221",
+    "storage_bucket": "gen-lang-client-0448588221.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:725068822716:android:a36e81c6e43da6a1e3f8b9",
+        "android_client_info": {
+          "package_name": "com.eduaicompanion.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "725068822716-tv8hh929bsagjliekkoq4ptkcfb3gs0k.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAmXEEjLw-DZkJNMFKEiImSMRBbyjXDOA4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "725068822716-tv8hh929bsagjliekkoq4ptkcfb3gs0k.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
