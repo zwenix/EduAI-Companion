@@ -71,39 +71,31 @@ Integrations → Google Cloud).
 
 The Capacitor plugin does **not** strictly require `google-services.json`, but
 you can commit the file exported from Firebase console (Project settings → Your
-apps → Android app → google-services.json) at the **repo root**. To make CI use
-it, add this step to `.github/workflows/build-android2.yml` right after
-"Sync web assets to Android" (note: workflow files cannot be pushed by the
-assistant bot on this branch — the repo owner must apply this snippet):
+apps → Android app → google-services.json) at the **repo root**.
+
+The wiring ships as `scripts/wire-google-signin.mjs` (a plain repo file the
+assistant bot's token *can* push — workflow files it cannot). Given a generated
+`android/` project it
+
+1. copies a repo-root `google-services.json` into `android/app/` when present —
+   the generated `android/app/build.gradle` only applies the google-services
+   Gradle plugin when that file exists, and
+2. patches `android/app/src/main/res/values/strings.xml` with
+   `server_client_id`, read from the same `FIREBASE_WEB_CLIENT_ID` constant in
+   `src/config/googleAuth.ts` that the web app uses (the plugin's built-in
+   fallback default is the literal string "Your Web Client Key").
+
+To run it in CI, the repo owner adds one step to
+`.github/workflows/build-android2.yml` right after "Sync web assets to Android":
 
 ```yaml
       - name: Wire Google Sign-In native config
-        run: |
-          set -euo pipefail
-          # Install the Firebase Android config when it is committed at the
-          # repo root, so the native Google Sign-In plugin resolves the
-          # OAuth client configuration from google-services.json.
-          if [ -f google-services.json ]; then
-            cp google-services.json android/app/google-services.json
-            echo "✓ google-services.json installed into android/app/"
-          else
-            echo "ℹ No repo-root google-services.json found — the Capacitor plugin will resolve clients from runtime config."
-          fi
-
-          # Patch strings.xml with the Web OAuth client ID so the plugin's
-          # native layer always resolves server_client_id, even without
-          # google-services.json. The client ID is read from the same
-          # src/config/googleAuth.ts constant the web app uses.
-          CLIENT_ID=$(sed -n "s/.*'\([0-9][0-9]*-[a-zA-Z0-9]*\.apps\.googleusercontent\.com\)'.*/\1/p" src/config/googleAuth.ts | head -n 1)
-          echo "Google Sign-In Web client ID: ${CLIENT_ID}"
-          STRINGS_FILE=android/app/src/main/res/values/strings.xml
-          if grep -q 'name="server_client_id"' "$STRINGS_FILE"; then
-            sed -i "s|<string name=\"server_client_id\">[^<]*</string>|<string name=\"server_client_id\">${CLIENT_ID}</string>|" "$STRINGS_FILE"
-          else
-            sed -i "s|</resources>|    <string name=\"server_client_id\">${CLIENT_ID}</string>\n</resources>|" "$STRINGS_FILE"
-          fi
-          echo "✓ server_client_id patched into strings.xml"
+        run: node scripts/wire-google-signin.mjs
 ```
+
+(or replace the whole workflow file with `docs/build-android2.workflow.yml`,
+which already includes this step and uploads the release asset as
+`EduAI-Companion.apk`) — editable directly in the GitHub web UI.
 
 If you do commit the file, the Firebase API key inside should be restricted in
 GCP (APIs & Services → Credentials → API Keys) to the Firebase/Identity Toolkit
@@ -187,6 +179,7 @@ apksigner verify --print-certs path/to/app.apk   # shows SHA-256; convert if nee
 - `src/components/LoginPage.tsx` — native sign-in flow, popup → redirect
   fallback on web, and the friendly error messages shown for each failure.
 - `.github/workflows/build-android2.yml` — copies the committed keystore and
-  prints the fingerprints in the build log and release notes. Apply the
-  "Wire Google Sign-In native config" snippet above so it also installs
-  `google-services.json` and patches `strings.xml`.
+  prints the fingerprints in the build log and release notes. The
+  "Wire Google Sign-In native config" step (`scripts/wire-google-signin.mjs`,
+  see §2) must be added by the repo owner (one line, or replace the file with
+  `docs/build-android2.workflow.yml`).
