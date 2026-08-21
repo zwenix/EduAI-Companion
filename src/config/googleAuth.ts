@@ -13,7 +13,7 @@
 // If Google Sign-In fails with "invalid_client" / error 10 / 12501, the first
 // thing to verify is that THIS ID still exists in the GCP project above.
 export const FIREBASE_WEB_CLIENT_ID =
-  '725068822716-cmk737dpv1620nicbriuoji883vk4dg6.apps.googleusercontent.com';
+  '725068822716-tv8hh929bsagjliekkoq4ptkcfb3gs0k.apps.googleusercontent.com';
 
 export const GOOGLE_AUTH_SCOPES = ['profile', 'email'];
 
