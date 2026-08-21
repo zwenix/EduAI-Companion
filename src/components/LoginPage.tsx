@@ -282,7 +282,7 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
       } else if (/redirect_uri_mismatch|invalid_client|unauthorized origin/i.test(combined)) {
         // The OAuth client in GCP does not list the origin that just asked for
         // consent. Most common after swapping/recreating the Web client.
-        setError(`Google rejected this sign-in request (${errCode || 'client/origin mismatch'}). In Google Cloud Console → project gen-lang-client-0448588221 → APIs & Services → Credentials → the "Web application" client (…-cmk737dpv1620nicbriuoji883vk4dg6), add ${window.location.origin} under "Authorized JavaScript origins", and add https://gen-lang-client-0448588221.firebaseapp.com/__/auth/handler under "Authorized redirect URIs". Wait a few minutes, then try again.`);
+        setError(`Google rejected this sign-in request (${errCode || 'client/origin mismatch'}). In Google Cloud Console → project gen-lang-client-0448588221 → APIs & Services → Credentials → the Firebase "Web application" client (…-tv8hh929bsagjliekkoq4ptkcfb3gs0k, the one in google-services.json), add ${window.location.origin} under "Authorized JavaScript origins", and add https://gen-lang-client-0448588221.firebaseapp.com/__/auth/handler under "Authorized redirect URIs". Wait a few minutes, then try again.`);
       } else if ((Capacitor.isNativePlatform() || /android|ios/i.test(Capacitor.getPlatform())) && (errCode === '10' || /DEVELOPER_ERROR|ApiException:?\s*10|12500|12501/i.test(combined))) {
         // Native Google Sign-In error code 10 (DEVELOPER_ERROR): the OAuth
         // client is misconfigured. Almost always the signing SHA-1 fingerprint
