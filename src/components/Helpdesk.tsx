@@ -150,12 +150,12 @@ const LANDING_FEATURES: {
     description: 'Searchable answers on SIAS levels, calendar vs diary, Messenger privacy, OCR and CAPS alignment.',
     cta: 'Search FAQs →',
     image: bgHelpdesk,
-    border: 'border-violet-500/80 hover:border-violet-300',
-    glow: 'shadow-[0_0_30px_rgba(139,92,246,0.35)]',
-    hoverGlow: 'hover:shadow-[0_0_50px_rgba(139,92,246,0.65)]',
-    iconBox: 'bg-violet-500/10 border-violet-400/50 text-violet-300 shadow-[0_0_20px_rgba(139,92,246,0.4)] group-hover:bg-violet-500/20 group-hover:shadow-[0_0_30px_rgba(139,92,246,0.6)]',
-    iconText: 'text-violet-200',
-    pill: 'bg-violet-500/10 hover:bg-violet-500/30 border-violet-500/40 text-violet-300',
+    border: 'border-pink-500/80 hover:border-pink-300',
+    glow: 'shadow-[0_0_30px_rgba(236,72,153,0.35)]',
+    hoverGlow: 'hover:shadow-[0_0_50px_rgba(236,72,153,0.65)]',
+    iconBox: 'bg-pink-500/10 border-pink-400/50 text-pink-300 shadow-[0_0_20px_rgba(236,72,153,0.4)] group-hover:bg-pink-500/20 group-hover:shadow-[0_0_30px_rgba(236,72,153,0.6)]',
+    iconText: 'text-pink-200',
+    pill: 'bg-pink-500/10 hover:bg-pink-500/30 border-pink-500/40 text-pink-300',
   },
   {
     id: 'contact',
@@ -342,14 +342,16 @@ export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigat
   if (showLanding && (activeTab === 'howtos' || activeTab === 'faqs')) {
     return (
       <div className="w-full h-full min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar overscroll-contain p-2 sm:p-4">
-        <div className="relative p-4 lg:p-6 rounded-2xl text-white flex flex-col justify-between font-sans min-h-full bg-[#070b1a] border border-cyan-500/20 shadow-2xl overflow-hidden">
-          {/* Dim rotating showcase background — same logic as the Intelligent AI hub */}
-          <HubDimSlideshow images={[bgHelpdesk, imgContent, bgLandingAi, imgMessenger, imgCalendar]} opacity={0.16} />
+        <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans min-h-full bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.45)_0%,rgba(7,10,24,1)_100%)] border border-white/10 shadow-2xl">
+          {/* Deep cosmic radial base — mirrors Teacher's Toolbox / Intelligent AI */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.35)_0%,transparent_65%)] pointer-events-none rounded-2xl" />
+          {/* Dim rotating showcase background — opacity 0.22 to match reference hubs */}
+          <HubDimSlideshow images={[bgHelpdesk, imgContent, bgLandingAi, imgMessenger, imgCalendar]} opacity={0.22} />
 
-          {/* Soft ambient glows */}
-          <div className="absolute top-10 left-1/4 w-96 h-96 bg-cyan-600/12 rounded-full blur-[120px] pointer-events-none" />
-          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-violet-500/12 rounded-full blur-[120px] pointer-events-none" />
-          <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
+          {/* Soft ambient glows — pink / cyan / emerald to mirror reference hubs */}
+          <div className="absolute top-10 left-1/4 w-96 h-96 bg-pink-600/15 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none" />
 
           {/* Title — matches the Intelligent AI hero heading style */}
           <div className="relative z-10 text-center my-3">
@@ -405,8 +407,8 @@ export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigat
             </motion.div>
           </div>
 
-          {/* Feature grid — mirrors the Intelligent AI feature cards */}
-          <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 my-4 max-w-6xl mx-auto w-full items-stretch">
+          {/* Feature grid — mirrors Teacher's Toolbox 2x2 showcase grid */}
+          <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 my-4 max-w-6xl mx-auto w-full items-stretch">
             {LANDING_FEATURES.map((feature) => {
               const FeatureIcon = feature.icon;
               return (

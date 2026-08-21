@@ -51,6 +51,7 @@ export default function PrintPreviewModal({
   }, [options.grade]);
 
   const fontFamily = useMemo(() => {
+    if (fontStyle?.includes('Patrick Hand')) return '"Patrick Hand", "Comic Neue", cursive, sans-serif';
     if (fontStyle?.includes('Comic Neue')) return '"Comic Neue", cursive, sans-serif';
     if (fontStyle?.includes('Sassoon')) return '"Sassoon Primary", cursive, sans-serif';
     if (fontStyle?.includes('Kalam')) return '"Kalam", cursive, sans-serif';
