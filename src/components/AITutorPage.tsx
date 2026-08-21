@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { 
   Sparkles, User, Mic, Loader2, Play, Square, GraduationCap, Pause, 
   Image as ImageIcon, Clock, AlertCircle, Search, Plus, Trash2, Folder, 
-  FolderOpen, ChevronDown, ChevronRight, Settings, ArrowLeft, Brain, Check, X, FileText, Send, Monitor, Volume2, Puzzle, Eye,
-  MessageSquare, Archive, BookOpen, Layers, History, Menu
+  FolderOpen, ChevronDown, ChevronLeft, ChevronRight, Settings, ArrowLeft, Brain, Check, X, FileText, Send, Monitor, Volume2, Puzzle, Eye,
+  MessageSquare, Archive, BookOpen, Layers, History, Menu, PanelRightOpen, PanelRightClose
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { chatWithTutor } from '../services/unifiedAiService';
@@ -143,7 +143,8 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
   const [studentStyle, setStudentStyle] = useState('Visual');
   const [userRole, setUserRole] = useState('learner');
   const [studentData, setStudentData] = useState<any>(null);
-  const [isRightMenuOpen, setIsRightMenuOpen] = useState(false);
+  const [isRightCollapsed, setIsRightCollapsed] = useState(false);
+  const [isRightMobileOpen, setIsRightMobileOpen] = useState(false);
   const [leftMenu, setLeftMenu] = useState<'chats' | 'activities' | 'tools' | 'archive' | null>(null);
 
   // Daily Study Duration Timer
@@ -733,7 +734,7 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
   }, [sessions, searchHistoryQuery, selectedSubjectFilter]);
 
   return (
-    <div className="flex flex-1 min-h-0 w-full min-w-0 overflow-hidden text-white relative font-sans p-0 flex-row h-full bg-slate-950">
+    <div className="flex flex-1 min-h-0 w-full min-w-0 overflow-hidden text-white relative font-sans p-0 flex-row h-full min-h-[calc(100dvh-3.5rem)] lg:min-h-0 bg-slate-950">
       {/* Subtle ambient glows */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/8 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-10 right-1/3 w-96 h-96 bg-cyan-500/8 rounded-full blur-[140px] pointer-events-none" />
@@ -765,44 +766,39 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
         </div>
       )}
 
-      {/* MAIN FULL BLEED CHAT AREA */}
-      <div className="flex-1 min-w-0 min-h-0 flex flex-col h-full bg-slate-950/80 relative z-20 overflow-hidden">
+      {/* MAIN FULL BLEED CHAT AREA — flex-1 fills row height; chat scroll is the only scroller so bottom space is fully utilized */}
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col h-full min-h-0 bg-slate-950/80 relative z-20 overflow-hidden">
             
-        {/* Top Header Bar - Full Bleed */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between px-3 sm:px-5 py-2.5 border-b border-white/10 bg-slate-900/80 backdrop-blur-md gap-2.5 shrink-0">
-          <div className="flex items-center gap-2.5 min-w-0">
+        {/* Top Header Bar — full-bleed, single row, auto-sizing. Language / Voice / New Chat moved to right bar to avoid cut-off. */}
+        <div className="flex items-center justify-between gap-2 px-3 sm:px-5 py-2.5 border-b border-white/10 bg-slate-900/80 backdrop-blur-md shrink-0 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
             {onBack && (
               <button 
                 type="button"
                 onClick={onBack} 
-                className="w-8 h-8 rounded-xl bg-white/5 hover:bg-transparent border border-white/10 flex items-center justify-center text-slate-300 transition-all cursor-pointer active:scale-95 shrink-0"
+                className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 transition-all cursor-pointer active:scale-95 shrink-0"
                 title="Exit to main portal"
               >
                 <ArrowLeft size={15} strokeWidth={2.5} />
               </button>
             )}
-            
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyan-500/20 via-purple-500/20 to-pink-500/20 border border-cyan-400/40 flex items-center justify-center p-1 shadow-md shrink-0">
               <EllyFace className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
-
-            <div className="text-left min-w-0">
-              {/* Same row: Elly + AI Tutor + Grade Selector */}
-              <div className="flex items-center gap-1.5 sm:gap-2 whitespace-nowrap flex-nowrap">
+            <div className="text-left min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 <h1 className="text-sm sm:text-base lg:text-lg font-display font-bold text-white tracking-tight flex items-center gap-1.5 shrink-0">
                   <span>Elly</span>
                   <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-cyan-400 bg-cyan-950/70 px-1.5 sm:px-2 py-0.5 rounded-full border border-cyan-500/30 shrink-0">
                     AI Tutor
                   </span>
                 </h1>
-
-                {/* Compact Grade Level Selector on the same line */}
                 <div className="flex items-center gap-1 bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-0.5 rounded-lg shrink-0 transition-colors">
                   <GraduationCap size={12} className="text-amber-400 shrink-0" />
                   <select
                     value={studentGrade}
                     onChange={e => handleGradeChange(e.target.value)}
-                    className="bg-transparent text-[11px] sm:text-xs text-white font-bold outline-none cursor-pointer max-w-[85px] sm:max-w-[120px] truncate [&>option]:bg-[#070b19] [&>option]:text-white"
+                    className="bg-transparent text-[11px] sm:text-xs text-white font-bold outline-none cursor-pointer max-w-[85px] sm:max-w-[140px] truncate [&>option]:bg-[#070b19] [&>option]:text-white"
                   >
                     <option value="All Grades">All Grades</option>
                     <option value="Grades R-12">Grades R-12</option>
@@ -813,56 +809,19 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
                   </select>
                 </div>
               </div>
-              <p className="text-[10px] text-slate-400 truncate">Intelligent Learning & Homework Companion</p>
+              <p className="text-[10px] text-slate-400 truncate hidden sm:block">Intelligent Learning & Homework Companion — chat fills the available screen height on any device</p>
             </div>
           </div>
-
-          {/* Top Buttons: Language & Voice Model (side-by-side in same row, compact size), New Chat, Clear */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap shrink-0">
-            {/* Language Selector */}
-            <div className="flex items-center gap-1 bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 rounded-lg shrink-0 transition-colors">
-              <select
-                value={language}
-                onChange={e => setLanguage(e.target.value)}
-                className="bg-transparent text-[11px] sm:text-xs text-white font-semibold outline-none cursor-pointer max-w-[80px] sm:max-w-[105px] truncate [&>option]:bg-[#070b19] [&>option]:text-white"
-              >
-                {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-              </select>
-            </div>
-
-            {/* Voice Model Selector (right next to Language Selector in the same row) */}
-            <div className="flex items-center gap-1 bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 rounded-lg shrink-0 transition-colors">
-              <Volume2 size={12} className="text-pink-400 shrink-0" />
-              <select
-                value={voice}
-                onChange={e => setVoice(e.target.value)}
-                className="bg-transparent text-[11px] sm:text-xs text-white font-semibold outline-none cursor-pointer max-w-[80px] sm:max-w-[105px] truncate [&>option]:bg-[#070b19] [&>option]:text-white"
-              >
-                {allVoices.map((v, i) => <option key={`${v.value}-${i}`} value={v.value}>{v.label}</option>)}
-              </select>
-            </div>
-
-            {/* New Chat */}
-            <button
-              type="button"
-              onClick={handleNewChat}
-              className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 text-slate-950 px-2.5 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-black transition-all flex items-center gap-1 shadow-md active:scale-95 cursor-pointer shrink-0"
-            >
-              <Plus size={13} strokeWidth={3} />
-              <span>New Chat</span>
-            </button>
-
-            {/* Clear Chat History */}
-            <button
-              type="button"
-              onClick={handleClearAllHistory}
-              className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 active:scale-95 cursor-pointer shrink-0"
-              title="Clear All Chat History"
-            >
-              <Trash2 size={13} />
-              <span className="hidden sm:inline">Clear</span>
-            </button>
-          </div>
+          {/* Mobile: open right control bar */}
+          <button
+            type="button"
+            onClick={() => setIsRightMobileOpen(true)}
+            className="lg:hidden w-8 h-8 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 flex items-center justify-center text-cyan-300 transition-all cursor-pointer shrink-0"
+            title="Open tutor controls"
+            aria-label="Open tutor controls"
+          >
+            <PanelRightOpen size={16} />
+          </button>
         </div>
 
         {/* Collapsible Settings Drawer */}
@@ -925,8 +884,8 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
           )}
         </AnimatePresence>
 
-        {/* Message scroll list — sole vertical scroller for the chat */}
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 sm:px-6 lg:px-8 py-3 sm:py-4 space-y-4 custom-scrollbar">
+        {/* Message scroll list — sole vertical scroller, flex-1 so it consumes all free space and bottom gap is eliminated */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 sm:px-6 lg:px-8 py-3 sm:py-4 space-y-4 custom-scrollbar bg-transparent">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center min-h-full text-slate-400 px-6 relative overflow-hidden">
               <div className="relative z-10 flex flex-col items-center">
@@ -1074,8 +1033,8 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Bottom Chat Input Bar - Full Bleed */}
-        <div className="px-3 sm:px-5 py-3 border-t border-white/10 bg-slate-900/80 backdrop-blur-md shrink-0">
+        {/* Bottom Chat Input Bar — full-bleed, sticky, uses safe-area so no unused gap remains at bottom */}
+        <div className="px-3 sm:px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-white/10 bg-slate-900/90 backdrop-blur-md shrink-0">
           {selectedImage && (
             <div className="mb-2 relative inline-block bg-slate-800/95 p-2 rounded-xl border border-white/10 shadow-lg">
               <img src={selectedImage} alt="Selected preview" className="h-16 w-auto rounded-lg object-contain" />
@@ -1143,82 +1102,267 @@ export default function AITutorPage({ onBack }: { onBack?: () => void }) {
         </div>
       </div>
 
-      {/* RIGHT-HAND SIDE VERTICAL NAVIGATION BAR */}
-      <div className="w-14 sm:w-16 lg:w-44 bg-slate-900/95 border-l border-white/10 flex flex-col items-center lg:items-stretch py-3 px-1.5 sm:px-2 gap-1.5 shrink-0 z-30 justify-between h-full">
-        {/* Top menu items */}
-        <div className="flex flex-col items-center lg:items-stretch gap-1.5 w-full">
-          <div className="hidden lg:block px-2 py-1 mb-1 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-white/5">
-            Tutor Menu
+      {/* RIGHT-HAND SIDE VERTICAL NAVIGATION BAR — collapsible (minimize/expand) + full-bleed chat uses remaining space. New Chat + Language/Voice moved here from top bar. */}
+      <div className={cn(
+        "hidden lg:flex bg-slate-900/95 border-l border-white/10 flex-col shrink-0 z-30 h-full backdrop-blur-xl transition-all duration-300 ease-in-out overflow-hidden",
+        isRightCollapsed ? "w-[64px] px-2 py-3 items-center" : "w-[300px] px-3 py-3",
+        "justify-between"
+      )}>
+        {/* Header: Tutor Menu + collapse toggle */}
+        <div className="flex flex-col gap-3 w-full min-h-0 flex-1 overflow-hidden">
+          <div className={cn("flex items-center border-b border-white/5 pb-2 shrink-0", isRightCollapsed ? "justify-center px-0" : "justify-between px-1")}>
+            {!isRightCollapsed && (
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tutor Menu</span>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsRightCollapsed(v => !v)}
+              className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all cursor-pointer shrink-0"
+              title={isRightCollapsed ? "Expand control bar" : "Minimize control bar"}
+              aria-label={isRightCollapsed ? "Expand control bar" : "Minimize control bar"}
+            >
+              {isRightCollapsed ? <PanelRightOpen size={14} /> : <PanelRightClose size={14} />}
+            </button>
           </div>
+
+          {/* Quick controls — New Chat + Language + Voice + Clear (migrated from header). Collapsed shows icon-only New Chat. */}
+          <div className={cn("flex flex-col gap-2 shrink-0", isRightCollapsed ? "items-center" : "")}>
+            <button
+              type="button"
+              onClick={handleNewChat}
+              className={cn(
+                "transition-all flex items-center justify-center gap-1.5 font-black shadow-md active:scale-95 cursor-pointer",
+                isRightCollapsed
+                  ? "w-10 h-10 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950"
+                  : "w-full px-3 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 text-slate-950 text-xs"
+              )}
+              title="Start new chat"
+            >
+              <Plus size={isRightCollapsed ? 16 : 14} strokeWidth={3} />
+              {!isRightCollapsed && <span>New Chat</span>}
+            </button>
+
+            {!isRightCollapsed ? (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-black uppercase tracking-wider text-slate-400">Language</label>
+                    <select
+                      value={language}
+                      onChange={e => setLanguage(e.target.value)}
+                      className="w-full bg-slate-800 border border-white/10 text-white text-xs font-semibold px-2 py-2 rounded-xl outline-none focus:border-cyan-400/50 [&>option]:bg-[#070b19] [&>option]:text-white cursor-pointer"
+                    >
+                      {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1"><Volume2 size={10} className="text-pink-400" /> Voice</label>
+                    <select
+                      value={voice}
+                      onChange={e => setVoice(e.target.value)}
+                      className="w-full bg-slate-800 border border-white/10 text-white text-xs font-semibold px-2 py-2 rounded-xl outline-none focus:border-cyan-400/50 [&>option]:bg-[#070b19] [&>option]:text-white cursor-pointer"
+                    >
+                      {allVoices.map((v, i) => <option key={`${v.value}-${i}`} value={v.value}>{v.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsSettingsOpen(v => !v)}
+                    className={cn("px-2.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 cursor-pointer", isSettingsOpen ? "bg-pink-500 text-white border-pink-400 shadow" : "bg-slate-800 text-slate-300 border-white/10 hover:text-white hover:bg-slate-700")}
+                  >
+                    <Settings size={12} /> {isSettingsOpen ? "Hide Settings" : "Settings"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearAllHistory}
+                    className="px-2.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 size={12} /> Clear
+                  </button>
+                </div>
+                <div className="flex items-center gap-1 bg-slate-800/50 border border-white/5 px-2 py-1.5 rounded-xl">
+                  <GraduationCap size={11} className="text-amber-400 shrink-0" />
+                  <span className="text-[10px] font-bold text-slate-300 truncate">Grade: {studentGrade}</span>
+                  <span className="ml-auto text-[10px] font-mono text-slate-500">{sessions.length} chats</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-1.5 pt-1">
+                <div className="w-8 h-8 rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center text-slate-400" title={`Language: ${language}`}>
+                  <span className="text-[9px] font-black">{language.slice(0,2).toUpperCase()}</span>
+                </div>
+                <div className="w-8 h-8 rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center text-pink-400" title={`Voice: ${voice.slice(0,14)}`}>
+                  <Volume2 size={14} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className={cn("h-px bg-white/5 shrink-0", isRightCollapsed ? "w-8 mx-auto" : "w-full")} />
+
+          {/* Nav items — same Chats/Activities/Tools/Archive but adapt to collapsed width */}
+          <div className="flex flex-col gap-1.5 w-full overflow-y-auto custom-scrollbar min-h-0 flex-1 pr-0.5">
 
           {/* Chats Button */}
           <button
             type="button"
             onClick={() => setLeftMenu(leftMenu === 'chats' ? null : 'chats')}
-            className={`w-full p-2.5 lg:px-3 lg:py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center lg:justify-start gap-2.5 transition-all cursor-pointer ${
+            className={cn(
+              "w-full rounded-xl text-xs font-semibold flex items-center transition-all cursor-pointer",
+              isRightCollapsed ? "justify-center p-2.5" : "justify-start px-3 py-2.5 gap-2.5",
               leftMenu === 'chats' ? 'bg-cyan-500 text-slate-950 font-bold shadow-[0_0_12px_rgba(34,211,238,0.4)]' : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10'
-            }`}
+            )}
             title="Chat History"
           >
-            <MessageSquare size={16} className={leftMenu === 'chats' ? 'text-slate-950 shrink-0' : 'text-cyan-400 shrink-0'} />
-            <span className="hidden lg:inline whitespace-nowrap">Chats</span>
+            <MessageSquare size={16} className={cn("shrink-0", leftMenu === 'chats' ? 'text-slate-950' : 'text-cyan-400')} />
+            {!isRightCollapsed && <span className="whitespace-nowrap">Chats</span>}
           </button>
 
           {/* Activities Button */}
           <button
             type="button"
             onClick={() => setLeftMenu(leftMenu === 'activities' ? null : 'activities')}
-            className={`w-full p-2.5 lg:px-3 lg:py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center lg:justify-start gap-2.5 transition-all cursor-pointer ${
+            className={cn(
+              "w-full rounded-xl text-xs font-semibold flex items-center transition-all cursor-pointer",
+              isRightCollapsed ? "justify-center p-2.5" : "justify-start px-3 py-2.5 gap-2.5",
               leftMenu === 'activities' ? 'bg-amber-500 text-slate-950 font-bold shadow-[0_0_12px_rgba(245,158,11,0.4)]' : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10'
-            }`}
+            )}
             title="Suggested Activities"
           >
-            <Sparkles size={16} className={leftMenu === 'activities' ? 'text-slate-950 shrink-0' : 'text-amber-400 shrink-0'} />
-            <span className="hidden lg:inline whitespace-nowrap">Activities</span>
+            <Sparkles size={16} className={cn("shrink-0", leftMenu === 'activities' ? 'text-slate-950' : 'text-amber-400')} />
+            {!isRightCollapsed && <span className="whitespace-nowrap">Activities</span>}
           </button>
 
           {/* Interactive Tools Button */}
           <button
             type="button"
             onClick={() => setLeftMenu(leftMenu === 'tools' ? null : 'tools')}
-            className={`w-full p-2.5 lg:px-3 lg:py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center lg:justify-start gap-2.5 transition-all cursor-pointer ${
+            className={cn(
+              "w-full rounded-xl text-xs font-semibold flex items-center transition-all cursor-pointer",
+              isRightCollapsed ? "justify-center p-2.5" : "justify-start px-3 py-2.5 gap-2.5",
               leftMenu === 'tools' ? 'bg-indigo-500 text-white font-bold shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10'
-            }`}
+            )}
             title="Interactive Tools"
           >
-            <Monitor size={16} className={leftMenu === 'tools' ? 'text-white shrink-0' : 'text-indigo-400 shrink-0'} />
-            <span className="hidden lg:inline whitespace-nowrap">Tools</span>
+            <Monitor size={16} className={cn("shrink-0", leftMenu === 'tools' ? 'text-white' : 'text-indigo-400')} />
+            {!isRightCollapsed && <span className="whitespace-nowrap">Tools</span>}
           </button>
 
           {/* Archive Button */}
           <button
             type="button"
             onClick={() => setLeftMenu(leftMenu === 'archive' ? null : 'archive')}
-            className={`w-full p-2.5 lg:px-3 lg:py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center lg:justify-start gap-2.5 transition-all cursor-pointer ${
+            className={cn(
+              "w-full rounded-xl text-xs font-semibold flex items-center transition-all cursor-pointer",
+              isRightCollapsed ? "justify-center p-2.5" : "justify-start px-3 py-2.5 gap-2.5",
               leftMenu === 'archive' ? 'bg-emerald-500 text-slate-950 font-bold shadow-[0_0_12px_rgba(16,185,129,0.4)]' : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10'
-            }`}
+            )}
             title="Media Archive"
           >
-            <Archive size={16} className={leftMenu === 'archive' ? 'text-slate-950 shrink-0' : 'text-emerald-400 shrink-0'} />
-            <span className="hidden lg:inline whitespace-nowrap">Archive</span>
+            <Archive size={16} className={cn("shrink-0", leftMenu === 'archive' ? 'text-slate-950' : 'text-emerald-400')} />
+            {!isRightCollapsed && <span className="whitespace-nowrap">Archive</span>}
           </button>
         </div>
 
-        {/* Bottom Menu Items (Settings) */}
-        <div className="flex flex-col items-center lg:items-stretch w-full pt-2 border-t border-white/10">
+        {/* Bottom — Settings + collapse hint. Full-bleed chat uses all remaining height so no gap remains at bottom. */}
+        <div className={cn("flex flex-col w-full pt-2 border-t border-white/10 shrink-0 gap-1.5", isRightCollapsed ? "items-center" : "items-stretch") }>
           <button
             type="button"
             onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-            className={`w-full p-2.5 lg:px-3 lg:py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center lg:justify-start gap-2.5 transition-all cursor-pointer ${
+            className={cn(
+              "w-full rounded-xl text-xs font-semibold flex items-center transition-all cursor-pointer",
+              isRightCollapsed ? "justify-center p-2.5" : "justify-start px-3 py-2.5 gap-2.5",
               isSettingsOpen ? 'bg-pink-500 text-white font-bold shadow-[0_0_12px_rgba(236,72,153,0.4)]' : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10'
-            }`}
+            )}
             title="Tutor Settings"
           >
-            <Settings size={16} className={isSettingsOpen ? 'text-white shrink-0' : 'text-pink-400 shrink-0'} />
-            <span className="hidden lg:inline whitespace-nowrap">Settings</span>
+            <Settings size={16} className={cn("shrink-0", isSettingsOpen ? 'text-white' : 'text-pink-400')} />
+            {!isRightCollapsed && <span className="whitespace-nowrap">Settings</span>}
           </button>
+          {!isRightCollapsed && (
+            <p className="text-[10px] leading-tight text-slate-500 px-1 text-center">Chat fills the full screen height on any device. Collapse this bar to give the conversation more room.</p>
+          )}
+        </div>
         </div>
       </div>
+
+      {/* Mobile right control drawer — same controls as desktop collapsed bar, but as an overlay so header never gets cut off */}
+      <AnimatePresence>
+        {isRightMobileOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsRightMobileOpen(false)}
+              className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden"
+            />
+            <motion.div
+              initial={{ x: 320, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 320, opacity: 0 }}
+              transition={{ type: "spring", damping: 28, stiffness: 320 }}
+              className="fixed inset-y-0 right-0 w-[300px] max-w-[86vw] bg-slate-900 border-l border-white/10 z-50 lg:hidden flex flex-col overflow-hidden shadow-2xl"
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
+                <span className="text-xs font-black uppercase tracking-widest text-white">Tutor Controls</span>
+                <button onClick={() => setIsRightMobileOpen(false)} className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white">
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => { handleNewChat(); setIsRightMobileOpen(false); }}
+                  className="w-full px-3 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 text-xs font-black flex items-center justify-center gap-1.5 shadow-md"
+                >
+                  <Plus size={14} strokeWidth={3} /> New Chat
+                </button>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Language</label>
+                  <select value={language} onChange={e => setLanguage(e.target.value)} className="w-full bg-slate-800 border border-white/10 text-white text-xs font-semibold px-3 py-2.5 rounded-xl outline-none focus:border-cyan-400/50 [&>option]:bg-[#070b19]">
+                    {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1"><Volume2 size={11} className="text-pink-400" /> Voice</label>
+                  <select value={voice} onChange={e => setVoice(e.target.value)} className="w-full bg-slate-800 border border-white/10 text-white text-xs font-semibold px-3 py-2.5 rounded-xl outline-none focus:border-cyan-400/50 [&>option]:bg-[#070b19]">
+                    {allVoices.map((v,i) => <option key={`${v.value}-${i}`} value={v.value}>{v.label}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Grade</label>
+                  <select value={studentGrade} onChange={e => handleGradeChange(e.target.value)} className="w-full bg-slate-800 border border-white/10 text-white text-xs font-bold px-3 py-2.5 rounded-xl outline-none focus:border-cyan-400/50 [&>option]:bg-[#070b19]">
+                    <option value="All Grades">All Grades</option>
+                    <option value="Grades R-12">Grades R-12</option>
+                    <option value="Grade R">Grade R</option>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map(num => (
+                      <option key={num} value={`Grade ${num}`}>{`Grade ${num}`}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button type="button" onClick={() => setIsSettingsOpen(v => !v)} className={cn("px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5", isSettingsOpen ? "bg-pink-500 text-white border-pink-400" : "bg-slate-800 text-slate-200 border-white/10")}>
+                    <Settings size={12} /> Settings
+                  </button>
+                  <button type="button" onClick={handleClearAllHistory} className="px-3 py-2 rounded-xl bg-rose-500/10 text-rose-300 border border-rose-500/20 text-xs font-bold flex items-center justify-center gap-1.5">
+                    <Trash2 size={12} /> Clear
+                  </button>
+                </div>
+                <div className="h-px bg-white/5 my-1" />
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => { setLeftMenu('chats'); setIsRightMobileOpen(false); }} className="px-3 py-2.5 rounded-xl bg-slate-800 border border-white/10 text-white text-xs font-bold flex items-center justify-center gap-1.5"><MessageSquare size={14} className="text-cyan-400" /> Chats</button>
+                  <button type="button" onClick={() => { setLeftMenu('activities'); setIsRightMobileOpen(false); }} className="px-3 py-2.5 rounded-xl bg-slate-800 border border-white/10 text-white text-xs font-bold flex items-center justify-center gap-1.5"><Sparkles size={14} className="text-amber-400" /> Activities</button>
+                  <button type="button" onClick={() => { setLeftMenu('tools'); setIsRightMobileOpen(false); }} className="px-3 py-2.5 rounded-xl bg-slate-800 border border-white/10 text-white text-xs font-bold flex items-center justify-center gap-1.5"><Monitor size={14} className="text-indigo-400" /> Tools</button>
+                  <button type="button" onClick={() => { setLeftMenu('archive'); setIsRightMobileOpen(false); }} className="px-3 py-2.5 rounded-xl bg-slate-800 border border-white/10 text-white text-xs font-bold flex items-center justify-center gap-1.5"><Archive size={14} className="text-emerald-400" /> Archive</button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Drawers / Overlays with strict viewable height constraint */}
       <AnimatePresence>
