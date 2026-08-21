@@ -132,23 +132,41 @@ export default function PasswordSecurity({ isDarkMode }: PasswordSecurityProps) 
       setResetError('Enter your account email first.');
       return;
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setResetError('That email address does not look valid. Check the spelling.');
+      return;
+    }
     setIsSending(true);
     try {
-      await sendPasswordResetEmail(auth, email);
+      const actionCodeSettings: any = {
+        url: `${window.location.origin}/?email=${encodeURIComponent(email)}`,
+        handleCodeInApp: false,
+      };
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
       // Same message for success vs unknown-email so the form does not leak
-      // which addresses are registered.
-      setResetSuccess(`If ${email} is registered on EduAI, a password reset link is on its way. Check your inbox (and spam folder).`);
+      // which addresses are registered. Firebase may return user-not-found on
+      // some configs — treat as success as well.
+      setResetSuccess(`If ${email} is registered on EduAI, a password reset link is on its way. Check your inbox (and spam folder). The link is valid for about an hour. If you use Google Sign-In, use your Google account recovery instead.`);
+      console.info('[EduAI] Password reset email requested for', email);
       if (!userEmail) setResetEmail('');
     } catch (err: any) {
       const code = String(err?.code || '');
+      const msg = String(err?.message || '');
+      console.error('[EduAI] sendPasswordResetEmail failed', { code, msg, email });
       if (code === 'auth/user-not-found') {
         setResetSuccess(`If ${email} is registered on EduAI, a password reset link is on its way. Check your inbox (and spam folder).`);
-      } else if (code === 'auth/invalid-email' || /invalid-email/i.test(String(err?.message || ''))) {
+      } else if (code === 'auth/invalid-email' || /invalid-email/i.test(msg)) {
         setResetError('That email address does not look valid. Check the spelling.');
-      } else if (code === 'auth/too-many-requests' || /too-many-requests/i.test(String(err?.message || ''))) {
+      } else if (code === 'auth/missing-email' || /missing-email/i.test(msg)) {
+        setResetError('Enter your account email first.');
+      } else if (code === 'auth/too-many-requests' || /too-many-requests/i.test(msg)) {
         setResetError('Too many reset attempts. Wait a few minutes and try again.');
+      } else if (code === 'auth/network-request-failed' || /network/i.test(msg)) {
+        setResetError('Network error — check your connection and try again.');
+      } else if (code === 'auth/unauthorized-continue-uri' || /unauthorized-continue-uri|unauthorized-domain/i.test(msg)) {
+        setResetError(`We could not send the reset link because ${window.location.hostname} is not yet allowlisted in Firebase. A project admin should add it under Firebase console → Authentication → Settings → Authorized domains. Your request was still logged — try again after the domain is allowlisted, or contact support.`);
       } else {
-        setResetError(`Could not send the reset link${code ? ` (${code})` : ''}: ${String(err?.message || err)}`);
+        setResetError(`Could not send the reset link${code ? ` (${code})` : ''}: ${msg || String(err)}`);
       }
     } finally {
       setIsSending(false);

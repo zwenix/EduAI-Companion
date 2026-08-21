@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Loader2, Sparkles, Printer, Save, Trash2, Download, Send,
   FlaskConical, Palette, FileText, Eye, BookOpen, GraduationCap,
-  ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Zap, ClipboardList, ImageIcon, Settings2, RefreshCw,
+  ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Zap, ClipboardList, ImageIcon, Settings2, RefreshCw, Lightbulb,
   Check, X, Plus, Users, Layout, Video, FileCode, HelpCircle, Archive, UserCircle, Image, AlertCircle,
   Edit2, History, Share2, Copy, Link, Mail, FileJson, Maximize2, Minimize2,
   Timer, Volume2, VolumeX, Bell, Menu, Home, Brain, Wrench, Layers, FolderOpen, ArrowLeft, Award, ShieldCheck, CheckCircle
@@ -129,6 +129,7 @@ const VISUAL_STYLES = [EDUCATIONAL_IMAGE_STYLE, 'Modern & Clean', 'Playful Carto
 const TONES = ['Formal & Professional', 'Warm & Friendly', 'Informative & Clear', 'Urgent & Important'];
 const FONT_STYLES = [
   'Standard System (Inter)',
+  'Patrick Hand (Teacher\'s Pet / Foundation Handwriting)',
   'Comic Neue (Primary Friendly)',
   'Sassoon Primary (Primary Cursive)',
   'Kalam (Handwriting)',
@@ -247,7 +248,8 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
     const isFullDoc = cleanedHtml.includes('<html') || cleanedHtml.includes('<!DOCTYPE');
     if (isFullDoc) return cleanedHtml;
 
-    const fontCss = fontStyle.includes('Comic Neue') ? '"Comic Neue", cursive, sans-serif'
+    const fontCss = fontStyle.includes('Patrick Hand') ? '"Patrick Hand", "Comic Neue", cursive, sans-serif'
+      : fontStyle.includes('Comic Neue') ? '"Comic Neue", cursive, sans-serif'
       : fontStyle.includes('Sassoon') ? '"Sassoon Primary", cursive, sans-serif'
       : fontStyle.includes('Kalam') ? '"Kalam", cursive, sans-serif'
       : fontStyle.includes('Lexend') ? '"Lexend", sans-serif'
@@ -260,7 +262,7 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&family=Kalam:wght@300;400;700&family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&family=Kalam:wght@300;400;700&family=Lexend:wght@300;400;500;600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
   <script>
     const originalWarn = console.warn;
     console.warn = function(...args) {
@@ -1416,37 +1418,30 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
         {/* Page Content — the app shell owns scrolling, so no nested scroller here */}
         <main className="relative w-full p-4 sm:p-6 lg:p-8">
           <div className="relative z-10 max-w-6xl mx-auto">
-          {/* Content Factory Header Band */}
-          <div className="relative overflow-hidden rounded-[28px] border border-cyan-500/20 bg-[#0b1226]/95 backdrop-blur-xl shadow-2xl mb-6 sm:mb-8">
-            <div className="absolute -top-24 -left-16 w-72 h-72 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-24 -right-16 w-72 h-72 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
-            <div className="relative flex flex-col sm:flex-row items-center gap-5 p-6 sm:p-8 text-center sm:text-left">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-3xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 border-2 border-cyan-400/40 flex items-center justify-center shadow-[0_0_24px_rgba(6,182,212,0.35)]">
-                <Sparkles size={34} className="text-cyan-300" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-center sm:justify-start gap-2 mb-2 flex-wrap">
-                  <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-400/30 text-[9px] font-black uppercase tracking-widest text-cyan-300">CAPS · SA Classroom</span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-violet-500/15 border border-violet-400/30 text-[9px] font-black uppercase tracking-widest text-violet-300">AI Powered</span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-[9px] font-black uppercase tracking-widest text-emerald-300">Instant Print &amp; PDF</span>
+          {/* Content Factory Header Band — compact, aligned with app theme. Lab switcher lives at the top of the banner as requested. */}
+          <div className="relative overflow-hidden rounded-2xl border border-cyan-500/20 bg-[#0b1226]/95 backdrop-blur-xl shadow-xl mb-4 sm:mb-6">
+            <div className="absolute -top-16 -left-12 w-56 h-56 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-16 -right-12 w-56 h-56 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4">
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 border border-cyan-400/30 flex items-center justify-center shadow-[0_0_14px_rgba(6,182,212,0.28)]">
+                  <Sparkles size={20} className="text-cyan-300" />
                 </div>
-                <h1 className={cn(
-                  "text-2xl sm:text-4xl font-black tracking-tight uppercase",
-                  isDarkMode ? "text-white" : "text-slate-900"
-                )}>
-                  Content Factory
-                </h1>
-                <p className={cn(
-                  "text-xs sm:text-sm mt-1",
-                  isDarkMode ? "text-slate-400" : "text-slate-600"
-                )}>
-                  Create immersive educational content with AI-powered precision — lessons, worksheets, posters, videos and parent letters.
-                </p>
+                <div className="text-left">
+                  <h1 className={cn(
+                    "text-lg sm:text-xl font-black tracking-tight uppercase leading-none",
+                    isDarkMode ? "text-white" : "text-white"
+                  )}>
+                    Content Factory
+                  </h1>
+                  <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium hidden sm:block leading-tight mt-0.5">
+                    AI-powered CAPS content • lessons, worksheets, visuals, videos & letters
+                  </p>
+                </div>
               </div>
-            </div>
 
-            {/* Studio Selector Tabs — pinned inside the header band */}
-            <div className="relative flex flex-wrap justify-center gap-2.5 sm:gap-3 px-4 sm:px-8 pb-5 sm:pb-6">
+              {/* Studio Selector Tabs — moved to top of banner / page header */}
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 justify-start lg:justify-end max-w-full">
             {GENERATOR_GROUPS.map((group) => {
               const isActive = activeTab === group.id;
               
@@ -1487,7 +1482,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                   key={group.id}
                   onClick={() => setActiveTab(group.id)}
                   className={cn(
-                    "flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border transition-all cursor-pointer font-black text-xs uppercase tracking-wider shadow-md backdrop-blur-md",
+                    "flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border transition-all cursor-pointer font-black text-[11px] uppercase tracking-wider shadow-md backdrop-blur-md",
                     isActive ? activeStyle : inactiveStyle
                   )}
                 >
@@ -1496,6 +1491,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                 </button>
               );
             })}
+            </div>
             </div>
           </div>
 
@@ -1551,13 +1547,13 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                   <div className="space-y-4">
                     {/* Reorganized Setup Buttons & List Patterns */}
                     <div className="space-y-4">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                         {[
-                          { id: 'grade', label: 'Choose Grade', color: 'from-amber-500/20 to-orange-500/25 border-amber-500/40 text-amber-300' },
-                          { id: 'subject', label: 'Choose Subject', color: 'from-cyan-500/20 to-blue-500/25 border-cyan-500/40 text-cyan-300' },
-                          { id: 'type', label: 'Content Type', color: 'from-purple-500/20 to-indigo-500/25 border-purple-500/40 text-purple-300' },
-                          { id: 'topic', label: 'Topic', color: 'from-emerald-500/20 to-teal-500/25 border-emerald-500/40 text-emerald-300' },
-                        ].map((btn) => {
+                          { id: 'grade', label: 'Grade', icon: GraduationCap },
+                          { id: 'subject', label: 'Subject', icon: BookOpen },
+                          { id: 'type', label: 'Content', icon: FileText },
+                          { id: 'topic', label: 'Topic', icon: Lightbulb },
+                        ].map((btn: any) => {
                           const isActive = activeSetupTab === btn.id;
                           const selectedValue = (() => {
                             if (activeTab === 'teaching') {
@@ -1579,18 +1575,22 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                             return '';
                           })();
 
+                          const BtnIcon: any = (btn as any).icon;
                           return (
                             <div key={btn.id} className="flex flex-col gap-1.5">
                               <button
                                 type="button"
                                 onClick={() => setActiveSetupTab(activeSetupTab === btn.id ? null : btn.id as any)}
                                 className={cn(
-                                  "w-full py-2.5 px-3 rounded-xl border text-xs font-black tracking-wider uppercase transition-all text-center cursor-pointer bg-gradient-to-r shadow-xs hover:scale-[1.02] active:scale-95 truncate",
-                                  btn.color,
-                                  isActive ? "ring-2 ring-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.4)] opacity-100" : "opacity-75 hover:opacity-100"
+                                  "w-full py-2.5 px-3 rounded-xl border text-[11px] font-black tracking-widest uppercase transition-all text-center cursor-pointer flex items-center justify-center gap-1.5 shadow-sm backdrop-blur-sm",
+                                  isActive
+                                    ? "bg-cyan-500 text-white border-cyan-400 shadow-md shadow-cyan-500/20 scale-[1.02]"
+                                    : "bg-[#0a1226] border-cyan-500/25 text-cyan-300 hover:bg-[#122044] hover:border-cyan-400 hover:text-white",
+                                  selectedValue && !isActive ? "border-cyan-400/50" : ""
                                 )}
                               >
-                                {btn.label}
+                                <BtnIcon size={13} className={isActive ? "text-white" : "text-cyan-400"} />
+                                <span className="truncate">{btn.label}</span>
                               </button>
                               {selectedValue && (
                                 <div className={cn(

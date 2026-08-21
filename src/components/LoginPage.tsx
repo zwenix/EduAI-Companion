@@ -153,22 +153,48 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
       setResetError('Enter your account email first.');
       return;
     }
+    // Basic email format guard before calling Firebase — avoids a round-trip
+    // that would otherwise surface as auth/invalid-email.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail)) {
+      setResetError('That email address does not look valid. Check the spelling.');
+      return;
+    }
     setResetLoading(true);
     try {
-      await sendPasswordResetEmail(auth, targetEmail);
+      // Provide an explicit continue URL so the email link is trusted on the
+      // current deployment (Vercel, Firebase Hosting, preview iframe, etc.).
+      // Firebase will still fall back to the authorized domain if the current
+      // origin is not allowlisted, but supplying a URL ensures the link is not
+      // silently dropped and surfaces a clear error when the domain is missing
+      // from Firebase → Authentication → Settings → Authorized domains.
+      const actionCodeSettings: any = {
+        url: `${window.location.origin}/?email=${encodeURIComponent(targetEmail)}`,
+        handleCodeInApp: false,
+      };
+      await sendPasswordResetEmail(auth, targetEmail, actionCodeSettings);
       // Same message for success vs unknown-email so the form does not leak
-      // which addresses are registered.
-      setResetSent(`If ${targetEmail} is registered on EduAI, a password reset link is on its way. Check your inbox (and spam folder).`);
+      // which addresses are registered. Firebase may still return
+      // auth/user-not-found on some configurations — treat it as success too.
+      setResetSent(`If ${targetEmail} is registered on EduAI, a password reset link is on its way. Check your inbox (and spam folder). The link is valid for about an hour. If you use Google Sign-In, use your Google account recovery instead.`);
+      console.info('[EduAI] Password reset email requested for', targetEmail);
     } catch (err: any) {
       const code = String(err?.code || '');
+      const msg = String(err?.message || '');
+      console.error('[EduAI] sendPasswordResetEmail failed', { code, msg, targetEmail });
       if (code === 'auth/user-not-found') {
         setResetSent(`If ${targetEmail} is registered on EduAI, a password reset link is on its way. Check your inbox (and spam folder).`);
-      } else if (code === 'auth/invalid-email' || /invalid-email/i.test(String(err?.message || ''))) {
+      } else if (code === 'auth/invalid-email' || /invalid-email/i.test(msg)) {
         setResetError('That email address does not look valid. Check the spelling.');
-      } else if (code === 'auth/too-many-requests' || /too-many-requests/i.test(String(err?.message || ''))) {
+      } else if (code === 'auth/missing-email' || /missing-email/i.test(msg)) {
+        setResetError('Enter your account email first.');
+      } else if (code === 'auth/too-many-requests' || /too-many-requests/i.test(msg)) {
         setResetError('Too many reset attempts. Wait a few minutes and try again.');
+      } else if (code === 'auth/network-request-failed' || /network/i.test(msg)) {
+        setResetError('Network error — check your connection and try again.');
+      } else if (code === 'auth/unauthorized-continue-uri' || /unauthorized-continue-uri|unauthorized-domain/i.test(msg)) {
+        setResetError(`We could not send the reset link because ${window.location.hostname} is not yet allowlisted in Firebase. A project admin should add it under Firebase console → Authentication → Settings → Authorized domains. Your request was still logged — try again after the domain is allowlisted, or contact support at help@eduai-companion.co.za.`);
       } else {
-        setResetError(`Could not send the reset link${code ? ` (${code})` : ''}: ${String(err?.message || err)}`);
+        setResetError(`Could not send the reset link${code ? ` (${code})` : ''}: ${msg || String(err)}`);
       }
     } finally {
       setResetLoading(false);
