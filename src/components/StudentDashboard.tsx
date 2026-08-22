@@ -637,246 +637,213 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-700">
-      {/* Banner */}
-      <div className={cn(
-        "relative rounded-[40px] p-8 lg:p-12 overflow-hidden text-white flex flex-col justify-end min-h-[300px] border shadow-2xl transition-all duration-300",
-        isDarkMode ? "glass-neon-card animate-neon-pulse-cyan border-brand-cyan/20 bg-slate-950/45" : "bg-slate-900 border-slate-800"
-      )}>
-         <div className="absolute top-0 right-0 p-8 opacity-10 hidden sm:block pointer-events-none">
-           <Brain size={250} className={cn(isDarkMode && "icon-glow-cyan text-brand-cyan")} />
-         </div>
-         {isDarkMode && (
-           <>
-             <div className="absolute -left-10 -top-10 w-40 h-40 rounded-full bg-brand-cyan/10 blur-3xl pointer-events-none" />
-             <div className="absolute right-1/4 bottom-0 w-40 h-40 rounded-full bg-brand-pink/10 blur-3xl pointer-events-none" />
-           </>
-         )}
-         
-         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-slate-900/10 to-transparent pointer-events-none" />
-
-         <div className="relative z-10">
-            <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className={cn(
-              "inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs sm:text-sm font-bold mb-6 shadow-sm",
-              isDarkMode ? "border-brand-green/30 bg-brand-green/10 text-brand-green" : "border-white/20 bg-transparent text-emerald-300"
-            )}>
-              <Star size={16} className={cn("animate-pulse", isDarkMode ? "text-brand-yellow icon-glow-yellow" : "text-brand-yellow")} /> Welcome back, {student?.name || 'Discovery Cadet'}! 🚀
-            </motion.div>
-            <h1 className={cn(
-              "text-3xl sm:text-5xl lg:text-7xl font-hand tracking-wide leading-tight mb-4 drop-shadow-md",
-              isDarkMode ? "text-white text-glow-cyan" : "text-white"
-            )}>
-              Ready for your <span className="text-brand-cyan text-glow-cyan">next mission?</span>
-            </h1>
-            
-            <div className="flex items-center gap-4 mt-4 sm:mt-6 max-w-lg">
-              <div className={cn(
-                "flex-1 h-3 sm:h-4 rounded-full overflow-hidden border",
-                isDarkMode ? "bg-slate-900/90 border-white/10" : "bg-transparent border-white/10"
-              )}>
-                 <motion.div 
-                   initial={{ width: 0 }} 
-                   animate={{ width: `${stats.xp}%` }}
-                   transition={{ duration: 1.5, type: 'spring' }}
-                   className={cn(
-                     "h-full rounded-full",
-                     isDarkMode ? "bg-brand-yellow shadow-[0_0_15px_rgba(255,223,64,0.7)]" : "bg-yellow-400 shadow-[0_0_15px_#facc15]"
-                   )}
-                 />
-              </div>
-              <span className="text-[9px] sm:text-[10px] font-black text-white whitespace-nowrap uppercase tracking-widest">Level {stats.level} • {stats.xp}%</span>
-            </div>
-            <p className="text-sm sm:text-lg text-slate-300 font-medium mt-3 sm:mt-4">
-              Your learning path is glowing! <span className={cn(
-                "font-black inline-block animate-bounce ml-1",
-                isDarkMode ? "text-brand-pink text-glow-pink" : "text-yellow-400"
-              )}>{stats.streak} Day Streak! 🔥</span>
-            </p>
-          </div>
-      </div>
-
-      {/* Numerical Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-         {[
-           { label: 'Mastery Score', value: stats.masteryScore, icon: Target, color: 'text-brand-green', glow: 'green', border: 'hover-neon-green hover:shadow-[0_0_15px_rgba(0,255,159,0.25)]' },
-           { label: 'Modules Complete', value: stats.modulesComplete, icon: CheckCircle, color: 'text-brand-cyan', glow: 'cyan', border: 'hover-neon-cyan hover:shadow-[0_0_15px_rgba(0,179,255,0.25)]' },
-           { label: 'Current Streak', value: stats.streak, icon: Flame, color: 'text-brand-pink', glow: 'pink', border: 'hover-neon-pink hover:shadow-[0_0_15px_rgba(255,0,212,0.25)]' }
-         ].map((stat, i) => (
-           <div 
-             key={i} 
-             className={cn(
-               "p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] flex items-center justify-between transition-all border duration-300",
-               isDarkMode 
-                 ? `glass-neon-card border-white/5 ${stat.border}` 
-                 : "bg-white border-slate-200 shadow-sm hover:scale-[1.02]"
-             )}
-           >
-              <div>
-                <p className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-400'}`}>{stat.label}</p>
-                <h3 className={cn(
-                  "text-2xl sm:text-3xl font-hand mt-0.5 sm:mt-1",
-                  isDarkMode ? `text-white text-glow-${stat.glow}` : "text-slate-900"
-                )}>{stat.value}</h3>
-              </div>
-              <div className={cn(
-                "w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl border flex flex-col items-center justify-center",
-                isDarkMode 
-                  ? "bg-slate-950/45 border-white/10" 
-                  : "bg-slate-50 border-slate-100",
-                stat.color
-              )}>
-                <stat.icon size={20} className={isDarkMode ? `icon-glow-${stat.glow}` : ""} />
-              </div>
-           </div>
-         ))}
-      </div>
-
-      {/* Quick Access Dashboard Menu */}
-      <motion.div 
-         className={cn(
-          "p-6 md:p-8 rounded-[36px] border-2 space-y-6 relative overflow-hidden animate-border-flash-cyan",
-          isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md shadow-xl"
-        )}
+    <div className="kid-portal space-y-6 sm:space-y-8 animate-in fade-in duration-700">
+      {/* ============================ HERO BANNER ============================
+          Solid, saturated candy gradient so it reads instantly for Foundation
+          Phase learners, instead of the old translucent glass panel. */}
+      <div
+        className="kid-card kid-pop relative p-7 sm:p-10 lg:p-12 flex flex-col justify-end min-h-[300px]"
+        style={{ ['--kid-1' as any]: '#7C3AED', ['--kid-2' as any]: '#0EA5E9' }}
       >
-        <h2 className={cn("text-xl font-display font-black tracking-widest uppercase flex items-center gap-2", isDarkMode ? "text-cyan-400" : "text-indigo-600")}>
-          <span>STUDENT COMMAND CENTER</span>
-          <span className={cn("h-1.5 w-1.5 rounded-full animate-pulse", isDarkMode ? "bg-cyan-400" : "bg-indigo-600")} />
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          
-          {/* Tile 1: Notifications */}
-          <motion.div 
-            whileHover={{ y: -6, scale: 1.015 }}
-            onClick={() => onNavigate && onNavigate('alerts', 'student-notifications')}
-            className={cn(
-              "relative p-6 rounded-[32px] border-2 flex flex-col items-start gap-4 overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md animate-border-flash-pink",
-              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
-            )}
+        {/* Playful oversized background doodles */}
+        <div className="absolute -top-6 -right-4 text-[120px] sm:text-[170px] opacity-25 select-none pointer-events-none kid-bob">
+          🚀
+        </div>
+        <div className="absolute top-1/2 right-[22%] text-[70px] opacity-20 select-none pointer-events-none hidden lg:block">
+          ⭐
+        </div>
+        <div className="absolute -bottom-4 left-4 text-[90px] opacity-15 select-none pointer-events-none hidden sm:block">
+          🎨
+        </div>
+        <div className="absolute top-4 right-4 opacity-10 hidden sm:block pointer-events-none">
+          <Brain size={210} className="text-white" />
+        </div>
+
+        <div className="relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="kid-chip !text-[11px] sm:!text-sm !px-4 !py-2 mb-5"
+            style={{ ['--kid-2' as any]: '#7C3AED' }}
           >
-            <div className={cn("absolute -bottom-10 -left-10 w-24 h-24 blur-xl rounded-full", isDarkMode ? "bg-pink-500/10" : "bg-pink-200/50")} />
-            
-            <div className={cn(
-              "w-14 h-14 rounded-2xl border-2 flex items-center justify-center shrink-0 group-hover:rotate-12 transition-transform",
-              isDarkMode ? "bg-pink-500/10 border-pink-400 text-pink-400 shadow-[0_0_15px_rgba(236,72,153,0.25)]" : "bg-pink-100 border-pink-300 text-pink-600"
-            )}>
-              <Bell size={24} className={isDarkMode ? "drop-shadow-[0_0_8px_rgba(236,72,153,0.6)]" : ""} />
-            </div>
-            
-            <div className="space-y-1">
-              <h3 className={cn("text-base font-black font-display leading-tight", isDarkMode ? "text-white" : "text-slate-800")}>
-                Notifications
-              </h3>
-              <p className={cn("text-[11px] leading-snug font-medium", isDarkMode ? "text-slate-400" : "text-slate-500")}>
-                Check messages, alerts, and new quests from teachers.
-              </p>
-            </div>
+            <Star size={16} className="fill-current text-amber-400" />
+            Welcome back, {student?.name || 'Discovery Cadet'}! 🚀
           </motion.div>
 
-          {/* Tile 2: Weekly Planner */}
-          <motion.div 
-            whileHover={{ y: -6, scale: 1.015 }}
-            onClick={() => onNavigate && onNavigate('weekly-planner', 'lesson-planning')}
-            className={cn(
-              "relative p-6 rounded-[32px] border-2 flex flex-col items-start gap-4 overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md animate-border-flash-emerald",
-              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
-            )}
-          >
-            <div className={cn("absolute -bottom-10 -left-10 w-24 h-24 blur-xl rounded-full", isDarkMode ? "bg-emerald-500/10" : "bg-emerald-200/50")} />
-            
-            <div className={cn(
-              "w-14 h-14 rounded-2xl border-2 flex items-center justify-center shrink-0 group-hover:-rotate-6 transition-transform",
-              isDarkMode ? "bg-emerald-500/10 border-emerald-400 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.25)]" : "bg-emerald-100 border-emerald-300 text-emerald-600"
-            )}>
-              <Calendar size={24} className={isDarkMode ? "drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" : ""} />
-            </div>
-            
-            <div className="space-y-1">
-              <h3 className={cn("text-base font-black font-display leading-tight", isDarkMode ? "text-white" : "text-slate-800")}>
-                Weekly Planner
-              </h3>
-              <p className={cn("text-[11px] leading-snug font-medium", isDarkMode ? "text-slate-400" : "text-slate-500")}>
-                Your weekly timetable, upcoming tasks, and class schedule.
-              </p>
-            </div>
-          </motion.div>
+          <h1 className="kid-title text-4xl sm:text-6xl lg:text-7xl font-hand tracking-wide leading-tight mb-4">
+            Ready for your <span className="text-amber-300">next mission?</span>
+          </h1>
 
-          {/* Tile 3: My Class */}
-          <motion.div 
-            whileHover={{ y: -6, scale: 1.015 }}
-            onClick={() => onNavigate && onNavigate('student-notes', 'lesson-planning')}
-            className={cn(
-              "relative p-6 rounded-[32px] border-2 flex flex-col items-start gap-4 overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md animate-border-flash-purple",
-              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
-            )}
-          >
-            <div className={cn("absolute -bottom-10 -left-10 w-24 h-24 blur-xl rounded-full", isDarkMode ? "bg-indigo-500/10" : "bg-indigo-200/50")} />
-            
-            <div className={cn(
-              "w-14 h-14 rounded-2xl border-2 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform",
-              isDarkMode ? "bg-indigo-500/10 border-indigo-400 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.25)]" : "bg-indigo-100 border-indigo-300 text-indigo-600"
-            )}>
-              <BookOpen size={24} className={isDarkMode ? "drop-shadow-[0_0_8px_rgba(99,102,241,0.6)]" : ""} />
+          <div className="flex items-center gap-4 mt-5 sm:mt-6 max-w-lg">
+            <div className="kid-track flex-1">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${stats.xp}%` }}
+                transition={{ duration: 1.5, type: 'spring' }}
+                className="kid-fill"
+              />
             </div>
-            
-            <div className="space-y-1">
-              <h3 className={cn("text-base font-black font-display leading-tight", isDarkMode ? "text-white" : "text-slate-800")}>
-                My Class
-              </h3>
-              <p className={cn("text-[11px] leading-snug font-medium", isDarkMode ? "text-slate-400" : "text-slate-500")}>
-                Study guides, resources, and your classroom hub.
-              </p>
-            </div>
-          </motion.div>
+            <span className="kid-sub text-[11px] sm:text-xs font-black whitespace-nowrap uppercase tracking-widest">
+              Level {stats.level} • {stats.xp}%
+            </span>
+          </div>
 
-          {/* Tile 4: AI Tutor */}
-          <motion.div 
-            whileHover={{ y: -6, scale: 1.015 }}
-            onClick={() => onNavigate && onNavigate('ai-tutor', 'intelligence-ai')}
-            className={cn(
-              "relative p-6 rounded-[32px] border-2 flex flex-col items-start gap-4 overflow-hidden transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md animate-border-flash-cyan",
-              isDarkMode ? "bg-transparent backdrop-blur-md" : "bg-transparent backdrop-blur-md"
-            )}
+          <p className="kid-sub text-base sm:text-xl mt-4">
+            Your learning path is glowing!{' '}
+            <span className="font-black inline-block animate-bounce ml-1 text-amber-300">
+              {stats.streak} Day Streak! 🔥
+            </span>
+          </p>
+        </div>
+      </div>
+
+      {/* ========================= NUMERICAL STATS =========================
+          Three chunky score cards, each in its own bright colour. */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+        {[
+          { label: 'Mastery Score', value: stats.masteryScore, icon: Target, emoji: '🎯', c1: '#00C46A', c2: '#0EA5E9' },
+          { label: 'Modules Complete', value: stats.modulesComplete, icon: CheckCircle, emoji: '✅', c1: '#0EA5E9', c2: '#6366F1' },
+          { label: 'Current Streak', value: stats.streak, icon: Flame, emoji: '🔥', c1: '#F43F5E', c2: '#F59E0B' }
+        ].map((stat, i) => (
+          <div
+            key={i}
+            className="kid-card kid-pop p-5 sm:p-6 flex items-center justify-between gap-3"
+            style={{
+              ['--kid-1' as any]: stat.c1,
+              ['--kid-2' as any]: stat.c2,
+              animationDelay: `${0.08 * (i + 1)}s`
+            }}
           >
-            <div className={cn("absolute -bottom-10 -left-10 w-24 h-24 blur-xl rounded-full", isDarkMode ? "bg-cyan-500/10" : "bg-cyan-200/50")} />
-            
-            <div className={cn(
-              "w-14 h-14 rounded-2xl border-2 flex items-center justify-center shrink-0 group-hover:rotate-[15deg] transition-transform",
-              isDarkMode ? "bg-cyan-500/10 border-cyan-400 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)]" : "bg-cyan-100 border-cyan-300 text-cyan-600"
-            )}>
-              <Sparkles size={24} className={isDarkMode ? "drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" : ""} />
-            </div>
-            
-            <div className="space-y-1">
-              <h3 className={cn("text-base font-black font-display leading-tight", isDarkMode ? "text-white" : "text-slate-800")}>
-                AI Tutor's Class
-              </h3>
-              <p className={cn("text-[11px] leading-snug font-medium", isDarkMode ? "text-slate-400" : "text-slate-500")}>
-                Ask questions and get intelligent help anytime.
+            <div className="min-w-0">
+              <p className="kid-sub text-[10px] sm:text-[11px] font-black uppercase tracking-widest">
+                {stat.label}
               </p>
+              <h3 className="kid-title text-4xl sm:text-5xl font-hand mt-1 leading-none">
+                {stat.value}
+              </h3>
             </div>
-          </motion.div>
-          
+            <div className="kid-badge relative" style={{ ['--kid-2' as any]: stat.c1 }}>
+              <stat.icon size={30} strokeWidth={2.6} />
+              <span className="absolute -top-2 -right-2 text-xl select-none">{stat.emoji}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ====================== STUDENT COMMAND CENTER ======================
+          The main menu. Previously these tiles were `bg-transparent
+          backdrop-blur-md` with only a frozen border-flash class for accent,
+          which made them nearly invisible against the dark app background.
+          They are now solid, colour-blocked, chunky buttons — one bright hue
+          each — with a big icon, an emoji cue and a plain-language subtitle.
+          Every original tile, label and navigation target is preserved. */}
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="kid-panel"
+        style={{ ['--kid-1' as any]: '#F59E0B', ['--kid-2' as any]: '#EC4899' }}
+      >
+        <div className="kid-panel-head">
+          <h2 className="kid-title text-lg sm:text-2xl font-display font-black tracking-widest uppercase flex items-center gap-2">
+            <span className="text-2xl kid-bob inline-block">🧭</span>
+            <span>STUDENT COMMAND CENTER</span>
+          </h2>
+          <span className="kid-chip hidden sm:inline-flex" style={{ ['--kid-2' as any]: '#EC4899' }}>
+            Pick a place to go!
+          </span>
+        </div>
+
+        <div className="kid-panel-body">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+            {[
+              {
+                label: 'Notifications',
+                desc: 'Check messages, alerts, and new quests from teachers.',
+                icon: Bell,
+                emoji: '🔔',
+                c1: '#EC4899',
+                c2: '#8B5CF6',
+                go: () => onNavigate && onNavigate('alerts', 'student-notifications')
+              },
+              {
+                label: 'Weekly Planner',
+                desc: 'Your weekly timetable, upcoming tasks, and class schedule.',
+                icon: Calendar,
+                emoji: '📅',
+                c1: '#10B981',
+                c2: '#0EA5E9',
+                go: () => onNavigate && onNavigate('weekly-planner', 'lesson-planning')
+              },
+              {
+                label: 'My Class',
+                desc: 'Study guides, resources, and your classroom hub.',
+                icon: BookOpen,
+                emoji: '📚',
+                c1: '#6366F1',
+                c2: '#A855F7',
+                go: () => onNavigate && onNavigate('student-notes', 'lesson-planning')
+              },
+              {
+                label: "AI Tutor's Class",
+                desc: 'Ask questions and get intelligent help anytime.',
+                icon: Sparkles,
+                emoji: '🤖',
+                c1: '#06B6D4',
+                c2: '#3B82F6',
+                go: () => onNavigate && onNavigate('ai-tutor', 'intelligence-ai')
+              }
+            ].map((tile, i) => (
+              <motion.button
+                key={tile.label}
+                type="button"
+                onClick={tile.go}
+                whileHover={{ y: -6 }}
+                whileTap={{ scale: 0.97 }}
+                aria-label={tile.label}
+                className="kid-card kid-tile kid-pop p-6 flex flex-col items-start gap-4 min-h-[210px]"
+                style={{
+                  ['--kid-1' as any]: tile.c1,
+                  ['--kid-2' as any]: tile.c2,
+                  animationDelay: `${0.06 * (i + 1)}s`
+                }}
+              >
+                <div className="flex w-full items-start justify-between">
+                  <div className="kid-badge" style={{ ['--kid-2' as any]: tile.c2 }}>
+                    <tile.icon size={30} strokeWidth={2.6} />
+                  </div>
+                  <span className="text-3xl select-none kid-bob">{tile.emoji}</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <h3 className="kid-title text-xl font-display leading-tight">{tile.label}</h3>
+                  <p className="kid-sub text-[13px] leading-snug">{tile.desc}</p>
+                </div>
+              </motion.button>
+            ))}
+          </div>
         </div>
       </motion.div>
 
-      {/* Dashboard Customization Control Panel */}
-      <div className={cn(
-        "p-4 rounded-[24px] border flex flex-col sm:flex-row justify-between items-center gap-4",
-        isDarkMode ? "glass-neon-card border-white/5" : "bg-slate-50 border-slate-200"
-      )}>
-        <div className="flex items-center gap-2">
-          <Move className="text-indigo-500 shrink-0" size={16} />
-          <span className={cn("text-xs font-bold", isDarkMode ? "text-slate-300" : "text-slate-500")}>
-            Customize Dashboard: Drag-and-drop the headers or use the <ArrowUp className="inline" size={12}/> <ArrowDown className="inline" size={12}/> buttons to arrange widgets!
+      {/* =============== DASHBOARD CUSTOMIZATION CONTROL PANEL =============== */}
+      <div
+        className="kid-card p-4 sm:p-5 flex flex-col sm:flex-row justify-between items-center gap-4"
+        style={{ ['--kid-1' as any]: '#8B5CF6', ['--kid-2' as any]: '#6366F1' }}
+      >
+        <div className="flex items-center gap-3">
+          <div className="kid-badge !w-12 !h-12 !rounded-2xl" style={{ ['--kid-2' as any]: '#6366F1' }}>
+            <Move size={22} strokeWidth={2.8} />
+          </div>
+          <span className="kid-sub text-[13px] leading-snug">
+            Customize Dashboard: Drag-and-drop the headers or use the{' '}
+            <ArrowUp className="inline" size={13} /> <ArrowDown className="inline" size={13} /> buttons to arrange widgets!
           </span>
         </div>
         <button
           onClick={handleResetWidgetOrder}
-          className={cn(
-            "text-[10px] font-black uppercase tracking-wider px-3.5 py-2 rounded-xl transition-all border-0 cursor-pointer shadow-sm",
-            isDarkMode ? "primary-neon-btn-cyan text-slate-950 font-black" : "bg-indigo-600 hover:bg-indigo-500 text-white"
-          )}
+          className="kid-btn shrink-0"
+          style={{ ['--kid-1' as any]: '#F59E0B', ['--kid-2' as any]: '#EC4899' }}
         >
+          <RefreshCw size={13} strokeWidth={3} />
           Reset Layout
         </button>
       </div>
@@ -907,19 +874,20 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
             ];
 
             widgetContent = (
-              <div className={cn(
-                "p-8 rounded-[36px] shadow-sm space-y-4 border",
-                isDarkMode ? "glass-neon-card animate-neon-pulse-green border-brand-green/15" : "bg-white border border-slate-200"
-              )}>
-                <div className="flex justify-between items-center">
+              <div className="kid-panel" style={{ ['--kid-1' as any]: '#10B981', ['--kid-2' as any]: '#0EA5E9' }}>
+                <div className="kid-panel-head">
                   <div>
-                    <h3 className={cn("text-2xl font-hand", isDarkMode ? "text-white text-glow-cyan" : "text-slate-900")}>Academic Growth Charts</h3>
-                    <p className="text-xs text-slate-400 mt-1">Live subject performance trends over the academic terms</p>
+                    <h3 className="kid-title text-2xl sm:text-3xl font-hand flex items-center gap-2">
+                      <span className="kid-bob inline-block">📈</span> Academic Growth Charts
+                    </h3>
+                    <p className="kid-sub text-[12px] mt-0.5">Live subject performance trends over the academic terms</p>
                   </div>
-                  <Activity className={cn("text-brand-green animate-pulse", isDarkMode && "icon-glow-green")} size={24} />
+                  <div className="kid-badge" style={{ ['--kid-2' as any]: '#10B981' }}>
+                    <Activity size={28} strokeWidth={2.6} />
+                  </div>
                 </div>
-                <div className="h-[280px] w-full pt-2">
-                  <ResponsiveContainer width="100%" height={280} minWidth={0} minHeight={1}>
+                <div className="kid-panel-body h-[340px] w-full">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={1}>
                     <AreaChart data={performanceData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorMath" x1="0" y1="0" x2="0" y2="1">
@@ -935,14 +903,16 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                           <stop offset="95%" stopColor="#FF00D4" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} />
-                      <XAxis dataKey="name" stroke={isDarkMode ? '#94a3b8' : '#94a3b8'} fontSize={10} tickLine={false} />
-                      <YAxis stroke={isDarkMode ? '#94a3b8' : '#94a3b8'} fontSize={10} tickLine={false} domain={[50, 100]} />
-                      <Tooltip contentStyle={{ backgroundColor: isDarkMode ? '#0f172a' : '#ffffff', borderColor: isDarkMode ? '#1e293b' : '#e2e8f0', borderRadius: '12px' }} />
-                      <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
-                      <Area type="monotone" dataKey="Mathematics" stroke="#00B3FF" strokeWidth={2.5} fillOpacity={1} fill="url(#colorMath)" />
-                      <Area type="monotone" dataKey="Physical Sciences" stroke="#00FF9F" strokeWidth={2.5} fillOpacity={1} fill="url(#colorPhys)" />
-                      <Area type="monotone" dataKey="English" stroke="#FF00D4" strokeWidth={2.5} fillOpacity={1} fill="url(#colorEng)" />
+                      {/* The panel body is a solid white card, so the axes are
+                          always drawn in dark ink for maximum readability. */}
+                      <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="rgba(16,22,58,0.12)" />
+                      <XAxis dataKey="name" stroke="#10163a" fontSize={12} fontWeight={800} tickLine={false} />
+                      <YAxis stroke="#10163a" fontSize={12} fontWeight={800} tickLine={false} domain={[50, 100]} />
+                      <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#10B981', borderWidth: 3, borderRadius: '16px', fontWeight: 800, color: '#10163a' }} />
+                      <Legend verticalAlign="top" height={40} iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 900, color: '#10163a' }} />
+                      <Area type="monotone" dataKey="Mathematics" stroke="#00B3FF" strokeWidth={4} fillOpacity={1} fill="url(#colorMath)" />
+                      <Area type="monotone" dataKey="Physical Sciences" stroke="#00FF9F" strokeWidth={4} fillOpacity={1} fill="url(#colorPhys)" />
+                      <Area type="monotone" dataKey="English" stroke="#FF00D4" strokeWidth={4} fillOpacity={1} fill="url(#colorEng)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -950,40 +920,55 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
             );
           } else if (widgetId === 'recent-activities') {
             widgetContent = (
-              <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm space-y-5`}>
-                <div className="flex justify-between items-center">
+              <div className="kid-panel" style={{ ['--kid-1' as any]: '#F59E0B', ['--kid-2' as any]: '#F43F5E' }}>
+                <div className="kid-panel-head">
                   <div>
-                    <h3 className={`text-2xl font-hand ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>My Recent Live Feed</h3>
-                    <p className="text-xs text-slate-400 mt-1">Real-time chronicle of your study sessions and achievements</p>
+                    <h3 className="kid-title text-2xl sm:text-3xl font-hand flex items-center gap-2">
+                      <span className="kid-bob inline-block">⚡</span> My Recent Live Feed
+                    </h3>
+                    <p className="kid-sub text-[12px] mt-0.5">Real-time chronicle of your study sessions and achievements</p>
                   </div>
-                  <Clock className="text-emerald-500 animate-spin-slow" size={24} />
+                  <div className="kid-badge" style={{ ['--kid-2' as any]: '#F43F5E' }}>
+                    <Clock size={28} strokeWidth={2.6} />
+                  </div>
                 </div>
-                <div className="space-y-4">
+                <div className="kid-panel-body space-y-3">
                   {recentLogs.length === 0 ? (
-                    <p className="text-xs text-slate-400 italic py-4 text-center">No recent activity logged yet. Complete tasks to light up your feed!</p>
+                    <p className="text-sm font-bold text-slate-500 italic py-6 text-center">
+                      No recent activity logged yet. Complete tasks to light up your feed! ✨
+                    </p>
                   ) : (
                     recentLogs.map((log) => {
+                      // Solid, saturated chips so each activity type is
+                      // instantly distinguishable at a glance.
                       let LogIcon = Flame;
-                      let logColor = 'bg-yellow-500/10 text-yellow-500';
+                      let logColor = '#F59E0B';
                       if (log.activityType === 'task_completed') {
                         LogIcon = CheckCircle;
-                        logColor = 'bg-indigo-500/10 text-indigo-500';
+                        logColor = '#6366F1';
                       } else if (log.activityType === 'practice_attempt') {
                         LogIcon = Target;
-                        logColor = 'bg-emerald-500/10 text-emerald-500';
+                        logColor = '#10B981';
                       } else if (log.activityType === 'ai_chat') {
                         LogIcon = Brain;
-                        logColor = 'bg-cyan-500/10 text-cyan-500';
+                        logColor = '#06B6D4';
                       }
-                      
+
                       return (
-                        <div key={log.id} className="flex items-start gap-4 p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
-                          <div className={`w-9 h-9 rounded-xl ${logColor} flex items-center justify-center shrink-0`}>
-                            <LogIcon size={16} />
+                        <div
+                          key={log.id}
+                          className="flex items-start gap-4 p-3 rounded-2xl border-2 transition-all hover:translate-x-1"
+                          style={{ borderColor: logColor, background: `${logColor}1A` }}
+                        >
+                          <div
+                            className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 text-white shadow-md"
+                            style={{ background: logColor }}
+                          >
+                            <LogIcon size={20} strokeWidth={2.8} />
                           </div>
-                          <div className="space-y-0.5">
-                            <p className={`text-xs font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{log.description}</p>
-                            <span className="text-[10px] text-slate-400 font-mono">{log.timestamp} • Active Session</span>
+                          <div className="space-y-0.5 min-w-0">
+                            <p className="text-sm font-black text-slate-800">{log.description}</p>
+                            <span className="text-[11px] text-slate-500 font-bold font-mono">{log.timestamp} • Active Session</span>
                           </div>
                         </div>
                       );
@@ -994,22 +979,25 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
             );
           } else if (widgetId === 'upcoming-assignments') {
             widgetContent = (
-              <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
-                 <div className="flex justify-between items-center mb-6">
+              <div className="kid-panel" style={{ ['--kid-1' as any]: '#6366F1', ['--kid-2' as any]: '#A855F7' }}>
+                 <div className="kid-panel-head">
                    <div>
-                     <h3 className={`text-2xl font-hand ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Teacher Assigned Tasks</h3>
-                     <p className="text-xs text-slate-400 mt-1">Assessments and worksheets from your teachers</p>
+                     <h3 className="kid-title text-2xl sm:text-3xl font-hand flex items-center gap-2">
+                       <span className="kid-bob inline-block">📝</span> Teacher Assigned Tasks
+                     </h3>
+                     <p className="kid-sub text-[12px] mt-0.5">Assessments and worksheets from your teachers</p>
                    </div>
-                   <span className="text-xs font-black uppercase tracking-widest text-indigo-500 bg-indigo-50 dark:bg-indigo-950 px-3 py-1 rounded-full animate-pulse">
+                   <span className="kid-chip" style={{ ['--kid-2' as any]: '#6366F1' }}>
                      Homework
                    </span>
                  </div>
 
+                 <div className="kid-panel-body">
                  {myAssignments.length === 0 ? (
-                   <div className="text-center p-8 bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-dashed border-slate-200">
-                     <BookOpen className="mx-auto h-12 w-12 text-slate-300 mb-2 animate-bounce" />
-                     <p className="text-slate-500 font-medium text-sm">No homework assignments from your teachers yet!</p>
-                     <p className="text-xs text-slate-400 mt-0.5">Your dashboard is up to date.</p>
+                   <div className="text-center p-8 rounded-[24px] border-4 border-dashed border-indigo-300 bg-indigo-50">
+                     <BookOpen className="mx-auto h-14 w-14 text-indigo-400 mb-2 animate-bounce" />
+                     <p className="text-slate-700 font-black text-base">No homework assignments from your teachers yet!</p>
+                     <p className="text-sm text-slate-500 font-bold mt-0.5">Your dashboard is up to date.</p>
                    </div>
                  ) : (
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1020,38 +1008,38 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                        return (
                          <div
                            key={assignment.id}
-                           className={`p-5 rounded-2xl border transition-all flex flex-col justify-between ${
-                             isCompleted
-                               ? 'bg-emerald-50/20 border-emerald-100 dark:bg-emerald-950/10 dark:border-emerald-900/30'
-                               : (isDarkMode ? 'bg-white/5 border-white/10 hover:border-indigo-400' : 'bg-white border-slate-200 hover:border-indigo-400')
-                           } shadow-sm group relative overflow-hidden`}
+                           className="p-5 rounded-[24px] border-4 transition-all flex flex-col justify-between group relative overflow-hidden hover:-translate-y-1"
+                           style={{
+                             borderColor: isCompleted ? '#10B981' : '#6366F1',
+                             background: isCompleted ? '#ECFDF5' : '#EEF2FF'
+                           }}
                          >
                            <div>
-                             <div className="flex justify-between items-start gap-2 mb-2">
-                               <span className="text-[10px] font-black uppercase tracking-widest text-[#06b6d4] bg-cyan-100/50 dark:bg-cyan-950 px-2 py-0.5 rounded-md">
+                             <div className="flex justify-between items-start gap-2 mb-2 flex-wrap">
+                               <span className="text-[10px] font-black uppercase tracking-widest text-white bg-cyan-500 px-2.5 py-1 rounded-full shadow-sm">
                                  {assignment.subject}
                                </span>
                                {isCompleted ? (
-                                 <span className="text-[9px] font-mono font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                   <CheckCircle size={10} /> Graded: {submission.grade}
+                                 <span className="text-[10px] font-black text-white bg-emerald-500 px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                                   <CheckCircle size={11} strokeWidth={3} /> Graded: {submission.grade}
                                  </span>
                                ) : (
-                                 <span className="text-[9px] font-mono font-bold text-yellow-600 bg-yellow-50 dark:bg-yellow-950 px-2 py-0.5 rounded-md">
+                                 <span className="text-[10px] font-black text-white bg-amber-500 px-2.5 py-1 rounded-full shadow-sm">
                                    Incomplete
                                  </span>
                                )}
                              </div>
 
-                             <h4 className={`font-bold text-base mt-2 line-clamp-1 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                             <h4 className="font-black text-lg mt-2 line-clamp-1 text-slate-900">
                                {assignment.title}
                              </h4>
-                             <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                             <p className="text-[13px] text-slate-600 font-bold mt-1 line-clamp-2">
                                {assignment.contentType} • Assigned by {assignment.teacherName}
                              </p>
                            </div>
 
-                           <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800/60 flex justify-between items-center bg-transparent">
-                             <span className="text-[10px] font-mono text-slate-400 font-medium">
+                           <div className="mt-5 pt-4 border-t-2 border-dashed border-slate-300 flex justify-between items-center gap-2 flex-wrap">
+                             <span className="text-[11px] font-mono text-slate-500 font-black">
                                {assignment.createdAt ? new Date(assignment.createdAt.seconds * 1000 || assignment.createdAt).toLocaleDateString() : 'Active'}
                              </span>
 
@@ -1064,11 +1052,12 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                                  setGradingError('');
                                  setSolvingMode('online');
                                }}
-                               className={`px-4 py-1.5 rounded-xl font-bold uppercase tracking-wider text-[10px] transition-all border-0 cursor-pointer ${
+                               className="kid-btn"
+                               style={
                                  isCompleted
-                                   ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
-                                   : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-sm'
-                               }`}
+                                   ? { ['--kid-1' as any]: '#10B981', ['--kid-2' as any]: '#059669' }
+                                   : { ['--kid-1' as any]: '#6366F1', ['--kid-2' as any]: '#A855F7' }
+                               }
                              >
                                {isCompleted ? 'View Graded' : 'Solve & Hand-In'}
                              </button>
@@ -1078,6 +1067,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                      })}
                    </div>
                  )}
+                 </div>
               </div>
             );
           } else if (widgetId === 'upcoming-missions') {
@@ -1089,13 +1079,15 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
             ];
 
             widgetContent = (
-              <div className={`${isDarkMode ? 'glass bg-slate-900/90 border border-white/10' : 'bg-white border border-slate-200'} p-8 rounded-[36px] shadow-sm`}>
-                 <div className="flex justify-between items-center mb-6">
-                    <h3 className={`text-2xl font-hand ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Active Quests</h3>
-                    <span className="text-xs font-black uppercase tracking-widest text-[#06b6d4] bg-cyan-100 dark:bg-cyan-950/50 px-3 py-1 rounded-full animate-pulse">Personalized Map</span>
+              <div className="kid-panel" style={{ ['--kid-1' as any]: '#EC4899', ['--kid-2' as any]: '#8B5CF6' }}>
+                 <div className="kid-panel-head">
+                    <h3 className="kid-title text-2xl sm:text-3xl font-hand flex items-center gap-2">
+                      <span className="kid-bob inline-block">🗺️</span> Active Quests
+                    </h3>
+                    <span className="kid-chip" style={{ ['--kid-2' as any]: '#8B5CF6' }}>Personalized Map</span>
                  </div>
-                 
-                 <div className="space-y-6">
+
+                 <div className="kid-panel-body space-y-5">
                     {stats.missions.map((m, i) => {
                       const completed = m.status === 'Completed';
                       const theme = QUEST_THEMES[i % QUEST_THEMES.length];
@@ -1105,11 +1097,11 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                         <div 
                           key={i} 
                           onClick={() => handleToggleMission(i)}
-                          className={`p-5 rounded-[24px] border transition-all duration-300 group cursor-pointer relative overflow-hidden ${
-                            completed
-                            ? (isDarkMode ? 'border-emerald-500/30 bg-emerald-950/10 opacity-80' : 'border-emerald-200 bg-emerald-50/50 opacity-80')
-                            : (isDarkMode ? 'border-white/15 bg-slate-900/80 hover:border-brand-cyan/60 hover:bg-slate-900/90' : 'border-slate-150 bg-slate-50 hover:border-brand-cyan/40 hover:bg-slate-50/80')
-                          } shadow-sm`}
+                          className="p-5 rounded-[24px] border-4 transition-all duration-300 group cursor-pointer relative overflow-hidden hover:-translate-y-1 shadow-md"
+                          style={{
+                            borderColor: completed ? '#10B981' : '#8B5CF6',
+                            background: completed ? '#ECFDF5' : '#FAF5FF'
+                          }}
                         >
                            {celebrateTaskId === i && (
                              <div className="absolute inset-0 bg-emerald-500/20 pointer-events-none animate-ping"></div>
@@ -1117,31 +1109,31 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                            
                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                              <div className="flex items-start gap-4 flex-1">
-                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl bg-white/5 border ${isDarkMode ? 'border-white/10' : 'border-slate-200'} shrink-0`}>
+                                <div className="w-16 h-16 rounded-[20px] flex items-center justify-center text-4xl bg-white border-4 border-purple-200 shrink-0 shadow-md">
                                   {theme.icon}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                    <h4 className={`font-black text-lg ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                                    <h4 className="font-black text-xl text-slate-900">
                                       {theme.name}
                                     </h4>
-                                    <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                                    <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-indigo-500 text-white shadow-sm">
                                       {theme.tag}
                                     </span>
                                   </div>
-                                  <p className={`text-sm font-bold mb-3 ${completed ? 'line-through text-slate-400' : (isDarkMode ? 'text-slate-200' : 'text-slate-700')}`}>
+                                  <p className={`text-base font-black mb-3 ${completed ? 'line-through text-slate-400' : 'text-slate-800'}`}>
                                     {m.task}
                                   </p>
                                   
                                   {/* Progress bar container */}
                                   <div className="space-y-1.5 w-full">
-                                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                    <div className="flex justify-between items-center text-[11px] font-black uppercase tracking-wider text-slate-600">
                                       <span>Quest Progress</span>
-                                      <span className={completed ? 'text-emerald-400 font-black' : ''}>
+                                      <span className={completed ? 'text-emerald-600 font-black' : 'text-purple-600'}>
                                         {progressValue}%
                                       </span>
                                     </div>
-                                    <div className="w-full bg-slate-200 dark:bg-transparent h-2.5 rounded-full overflow-hidden">
+                                    <div className="w-full bg-slate-200 border-2 border-slate-300 h-4 rounded-full overflow-hidden">
                                       <motion.div 
                                         initial={{ width: 0 }}
                                         animate={{ width: `${progressValue}%` }}
@@ -1155,21 +1147,22 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                              
                              <div className="flex items-center justify-end shrink-0 gap-3">
                                <div className="text-right hidden md:block">
-                                 <span className="text-[10px] uppercase font-black tracking-widest text-slate-400 block">Milestone</span>
-                                 <span className="text-xs font-bold underline text-brand-cyan">{m.milestone}</span>
+                                 <span className="text-[11px] uppercase font-black tracking-widest text-slate-500 block">Milestone</span>
+                                 <span className="text-sm font-black text-purple-600">{m.milestone}</span>
                                </div>
                                <button 
                                  onClick={(e) => {
                                    e.stopPropagation();
                                    handleToggleMission(i);
                                  }}
-                                 className={`shadow-lg border p-2.5 rounded-full transition-all group-hover:scale-110 active:scale-95 ${
+                                 aria-label={completed ? 'Mark quest as not done' : 'Start this quest'}
+                                 className={`shadow-lg border-4 border-white p-4 rounded-full transition-all group-hover:scale-110 active:scale-95 cursor-pointer ${
                                    completed
-                                   ? 'bg-emerald-500 border-emerald-600 text-white'
-                                   : 'bg-indigo-600 hover:bg-indigo-500 border-indigo-500 text-white shadow-indigo-600/20'
+                                   ? 'bg-emerald-500 text-white'
+                                   : 'bg-purple-600 hover:bg-purple-500 text-white'
                                  }`}
                                >
-                                 {completed ? <Check size={18} className="stroke-[3.5]" /> : <Play size={18} className="fill-current ml-0.5"/>}
+                                 {completed ? <Check size={22} className="stroke-[4]" /> : <Play size={22} className="fill-current ml-0.5"/>}
                                </button>
                              </div>
                            </div>
@@ -1186,48 +1179,40 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className={`p-6 rounded-[28px] border-2 bg-gradient-to-tr ${
-                      isDarkMode 
-                        ? 'from-[#3B0764]/40 via-[#1E1B4B]/30 to-[#030712]/50 border-purple-500/20 shadow-purple-950/20' 
-                        : 'from-pink-50 via-purple-50 to-indigo-50 border-purple-200/55 shadow-purple-100/50'
-                    } border-solid shadow-xl flex flex-col sm:flex-row items-start sm:items-center gap-4 relative overflow-hidden`}
+                    className="kid-card p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 relative overflow-hidden"
+                    style={{ ['--kid-1' as any]: '#EC4899', ['--kid-2' as any]: '#8B5CF6' }}
                   >
-                    <div className="absolute top-0 right-0 p-8 opacity-5 text-purple-400">
+                    <div className="absolute top-0 right-0 p-8 opacity-15 text-white pointer-events-none">
                       <Heart size={140} className="fill-current" />
                     </div>
-                    <div className={`p-4 bg-purple-500/10 rounded-2xl border border-purple-500/20 shrink-0 flex items-center justify-center`}>
-                      <Heart size={26} className="fill-current animate-pulse text-red-500" />
+                    <div className="kid-badge" style={{ ['--kid-2' as any]: '#EC4899' }}>
+                      <Heart size={30} className="fill-current animate-pulse text-red-500" />
                     </div>
                     <div className="space-y-1.5 z-10">
-                      <h4 className={`text-xs font-black uppercase tracking-widest ${
-                        isDarkMode ? 'text-purple-300' : 'text-purple-500'
-                      }`}>
+                      <h4 className="kid-sub text-[12px] font-black uppercase tracking-widest">
                         Message from Parent/Guardian
                       </h4>
-                      <p className={`text-base sm:text-lg font-hand leading-relaxed italic ${
-                        isDarkMode ? 'text-slate-100' : 'text-slate-800'
-                      }`}>
+                      <p className="kid-title text-lg sm:text-2xl font-hand leading-relaxed italic">
                         "{student.idp.parentNote}"
                       </p>
                       {student.idp.parentNoteTimestamp && (
-                        <p className="text-[9px] font-mono font-bold text-slate-500 mr-auto">
+                        <p className="kid-sub text-[11px] font-mono font-bold">
                           Received: {new Date(student.idp.parentNoteTimestamp).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </p>
                       )}
                     </div>
                   </motion.div>
                 ) : (
-                  <div className={`p-6 rounded-[28px] border-2 bg-gradient-to-tr ${
-                    isDarkMode 
-                      ? 'from-indigo-950/30 to-slate-950/40 border-indigo-500/10 shadow-sm' 
-                      : 'from-blue-50/50 to-indigo-50/50 border-indigo-100 shadow-sm'
-                  } border-solid flex items-center gap-4 relative overflow-hidden`}>
-                    <div className="p-4 bg-indigo-500/10 rounded-2xl shrink-0 flex items-center justify-center text-indigo-500">
-                      <Star size={24} className="fill-current animate-pulse" />
+                  <div
+                    className="kid-card p-6 flex items-center gap-4 relative overflow-hidden"
+                    style={{ ['--kid-1' as any]: '#3B82F6', ['--kid-2' as any]: '#6366F1' }}
+                  >
+                    <div className="kid-badge" style={{ ['--kid-2' as any]: '#3B82F6' }}>
+                      <Star size={30} className="fill-current animate-pulse" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-black uppercase tracking-widest text-indigo-500">AI Tutor Sparks</h4>
-                      <p className={`text-sm sm:text-base font-hand leading-relaxed italic ${isDarkMode ? 'text-slate-300' : 'text-slate-700'} mt-1`}>
+                      <h4 className="kid-sub text-[12px] font-black uppercase tracking-widest">AI Tutor Sparks</h4>
+                      <p className="kid-title text-base sm:text-xl font-hand leading-relaxed italic mt-1">
                         "Believe in your learning journey! Every question asked is a step closer to deep mastery." — Sparky 🪄
                       </p>
                     </div>
@@ -1271,26 +1256,31 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
               } relative group/widget`}
             >
               {/* Drag controller handle bar overlays */}
-              <div className="absolute top-4 right-4 z-20 flex items-center gap-1 opacity-0 group-hover/widget:opacity-100 transition-opacity bg-slate-100/90 dark:bg-slate-900/90 rounded-full px-3 py-1 shadow-sm border border-slate-200/50 dark:border-white/5">
-                <GripVertical size={12} className="text-slate-400 cursor-grab active:cursor-grabbing shrink-0 animate-pulse" />
-                <span className="text-[9px] font-bold text-slate-500 select-none uppercase tracking-widest hidden sm:inline mr-1">Reorder</span>
-                
+              {/* Reorder controls: kept always visible (they used to be
+                  opacity-0 until hover, which is undiscoverable for young
+                  learners and unusable on touch devices). */}
+              <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 bg-white rounded-full px-3 py-1.5 shadow-lg border-2 border-slate-800/10">
+                <GripVertical size={14} className="text-slate-500 cursor-grab active:cursor-grabbing shrink-0" />
+                <span className="text-[10px] font-black text-slate-600 select-none uppercase tracking-widest hidden sm:inline mr-1">Reorder</span>
+
                 {index > 0 && (
                   <button
                     onClick={() => moveWidget(index, 'up')}
-                    className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 border-0 cursor-pointer"
+                    className="p-1.5 rounded-full bg-slate-100 hover:bg-indigo-500 hover:text-white text-slate-600 border-0 cursor-pointer transition-colors"
                     title="Move Up"
+                    aria-label="Move widget up"
                   >
-                    <ArrowUp size={10} />
+                    <ArrowUp size={13} strokeWidth={3} />
                   </button>
                 )}
                 {index < currentOrder.length - 1 && (
                   <button
                     onClick={() => moveWidget(index, 'down')}
-                    className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 border-0 cursor-pointer"
+                    className="p-1.5 rounded-full bg-slate-100 hover:bg-indigo-500 hover:text-white text-slate-600 border-0 cursor-pointer transition-colors"
                     title="Move Down"
+                    aria-label="Move widget down"
                   >
-                    <ArrowDown size={10} />
+                    <ArrowDown size={13} strokeWidth={3} />
                   </button>
                 )}
               </div>
