@@ -8,8 +8,14 @@
  * title. Each step gets a 4-second segment, so the clip loops smoothly and
  * the Helpdesk player can sync the step panel to the video timeline.
  *
+ * Each clip also gets a soft, low-volume ambient C-major pad mixed in as an
+ * audio track so the in-app player has sound and browsers never treat the
+ * clip as a muted, stuck thumbnail. After regenerating visuals you can also
+ * run `node scripts/add-audio-to-clips.mjs` to re-apply audio to the
+ * existing MP4s without touching the video stream.
+ *
  * Usage (from repo root):
- *   npm i --no-save @ffmpeg-installer/ffmpeg @ffprobe-installer/ffprobe   # one-time, tooling only
+ *   npm i --no-save --ignore-scripts @ffmpeg-installer/ffmpeg @ffprobe-installer/ffprobe   # one-time, tooling only
  *   node scripts/make-howto-clips.mjs
  *
  * Output: src/assets/videos/howto_<guide-id>.mp4
