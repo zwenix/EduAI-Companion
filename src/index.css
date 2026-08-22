@@ -426,20 +426,27 @@ svg:not(.not-sketchy) {
    CLASSROOM LANDING BACKGROUND — animated scene + exploding education icons
    ========================================================================== */
 
-/* Educational symbols & icons burst outwards from the chalkboard area */
+/* Educational symbols & icons burst outwards from the centre of the screen.
+
+   The particles start collapsed at the origin, snap to full brightness almost
+   immediately, then coast outwards along their own `--ex-x`/`--ex-y` vector
+   while spinning by `--ex-r`. They hold their brightness for most of the
+   flight (so they actually read on screen) and only fade over the last
+   stretch, which keeps the burst continuously legible rather than flashing. */
 @keyframes eduai-explode {
   0% {
-    transform: translate(0, 0) scale(0.25) rotate(0deg);
+    transform: translate(0, 0) scale(0.18) rotate(0deg);
     opacity: 0;
   }
-  6% {
+  7% {
     opacity: 1;
   }
-  70% {
-    opacity: 0.85;
+  82% {
+    opacity: 0.95;
   }
   100% {
-    transform: translate(var(--ex-x, 0vmin), var(--ex-y, 0vmin)) scale(1.15) rotate(var(--ex-r, 0deg));
+    transform: translate(var(--ex-x, 0vmin), var(--ex-y, 0vmin)) scale(var(--ex-s, 1.25))
+      rotate(var(--ex-r, 0deg));
     opacity: 0;
   }
 }
@@ -449,6 +456,19 @@ svg:not(.not-sketchy) {
   animation-timing-function: cubic-bezier(0.16, 0.8, 0.45, 1);
   animation-iteration-count: infinite;
   will-change: transform, opacity;
+}
+
+/* The burst lives in its own stacking layer that sits ABOVE the classroom
+   photo and all of its readability overlays, but still BELOW the landing
+   page's foreground content (which is z-20). Without this the icons were
+   painted underneath the gradient + vignette + scanline plates and were
+   effectively invisible. */
+.eduai-burst-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 /* Gentle parallax drift for the classroom scene */
@@ -974,4 +994,410 @@ svg:not(.not-sketchy) {
   color: rgba(10, 15, 33, 0.3) !important;
   letter-spacing: 0.12em;
   font-weight: 900;
+}
+
+/* ==========================================================================
+   FOUNDATION PHASE STUDENT PORTAL — "Kid Portal" design system
+   --------------------------------------------------------------------------
+   The student portal previously drew its menus with `bg-transparent
+   backdrop-blur-md` on top of the dark app backdrop, with the accent supplied
+   only by `.animate-border-flash-*` — which is deliberately frozen to
+   `animation: none !important`. The net result was near-invisible cards.
+
+   Everything below is NEW, additive, and scoped under `.kid-portal`. None of
+   the frozen shared classes (.glass-neon-card, .hover-neon-*,
+   .animate-neon-pulse-*, .animate-border-flash-*) are touched.
+
+   The look: solid, saturated colour blocks with thick candy borders, chunky
+   rounded corners and a soft drop shadow, so a 6-year-old can see and hit
+   every target. Each card carries its own hue via the `--kid-1` / `--kid-2`
+   custom properties, set inline from the component.
+   ========================================================================== */
+
+.kid-portal {
+  --kid-1: #00B3FF;
+  --kid-2: #6366f1;
+  --kid-ink: #10163a;
+}
+
+/* ---- Solid, high-contrast card ------------------------------------------ */
+.kid-card {
+  position: relative;
+  border-radius: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  background-image: linear-gradient(150deg, var(--kid-1) 0%, var(--kid-2) 100%);
+  box-shadow:
+    0 10px 0 -2px rgba(0, 0, 0, 0.22),
+    0 18px 40px -12px rgba(0, 0, 0, 0.55),
+    inset 0 2px 0 rgba(255, 255, 255, 0.45);
+  color: #fff;
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.22s ease, filter 0.22s ease;
+}
+
+/* Glossy highlight sweep across the top third of every card. */
+.kid-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 55% 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
+  pointer-events: none;
+  z-index: 0;
+}
+
+.kid-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- Interactive (clickable menu) variant ------------------------------- */
+.kid-tile {
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  appearance: none;
+  font: inherit;
+}
+
+.kid-tile:hover,
+.kid-tile:focus-visible {
+  transform: translateY(-6px) rotate(-0.6deg) scale(1.03);
+  filter: saturate(1.18) brightness(1.06);
+  box-shadow:
+    0 16px 0 -2px rgba(0, 0, 0, 0.22),
+    0 26px 55px -12px rgba(0, 0, 0, 0.6),
+    inset 0 2px 0 rgba(255, 255, 255, 0.55);
+  outline: none;
+}
+
+.kid-tile:focus-visible {
+  border-color: #fff;
+  box-shadow:
+    0 0 0 5px rgba(255, 255, 255, 0.55),
+    0 16px 0 -2px rgba(0, 0, 0, 0.22),
+    0 26px 55px -12px rgba(0, 0, 0, 0.6);
+}
+
+.kid-tile:active {
+  transform: translateY(2px) scale(0.985);
+  box-shadow:
+    0 4px 0 -2px rgba(0, 0, 0, 0.22),
+    0 10px 24px -10px rgba(0, 0, 0, 0.55),
+    inset 0 2px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* ---- Big friendly icon badge sitting on each tile ------------------------ */
+.kid-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--kid-2);
+  border: 3px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 6px 0 -1px rgba(0, 0, 0, 0.18), 0 10px 22px -8px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.kid-tile:hover .kid-badge {
+  transform: rotate(-10deg) scale(1.12);
+}
+
+/* ---- Text that always stays legible on saturated colour ----------------- */
+.kid-title {
+  color: #fff;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.28), 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.kid-sub {
+  color: rgba(255, 255, 255, 0.94);
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* ---- Panels that hold charts/lists: light, opaque, readable ------------- */
+.kid-panel {
+  border-radius: 34px;
+  border: 4px solid var(--kid-1);
+  background: #ffffff;
+  box-shadow: 0 12px 0 -4px rgba(0, 0, 0, 0.18), 0 22px 50px -18px rgba(0, 0, 0, 0.55);
+  color: #10163a;
+  overflow: hidden;
+}
+
+.kid-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.75rem;
+  background-image: linear-gradient(100deg, var(--kid-1) 0%, var(--kid-2) 100%);
+  color: #fff;
+  border-bottom: 4px solid rgba(255, 255, 255, 0.7);
+}
+
+.kid-panel-body {
+  padding: 1.5rem 1.75rem 1.75rem;
+  background: #ffffff;
+  color: #10163a;
+}
+
+/* Pill chips / badges */
+.kid-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--kid-2);
+  font-weight: 900;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 3px 0 -1px rgba(0, 0, 0, 0.16);
+  white-space: nowrap;
+}
+
+/* Chunky candy button */
+.kid-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.65rem 1.15rem;
+  border-radius: 999px;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  background-image: linear-gradient(140deg, var(--kid-1), var(--kid-2));
+  color: #fff;
+  font-weight: 900;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 5px 0 -1px rgba(0, 0, 0, 0.24), 0 10px 22px -10px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.16s ease;
+}
+
+.kid-btn:hover {
+  transform: translateY(-3px) scale(1.04);
+  filter: saturate(1.2) brightness(1.08);
+}
+
+.kid-btn:active {
+  transform: translateY(2px) scale(0.97);
+  box-shadow: 0 2px 0 -1px rgba(0, 0, 0, 0.24);
+}
+
+/* Gentle continuous bob for hero mascots / emoji — playful but not busy. */
+@keyframes kid-bob {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-10px) rotate(3deg); }
+}
+
+.kid-bob {
+  animation: kid-bob 3.2s ease-in-out infinite;
+}
+
+@keyframes kid-pop-in {
+  0% { opacity: 0; transform: translateY(18px) scale(0.94); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.kid-pop {
+  animation: kid-pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Rainbow progress track */
+.kid-track {
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(9, 14, 34, 0.35);
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+.kid-fill {
+  height: 100%;
+  border-radius: 999px;
+  background-image: linear-gradient(90deg, #00FF9F, #ffdf40, #FF8A3D, #FF00D4);
+  box-shadow: 0 0 14px rgba(255, 223, 64, 0.75);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kid-bob,
+  .kid-pop {
+    animation: none;
+  }
+  .kid-card,
+  .kid-tile,
+  .kid-btn,
+  .kid-badge {
+    transition: none;
+  }
+}
+
+/* ==========================================================================
+   KID PORTAL — RESPONSIVENESS / CONTRAST / TOUCH POLISH
+   Additive only. Tightens small-screen ergonomics for Foundation Phase
+   learners without altering the established look. None of the frozen shared
+   classes (.glass-neon-card, .hover-neon-*, .animate-neon-pulse-*,
+   .animate-border-flash-*) are referenced here.
+   ========================================================================== */
+
+/* Never let a chunky card force a horizontal scrollbar on a small phone. */
+.kid-portal {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.kid-portal *,
+.kid-portal *::before,
+.kid-portal *::after {
+  min-width: 0;
+}
+
+/* Long words / marks / emails inside white panels must wrap, not overflow. */
+.kid-panel-body {
+  overflow-wrap: anywhere;
+}
+
+/* ---- Touch targets ------------------------------------------------------
+   WCAG 2.2 target-size (minimum) is 24x24; for young learners we aim at the
+   44x44 AAA figure on every interactive control inside the portal.          */
+.kid-portal button,
+.kid-portal [role='button'],
+.kid-portal a[href],
+.kid-portal summary,
+.kid-portal input[type='checkbox'],
+.kid-portal input[type='radio'] {
+  min-height: 44px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0.25);
+}
+
+/* The compact reorder arrows are icon-only, so they need a width floor too. */
+.kid-portal .kid-reorder-btn {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kid-btn {
+  min-height: 44px;
+}
+
+/* Visible keyboard focus everywhere in the portal, not just on tiles. */
+.kid-portal :focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 3px;
+  border-radius: 14px;
+}
+
+.kid-panel :focus-visible {
+  outline-color: #1d4ed8;
+}
+
+/* ---- Contrast -----------------------------------------------------------
+   Muted slate greys sit at ~3:1 on white, which is below AA for body text.
+   Inside the portal's white panels we darken the two lightest ramps.        */
+.kid-panel .text-slate-400 {
+  color: #475569;
+}
+
+.kid-panel .text-slate-500 {
+  color: #334155;
+}
+
+/* Dashed placeholders and progress tracks need a visible edge on white. */
+.kid-panel .border-slate-300 {
+  border-color: #94a3b8;
+}
+
+/* ---- Small-screen scaling ----------------------------------------------- */
+@media (max-width: 640px) {
+  .kid-card {
+    border-radius: 26px;
+  }
+
+  .kid-panel {
+    border-radius: 26px;
+    border-width: 3px;
+  }
+
+  .kid-panel-head {
+    padding: 1rem 1.1rem;
+    /* Stack the title above its badge/chip instead of squeezing both. */
+    flex-wrap: wrap;
+    gap: 0.65rem;
+  }
+
+  .kid-panel-body {
+    padding: 1.1rem 1.1rem 1.25rem;
+  }
+
+  .kid-badge {
+    width: 54px;
+    height: 54px;
+    border-radius: 18px;
+  }
+
+  .kid-track {
+    height: 15px;
+  }
+
+  /* Leave room for the always-visible reorder pill in the top-right corner. */
+  .kid-panel-head > :first-child {
+    padding-right: 5.25rem;
+  }
+}
+
+/* Extra-narrow phones (<=380px): shrink the shadow stack so cards do not
+   visually collide, and keep hero doodles from crowding the copy. */
+@media (max-width: 380px) {
+  .kid-card,
+  .kid-panel {
+    box-shadow: 0 6px 0 -2px rgba(0, 0, 0, 0.2), 0 14px 30px -12px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Coarse pointers get no hover lift (it sticks after a tap) but keep the
+   press feedback, which reads as responsive to a child. */
+@media (hover: none) {
+  .kid-tile:hover {
+    transform: none;
+    filter: none;
+  }
+
+  .kid-tile:hover .kid-badge {
+    transform: none;
+  }
+
+  .kid-btn:hover {
+    transform: none;
+    filter: none;
+  }
+}
+
+/* Honour Windows/High-contrast and forced-colours modes. */
+@media (forced-colors: active) {
+  .kid-card,
+  .kid-panel,
+  .kid-badge,
+  .kid-btn,
+  .kid-chip {
+    border: 2px solid CanvasText;
+  }
 }

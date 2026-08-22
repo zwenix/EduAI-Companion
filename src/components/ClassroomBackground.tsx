@@ -36,28 +36,36 @@ type Particle = {
   x: string;
   y: string;
   rotate: string;
+  scale: number;
   duration: number;
   delay: number;
   size: number;
 };
 
-const ICON_SETS: { Icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; cls: string }[] = [
-  { Icon: Atom, cls: 'text-brand-cyan' },
-  { Icon: BookOpen, cls: 'text-brand-green' },
-  { Icon: Calculator, cls: 'text-brand-pink' },
-  { Icon: GraduationCap, cls: 'text-brand-yellow' },
-  { Icon: Pencil, cls: 'text-brand-green' },
-  { Icon: FlaskConical, cls: 'text-brand-pink' },
-  { Icon: Globe2, cls: 'text-brand-cyan' },
-  { Icon: Music, cls: 'text-brand-yellow' },
-  { Icon: Star, cls: 'text-brand-yellow' },
-  { Icon: Lightbulb, cls: 'text-brand-cyan' },
-  { Icon: Rocket, cls: 'text-brand-pink' },
-  { Icon: Sigma, cls: 'text-brand-green' },
-  { Icon: Compass, cls: 'text-brand-yellow' },
-  { Icon: Palette, cls: 'text-brand-pink' },
-  { Icon: Dna, cls: 'text-brand-green' },
-  { Icon: Languages, cls: 'text-brand-cyan' },
+/* Brand palette, resolved to literal hex so the burst never depends on a
+   Tailwind arbitrary-value class surviving the JIT scan. Each icon carries
+   its own colour AND a matching glow, which is what makes the symbols read
+   against the dark classroom plate. */
+const ICON_SETS: {
+  Icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+  color: string;
+}[] = [
+  { Icon: Atom, color: '#00B3FF' },
+  { Icon: BookOpen, color: '#00FF9F' },
+  { Icon: Calculator, color: '#FF00D4' },
+  { Icon: GraduationCap, color: '#ffdf40' },
+  { Icon: Pencil, color: '#00FF9F' },
+  { Icon: FlaskConical, color: '#FF00D4' },
+  { Icon: Globe2, color: '#00B3FF' },
+  { Icon: Music, color: '#ffdf40' },
+  { Icon: Star, color: '#ffdf40' },
+  { Icon: Lightbulb, color: '#00B3FF' },
+  { Icon: Rocket, color: '#FF00D4' },
+  { Icon: Sigma, color: '#00FF9F' },
+  { Icon: Compass, color: '#ffdf40' },
+  { Icon: Palette, color: '#FF00D4' },
+  { Icon: Dna, color: '#00FF9F' },
+  { Icon: Languages, color: '#00B3FF' },
 ];
 
 const EMOJI_SET = ['🎓', '✏️', '📚', '🔬', '🧪', '⭐', '🚀', '🔢', '🌍', '🎨', '🎵', '💡', '⚛️', '📐', '🎹', '🧮'];
@@ -84,33 +92,64 @@ export default function ClassroomBackground() {
 
   const particles = useMemo<Particle[]>(() => {
     const arr: Particle[] = [];
-    const total = 26;
+    const total = 40;
+
     for (let i = 0; i < total; i++) {
-      // Random direction — icons burst outwards in a full 360° circle
-      const angle = (i / total) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
-      const dist = 16 + Math.random() * 42; // vmin
+      // Even 360° spread with a little jitter, so the burst reads as a true
+      // radial explosion instead of a random cloud.
+      const angle = (i / total) * Math.PI * 2 + (Math.random() - 0.5) * 0.45;
+
+      // Travel far enough to clear the viewport edges — these are `vmax`
+      // units measured from the exact centre of the screen, so on every
+      // aspect ratio the symbols fly all the way out past the corners
+      // rather than dying in the middle of the hero copy.
+      const dist = 46 + Math.random() * 44; // vmax
       const x = Math.cos(angle) * dist;
-      const y = Math.sin(angle) * dist * 0.8;
+      const y = Math.sin(angle) * dist;
+
       const useIcon = i % 3 !== 0; // mix lucide icons with emoji
       const idx = Math.floor(Math.random() * ICON_SETS.length);
 
       let node: React.ReactNode;
       if (useIcon) {
-        const { Icon, cls } = ICON_SETS[idx];
-        node = <Icon className={`${cls} drop-shadow-[0_0_10px_rgba(0,210,255,0.55)]`} style={{ width: '1em', height: '1em' }} />;
+        const { Icon, color } = ICON_SETS[idx];
+        node = (
+          <Icon
+            style={{
+              width: '1em',
+              height: '1em',
+              color,
+              filter: `drop-shadow(0 0 6px ${color}) drop-shadow(0 0 18px ${color}aa)`,
+            }}
+          />
+        );
       } else {
-        node = <span className="drop-shadow-[0_0_10px_rgba(255,223,64,0.5)]">{EMOJI_SET[idx % EMOJI_SET.length]}</span>;
+        node = (
+          <span
+            style={{
+              filter:
+                'drop-shadow(0 0 6px rgba(255,223,64,0.9)) drop-shadow(0 0 18px rgba(255,223,64,0.55))',
+            }}
+          >
+            {EMOJI_SET[idx % EMOJI_SET.length]}
+          </span>
+        );
       }
 
       arr.push({
         id: i,
         node,
-        x: `${x.toFixed(2)}vmin`,
-        y: `${y.toFixed(2)}vmin`,
-        rotate: `${(Math.random() - 0.5) * 260}deg`,
-        duration: 3.8 + Math.random() * 3.6,
-        delay: Math.random() * 4,
-        size: 16 + Math.random() * 26,
+        x: `${x.toFixed(2)}vmax`,
+        y: `${y.toFixed(2)}vmax`,
+        rotate: `${((Math.random() - 0.5) * 300).toFixed(0)}deg`,
+        // Symbols grow as they rush towards the viewer.
+        scale: 1.5 + Math.random() * 1.1,
+        duration: 5.5 + Math.random() * 4.5,
+        // Negative delays start every particle mid-flight, so the burst is
+        // already in full swing on the very first painted frame instead of
+        // leaving the screen empty for the first few seconds.
+        delay: -(Math.random() * 10),
+        size: 26 + Math.random() * 30,
       });
     }
     return arr;
@@ -153,26 +192,36 @@ export default function ClassroomBackground() {
       {/* Neon scanline sheen (brand consistency) */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.22)_50%),linear-gradient(90deg,rgba(255,0,0,0.02),rgba(0,255,0,0.01),rgba(0,0,255,0.02))] bg-[length:100%_4px,3px_100%] opacity-30" />
 
-      {/* Educational symbols & icons exploding outwards from the lesson area.
+      {/* Educational symbols & icons exploding outwards from the CENTRE of the
+          screen. This lives in `.eduai-burst-layer` (z-index 5) so the symbols
+          paint on top of the classroom photo and all of its darkening overlays
+          — underneath them the burst was invisible. The layer is still below
+          the landing page's own content, which sits at z-20.
           Skipped entirely when the user prefers reduced motion. */}
-      {!prefersReducedMotion && particles.map((p) => (
-        <div
-          key={p.id}
-          className="absolute left-1/2 top-[38%] eduai-explode"
-          style={
-            {
-              '--ex-x': p.x,
-              '--ex-y': p.y,
-              '--ex-r': p.rotate,
-              fontSize: `${p.size}px`,
-              animationDuration: `${p.duration.toFixed(2)}s`,
-              animationDelay: `${p.delay.toFixed(2)}s`,
-            } as React.CSSProperties
-          }
-        >
-          {p.node}
+      {!prefersReducedMotion && (
+        <div className="eduai-burst-layer" aria-hidden="true">
+          {particles.map((p) => (
+            <div
+              key={p.id}
+              className="absolute left-1/2 top-1/2 eduai-explode"
+              style={
+                {
+                  '--ex-x': p.x,
+                  '--ex-y': p.y,
+                  '--ex-r': p.rotate,
+                  '--ex-s': p.scale.toFixed(2),
+                  fontSize: `${p.size.toFixed(1)}px`,
+                  lineHeight: 1,
+                  animationDuration: `${p.duration.toFixed(2)}s`,
+                  animationDelay: `${p.delay.toFixed(2)}s`,
+                } as React.CSSProperties
+              }
+            >
+              {p.node}
+            </div>
+          ))}
         </div>
-      ))}
+      )}
 
       {/* Ambient brand glow orbs for depth */}
       <div className="absolute top-[8%] left-[12%] w-[420px] h-[420px] bg-brand-cyan/10 rounded-full blur-[120px] mix-blend-screen" />
