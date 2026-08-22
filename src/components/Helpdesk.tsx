@@ -9,6 +9,8 @@ import {
   ChevronLeft,
   Play,
   Pause,
+  Volume2,
+  VolumeX,
   ExternalLink,
   Sparkles,
   Clock,
@@ -20,8 +22,9 @@ import {
   ArrowUpRight,
   X,
   Loader2,
+  AlertCircle,
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   HOW_TO_CATEGORIES,
   HOW_TO_FAQS,
@@ -31,9 +34,7 @@ import {
   type HowToGuide,
 } from '../data/howToGuides';
 import ContentSlideshow from './ContentSlideshow';
-import { HubDimSlideshow } from './CategoryOverview';
 import bgHelpdesk from '../assets/images/helpdesk_bg_1786975832.jpg';
-import bgLandingAi from '../assets/images/landing_ai_bg_1786962597.jpg';
 import imgContent from '../assets/images/howto_content_studio_1787492001.jpg';
 import imgCalendar from '../assets/images/howto_calendar_1787492001.jpg';
 import imgMessenger from '../assets/images/howto_messenger_1787492001.jpg';
@@ -86,8 +87,75 @@ const CATEGORY_ACCENT: Record<HowToCategory, string> = {
   settings: 'from-slate-300 to-cyan-400',
 };
 
-// Hero slideshow for Helpdesk landing — mirrors Intelligent AI / Teacher's Toolbox
-const HELP_HERO_SLIDES = [
+// Animated showcase card — mirrors Teacher's Toolbox InteractiveShowcaseCard
+function HelpdeskShowcaseCard({
+  slides,
+  borderColorClass,
+  shadowColorClass,
+  hoverBorderColorClass,
+  hoverShadowColorClass,
+  glowColorClass,
+  onClick,
+  children,
+}: {
+  slides: { image: string; title: string; description: string }[];
+  borderColorClass: string;
+  shadowColorClass: string;
+  hoverBorderColorClass: string;
+  hoverShadowColorClass: string;
+  glowColorClass: string;
+  onClick: () => void;
+  children?: React.ReactNode;
+}) {
+  const [slideIndex, setSlideIndex] = useState(0);
+
+  useEffect(() => {
+    if (slides.length <= 1) return;
+    const t = setInterval(() => setSlideIndex((p) => (p + 1) % slides.length), 4500);
+    return () => clearInterval(t);
+  }, [slides.length]);
+
+  const currentSlide = slides[slideIndex];
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.03, y: -6 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      onClick={onClick}
+      className={`rounded-[32px] border-2 bg-slate-900/90 p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:brightness-110 transition-all duration-300 cursor-pointer relative overflow-hidden h-full min-h-[340px] select-none ${borderColorClass} ${shadowColorClass} ${hoverBorderColorClass} ${hoverShadowColorClass}`}
+    >
+      <AnimatePresence initial={false}>
+        <motion.div
+          key={slideIndex}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.9, ease: 'easeInOut' }}
+          className="absolute inset-0 z-0 overflow-hidden"
+        >
+          <img
+            src={currentSlide.image}
+            alt={currentSlide.title}
+            loading="eager"
+            decoding="sync"
+            className="w-full h-full object-cover opacity-[0.46] group-hover:opacity-[0.56] filter brightness-[0.98] transition-opacity duration-700"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-slate-900/55 pointer-events-none z-0" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/35 to-transparent pointer-events-none z-0" />
+        </motion.div>
+      </AnimatePresence>
+
+      <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
+        {children}
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Hero & card slides ────────────────────────────────────────────────────
+const HERO_SLIDES = [
   {
     title: 'Walkthrough Clips',
     tag: 'SELF-SERVE',
@@ -111,85 +179,118 @@ const HELP_HERO_SLIDES = [
   },
 ];
 
-// Feature cards for the landing — mirrors the Intelligent AI hub feature grid
+const CLIPS_CARD_SLIDES = [
+  { image: imgContent, title: 'Content Studio', description: 'Lesson plans, worksheets and memos, step by step.' },
+  { image: imgCalendar, title: 'Calendar & Diary', description: 'Plan CAPS weeks, set reminders and log your day.' },
+  { image: imgMessenger, title: 'Messenger', description: 'POPIA-safe chats with parents, learners and staff.' },
+];
+
+const FAQS_CARD_SLIDES = [
+  { image: bgHelpdesk, title: 'CAPS & SIAS', description: 'Curriculum alignment, intervention levels and pacing.' },
+  { image: imgMessenger, title: 'Privacy & POPIA', description: 'Who sees what, where messages and data are stored.' },
+  { image: imgContent, title: 'Offline & Print', description: 'Keep working when the network drops, then export.' },
+];
+
+const CONTACT_CARD_SLIDES = [
+  { image: imgMessenger, title: 'Send a note', description: 'Describe what you were doing and which page.' },
+  { image: bgHelpdesk, title: 'Saved on device', description: 'Tickets live in your browser on this device.' },
+  { image: imgCalendar, title: 'Follow up', description: 'Re-open any ticket from the My Tickets panel.' },
+];
+
+const TICKETS_CARD_SLIDES = [
+  { image: imgCalendar, title: 'Your history', description: 'Every note you sent, newest first.' },
+  { image: bgHelpdesk, title: 'Status & time', description: 'See when each ticket was logged.' },
+  { image: imgMessenger, title: 'Resend / follow up', description: 'Jump back to Contact Support anytime.' },
+];
+
+// Feature cards for the landing — 2×2 neon glow grid mirroring Teacher's Toolbox
 const LANDING_FEATURES: {
   id: Pane;
-  icon: any;
   badge: string;
   title: string;
   description: string;
-  cta: string;
-  image: string;
-  border: string;
-  glow: string;
-  hoverGlow: string;
-  iconBox: string;
-  iconText: string;
-  pill: string;
+  slides: { image: string; title: string; description: string }[];
+  accent: string; // text colour for icon
+  icon: React.ReactNode;
+  pills: { label: string; target: Pane }[];
 }[] = [
   {
     id: 'howtos',
-    icon: Clapperboard,
     badge: 'Self-serve',
     title: 'Walkthrough Clips',
-    description: 'Playable step clips for every hub — watch, follow the steps, then Open Feature to the live page.',
-    cta: 'Play clips →',
-    image: imgContent,
-    border: 'border-cyan-500/80 hover:border-cyan-300',
-    glow: 'shadow-[0_0_30px_rgba(6,182,212,0.35)]',
-    hoverGlow: 'hover:shadow-[0_0_50px_rgba(6,182,212,0.65)]',
-    iconBox: 'bg-cyan-500/10 border-cyan-400/50 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.4)] group-hover:bg-cyan-500/20 group-hover:shadow-[0_0_30px_rgba(6,182,212,0.6)]',
-    iconText: 'text-cyan-200',
-    pill: 'bg-cyan-500/10 hover:bg-cyan-500/30 border-cyan-500/40 text-cyan-300',
+    description: 'Playable step clips for every hub — watch, follow the steps, then tap Open Feature to jump into the live page.',
+    slides: CLIPS_CARD_SLIDES,
+    accent: '#22d3ee',
+    icon: (
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="6" width="20" height="14" rx="3" />
+        <path d="M7 6l2-3h6l2 3" />
+        <polygon points="10 11 16 14 10 17 10 11" fill="currentColor" stroke="none" />
+      </svg>
+    ),
+    pills: [
+      { label: '🎬 Play clips', target: 'howtos' },
+      { label: '🧭 Open Feature', target: 'howtos' },
+    ],
   },
   {
     id: 'faqs',
-    icon: BookOpen,
     badge: 'CAPS & POPiA',
     title: 'Knowledge Base',
-    description: 'Searchable answers on SIAS levels, calendar vs diary, Messenger privacy, OCR and CAPS alignment.',
-    cta: 'Search FAQs →',
-    image: bgHelpdesk,
-    border: 'border-pink-500/80 hover:border-pink-300',
-    glow: 'shadow-[0_0_30px_rgba(236,72,153,0.35)]',
-    hoverGlow: 'hover:shadow-[0_0_50px_rgba(236,72,153,0.65)]',
-    iconBox: 'bg-pink-500/10 border-pink-400/50 text-pink-300 shadow-[0_0_20px_rgba(236,72,153,0.4)] group-hover:bg-pink-500/20 group-hover:shadow-[0_0_30px_rgba(236,72,153,0.6)]',
-    iconText: 'text-pink-200',
-    pill: 'bg-pink-500/10 hover:bg-pink-500/30 border-pink-500/40 text-pink-300',
+    description: 'Searchable answers on SIAS levels, calendar vs diary, Messenger privacy, OCR, offline use and CAPS alignment.',
+    slides: FAQS_CARD_SLIDES,
+    accent: '#ec4899',
+    icon: (
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4V4z" />
+        <path d="M4 16a4 4 0 0 1 4-4h12" />
+        <path d="M9 9h6M9 13h4" />
+      </svg>
+    ),
+    pills: [
+      { label: '🔎 Search FAQs', target: 'faqs' },
+      { label: '🛡️ POPIA & SIAS', target: 'faqs' },
+    ],
   },
   {
     id: 'contact',
-    icon: MessageCircle,
     badge: 'Human help',
     title: 'Contact Support',
-    description: 'Send a ticket saved on this device. Include what you were doing and which page.',
-    cta: 'Send a note →',
-    image: imgMessenger,
-    border: 'border-emerald-500/80 hover:border-emerald-300',
-    glow: 'shadow-[0_0_30px_rgba(16,185,129,0.35)]',
-    hoverGlow: 'hover:shadow-[0_0_50px_rgba(16,185,129,0.65)]',
-    iconBox: 'bg-emerald-500/10 border-emerald-400/50 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.4)] group-hover:bg-emerald-500/20 group-hover:shadow-[0_0_30px_rgba(16,185,129,0.6)]',
-    iconText: 'text-emerald-200',
-    pill: 'bg-emerald-500/10 hover:bg-emerald-500/30 border-emerald-500/40 text-emerald-300',
+    description: 'Send a note saved on this device. Tell us what you were doing and which page so we can help faster.',
+    slides: CONTACT_CARD_SLIDES,
+    accent: '#34d399',
+    icon: (
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.38 8.38 0 0 1 4 11.5 8.5 8.5 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z" />
+        <path d="M8 11h.01M12 11h.01M16 11h.01" />
+      </svg>
+    ),
+    pills: [
+      { label: '✉️ Send a note', target: 'contact' },
+      { label: '💬 Live chat soon', target: 'contact' },
+    ],
   },
   {
     id: 'tickets',
-    icon: Mail,
     badge: 'On device',
     title: 'My Tickets',
-    description: 'Review the notes you sent. They stay in your browser storage on this device.',
-    cta: 'View tickets →',
-    image: imgCalendar,
-    border: 'border-amber-500/80 hover:border-amber-300',
-    glow: 'shadow-[0_0_30px_rgba(245,158,11,0.35)]',
-    hoverGlow: 'hover:shadow-[0_0_50px_rgba(245,158,11,0.65)]',
-    iconBox: 'bg-amber-500/10 border-amber-400/50 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.4)] group-hover:bg-amber-500/20 group-hover:shadow-[0_0_30px_rgba(245,158,11,0.6)]',
-    iconText: 'text-amber-200',
-    pill: 'bg-amber-500/10 hover:bg-amber-500/30 border-amber-500/40 text-amber-300',
+    description: 'Review every note you have sent. Tickets stay in your browser on this device so you can follow up any time.',
+    slides: TICKETS_CARD_SLIDES,
+    accent: '#fbbf24',
+    icon: (
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="M3 7l9 6 9-6" />
+      </svg>
+    ),
+    pills: [
+      { label: '📬 View tickets', target: 'tickets' },
+      { label: '🔔 Status', target: 'tickets' },
+    ],
   },
 ];
 
-export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigate }: HelpdeskProps) {
+export default function Helpdesk({ initialPane = 'howtos', onNavigate }: HelpdeskProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<Pane>(initialPane);
   const [category, setCategory] = useState<HowToCategory | 'all'>('all');
@@ -209,6 +310,8 @@ export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigat
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoReady, setVideoReady] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
 
   useEffect(() => {
     setActiveTab(initialPane);
@@ -243,12 +346,25 @@ export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigat
     if (!filteredGuides.some((g) => g.id === openGuideId)) {
       setOpenGuideId(openGuide.id);
     }
-    // New clip: reset player to the start
+    // New clip: reset player to the start and force the <video> element to
+    // reload its source so the poster → frame 0 transition actually happens.
     setStepIndex(0);
     setIsPlaying(false);
     setVideoProgress(0);
     setVideoDuration(0);
     setVideoReady(false);
+    setVideoError(null);
+    const t = window.setTimeout(() => {
+      const v = videoRef.current;
+      if (v) {
+        try {
+          v.load();
+        } catch (e) {
+          // some browsers throw if the media isn't attached yet — ignore
+        }
+      }
+    }, 30);
+    return () => window.clearTimeout(t);
   }, [openGuide?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const clipSeconds = (openGuide?.steps.length ?? 0) * CLIP_SECONDS_PER_STEP;
@@ -271,13 +387,34 @@ export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigat
     const video = videoRef.current;
     if (!video) return;
     if (video.paused || video.ended) {
+      // Try audible playback first (the clips now ship with an audio track).
+      // If the browser blocks it (autoplay policy), fall back to muted once.
+      const wasMuted = video.muted;
+      video.muted = isMuted;
       video.play().catch(() => {
-        // Autoplay/decoding hiccup — retry once muted (policy-safe)
         video.muted = true;
-        video.play().catch(() => {});
+        setIsMuted(true);
+        video.play().catch(() => {
+          setVideoError('Tap the clip to play it.');
+        });
       });
+      // If the first attempt actually started, sync our muted state back
+      if (!video.paused && wasMuted !== isMuted) video.muted = isMuted;
     } else {
       video.pause();
+    }
+  };
+
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+    const next = !video.muted;
+    video.muted = next;
+    setIsMuted(next);
+    if (!next && video.paused) {
+      // Unmuting while paused: start the clip so the user hears audio immediately
+      video.play().catch(() => {});
     }
   };
 
@@ -336,120 +473,189 @@ export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigat
   const videoPct = videoProgress * 100;
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // LANDING — mirrors the Intelligent AI hub design (dim slideshow, amber hero,
-  // hero showcase, feature grid, shortcuts strip).
+  // LANDING — mirrors the Teacher's Toolbox hub: dim slideshow, amber hero,
+  // 7/5 hero split (slideshow + featured card), 2x2 neon showcase cards with
+  // custom inline icons and sub-action pills, and a bottom shortcut strip.
   // ═══════════════════════════════════════════════════════════════════════════
   if (showLanding && (activeTab === 'howtos' || activeTab === 'faqs')) {
     return (
       <div className="w-full h-full min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar overscroll-contain p-2 sm:p-4">
-        <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans min-h-full bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.45)_0%,rgba(7,10,24,1)_100%)] border border-white/10 shadow-2xl">
-          {/* Deep cosmic radial base — mirrors Teacher's Toolbox / Intelligent AI */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.35)_0%,transparent_65%)] pointer-events-none rounded-2xl" />
-          {/* Dim rotating showcase background — opacity 0.22 to match reference hubs */}
-          <HubDimSlideshow images={[bgHelpdesk, imgContent, bgLandingAi, imgMessenger, imgCalendar]} opacity={0.22} />
+        <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans min-h-full" style={{ minHeight: 'calc(100dvh - 8rem)' }}>
+          {/* Deep cosmic radial base — mirrors Teacher's Toolbox */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.45)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
 
-          {/* Soft ambient glows — pink / cyan / emerald to mirror reference hubs */}
+          {/* Helpdesk background overlay — same treatment as Toolbox plate */}
+          <div
+            className="absolute inset-0 z-0 opacity-[0.22] pointer-events-none"
+            style={{
+              backgroundImage: `url(${bgHelpdesk})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+            }}
+          />
+
+          {/* Soft ambient radial glows — pink / cyan / emerald */}
           <div className="absolute top-10 left-1/4 w-96 h-96 bg-pink-600/15 rounded-full blur-[120px] pointer-events-none" />
           <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-[120px] pointer-events-none" />
           <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none" />
 
-          {/* Title — matches the Intelligent AI hero heading style */}
+          {/* MAIN TITLE SECTION ("Help / Support Desk") */}
           <div className="relative z-10 text-center my-3">
             <div className="inline-flex items-center gap-2 mb-2">
               <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
-              <span className="text-xl sm:text-2xl font-display font-bold text-slate-100 tracking-tight">Help &amp;</span>
+              <span className="text-xl sm:text-2xl font-display font-bold text-slate-100 tracking-tight">Help /</span>
               <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)]">
               Support Desk
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
-              Self-serve walkthrough clips • CAPS &amp; POPiA knowledge base • Contact tickets
+              Walkthrough Clips • CAPS &amp; POPiA Knowledge Base • Contact Tickets
             </p>
           </div>
 
-          {/* Hero showcase: slideshow + featured contact card (7/5 split, like Intelligent AI) */}
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-3 w-full max-w-full mx-auto items-stretch">
+          {/* HERO SHOWCASE: slideshow (7) + contact support card (5) */}
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-3 max-w-6xl mx-auto w-full items-stretch">
+            {/* LEFT: Interactive help slideshow */}
             <div className="lg:col-span-7 flex flex-col justify-center">
-              <ContentSlideshow slides={HELP_HERO_SLIDES as any} />
+              <ContentSlideshow slides={HERO_SLIDES as any} />
             </div>
+
+            {/* RIGHT: Contact Support Featured Card */}
             <motion.div
               whileHover={{ scale: 1.02, y: -4 }}
               whileTap={{ scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 300, damping: 20 }}
               onClick={() => { setActiveTab('contact'); setShowLanding(false); }}
-              className="lg:col-span-5 flex flex-col justify-between p-6 rounded-[32px] bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-emerald-950/80 border-2 border-emerald-500/40 hover:border-emerald-300 shadow-[0_0_30px_rgba(16,185,129,0.22)] hover:shadow-[0_0_50px_rgba(16,185,129,0.45)] hover:brightness-110 relative overflow-hidden group cursor-pointer transition-all duration-300"
+              className="lg:col-span-5 flex flex-col justify-between p-6 rounded-[32px] bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-emerald-950/80 border-2 border-emerald-500/40 hover:border-emerald-300 shadow-[0_0_30px_rgba(16,185,129,0.25)] hover:shadow-[0_0_50px_rgba(16,185,129,0.5)] hover:brightness-110 relative overflow-hidden group transition-all duration-300 cursor-pointer"
             >
-              <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
-                <img src={imgMessenger} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                <div className="absolute inset-0 bg-slate-950/70" />
-              </div>
-              <div className="space-y-4 relative z-10">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-[10px] font-black uppercase tracking-widest text-emerald-300 flex items-center gap-1.5">
-                    <MessageCircle size={12} />HUMAN HELP
+                    <LifeBuoy size={12} className="text-amber-300" />
+                    HUMAN HELP
                   </span>
-                  <LifeBuoy size={22} className="text-emerald-400 animate-pulse group-hover:scale-110 transition-transform" />
+                  <MessageCircle size={24} className="text-emerald-400 animate-pulse group-hover:scale-110 transition-transform duration-300" />
                 </div>
+
                 <div>
-                  <h3 className="text-2xl font-display font-black text-white group-hover:text-emerald-200 transition-colors">Contact Support</h3>
-                  <p className="text-xs text-slate-300 leading-relaxed mt-2">Send a note that is saved on this device. Every clip has an Open Feature button to take you directly to the live page.</p>
+                  <h3 className="text-2xl font-display font-black text-white group-hover:text-emerald-200 transition-colors">
+                    Contact Support
+                  </h3>
+                  <p className="text-xs text-slate-300 leading-relaxed mt-2">
+                    Send a note that is saved on this device. Every walkthrough clip has an Open Feature button that takes you straight to the live page.
+                  </p>
                 </div>
+
                 <div className="space-y-2 pt-1">
-                  <div className="flex items-center gap-2 text-xs text-slate-300"><CheckCircle2 size={14} className="text-emerald-400 shrink-0" /><span>Tickets stay on this device</span></div>
-                  <div className="flex items-center gap-2 text-xs text-slate-300"><CheckCircle2 size={14} className="text-emerald-400 shrink-0" /><span>Jump to the real tool from any clip</span></div>
-                  <div className="flex items-center gap-2 text-xs text-slate-300"><CheckCircle2 size={14} className="text-emerald-400 shrink-0" /><span>Knowledge base first — most answers are there</span></div>
+                  <div className="flex items-center gap-2 text-xs text-slate-300">
+                    <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                    <span>Tickets stay on this device</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-300">
+                    <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                    <span>Jump to the real tool from any clip</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-300">
+                    <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                    <span>Knowledge base first — most answers are there</span>
+                  </div>
                 </div>
               </div>
-              <button className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-700 hover:from-emerald-400 hover:to-teal-500 text-white font-display font-black text-xs shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.7)] transition-all flex items-center justify-center gap-2 border border-emerald-300/40 cursor-pointer">
-                <Send size={16} /> Open Contact Support
+
+              <button
+                onClick={(e) => { e.stopPropagation(); setActiveTab('contact'); setShowLanding(false); }}
+                className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-700 hover:from-emerald-400 hover:to-teal-500 text-white font-display font-black text-xs shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.7)] transition-all cursor-pointer flex items-center justify-center gap-2 border border-emerald-300/40"
+              >
+                <Send size={16} />
+                <span>Open Contact Support</span>
               </button>
             </motion.div>
           </div>
 
-          {/* Feature grid — mirrors Teacher's Toolbox 2x2 showcase grid */}
-          <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 my-4 max-w-6xl mx-auto w-full items-stretch">
-            {LANDING_FEATURES.map((feature) => {
-              const FeatureIcon = feature.icon;
+          {/* 2×2 NEON GLOW SHOWCASE CARDS — mirrors Teacher's Toolbox grid */}
+          <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-6xl mx-auto w-full my-4 items-stretch">
+            {LANDING_FEATURES.map((feature, idx) => {
+              const borderColors = [
+                'border-cyan-400/90 hover:border-cyan-300',
+                'border-pink-500/90 hover:border-pink-400',
+                'border-emerald-400/90 hover:border-emerald-300',
+                'border-amber-400/90 hover:border-amber-300',
+              ];
+              const shadowColors = [
+                'shadow-[0_0_30px_rgba(34,211,238,0.35)] hover:shadow-[0_0_50px_rgba(34,211,238,0.65)]',
+                'shadow-[0_0_30px_rgba(236,72,153,0.35)] hover:shadow-[0_0_50px_rgba(236,72,153,0.65)]',
+                'shadow-[0_0_30px_rgba(52,211,153,0.35)] hover:shadow-[0_0_50px_rgba(52,211,153,0.65)]',
+                'shadow-[0_0_30px_rgba(251,191,36,0.35)] hover:shadow-[0_0_50px_rgba(251,191,36,0.65)]',
+              ];
+              const iconBoxColors = [
+                'bg-cyan-500/10 border-cyan-400/50 group-hover:bg-cyan-500/20 shadow-[0_0_20px_rgba(34,211,238,0.4)] group-hover:shadow-[0_0_30px_rgba(34,211,238,0.6)]',
+                'bg-pink-500/10 border-pink-400/50 group-hover:bg-pink-500/20 shadow-[0_0_20px_rgba(236,72,153,0.4)] group-hover:shadow-[0_0_30px_rgba(236,72,153,0.6)]',
+                'bg-emerald-500/10 border-emerald-400/50 group-hover:bg-emerald-500/20 shadow-[0_0_20px_rgba(52,211,153,0.4)] group-hover:shadow-[0_0_30px_rgba(52,211,153,0.6)]',
+                'bg-amber-500/10 border-amber-400/50 group-hover:bg-amber-500/20 shadow-[0_0_20px_rgba(251,191,36,0.4)] group-hover:shadow-[0_0_30px_rgba(251,191,36,0.6)]',
+              ];
+              const pillColors = [
+                'bg-cyan-500/10 hover:bg-cyan-500/30 border-cyan-500/40 text-cyan-300',
+                'bg-pink-500/10 hover:bg-pink-500/30 border-pink-500/40 text-pink-300',
+                'bg-emerald-500/10 hover:bg-emerald-500/30 border-emerald-500/40 text-emerald-300',
+                'bg-amber-500/10 hover:bg-amber-500/30 border-amber-500/40 text-amber-300',
+              ];
+
               return (
-                <motion.div
+                <HelpdeskShowcaseCard
                   key={feature.id}
-                  whileHover={{ scale: 1.03, y: -6 }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  slides={feature.slides}
+                  borderColorClass={borderColors[idx % 4]}
+                  shadowColorClass={shadowColors[idx % 4]}
+                  hoverBorderColorClass=""
+                  hoverShadowColorClass=""
+                  glowColorClass=""
                   onClick={() => { setActiveTab(feature.id); setShowLanding(false); }}
-                  className={cn(
-                    'rounded-[32px] border-2 bg-slate-900/90 p-6 text-center flex flex-col items-center justify-between group hover:brightness-110 transition-all duration-300 cursor-pointer relative overflow-hidden min-h-[300px]',
-                    feature.border,
-                    feature.glow,
-                    feature.hoverGlow
-                  )}
                 >
-                  <div className="absolute inset-0 z-0 opacity-[0.24] pointer-events-none">
-                    <img src={feature.image} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    <div className="absolute inset-0 bg-slate-950/75" />
-                  </div>
-                  <div className="relative z-10 space-y-4 flex flex-col items-center justify-between h-full">
-                    <div className={cn('w-20 h-20 rounded-3xl border-2 flex items-center justify-center group-hover:scale-110 transition-all duration-300', feature.iconBox)}>
-                      <FeatureIcon size={40} />
+                  <div className="space-y-4 w-full h-full flex flex-col items-center justify-between">
+                    <div
+                      className={`w-20 h-20 rounded-3xl border-2 flex items-center justify-center group-hover:scale-110 transition-all duration-300 ${iconBoxColors[idx % 4]}`}
+                      style={{ color: feature.accent }}
+                    >
+                      {feature.icon}
                     </div>
+
                     <div>
-                      <span className={cn('px-2.5 py-0.5 rounded-full bg-white/5 text-[10px] font-black uppercase tracking-widest border', feature.iconText, 'border-white/15')}>{feature.badge}</span>
-                      <h3 className="text-xl font-display font-black text-white mt-2">{feature.title}{feature.id === 'tickets' && tickets.length ? ` (${tickets.length})` : ''}</h3>
-                      <p className="text-xs text-slate-300 mt-2 leading-relaxed">{feature.description}</p>
+                      <span className="px-2.5 py-0.5 rounded-full bg-white/5 text-[10px] font-black uppercase tracking-widest text-white/80 border border-white/15">
+                        {feature.badge}
+                      </span>
+                      <h2 className="text-2xl font-display font-extrabold text-white mt-2 group-hover:text-white transition-colors">
+                        {feature.title}
+                        {feature.id === 'tickets' && tickets.length ? ` (${tickets.length})` : ''}
+                      </h2>
+                      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm mt-2">
+                        {feature.description}
+                      </p>
                     </div>
-                    <span className={cn('px-4 py-2 rounded-xl font-bold text-xs border group-hover:scale-105 transition-all', feature.pill)}>
-                      {feature.cta}
-                    </span>
+
+                    <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+                      {feature.pills.map((pill, pi) => (
+                        <button
+                          key={pi}
+                          onClick={(e) => { e.stopPropagation(); setActiveTab(pill.target); setShowLanding(false); }}
+                          className={`px-3 py-1.5 rounded-full border text-[11px] font-bold hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20 ${pillColors[idx % 4]}`}
+                        >
+                          {pill.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </motion.div>
+                </HelpdeskShowcaseCard>
               );
             })}
           </div>
 
-          {/* Bottom strip: shortcuts + search + categories — mirrors "Intelligent AI Modules" */}
-          <div className="relative z-10 mt-auto pt-6 border-t border-cyan-500/20">
-            <p className="text-xs font-mono font-bold text-cyan-300 uppercase tracking-widest mb-3 text-center">Support Desk Shortcuts</p>
+          {/* BOTTOM QUICK SHORTCUTS STRIP */}
+          <div className="relative z-10 pt-6 border-t border-emerald-500/20 text-center">
+            <p className="text-xs font-mono font-bold text-emerald-300 uppercase tracking-widest mb-3">
+              Support Desk Shortcuts
+            </p>
             <div className="flex flex-wrap justify-center items-center gap-3 mb-4">
               {[
                 { id: 'howtos', label: 'Walkthrough Clips', icon: Clapperboard },
@@ -462,9 +668,9 @@ export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigat
                   <button
                     key={tool.id}
                     onClick={() => { setActiveTab(tool.id as Pane); setShowLanding(false); }}
-                    className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-cyan-600/30 border border-cyan-500/30 hover:border-cyan-400 text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
+                    className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-emerald-600/30 border border-emerald-500/30 hover:border-emerald-400 text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
                   >
-                    <ToolIcon className="w-3.5 h-3.5 text-cyan-400" />
+                    <ToolIcon className="w-3.5 h-3.5 text-emerald-400" />
                     <span>{tool.label}</span>
                   </button>
                 );
@@ -473,11 +679,22 @@ export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigat
             <div className="p-4 rounded-2xl bg-slate-900/60 border border-white/5 backdrop-blur flex flex-col sm:flex-row gap-3 items-center justify-between">
               <div className="flex-1 w-full relative">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); if (e.target.value) { setShowLanding(false); setActiveTab('howtos'); } }} placeholder="Search how-tos — calendar, SIAS, messenger, OCR…" className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#0b101c] border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500/50" />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); if (e.target.value) { setShowLanding(false); setActiveTab('howtos'); } }}
+                  placeholder="Search how-tos — calendar, SIAS, messenger, OCR…"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#0b101c] border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500/50"
+                />
               </div>
               <div className="flex flex-wrap gap-2 justify-center sm:justify-end">
                 {HOW_TO_CATEGORIES.filter((c) => c.id !== 'all').slice(0, 4).map((c) => (
-                  <button key={c.id} onClick={() => { setCategory(c.id as any); setActiveTab('howtos'); setShowLanding(false); }} className="px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider border bg-white/5 border-white/10 text-slate-300 hover:text-white hover:border-cyan-400/30 transition-colors cursor-pointer">{c.label}</button>
+                  <button
+                    key={c.id}
+                    onClick={() => { setCategory(c.id as any); setActiveTab('howtos'); setShowLanding(false); }}
+                    className="px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider border bg-white/5 border-white/10 text-slate-300 hover:text-white hover:border-emerald-400/30 transition-colors cursor-pointer"
+                  >
+                    {c.label}
+                  </button>
                 ))}
               </div>
             </div>
@@ -571,23 +788,50 @@ export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigat
                 {openGuide && (
                   <div className="rounded-[28px] overflow-hidden border border-cyan-500/20 bg-[#141a2e] shadow-2xl">
                     <div className="relative h-56 sm:h-64 overflow-hidden group bg-black">
-                      {/* Real playable clip — one segment per step, loops */}
+                      {/* Real playable clip — one segment per step, loops, has audio */}
                       <video
                         key={openGuide.id}
                         ref={videoRef}
                         src={openGuide.video}
                         poster={openGuide.image}
                         className="w-full h-full object-cover"
-                        muted
                         playsInline
                         loop
                         preload="metadata"
-                        onLoadedMetadata={(e) => { setVideoDuration(e.currentTarget.duration || 0); setVideoReady(true); }}
+                        onLoadedMetadata={(e) => {
+                          setVideoDuration(e.currentTarget.duration || 0);
+                          setVideoReady(true);
+                          setVideoError(null);
+                        }}
+                        onCanPlay={(e) => {
+                          setVideoReady(true);
+                          setVideoError(null);
+                          // If the user already pressed play before the clip
+                          // finished loading, honour that intent now.
+                          if (isPlaying && e.currentTarget.paused) {
+                            e.currentTarget.play().catch(() => {});
+                          }
+                        }}
                         onPlay={() => setIsPlaying(true)}
                         onPause={() => setIsPlaying(false)}
                         onTimeUpdate={handleVideoTimeUpdate}
+                        onError={() => {
+                          setVideoReady(true);
+                          setVideoError('This clip could not be played. Try again in a moment.');
+                        }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#141a2e] via-transparent to-transparent pointer-events-none" />
+
+                      {/* Mute / unmute control — top-right */}
+                      <button
+                        type="button"
+                        onClick={toggleMute}
+                        className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/55 hover:bg-black/75 border border-white/15 text-white flex items-center justify-center backdrop-blur-sm transition-all z-10"
+                        title={isMuted ? 'Unmute clip' : 'Mute clip'}
+                        aria-label={isMuted ? 'Unmute clip' : 'Mute clip'}
+                      >
+                        {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                      </button>
 
                       {/* Play / Pause overlay */}
                       {videoReady ? (
@@ -602,6 +846,14 @@ export default function Helpdesk({ isDarkMode, initialPane = 'howtos', onNavigat
                       ) : (
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-white">
                           <Loader2 size={22} className="animate-spin" />
+                        </div>
+                      )}
+
+                      {/* Inline error note — non-blocking, keeps the play button usable */}
+                      {videoError && (
+                        <div className="absolute top-3 left-3 right-14 flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-950/80 border border-red-500/40 text-red-100 text-[10px] font-bold backdrop-blur-sm z-10">
+                          <AlertCircle size={12} className="shrink-0" />
+                          <span className="truncate">{videoError}</span>
                         </div>
                       )}
 

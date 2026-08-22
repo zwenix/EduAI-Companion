@@ -110,20 +110,24 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
     if (cachedUrl) {
       return `
 <div class="my-6 overflow-hidden rounded-[2rem] border-2 border-solid border-slate-200 p-2 bg-white hover:bg-slate-50 transition-all duration-300 max-w-full print:break-inside-avoid print:border-none print:p-0 print:m-0 print:shadow-none shadow-sm">
-  <img src="${cachedUrl}" 
-       alt="${cleanPrompt}" 
+  <img src="${cachedUrl}"
+       alt="${cleanPrompt}"
        title="${cleanPrompt}"
-       class="w-full object-cover rounded-[1.8rem] aspect-[4/3] max-h-[360px] border border-slate-100 shadow-inner print:rounded-none print:shadow-none" 
+       class="w-full object-cover rounded-[1.8rem] aspect-[4/3] max-h-[360px] border border-slate-100 shadow-inner print:rounded-none print:shadow-none"
        referrerPolicy="no-referrer" />
   <p class="hidden print:block text-[11px] text-slate-700 italic mt-1.5 font-serif text-center border-t border-slate-200 pt-1">[Print Visual Description: ${cleanPrompt}]</p>
-  <div class="px-4 py-2 border-t border-dashed border-slate-150 mt-2 bg-slate-50/55 rounded-b-[1.5rem] flex items-center justify-between print:hidden select-none">
-    <div class="flex items-center gap-2">
-      <span class="text-xs">💾</span>
-      <p class="eduai-illustration-label uppercase tracking-widest font-black leading-none">
-        Cached Library Asset: ${cleanPrompt.slice(0, 45)}${cleanPrompt.length > 45 ? '...' : ''}
+  <div class="px-3 py-1.5 border-t border-dashed border-slate-150 mt-2 bg-slate-50/55 rounded-b-[1.5rem] flex items-center justify-between print:hidden select-none">
+    <div class="flex items-center gap-1.5 opacity-30">
+      <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0" aria-hidden="true">
+        <path d="M19 11c0-3.5-3-7-7.5-7S5 7.5 5 12v4a2 2 0 0 0 2 2h1v-3h2v3h3v-3h2v3h1a2 2 0 0 0 2-2v-1.2c1.2-.7 2-2 2-3.8V11z"/>
+        <path d="M14 4c-.5-1.5-2-2-3.5-2"/>
+        <circle cx="10.5" cy="11" r="0.7" fill="currentColor" stroke="none"/>
+      </svg>
+      <p class="eduai-illustration-label uppercase tracking-widest font-black leading-none text-[8px]">
+        EduAI Archive Cached Asset
       </p>
     </div>
-    <span class="eduai-illustration-label px-1.5 py-0.5 rounded bg-slate-100 font-bold select-none uppercase">Synced</span>
+    <span class="eduai-illustration-label px-1.5 py-0.5 rounded bg-slate-100 font-bold select-none uppercase text-[8px] opacity-30">Synced</span>
   </div>
 </div>
       `;
