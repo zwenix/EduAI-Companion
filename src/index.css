@@ -1246,3 +1246,158 @@ svg:not(.not-sketchy) {
     transition: none;
   }
 }
+
+/* ==========================================================================
+   KID PORTAL — RESPONSIVENESS / CONTRAST / TOUCH POLISH
+   Additive only. Tightens small-screen ergonomics for Foundation Phase
+   learners without altering the established look. None of the frozen shared
+   classes (.glass-neon-card, .hover-neon-*, .animate-neon-pulse-*,
+   .animate-border-flash-*) are referenced here.
+   ========================================================================== */
+
+/* Never let a chunky card force a horizontal scrollbar on a small phone. */
+.kid-portal {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.kid-portal *,
+.kid-portal *::before,
+.kid-portal *::after {
+  min-width: 0;
+}
+
+/* Long words / marks / emails inside white panels must wrap, not overflow. */
+.kid-panel-body {
+  overflow-wrap: anywhere;
+}
+
+/* ---- Touch targets ------------------------------------------------------
+   WCAG 2.2 target-size (minimum) is 24x24; for young learners we aim at the
+   44x44 AAA figure on every interactive control inside the portal.          */
+.kid-portal button,
+.kid-portal [role='button'],
+.kid-portal a[href],
+.kid-portal summary,
+.kid-portal input[type='checkbox'],
+.kid-portal input[type='radio'] {
+  min-height: 44px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0.25);
+}
+
+/* The compact reorder arrows are icon-only, so they need a width floor too. */
+.kid-portal .kid-reorder-btn {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kid-btn {
+  min-height: 44px;
+}
+
+/* Visible keyboard focus everywhere in the portal, not just on tiles. */
+.kid-portal :focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 3px;
+  border-radius: 14px;
+}
+
+.kid-panel :focus-visible {
+  outline-color: #1d4ed8;
+}
+
+/* ---- Contrast -----------------------------------------------------------
+   Muted slate greys sit at ~3:1 on white, which is below AA for body text.
+   Inside the portal's white panels we darken the two lightest ramps.        */
+.kid-panel .text-slate-400 {
+  color: #475569;
+}
+
+.kid-panel .text-slate-500 {
+  color: #334155;
+}
+
+/* Dashed placeholders and progress tracks need a visible edge on white. */
+.kid-panel .border-slate-300 {
+  border-color: #94a3b8;
+}
+
+/* ---- Small-screen scaling ----------------------------------------------- */
+@media (max-width: 640px) {
+  .kid-card {
+    border-radius: 26px;
+  }
+
+  .kid-panel {
+    border-radius: 26px;
+    border-width: 3px;
+  }
+
+  .kid-panel-head {
+    padding: 1rem 1.1rem;
+    /* Stack the title above its badge/chip instead of squeezing both. */
+    flex-wrap: wrap;
+    gap: 0.65rem;
+  }
+
+  .kid-panel-body {
+    padding: 1.1rem 1.1rem 1.25rem;
+  }
+
+  .kid-badge {
+    width: 54px;
+    height: 54px;
+    border-radius: 18px;
+  }
+
+  .kid-track {
+    height: 15px;
+  }
+
+  /* Leave room for the always-visible reorder pill in the top-right corner. */
+  .kid-panel-head > :first-child {
+    padding-right: 5.25rem;
+  }
+}
+
+/* Extra-narrow phones (<=380px): shrink the shadow stack so cards do not
+   visually collide, and keep hero doodles from crowding the copy. */
+@media (max-width: 380px) {
+  .kid-card,
+  .kid-panel {
+    box-shadow: 0 6px 0 -2px rgba(0, 0, 0, 0.2), 0 14px 30px -12px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Coarse pointers get no hover lift (it sticks after a tap) but keep the
+   press feedback, which reads as responsive to a child. */
+@media (hover: none) {
+  .kid-tile:hover {
+    transform: none;
+    filter: none;
+  }
+
+  .kid-tile:hover .kid-badge {
+    transform: none;
+  }
+
+  .kid-btn:hover {
+    transform: none;
+    filter: none;
+  }
+}
+
+/* Honour Windows/High-contrast and forced-colours modes. */
+@media (forced-colors: active) {
+  .kid-card,
+  .kid-panel,
+  .kid-badge,
+  .kid-btn,
+  .kid-chip {
+    border: 2px solid CanvasText;
+  }
+}

@@ -642,7 +642,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
           Solid, saturated candy gradient so it reads instantly for Foundation
           Phase learners, instead of the old translucent glass panel. */}
       <div
-        className="kid-card kid-pop relative p-7 sm:p-10 lg:p-12 flex flex-col justify-end min-h-[300px]"
+        className="kid-card kid-pop relative p-6 sm:p-10 lg:p-12 flex flex-col justify-end min-h-[260px] sm:min-h-[300px]"
         style={{ ['--kid-1' as any]: '#7C3AED', ['--kid-2' as any]: '#0EA5E9' }}
       >
         {/* Playful oversized background doodles */}
@@ -754,7 +754,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
         </div>
 
         <div className="kid-panel-body">
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
             {[
               {
                 label: 'Notifications',
@@ -800,7 +800,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                 whileHover={{ y: -6 }}
                 whileTap={{ scale: 0.97 }}
                 aria-label={tile.label}
-                className="kid-card kid-tile kid-pop p-6 flex flex-col items-start gap-4 min-h-[210px]"
+                className="kid-card kid-tile kid-pop p-5 sm:p-6 flex flex-col items-start gap-3 sm:gap-4 min-h-[178px] sm:min-h-[210px]"
                 style={{
                   ['--kid-1' as any]: tile.c1,
                   ['--kid-2' as any]: tile.c2,
@@ -826,7 +826,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
 
       {/* =============== DASHBOARD CUSTOMIZATION CONTROL PANEL =============== */}
       <div
-        className="kid-card p-4 sm:p-5 flex flex-col sm:flex-row justify-between items-center gap-4"
+        className="kid-card p-4 sm:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
         style={{ ['--kid-1' as any]: '#8B5CF6', ['--kid-2' as any]: '#6366F1' }}
       >
         <div className="flex items-center gap-3">
@@ -886,7 +886,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                     <Activity size={28} strokeWidth={2.6} />
                   </div>
                 </div>
-                <div className="kid-panel-body h-[340px] w-full">
+                <div className="kid-panel-body h-[260px] sm:h-[340px] w-full">
                   <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={1}>
                     <AreaChart data={performanceData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
@@ -934,7 +934,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                 </div>
                 <div className="kid-panel-body space-y-3">
                   {recentLogs.length === 0 ? (
-                    <p className="text-sm font-bold text-slate-500 italic py-6 text-center">
+                    <p className="text-sm font-bold text-slate-600 italic py-6 text-center">
                       No recent activity logged yet. Complete tasks to light up your feed! ✨
                     </p>
                   ) : (
@@ -967,8 +967,8 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                             <LogIcon size={20} strokeWidth={2.8} />
                           </div>
                           <div className="space-y-0.5 min-w-0">
-                            <p className="text-sm font-black text-slate-800">{log.description}</p>
-                            <span className="text-[11px] text-slate-500 font-bold font-mono">{log.timestamp} • Active Session</span>
+                            <p className="text-sm font-black text-slate-900 break-words">{log.description}</p>
+                            <span className="text-[11px] text-slate-600 font-bold font-mono">{log.timestamp} • Active Session</span>
                           </div>
                         </div>
                       );
@@ -1008,7 +1008,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                        return (
                          <div
                            key={assignment.id}
-                           className="p-5 rounded-[24px] border-4 transition-all flex flex-col justify-between group relative overflow-hidden hover:-translate-y-1"
+                           className="p-4 sm:p-5 rounded-[24px] border-4 transition-all flex flex-col justify-between group relative overflow-hidden hover:-translate-y-1"
                            style={{
                              borderColor: isCompleted ? '#10B981' : '#6366F1',
                              background: isCompleted ? '#ECFDF5' : '#EEF2FF'
@@ -1030,7 +1030,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                                )}
                              </div>
 
-                             <h4 className="font-black text-lg mt-2 line-clamp-1 text-slate-900">
+                             <h4 className="font-black text-base sm:text-lg mt-2 line-clamp-2 text-slate-900">
                                {assignment.title}
                              </h4>
                              <p className="text-[13px] text-slate-600 font-bold mt-1 line-clamp-2">
@@ -1097,7 +1097,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                         <div 
                           key={i} 
                           onClick={() => handleToggleMission(i)}
-                          className="p-5 rounded-[24px] border-4 transition-all duration-300 group cursor-pointer relative overflow-hidden hover:-translate-y-1 shadow-md"
+                          className="p-4 sm:p-5 rounded-[24px] border-4 transition-all duration-300 group cursor-pointer relative overflow-hidden hover:-translate-y-1 shadow-md"
                           style={{
                             borderColor: completed ? '#10B981' : '#8B5CF6',
                             background: completed ? '#ECFDF5' : '#FAF5FF'
@@ -1109,7 +1109,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                            
                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                              <div className="flex items-start gap-4 flex-1">
-                                <div className="w-16 h-16 rounded-[20px] flex items-center justify-center text-4xl bg-white border-4 border-purple-200 shrink-0 shadow-md">
+                                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-[20px] flex items-center justify-center text-3xl sm:text-4xl bg-white border-4 border-purple-300 shrink-0 shadow-md">
                                   {theme.icon}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -1146,9 +1146,9 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                              </div>
                              
                              <div className="flex items-center justify-end shrink-0 gap-3">
-                               <div className="text-right hidden md:block">
-                                 <span className="text-[11px] uppercase font-black tracking-widest text-slate-500 block">Milestone</span>
-                                 <span className="text-sm font-black text-purple-600">{m.milestone}</span>
+                               <div className="text-left md:text-right min-w-0">
+                                 <span className="text-[11px] uppercase font-black tracking-widest text-slate-600 block">Milestone</span>
+                                 <span className="text-sm font-black text-purple-700 break-words">{m.milestone}</span>
                                </div>
                                <button 
                                  onClick={(e) => {
@@ -1156,7 +1156,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                                    handleToggleMission(i);
                                  }}
                                  aria-label={completed ? 'Mark quest as not done' : 'Start this quest'}
-                                 className={`shadow-lg border-4 border-white p-4 rounded-full transition-all group-hover:scale-110 active:scale-95 cursor-pointer ${
+                                 className={`shadow-lg border-4 border-white p-4 min-w-[56px] min-h-[56px] flex items-center justify-center rounded-full transition-all group-hover:scale-110 active:scale-95 cursor-pointer ${
                                    completed
                                    ? 'bg-emerald-500 text-white'
                                    : 'bg-purple-600 hover:bg-purple-500 text-white'
@@ -1259,14 +1259,14 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
               {/* Reorder controls: kept always visible (they used to be
                   opacity-0 until hover, which is undiscoverable for young
                   learners and unusable on touch devices). */}
-              <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 bg-white rounded-full px-3 py-1.5 shadow-lg border-2 border-slate-800/10">
+              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex items-center gap-1 sm:gap-1.5 bg-white rounded-full px-2 sm:px-3 py-1 sm:py-1.5 shadow-lg border-2 border-slate-800/20">
                 <GripVertical size={14} className="text-slate-500 cursor-grab active:cursor-grabbing shrink-0" />
                 <span className="text-[10px] font-black text-slate-600 select-none uppercase tracking-widest hidden sm:inline mr-1">Reorder</span>
 
                 {index > 0 && (
                   <button
                     onClick={() => moveWidget(index, 'up')}
-                    className="p-1.5 rounded-full bg-slate-100 hover:bg-indigo-500 hover:text-white text-slate-600 border-0 cursor-pointer transition-colors"
+                    className="kid-reorder-btn p-1.5 rounded-full bg-slate-100 hover:bg-indigo-600 hover:text-white text-slate-700 border-0 cursor-pointer transition-colors"
                     title="Move Up"
                     aria-label="Move widget up"
                   >
@@ -1276,7 +1276,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                 {index < currentOrder.length - 1 && (
                   <button
                     onClick={() => moveWidget(index, 'down')}
-                    className="p-1.5 rounded-full bg-slate-100 hover:bg-indigo-500 hover:text-white text-slate-600 border-0 cursor-pointer transition-colors"
+                    className="kid-reorder-btn p-1.5 rounded-full bg-slate-100 hover:bg-indigo-600 hover:text-white text-slate-700 border-0 cursor-pointer transition-colors"
                     title="Move Down"
                     aria-label="Move widget down"
                   >

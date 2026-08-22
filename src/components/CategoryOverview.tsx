@@ -31,10 +31,20 @@ import {
   BarChart3,
   PieChart,
   Medal,
-  Users
+  Users,
+  LifeBuoy,
+  Sliders,
+  Clapperboard,
+  CircleHelp,
+  MessageSquareHeart,
+  Send,
+  Compass,
+  ShieldCheck,
+  PlayCircle
 } from 'lucide-react';
 import ContentSlideshow, { INTELLIGENT_AI_SLIDES } from './ContentSlideshow';
 import WorksheetQRScannerModal from './WorksheetQRScannerModal';
+import { HOW_TO_GUIDES, HOW_TO_FAQS, HOW_TO_CATEGORIES, CLIP_SECONDS_PER_STEP } from '../data/howToGuides';
 
 const cn = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(' ');
 
@@ -100,6 +110,15 @@ import bgInterventionSiasLive    from '../assets/images/intervention_sias_live_1
 import bgInterventionParentLive  from '../assets/images/intervention_parent_live_1787490001.jpg';
 import bgPortfolioLivingLive     from '../assets/images/portfolio_living_live_1787490001.jpg';
 import bgPortfolioFeedbackLive   from '../assets/images/portfolio_feedback_live_1787490001.jpg';
+import bgHelpdesk                from '../assets/images/helpdesk_bg_1786975832.jpg';
+import bgFaq                     from '../assets/images/faq_bg_1786975832.jpg';
+import bgSettingsPanel           from '../assets/images/settings_1785535105236.jpg';
+import bgHowToContentStudio      from '../assets/images/howto_content_studio_1787492001.jpg';
+import bgHowToCalendar           from '../assets/images/howto_calendar_1787492001.jpg';
+import bgHowToMessenger          from '../assets/images/howto_messenger_1787492001.jpg';
+import bgHowToClasses            from '../assets/images/howto_classes_1787492001.jpg';
+import bgHowToIntervention       from '../assets/images/howto_intervention_1787492001.jpg';
+import bgHowToAutograde          from '../assets/images/howto_autograde_1787492001.jpg';
 
 function prewarmImages(urls: string[]) {
   if (typeof window === 'undefined') return;
@@ -501,6 +520,210 @@ function getReportsCardConfig(id: string, label: string) {
         icon: FileSpreadsheet,
         desc: `Access and manage ${label} tools and educational aids securely.`,
         slides: REPORTS_CARD_SLIDES,
+        pills: [{ id, label: `Open ${label}` }],
+      };
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   HELP / SUPPORT DESK HUB — mirrors the Teacher's Toolbox landing layout with
+   its own hero slideshow, feature banner, 2x2 showcase grid and access strip.
+   Card copy is driven by the subTabs passed in from App.tsx so the Settings /
+   How-To / Support labels and their onSelect ids are always preserved.
+--------------------------------------------------------------------------- */
+const HELPDESK_HERO_SLIDES = [
+  {
+    title: 'Walkthrough Clips',
+    tag: 'SELF-SERVE',
+    badgeColor: 'from-cyan-500 to-blue-600',
+    description: 'Short, playable step-by-step clips for Content Studio, Classes, Intervention, the CAPS calendar, Messenger and auto-grading — watch, then jump straight into the live tool.',
+    image: bgHowToContentStudio,
+  },
+  {
+    title: 'Knowledge Base & FAQ',
+    tag: 'CAPS & POPIA',
+    badgeColor: 'from-violet-500 to-indigo-600',
+    description: 'Searchable answers on CAPS alignment, SIAS levels, calendar versus diary, Messenger privacy, offline use and POPIA-safe learner data protection.',
+    image: bgFaq,
+  },
+  {
+    title: 'Contact & Support Tickets',
+    tag: 'HUMAN HELP',
+    badgeColor: 'from-emerald-500 to-teal-600',
+    description: 'Send a support note straight from the app and track it in your ticket list. Every walkthrough carries an Open Feature button that lands you on the real page.',
+    image: bgHelpdesk,
+  },
+  {
+    title: 'Settings & AI Engines',
+    tag: 'YOUR SETUP',
+    badgeColor: 'from-amber-500 to-orange-600',
+    description: 'Choose default AI engines, run a speed test, manage API quotas, and tune theme, language, accessibility and offline behaviour for your classroom.',
+    image: bgLandingSettings,
+  },
+  {
+    title: 'Classroom How-Tos',
+    tag: 'DAY TO DAY',
+    badgeColor: 'from-pink-500 to-rose-600',
+    description: 'Register learners, take attendance, flag SIAS support, plan the term and message parents — the everyday routines, explained in a few minutes each.',
+    image: bgHowToClasses,
+  },
+];
+
+const HELP_SETTINGS_SLIDES = [
+  { image: bgLandingSettings, title: 'Preferences & Theme', description: 'Theme, language, accessibility and offline install controls.' },
+  { image: bgSettingsPanel, title: 'AI Engines & Quotas', description: 'Pick default text, OCR, image and voice engines and watch your quotas.' },
+];
+
+const HELP_HOWTO_SLIDES = [
+  { image: bgHowToContentStudio, title: 'Content Studio Clip', description: 'Build a CAPS lesson, worksheet or memo from scratch.' },
+  { image: bgHowToClasses, title: 'Classes & Registers', description: 'Add learners, take the roll and keep parent records POPIA-safe.' },
+  { image: bgHowToCalendar, title: 'Calendar & Diary', description: 'Plan the term on the shared CAPS timetable and private diary.' },
+  { image: bgHowToAutograde, title: 'Scan & Autograde', description: 'Photograph a written answer sheet and mark it in seconds.' },
+];
+
+const HELP_FAQ_SLIDES = [
+  { image: bgFaq, title: 'Searchable Answers', description: 'CAPS, SIAS, Messenger privacy, offline use and POPIA explained.' },
+  { image: bgHowToIntervention, title: 'SIAS & Intervention', description: 'What each support level means and when to escalate to the SBST.' },
+];
+
+const HELP_CONTACT_SLIDES = [
+  { image: bgHelpdesk, title: 'Contact the Team', description: 'Send a support note without leaving the app.' },
+  { image: bgHowToMessenger, title: 'Track Your Tickets', description: 'Every note you send is kept in your ticket list on this device.' },
+];
+
+prewarmImages([
+  bgHelpdesk,
+  bgFaq,
+  bgSettingsPanel,
+  bgHowToContentStudio,
+  bgHowToCalendar,
+  bgHowToMessenger,
+  bgHowToClasses,
+  bgHowToIntervention,
+  bgHowToAutograde,
+  bgLandingSettings,
+]);
+
+interface HelpDeskCardTheme {
+  borderColorClass: string;
+  shadowColorClass: string;
+  hoverBorderColorClass: string;
+  hoverShadowColorClass: string;
+  glowColorClass: string;
+  iconWrapClass: string;
+  titleHoverClass: string;
+  pillClass: string;
+}
+
+const HELPDESK_THEMES: Record<string, HelpDeskCardTheme> = {
+  violet: {
+    borderColorClass: 'border-violet-500/90',
+    shadowColorClass: 'shadow-[0_0_30px_rgba(139,92,246,0.35)]',
+    hoverBorderColorClass: 'hover:border-violet-400',
+    hoverShadowColorClass: 'hover:shadow-[0_0_50px_rgba(139,92,246,0.65)]',
+    glowColorClass: 'shadow-[0_0_20px_rgba(139,92,246,0.4)] group-hover:bg-violet-500/20 group-hover:shadow-[0_0_30px_rgba(139,92,246,0.6)]',
+    iconWrapClass: 'bg-violet-500/10 border-violet-500/50 text-violet-300 shadow-[0_0_20px_rgba(139,92,246,0.4)] group-hover:bg-violet-500/20 group-hover:shadow-[0_0_30px_rgba(139,92,246,0.6)]',
+    titleHoverClass: 'group-hover:text-violet-300',
+    pillClass: 'bg-violet-500/10 hover:bg-violet-500/30 border-violet-500/40 text-violet-300',
+  },
+  cyan: {
+    borderColorClass: 'border-cyan-400/90',
+    shadowColorClass: 'shadow-[0_0_30px_rgba(34,211,238,0.35)]',
+    hoverBorderColorClass: 'hover:border-cyan-300',
+    hoverShadowColorClass: 'hover:shadow-[0_0_50px_rgba(34,211,238,0.65)]',
+    glowColorClass: 'shadow-[0_0_20px_rgba(34,211,238,0.4)] group-hover:bg-cyan-500/20 group-hover:shadow-[0_0_30px_rgba(34,211,238,0.6)]',
+    iconWrapClass: 'bg-cyan-500/10 border-cyan-400/50 text-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.4)] group-hover:bg-cyan-500/20 group-hover:shadow-[0_0_30px_rgba(34,211,238,0.6)]',
+    titleHoverClass: 'group-hover:text-cyan-200',
+    pillClass: 'bg-cyan-500/10 hover:bg-cyan-500/30 border-cyan-500/40 text-cyan-300',
+  },
+  amber: {
+    borderColorClass: 'border-amber-400/90',
+    shadowColorClass: 'shadow-[0_0_30px_rgba(251,191,36,0.35)]',
+    hoverBorderColorClass: 'hover:border-amber-300',
+    hoverShadowColorClass: 'hover:shadow-[0_0_50px_rgba(251,191,36,0.65)]',
+    glowColorClass: 'shadow-[0_0_20px_rgba(251,191,36,0.4)] group-hover:bg-amber-500/20 group-hover:shadow-[0_0_30px_rgba(251,191,36,0.6)]',
+    iconWrapClass: 'bg-amber-500/10 border-amber-400/50 text-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.4)] group-hover:bg-amber-500/20 group-hover:shadow-[0_0_30px_rgba(251,191,36,0.6)]',
+    titleHoverClass: 'group-hover:text-amber-200',
+    pillClass: 'bg-amber-500/10 hover:bg-amber-500/30 border-amber-500/40 text-amber-300',
+  },
+  emerald: {
+    borderColorClass: 'border-emerald-400/90',
+    shadowColorClass: 'shadow-[0_0_30px_rgba(52,211,153,0.35)]',
+    hoverBorderColorClass: 'hover:border-emerald-300',
+    hoverShadowColorClass: 'hover:shadow-[0_0_50px_rgba(52,211,153,0.65)]',
+    glowColorClass: 'shadow-[0_0_20px_rgba(52,211,153,0.4)] group-hover:bg-emerald-500/20 group-hover:shadow-[0_0_30px_rgba(52,211,153,0.6)]',
+    iconWrapClass: 'bg-emerald-500/10 border-emerald-400/50 text-emerald-300 shadow-[0_0_20px_rgba(52,211,153,0.4)] group-hover:bg-emerald-500/20 group-hover:shadow-[0_0_30px_rgba(52,211,153,0.6)]',
+    titleHoverClass: 'group-hover:text-emerald-200',
+    pillClass: 'bg-emerald-500/10 hover:bg-emerald-500/30 border-emerald-500/40 text-emerald-300',
+  },
+};
+
+interface HelpDeskCardConfig {
+  key: string;
+  themeKey: keyof typeof HELPDESK_THEMES;
+  targetId: string;
+  title: string;
+  icon: any;
+  desc: string;
+  slides: InteractiveShowcaseSlide[];
+  pills: { id: string; label: string }[];
+}
+
+/** Card copy per Help/Support Desk sub-tab. `label` is the live sidebar label,
+ *  so a renamed menu item still shows the operator's wording. */
+function getHelpDeskCardConfig(id: string, label: string): HelpDeskCardConfig {
+  switch (id) {
+    case 'settings':
+      return {
+        key: id,
+        themeKey: 'violet',
+        targetId: 'settings',
+        title: label,
+        icon: Sliders,
+        desc: 'Choose your default AI engines, run a speed test, manage API quotas, and set theme, language, accessibility and offline behaviour.',
+        slides: HELP_SETTINGS_SLIDES,
+        pills: [
+          { id: 'settings', label: '⚙️ Preferences & Theme' },
+          { id: 'settings', label: '🤖 AI Engines & Quotas' },
+        ],
+      };
+    case 'helpdesk':
+      return {
+        key: id,
+        themeKey: 'cyan',
+        targetId: 'helpdesk',
+        title: label,
+        icon: Clapperboard,
+        desc: `Watch ${HOW_TO_GUIDES.length} playable walkthrough clips — Content Studio, Classes, Intervention, Calendar, Messenger, auto-grading and more — then open the real tool.`,
+        slides: HELP_HOWTO_SLIDES,
+        pills: [
+          { id: 'helpdesk', label: '🎬 Walkthrough Clips' },
+          { id: 'helpdesk', label: '🚀 First 5 Minutes' },
+        ],
+      };
+    case 'faq':
+      return {
+        key: id,
+        themeKey: 'amber',
+        targetId: 'faq',
+        title: label,
+        icon: LifeBuoy,
+        desc: `Search ${HOW_TO_FAQS.length} knowledge-base answers on CAPS alignment, SIAS levels, Messenger privacy, offline use and POPIA — or send a ticket to a human.`,
+        slides: HELP_FAQ_SLIDES,
+        pills: [
+          { id: 'faq', label: '❓ Knowledge Base' },
+          { id: 'faq', label: '✉️ Contact Support' },
+        ],
+      };
+    default:
+      return {
+        key: id,
+        themeKey: 'emerald',
+        targetId: id,
+        title: label,
+        icon: CircleHelp,
+        desc: `Access and manage ${label} tools and educational aids securely.`,
+        slides: HELP_CONTACT_SLIDES,
         pills: [{ id, label: `Open ${label}` }],
       };
   }
@@ -2087,6 +2310,229 @@ export default function CategoryOverview({
             console.log('Grading result:', result);
           }}
         />
+
+      </div>
+    );
+  }
+
+  // Custom Help / Support Desk UI (mirrors the Teacher's Toolbox landing)
+  if (
+    categoryLabel === 'Help/Support Desk' ||
+    categoryLabel === 'Help & Support Desk' ||
+    categoryLabel === 'Help/Support' ||
+    categoryLabel === 'Help Desk' ||
+    categoryLabel === 'Helpdesk' ||
+    categoryLabel === 'System & Support' ||
+    categoryLabel === 'system-support'
+  ) {
+    // Cards are driven by the live sub-tabs so Settings / How-To / Support keep
+    // their real labels and onSelect ids. A fourth Contact & Tickets card keeps
+    // the 2x2 grid balanced like the Toolbox landing.
+    const helpCards: HelpDeskCardConfig[] = subTabs.map((tab) =>
+      getHelpDeskCardConfig(tab.id, tab.label)
+    );
+
+    if (helpCards.length < 4) {
+      helpCards.push({
+        key: 'contact-tickets',
+        themeKey: 'emerald',
+        targetId: 'faq',
+        title: 'Contact & Tickets',
+        icon: MessageSquareHeart,
+        desc: 'Send a support note straight from the app, then track every ticket you have raised — no email client, no lost requests.',
+        slides: HELP_CONTACT_SLIDES,
+        pills: [
+          { id: 'faq', label: '✉️ Send a Ticket' },
+          { id: 'faq', label: '📮 My Tickets' },
+        ],
+      });
+    }
+
+    return (
+      <div className="relative p-4 lg:p-6 overflow-hidden rounded-2xl text-white flex flex-col justify-between font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
+
+        {/* Deep Cosmic Background & Subtle Stars */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(20,28,70,0.45)_0%,rgba(8,11,34,1)_100%)] pointer-events-none rounded-2xl" />
+
+        {/* Help/Support Desk Background Overlay */}
+        <div
+          className="absolute inset-0 z-0 opacity-[0.22] pointer-events-none"
+          style={{
+            backgroundImage: `url(${bgHelpdesk})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        />
+
+        {/* Soft Ambient Radial Glows */}
+        <div className="absolute top-10 left-1/4 w-96 h-96 bg-violet-600/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-10 left-1/3 w-96 h-96 bg-amber-500/15 rounded-full blur-[120px] pointer-events-none" />
+
+        {/* MAIN TITLE SECTION ("Help/Support Desk") */}
+        <div className="relative z-10 text-center my-3">
+          <div className="inline-flex items-center gap-2 mb-2">
+            <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+            <span className="text-xl sm:text-2xl font-display font-bold text-slate-100 tracking-tight">
+              Help/Support
+            </span>
+            <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+          </div>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)]">
+            Desk
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
+            Playable Walkthrough Clips • CAPS &amp; POPIA Knowledge Base • Settings, AI Engines &amp; Live Support
+          </p>
+        </div>
+
+        {/* HERO SHOWCASE SECTION: SUPPORT SLIDESHOW & WALKTHROUGH LAUNCH BANNER */}
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 my-3 max-w-6xl mx-auto w-full items-stretch">
+
+          {/* LEFT: Interactive Help/Support Slideshow */}
+          <div className="lg:col-span-7 flex flex-col justify-center">
+            <ContentSlideshow slides={HELPDESK_HERO_SLIDES} />
+          </div>
+
+          {/* RIGHT: Guided Walkthrough Clips Feature Card */}
+          <motion.div
+            whileHover={{ scale: 1.02, y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            onClick={() => onSelect('helpdesk')}
+            className="lg:col-span-5 flex flex-col justify-between p-6 rounded-[32px] bg-gradient-to-br from-slate-900/90 via-[#0d1230] to-violet-950/80 border-2 border-violet-500/40 hover:border-violet-300 shadow-[0_0_30px_rgba(139,92,246,0.25)] hover:shadow-[0_0_50px_rgba(139,92,246,0.5)] hover:brightness-110 relative overflow-hidden group transition-all duration-300 cursor-pointer"
+          >
+            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+              <img src={bgHowToContentStudio} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="absolute inset-0 bg-slate-950/70" />
+            </div>
+
+            <div className="space-y-4 relative z-10">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 rounded-full bg-violet-500/20 border border-violet-400/40 text-[10px] font-black uppercase tracking-widest text-violet-200 flex items-center gap-1.5">
+                  <Zap size={12} className="text-amber-300" />
+                  GUIDED WALKTHROUGHS
+                </span>
+                <LifeBuoy size={24} className="text-violet-300 animate-pulse group-hover:scale-110 transition-transform duration-300" />
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-display font-black text-white group-hover:text-violet-200 transition-colors">
+                  Learn Any Tool in Minutes
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed mt-2">
+                  {HOW_TO_GUIDES.length} playable how-to clips across {HOW_TO_CATEGORIES.length - 1} topic groups, each about {CLIP_SECONDS_PER_STEP} seconds per step — watch it, then tap Open Feature to land straight on the live page.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  <span>Step-by-step clips with burned-in captions</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  <span>{HOW_TO_FAQS.length} searchable knowledge-base answers</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  <span>POPIA &amp; CAPS guidance written for SA classrooms</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={(e) => { e.stopPropagation(); onSelect('helpdesk'); }}
+              className="relative z-10 mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-violet-500 via-indigo-600 to-blue-600 hover:from-violet-400 hover:to-indigo-500 text-white font-display font-black text-xs shadow-[0_0_20px_rgba(139,92,246,0.4)] hover:shadow-[0_0_30px_rgba(139,92,246,0.7)] transition-all cursor-pointer flex items-center justify-center gap-2 border border-violet-300/40"
+            >
+              <PlayCircle size={16} />
+              <span>Play Walkthrough Clips</span>
+            </button>
+          </motion.div>
+
+        </div>
+
+        {/* 2x2 NEON GLOW MODULE CARDS GRID (mirrors Teacher's Toolbox) */}
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-6xl mx-auto w-full my-4 items-stretch">
+          {helpCards.map((card) => {
+            const theme = HELPDESK_THEMES[card.themeKey];
+            const CardIcon = card.icon;
+
+            return (
+              <InteractiveShowcaseCard
+                key={card.key}
+                slides={card.slides}
+                borderColorClass={theme.borderColorClass}
+                shadowColorClass={theme.shadowColorClass}
+                hoverBorderColorClass={theme.hoverBorderColorClass}
+                hoverShadowColorClass={theme.hoverShadowColorClass}
+                glowColorClass={theme.glowColorClass}
+                onClick={() => onSelect(card.targetId)}
+              >
+                <div className="space-y-4 w-full h-full flex flex-col items-center justify-between">
+                  <div className={`w-20 h-20 rounded-3xl border-2 flex items-center justify-center group-hover:scale-110 transition-all duration-300 ${theme.iconWrapClass}`}>
+                    <CardIcon size={44} strokeWidth={1.8} />
+                  </div>
+
+                  <div>
+                    <h2 className={`text-2xl font-display font-extrabold text-white transition-colors mb-2 ${theme.titleHoverClass}`}>
+                      {card.title}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                      {card.desc}
+                    </p>
+                  </div>
+
+                  {/* Sub-action Pills */}
+                  <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+                    {card.pills.map((pill) => (
+                      <button
+                        key={`${card.key}-${pill.label}`}
+                        onClick={(e) => { e.stopPropagation(); onSelect(pill.id); }}
+                        className={`px-3 py-1.5 rounded-full border text-[11px] font-bold hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20 ${theme.pillClass}`}
+                      >
+                        {pill.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </InteractiveShowcaseCard>
+            );
+          })}
+        </div>
+
+        {/* BOTTOM QUICK SHORTCUTS STRIP */}
+        <div className="relative z-10 pt-6 border-t border-violet-500/20 text-center">
+          <p className="text-xs font-mono font-bold text-violet-300 uppercase tracking-widest mb-3">
+            Help &amp; Support Modules
+          </p>
+          <div className="flex flex-wrap justify-center items-center gap-3">
+            {[
+              ...subTabs.map((tab) => ({
+                id: tab.id,
+                label: tab.label,
+                icon: tab.id === 'settings' ? Sliders : tab.id === 'helpdesk' ? Clapperboard : LifeBuoy,
+              })),
+              { id: 'helpdesk', label: 'Getting Started', icon: Compass },
+              { id: 'faq', label: 'Knowledge Base', icon: CircleHelp },
+              { id: 'faq', label: 'Contact & Tickets', icon: Send },
+              { id: 'settings', label: 'Privacy & POPIA', icon: ShieldCheck },
+            ].map((tool) => {
+              const ToolIcon = tool.icon;
+              return (
+                <button
+                  key={`${tool.id}-${tool.label}`}
+                  onClick={() => onSelect(tool.id)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-violet-600/30 border border-violet-500/30 hover:border-cyan-400 text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <ToolIcon className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>{tool.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
       </div>
     );
