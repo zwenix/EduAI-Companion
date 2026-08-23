@@ -1,9 +1,69 @@
 import axios from "axios";
 import { checkAndReportApiError } from "../lib/apiErrorHelper";
 import { callGeminiClientDirect } from "./geminiClient";
+import { AI_SECRETS } from "../lib/aiSecrets";
 // True when running inside the Capacitor native app (Android APK), where there
 // is no Node backend to proxy requests — so we call the AI providers directly.
 import { isNativeApp } from "../lib/platform";
+
+// ─── Browser-side multi-provider LAST RESORT ────────────────────────────────
+// If both the backend AND the direct Gemini engine fail (e.g. the shared
+// Gemini key is quota-exhausted or blocked), try the other OpenAI-compatible
+// providers whose keys are baked into the app. Each attempt is best-effort:
+// a CORS/network refusal simply moves the chain along to the next provider.
+const LAST_RESORT_PROVIDERS: { name: string; url: string; key: () => string; models: string[] }[] = [
+  {
+    name: "NVIDIA",
+    url: "https://integrate.api.nvidia.com/v1/chat/completions",
+    key: () => AI_SECRETS.NVIDIA_API_KEY,
+    models: ["nvidia/llama-3.3-nemotron-super-49b-v1"]
+  },
+  {
+    name: "Groq",
+    url: "https://api.groq.com/openai/v1/chat/completions",
+    key: () => AI_SECRETS.GROQ_API_KEY,
+    models: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+  }
+];
+
+const callLastResortLLM = async (systemPrompt: string, userPrompt: string): Promise<string> => {
+  let lastErr: any = null;
+  for (const provider of LAST_RESORT_PROVIDERS) {
+    const apiKey = (provider.key() || "").trim();
+    if (!apiKey) continue;
+    for (const model of provider.models) {
+      try {
+        console.warn(`[AI Routing] Last-resort attempt via ${provider.name} (${model})...`);
+        const resp = await axios.post(
+          provider.url,
+          {
+            model,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt }
+            ],
+            temperature: 0.7,
+            max_tokens: 8192
+          },
+          {
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+            timeout: 90000
+          }
+        );
+        const msg = resp.data?.choices?.[0]?.message || {};
+        const text = msg.content || msg.reasoning_content || "";
+        if (text && String(text).trim()) {
+          console.warn(`[AI Routing] Last-resort ${provider.name} succeeded.`);
+          return text;
+        }
+      } catch (e: any) {
+        lastErr = e;
+        console.warn(`[AI Routing] Last-resort ${provider.name}/${model} failed:`, e?.response?.data?.error?.message || e?.message);
+      }
+    }
+  }
+  throw lastErr || new Error("All fallback AI providers failed");
+};
 
 // Returns true when the Node backend is unreachable (standalone APK / offline),
 // in which case we fall back to the client-side Gemini engine.
@@ -13,10 +73,16 @@ const isBackendUnavailable = (error: any): boolean => {
   // No HTTP response at all → network-level failure (no backend running)
   if (error.isAxiosError && !error.response) return true;
   if (error instanceof TypeError) return true;
+  if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') return true;
   if (status === 404) return true;
   if (status >= 500) return true;
+  // Backend replies 400 with this body when no GEMINI_API_KEY is configured on
+  // the server — the client-side engine has its own baked-in key, so treat it
+  // as "backend unavailable" and fall back instead of failing the generation.
+  const dataMsg = String(error.response?.data?.error || '').toLowerCase();
+  if (dataMsg.includes('not configured') || dataMsg.includes('api key')) return true;
   const msg = String(error.message || '').toLowerCase();
-  if (msg.includes('network error') || msg.includes('failed to fetch') || msg.includes('load failed')) return true;
+  if (msg.includes('network error') || msg.includes('failed to fetch') || msg.includes('load failed') || msg.includes('timeout')) return true;
   return false;
 };
 
@@ -359,16 +425,31 @@ export const safeJsonParse = (text: string | null | undefined): any => {
  * Route proxy calls to the secure full-stack backend
  */
 export const generateEducationalContent = async (type: string, details: string) => {
-  // Native app: no backend — call Gemini directly.
+  const eduSystemPrompt = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN. NEVER INJECT <script src="https://cdn.tailwindcss.com"></script>. The app already has Tailwind.`;
+  const eduUserPrompt = `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design). Do NOT add Tailwind CDN scripts.`;
+
+  // Native app: no backend — call Gemini directly (with multi-provider rescue).
   if (isNativeApp()) {
-    const result = await callGeminiClientDirect("generate-educational", { type, details });
-    return result.text || "";
+    try {
+      const result = await callGeminiClientDirect("generate-educational", { type, details });
+      if (result.text && String(result.text).trim()) return result.text;
+      throw new Error("Empty response from Gemini engine");
+    } catch (nativeErr: any) {
+      console.warn("[AI Routing] Native Gemini engine failed — trying alternative providers.", nativeErr?.message);
+      return await callLastResortLLM(eduSystemPrompt, eduUserPrompt);
+    }
   }
 
   try {
     const response = await axios.post("/api/gemini/action", {
       action: "generate-educational",
       input: { type, details }
+    }, {
+      // Serverless backends (e.g. Vercel) hard-kill long generations; without a
+      // client-side timeout the request can hang forever and the UI appears to
+      // "time out". Abort after 60s so we seamlessly fall back to the
+      // on-device Gemini engine below instead of leaving the user stuck.
+      timeout: 60000
     });
     
     let resultText = response.data.text || "";
@@ -387,19 +468,33 @@ export const generateEducationalContent = async (type: string, details: string) 
     
     return resultText;
   } catch (error: any) {
-    if (isBackendUnavailable(error)) {
-      console.warn("[AI Routing] Backend unavailable — using client-side Gemini engine.");
+    // ANY backend failure (missing/invalid GEMINI_API_KEY → HTTP 400, serverless
+    // timeouts, 5xx, network drop, ...) must not kill generation: the app ships
+    // with a built-in client-side Gemini engine, so always try it before failing.
+    const backendMsg = error?.response?.data?.error || error?.message || error;
+    console.warn("[AI Routing] Backend generate-educational failed — using client-side Gemini engine.", backendMsg);
+    try {
+      const result = await callGeminiClientDirect("generate-educational", { type, details });
+      if (result.text && String(result.text).trim()) return result.text;
+      throw new Error("Empty response from Gemini engine");
+    } catch (clientErr: any) {
+      // Final safety net: the shared Gemini key may be quota-exhausted or
+      // blocked — route through the alternative baked-in providers before
+      // surfacing an error to the learner.
+      const geminiMsg = clientErr?.response?.data?.error?.message || clientErr?.message || clientErr;
+      console.warn("[AI Routing] Client Gemini engine failed — trying alternative providers.", geminiMsg);
       try {
-        const result = await callGeminiClientDirect("generate-educational", { type, details });
-        return result.text || "";
-      } catch (clientErr: any) {
+        return await callLastResortLLM(eduSystemPrompt, eduUserPrompt);
+      } catch (finalErr: any) {
+        console.error("Express /api/gemini/action failed:", backendMsg);
         checkAndReportApiError(clientErr, "Gemini");
-        throw clientErr;
+        const detail = [backendMsg, geminiMsg, finalErr?.response?.data?.error?.message || finalErr?.message]
+          .filter(Boolean)
+          .map(m => (typeof m === "string" ? m : JSON.stringify(m)))
+          .join(" | ");
+        throw new Error(`All AI engines failed. Details: ${detail}`);
       }
     }
-    console.error("Express /api/gemini/action failed:", error.message || error);
-    checkAndReportApiError(error, "Gemini");
-    throw error;
   }
 };
 
