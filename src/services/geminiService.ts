@@ -16,6 +16,11 @@ const isBackendUnavailable = (error: any): boolean => {
   if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') return true;
   if (status === 404) return true;
   if (status >= 500) return true;
+  // Backend replies 400 with this body when no GEMINI_API_KEY is configured on
+  // the server — the client-side engine has its own baked-in key, so treat it
+  // as "backend unavailable" and fall back instead of failing the generation.
+  const dataMsg = String(error.response?.data?.error || '').toLowerCase();
+  if (dataMsg.includes('not configured') || dataMsg.includes('api key')) return true;
   const msg = String(error.message || '').toLowerCase();
   if (msg.includes('network error') || msg.includes('failed to fetch') || msg.includes('load failed') || msg.includes('timeout')) return true;
   return false;
@@ -394,19 +399,22 @@ export const generateEducationalContent = async (type: string, details: string) 
     
     return resultText;
   } catch (error: any) {
-    if (isBackendUnavailable(error)) {
-      console.warn("[AI Routing] Backend unavailable — using client-side Gemini engine.");
-      try {
-        const result = await callGeminiClientDirect("generate-educational", { type, details });
-        return result.text || "";
-      } catch (clientErr: any) {
-        checkAndReportApiError(clientErr, "Gemini");
-        throw clientErr;
-      }
+    // ANY backend failure (missing/invalid GEMINI_API_KEY → HTTP 400, serverless
+    // timeouts, 5xx, network drop, ...) must not kill generation: the app ships
+    // with a built-in client-side Gemini engine, so always try it before failing.
+    // Previously only 404/5xx/network errors fell back, which left the Study
+    // Content Creator unable to generate anything when the backend replied
+    // 400 "GEMINI_API_KEY is not configured".
+    const backendMsg = error?.response?.data?.error || error?.message || error;
+    console.warn("[AI Routing] Backend generate-educational failed — using client-side Gemini engine.", backendMsg);
+    try {
+      const result = await callGeminiClientDirect("generate-educational", { type, details });
+      return result.text || "";
+    } catch (clientErr: any) {
+      console.error("Express /api/gemini/action failed:", backendMsg);
+      checkAndReportApiError(clientErr, "Gemini");
+      throw clientErr;
     }
-    console.error("Express /api/gemini/action failed:", error.message || error);
-    checkAndReportApiError(error, "Gemini");
-    throw error;
   }
 };
 
