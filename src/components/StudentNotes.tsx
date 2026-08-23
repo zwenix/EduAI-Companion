@@ -176,12 +176,12 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
       setProgress(100);
     } catch (error: any) {
       console.error('Error generating notes:', error);
-      const isTimeout = error?.message === 'GENERATION_TIMEOUT' || String(error?.message || '').toLowerCase().includes('timeout');
-      setGenError(
-        isTimeout
-          ? 'The generator took too long to respond and was stopped. This is usually a slow network or a busy AI server — please try again, it typically works on the next attempt.'
-          : 'Content generation failed. Please check your internet connection and try again.'
-      );
+      const rawDetail = String(error?.response?.data?.error?.message || error?.message || error || '').slice(0, 300);
+      const isTimeout = error?.message === 'GENERATION_TIMEOUT' || rawDetail.toLowerCase().includes('timeout');
+      const friendly = isTimeout
+        ? 'The generator took too long to respond and was stopped. This is usually a slow network or a busy AI server — please try again, it typically works on the next attempt.'
+        : 'Content generation failed. Please check your internet connection and try again.';
+      setGenError(rawDetail && !isTimeout ? `${friendly} (Technical detail: ${rawDetail})` : friendly);
     } finally {
       clearInterval(ticker);
       setTimeout(() => {
