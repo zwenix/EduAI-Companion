@@ -13,10 +13,11 @@ const isBackendUnavailable = (error: any): boolean => {
   // No HTTP response at all → network-level failure (no backend running)
   if (error.isAxiosError && !error.response) return true;
   if (error instanceof TypeError) return true;
+  if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') return true;
   if (status === 404) return true;
   if (status >= 500) return true;
   const msg = String(error.message || '').toLowerCase();
-  if (msg.includes('network error') || msg.includes('failed to fetch') || msg.includes('load failed')) return true;
+  if (msg.includes('network error') || msg.includes('failed to fetch') || msg.includes('load failed') || msg.includes('timeout')) return true;
   return false;
 };
 
@@ -369,6 +370,12 @@ export const generateEducationalContent = async (type: string, details: string) 
     const response = await axios.post("/api/gemini/action", {
       action: "generate-educational",
       input: { type, details }
+    }, {
+      // Serverless backends (e.g. Vercel) hard-kill long generations; without a
+      // client-side timeout the request can hang forever and the UI appears to
+      // "time out". Abort after 60s so we seamlessly fall back to the
+      // on-device Gemini engine below instead of leaving the user stuck.
+      timeout: 60000
     });
     
     let resultText = response.data.text || "";

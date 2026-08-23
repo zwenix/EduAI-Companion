@@ -642,39 +642,39 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
           Solid, saturated candy gradient so it reads instantly for Foundation
           Phase learners, instead of the old translucent glass panel. */}
       <div
-        className="kid-card kid-pop relative p-6 sm:p-10 lg:p-12 flex flex-col justify-end min-h-[260px] sm:min-h-[300px]"
+        className="kid-card kid-pop relative p-5 sm:p-6 lg:p-7 flex flex-col justify-end min-h-[180px] sm:min-h-[190px] lg:min-h-[200px]"
         style={{ ['--kid-1' as any]: '#7C3AED', ['--kid-2' as any]: '#0EA5E9' }}
       >
         {/* Playful oversized background doodles */}
-        <div className="absolute -top-6 -right-4 text-[120px] sm:text-[170px] opacity-25 select-none pointer-events-none kid-bob">
+        <div className="absolute -top-5 -right-3 text-[90px] sm:text-[110px] opacity-25 select-none pointer-events-none kid-bob">
           🚀
         </div>
-        <div className="absolute top-1/2 right-[22%] text-[70px] opacity-20 select-none pointer-events-none hidden lg:block">
+        <div className="absolute top-1/2 right-[22%] text-[50px] opacity-20 select-none pointer-events-none hidden lg:block">
           ⭐
         </div>
-        <div className="absolute -bottom-4 left-4 text-[90px] opacity-15 select-none pointer-events-none hidden sm:block">
+        <div className="absolute -bottom-4 left-4 text-[60px] opacity-15 select-none pointer-events-none hidden sm:block">
           🎨
         </div>
-        <div className="absolute top-4 right-4 opacity-10 hidden sm:block pointer-events-none">
-          <Brain size={210} className="text-white" />
+        <div className="absolute top-3 right-4 opacity-10 hidden sm:block pointer-events-none">
+          <Brain size={130} className="text-white" />
         </div>
 
         <div className="relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="kid-chip !text-[11px] sm:!text-sm !px-4 !py-2 mb-5"
+            className="kid-chip !text-[11px] sm:!text-xs !px-3 !py-1.5 mb-3"
             style={{ ['--kid-2' as any]: '#7C3AED' }}
           >
-            <Star size={16} className="fill-current text-amber-400" />
+            <Star size={14} className="fill-current text-amber-400" />
             Welcome back, {student?.name || 'Discovery Cadet'}! 🚀
           </motion.div>
 
-          <h1 className="kid-title text-4xl sm:text-6xl lg:text-7xl font-hand tracking-wide leading-tight mb-4">
+          <h1 className="kid-title text-3xl sm:text-4xl lg:text-5xl font-hand tracking-wide leading-tight mb-2">
             Ready for your <span className="text-amber-300">next mission?</span>
           </h1>
 
-          <div className="flex items-center gap-4 mt-5 sm:mt-6 max-w-lg">
+          <div className="flex items-center gap-4 mt-3 max-w-lg">
             <div className="kid-track flex-1">
               <motion.div
                 initial={{ width: 0 }}
@@ -688,7 +688,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
             </span>
           </div>
 
-          <p className="kid-sub text-base sm:text-xl mt-4">
+          <p className="kid-sub text-sm sm:text-base mt-2.5">
             Your learning path is glowing!{' '}
             <span className="font-black inline-block animate-bounce ml-1 text-amber-300">
               {stats.streak} Day Streak! 🔥
@@ -763,7 +763,7 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                 emoji: '🔔',
                 c1: '#EC4899',
                 c2: '#8B5CF6',
-                go: () => onNavigate && onNavigate('alerts', 'student-notifications')
+                go: () => onNavigate && onNavigate('student-tasks', 'lesson-planning')
               },
               {
                 label: 'Weekly Planner',
@@ -775,13 +775,13 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                 go: () => onNavigate && onNavigate('weekly-planner', 'lesson-planning')
               },
               {
-                label: 'My Class',
-                desc: 'Study guides, resources, and your classroom hub.',
+                label: 'Study Content Creator',
+                desc: 'Create AI study guides, flashcards, and revision packs.',
                 icon: BookOpen,
                 emoji: '📚',
                 c1: '#6366F1',
                 c2: '#A855F7',
-                go: () => onNavigate && onNavigate('student-notes', 'lesson-planning')
+                go: () => onNavigate && onNavigate('student-notes', 'student-class-management')
               },
               {
                 label: "AI Tutor's Class",

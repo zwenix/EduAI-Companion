@@ -955,10 +955,12 @@ export default function CategoryOverview({
   if (
     categoryLabel === 'Message & Collaborate' || 
     categoryLabel === 'Chat & Messenger' || 
+    categoryLabel === 'Study & Assessment Tools' ||
     categoryLabel === 'Communicator Hub' || 
     categoryLabel === 'Communicator Hub Chat' || 
     categoryLabel === 'Teacher Chat & Contacts'
   ) {
+    const isStudyTools = categoryLabel === 'Study & Assessment Tools';
     return (
       <div className="relative p-6 sm:p-8 lg:p-10 overflow-hidden rounded-2xl text-white flex flex-col justify-start font-sans" style={{ minHeight: 'calc(100dvh - 11rem)' }}>
         {/* Glowing cosmic curves/waves in background */}
@@ -982,7 +984,9 @@ export default function CategoryOverview({
               {categoryLabel === 'Message & Collaborate' ? 'Message & Collaborate Hub' : categoryLabel}
             </h1>
             <p className="text-sm sm:text-base text-slate-300 font-normal max-w-xl mx-auto">
-              Connect with parents, students, and faculty. Share updates, assignments, and class resources in real-time.
+              {isStudyTools
+                ? 'Practice your skills, collaborate with classmates, and create your own AI study materials — everything you need to prepare for assessments.'
+                : 'Connect with parents, students, and faculty. Share updates, assignments, and class resources in real-time.'}
             </p>
           </div>
 
@@ -996,6 +1000,8 @@ export default function CategoryOverview({
                 ? 'Live multiplayer whiteboard and shared document editing for interactive group projects.'
                 : item.id === 'student-practice'
                 ? 'Interactive AI-guided practice exercises, quizzes, and skill mastery drills.'
+                : item.id === 'student-notes'
+                ? 'Generate personalised study notes, flashcards, revision packs, and mind map outlines with AI — fully CAPS aligned.'
                 : item.desc || 'Explore collaborative tools and live communication channels.';
               const cardBg = item.id === 'messenger'
                 ? bgMessageChat
@@ -2566,7 +2572,13 @@ export default function CategoryOverview({
       case 'student-practice':
         return 'Engage in custom-designed quizzes, educational games, and learning exercises synced to active curriculum files.';
       case 'student-notes':
-        return 'Build and curate personalized textbook summaries, revision flashcards, and concept structures for active courses.';
+        return 'Generate personalised study notes, flashcards, revision packs, and mind map outlines with AI — fully CAPS aligned.';
+      case 'student-tasks':
+        return 'See every task and assessment your teachers have assigned to you, plus all your notifications and alerts in one place.';
+      case 'student-development':
+        return 'View your Individual Development Plan (IDP), personal strengths, focus areas, action plan missions, and support interventions.';
+      case 'weekly-planner':
+        return 'Your weekly timetable, upcoming tasks, and class schedule — plan your school week like a pro.';
       default:
         return `Access and manage ${label} tools and educational aids securely.`;
     }

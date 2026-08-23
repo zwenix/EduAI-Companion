@@ -109,6 +109,8 @@ import Logo from './components/Logo';
 import NotificationsDropdown from './components/NotificationsDropdown';
 import StudentPractice from './components/StudentPractice';
 import StudentNotes from './components/StudentNotes';
+import StudentTasksNotifications from './components/StudentTasksNotifications';
+import StudentDevelopmentHub from './components/StudentDevelopmentHub';
 import CollaborativeWorkspace from './components/CollaborativeWorkspace';
 import StudentDashboard from './components/StudentDashboard';
 import TeacherDashboard from './components/TeacherDashboard';
@@ -939,7 +941,7 @@ export default function App() {
         { id: 'lesson-planning', label: 'My Class', icon: IconCurriculum },
         { id: 'intelligence-ai', label: "AI Tutor's Class", icon: SmartBotTutorIcon },
         { id: 'class-analytics', label: 'Analytics & Reports', icon: IconAnalytics },
-        { id: 'student-class-management', label: 'Chat & Messenger', icon: IconClassrooms },
+        { id: 'student-class-management', label: 'Study & Assessment Tools', icon: IconClassrooms },
         { id: 'system-support', label: 'Help/Support Desk', icon: IconSettings },
       ];
     }
@@ -969,7 +971,9 @@ export default function App() {
         case 'lesson-planning':
           return [
             { id: 'weekly-planner', label: 'Weekly Planner', icon: IconMagicPlanner },
-            { id: 'student-notes', label: 'My Class Dashboard', icon: IconCurriculum }
+            { id: 'messenger', label: 'Chat Messenger', icon: IconClassrooms },
+            { id: 'student-tasks', label: 'Assigned Tasks & Notifications', icon: Bell },
+            { id: 'student-development', label: 'Individual Learning Development', icon: UserCheck }
           ];
         case 'intelligence-ai':
           return [
@@ -989,7 +993,7 @@ export default function App() {
           return [
             { id: 'student-practice', label: 'Practice Zone', icon: SmartBotTutorIcon },
             { id: 'collaborative-workspace', label: 'Collaborative Workspace', icon: IconClassrooms },
-            { id: 'messenger', label: 'Chat & Friends', icon: IconClassrooms }
+            { id: 'student-notes', label: 'Study Content Creator', icon: IconCurriculum }
           ];
         case 'system-support':
           return [
@@ -1152,6 +1156,9 @@ export default function App() {
   const shortenTitleForTopBar = (raw: string): string => {
     if (!raw) return '';
     const l = raw.toLowerCase();
+    if (l.includes('assigned tasks')) return 'Tasks & Alerts';
+    if (l.includes('individual learning') || l.includes('learning development')) return 'Learning Development';
+    if (l.includes('study content') || l.includes('study & assessment')) return raw;
     if (l === 'ai-tutor' || l.includes('ai tutor') || l.includes('tutor')) return 'Tutor';
     if (l === 'ocr' || l.includes('auto-grading') || l.includes('autograder') || l.includes('grading')) return 'Autograder';
     if (l.includes('chalkboard') || l.includes('dashboard') || l === 'home') return 'Dashboard';
@@ -1237,7 +1244,11 @@ export default function App() {
         case 'collaborative-workspace':
           return 'Collaborative Workspace';
         case 'student-notes':
-          return 'Class Notes';
+          return userRole === 'student' ? 'Study Content Creator' : 'Class Notes';
+        case 'student-tasks':
+          return 'Assigned Tasks & Notifications';
+        case 'student-development':
+          return 'Individual Learning Development';
         default: {
           for (const cat of sidebarCategories) {
             const subTabs = getSubTabsForCategory(cat.id, userRole);
@@ -2948,6 +2959,16 @@ export default function App() {
                       <CollaborativeWorkspace isDarkMode={isDarkMode} />
                     ) : activeTab === 'student-notes' ? (
                       <StudentNotes isDarkMode={isDarkMode} />
+                    ) : activeTab === 'student-tasks' ? (
+                      <StudentTasksNotifications
+                        isDarkMode={isDarkMode}
+                        onNavigate={(tabId, categoryId) => {
+                          if (categoryId) setActiveCategory(categoryId);
+                          changeTab(tabId);
+                        }}
+                      />
+                    ) : activeTab === 'student-development' ? (
+                      <StudentDevelopmentHub isDarkMode={isDarkMode} />
                     ) : activeTab === 'portfolios' ? (
                       <StudentPortfolio isDarkMode={isDarkMode} />
                     ) : activeTab === 'curriculum' ? (

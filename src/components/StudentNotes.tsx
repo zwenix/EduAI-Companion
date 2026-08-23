@@ -41,6 +41,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
   const [format, setFormat] = useState('Study Notes');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [genError, setGenError] = useState('');
   const [result, setResult] = useState<any>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -108,42 +109,81 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
     if (!subject || !topic) return;
     
     setLoading(true);
-    setProgress(10);
-    
+    setGenError('');
+    setProgress(5);
+
+    // Keep the progress bar moving smoothly while the AI works so the
+    // generator never *looks* frozen during longer generations.
+    const ticker = setInterval(() => {
+      setProgress(prev => (prev < 85 ? prev + Math.max(1, Math.round((85 - prev) / 15)) : prev));
+    }, 1000);
+
+    // Hard safety net: never let a hung request leave the UI stuck on
+    // "Generating..." forever. Each attempt gets its own generous window
+    // (the service itself falls back to the on-device Gemini engine when
+    // the backend is slow or unavailable).
+    const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T> =>
+      Promise.race([
+        p,
+        new Promise<T>((_, reject) =>
+          setTimeout(() => reject(new Error('GENERATION_TIMEOUT')), ms)
+        )
+      ]);
+
     try {
       let prompt = `Create a detailed and highly engaging ${format} for Grade ${grade} ${subject} on the topic of ${topic}. Ensure the content is strictly aligned with the South African CAPS curriculum. Provide comprehensive explanations, key concepts, formulas/definitions, and examples. Format the response as rich HTML with appropriate semantic tags, styled beautifully with Tailwind classes where necessary for emphasis. Include a brief summary section and a 'test your knowledge' section.`;
       
-      setProgress(40);
-      let content = await generateEducationalContent(format, prompt);
+      let content = '';
+      try {
+        content = await withTimeout(generateEducationalContent(format, prompt), 150000);
+      } catch (firstErr: any) {
+        console.warn('First generation attempt failed — retrying once automatically...', firstErr?.message || firstErr);
+        content = await withTimeout(generateEducationalContent(format, prompt), 150000);
+      }
+
+      if (!content || !String(content).trim()) {
+        throw new Error('The AI returned an empty response.');
+      }
       
-      setProgress(70);
+      setProgress(88);
       content = replaceImagePlaceholders(content);
       content = renderMathInHtml(content);
       
       setResult(stripMarkdownWrapper(content));
-      setProgress(90);
+      setProgress(92);
 
       // Save to Firebase
       const user = auth.currentUser;
       if (user) {
-        const newDocRef = doc(collection(db, 'created_content'));
-        await setDoc(newDocRef, {
-          title: `Grade ${grade} ${subject}: ${topic}`,
-          content: content,
-          contentType: 'Study Notes',
-          grade: `Grade ${grade}`,
-          subject: subject,
-          createdAt: serverTimestamp(),
-          teacherId: user.uid, // Storing under the current user's UID
-          authorName: user.displayName || 'Student'
-        });
+        try {
+          const newDocRef = doc(collection(db, 'created_content'));
+          await setDoc(newDocRef, {
+            title: `Grade ${grade} ${subject}: ${topic}`,
+            content: content,
+            contentType: 'Study Notes',
+            grade: `Grade ${grade}`,
+            subject: subject,
+            createdAt: serverTimestamp(),
+            teacherId: user.uid, // Storing under the current user's UID
+            authorName: user.displayName || 'Student'
+          });
+        } catch (saveErr) {
+          // Saving to the archive should never block the learner from seeing their content
+          console.warn('Could not archive generated study content:', saveErr);
+        }
       }
 
       setProgress(100);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating notes:', error);
-      alert('Failed to generate content. Please try again.');
+      const isTimeout = error?.message === 'GENERATION_TIMEOUT' || String(error?.message || '').toLowerCase().includes('timeout');
+      setGenError(
+        isTimeout
+          ? 'The generator took too long to respond and was stopped. This is usually a slow network or a busy AI server — please try again, it typically works on the next attempt.'
+          : 'Content generation failed. Please check your internet connection and try again.'
+      );
     } finally {
+      clearInterval(ticker);
       setTimeout(() => {
         setLoading(false);
         setProgress(0);
@@ -198,7 +238,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
           <div className="relative z-10">
             <h2 className={cn("text-2xl font-hand font-bold tracking-wide flex items-center gap-2", isDarkMode ? "text-white" : "text-slate-900")}>
               <BrainCircuit className={isDarkMode ? "text-indigo-400" : "text-indigo-600"} size={24} /> 
-              My Class Setup
+              Study Content Creator
             </h2>
             <p className={cn("text-xs mt-1", isDarkMode ? "text-slate-400" : "text-slate-500")}>
               Generate study guides & notes aligned to CAPS.
@@ -253,6 +293,15 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
               {loading ? <Loader2 className="animate-spin" size={16} /> : <BrainCircuit size={16} />}
               {loading ? 'Generating...' : `Generate ${format}`}
             </button>
+
+            {genError && !loading && (
+              <div className={cn(
+                "mt-4 p-3 rounded-xl border text-xs font-semibold leading-relaxed",
+                isDarkMode ? 'bg-rose-500/10 border-rose-500/30 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-600'
+              )}>
+                ⚠️ {genError}
+              </div>
+            )}
             
             {loading && (
               <div className="mt-4">
@@ -278,7 +327,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
         )}>
           <h3 className={cn("font-bold flex items-center gap-2 text-sm", isDarkMode ? 'text-white' : 'text-slate-800')}>
             <History size={16} className="text-indigo-500" />
-            Class Notes Archive
+            Study Content Archive
           </h3>
           {historyLoading ? (
             <div className="flex justify-center p-4">
@@ -373,7 +422,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
               <BookOpen size={48} className="animate-pulse" />
             </div>
             <h3 className={cn("text-3xl lg:text-5xl font-hand tracking-wide mb-4", isDarkMode ? "text-white" : "text-slate-800")}>
-              Welcome to My Class
+              Welcome to the Study Content Creator
             </h3>
             <p className={cn("max-w-md mx-auto text-sm lg:text-base leading-relaxed", isDarkMode ? "text-slate-400" : "text-slate-500")}>
               Generate beautiful, high-retention study guides, flashcards, and outlines fully aligned to the South African CAPS curriculum.
