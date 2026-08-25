@@ -730,33 +730,55 @@ svg:not(.not-sketchy) {
   filter: drop-shadow(0 0 8px rgba(255, 223, 64, 0.7));
 }
 
-/* Content-box border glow — never flashes. Brightens on hover / selection. */
+/* Content-box border glow — never flashes. Brightens on hover / selection.
+   FIXED FOR ANDROID: forced GPU layer, isolation, backface hidden, no animation,
+   and outline transparent hack to stop subpixel border flicker on WebView. */
 .animate-border-flash-cyan,
 .animate-border-flash-pink,
 .animate-border-flash-purple,
-.animate-border-flash-emerald {
+.animate-border-flash-emerald,
+.animate-border-flash-amber,
+.animate-border-flash-orange,
+.animate-border-flash-violet {
   animation: none !important;
-  transition: border-color 220ms ease, box-shadow 220ms ease;
+  transition: border-color 220ms ease, box-shadow 220ms ease, filter 220ms ease;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  isolation: isolate;
+  outline: 1px solid transparent;
+  background-clip: padding-box;
+  will-change: border-color, box-shadow;
 }
 
 .animate-border-flash-cyan {
-  border-color: rgba(6, 182, 212, 0.55);
-  box-shadow: 0 0 18px rgba(6, 182, 212, 0.36), inset 0 0 10px rgba(6, 182, 212, 0.20);
+  border-color: rgba(6, 182, 212, 0.62);
+  box-shadow: 0 0 22px rgba(6, 182, 212, 0.42), inset 0 0 12px rgba(6, 182, 212, 0.22);
 }
-
 .animate-border-flash-pink {
-  border-color: rgba(236, 72, 153, 0.55);
-  box-shadow: 0 0 18px rgba(236, 72, 153, 0.36), inset 0 0 10px rgba(236, 72, 153, 0.20);
+  border-color: rgba(236, 72, 153, 0.62);
+  box-shadow: 0 0 22px rgba(236, 72, 153, 0.42), inset 0 0 12px rgba(236, 72, 153, 0.22);
 }
-
 .animate-border-flash-purple {
-  border-color: rgba(168, 85, 247, 0.55);
-  box-shadow: 0 0 18px rgba(168, 85, 247, 0.36), inset 0 0 10px rgba(168, 85, 247, 0.20);
+  border-color: rgba(168, 85, 247, 0.62);
+  box-shadow: 0 0 22px rgba(168, 85, 247, 0.42), inset 0 0 12px rgba(168, 85, 247, 0.22);
 }
-
 .animate-border-flash-emerald {
-  border-color: rgba(16, 185, 129, 0.55);
-  box-shadow: 0 0 18px rgba(16, 185, 129, 0.36), inset 0 0 10px rgba(16, 185, 129, 0.20);
+  border-color: rgba(16, 185, 129, 0.62);
+  box-shadow: 0 0 22px rgba(16, 185, 129, 0.42), inset 0 0 12px rgba(16, 185, 129, 0.22);
+}
+.animate-border-flash-amber {
+  border-color: rgba(245, 158, 11, 0.62);
+  box-shadow: 0 0 22px rgba(245, 158, 11, 0.42), inset 0 0 12px rgba(245, 158, 11, 0.22);
+}
+.animate-border-flash-orange {
+  border-color: rgba(249, 115, 22, 0.62);
+  box-shadow: 0 0 22px rgba(249, 115, 22, 0.42), inset 0 0 12px rgba(249, 115, 22, 0.22);
+}
+.animate-border-flash-violet {
+  border-color: rgba(139, 92, 246, 0.62);
+  box-shadow: 0 0 22px rgba(139, 92, 246, 0.42), inset 0 0 12px rgba(139, 92, 246, 0.22);
 }
 
 .animate-border-flash-cyan:hover,
@@ -768,10 +790,9 @@ svg:not(.not-sketchy) {
 .animate-border-flash-cyan[aria-expanded='true'],
 .animate-border-flash-cyan[data-state='open'],
 .animate-border-flash-cyan[data-state='active'] {
-  border-color: rgba(6, 182, 212, 0.95);
-  box-shadow: 0 0 36px rgba(6, 182, 212, 0.78), inset 0 0 16px rgba(6, 182, 212, 0.42);
+  border-color: rgba(6, 182, 212, 0.98);
+  box-shadow: 0 0 38px rgba(6, 182, 212, 0.82), inset 0 0 18px rgba(6, 182, 212, 0.44);
 }
-
 .animate-border-flash-pink:hover,
 .animate-border-flash-pink:active,
 .animate-border-flash-pink:focus-visible,
@@ -781,10 +802,9 @@ svg:not(.not-sketchy) {
 .animate-border-flash-pink[aria-expanded='true'],
 .animate-border-flash-pink[data-state='open'],
 .animate-border-flash-pink[data-state='active'] {
-  border-color: rgba(236, 72, 153, 0.95);
-  box-shadow: 0 0 36px rgba(236, 72, 153, 0.78), inset 0 0 16px rgba(236, 72, 153, 0.42);
+  border-color: rgba(236, 72, 153, 0.98);
+  box-shadow: 0 0 38px rgba(236, 72, 153, 0.82), inset 0 0 18px rgba(236, 72, 153, 0.44);
 }
-
 .animate-border-flash-purple:hover,
 .animate-border-flash-purple:active,
 .animate-border-flash-purple:focus-visible,
@@ -794,10 +814,9 @@ svg:not(.not-sketchy) {
 .animate-border-flash-purple[aria-expanded='true'],
 .animate-border-flash-purple[data-state='open'],
 .animate-border-flash-purple[data-state='active'] {
-  border-color: rgba(168, 85, 247, 0.95);
-  box-shadow: 0 0 36px rgba(168, 85, 247, 0.78), inset 0 0 16px rgba(168, 85, 247, 0.42);
+  border-color: rgba(168, 85, 247, 0.98);
+  box-shadow: 0 0 38px rgba(168, 85, 247, 0.82), inset 0 0 18px rgba(168, 85, 247, 0.44);
 }
-
 .animate-border-flash-emerald:hover,
 .animate-border-flash-emerald:active,
 .animate-border-flash-emerald:focus-visible,
@@ -807,8 +826,137 @@ svg:not(.not-sketchy) {
 .animate-border-flash-emerald[aria-expanded='true'],
 .animate-border-flash-emerald[data-state='open'],
 .animate-border-flash-emerald[data-state='active'] {
-  border-color: rgba(16, 185, 129, 0.95);
-  box-shadow: 0 0 36px rgba(16, 185, 129, 0.78), inset 0 0 16px rgba(16, 185, 129, 0.42);
+  border-color: rgba(16, 185, 129, 0.98);
+  box-shadow: 0 0 38px rgba(16, 185, 129, 0.82), inset 0 0 18px rgba(16, 185, 129, 0.44);
+}
+.animate-border-flash-amber:hover,
+.animate-border-flash-amber:active,
+.animate-border-flash-amber:focus-visible,
+.animate-border-flash-amber.is-selected,
+.animate-border-flash-amber[data-selected='true'],
+.animate-border-flash-amber[aria-selected='true'],
+.animate-border-flash-amber[aria-expanded='true'],
+.animate-border-flash-amber[data-state='open'],
+.animate-border-flash-amber[data-state='active'] {
+  border-color: rgba(245, 158, 11, 0.98);
+  box-shadow: 0 0 38px rgba(245, 158, 11, 0.82), inset 0 0 18px rgba(245, 158, 11, 0.44);
+}
+.animate-border-flash-orange:hover,
+.animate-border-flash-orange:active,
+.animate-border-flash-orange:focus-visible,
+.animate-border-flash-orange.is-selected,
+.animate-border-flash-orange[data-selected='true'],
+.animate-border-flash-orange[aria-selected='true'],
+.animate-border-flash-orange[aria-expanded='true'],
+.animate-border-flash-orange[data-state='open'],
+.animate-border-flash-orange[data-state='active'] {
+  border-color: rgba(249, 115, 22, 0.98);
+  box-shadow: 0 0 38px rgba(249, 115, 22, 0.82), inset 0 0 18px rgba(249, 115, 22, 0.44);
+}
+.animate-border-flash-violet:hover,
+.animate-border-flash-violet:active,
+.animate-border-flash-violet:focus-visible,
+.animate-border-flash-violet.is-selected,
+.animate-border-flash-violet[data-selected='true'],
+.animate-border-flash-violet[aria-selected='true'],
+.animate-border-flash-violet[aria-expanded='true'],
+.animate-border-flash-violet[data-state='open'],
+.animate-border-flash-violet[data-state='active'] {
+  border-color: rgba(139, 92, 246, 0.98);
+  box-shadow: 0 0 38px rgba(139, 92, 246, 0.82), inset 0 0 18px rgba(139, 92, 246, 0.44);
+}
+
+/* ── Unified menu glow cards — used by Teacher Dashboard & Toolbox ───────
+   Steady glow (no flashing). Unselected = subtle glow, hover/selected = strong.
+   Works on Web/Desktop/Mobile/Android. GPU-accelerated to prevent Android flicker.
+*/
+.menu-glow-card {
+  position: relative;
+  isolation: isolate;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-width: 2px;
+  border-style: solid;
+  border-radius: 32px;
+  background: rgba(15, 23, 42, 0.92);
+  outline: 1px solid transparent;
+  background-clip: padding-box;
+  transition: border-color 220ms ease, box-shadow 220ms ease, filter 220ms ease, transform 220ms ease;
+  will-change: border-color, box-shadow;
+  overflow: hidden;
+}
+.menu-glow-card .showcase-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  transform: translateZ(0);
+}
+.menu-glow-card .showcase-bg img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transition: opacity 900ms ease-in-out;
+  will-change: opacity;
+}
+.menu-glow-card .showcase-content {
+  position: relative;
+  z-index: 1;
+}
+
+.glow-pink { border-color: rgba(236,72,153,0.68); box-shadow: 0 0 22px rgba(236,72,153,0.38), inset 0 0 12px rgba(236,72,153,0.20); }
+.glow-pink:hover, .glow-pink.is-selected, .glow-pink:focus-visible { border-color: rgba(236,72,153,0.98); box-shadow: 0 0 40px rgba(236,72,153,0.72), inset 0 0 18px rgba(236,72,153,0.36); }
+
+.glow-cyan { border-color: rgba(6,182,212,0.68); box-shadow: 0 0 22px rgba(6,182,212,0.38), inset 0 0 12px rgba(6,182,212,0.20); }
+.glow-cyan:hover, .glow-cyan.is-selected, .glow-cyan:focus-visible { border-color: rgba(6,182,212,0.98); box-shadow: 0 0 40px rgba(6,182,212,0.72), inset 0 0 18px rgba(6,182,212,0.36); }
+
+.glow-purple { border-color: rgba(168,85,247,0.68); box-shadow: 0 0 22px rgba(168,85,247,0.38), inset 0 0 12px rgba(168,85,247,0.20); }
+.glow-purple:hover, .glow-purple.is-selected, .glow-purple:focus-visible { border-color: rgba(168,85,247,0.98); box-shadow: 0 0 40px rgba(168,85,247,0.72), inset 0 0 18px rgba(168,85,247,0.36); }
+
+.glow-emerald { border-color: rgba(16,185,129,0.68); box-shadow: 0 0 22px rgba(16,185,129,0.38), inset 0 0 12px rgba(16,185,129,0.20); }
+.glow-emerald:hover, .glow-emerald.is-selected, .glow-emerald:focus-visible { border-color: rgba(16,185,129,0.98); box-shadow: 0 0 40px rgba(16,185,129,0.72), inset 0 0 18px rgba(16,185,129,0.36); }
+
+.glow-amber { border-color: rgba(245,158,11,0.68); box-shadow: 0 0 22px rgba(245,158,11,0.38), inset 0 0 12px rgba(245,158,11,0.20); }
+.glow-amber:hover, .glow-amber.is-selected, .glow-amber:focus-visible { border-color: rgba(245,158,11,0.98); box-shadow: 0 0 40px rgba(245,158,11,0.72), inset 0 0 18px rgba(245,158,11,0.36); }
+
+.glow-orange { border-color: rgba(249,115,22,0.68); box-shadow: 0 0 22px rgba(249,115,22,0.38), inset 0 0 12px rgba(249,115,22,0.20); }
+.glow-orange:hover, .glow-orange.is-selected, .glow-orange:focus-visible { border-color: rgba(249,115,22,0.98); box-shadow: 0 0 40px rgba(249,115,22,0.72), inset 0 0 18px rgba(249,115,22,0.36); }
+
+.glow-violet { border-color: rgba(139,92,246,0.68); box-shadow: 0 0 22px rgba(139,92,246,0.38), inset 0 0 12px rgba(139,92,246,0.20); }
+.glow-violet:hover, .glow-violet.is-selected, .glow-violet:focus-visible { border-color: rgba(139,92,246,0.98); box-shadow: 0 0 40px rgba(139,92,246,0.72), inset 0 0 18px rgba(139,92,246,0.36); }
+
+/* Android / coarse pointer: reduce backdrop-blur intensity that triggers flicker,
+   keep glow but make it cheaper to composite. */
+@media (pointer: coarse) {
+  .menu-glow-card, .animate-border-flash-cyan, .animate-border-flash-pink,
+  .animate-border-flash-purple, .animate-border-flash-emerald,
+  .animate-border-flash-amber, .animate-border-flash-orange, .animate-border-flash-violet {
+    /* backdrop-filter is expensive on Android WebView and causes border flashing;
+       we keep a solid bg and rely on box-shadow glow only. */
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .menu-glow-card {
+    background: rgba(12, 18, 37, 0.96) !important;
+  }
+}
+
+/* Showcase slideshow images — GPU layer, no flashing on Android */
+.showcase-slideshow-img {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: opacity;
 }
 
 /* ---------------------------------------------------------------------------

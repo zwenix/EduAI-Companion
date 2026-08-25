@@ -165,13 +165,29 @@ function InteractiveShowcaseCard({
   const [slideIndex, setSlideIndex] = useState(0);
 
   useEffect(() => {
+    if (slides.length <= 1) return;
     const timer = setInterval(() => {
       setSlideIndex((prev) => (prev + 1) % slides.length);
-    }, 4500);
+    }, 4200);
     return () => clearInterval(timer);
   }, [slides.length]);
 
-  const currentSlide = slides[slideIndex];
+  // Map legacy border class to steady glow system (no flashing, Android-safe)
+  const glowClass = borderColorClass.includes('pink')
+    ? 'glow-pink'
+    : borderColorClass.includes('purple')
+    ? 'glow-purple'
+    : borderColorClass.includes('cyan')
+    ? 'glow-cyan'
+    : borderColorClass.includes('emerald')
+    ? 'glow-emerald'
+    : borderColorClass.includes('amber')
+    ? 'glow-amber'
+    : borderColorClass.includes('orange')
+    ? 'glow-orange'
+    : borderColorClass.includes('violet')
+    ? 'glow-violet'
+    : 'glow-cyan';
 
   return (
     <motion.div
@@ -179,36 +195,29 @@ function InteractiveShowcaseCard({
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       onClick={onClick}
-      className={`rounded-[32px] border-2 bg-slate-900/90 p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:brightness-110 transition-all duration-300 cursor-pointer relative overflow-hidden h-full min-h-[340px] select-none ${borderColorClass} ${shadowColorClass} ${hoverBorderColorClass} ${hoverShadowColorClass}`}
+      className={`menu-glow-card rounded-[32px] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:brightness-110 transition-all duration-300 cursor-pointer h-full min-h-[340px] select-none ${glowClass}`}
+      style={{ transform: 'translateZ(0)' }}
     >
-      {/* Background Slideshow — steady crossfade, never blank/flashing.
-          Images overlap during the fade (no mode="wait" gap) and drift very
-          slowly so the thematic plate stays visible at all times. */}
-      <AnimatePresence initial={false}>
-        <motion.div
-          key={slideIndex}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.9, ease: 'easeInOut' }}
-          className="absolute inset-0 z-0 overflow-hidden"
-        >
+      {/* Background Slideshow — stacked opacity crossfade, never blank, no AnimatePresence flashing */}
+      <div className="showcase-bg">
+        {slides.map((slide, i) => (
           <img
-            src={currentSlide.image}
-            alt={currentSlide.title}
+            key={slide.image + i}
+            src={slide.image}
+            alt={slide.title}
             loading="eager"
-            decoding="sync"
-            className="w-full h-full object-cover opacity-[0.46] group-hover:opacity-[0.56] filter brightness-[0.98] transition-opacity duration-700"
+            decoding="async"
+            className="showcase-slideshow-img"
+            style={{ opacity: i === slideIndex ? 0.46 : 0 }}
             referrerPolicy="no-referrer"
           />
-          {/* Readability veil — keeps foreground text crisp without hiding the plate */}
-          <div className="absolute inset-0 bg-slate-900/55 pointer-events-none z-0" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/35 to-transparent pointer-events-none z-0" />
-        </motion.div>
-      </AnimatePresence>
+        ))}
+        <div className="absolute inset-0 bg-slate-900/55 pointer-events-none z-0" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/35 to-transparent pointer-events-none z-0" />
+      </div>
 
       {/* Foreground Interactive Layout */}
-      <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
+      <div className="showcase-content w-full h-full flex flex-col items-center justify-center">
         {children}
       </div>
     </motion.div>
@@ -412,7 +421,7 @@ interface ReportsCardTheme {
   pillText: string;
 }
 
-const REPORTS_THEME: Record<string, ReportsCardTheme> = {
+const REPORTS_THEME: Record<string, ReportsCardTheme & { glowClass: string }> = {
   cyan: {
     borderColorClass: 'border-cyan-400/90',
     shadowColorClass: 'shadow-[0_0_30px_rgba(34,211,238,0.35)]',
@@ -424,6 +433,7 @@ const REPORTS_THEME: Record<string, ReportsCardTheme> = {
     accentBorder: 'border-cyan-400/40',
     pillBg: 'bg-cyan-500/10',
     pillText: 'text-cyan-300',
+    glowClass: 'glow-cyan',
   },
   emerald: {
     borderColorClass: 'border-emerald-400/90',
@@ -436,6 +446,7 @@ const REPORTS_THEME: Record<string, ReportsCardTheme> = {
     accentBorder: 'border-emerald-400/40',
     pillBg: 'bg-emerald-500/10',
     pillText: 'text-emerald-300',
+    glowClass: 'glow-emerald',
   },
   amber: {
     borderColorClass: 'border-amber-400/90',
@@ -448,6 +459,7 @@ const REPORTS_THEME: Record<string, ReportsCardTheme> = {
     accentBorder: 'border-amber-400/40',
     pillBg: 'bg-amber-500/10',
     pillText: 'text-amber-300',
+    glowClass: 'glow-amber',
   },
   pink: {
     borderColorClass: 'border-pink-500/90',
@@ -460,6 +472,7 @@ const REPORTS_THEME: Record<string, ReportsCardTheme> = {
     accentBorder: 'border-pink-500/40',
     pillBg: 'bg-pink-500/10',
     pillText: 'text-pink-300',
+    glowClass: 'glow-pink',
   },
   purple: {
     borderColorClass: 'border-purple-500/90',
@@ -472,6 +485,7 @@ const REPORTS_THEME: Record<string, ReportsCardTheme> = {
     accentBorder: 'border-purple-500/40',
     pillBg: 'bg-purple-500/10',
     pillText: 'text-purple-300',
+    glowClass: 'glow-purple',
   },
 };
 
@@ -1572,7 +1586,8 @@ export default function CategoryOverview({
                 whileHover={{ y: -6 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                 onClick={() => onSelect(item.id)}
-                className={`group flex flex-col p-6 sm:p-7 rounded-[24px] bg-slate-900/95 border hover:brightness-110 hover:-translate-y-1 transition-all duration-300 cursor-pointer relative overflow-hidden ${theme.borderColorClass} ${theme.shadowColorClass} ${theme.hoverBorderColorClass} ${theme.hoverShadowColorClass}`}
+                className={`menu-glow-card group flex flex-col p-6 sm:p-7 rounded-[24px] bg-slate-900/95 hover:brightness-110 hover:-translate-y-1 transition-all duration-300 cursor-pointer ${(theme as any).glowClass || 'glow-cyan'}`}
+                style={{ transform: 'translateZ(0)' }}
               >
                 {/* soft top accent glow */}
                 <div className={`absolute -top-16 -right-16 w-40 h-40 rounded-full blur-3xl pointer-events-none opacity-30 group-hover:opacity-50 transition-opacity ${theme.accentBg}`} />

@@ -311,7 +311,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
         
         {/* Left Column: Calendar & Settings (5 Cols) */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="rounded-[32px] border-2 animate-border-flash-cyan bg-transparent p-5 shadow-xl relative overflow-hidden backdrop-blur-md">
+          <div className="rounded-[32px] menu-glow-card glow-cyan bg-transparent p-5 shadow-xl relative overflow-hidden backdrop-blur-md">
             <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-2xl rounded-full" />
             
             {/* Month Control Header */}
@@ -389,7 +389,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
         <div className="lg:col-span-7 space-y-8">
           
           {/* Day Scheduler Panel */}
-          <div className="rounded-[32px] border-2 animate-border-flash-emerald bg-transparent p-6 md:p-8 shadow-xl relative overflow-hidden backdrop-blur-md">
+          <div className="rounded-[32px] menu-glow-card glow-emerald bg-transparent p-6 md:p-8 shadow-xl relative overflow-hidden backdrop-blur-md">
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-2xl rounded-full" />
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -475,7 +475,7 @@ export const TeacherPlanner: React.FC<TeacherPlannerProps> = ({ isDarkMode, onBa
 
           {/* Daily Personal Diary & Reflection Notes */}
           <div 
-            className="rounded-[32px] border-2 animate-border-flash-purple p-6 md:p-8 shadow-xl relative overflow-hidden backdrop-blur-md"
+            className="rounded-[32px] menu-glow-card glow-purple p-6 md:p-8 shadow-xl relative overflow-hidden backdrop-blur-md"
             style={{
               backgroundImage: `linear-gradient(rgba(5,10,25,0.84), rgba(5,10,25,0.84)), url(${bgPlannerNotes})`,
               backgroundSize: 'cover',

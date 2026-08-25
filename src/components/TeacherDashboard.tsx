@@ -82,6 +82,89 @@ const AUTOGRADER_TUTOR_SLIDES = [
   { image: bgLandingAnalytics, title: 'Diagnostic Analytics' },
 ];
 
+// Additional slideshow sets for Teacher Shortcuts Deck — ensures every box has a showcase
+const CAPS_CREATOR_SLIDES = [
+  { image: bgToolboxContentStudio, title: 'Content Studio' },
+  { image: bgLandingCurriculum, title: 'CAPS Planner' },
+  { image: bgToolboxVisualLab, title: 'Visual Lab' },
+];
+const CLASS_MANAGER_SLIDES = [
+  { image: bgPracticeZone, title: 'Practice Zone' },
+  { image: bgAnalytics, title: 'Analytics' },
+  { image: bgLandingToolbox, title: 'Class Hub' },
+];
+const GRADING_LAB_SLIDES = [
+  { image: bgOcrGrading, title: 'OCR Grading' },
+  { image: bgToolboxOcr, title: 'Scan Lab' },
+  { image: bgAnalytics, title: 'Marks' },
+];
+const BROADCAST_SLIDES = [
+  { image: bgLandingMessage, title: 'Messenger' },
+  { image: bgLandingAlerts, title: 'Alerts' },
+  { image: bgAdminLab, title: 'Admin Lab' },
+];
+
+function TeacherShortcutCard({
+  slides,
+  glowClass,
+  icon,
+  title,
+  desc,
+  onClick,
+}: {
+  slides: { image: string; title: string }[];
+  glowClass: string;
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+  onClick: () => void;
+}) {
+  const [idx, setIdx] = React.useState(0);
+  React.useEffect(() => {
+    if (slides.length <= 1) return;
+    const t = setInterval(() => setIdx((p) => (p + 1) % slides.length), 4200);
+    return () => clearInterval(t);
+  }, [slides.length]);
+  return (
+    <motion.div
+      whileHover={{ y: -6, scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      onClick={onClick}
+      className={`menu-glow-card p-6 rounded-[32px] flex flex-col justify-between h-44 cursor-pointer group relative overflow-hidden ${glowClass}`}
+      style={{ transform: 'translateZ(0)' }}
+    >
+      <div className="showcase-bg rounded-[32px]">
+        {slides.map((s, i) => (
+          <img
+            key={s.image + i}
+            src={s.image}
+            alt={s.title}
+            loading="eager"
+            decoding="async"
+            className="showcase-slideshow-img"
+            style={{ opacity: i === idx ? 0.38 : 0 }}
+            referrerPolicy="no-referrer"
+          />
+        ))}
+        <div className="absolute inset-0 bg-slate-950/55 pointer-events-none rounded-[32px]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/35 to-transparent pointer-events-none rounded-[32px]" />
+      </div>
+      <div className="showcase-content flex flex-col justify-between h-full">
+        <div className="w-14 h-14 rounded-2xl bg-slate-900/70 border-2 border-white/15 backdrop-blur flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.08)] group-hover:scale-105 transition-transform shrink-0">
+          {icon}
+        </div>
+        <div className="space-y-1 mt-4">
+          <h4 className="text-sm font-black font-display leading-tight text-white group-hover:text-white">
+            {title}
+          </h4>
+          <p className="text-[10px] leading-snug font-medium text-slate-300">{desc}</p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function ShowcaseCard({
   slides,
   borderColorClass,
@@ -109,41 +192,53 @@ function ShowcaseCard({
 }) {
   const [idx, setIdx] = React.useState(0);
   React.useEffect(() => {
-    const t = setInterval(() => setIdx((p) => (p + 1) % slides.length), 3500);
+    if (slides.length <= 1) return;
+    const t = setInterval(() => setIdx((p) => (p + 1) % slides.length), 3800);
     return () => clearInterval(t);
   }, [slides.length]);
-  const current = slides[idx];
+
+  // Map legacy borderColorClass to new steady glow system (no flashing)
+  const glowClass = borderColorClass.includes('pink')
+    ? 'glow-pink'
+    : borderColorClass.includes('purple')
+    ? 'glow-purple'
+    : borderColorClass.includes('cyan')
+    ? 'glow-cyan'
+    : borderColorClass.includes('emerald')
+    ? 'glow-emerald'
+    : borderColorClass.includes('amber')
+    ? 'glow-amber'
+    : 'glow-cyan';
+
   return (
     <motion.div
       whileHover={{ scale: 1.03, y: -6 }}
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       onClick={onClick}
-      className={`rounded-[32px] border-2 bg-slate-900/90 p-6 text-center flex flex-col items-center justify-center gap-4 group hover:brightness-110 transition-all duration-300 cursor-pointer relative overflow-hidden min-h-[200px] select-none ${borderColorClass} ${shadowColorClass} ${hoverBorderColorClass} ${hoverShadowColorClass}`}
+      className={`menu-glow-card rounded-[32px] p-6 text-center flex flex-col items-center justify-center gap-4 group hover:brightness-110 transition-all duration-300 cursor-pointer min-h-[200px] select-none ${glowClass}`}
+      style={{ transform: 'translateZ(0)' }}
     >
-      {/* Showcase plate — steady crossfade, no blank gap (fixes perceived flashing) */}
-      <AnimatePresence initial={false}>
-        <motion.div
-          key={idx}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.85, ease: 'easeInOut' }}
-          className="absolute inset-0 z-0 overflow-hidden rounded-[32px]"
-        >
+      {/* Showcase plate — stacked opacity crossfade, never blank, no AnimatePresence flashing on Android */}
+      <div className="showcase-bg rounded-[32px]">
+        {slides.map((s, i) => (
           <img
-            src={current.image}
-            alt={current.title}
+            key={s.image + i}
+            src={s.image}
+            alt={s.title}
             loading="eager"
-            decoding="sync"
-            className="w-full h-full object-cover opacity-[0.46] group-hover:opacity-[0.56] filter brightness-[0.98] transition-opacity duration-700"
+            decoding="async"
+            className="showcase-slideshow-img"
+            style={{
+              opacity: i === idx ? 0.48 : 0,
+            }}
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-slate-950/40 pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/35 to-transparent pointer-events-none" />
-        </motion.div>
-      </AnimatePresence>
-      <div className="relative z-10 w-full flex flex-col items-center gap-3">
+        ))}
+        <div className="absolute inset-0 bg-slate-950/42 pointer-events-none rounded-[32px]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/82 via-slate-950/38 to-transparent pointer-events-none rounded-[32px]" />
+      </div>
+      <div className="showcase-content w-full flex flex-col items-center gap-3">
         <div className={`w-16 h-16 rounded-2xl backdrop-blur border-2 flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.08)] group-hover:scale-105 transition-transform ${iconWrapClass}`}>
           {icon}
         </div>
@@ -315,29 +410,24 @@ const studentEngagementData = [
 function TeachingOuterSlideshow() {
   const [idx, setIdx] = React.useState(0);
   React.useEffect(() => {
-    const t = setInterval(() => setIdx((p) => (p + 1) % TEACHING_OUTER_SLIDES.length), 4500);
+    const t = setInterval(() => setIdx((p) => (p + 1) % TEACHING_OUTER_SLIDES.length), 4800);
     return () => clearInterval(t);
   }, []);
   return (
-    <AnimatePresence initial={false}>
-      <motion.div
-        key={idx}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.9, ease: 'easeInOut' }}
-        className="absolute inset-0 z-0 overflow-hidden rounded-[28px]"
-      >
+    <div className="absolute inset-0 z-0 overflow-hidden rounded-[28px] pointer-events-none" style={{ transform: 'translateZ(0)' }}>
+      {TEACHING_OUTER_SLIDES.map((src, i) => (
         <img
-          src={TEACHING_OUTER_SLIDES[idx]}
+          key={src + i}
+          src={src}
           alt=""
           loading="eager"
-          decoding="sync"
-          className="w-full h-full object-cover opacity-[0.42] group-hover:opacity-[0.48] transition-opacity duration-700"
+          decoding="async"
+          className="showcase-slideshow-img absolute inset-0 w-full h-full object-cover rounded-[28px]"
+          style={{ opacity: i === idx ? 0.42 : 0, transition: 'opacity 1000ms ease-in-out' }}
           referrerPolicy="no-referrer"
         />
-      </motion.div>
-    </AnimatePresence>
+      ))}
+    </div>
   );
 }
 
@@ -526,7 +616,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
       <motion.div 
         variants={itemVariants} 
         className={cn(
-          "p-4 md:p-5 rounded-[28px] border-2 space-y-5 animate-border-flash-cyan relative overflow-hidden backdrop-blur-md",
+          "menu-glow-card glow-cyan p-4 md:p-5 rounded-[28px] space-y-5 relative overflow-hidden",
           isDarkMode ? "border-cyan-500/40 bg-slate-900/90" : "border-cyan-500/50 bg-slate-900/90 shadow-xl"
         )}
       >
@@ -736,7 +826,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
           
           {/* Chart 1: CAPS Performance Trends */}
           <div className={cn(
-            "p-6 rounded-[32px] border-2 animate-border-flash-cyan backdrop-blur-md shadow-xl flex flex-col gap-4",
+            "menu-glow-card glow-cyan p-6 rounded-[32px] backdrop-blur-md shadow-xl flex flex-col gap-4",
             isDarkMode ? "bg-slate-900/95" : "bg-slate-900/95"
           )}>
             <div className="flex justify-between items-start">
@@ -847,7 +937,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
 
           {/* Chart 2: Student Quest Engagement Metrics */}
           <div className={cn(
-            "p-6 rounded-[32px] border-2 animate-border-flash-purple backdrop-blur-md shadow-xl flex flex-col gap-4",
+            "menu-glow-card glow-purple p-6 rounded-[32px] backdrop-blur-md shadow-xl flex flex-col gap-4",
             isDarkMode ? "bg-slate-900/95" : "bg-slate-900/95"
           )}>
             <div className="flex justify-between items-start">
@@ -918,7 +1008,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         </div>
       </motion.div>
 
-      {/* Teacher Shortcuts Deck (Moved & Upgraded) */}
+      {/* Teacher Shortcuts Deck — now with feature showcase slideshows & steady glow (no flashing) */}
       <motion.div variants={itemVariants} className="space-y-4">
         <h2 className="text-xl font-display font-black tracking-widest text-cyan-400 uppercase flex items-center gap-2">
           <span>Teacher Shortcuts Deck</span>
@@ -926,132 +1016,47 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-          
-          {/* CAPS Creator Studio */}
-          <motion.div 
-            whileHover={{ y: -6, scale: 1.02 }}
+          <TeacherShortcutCard
+            slides={CAPS_CREATOR_SLIDES}
+            glowClass="glow-cyan"
+            icon={<Sparkles size={24} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" />}
+            title="CAPS Creator Studio"
+            desc="Design magical, fully-aligned unit maps and step-by-step CAPS lessons."
             onClick={() => {
               onNavigate('teaching', 'lesson-planning');
               triggerToast('Opening CAPS Lesson Creator Studio...', 'info');
             }}
-            className={cn(
-              "p-6 rounded-[32px] border-2 animate-border-flash-cyan shadow-[0_0_20px_rgba(6,182,212,0.1)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden",
-              isDarkMode ? "bg-slate-900/95 backdrop-blur-md" : "bg-slate-900/95 backdrop-blur-md"
-            )}
-          >
-            <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-cyan-500/10 blur-xl rounded-full" />
-            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border-2 border-cyan-400 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)] shrink-0 group-hover:scale-105 transition-all">
-              <Sparkles size={24} className="drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
-            </div>
-            <div className="space-y-1 mt-4">
-              <h4 className={cn(
-                "text-sm font-black font-display leading-tight group-hover:text-cyan-300 transition-colors",
-                isDarkMode ? "text-white" : "text-slate-900"
-              )}>
-                CAPS Creator Studio
-              </h4>
-              <p className={cn(
-                "text-[10px] leading-snug font-medium",
-                isDarkMode ? "text-slate-400" : "text-slate-600"
-              )}>
-                Design magical, fully-aligned unit maps and step-by-step CAPS lessons.
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Classroom Manager */}
-          <motion.div 
-            whileHover={{ y: -6, scale: 1.02 }}
+          />
+          <TeacherShortcutCard
+            slides={CLASS_MANAGER_SLIDES}
+            glowClass="glow-emerald"
+            icon={<UserCheck size={24} className="text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" />}
+            title="Classroom Manager"
+            desc="Manage portfolios, reward achievements, and track active pupil marks."
             onClick={() => {
               onNavigate('class-management', 'class-management');
               triggerToast('Opening Classrooms Manager...', 'info');
             }}
-            className={cn(
-              "p-6 rounded-[32px] border-2 animate-border-flash-emerald shadow-[0_0_20px_rgba(16,185,129,0.1)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden",
-              isDarkMode ? "bg-slate-900/95 backdrop-blur-md" : "bg-slate-900/95 backdrop-blur-md"
-            )}
-          >
-            <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-emerald-500/10 blur-xl rounded-full" />
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border-2 border-emerald-400 flex items-center justify-center text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.25)] shrink-0 group-hover:scale-105 transition-all">
-              <UserCheck size={24} className="drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-            </div>
-            <div className="space-y-1 mt-4">
-              <h4 className={cn(
-                "text-sm font-black font-display leading-tight group-hover:text-emerald-300 transition-colors",
-                isDarkMode ? "text-white" : "text-slate-900"
-              )}>
-                Classroom Manager
-              </h4>
-              <p className={cn(
-                "text-[10px] leading-snug font-medium",
-                isDarkMode ? "text-slate-400" : "text-slate-600"
-              )}>
-                Manage portfolios, reward achievements, and track active pupil marks.
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Grading Lab */}
-          <motion.div 
-            whileHover={{ y: -6, scale: 1.02 }}
+          />
+          <TeacherShortcutCard
+            slides={GRADING_LAB_SLIDES}
+            glowClass="glow-pink"
+            icon={<Scan size={24} className="text-pink-400 drop-shadow-[0_0_8px_rgba(236,72,153,0.6)]" />}
+            title="Grading Lab (OCR)"
+            desc="Scan physical assessment worksheets with instant smart grading."
             onClick={() => {
               onNavigate('ocr', 'intelligence-ai');
               triggerToast('Launching Teacher\'s Auto-Grading Lab...', 'info');
             }}
-            className={cn(
-              "p-6 rounded-[32px] border-2 animate-border-flash-pink shadow-[0_0_20px_rgba(236,72,153,0.1)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden",
-              isDarkMode ? "bg-slate-900/95 backdrop-blur-md" : "bg-slate-900/95 backdrop-blur-md"
-            )}
-          >
-            <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-pink-500/10 blur-xl rounded-full" />
-            <div className="w-14 h-14 rounded-2xl bg-pink-500/10 border-2 border-pink-400 flex items-center justify-center text-pink-400 shadow-[0_0_15px_rgba(236,72,153,0.25)] shrink-0 group-hover:scale-105 transition-all">
-              <Scan size={24} className="drop-shadow-[0_0_8px_rgba(236,72,153,0.6)]" />
-            </div>
-            <div className="space-y-1 mt-4">
-              <h4 className={cn(
-                "text-sm font-black font-display leading-tight group-hover:text-pink-300 transition-colors",
-                isDarkMode ? "text-white" : "text-slate-900"
-              )}>
-                Grading Lab (OCR)
-              </h4>
-              <p className={cn(
-                "text-[10px] leading-snug font-medium",
-                isDarkMode ? "text-slate-400" : "text-slate-600"
-              )}>
-                Scan physical assessment worksheets with instant smart grading.
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Orbital Broadcast */}
-          <motion.div 
-            whileHover={{ y: -6, scale: 1.02 }}
+          />
+          <TeacherShortcutCard
+            slides={BROADCAST_SLIDES}
+            glowClass="glow-purple"
+            icon={<Bell size={24} className="text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]" />}
+            title="Orbital Broadcast"
+            desc="Send live CAPS announcements directly to student dashboard models."
             onClick={() => setIsBroadcastModalOpen(true)}
-            className={cn(
-              "p-6 rounded-[32px] border-2 animate-border-flash-purple shadow-[0_0_20px_rgba(168,85,247,0.1)] flex flex-col justify-between h-44 cursor-pointer transition-all duration-300 group relative overflow-hidden",
-              isDarkMode ? "bg-slate-900/95 backdrop-blur-md" : "bg-slate-900/95 backdrop-blur-md"
-            )}
-          >
-            <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-purple-500/10 blur-xl rounded-full" />
-            <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border-2 border-purple-400 flex items-center justify-center text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.25)] shrink-0 group-hover:scale-105 transition-all">
-              <Bell size={24} className="drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
-            </div>
-            <div className="space-y-1 mt-4">
-              <h4 className={cn(
-                "text-sm font-black font-display leading-tight group-hover:text-purple-300 transition-colors",
-                isDarkMode ? "text-white" : "text-slate-900"
-              )}>
-                Orbital Broadcast
-              </h4>
-              <p className={cn(
-                "text-[10px] leading-snug font-medium",
-                isDarkMode ? "text-slate-400" : "text-slate-600"
-              )}>
-                Send live CAPS announcements directly to student dashboard models.
-              </p>
-            </div>
-          </motion.div>
-
+          />
         </div>
       </motion.div>
 
@@ -1105,7 +1110,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
 
         {/* Submissions Table Card - Stretched to fill full width & page */}
         <div className={cn(
-          "rounded-[32px] border-2 animate-border-flash-cyan backdrop-blur-md overflow-hidden shadow-2xl w-full min-w-full flex-1 min-h-[420px] flex flex-col justify-between",
+          "menu-glow-card glow-cyan rounded-[32px] backdrop-blur-md overflow-hidden shadow-2xl w-full min-w-full flex-1 min-h-[420px] flex flex-col justify-between",
           isDarkMode ? "bg-slate-900/95" : "bg-slate-900/95"
         )}>
           <div className="overflow-x-auto w-full flex-1">
@@ -1211,7 +1216,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
 
         {/* Wide Constellation Panel */}
         <div className={cn(
-          "relative w-full rounded-[40px] border-2 animate-border-flash-cyan backdrop-blur-md overflow-hidden shadow-2xl",
+          "menu-glow-card glow-cyan relative w-full rounded-[40px] backdrop-blur-md overflow-hidden shadow-2xl",
           isDarkMode ? "bg-slate-900/95" : "bg-slate-900/95"
         )}>
           

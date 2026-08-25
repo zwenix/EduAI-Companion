@@ -87,7 +87,7 @@ const CATEGORY_ACCENT: Record<HowToCategory, string> = {
   settings: 'from-slate-300 to-cyan-400',
 };
 
-// Animated showcase card — mirrors Teacher's Toolbox InteractiveShowcaseCard
+// Animated showcase card — stacked opacity, steady glow (no flashing), Android-safe
 function HelpdeskShowcaseCard({
   slides,
   borderColorClass,
@@ -111,11 +111,23 @@ function HelpdeskShowcaseCard({
 
   useEffect(() => {
     if (slides.length <= 1) return;
-    const t = setInterval(() => setSlideIndex((p) => (p + 1) % slides.length), 4500);
+    const t = setInterval(() => setSlideIndex((p) => (p + 1) % slides.length), 4200);
     return () => clearInterval(t);
   }, [slides.length]);
 
-  const currentSlide = slides[slideIndex];
+  const glowClass = borderColorClass.includes('pink')
+    ? 'glow-pink'
+    : borderColorClass.includes('cyan')
+    ? 'glow-cyan'
+    : borderColorClass.includes('emerald')
+    ? 'glow-emerald'
+    : borderColorClass.includes('amber')
+    ? 'glow-amber'
+    : borderColorClass.includes('orange')
+    ? 'glow-orange'
+    : borderColorClass.includes('violet') || borderColorClass.includes('purple')
+    ? 'glow-violet'
+    : 'glow-cyan';
 
   return (
     <motion.div
@@ -123,31 +135,27 @@ function HelpdeskShowcaseCard({
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       onClick={onClick}
-      className={`rounded-[32px] border-2 bg-slate-900/90 p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:brightness-110 transition-all duration-300 cursor-pointer relative overflow-hidden h-full min-h-[340px] select-none ${borderColorClass} ${shadowColorClass} ${hoverBorderColorClass} ${hoverShadowColorClass}`}
+      className={`menu-glow-card rounded-[32px] p-6 md:p-8 text-center flex flex-col items-center justify-between group hover:brightness-110 transition-all duration-300 cursor-pointer h-full min-h-[340px] select-none ${glowClass}`}
+      style={{ transform: 'translateZ(0)' }}
     >
-      <AnimatePresence initial={false}>
-        <motion.div
-          key={slideIndex}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.9, ease: 'easeInOut' }}
-          className="absolute inset-0 z-0 overflow-hidden"
-        >
+      <div className="showcase-bg">
+        {slides.map((s, i) => (
           <img
-            src={currentSlide.image}
-            alt={currentSlide.title}
+            key={s.image + i}
+            src={s.image}
+            alt={s.title}
             loading="eager"
-            decoding="sync"
-            className="w-full h-full object-cover opacity-[0.46] group-hover:opacity-[0.56] filter brightness-[0.98] transition-opacity duration-700"
+            decoding="async"
+            className="showcase-slideshow-img"
+            style={{ opacity: i === slideIndex ? 0.46 : 0 }}
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-slate-900/55 pointer-events-none z-0" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/35 to-transparent pointer-events-none z-0" />
-        </motion.div>
-      </AnimatePresence>
+        ))}
+        <div className="absolute inset-0 bg-slate-900/55 pointer-events-none z-0" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/35 to-transparent pointer-events-none z-0" />
+      </div>
 
-      <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
+      <div className="showcase-content w-full h-full flex flex-col items-center justify-center">
         {children}
       </div>
     </motion.div>
@@ -311,7 +319,7 @@ export default function Helpdesk({ initialPane = 'howtos', onNavigate }: Helpdes
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoReady, setVideoReady] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
 
   useEffect(() => {
     setActiveTab(initialPane);
@@ -387,19 +395,22 @@ export default function Helpdesk({ initialPane = 'howtos', onNavigate }: Helpdes
     const video = videoRef.current;
     if (!video) return;
     if (video.paused || video.ended) {
-      // Try audible playback first (the clips now ship with an audio track).
-      // If the browser blocks it (autoplay policy), fall back to muted once.
-      const wasMuted = video.muted;
+      // Always start muted to satisfy Android/WebView autoplay policy, then
+      // let user unmute via the speaker button. This guarantees video is visible.
       video.muted = isMuted;
-      video.play().catch(() => {
+      video.play().then(() => {
+        setVideoError(null);
+        setVideoReady(true);
+      }).catch(() => {
+        // Fallback: force muted play if audible was blocked
         video.muted = true;
         setIsMuted(true);
-        video.play().catch(() => {
-          setVideoError('Tap the clip to play it.');
+        video.play().then(() => {
+          setVideoError(null);
+        }).catch(() => {
+          setVideoError('Tap the clip to play it. If video stays blank, check network.');
         });
       });
-      // If the first attempt actually started, sync our muted state back
-      if (!video.paused && wasMuted !== isMuted) video.muted = isMuted;
     } else {
       video.pause();
     }
@@ -794,10 +805,12 @@ export default function Helpdesk({ initialPane = 'howtos', onNavigate }: Helpdes
                         ref={videoRef}
                         src={openGuide.video}
                         poster={openGuide.image}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover block"
                         playsInline
                         loop
-                        preload="metadata"
+                        preload="auto"
+                        muted={isMuted}
+                        crossOrigin="anonymous"
                         onLoadedMetadata={(e) => {
                           setVideoDuration(e.currentTarget.duration || 0);
                           setVideoReady(true);

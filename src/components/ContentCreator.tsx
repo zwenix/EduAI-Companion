@@ -1527,7 +1527,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
                 className={cn(
-                  "rounded-3xl border-2 p-6 backdrop-blur-xl animate-border-flash-cyan",
+                  "rounded-3xl border-2 p-6 backdrop-blur-xl menu-glow-card glow-cyan",
                   isDarkMode
                     ? "bg-[#0a1226]/95 border-cyan-500/30 shadow-2xl shadow-black/50"
                     : "bg-[#0b142c] text-white border-cyan-500/30 shadow-2xl"
@@ -2175,7 +2175,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
                 className={cn(
-                  "rounded-3xl border-2 p-6 backdrop-blur-xl flex flex-col justify-between animate-border-flash-purple",
+                  "rounded-3xl border-2 p-6 backdrop-blur-xl flex flex-col justify-between menu-glow-card glow-purple",
                   isDarkMode
                     ? "bg-[#0a1226]/95 border-purple-500/30 shadow-2xl shadow-black/50"
                     : "bg-[#0b142c] text-white border-purple-500/30 shadow-2xl"

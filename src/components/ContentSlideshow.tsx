@@ -122,36 +122,34 @@ export default function ContentSlideshow({ slides = TOOLBOX_SLIDES, tall = false
     <div className={`w-full h-full rounded-[32px] overflow-hidden relative shadow-2xl border border-cyan-500/30 bg-slate-950 flex flex-col justify-between group select-none ${
       tall ? 'min-h-[380px] max-h-[460px]' : 'min-h-[300px] max-h-[380px]'
     }`}>
-      {/* Slide Image & Backdrop — steady crossfade, no blank gap (fixes flash between slides) */}
-      <AnimatePresence initial={false}>
-        <motion.div
-          key={index}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.85, ease: 'easeInOut' }}
-          className="absolute inset-0 z-0 overflow-hidden"
-        >
-          {currentSlide.image ? (
+      {/* Slide Image & Backdrop — stacked opacity crossfade, never blank, Android-safe (no AnimatePresence exit flash) */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        {slides.map((s, i) => (
+          s.image ? (
             <img
-              src={currentSlide.image}
-              alt={currentSlide.title}
+              key={(s.image||'')+i}
+              src={s.image}
+              alt={s.title}
               loading="eager"
-              decoding="sync"
-              className="w-full h-full object-cover opacity-[0.52] filter brightness-[0.96] group-hover:opacity-[0.58] transition-opacity duration-700"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1100ms] will-change-[opacity]"
+              style={{ opacity: i === index ? 0.52 : 0, transform: 'translateZ(0)', transitionProperty: 'opacity' }}
               referrerPolicy="no-referrer"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center opacity-80">
-              {Icon && <Icon size={120} className="text-white/5" strokeWidth={1} />}
+            <div
+              key={'noimg-'+i}
+              className="absolute inset-0 w-full h-full bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center transition-opacity duration-[1100ms]"
+              style={{ opacity: i === index ? 0.8 : 0 }}
+            >
+              {(s as any).icon && (() => { const Ico=(s as any).icon; return <Ico size={120} className="text-white/5" strokeWidth={1} />; })()}
             </div>
-          )}
-
-          {/* Gradient Overlays for optimal readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-transparent to-slate-950/80" />
-        </motion.div>
-      </AnimatePresence>
+          )
+        ))}
+        {/* Gradient Overlays for optimal readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-transparent to-slate-950/80 pointer-events-none" />
+      </div>
 
       {/* Top Header Controls Bar */}
       <div className="relative z-10 p-5 flex items-center justify-between">
