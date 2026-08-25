@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 export type AIProvider = 'gemini' | 'nvidia-nemotron' | 'nvidia-nemotron-ultra';
 export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
 export type OCRProvider = 'gemini' | 'ocrspace';
-export type ImageProvider = 'gemini-imagen' | 'perchance' | 'pollinations';
+export type ImageProvider = 'gemini-imagen' | 'perchance' | 'pollinations' | 'qwen' | 'qwen-image';
 
 interface AiContextType {
   provider: AIProvider;
@@ -21,7 +21,7 @@ const AiContext = createContext<AiContextType | undefined>(undefined);
 const VALID_PROVIDERS: AIProvider[] = ['gemini', 'nvidia-nemotron', 'nvidia-nemotron-ultra'];
 const VALID_TTS: TTSProvider[] = ['browser', 'groq-whisper', 'huggingface', 'google-tts'];
 const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace'];
-const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'perchance', 'pollinations'];
+const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'perchance', 'pollinations', 'qwen', 'qwen-image'];
 
 export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {

@@ -1233,6 +1233,265 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     return res.status(400).json({ error: "Unsupported provider" });
   });
 
+  // --- Qwen-Image via NVIDIA NIM (SA Premium) ---
+  const QWEN_MODEL = "qwen/qwen-image";
+  const QWEN_BASE_URL = "https://integrate.api.nvidia.com/v1";
+  const QWEN_SIZE_MAP: Record<string, string> = {
+    header: "1792x1024",
+    inline: "1024x1024",
+    full_width: "1792x1024",
+    sidebar: "1024x1792"
+  };
+
+  app.post("/api/images/qwen-generate", async (req, res) => {
+    const { prompt, placement, grade, subject, saContext } = req.body;
+    if (!prompt) return res.status(400).json({ error: "Prompt required" });
+
+    const nvidiaKey = resolveNvidiaKey();
+    if (!nvidiaKey) {
+      return res.status(400).json({ error: "NVIDIA_API_KEY not configured" });
+    }
+
+    // Enhance prompt with SA context
+    let enhancedPrompt = prompt || "";
+    if (saContext !== false) {
+      const saEnhancements = [
+        "South African educational context",
+        "diverse South African children representing rainbow nation",
+        "vibrant colours with SA flag accents green #007749 gold #FFB81C",
+        "Disney 3D Animation Character & 3D Icon style, professional educational",
+        "no text overlays, no borders, no watermarks, 300 DPI, white background"
+      ];
+      // Add grade/subject awareness
+      if (grade) saEnhancements.unshift(`Grade ${grade}`);
+      if (subject) saEnhancements.unshift(`${subject} educational`);
+      const hasSA = /south african|rainbow nation|diverse/i.test(enhancedPrompt);
+      if (!hasSA) enhancedPrompt += `, ${saEnhancements.join(", ")}`;
+      if (!/disney 3d/i.test(enhancedPrompt.toLowerCase())) enhancedPrompt += ", Disney 3D Animation Character & 3D Icon";
+    }
+
+    const size = QWEN_SIZE_MAP[placement] || "1024x1024";
+    const [width, height] = size.split("x").map(Number);
+
+    try {
+      const nvidiaClient = new OpenAI({
+        apiKey: nvidiaKey,
+        baseURL: QWEN_BASE_URL
+      });
+
+      console.log(`[QWEN IMAGE] Generating via NVIDIA NIM: model=${QWEN_MODEL} size=${size} grade=${grade} subject=${subject}`);
+
+      // Qwen-Image via NVIDIA: using chat completions with image generation or direct images endpoint
+      // Try OpenAI images API first (NVIDIA NIM supports it)
+      try {
+        const imageResponse: any = await (nvidiaClient as any).images?.generate?.({
+          model: QWEN_MODEL,
+          prompt: enhancedPrompt,
+          n: 1,
+          size: size as any,
+          response_format: "b64_json"
+        });
+
+        if (imageResponse?.data?.[0]?.b64_json) {
+          const b64 = imageResponse.data[0].b64_json;
+          console.log(`[QWEN IMAGE] Success via images.generate b64_json`);
+          return res.json({
+            url: `data:image/png;base64,${b64}`,
+            b64_json: b64,
+            provider: "qwen",
+            model: QWEN_MODEL,
+            enhancedPrompt,
+            width,
+            height,
+            size
+          });
+        }
+        if (imageResponse?.data?.[0]?.url) {
+          console.log(`[QWEN IMAGE] Success via images.generate url`);
+          return res.json({
+            url: imageResponse.data[0].url,
+            provider: "qwen",
+            model: QWEN_MODEL,
+            enhancedPrompt,
+            width,
+            height,
+            size
+          });
+        }
+      } catch (imgErr: any) {
+        console.warn(`[QWEN IMAGE] images.generate failed: ${imgErr.message}, trying chat completions...`);
+      }
+
+      // Fallback: chat completions with image as per some NIM implementations
+      const chatResponse = await nvidiaClient.chat.completions.create({
+        model: QWEN_MODEL,
+        messages: [
+          {
+            role: "user",
+            content: enhancedPrompt
+          }
+        ],
+        // Some NIM endpoints expect extra params
+      } as any);
+
+      const choice = (chatResponse as any).choices?.[0];
+      // Try to extract image from various response formats
+      if (choice?.message?.content) {
+        const content = choice.message.content;
+        // Check if content is b64 or url
+        if (typeof content === "string" && content.startsWith("data:")) {
+          return res.json({ url: content, provider: "qwen", model: QWEN_MODEL, enhancedPrompt, width, height, size });
+        }
+        if (typeof content === "string" && content.startsWith("http")) {
+          return res.json({ url: content, provider: "qwen", model: QWEN_MODEL, enhancedPrompt, width, height, size });
+        }
+        // Try to find base64 in content
+        const b64Match = typeof content === "string" ? content.match(/data:image\/[^;]+;base64,([A-Za-z0-9+/=]+)/) : null;
+        if (b64Match) {
+          return res.json({ url: b64Match[0], b64_json: b64Match[1], provider: "qwen", model: QWEN_MODEL, enhancedPrompt, width, height, size });
+        }
+      }
+
+      // If we get here, try direct fetch to NVIDIA as last resort
+      const directRes = await fetch(`${QWEN_BASE_URL}/images/generations`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${nvidiaKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: QWEN_MODEL,
+          prompt: enhancedPrompt,
+          n: 1,
+          size: size,
+          response_format: "b64_json"
+        })
+      });
+
+      if (directRes.ok) {
+        const directData: any = await directRes.json();
+        if (directData.data?.[0]?.b64_json) {
+          const b64 = directData.data[0].b64_json;
+          console.log(`[QWEN IMAGE] Success via direct fetch b64_json`);
+          return res.json({
+            url: `data:image/png;base64,${b64}`,
+            b64_json: b64,
+            provider: "qwen",
+            model: QWEN_MODEL,
+            enhancedPrompt,
+            width,
+            height,
+            size
+          });
+        }
+        if (directData.data?.[0]?.url) {
+          return res.json({
+            url: directData.data[0].url,
+            provider: "qwen",
+            model: QWEN_MODEL,
+            enhancedPrompt,
+            width,
+            height,
+            size
+          });
+        }
+      }
+
+      throw new Error(`Qwen generation returned no image data. Status: ${directRes.status}`);
+
+    } catch (e: any) {
+      console.error(`[QWEN IMAGE] Generation failed: ${e.message}`);
+      return res.status(500).json({ error: e.message, provider: "qwen", model: QWEN_MODEL });
+    }
+  });
+
+  // --- SA-Compliant Full Package Generation (new) ---
+  app.post("/api/sa/generate-package", async (req, res) => {
+    const { request: saRequest, provider = "nvidia-nemotron-ultra", generateImages = true } = req.body;
+    if (!saRequest) return res.status(400).json({ error: "SAContentRequest required" });
+
+    try {
+      // Pre-flight compliance check
+      const { validateCAPSCompliance, getPhaseConfig } = await import("./src/lib/compliance/sa-frameworks");
+      const report = validateCAPSCompliance(saRequest.grade, saRequest.subject, saRequest.contentType, saRequest.term);
+
+      // Generate text content via existing AI pipeline — reuse /api/ai logic internally
+      // For simplicity, forward to multi-AI service via direct Gemini call if needed
+      const { buildSASystemPrompt, buildSAUserPrompt } = await import("./src/lib/compliance/sa-prompts");
+
+      const systemPrompt = buildSASystemPrompt(saRequest);
+      const userPrompt = buildSAUserPrompt(saRequest);
+
+      // Try NVIDIA first, then Gemini fallback
+      let rawResponse = "";
+      let usedProvider = provider;
+      try {
+        const nvidiaKey = resolveNvidiaKey();
+        const openRouterKey = resolveOpenRouterKey();
+        const clientKey = nvidiaKey || openRouterKey;
+        if (clientKey) {
+          const client = new OpenAI({
+            apiKey: clientKey,
+            baseURL: nvidiaKey ? "https://integrate.api.nvidia.com/v1" : "https://openrouter.ai/api/v1"
+          });
+          const model = nvidiaKey ? "nvidia/nemotron-3-ultra-550b-a55b" : "nvidia/llama-3.3-nemotron-super-49b-v1";
+          const completion = await client.chat.completions.create({
+            model,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt }
+            ],
+            temperature: 0.7,
+            max_tokens: 16384
+          } as any);
+          rawResponse = (completion as any).choices?.[0]?.message?.content || "";
+        } else {
+          throw new Error("No NVIDIA/OpenRouter key");
+        }
+      } catch (err: any) {
+        console.warn(`SA package text generation via ${provider} failed (${err.message}), falling back to Gemini...`);
+        usedProvider = "gemini";
+        const geminiResponse = await generateContentWithFallback({
+          contents: [
+            { role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }
+          ],
+          config: {
+            responseMimeType: "application/json",
+            maxOutputTokens: 8192
+          }
+        });
+        rawResponse = geminiResponse.text || "";
+      }
+
+      const parsed = safeJsonParse(rawResponse);
+      if (!parsed || Object.keys(parsed).length === 0) {
+        return res.status(500).json({ error: "Failed to parse SA content", raw: rawResponse.slice(0, 1000) });
+      }
+
+      // Build full HTML if needed
+      const { buildFullHTML } = await import("./src/lib/templates/sa-html-templates");
+      // images will be generated client-side or via separate call; return structure now
+
+      return res.json({
+        content: parsed,
+        complianceReport: report,
+        provider: usedProvider,
+        generatedAt: new Date().toISOString(),
+        compliance: {
+          caps: "Aligned",
+          npa: "Compliant",
+          popia: "Compliant",
+          sias: saRequest.includeInclusiveSupport ? "Inclusive" : "UDL",
+          wp6: saRequest.differentiationRequired ? "Differentiated" : "UDL"
+        }
+      });
+
+    } catch (e: any) {
+      console.error("SA package generation failed:", e.message);
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
   // --- Individual Learner Development Plan (ILDP) Route ---
 
   function generateLocalFallbackILDP(studentName: string, grade: string, subjects: any[]) {

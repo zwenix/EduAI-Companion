@@ -120,8 +120,22 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
     duration: input.duration || '2 hours',
     capsReference: input.capsReference || '',
     includeWorksheet: !!input.includeWorksheet,
-    isGroq: provider.startsWith('groq')
-  });
+    isGroq: provider.startsWith('groq'),
+    // SA Compliance extensions — NEW
+    assessmentType: input.assessmentType || input.type || 'worksheet',
+    isFormal: !!input.isFormal,
+    includeInclusiveSupport: !!input.inclusiveEd || !!input.includeInclusiveSupport,
+    siasSupportLevel: input.siasSupportLevel || 'level_1',
+    differentiationRequired: !!input.differentiation || !!input.differentiationRequired,
+    barrierCategories: input.barrierCategories || [],
+    homeLanguage: input.homeLanguage,
+    lolt: input.lolt || input.language || 'English',
+    questionCount: input.questionCount,
+    containsLearnerData: !!input.containsLearnerData,
+    totalMarks: input.totalMarks,
+    studentName: input.studentName,
+    teacherName: input.teacherName
+  } as any);
 
   const messages = [
     { role: 'system', content: system },
