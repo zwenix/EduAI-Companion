@@ -69,10 +69,10 @@ for (const file of files) {
   // low-pass filtered so the bed stays unobtrusive. Volume is intentionally
   // quiet — it is an ambient cue, not a soundtrack.
   const filter = [
-    '[1:a]volume=0.030[a1]',
-    '[2:a]volume=0.022[a2]',
-    '[3:a]volume=0.018[a3]',
-    `[a1][a2][a3]amix=inputs=3:duration=first:dropout_transition=0,lowpass=f=1600,afade=t=in:st=0:d=1,afade=t=out:st=${fadeOut}:d=1[a]`,
+    '[1:a]volume=0.22[a1]',
+    '[2:a]volume=0.15[a2]',
+    '[3:a]volume=0.12[a3]',
+    `[a1][a2][a3]amix=inputs=3:duration=first:dropout_transition=0,lowpass=f=2200,volume=0.90,afade=t=in:st=0:d=0.8,afade=t=out:st=${fadeOut}:d=1[a]`,
   ].join(';');
 
   const args = [
@@ -86,7 +86,7 @@ for (const file of files) {
     '-map', '[a]',
     '-c:v', 'copy',
     '-c:a', 'aac',
-    '-b:a', '96k',
+    '-b:a', '128k',
     '-ac', '2',
     '-shortest',
     '-movflags', '+faststart',

@@ -775,7 +775,7 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
 
               {/* Glassmorphic Table list */}
               <div className={cn(
-                "bg-transparent backdrop-blur-xl rounded-[24px] shadow-2xl border-2 animate-border-flash-cyan overflow-hidden",
+                "bg-transparent backdrop-blur-xl rounded-[24px] shadow-2xl menu-glow-card glow-cyan overflow-hidden",
                 isDarkMode ? "bg-transparent" : "bg-transparent"
               )}>
                 {/* Desktop view */}
@@ -968,7 +968,7 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
             <div className="space-y-6 text-left">
               {/* Specific Class Header Capsule */}
               <div className={cn(
-                "relative rounded-[28px] p-6 border-2 animate-border-flash-cyan backdrop-blur-xl shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6",
+                "relative rounded-[28px] p-6 menu-glow-card glow-cyan backdrop-blur-xl shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6",
                 isDarkMode ? "bg-transparent" : "bg-transparent"
               )}>
                 <div className="absolute -left-10 -bottom-10 w-40 h-40 rounded-full bg-transparent blur-3xl pointer-events-none" />
@@ -1011,7 +1011,7 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
               <div className="space-y-4">
                 <h4 className="text-lg font-black tracking-tight text-white">Enrolled Class List</h4>
                 <div className={cn(
-                  "backdrop-blur-xl rounded-[24px] border-2 animate-border-flash-cyan overflow-hidden shadow-2xl",
+                  "backdrop-blur-xl rounded-[24px] menu-glow-card glow-cyan overflow-hidden shadow-2xl",
                   isDarkMode ? "bg-transparent" : "bg-transparent"
                 )}>
                   <div className="overflow-x-auto">

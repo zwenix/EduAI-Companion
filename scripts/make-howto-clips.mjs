@@ -101,6 +101,8 @@ function run(guide) {
 
   const n = steps.length;
   const segFrames = SECONDS_PER_STEP * FPS;
+  const total = n * SECONDS_PER_STEP;
+  const fadeOutStart = Math.max(0.5, total - 1);
 
   // Caption text files (avoids filter-graph escaping problems).
   const textFiles = [];
@@ -158,9 +160,10 @@ function run(guide) {
     );
   }
 
-  const total = n * SECONDS_PER_STEP;
   parts.push(`${inLabels.map((_, i) => `[seg${i}]`).join('')}concat=n=${n}:v=1:a=0[cat]`);
   parts.push(`[cat]fade=t=out:st=${total - 0.5}:d=0.5,format=yuv420p[v]`);
+  // Louder ambient C-major pad (was 0.03/0.022/0.018 — inaudible). Now 0.22/0.15/0.12 + 0.85 master for clearly audible cue.
+  parts.push(`[1:a]volume=0.22[a1];[2:a]volume=0.15[a2];[3:a]volume=0.12[a3];[a1][a2][a3]amix=inputs=3:duration=first:dropout_transition=0,lowpass=f=2200,volume=0.90,afade=t=in:st=0:d=0.8,afade=t=out:st=${fadeOutStart}:d=1[aout]`);
 
   const filter = parts.join(';');
 
@@ -169,11 +172,21 @@ function run(guide) {
     [
       '-y', '-v', 'error',
       '-i', imagePath,
+      '-f', 'lavfi', '-t', String(total), '-i', 'sine=frequency=261.63:sample_rate=44100',
+      '-f', 'lavfi', '-t', String(total), '-i', 'sine=frequency=329.63:sample_rate=44100',
+      '-f', 'lavfi', '-t', String(total), '-i', 'sine=frequency=392.00:sample_rate=44100',
       '-filter_complex', filter,
       '-map', '[v]',
+      '-map', '[aout]',
       '-c:v', 'libx264',
+      '-profile:v', 'high',
+      '-pix_fmt', 'yuv420p',
       '-preset', 'medium',
       '-crf', String(CRF),
+      '-c:a', 'aac',
+      '-b:a', '128k',
+      '-ac', '2',
+      '-shortest',
       '-movflags', '+faststart',
       outPath,
     ],
@@ -188,6 +201,7 @@ function run(guide) {
   const kb = Math.round(fs.statSync(outPath).size / 1024);
   console.log(`ok     ${id}  ${n} steps · ${total}s · ${kb} KB`);
 }
+
 
 console.log(`Rendering ${guides.length} clips → ${path.relative(ROOT, OUT_DIR)}/`);
 for (const guide of guides) run(guide);
