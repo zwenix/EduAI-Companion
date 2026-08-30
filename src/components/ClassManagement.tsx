@@ -2,13 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Users, Search, Plus, Edit2, Trash2, Mail, GraduationCap, X, 
   BookOpen, ChevronRight, Layers, PieChart, Sparkles, Check, MessageSquare, CloudUpload, ArrowLeft, Eye,
-  Trophy, Award, Zap, FileSpreadsheet
+  Trophy, Award, Zap, FileSpreadsheet, CalendarCheck
 } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
 import StudentPortfolio from './StudentPortfolio';
 import { LearnerInterventionHub } from './LearnerInterventionHub';
+import StudentRecordsPanel from './StudentRecordsPanel';
 
 import bgClassesRegister    from '../assets/images/classes_register_bg_1786952984.jpg';
 import bgClassesSeating     from '../assets/images/classes_seating_bg_1786952984.jpg';
@@ -1644,6 +1645,18 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* Attendance, Behaviour & Welfare records */}
+              <div className="mt-8 pt-6 border-t border-white/10">
+                <h4 className="text-sm font-black text-amber-400 uppercase tracking-widest flex items-center gap-2 mb-4">
+                  <CalendarCheck size={16} /> Attendance, Behaviour & Welfare
+                </h4>
+                <StudentRecordsPanel
+                  studentId={viewingProfileStudent.id}
+                  studentName={viewingProfileStudent.name}
+                  grade={viewingProfileStudent.grade}
+                />
               </div>
             </motion.div>
           </div>

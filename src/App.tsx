@@ -176,8 +176,8 @@ const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDark
         "flex items-center w-full gap-2 transition-all duration-200 relative cursor-pointer border-0 outline-none group py-1.5 px-2.5 rounded-xl mb-0.5 font-['Patrick_Hand',cursive]",
         collapsed ? "justify-center py-1.5 px-1 rounded-xl" : "py-1.5 px-2.5 rounded-xl",
         active 
-          ? "bg-cyan-500/15 text-cyan-300 font-bold border border-cyan-500/30 shadow-[0_0_10px_rgba(34,211,238,0.2)]"
-          : "text-slate-300 hover:text-white hover:bg-white/[0.06] border border-transparent"
+          ? "bg-cyan-500/20 text-cyan-200 font-bold border border-cyan-400/50 shadow-[0_0_18px_rgba(34,211,238,0.45),inset_0_0_10px_rgba(34,211,238,0.15)]"
+          : "text-slate-300 hover:text-white hover:bg-white/[0.06] hover:border-cyan-400/30 hover:shadow-[0_0_14px_rgba(34,211,238,0.25)] border border-transparent"
       )}
     >
       <Icon 

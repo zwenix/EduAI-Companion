@@ -260,6 +260,23 @@ service cloud.firestore {
       allow delete: if isSignedIn() && existing().teacherId == request.auth.uid;
     }
 
+    // Learner intervention / SIAS support profiles — created by teachers and
+    // surfaced to learners + parents across their dashboards.
+    match /learner_interventions/{interventionId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isSignedIn() && existing().teacherId == request.auth.uid;
+    }
+
+    // Attendance, behaviour/conduct and welfare records. Teachers create them;
+    // parents and learners read them for their own children.
+    match /student_records/{recordId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.teacherId == request.auth.uid;
+      allow update: if isSignedIn() && (request.resource.data.teacherId == request.auth.uid || existing().teacherId == request.auth.uid);
+      allow delete: if isSignedIn() && existing().teacherId == request.auth.uid;
+    }
+
     function isValidGeneratedVideo(data) {
       return data.prompt is string && data.prompt.size() <= 10000
         && data.videoUrl is string && data.videoUrl.size() <= 1048576

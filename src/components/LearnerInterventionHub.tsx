@@ -34,6 +34,8 @@ import {
 } from 'lucide-react';
 import { generateEducationalContent } from '../services/geminiService';
 import bgInterventionSupport from '../assets/images/intervention_support_bg_1786952984.jpg';
+import { db, auth } from '../lib/firebase';
+import { collection, query, where, onSnapshot, setDoc, doc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 
 const overlayTeachersToolbox = bgInterventionSupport;
 
@@ -163,13 +165,44 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
   const [exerciseHtml, setExerciseHtml] = useState<string>('');
   const [isGeneratingExercise, setIsGeneratingExercise] = useState<boolean>(false);
 
-  // Save profiles to localStorage whenever updated
+  // Persist intervention profiles so they appear on the teacher dashboard +
+  // can be surfaced to learners & parents. Loads on mount, saves on change.
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const q = query(collection(db, 'learner_interventions'), where('teacherId', '==', user.uid));
+    const unsub = onSnapshot(q, (snap) => {
+      if (snap.empty) return;
+      const remote = snap.docs.map(d => ({ id: d.id, ...d.data() })) as LearnerInterventionProfile[];
+      if (remote.length > 0) {
+        setSavedProfiles(remote);
+      }
+    }, (err) => console.warn('Intervention Firestore load fail:', err));
+    return () => unsub();
+  }, []);
+
+  // Save profiles to localStorage + Firestore whenever updated
   useEffect(() => {
     try {
       localStorage.setItem('eduai_learner_interventions', JSON.stringify(savedProfiles));
     } catch (e) {
       console.error('Failed to store interventions:', e);
     }
+    const user = auth.currentUser;
+    if (!user) return;
+    // Write each profile to Firestore (idempotent, additive — never deletes remote).
+    savedProfiles.forEach(async (p) => {
+      try {
+        await setDoc(doc(db, 'learner_interventions', p.id), {
+          ...p,
+          teacherId: user.uid,
+          updatedAt: serverTimestamp()
+        });
+      } catch (e) {
+        console.warn('Intervention Firestore save fail:', e);
+      }
+    });
   }, [savedProfiles]);
 
   // Preset Barrier Tags Options

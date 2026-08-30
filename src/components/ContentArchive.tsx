@@ -421,6 +421,7 @@ export default function ContentArchive() {
         assigneeType,
         assigneeId: assigneeTargetId,
         assigneeName,
+        targetStudentIds,
         createdAt: serverTimestamp()
       });
 
