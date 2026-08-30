@@ -3,7 +3,8 @@ import {
   Users, TrendingUp, Calendar, MessageSquare, AlertCircle, 
   Award, BookOpen, ChevronRight, GraduationCap, CheckCircle2, 
   ClipboardList, Trophy, Sparkles, Send, Check, Star, RefreshCw,
-  Lock, Unlock, Shield, Clock, Eye, EyeOff, Clipboard, Settings, HelpCircle, AlertTriangle, FileText, X
+  Lock, Unlock, Shield, Clock, Eye, EyeOff, Clipboard, Settings, HelpCircle, AlertTriangle, FileText, X,
+  HeartPulse, CalendarDays
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { collection, query, where, onSnapshot, doc, updateDoc, getDoc, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -24,6 +25,9 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
   const [childSubmissions, setChildSubmissions] = useState<any[]>([]);
   const [childAssignments, setChildAssignments] = useState<any[]>([]);
   const [publishedReports, setPublishedReports] = useState<any[]>([]);
+  const [selectedPublishedReport, setSelectedPublishedReport] = useState<any | null>(null);
+  const [learnerInterventions, setLearnerInterventions] = useState<any[]>([]);
+  const [studentRecords, setStudentRecords] = useState<any[]>([]);
   const [selectedSubmissionModal, setSelectedSubmissionModal] = useState<any | null>(null);
 
   const [reportCycle, setReportCycle] = useState<'weekly' | 'monthly' | 'term'>('weekly');
@@ -267,6 +271,7 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
     const unsubAssign = onSnapshot(qAssign, (snap) => {
       const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       const relevant = all.filter((a: any) => 
+        (Array.isArray(a.targetStudentIds) && a.targetStudentIds.includes(activeChild.id)) ||
         a.assigneeId === activeChild.id || 
         a.grade === activeChild.grade || 
         a.assigneeType === 'all'
@@ -279,10 +284,33 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
       setPublishedReports(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, (err) => console.warn("Child reports listener err:", err));
 
+    // Learner intervention / SIAS support plans surfaced to parents so they can
+    // stay in the loop on the child's support & solutions.
+    const qInt = query(collection(db, 'learner_interventions'));
+    const unsubInt = onSnapshot(qInt, (snap) => {
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Match by resolved studentId first, then by name/grade (robust fallback).
+      const mine = all.filter((i: any) =>
+        (i.studentId && i.studentId === activeChild.id) ||
+        (i.learnerName && i.learnerName === activeChild.name) ||
+        (i.grade && i.grade === activeChild.grade)
+      );
+      setLearnerInterventions(mine);
+    }, (err) => console.warn("Child interventions listener err:", err));
+
+    // Attendance, behaviour/conduct & welfare records logged by the teacher,
+    // surfaced so parents can see real attendance and behaviour history.
+    const qRec = query(collection(db, 'student_records'), where('studentId', '==', activeChild.id));
+    const unsubRec = onSnapshot(qRec, (snap) => {
+      setStudentRecords(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (err) => console.warn("Child records listener err:", err));
+
     return () => {
       unsubSub();
       unsubAssign();
       unsubRep();
+      unsubInt();
+      unsubRec();
     };
   }, [activeChild?.id, activeChild?.grade]);
 
@@ -909,6 +937,117 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
         </div>
       </div>
 
+      {/* Official Term Reports (published by the teacher from Progress Reports) */}
+      <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-6 sm:p-8 rounded-[36px] shadow-sm space-y-4`}>
+          <div className="flex items-center justify-between pb-2 border-b border-slate-200/5">
+            <h3 className={`text-lg font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+              <FileText className="text-brand-cyan" size={18} />
+              <span>Official Term Progress Reports</span>
+            </h3>
+            {publishedReports.length > 0 && (
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{publishedReports.length} published</span>
+            )}
+          </div>
+
+          {publishedReports.length === 0 ? (
+            <div className={`p-5 rounded-2xl text-center text-xs border border-dashed ${isDarkMode ? 'border-white/10 text-slate-400' : 'border-slate-300 text-slate-500'}`}>
+              No official published term reports yet. Your child's teacher publishes these from the Progress Reports dashboard — they'll appear here the moment they're released.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {publishedReports.map((rep) => (
+                <button
+                  key={rep.id}
+                  onClick={() => setSelectedPublishedReport(rep)}
+                  className={`p-5 rounded-3xl border text-left transition-all cursor-pointer hover:scale-[1.01] ${
+                    isDarkMode ? 'border-white/5 bg-white/[0.03] hover:border-brand-cyan/40' : 'border-slate-200 bg-slate-50 hover:border-brand-cyan/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400">{rep.term || 'Report'}</span>
+                    <Award size={16} className="text-brand-cyan" />
+                  </div>
+                  <p className={`font-bold text-sm ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                    {rep.studentName || activeChild.name}
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Published {rep.publishedAt ? new Date(rep.publishedAt.toDate ? rep.publishedAt.toDate() : rep.publishedAt).toLocaleDateString() : 'recently'}
+                  </p>
+                  {Array.isArray(rep.subjects) && rep.subjects.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-3">
+                      {rep.subjects.slice(0, 4).map((s: any, si: number) => (
+                        <span key={si} className={`text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                          s.mark >= 75 ? 'bg-emerald-500/10 text-emerald-400' : s.mark >= 50 ? 'bg-yellow-500/10 text-yellow-500' : 'bg-red-500/10 text-red-400'
+                        }`}>
+                          {s.mark}% {s.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-brand-cyan mt-3">
+                    <Eye size={11} /> View full report
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+      {/* Learner Support & Solutions (learner_interventions) */}
+      <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-6 sm:p-8 rounded-[36px] shadow-sm space-y-4`}>
+          <div className="flex items-center justify-between pb-2 border-b border-slate-200/5">
+            <h3 className={`text-lg font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+              <HeartPulse className="text-amber-400" size={18} />
+              <span>Learner Support & Solutions</span>
+            </h3>
+            {learnerInterventions.filter((i: any) => i.status !== 'Inactive' && i.status !== 'Completed').length > 0 && (
+              <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">
+                {learnerInterventions.filter((i: any) => i.status !== 'Inactive' && i.status !== 'Completed').length} active
+              </span>
+            )}
+          </div>
+
+          {learnerInterventions.filter((i: any) => i.status !== 'Inactive' && i.status !== 'Completed').length === 0 ? (
+            <div className={`p-5 rounded-2xl text-center text-xs border border-dashed ${isDarkMode ? 'border-white/10 text-slate-400' : 'border-slate-300 text-slate-500'}`}>
+              No extra support plan right now. If your child needs targeted help, their teacher builds an intervention profile for them — you'll see it here instantly.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {learnerInterventions.map((it: any, idx: number) => {
+                const active = it.status !== 'Inactive' && it.status !== 'Completed';
+                return (
+                  <div key={it.id || idx} className={`p-4 rounded-2xl border ${isDarkMode ? 'border-amber-500/20 bg-amber-500/5' : 'border-amber-200 bg-amber-50'}`}>
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-orange-500 text-white">
+                        {it.siasLevel || 'Support Level'}
+                      </span>
+                      <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
+                        active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-500/10 text-slate-400'
+                      }`}>
+                        {active ? 'Active' : it.status || 'Inactive'}
+                      </span>
+                      {it.subject && <span className="text-[10px] font-semibold text-slate-500">{it.subject}</span>}
+                    </div>
+                    <p className={`font-bold text-sm ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>🎯 {it.targetGoal || 'Support goal'}</p>
+                    {it.barrierDescription && (
+                      <p className={`text-[11px] mt-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{it.barrierDescription}</p>
+                    )}
+                    {Array.isArray(it.accommodations) && it.accommodations.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {it.accommodations.map((ac: string, ai: number) => (
+                          <span key={ai} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-amber-100 text-amber-700 border border-amber-200">
+                            {ac}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
@@ -1125,6 +1264,134 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
             </div>
           </div>
 
+          {/* Attendance & Learner Engagement */}
+          <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-6 sm:p-8 rounded-[36px] shadow-sm space-y-5`}>
+            <h3 className={`text-base font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+              <TrendingUp className="text-brand-green" size={18} />
+              <span>Attendance & Engagement</span>
+            </h3>
+
+            {(() => {
+              const totalMissions = childAssignments.length;
+              const doneMissions = childAssignments.filter(a => childSubmissions.some(s => s.assignmentId === a.id)).length;
+              const completionRate = totalMissions > 0 ? Math.round((doneMissions / totalMissions) * 100) : 0;
+              const streak = activeChild.streak || 0;
+              const lastActive = activeChild.lastActiveDate ? new Date(activeChild.lastActiveDate).toLocaleDateString() : 'Not recorded';
+
+              const attRecords = studentRecords.filter((r: any) => r.recordType === 'attendance');
+              const present = attRecords.filter((r: any) => r.status === 'Present').length;
+              const late = attRecords.filter((r: any) => r.status === 'Late').length;
+              const absent = attRecords.filter((r: any) => r.status === 'Absent').length;
+              const attRate = attRecords.length > 0 ? Math.round(((present + late) / attRecords.length) * 100) : null;
+
+              const behaviour = studentRecords.filter((r: any) => r.recordType === 'behaviour');
+              const positiveCount = behaviour.filter((r: any) => r.behaviourType === 'Positive').length;
+              const concernCount = behaviour.filter((r: any) => r.behaviourType === 'Concern').length;
+              const incidentCount = behaviour.filter((r: any) => r.behaviourType === 'Incident').length;
+              // Derived conduct: prefer logged behaviour, fall back to streak.
+              let conductLevel = incidentCount > 0 ? 'Attention Needed'
+                : concernCount > positiveCount ? 'Monitor'
+                : (positiveCount > 0 && behaviour.length > 0) ? 'Positive'
+                : streak >= 5 ? 'Excellent' : streak >= 2 ? 'Consistent' : 'Developing';
+              if (behaviour.length === 0 && incidentCount === 0 && concernCount === 0) {
+                conductLevel = streak >= 5 ? 'Excellent' : streak >= 2 ? 'Consistent' : 'Developing';
+              }
+              const conductColor = conductLevel === 'Attention Needed' ? 'text-rose-400 bg-rose-500/10 border-rose-500/30'
+                : conductLevel === 'Monitor' ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30'
+                : conductLevel === 'Positive' || conductLevel === 'Excellent' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+                : 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+
+              return (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className={`p-4 rounded-2xl border ${isDarkMode ? 'border-white/5 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
+                      <span className="text-[9px] font-black uppercase text-slate-500 tracking-wider block">Learning Streak</span>
+                      <span className="text-2xl font-black text-brand-cyan mt-1 block">{streak}<span className="text-sm font-bold text-slate-500"> days</span></span>
+                    </div>
+                    <div className={`p-4 rounded-2xl border ${isDarkMode ? 'border-white/5 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
+                      <span className="text-[9px] font-black uppercase text-slate-500 tracking-wider block">Attendance Rate</span>
+                      <span className="text-2xl font-black text-brand-green mt-1 block">
+                        {attRate === null ? '—' : `${attRate}%`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Attendance breakdown */}
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <div className={`p-3 rounded-2xl border text-center ${isDarkMode ? 'border-white/5 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
+                      <span className="text-lg font-black text-emerald-400 block">{present}</span>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Present</span>
+                    </div>
+                    <div className={`p-3 rounded-2xl border text-center ${isDarkMode ? 'border-white/5 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
+                      <span className="text-lg font-black text-yellow-400 block">{late}</span>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Late</span>
+                    </div>
+                    <div className={`p-3 rounded-2xl border text-center ${isDarkMode ? 'border-white/5 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
+                      <span className="text-lg font-black text-rose-400 block">{absent}</span>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Absent</span>
+                    </div>
+                  </div>
+
+                  {/* Behaviour / conduct summary */}
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <div className={`p-3 rounded-2xl border text-center ${isDarkMode ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-emerald-200 bg-emerald-50'}`}>
+                      <span className="text-lg font-black text-emerald-500 block">{positiveCount}</span>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-emerald-600">Positive</span>
+                    </div>
+                    <div className={`p-3 rounded-2xl border text-center ${isDarkMode ? 'border-yellow-500/20 bg-yellow-500/5' : 'border-yellow-200 bg-yellow-50'}`}>
+                      <span className="text-lg font-black text-yellow-500 block">{concernCount}</span>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-yellow-600">Concerns</span>
+                    </div>
+                    <div className={`p-3 rounded-2xl border text-center ${isDarkMode ? 'border-rose-500/20 bg-rose-500/5' : 'border-rose-200 bg-rose-50'}`}>
+                      <span className="text-lg font-black text-rose-500 block">{incidentCount}</span>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-rose-600">Incidents</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-wider text-slate-500">
+                      <span>Mission Completion</span>
+                      <span>{doneMissions}/{totalMissions || 0} done • {completionRate}%</span>
+                    </div>
+                    <div className="h-2.5 rounded-full overflow-hidden bg-slate-900 border border-white/5">
+                      <div className="h-full bg-gradient-to-r from-brand-cyan to-indigo-500 rounded-full transition-all" style={{ width: `${completionRate}%` }} />
+                    </div>
+                  </div>
+
+                  <div className={`flex items-center justify-between p-3.5 rounded-2xl border ${isDarkMode ? 'border-white/5 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
+                    <div>
+                      <span className="text-[9px] font-black uppercase text-slate-500 tracking-wider block">Conduct Status</span>
+                      <span className="text-xs font-black text-slate-300 mt-0.5 block">Live from teacher records</span>
+                    </div>
+                    <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${conductColor}`}>
+                      {conductLevel}
+                    </span>
+                  </div>
+
+                  {/* Recent behaviour / welfare feed */}
+                  {behaviour.length > 0 && (
+                    <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1 custom-scrollbar">
+                      {behaviour.slice(0, 6).map((b: any) => (
+                        <div key={b.id} className={`p-3 rounded-2xl border ${isDarkMode ? 'border-white/5 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
+                              b.behaviourType === 'Positive' ? 'bg-emerald-500/15 text-emerald-500' : b.behaviourType === 'Concern' ? 'bg-yellow-500/15 text-yellow-500' : 'bg-rose-500/15 text-rose-500'
+                            }`}>
+                              {b.behaviourType}
+                            </span>
+                            {b.severity && <span className="text-[9px] font-bold uppercase text-slate-500">{b.severity}</span>}
+                            {b.date && <span className="text-[9px] font-mono text-slate-500">{b.date}</span>}
+                          </div>
+                          <p className={`text-[11px] mt-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{b.behaviour}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+
           {/* Notifications / Teacher announcements */}
           <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-6 sm:p-8 rounded-[36px] shadow-sm space-y-6`}>
             <h3 className={`text-lg font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
@@ -1178,6 +1445,12 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
                       <div>
                         <span className={`block font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{ass.title}</span>
                         <span className="text-[10px] text-slate-500">{ass.subject || 'CAPS'} • Grade {ass.grade || activeChild.grade}</span>
+                        {ass.dueDate && (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-mono text-rose-400 mt-1">
+                            <CalendarDays size={10} />
+                            Due {ass.dueDate.toDate ? new Date(ass.dueDate.toDate()).toLocaleDateString() : new Date(ass.dueDate).toLocaleDateString()}
+                          </span>
+                        )}
                       </div>
                       {isSubmitted ? (
                         <button 
@@ -1276,6 +1549,107 @@ export default function ParentDashboard({ isDarkMode }: { isDarkMode: boolean })
               className="w-full py-3 rounded-2xl bg-brand-cyan text-slate-950 font-black text-xs uppercase tracking-wider hover:opacity-90 transition-opacity"
             >
               Close Assessment Evaluation
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Published Report Detail Modal */}
+      {selectedPublishedReport && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className={`w-full max-w-2xl rounded-[36px] p-6 sm:p-8 border shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto scrollbar-thin ${
+            isDarkMode ? 'bg-[#0B1122] border-white/10 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+            <div className="flex justify-between items-center pb-3 border-b border-slate-500/20">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-brand-cyan/10 text-brand-cyan rounded-2xl">
+                  <FileText size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">{selectedPublishedReport.term || 'Official Progress Report'}</h3>
+                  <p className="text-xs text-slate-400 font-mono">
+                    {selectedPublishedReport.studentName || activeChild.name} • Published {selectedPublishedReport.publishedAt ? new Date(selectedPublishedReport.publishedAt.toDate ? selectedPublishedReport.publishedAt.toDate() : selectedPublishedReport.publishedAt).toLocaleDateString() : 'recently'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedPublishedReport(null)}
+                className="p-1.5 rounded-xl hover:bg-transparent text-slate-400 hover:text-white transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Subjects & marks */}
+            {Array.isArray(selectedPublishedReport.subjects) && selectedPublishedReport.subjects.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">CAPS Subject Results</p>
+                {selectedPublishedReport.subjects.map((sub: any, si: number) => (
+                  <div key={si} className={`p-4 rounded-2xl border ${isDarkMode ? 'border-white/5 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{sub.name}</span>
+                      <span className={`text-sm font-black px-2.5 py-1 rounded-xl uppercase tracking-wider ${
+                        sub.mark >= 75 ? 'text-emerald-400 bg-emerald-500/10' : sub.mark >= 50 ? 'text-yellow-400 bg-yellow-500/10' : 'text-red-400 bg-red-500/10'
+                      }`}>
+                        {sub.mark}%
+                      </span>
+                    </div>
+                    {Array.isArray(sub.assessments) && sub.assessments.length > 0 && (
+                      <div className="mt-2 space-y-1.5 pt-2 border-t border-slate-200/5">
+                        {sub.assessments.map((a: any, aj: number) => (
+                          <div key={aj} className="flex justify-between text-[11px] text-slate-400">
+                            <span className="truncate max-w-[240px]">{a.title}</span>
+                            <span className={`font-mono font-bold ${a.score >= 70 ? 'text-emerald-400' : 'text-slate-400'}`}>{a.score}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className={`p-4 rounded-2xl text-xs text-center border border-dashed ${isDarkMode ? 'border-white/10 text-slate-400' : 'border-slate-300 text-slate-500'}`}>
+                No subject-level breakdown captured on this report yet.
+              </p>
+            )}
+
+            {/* IDP / teacher narrative from the report */}
+            {selectedPublishedReport.idp && (
+              <div className={`p-4 rounded-2xl space-y-2 ${isDarkMode ? 'bg-white/5' : 'bg-slate-50'}`}>
+                <p className="text-[10px] font-black uppercase tracking-wider text-indigo-400">Teacher's Learning Plan & Diagnostic</p>
+                {Array.isArray(selectedPublishedReport.idp.strengths) && selectedPublishedReport.idp.strengths.length > 0 && (
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Strengths</span>
+                    <p className={`text-[11px] ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{selectedPublishedReport.idp.strengths.join(', ')}</p>
+                  </div>
+                )}
+                {Array.isArray(selectedPublishedReport.idp.weaknesses) && selectedPublishedReport.idp.weaknesses.length > 0 && (
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Areas to Grow</span>
+                    <p className={`text-[11px] ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{selectedPublishedReport.idp.weaknesses.join(', ')}</p>
+                  </div>
+                )}
+                {Array.isArray(selectedPublishedReport.idp.recommendations) && selectedPublishedReport.idp.recommendations.length > 0 && (
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Recommended Next Steps</span>
+                    <p className={`text-[11px] ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{selectedPublishedReport.idp.recommendations.join(', ')}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {selectedPublishedReport.parentNote && (
+              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'border-amber-500/20 bg-amber-500/5' : 'border-amber-200 bg-amber-50'}`}>
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-500">Parent Motivation Note</span>
+                <p className={`text-[11px] mt-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{selectedPublishedReport.parentNote}</p>
+              </div>
+            )}
+
+            <button
+              onClick={() => setSelectedPublishedReport(null)}
+              className="w-full py-3 rounded-2xl bg-brand-cyan text-slate-950 font-black text-xs uppercase tracking-wider hover:opacity-90 transition-opacity"
+            >
+              Close Report
             </button>
           </div>
         </div>

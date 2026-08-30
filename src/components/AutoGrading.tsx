@@ -487,43 +487,49 @@ export default function AutoGrading() {
     const currentAssignment = dbAssignments.find(a => a.id === selectedAssignmentId);
     const assignmentTitle = currentAssignment?.title || 'AutoGraded Assessment';
 
-    try {
-      // 1. Save to auto_grading_reports in Firestore (creates ledger history)
-      const user = auth.currentUser;
-      if (user) {
-        const newReportRef = doc(collection(db, 'auto_grading_reports'));
-        await setDoc(newReportRef, {
-          teacherId: user.uid,
-          studentId: targetStudentId || null,
-          studentName: targetStudentName || 'Unassigned',
-          assignmentId: selectedAssignmentId || null,
-          assignmentTitle: assignmentTitle,
-          totalScore: data.totalScore || null,
-          feedback: editableFeedback || null,
-          marksPerQuestion: data.marksPerQuestion || null,
-          extractedText: data.extractedText || null,
-          createdAt: serverTimestamp()
-        });
+    // When a student submission is active, `handleProcess` (Autograde) already
+    // persisted the ledger report, notification, academic record and flipped the
+    // submission to `graded`. Skip that here to avoid duplicate ledger entries and
+    // double-counting the student's academic record; only write to the offline store.
+    if (!selectedSubmission) {
+      try {
+        // 1. Save to auto_grading_reports in Firestore (creates ledger history)
+        const user = auth.currentUser;
+        if (user) {
+          const newReportRef = doc(collection(db, 'auto_grading_reports'));
+          await setDoc(newReportRef, {
+            teacherId: user.uid,
+            studentId: targetStudentId || null,
+            studentName: targetStudentName || 'Unassigned',
+            assignmentId: selectedAssignmentId || null,
+            assignmentTitle: assignmentTitle,
+            totalScore: data.totalScore || null,
+            feedback: editableFeedback || null,
+            marksPerQuestion: data.marksPerQuestion || null,
+            extractedText: data.extractedText || null,
+            createdAt: serverTimestamp()
+          });
 
-        // 2. Notify the teacher about the successfully generated report
-        const notifRef = doc(collection(db, 'notifications'));
-        await setDoc(notifRef, {
-          userId: user.uid,
-          title: 'Grading Workflow Completed',
-          message: `The report for ${assignmentTitle} has been saved to your history ledger.`,
-          type: 'grading_complete',
-          createdAt: serverTimestamp(),
-          read: false
-        });
+          // 2. Notify the teacher about the successfully generated report
+          const notifRef = doc(collection(db, 'notifications'));
+          await setDoc(notifRef, {
+            userId: user.uid,
+            title: 'Grading Workflow Completed',
+            message: `The report for ${assignmentTitle} has been saved to your history ledger.`,
+            type: 'grading_complete',
+            createdAt: serverTimestamp(),
+            read: false
+          });
+        }
+
+        // 3. Save Academic Record for the student
+        if (targetStudentId && mode === 'grade' && data.totalScore) {
+          await saveAcademicRecord(targetStudentId, assignmentTitle, data.totalScore, editableFeedback);
+        }
+
+      } catch (err) {
+        console.warn("Could not save to Firestore ledger or generate ILP (handled):", err);
       }
-
-      // 3. Save Academic Record for the student
-      if (targetStudentId && mode === 'grade' && data.totalScore) {
-        await saveAcademicRecord(targetStudentId, assignmentTitle, data.totalScore, editableFeedback);
-      }
-
-    } catch (err) {
-      console.warn("Could not save to Firestore ledger or generate ILP (handled):", err);
     }
 
     // Save to offline db (local storage/indexedDB) for fast retrieval
@@ -747,8 +753,13 @@ export default function AutoGrading() {
       clearInterval(progressInterval);
       setGenerationProgress(100);
 
-      // Perform auto-detection of Student Name from extracted text or feedback commentary
+      // Perform auto-detection of Student Name from extracted text or feedback commentary.
+      // If a student submission is active, prefer its studentId so results are assigned
+      // to the correct learner (overrides OCR name guessing).
       let detectedStuId = selectedStudentId;
+      if (selectedSubmission && selectedSubmission.studentId) {
+        detectedStuId = selectedSubmission.studentId;
+      }
       const ocrSearchSpace = ((gradingResult.extractedText || '') + ' ' + (gradingResult.feedback || '')).toLowerCase();
       
       if (detectedStuId === 'unassigned') {
@@ -845,7 +856,23 @@ export default function AutoGrading() {
         console.warn("Could not dispatch alert notifications (handled):", notifErr);
       }
 
-      // 3. Dispatch gradebook changes back to matching student's active caps score sheet
+      // 3a. Overwrite the matching submission so it flips to `graded` and the
+      //     score is assigned to the correct student (photo/digital submissions).
+      if (selectedSubmission) {
+        try {
+          await updateDoc(doc(db, 'submissions', selectedSubmission.id), {
+            status: 'graded',
+            grade: gradingResult.totalScore,
+            feedback: gradingResult.feedback || '',
+            marksPerQuestion: gradingResult.marksPerQuestion || [],
+            answersText: gradingResult.extractedText || ''
+          });
+        } catch (subErr) {
+          console.warn("Could not overwrite submission status to graded (handled):", subErr);
+        }
+      }
+
+      // 3b. Dispatch gradebook changes back to matching student's active caps score sheet
       if (detectedStuId && detectedStuId !== 'unassigned') {
         await saveAcademicRecord(detectedStuId, assTitle, gradingResult.totalScore, gradingResult.feedback || '');
       }
@@ -1723,12 +1750,15 @@ export default function AutoGrading() {
                           key={sub.id}
                           onClick={() => {
                             setSelectedSubmission(sub);
-                            if (sub.uploadedImage) {
+                            // Accept BOTH legacy `uploadedImage` and the new
+                            // `imageDataUrl` field written by photo (OCR) submissions.
+                            const subImage = sub.uploadedImage || sub.imageDataUrl;
+                            if (subImage) {
                               setUploadedFiles([{
                                 id: `sub-img-${sub.id}`,
                                 name: `${sub.studentName} Submitted Page.jpeg`,
                                 type: 'image',
-                                dataUrl: sub.uploadedImage
+                                dataUrl: subImage
                               }]);
                               setActivePreviewIndex(0);
                             } else {
@@ -1752,7 +1782,11 @@ export default function AutoGrading() {
                           <div>
                             <p className="text-xs font-bold text-white">{sub.studentName}</p>
                             <p className="text-[10px] font-mono text-slate-400 mt-0.5">
-                              {sub.completedOnline ? 'Completed Online' : 'Uploaded Hand-written paper'}
+                              {sub.submissionMethod === 'photo'
+                                ? '📸 Hand-written photo — OCR ready'
+                                : sub.completedOnline
+                                  ? 'Completed Online'
+                                  : 'Uploaded Hand-written paper'}
                             </p>
                           </div>
                           

@@ -11,7 +11,13 @@ import {
   Trash2,
   Star,
   AlertCircle,
-  GraduationCap
+  GraduationCap,
+  Download,
+  Upload,
+  X,
+  FileText,
+  Camera,
+  Inbox
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../lib/firebase';
@@ -22,7 +28,9 @@ import {
   onSnapshot,
   updateDoc,
   deleteDoc,
-  doc
+  doc,
+  setDoc,
+  serverTimestamp
 } from 'firebase/firestore';
 import { StudentDoc, MilestoneTask } from '../types';
 import LoadingMascot from './LoadingMascot';
@@ -56,6 +64,11 @@ export default function StudentTasksNotifications({
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [myStudyGroupIds, setMyStudyGroupIds] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
+  const [submissionPhoto, setSubmissionPhoto] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState<string | null>(null);
 
   // ── Resolve the logged-in learner's student document ──
   useEffect(() => {
@@ -137,6 +150,7 @@ export default function StudentTasksNotifications({
   const myAssignments = useMemo(() => {
     if (!student) return [];
     return assignments.filter(item => {
+      if (Array.isArray(item.targetStudentIds) && item.targetStudentIds.includes(student.id)) return true;
       if (item.assigneeType === 'all' || item.assigneeId === 'all') return true;
       if (item.assigneeType === 'student' && item.assigneeId === student.id) return true;
       if (item.assigneeType === 'class' && (item.assigneeId === student.grade || item.grade === student.grade)) return true;
@@ -168,6 +182,95 @@ export default function StudentTasksNotifications({
   const removeNotification = async (id: string) => {
     try { await deleteDoc(doc(db, 'notifications', id)); } catch (e) { /* noop */ }
   };
+
+  // ── Assignment completion workflow ──
+  const openAssignment = (assignment: any) => {
+    setSelectedAssignment(assignment);
+    setSubmissionPhoto(null);
+    setSubmitMessage(null);
+    setShowCompletionModal(true);
+  };
+
+  const closeAssignment = () => {
+    setShowCompletionModal(false);
+    setSelectedAssignment(null);
+    setSubmissionPhoto(null);
+    setSubmitMessage(null);
+  };
+
+  const downloadAssignment = (assignment: any) => {
+    if (!assignment) return;
+    const blob = new Blob([assignment.content || ''], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(assignment.title || 'assignment').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const onPickPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setSubmissionPhoto(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  // Submits the learner's work. `method` = 'digital' (finished on app) or 'photo' (OCR).
+  const submitAssignment = async (method: 'digital' | 'photo') => {
+    if (!selectedAssignment || !student) return;
+    setSubmitting(true);
+    setSubmitMessage(null);
+    try {
+      const subRef = doc(collection(db, 'submissions'));
+      await setDoc(subRef, {
+        id: subRef.id,
+        assignmentId: selectedAssignment.id,
+        studentId: student.id,
+        studentName: student.name,
+        studentEmail: student.email || '',
+        studentGrade: student.grade || selectedAssignment.grade || '',
+        teacherId: selectedAssignment.teacherId || '',
+        teacherName: selectedAssignment.teacherName || 'Teacher',
+        title: selectedAssignment.title || 'Untitled Task',
+        subject: selectedAssignment.subject || 'General',
+        grade: selectedAssignment.grade || student.grade || 'All Grades',
+        contentType: selectedAssignment.contentType || 'task',
+        assignmentTitle: selectedAssignment.title || 'Untitled Task',
+        status: 'submitted',
+        submissionMethod: method,
+        ...(method === 'photo' && submissionPhoto ? { imageDataUrl: submissionPhoto } : {}),
+        submittedAt: serverTimestamp(),
+        createdAt: serverTimestamp()
+      });
+
+      // Mark the assignment's notification as read so the task chip clears.
+      const relatedNotif = notifications.find(n => n.assignmentId === selectedAssignment.id);
+      if (relatedNotif && !relatedNotif.read) {
+        try { await updateDoc(doc(db, 'notifications', relatedNotif.id), { read: true }); } catch (e) { /* noop */ }
+      }
+
+      setSubmitMessage(
+        method === 'digital'
+          ? '✅ Sent to your teacher for marking — great work!'
+          : '📸 Photo submitted — your teacher will auto-grade it with OCR.'
+      );
+      // Refresh local submissions list immediately for snappy UI.
+      setSubmissions(prev => prev.some(s => s.assignmentId === selectedAssignment.id)
+        ? prev
+        : [...prev, { id: subRef.id, assignmentId: selectedAssignment.id, studentId: student.id, status: 'submitted', submittedAt: new Date().toISOString() }]
+      );
+    } catch (err) {
+      console.error('Error submitting work', err);
+      setSubmitMessage('⚠️ Could not submit. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const hasSubmitted = (assignmentId: string) =>
+    submissions.some(s => s.assignmentId === assignmentId);
 
   if (loading) {
     return (
@@ -282,25 +385,34 @@ export default function StudentTasksNotifications({
                           </p>
                           <p className={cn('text-[11px] font-semibold uppercase tracking-wide mt-0.5', isDarkMode ? 'text-slate-400' : 'text-slate-500')}>
                             {assignment.subject || 'General'} • {assignment.grade || 'All Grades'} • from {assignment.teacherName || 'Teacher'}
+                            {assignment.dueDate ? ` • Due ${new Date(assignment.dueDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}` : ''}
                             {assignment.createdAt ? ` • ${formatWhen(assignment.createdAt)}` : ''}
                           </p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           {isDone ? (
-                            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-500 text-[11px] font-black uppercase tracking-wide">
-                              <Trophy size={13} />
-                              {submission?.totalScore != null ? `Graded • ${submission.totalScore}` : 'Submitted'}
-                            </span>
+                            <>
+                              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-500 text-[11px] font-black uppercase tracking-wide">
+                                <Trophy size={13} />
+                                {submission?.totalScore != null ? `Graded • ${submission.totalScore}` : 'Submitted'}
+                              </span>
+                              <button
+                                onClick={() => openAssignment(assignment)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-600/20 text-slate-500 text-[11px] font-black uppercase tracking-wide transition-all cursor-pointer hover:scale-105 hover:bg-indigo-600 hover:text-white"
+                              >
+                                View <ArrowRight size={13} />
+                              </button>
+                            </>
                           ) : (
                             <>
                               <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 text-amber-500 text-[11px] font-black uppercase tracking-wide">
                                 <Clock size={13} /> To Do
                               </span>
                               <button
-                                onClick={() => onNavigate && onNavigate('dashboard', 'teacher-dashboard-menu')}
+                                onClick={() => openAssignment(assignment)}
                                 className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black uppercase tracking-wide transition-all cursor-pointer hover:scale-105"
                               >
-                                Complete It <ArrowRight size={13} />
+                                Open & Complete <ArrowRight size={13} />
                               </button>
                             </>
                           )}
@@ -463,6 +575,132 @@ export default function StudentTasksNotifications({
                 )}
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Assignment completion / submission modal ── */}
+      <AnimatePresence>
+        {showCompletionModal && selectedAssignment && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6"
+            onClick={closeAssignment}
+          >
+            <motion.div
+              initial={{ scale: 0.94, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.94, y: 20 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+              className="kid-panel w-full max-w-3xl max-h-[92dvh] flex flex-col overflow-hidden"
+              style={{ ['--kid-1' as any]: '#6366F1', ['--kid-2' as any]: '#A855F7' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="kid-panel-head">
+                <div className="min-w-0">
+                  <span className="kid-chip mb-2 inline-flex" style={{ ['--kid-2' as any]: '#6366F1' }}>
+                    {selectedAssignment.subject || 'General'} • {selectedAssignment.grade || 'All Grades'}
+                  </span>
+                  <h3 className="kid-title text-xl sm:text-2xl font-hand truncate">
+                    {selectedAssignment.title || 'Untitled Task'}
+                  </h3>
+                  <p className="kid-sub text-[12px] mt-0.5 truncate">
+                    From {selectedAssignment.teacherName || 'Teacher'}
+                    {selectedAssignment.dueDate ? ` • Due ${new Date(selectedAssignment.dueDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+                  </p>
+                </div>
+                <button
+                  onClick={closeAssignment}
+                  className="shrink-0 w-10 h-10 rounded-xl bg-white/15 hover:bg-white/25 border border-white/40 flex items-center justify-center transition-all cursor-pointer"
+                  aria-label="Close"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="kid-panel-body flex-1 min-h-0 overflow-y-auto space-y-4">
+                {/* Read the task content on the app */}
+                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 overflow-x-auto">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1.5">
+                    <Inbox size={13} /> Read on the app
+                  </p>
+                  {selectedAssignment.content ? (
+                    <div
+                      className="prose prose-sm max-w-none text-slate-800 [&_h1]:text-slate-900 [&_h2]:text-slate-900 [&_h3]:text-slate-900 [&_table]:border-collapse [&_th]:border [&_th]:border-slate-300 [&_td]:border [&_td]:border-slate-300 [&_td]:p-2 [&_th]:p-2"
+                      dangerouslySetInnerHTML={{ __html: selectedAssignment.content }}
+                    />
+                  ) : (
+                    <div className="text-center py-6 text-slate-500">
+                      <FileText className="mx-auto mb-2" size={32} />
+                      <p className="text-sm font-bold">This task has no on-screen content.</p>
+                      <p className="text-xs mt-1">Download it below to complete it by hand, or submit a photo.</p>
+                    </div>
+                  )}
+                </div>
+
+                {submitMessage && (
+                  <div className="p-3 rounded-2xl border-2 border-emerald-300 bg-emerald-50 text-emerald-700 text-sm font-bold animate-in fade-in duration-300">
+                    {submitMessage}
+                  </div>
+                )}
+
+                {hasSubmitted(selectedAssignment.id) && (
+                  <div className="p-3 rounded-2xl border-2 border-indigo-300 bg-indigo-50 text-indigo-600 text-xs font-bold flex items-center gap-2">
+                    <CheckCircle2 size={16} /> You've already submitted this task. You may still download it to complete by hand.
+                  </div>
+                )}
+
+                {/* Photo upload for OCR auto-grading */}
+                <div className="rounded-2xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-2 flex items-center gap-1.5">
+                    <Camera size={13} /> Complete by hand & upload for OCR auto-grading
+                  </p>
+                  <label className="flex items-center justify-center gap-2 p-4 rounded-xl bg-white border border-indigo-200 text-indigo-600 font-black text-xs uppercase tracking-wide cursor-pointer hover:bg-indigo-100 transition-all text-center">
+                    <Upload size={16} />
+                    {submissionPhoto ? 'Change photo' : 'Upload a photo of your finished work'}
+                    <input type="file" accept="image/*" capture="environment" className="hidden" onChange={onPickPhoto} />
+                  </label>
+                  {submissionPhoto && (
+                    <div className="mt-3 flex items-start gap-3">
+                      <img src={submissionPhoto} alt="Submitted work" className="w-24 h-24 object-cover rounded-xl border-2 border-indigo-300" />
+                      <div className="text-xs text-slate-500 font-semibold">Photo ready — submit to have your teacher auto-grade it with OCR.</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="kid-panel-body border-t border-slate-200 pt-4 flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => downloadAssignment(selectedAssignment)}
+                  className="kid-btn grow"
+                  style={{ ['--kid-1' as any]: '#F59E0B', ['--kid-2' as any]: '#F97316' }}
+                >
+                  <Download size={15} /> Download & print
+                </button>
+                {!hasSubmitted(selectedAssignment.id) && (
+                  <>
+                    <button
+                      onClick={() => submitAssignment('photo')}
+                      disabled={!submissionPhoto || submitting}
+                      className="kid-btn grow"
+                      style={{ ['--kid-1' as any]: '#10B981', ['--kid-2' as any]: '#0EA5E9' }}
+                    >
+                      <Camera size={15} /> Upload & submit
+                    </button>
+                    <button
+                      onClick={() => submitAssignment('digital')}
+                      disabled={submitting}
+                      className="kid-btn grow bg-emerald-600 hover:bg-emerald-500 border-emerald-700/40"
+                      style={{ ['--kid-1' as any]: '#10B981', ['--kid-2' as any]: '#059669' }}
+                    >
+                      <CheckCircle2 size={15} /> I finished it on the app
+                    </button>
+                  </>
+                )}
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

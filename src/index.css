@@ -584,25 +584,56 @@ svg:not(.not-sketchy) {
   -webkit-backdrop-filter: blur(20px) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 24px !important;
+  /* Steady ambient glow so menu boxes read as "lit" even at rest (never flashes).
+     Deliberately NO !important so later .animate-neon-pulse-* / .hover-neon-* rules
+     can still override it with a stronger, coloured glow. */
+  box-shadow: 0 0 18px rgba(0, 210, 255, 0.10), 0 0 30px rgba(255, 0, 212, 0.06),
+    inset 0 0 12px rgba(255, 255, 255, 0.03);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .hover-neon-green:hover {
   border-color: #00FF9F !important;
-  box-shadow: 0 0 20px rgba(0, 255, 159, 0.45), inset 0 0 10px rgba(0, 255, 159, 0.2) !important;
+  box-shadow: 0 0 28px rgba(0, 255, 159, 0.65), inset 0 0 14px rgba(0, 255, 159, 0.3) !important;
   transform: translateY(-4px);
 }
 
 .hover-neon-cyan:hover {
   border-color: #00B3FF !important;
-  box-shadow: 0 0 20px rgba(0, 179, 255, 0.45), inset 0 0 10px rgba(0, 179, 255, 0.2) !important;
+  box-shadow: 0 0 28px rgba(0, 179, 255, 0.65), inset 0 0 14px rgba(0, 179, 255, 0.3) !important;
   transform: translateY(-4px);
 }
 
 .hover-neon-pink:hover {
   border-color: #FF00D4 !important;
-  box-shadow: 0 0 20px rgba(255, 0, 212, 0.45), inset 0 0 10px rgba(255, 0, 212, 0.2) !important;
+  box-shadow: 0 0 28px rgba(255, 0, 212, 0.65), inset 0 0 14px rgba(255, 0, 212, 0.3) !important;
   transform: translateY(-4px);
+}
+
+/* Selected / active / pressed menu boxes glow brighter than hover (steady, no flash) */
+.hover-neon-green:active,
+.hover-neon-green.is-selected,
+.hover-neon-green[data-selected='true'],
+.hover-neon-green[aria-selected='true'],
+.hover-neon-green[aria-expanded='true'] {
+  border-color: #00FF9F !important;
+  box-shadow: 0 0 44px rgba(0, 255, 159, 0.92), inset 0 0 22px rgba(0, 255, 159, 0.5) !important;
+}
+.hover-neon-cyan:active,
+.hover-neon-cyan.is-selected,
+.hover-neon-cyan[data-selected='true'],
+.hover-neon-cyan[aria-selected='true'],
+.hover-neon-cyan[aria-expanded='true'] {
+  border-color: #00B3FF !important;
+  box-shadow: 0 0 44px rgba(0, 179, 255, 0.92), inset 0 0 22px rgba(0, 179, 255, 0.5) !important;
+}
+.hover-neon-pink:active,
+.hover-neon-pink.is-selected,
+.hover-neon-pink[data-selected='true'],
+.hover-neon-pink[aria-selected='true'],
+.hover-neon-pink[aria-expanded='true'] {
+  border-color: #FF00D4 !important;
+  box-shadow: 0 0 44px rgba(255, 0, 212, 0.92), inset 0 0 22px rgba(255, 0, 212, 0.5) !important;
 }
 
 .primary-neon-btn-green {
@@ -914,25 +945,25 @@ svg:not(.not-sketchy) {
 }
 
 .glow-pink { border-color: rgba(236,72,153,0.68); box-shadow: 0 0 22px rgba(236,72,153,0.38), inset 0 0 12px rgba(236,72,153,0.20); }
-.glow-pink:hover, .glow-pink.is-selected, .glow-pink:focus-visible { border-color: rgba(236,72,153,0.98); box-shadow: 0 0 40px rgba(236,72,153,0.72), inset 0 0 18px rgba(236,72,153,0.36); }
+.glow-pink:hover, .glow-pink:active, .glow-pink[data-selected='true'], .glow-pink[aria-selected='true'], .glow-pink[aria-pressed='true'], .glow-pink[data-state='active'], .glow-pink.is-selected, .glow-pink:focus-visible { border-color: rgba(236,72,153,0.98); box-shadow: 0 0 40px rgba(236,72,153,0.72), inset 0 0 18px rgba(236,72,153,0.36); }
 
 .glow-cyan { border-color: rgba(6,182,212,0.68); box-shadow: 0 0 22px rgba(6,182,212,0.38), inset 0 0 12px rgba(6,182,212,0.20); }
-.glow-cyan:hover, .glow-cyan.is-selected, .glow-cyan:focus-visible { border-color: rgba(6,182,212,0.98); box-shadow: 0 0 40px rgba(6,182,212,0.72), inset 0 0 18px rgba(6,182,212,0.36); }
+.glow-cyan:hover, .glow-cyan:active, .glow-cyan[data-selected='true'], .glow-cyan[aria-selected='true'], .glow-cyan[aria-pressed='true'], .glow-cyan[data-state='active'], .glow-cyan.is-selected, .glow-cyan:focus-visible { border-color: rgba(6,182,212,0.98); box-shadow: 0 0 40px rgba(6,182,212,0.72), inset 0 0 18px rgba(6,182,212,0.36); }
 
 .glow-purple { border-color: rgba(168,85,247,0.68); box-shadow: 0 0 22px rgba(168,85,247,0.38), inset 0 0 12px rgba(168,85,247,0.20); }
-.glow-purple:hover, .glow-purple.is-selected, .glow-purple:focus-visible { border-color: rgba(168,85,247,0.98); box-shadow: 0 0 40px rgba(168,85,247,0.72), inset 0 0 18px rgba(168,85,247,0.36); }
+.glow-purple:hover, .glow-purple:active, .glow-purple[data-selected='true'], .glow-purple[aria-selected='true'], .glow-purple[aria-pressed='true'], .glow-purple[data-state='active'], .glow-purple.is-selected, .glow-purple:focus-visible { border-color: rgba(168,85,247,0.98); box-shadow: 0 0 40px rgba(168,85,247,0.72), inset 0 0 18px rgba(168,85,247,0.36); }
 
 .glow-emerald { border-color: rgba(16,185,129,0.68); box-shadow: 0 0 22px rgba(16,185,129,0.38), inset 0 0 12px rgba(16,185,129,0.20); }
-.glow-emerald:hover, .glow-emerald.is-selected, .glow-emerald:focus-visible { border-color: rgba(16,185,129,0.98); box-shadow: 0 0 40px rgba(16,185,129,0.72), inset 0 0 18px rgba(16,185,129,0.36); }
+.glow-emerald:hover, .glow-emerald:active, .glow-emerald[data-selected='true'], .glow-emerald[aria-selected='true'], .glow-emerald[aria-pressed='true'], .glow-emerald[data-state='active'], .glow-emerald.is-selected, .glow-emerald:focus-visible { border-color: rgba(16,185,129,0.98); box-shadow: 0 0 40px rgba(16,185,129,0.72), inset 0 0 18px rgba(16,185,129,0.36); }
 
 .glow-amber { border-color: rgba(245,158,11,0.68); box-shadow: 0 0 22px rgba(245,158,11,0.38), inset 0 0 12px rgba(245,158,11,0.20); }
-.glow-amber:hover, .glow-amber.is-selected, .glow-amber:focus-visible { border-color: rgba(245,158,11,0.98); box-shadow: 0 0 40px rgba(245,158,11,0.72), inset 0 0 18px rgba(245,158,11,0.36); }
+.glow-amber:hover, .glow-amber:active, .glow-amber[data-selected='true'], .glow-amber[aria-selected='true'], .glow-amber[aria-pressed='true'], .glow-amber[data-state='active'], .glow-amber.is-selected, .glow-amber:focus-visible { border-color: rgba(245,158,11,0.98); box-shadow: 0 0 40px rgba(245,158,11,0.72), inset 0 0 18px rgba(245,158,11,0.36); }
 
 .glow-orange { border-color: rgba(249,115,22,0.68); box-shadow: 0 0 22px rgba(249,115,22,0.38), inset 0 0 12px rgba(249,115,22,0.20); }
-.glow-orange:hover, .glow-orange.is-selected, .glow-orange:focus-visible { border-color: rgba(249,115,22,0.98); box-shadow: 0 0 40px rgba(249,115,22,0.72), inset 0 0 18px rgba(249,115,22,0.36); }
+.glow-orange:hover, .glow-orange:active, .glow-orange[data-selected='true'], .glow-orange[aria-selected='true'], .glow-orange[aria-pressed='true'], .glow-orange[data-state='active'], .glow-orange.is-selected, .glow-orange:focus-visible { border-color: rgba(249,115,22,0.98); box-shadow: 0 0 40px rgba(249,115,22,0.72), inset 0 0 18px rgba(249,115,22,0.36); }
 
 .glow-violet { border-color: rgba(139,92,246,0.68); box-shadow: 0 0 22px rgba(139,92,246,0.38), inset 0 0 12px rgba(139,92,246,0.20); }
-.glow-violet:hover, .glow-violet.is-selected, .glow-violet:focus-visible { border-color: rgba(139,92,246,0.98); box-shadow: 0 0 40px rgba(139,92,246,0.72), inset 0 0 18px rgba(139,92,246,0.36); }
+.glow-violet:hover, .glow-violet:active, .glow-violet[data-selected='true'], .glow-violet[aria-selected='true'], .glow-violet[aria-pressed='true'], .glow-violet[data-state='active'], .glow-violet.is-selected, .glow-violet:focus-visible { border-color: rgba(139,92,246,0.98); box-shadow: 0 0 40px rgba(139,92,246,0.72), inset 0 0 18px rgba(139,92,246,0.36); }
 
 /* Android / coarse pointer: reduce backdrop-blur intensity that triggers flicker,
    keep glow but make it cheaper to composite. */

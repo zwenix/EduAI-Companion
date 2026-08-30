@@ -438,6 +438,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
   const [selectedStudent, setSelectedStudent] = useState<StudentNode | null>(null);
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
   const [liveStudents, setLiveStudents] = useState<any[]>([]);
+  const [liveInterventions, setLiveInterventions] = useState<any[]>([]);
 
   // Submissions state for Grading Overview
   const [submissions, setSubmissions] = useState<any[]>([]);
@@ -451,10 +452,12 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
   useEffect(() => {
     let unsubSt: (() => void) | null = null;
     let unsubSub: (() => void) | null = null;
+    let unsubInt: (() => void) | null = null;
 
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
       if (unsubSt) { unsubSt(); unsubSt = null; }
       if (unsubSub) { unsubSub(); unsubSub = null; }
+      if (unsubInt) { unsubInt(); unsubInt = null; }
 
       if (user) {
         const qSt = query(collection(db, 'students'), where('teacherId', '==', user.uid));
@@ -474,6 +477,11 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             setSubmissions([]);
           }
         }, (err) => console.warn("Submissions sync err", err));
+
+        const qInt = query(collection(db, 'learner_interventions'), where('teacherId', '==', user.uid));
+        unsubInt = onSnapshot(qInt, (snap) => {
+          setLiveInterventions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        }, (err) => console.warn("Interventions sync err", err));
       }
     });
 
@@ -481,6 +489,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
       unsubscribeAuth();
       if (unsubSt) unsubSt();
       if (unsubSub) unsubSub();
+      if (unsubInt) unsubInt();
     };
   }, []);
 
@@ -1057,6 +1066,59 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             desc="Send live CAPS announcements directly to student dashboard models."
             onClick={() => setIsBroadcastModalOpen(true)}
           />
+        </div>
+      </motion.div>
+
+      {/* Active Learner Interventions — early warning flags + solutions */}
+      <motion.div variants={itemVariants} className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h2 className="text-xl font-display font-black tracking-widest text-cyan-400 uppercase flex items-center gap-2">
+            <span>Learner Interventions</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-black">
+              {liveInterventions.filter((i: any) => i.status !== 'Inactive' && i.status !== 'Completed').length} Active
+            </span>
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {liveInterventions.length === 0 ? (
+            <div className="col-span-full rounded-[24px] border border-white/5 bg-slate-900/70 p-6 text-center">
+              <HeartHandshake className="mx-auto mb-2 text-slate-500" size={28} />
+              <p className="text-xs font-bold text-slate-500">No active learner intervention profiles yet. Create one from the Intervention Hub.</p>
+              <button
+                onClick={() => onNavigate('learner-intervention', 'class-management')}
+                className="mt-3 px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-xs font-black uppercase tracking-wide cursor-pointer transition-all"
+              >
+                Open Intervention Hub →
+              </button>
+            </div>
+          ) : (
+            liveInterventions
+              .filter((it: any) => it.status !== 'Inactive' && it.status !== 'Completed')
+              .map((it: any) => (
+                <div key={it.id} className="menu-glow-card glow-cyan rounded-[24px] bg-slate-900/95 p-5 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300">
+                      {it.siasLevel || 'Support Level'}
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      {it.subject || 'Learning'}
+                    </span>
+                  </div>
+                  <h3 className="font-display font-black text-white">{it.learnerName}</h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">{it.barrierDescription}</p>
+                  <p className="text-[11px] font-black text-cyan-300">🎯 {it.targetGoal}</p>
+                  {Array.isArray(it.accommodations) && it.accommodations.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {it.accommodations.map((ac: string, ai: number) => (
+                        <span key={ai} className="text-[10px] font-black px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                          {ac}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))
+          )}
         </div>
       </motion.div>
 

@@ -536,6 +536,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
   const [assignTargetType, setAssignTargetType] = useState<'class' | 'group' | 'student'>('class');
   const [assignTargetName, setAssignTargetName] = useState('');
   const [assignTargetId, setAssignTargetId] = useState('');
+  const [assignDueDate, setAssignDueDate] = useState('');
   const [shareTypeMode, setShareTypeMode] = useState<'link' | 'download' | 'email'>('link');
   const [activeSetupTab, setActiveSetupTab] = useState<'grade' | 'subject' | 'type' | 'topic'>('grade');
   
@@ -1257,10 +1258,29 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
 
       if (userId && db) {
         const assignDocRef = doc(collection(db, 'assignments'));
+        const assigneeName = assignTargetName || ''; // resolved display target
+        let assigneeId = assignTargetId || '';
+        // For an individual student, targetId already IS the student doc id.
+        // For a class, we resolve every enrolled learner (students carry grade == class name).
+        // For a study group, we resolve the group's members.
+        let targetStudentIds: string[] = [];
+        if (assignTargetType === 'class') {
+          const matchedClass = dbClasses.find((c: any) => c.id === assignTargetId || c.name === assignTargetId);
+          const resolvedName = matchedClass?.name || assignTargetName;
+          targetStudentIds = dbStudents
+            .filter((s: any) => s.grade === resolvedName || (matchedClass && s.grade === matchedClass.name))
+            .map((s: any) => s.id);
+        } else if (assignTargetType === 'group') {
+          const matchedGroup = dbStudyGroups.find((g: any) => g.id === assignTargetId);
+          targetStudentIds = Array.isArray(matchedGroup?.members) ? matchedGroup.members : [];
+        } else if (assignTargetType === 'student') {
+          targetStudentIds = [assignTargetId];
+        }
+
         await setDoc(assignDocRef, {
           id: assignDocRef.id,
           teacherId: userId,
-          teacherName: 'Teacher',
+          teacherName: auth.currentUser?.displayName || 'Teacher',
           title: currentTitle,
           subject: currentSubject,
           grade: currentGrade,
@@ -1268,12 +1288,37 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
           content: activeHtml,
           memo: teachingResult?.memo || '',
           rubric: teachingResult?.rubric || '',
+          // Canonical fields used by the student / parent dashboards:
+          assigneeType: assignTargetType,
+          assigneeId,
+          assigneeName,
+          // Resolved learner ids so student/parent dashboards can match reliably:
+          targetStudentIds,
+          // Back-compat: keep the legacy target* fields too.
           targetType: assignTargetType,
           targetId: assignTargetId,
           targetName: assignTargetName,
           assignedAt: new Date().toISOString(),
+          createdAt: serverTimestamp(),
+          dueDate: assignDueDate || null,
           status: 'Active'
         });
+
+        // Notify every affected learner so the task appears on their dashboard/tasks feed.
+        for (const studentId of targetStudentIds) {
+          if (!studentId) continue;
+          const notifRef = doc(collection(db, 'notifications'));
+          await setDoc(notifRef, {
+            id: notifRef.id,
+            title: '🆕 Assigned Content',
+            message: `Your teacher assigned you a new ${activeTab === 'teaching' ? 'lesson/worksheet' : activeTab === 'visual' ? 'poster' : 'document'}: "${currentTitle}". Open it to complete or submit.`,
+            read: false,
+            userId: studentId,
+            assignmentId: assignDocRef.id,
+            type: 'assignment',
+            createdAt: serverTimestamp()
+          });
+        }
       }
     } catch (error) {
       console.warn("Firestore assign note:", error);
@@ -2811,6 +2856,17 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                       <option key={s.id} value={s.id}>{s.name} ({s.grade})</option>
                     ))}
                   </Select>
+                </div>
+
+                <div>
+                  <Label>Due Date (optional)</Label>
+                  <Input
+                    isDarkMode={isDarkMode}
+                    type="date"
+                    value={assignDueDate}
+                    onChange={(e: any) => setAssignDueDate(e.target.value)}
+                    className="w-full"
+                  />
                 </div>
                 
                 <Button

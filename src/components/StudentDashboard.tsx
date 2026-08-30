@@ -41,6 +41,8 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
   const [assignments, setAssignments] = useState<any[]>([]);
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [myStudyGroupIds, setMyStudyGroupIds] = useState<string[]>([]);
+  const [learnerInterventions, setLearnerInterventions] = useState<any[]>([]);
+  const [studentRecords, setStudentRecords] = useState<any[]>([]);
   
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
   const [solvingMode, setSolvingMode] = useState<'online' | 'ocr'>('online');
@@ -203,6 +205,8 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
     'upcoming-assignments',
     'upcoming-missions',
     'recent-activities',
+    'intervention-support',
+    'attendance-behaviour',
     'parent-motivation'
   ], []);
 
@@ -333,16 +337,33 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
       setMyStudyGroupIds(snapshot.docs.map(d => d.id));
     }, (error) => console.error("Error loading groups", error));
 
+    // Load learner intervention / support plans that mention this learner
+    const unsubInterventions = onSnapshot(query(collection(db, 'learner_interventions')), (snapshot) => {
+      const all = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const mine = all.filter((i: any) =>
+        i.learnerName === student.name || (i.grade && i.grade === student.grade)
+      );
+      setLearnerInterventions(mine);
+    }, (error) => console.error("Error loading interventions", error));
+
+    // Load attendance, behaviour & welfare records for this learner
+    const unsubRecords = onSnapshot(query(collection(db, 'student_records'), where('studentId', '==', student.id)), (snapshot) => {
+      setStudentRecords(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (error) => console.error("Error loading student records", error));
+
     return () => {
       unsubAssignments();
       unsubSubmissions();
       unsubGroups();
+      unsubInterventions();
+      unsubRecords();
     };
   }, [student?.id]);
 
   const myAssignments = useMemo(() => {
     if (!student) return [];
     return assignments.filter(item => {
+      if (Array.isArray(item.targetStudentIds) && item.targetStudentIds.includes(student.id)) return true;
       if (item.assigneeType === 'all' || item.assigneeId === 'all') return true;
       if (item.assigneeType === 'student' && item.assigneeId === student.id) return true;
       if (item.assigneeType === 'class' && (item.assigneeId === student.grade || item.grade === student.grade)) return true;
@@ -1162,6 +1183,119 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
                         </div>
                       );
                     })}
+                 </div>
+              </div>
+            );
+          } else if (widgetId === 'intervention-support') {
+            const activeInterventions = learnerInterventions.filter((i: any) => i.status !== 'Inactive' && i.status !== 'Completed');
+            widgetContent = (
+              <div className="kid-panel" style={{ ['--kid-1' as any]: '#F59E0B', ['--kid-2' as any]: '#EF4444' }}>
+                 <div className="kid-panel-head">
+                    <h3 className="kid-title text-2xl sm:text-3xl font-hand flex items-center gap-2">
+                      <span className="kid-bob inline-block">🩺</span> My Support & Solutions
+                    </h3>
+                    <span className="kid-chip" style={{ ['--kid-2' as any]: '#F59E0B' }}>
+                      {activeInterventions.length} active
+                    </span>
+                 </div>
+                 <div className="kid-panel-body space-y-3">
+                   {activeInterventions.length === 0 ? (
+                     <div className="text-center p-8 rounded-[24px] border-4 border-dashed border-amber-300 bg-amber-50">
+                       <ShieldAlert className="mx-auto mb-2 text-amber-400" size={32} />
+                       <p className="font-bold text-amber-600 text-sm">No extra support plan right now — keep shining! ✨</p>
+                     </div>
+                   ) : (
+                     activeInterventions.map((it: any, idx: number) => (
+                       <div key={it.id || idx} className="p-4 rounded-2xl border-2 bg-white">
+                         <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
+                           <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-orange-500 text-white">
+                             {it.siasLevel || 'Support Level'}
+                           </span>
+                           <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                             {it.subject || 'Learning'} • {it.progressPercentage != null ? `${it.progressPercentage}%` : ''}
+                           </span>
+                         </div>
+                         <p className="font-black text-slate-800 text-sm">
+                           🎯 {it.targetGoal || 'Support goal'}
+                         </p>
+                         {Array.isArray(it.accommodations) && it.accommodations.length > 0 && (
+                           <div className="mt-2 flex flex-wrap gap-1.5">
+                             {it.accommodations.map((ac: string, ai: number) => (
+                               <span key={ai} className="text-[10px] font-black px-2 py-1 rounded-lg bg-amber-100 text-amber-700 border border-amber-200">
+                                 {ac}
+                               </span>
+                             ))}
+                           </div>
+                         )}
+                       </div>
+                     ))
+                   )}
+                   <p className="text-[11px] font-semibold text-slate-500">
+                     Your teacher builds this plan with you — check in with them for progress and next steps.
+                   </p>
+                 </div>
+              </div>
+            );
+          } else if (widgetId === 'attendance-behaviour') {
+            const attendance = studentRecords.filter((r: any) => r.recordType === 'attendance');
+            const present = attendance.filter((r: any) => r.status === 'Present').length;
+            const late = attendance.filter((r: any) => r.status === 'Late').length;
+            const absent = attendance.filter((r: any) => r.status === 'Absent').length;
+            const behaviour = studentRecords.filter((r: any) => r.recordType === 'behaviour').slice(0, 4);
+            widgetContent = (
+              <div className="kid-panel" style={{ ['--kid-1' as any]: '#22C55E', ['--kid-2' as any]: '#0EA5E9' }}>
+                 <div className="kid-panel-head">
+                    <h3 className="kid-title text-2xl sm:text-3xl font-hand flex items-center gap-2">
+                      <span className="kid-bob inline-block">📋</span> My Attendance & Conduct
+                    </h3>
+                    <span className="kid-chip" style={{ ['--kid-2' as any]: '#22C55E' }}>
+                      {attendance.length} logged
+                    </span>
+                 </div>
+                 <div className="kid-panel-body space-y-3">
+                   {attendance.length === 0 && behaviour.length === 0 ? (
+                     <div className="text-center p-8 rounded-[24px] border-4 border-dashed border-emerald-300 bg-emerald-50">
+                       <Activity className="mx-auto mb-2 text-emerald-400" size={32} />
+                       <p className="font-bold text-emerald-600 text-sm">No records yet — keep showing up and doing your best! 💪</p>
+                     </div>
+                   ) : (
+                     <>
+                       <div className="grid grid-cols-3 gap-2.5">
+                         <div className="p-3 rounded-2xl border-2 border-emerald-200 bg-emerald-50 text-center">
+                           <span className="text-lg font-black text-emerald-500 block">{present}</span>
+                           <span className="text-[9px] font-black uppercase tracking-wider text-emerald-600">Present</span>
+                         </div>
+                         <div className="p-3 rounded-2xl border-2 border-yellow-200 bg-yellow-50 text-center">
+                           <span className="text-lg font-black text-yellow-500 block">{late}</span>
+                           <span className="text-[9px] font-black uppercase tracking-wider text-yellow-600">Late</span>
+                         </div>
+                         <div className="p-3 rounded-2xl border-2 border-rose-200 bg-rose-50 text-center">
+                           <span className="text-lg font-black text-rose-500 block">{absent}</span>
+                           <span className="text-[9px] font-black uppercase tracking-wider text-rose-600">Absent</span>
+                         </div>
+                       </div>
+                       {behaviour.length > 0 && (
+                         <div className="space-y-2">
+                           {behaviour.map((b: any) => (
+                             <div key={b.id} className="p-3 rounded-2xl border-2 bg-white">
+                               <div className="flex items-center gap-2 flex-wrap">
+                                 <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
+                                   b.behaviourType === 'Positive' ? 'bg-emerald-100 text-emerald-700' : b.behaviourType === 'Concern' ? 'bg-yellow-100 text-yellow-700' : 'bg-rose-100 text-rose-700'
+                                 }`}>
+                                   {b.behaviourType}
+                                 </span>
+                                 {b.date && <span className="text-[10px] font-mono text-slate-500">{b.date}</span>}
+                               </div>
+                               <p className="text-xs font-semibold text-slate-700 mt-1">{b.behaviour}</p>
+                             </div>
+                           ))}
+                         </div>
+                       )}
+                       <p className="text-[11px] font-semibold text-slate-500">
+                         Your teacher records attendance and conduct so your family can cheer you on. Keep it up! 🌟
+                       </p>
+                     </>
+                   )}
                  </div>
               </div>
             );
