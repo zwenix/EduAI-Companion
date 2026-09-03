@@ -7,10 +7,10 @@ import {
 import { marked } from 'marked';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { renderMathInHtml } from '../lib/latexHelper';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 import { cleanTextForSpeech } from '../services/ttsService';
+import { renderElementToPdfBlob } from '../lib/pdfPaginate';
+import { deliverFile } from '../lib/nativeExport';
+import { beginExport, failExport, finishExport, updateExport } from '../lib/exportProgress';
 
 interface ReaderModeModalProps {
   isOpen: boolean;
@@ -218,45 +218,38 @@ export default function ReaderModeModal({
   };
 
   // Export to PDF
+  //
+  // Rendered page by page instead of as one tall canvas: long study documents
+  // used to blow past the Android WebView canvas limit (blank PDF) and pin the
+  // renderer (frozen screen). Delivery goes through `deliverFile`, so inside the
+  // APK the PDF is written to the device and offered to the system
+  // print/save/share sheet rather than being dropped by the WebView.
   const handleExportPDF = async () => {
     if (!docRef.current) return;
     setIsExporting(true);
+    const filename = `${(title || 'EduAI-Document').replace(/\s+/g, '_')}_Reader_Copy.pdf`;
 
     try {
-      const originalStyle = patchOklchForHtml2canvas();
-      let canvas;
-      try {
-        canvas = await html2canvas(docRef.current, { scale: 1.5, useCORS: true });
-      } finally {
-        originalStyle();
-      }
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
+      beginExport('Exporting your reader copy', 'Preparing pages…');
+      const blob = await renderElementToPdfBlob(docRef.current, {
+        format: 'a4',
         orientation: 'portrait',
-        unit: 'px',
-        format: 'a4'
+        margin: [0.4, 0.4, 0.6, 0.4],
+        backgroundColor: '#ffffff',
+        scale: 1.5,
+        onPage: (page, totalPages) =>
+          updateExport(`Rendering page ${page} of ${totalPages}…`, Math.round((page / Math.max(1, totalPages)) * 100))
       });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      let heightLeft = pdfHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pdf.internal.pageSize.getHeight();
-
-      while (heightLeft >= 0) {
-        position = heightLeft - pdfHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-        heightLeft -= pdf.internal.pageSize.getHeight();
-      }
-
-      pdf.save(`${title.replace(/\s+/g, '_')}_Reader_Copy.pdf`);
+      updateExport('Saving file…');
+      const result = await deliverFile(blob, filename, {
+        shareTitle: title || filename,
+        dialogTitle: 'Print, save or share your document',
+        successMessage: null
+      });
+      finishExport(result.ok ? `${filename} ready.` : undefined);
     } catch (err) {
       console.error("PDF generator inside Reader Mode failed:", err);
+      failExport('Could not export this document as a PDF.');
     } finally {
       setIsExporting(false);
     }

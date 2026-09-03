@@ -524,6 +524,10 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
   const [showShareModal, setShowShareModal] = useState(false);
   const [showPrintPreviewModal, setShowPrintPreviewModal] = useState(false);
   const [isFullscreenPreview, setIsFullscreenPreview] = useState(false);
+  // Export (PDF / print) busy flag. Drives the button spinners; the shared
+  // progress overlay in App.tsx shows the page-by-page detail.
+  const [isExporting, setIsExporting] = useState(false);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [fontStyle, setFontStyle] = useState('Standard System (Inter)');
   const [isPrintPreview, setIsPrintPreview] = useState(false);
   const [shareType, setShareType] = useState<'link' | 'text' | 'html' | 'markdown' | 'json' | 'email'>('link');
@@ -696,6 +700,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
   }, [t_grade, t_subject]);
 
   const startProgress = () => {
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     setGenerationProgress(0);
     setGenerationPhase('Initializing CAPS engine...');
     
@@ -723,7 +728,27 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
         return rounded;
       });
     }, 150);
+    progressIntervalRef.current = interval;
     return interval;
+  };
+
+  /**
+   * Escape hatch: stop a running generation and unlock the preview panel.
+   * The Close button and the Android hardware back button both route through
+   * here, so the generated-content screen can never trap the teacher.
+   */
+  const stopGeneration = (announce = true) => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    if (!isGenerating) return;
+    setIsGenerating(false);
+    setGenerationProgress(0);
+    setGenerationPhase('Idle');
+    if (announce) {
+      triggerToast('Generation stopped — your inputs are safe. Tap Generate to run it again.', 'info');
+    }
   };
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -1146,7 +1171,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
     return adminResult?.content || '';
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     const docTitle = activeTab === 'teaching'
       ? (t_topic || t_type || 'Lesson Material')
       : activeTab === 'visual' ? (v_topic || v_type || 'Visual Aid') : (a_topic || 'EduAI Content');
@@ -1158,12 +1183,26 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
       triggerToast('No content available to print yet.', 'info');
       return;
     }
+    if (isExporting) {
+      triggerToast('An export is already running — give it a moment or press Stop export.', 'info');
+      return;
+    }
     // Strip outer <html>/<body> wrappers so printContent can inject its own header.
     const bodyOnly = rawHtml.replace(/^[\s\S]*<body[^>]*>/i, '').replace(/<\/body>[\s\S]*$/i, '').replace(/<\/html>[\s\S]*$/i, '');
-    printContent(bodyOnly || rawHtml, docTitle, {
-      subject: activeSubject, grade: activeGrade, title: docTitle,
-      contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : undefined
-    });
+    setIsExporting(true);
+    try {
+      // On Android this produces a real PDF file (device storage + share sheet,
+      // which offers Print) instead of a popup the WebView cannot handle.
+      await printContent(bodyOnly || rawHtml, docTitle, {
+        subject: activeSubject, grade: activeGrade, title: docTitle,
+        contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : undefined
+      });
+    } catch (error) {
+      console.error('Print/export failed:', error);
+      triggerToast('Could not send this document to print. Try "PDF Download".', 'error');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleDownloadPDF = async () => {
@@ -1180,11 +1219,23 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
       triggerToast('No content available to download as PDF yet.', 'info');
       return;
     }
+    if (isExporting) {
+      triggerToast('An export is already running — give it a moment or press Stop export.', 'info');
+      return;
+    }
     const bodyOnly = rawHtml.replace(/^[\s\S]*<body[^>]*>/i, '').replace(/<\/body>[\s\S]*$/i, '').replace(/<\/html>[\s\S]*$/i, '');
-    await downloadAsPDF(bodyOnly || rawHtml, filename, {
-      subject: activeSubject, grade: activeGrade, title: docTitle,
-      contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : undefined
-    });
+    setIsExporting(true);
+    try {
+      await downloadAsPDF(bodyOnly || rawHtml, filename, {
+        subject: activeSubject, grade: activeGrade, title: docTitle,
+        contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : undefined
+      });
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      triggerToast('PDF export failed. Your content is still on screen — use Archive to keep it.', 'error');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleToggleEdit = () => {
@@ -1266,11 +1317,37 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
   };
 
   const handleClosePreview = () => {
+    stopGeneration(false);
+    setShowPrintPreviewModal(false);
+    setShowShareModal(false);
+    setShowAssignModal(false);
+    setShowQualityCheck(false);
+    setIsEditing(false);
     setTeachingResult({ content: '', memo: '', rubric: '' });
     setVisualResult(null);
     setAdminResult({ content: '' });
     setIsFullscreenPreview(false);
   };
+
+  // Android hardware/gesture back button. App.tsx dispatches a cancelable
+  // `eduai-back-request` event before it starts navigating, so this page closes
+  // its own overlays first — a teacher on the generated-content screen always
+  // has a way out (modal → fullscreen preview → editor → generation).
+  useEffect(() => {
+    const onBackRequest = (event: Event) => {
+      let consumed = false;
+      if (showPrintPreviewModal) { setShowPrintPreviewModal(false); consumed = true; }
+      else if (showShareModal) { setShowShareModal(false); consumed = true; }
+      else if (showAssignModal) { setShowAssignModal(false); consumed = true; }
+      else if (showQualityCheck) { setShowQualityCheck(false); consumed = true; }
+      else if (isFullscreenPreview) { setIsFullscreenPreview(false); consumed = true; }
+      else if (isEditing) { setIsEditing(false); consumed = true; }
+      else if (isGenerating) { stopGeneration(); consumed = true; }
+      if (consumed) event.preventDefault();
+    };
+    window.addEventListener('eduai-back-request', onBackRequest);
+    return () => window.removeEventListener('eduai-back-request', onBackRequest);
+  }, [showPrintPreviewModal, showShareModal, showAssignModal, showQualityCheck, isFullscreenPreview, isEditing, isGenerating]);
 
   const confirmAssign = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2283,13 +2360,15 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                         </button>
                       )}
 
-                      {/* Close Button Only */}
+                      {/* Close Button — always available, even mid-generation, so
+                          the preview panel can never trap the teacher. */}
                       {((activeTab === 'teaching' && (teachingResult?.content || teachingResult?.memo || teachingResult?.rubric)) ||
                         (activeTab === 'visual' && visualResult?.content) ||
-                        (activeTab === 'admin' && adminResult?.content)) && !isGenerating && (
+                        (activeTab === 'admin' && adminResult?.content) ||
+                        isGenerating) && (
                         <button
                           onClick={handleClosePreview}
-                          title="Close Preview"
+                          title={isGenerating ? "Stop generation & close preview" : "Close Preview"}
                           className="p-2 rounded-xl bg-slate-500/10 border border-slate-500/30 text-slate-400 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all cursor-pointer flex items-center justify-center"
                         >
                           <X size={16} />
@@ -2436,6 +2515,13 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                               )}>
                                 Applying South African CAPS Curriculum Framework
                               </p>
+                              <button
+                                type="button"
+                                onClick={() => stopGeneration()}
+                                className="mt-3 w-full px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-rose-500/15 hover:border-rose-400/40 hover:text-rose-200 text-slate-300 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer"
+                              >
+                                Stop generation
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -2564,16 +2650,28 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
 
                           <button
                             onClick={handlePrint}
-                            className="px-2.5 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-cyan-300 border border-cyan-500/40 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md transition-all cursor-pointer"
+                            disabled={isExporting}
+                            title="Print — on Android this builds a print-ready PDF and opens the system save/print sheet"
+                            className={cn(
+                              "px-2.5 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-cyan-300 border border-cyan-500/40 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md transition-all",
+                              isExporting ? "opacity-60 cursor-wait" : "cursor-pointer"
+                            )}
                           >
-                            <Printer size={13} /> Print
+                            {isExporting ? <Loader2 size={13} className="animate-spin" /> : <Printer size={13} />}
+                            {isExporting ? 'Working…' : 'Print'}
                           </button>
                           
                           <button
                             onClick={handleDownloadPDF}
-                            className="px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-indigo-600/25 transition-all cursor-pointer"
+                            disabled={isExporting}
+                            title="Export a print-ready PDF (saved to the device on Android)"
+                            className={cn(
+                              "px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-indigo-600/25 transition-all",
+                              isExporting ? "opacity-60 cursor-wait" : "cursor-pointer"
+                            )}
                           >
-                            <Download size={13} /> PDF Download
+                            {isExporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                            {isExporting ? 'Exporting…' : 'PDF Download'}
                           </button>
 
                           <button
@@ -2756,15 +2854,27 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                     </button>
                     <button
                       onClick={handlePrint}
-                      className="p-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-700 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
+                      disabled={isExporting}
+                      title="Print — on Android this builds a print-ready PDF and opens the system save/print sheet"
+                      className={cn(
+                        "p-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-700 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5",
+                        isExporting ? "opacity-60 cursor-wait" : "cursor-pointer"
+                      )}
                     >
-                      <Printer size={14} /> Print
+                      {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
+                      {isExporting ? 'Working…' : 'Print'}
                     </button>
                     <button
                       onClick={handleDownloadPDF}
-                      className="p-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
+                      disabled={isExporting}
+                      title="Export a print-ready PDF (saved to the device on Android)"
+                      className={cn(
+                        "p-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5",
+                        isExporting ? "opacity-60 cursor-wait" : "cursor-pointer"
+                      )}
                     >
-                      <Download size={14} /> PDF
+                      {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                      {isExporting ? 'Exporting…' : 'PDF'}
                     </button>
                     <button
                       onClick={() => setIsFullscreenPreview(false)}

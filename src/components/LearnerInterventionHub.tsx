@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { printContent } from '../lib/printUtils';
 import { 
   HeartHandshake, 
   Brain, 
@@ -392,34 +393,27 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
   };
 
   // Print Document Handler
+  //
+  // Was `window.open('') + window.print()`. On Android that popup is turned into
+  // an external browser intent (the teacher's browser opens on its last page and
+  // nothing is printed), and `window.print()` is a no-op on Chrome/WebView there
+  // anyway. `printContent` keeps the desktop print dialog and, on Android, builds
+  // a real PDF, saves it to the device and opens the system print/save sheet.
   const handlePrintPackage = (htmlContent?: string) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
     const contentToPrint = htmlContent || selectedProfile?.generatedContentHtml || '';
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Learner Intervention Package - EduAI Companion</title>
-          <script src="https://cdn.tailwindcss.com"></script>
-          <style>
-            @media print {
-              body { background: white !important; color: black !important; font-family: sans-serif; }
-              .no-print { display: none !important; }
-            }
-          </style>
-        </head>
-        <body class="bg-white text-slate-900 p-8">
-          <div class="max-w-4xl mx-auto space-y-6">
-            ${contentToPrint}
-          </div>
-          <script>
-            setTimeout(() => { window.print(); }, 800);
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+    if (!contentToPrint.trim()) {
+      if (triggerToast) triggerToast('Nothing to print yet — generate the intervention package first.', 'info');
+      return;
+    }
+    const packageTitle = selectedProfile?.learnerName
+      ? `Learner Intervention Package - ${selectedProfile.learnerName}`
+      : 'Learner Intervention Package';
+    void printContent(contentToPrint, packageTitle, {
+      title: packageTitle,
+      subject: selectedProfile?.subject,
+      grade: selectedProfile?.grade,
+      contentType: 'SIAS Intervention Package'
+    });
   };
 
   // Filtered Saved Profiles

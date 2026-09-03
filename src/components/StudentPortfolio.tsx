@@ -7,6 +7,7 @@ import jsPDF from 'jspdf';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
+import { cleanupExportArtifacts } from '../lib/printUtils';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
@@ -544,10 +545,17 @@ export default function StudentPortfolio({ isDarkMode }: { isDarkMode: boolean }
       };
 
       const restoreGetComputedStyle = patchOklchForHtml2canvas();
-      await html2pdf().from(element).set(opt).save();
-      restoreGetComputedStyle();
+      try {
+        await html2pdf().from(element).set(opt).save();
+      } finally {
+        // Must always run: a leaked getComputedStyle Proxy slows the whole app
+        // down permanently, and a failed render can leave html2pdf's invisible
+        // full-screen overlay behind (which swallows every tap).
+        restoreGetComputedStyle();
+        cleanupExportArtifacts();
+      }
 
-      document.body.removeChild(element);
+      if (document.body.contains(element)) document.body.removeChild(element);
     } catch (err) {
       console.error("Failed to generate student continuous journey PDF:", err);
     } finally {

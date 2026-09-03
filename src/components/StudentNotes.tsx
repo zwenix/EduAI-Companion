@@ -23,8 +23,7 @@ const stripMarkdownWrapper = (text: string) => {
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { renderMathInHtml } from '../lib/latexHelper';
 import { educationalData } from '../lib/educational-data';
-import html2pdf from 'html2pdf.js';
-import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
+import { downloadAsPDF } from '../lib/printUtils';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import ReaderModeModal from './ReaderModeModal';
@@ -191,34 +190,22 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
     }
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!printRef.current) return;
-    
-    const element = printRef.current;
-    
-    // Create a wrapper for PDF export to ensure styling works
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = `
-      <div style="padding: 40px; font-family: sans-serif; color: #333; background: white;">
-        <h1 style="text-align: center; border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-bottom: 30px;">
-          Grade ${grade} ${subject}: ${topic}
-        </h1>
-        ${element.innerHTML}
-      </div>
-    `;
-    
-    // Apply patch for Oklch colors before rendering
-    patchOklchForHtml2canvas();
-    
-    const opt = {
-      margin:       10,
-      filename:     `Grade_${grade}_${subject}_${topic.replace(/\s+/g, '_')}_Notes.pdf`,
-      image:        { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
-    };
-    
-    html2pdf().set(opt).from(wrapper).save();
+
+    // Routed through the shared export pipeline (src/lib/printUtils.ts) so notes
+    // behave like every other document:
+    //   • desktop  → normal browser download,
+    //   • Android  → PDF written to the device + system save/print sheet,
+    //   • long notes are paginated instead of rendered into one giant canvas
+    //     (which is what used to hang the WebView),
+    //   • the oklch getComputedStyle shim is always restored afterwards.
+    await downloadAsPDF(printRef.current, `Grade_${grade}_${subject}_${topic.replace(/\s+/g, '_')}_Notes.pdf`, {
+      grade,
+      subject,
+      title: `Grade ${grade} ${subject}: ${topic}`,
+      contentType: 'Study Notes'
+    });
   };
 
   return (

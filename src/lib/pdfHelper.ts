@@ -40,13 +40,45 @@ function convertOklToRgb(cssVal: string): string {
 }
 
 /**
+ * Nesting guard. Several export paths patch around the same render (printUtils
+ * wraps the whole export, pdfPaginate wraps each render), and every patch wraps
+ * `window.getComputedStyle` in a Proxy. Re-entrancy used to stack Proxies and —
+ * worse — a single forgotten restore left the Proxy installed for the rest of
+ * the session, slowing the entire app down (a big part of the "the app freezes
+ * after exporting" report).
+ */
+let patchDepth = 0;
+let activeRestore: (() => void) | null = null;
+
+/**
  * Temporarily overrides window.getComputedStyle to intercept and convert
  * any computed property values containing 'oklch' or 'oklab' values to standard cross-rendered 'rgb'.
  * This successfully prevents html2canvas in ProgressReports and StudentNotes from crashing.
  * 
- * @returns A function to restore the original window.getComputedStyle.
+ * @returns A function to restore the original window.getComputedStyle. Safe to
+ *   call multiple times and safe to nest.
  */
 export function patchOklchForHtml2canvas(): () => void {
+  patchDepth += 1;
+
+  if (patchDepth === 1) {
+    activeRestore = installOklchPatch();
+  }
+
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    patchDepth = Math.max(0, patchDepth - 1);
+    if (patchDepth === 0 && activeRestore) {
+      const restore = activeRestore;
+      activeRestore = null;
+      restore();
+    }
+  };
+}
+
+function installOklchPatch(): () => void {
   const originalGetComputedStyle = window.getComputedStyle;
 
   window.getComputedStyle = function (elt, pseudoElt) {
