@@ -115,3 +115,44 @@ denied.
    leaked clone iframe, no `getComputedStyle` Proxy).
 7. Other exports (illustration download, video download, archive HTML, progress report)
    now reach the device through the same bridge.
+
+## How this was verified without a device
+
+No emulator or physical handset is available in the build sandbox, so the *native*
+delivery path was exercised in Node against a **faked Capacitor bridge**: the pieces
+the Android WebView injects (`window.androidBridge`, `window.Capacitor.PluginHeaders`,
+`window.Capacitor.nativePromise`) are recreated before `@capacitor/core` is imported
+and every plugin call is recorded. Note that `@capacitor/core` runs
+`initCapacitorGlobal(globalThis)`, so the fake has to sit on `globalThis` — not only on
+a jsdom `window`.
+
+42 assertions passed, covering:
+
+* the PDF reaches `Filesystem.writeFile` as base64 that decodes **byte-for-byte** back to
+  the original file (and still starts with `%PDF-1.4`);
+* the directory fallback `DOCUMENTS → EXTERNAL → CACHE` when Android 11+ scoped storage
+  denies the public folder, and an honest `ok:false` (never a thrown exception) when all
+  three are denied — `printUtils` then keeps an HTML copy instead of losing the lesson;
+* large files split into 4-char-aligned chunks (`writeFile` + `appendFile`) that reassemble
+  to the exact original bytes, none exceeding the 1.2 M-char bridge limit;
+* `Share.share()` receiving the very URI that was written, with title and dialogTitle;
+* a share sheet that throws (`No Activity found to handle Intent`) leaving the file saved;
+* legacy `anchor[blob:].click()` downloads (jsPDF / html2pdf `.save()`) being intercepted and
+  delivered natively instead of being dropped by the WebView;
+* `window.open('', '_blank')` returning `null` instead of launching the device browser;
+* the progress overlay being dismissed before the share sheet, and the teacher getting a toast.
+
+### Pitfall this uncovered: Capacitor plugin proxies are *thenable*
+
+`registerPlugin()` returns a **Proxy** whose `get` trap fabricates a callable wrapper for
+*any* property — including `then`. Both of these therefore explode on a real device while
+working fine on web (where the plugin is a plain class instance):
+
+```ts
+const Share = await loadShare();              // ❌ "Share.then()" is not implemented on android
+async function loadShare() { return Share; }   // ❌ same — an async return adopts thenables
+```
+
+`src/lib/nativeExport.ts` hands plugin objects back inside a plain wrapper (`{ Share }`) and
+unwraps at the call site. Keep that pattern for any future Capacitor plugin use, and never
+`await` a plugin object itself — only its method calls.

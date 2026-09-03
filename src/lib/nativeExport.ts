@@ -207,10 +207,20 @@ const loadFilesystem = async (): Promise<{ Filesystem: any; Directory: Directory
   }
 };
 
-const loadShare = async (): Promise<any | null> => {
+/**
+ * Capacitor's *native* plugin objects are proxies: every property access hands
+ * back a callable wrapper, which makes the object **thenable**. `await plugin`
+ * (or returning one from an async function, which adopts it the same way) would
+ * therefore call `plugin.then()` and the bridge rejects with
+ * `"Share.then()" is not implemented on android`. Plugin objects are always
+ * returned inside a plain wrapper for that reason.
+ */
+const loadShare = async (): Promise<{ Share: any } | null> => {
   try {
     const mod: any = await import('@capacitor/share');
-    return mod?.Share || mod?.default?.Share || null;
+    const Share = mod?.Share || mod?.default?.Share || null;
+    if (!Share || typeof Share.share !== 'function') return null;
+    return { Share };
   } catch (err) {
     console.warn('[Export] @capacitor/share unavailable:', err);
     return null;
@@ -321,7 +331,8 @@ export const saveToDevice = async (
   let cancelled = false;
 
   if (wantsShare) {
-    const Share = await loadShare();
+    const loaded = await loadShare();
+    const Share = loaded?.Share;
     if (Share) {
       // The share sheet is a native activity that covers the app: hide our
       // progress overlay first so the screen is immediately usable on return
