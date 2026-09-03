@@ -139,11 +139,13 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
     const provider = typeof window !== 'undefined'
       ? window.localStorage.getItem('eduai_image_provider') || defaultProvider
       : defaultProvider;
-    const providerChain = provider === 'gemini-imagen'
-      ? 'Google Imagen (Secondary) → Pollinations → Perchance'
+    const providerChain = provider === 'gemini-imagen' || provider === 'gemini'
+      ? 'Google Imagen (Secondary) → Qwen (NVIDIA NIM) → Pollinations → Perchance'
       : provider === 'pollinations'
-        ? 'Pollinations (Tertiary) → Perchance → Google Imagen'
-        : 'Perchance (Primary) → Pollinations → Google Imagen';
+        ? 'Pollinations (Tertiary) → Perchance → Qwen → Google Imagen'
+        : provider === 'qwen' || provider === 'qwen-image' || provider === 'nvidia-qwen'
+          ? 'Qwen-Image NVIDIA NIM (Premium SA) → Perchance → Pollinations → Google Imagen'
+          : 'Perchance (Primary) → Qwen (NVIDIA NIM) → Pollinations → Google Imagen';
 
     const isLogoOrStamp = /logo|stamp|seal|crest|badge|signature|certificate|emblem/i.test(cleanPrompt);
     const styleDirective = `, ${EDUCATIONAL_IMAGE_STYLE}, educational, high quality, vibrant colours`;

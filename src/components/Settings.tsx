@@ -433,39 +433,39 @@ export default function Settings({
 
                       <div className="pt-4 border-t border-white/5">
                          <h4 className="text-white font-bold text-base mb-1">Creative Image Generator</h4>
-                         <p className="text-slate-400 text-xs mb-4">Priority pipeline for classroom graphics, illustrated worksheets, and visual aids.</p>
-                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div className="p-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 flex items-start gap-3">
-                               <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400 font-black text-xs shrink-0">1</div>
-                               <div>
-                                  <div className="flex items-center gap-2">
-                                     <span className="text-white font-bold text-xs">Perchance AI</span>
-                                     <span className="px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-black uppercase">Primary</span>
-                                  </div>
-                                  <p className="text-[10px] text-slate-400 mt-1">Primary generator · falls back to Pollinations AI</p>
-                               </div>
-                            </div>
-                            <div className="p-4 rounded-2xl border border-white/10 bg-navy-dark/40 flex items-start gap-3">
-                               <div className="w-8 h-8 rounded-xl bg-sky-500/20 flex items-center justify-center text-sky-400 font-black text-xs shrink-0">2</div>
-                               <div>
-                                  <div className="flex items-center gap-2">
-                                     <span className="text-white font-bold text-xs">Google Imagen 3</span>
-                                     <span className="px-1.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 text-[9px] font-black uppercase">Secondary</span>
-                                  </div>
-                                  <p className="text-[10px] text-slate-400 mt-1">Secondary generator · falls back to Pollinations AI</p>
-                               </div>
-                            </div>
-                            <div className="p-4 rounded-2xl border border-white/10 bg-navy-dark/40 flex items-start gap-3">
-                               <div className="w-8 h-8 rounded-xl bg-pink-500/20 flex items-center justify-center text-pink-400 font-black text-xs shrink-0">3</div>
-                               <div>
-                                  <div className="flex items-center gap-2">
-                                     <span className="text-white font-bold text-xs">Pollinations AI</span>
-                                     <span className="px-1.5 py-0.5 rounded-full bg-pink-500/20 text-pink-300 text-[9px] font-black uppercase">Fallback</span>
-                                  </div>
-                                  <p className="text-[10px] text-slate-400 mt-1">Tertiary generator · falls back to Perchance AI</p>
-                               </div>
-                            </div>
+                         <p className="text-slate-400 text-xs mb-4">Pick your preferred image engine. The selected model is tried first; the others form an automatic fallback chain so a blocked provider never leaves blank placeholders.</p>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {[
+                              { id: 'perchance', name: 'Perchance AI', tag: 'Primary', dotBg: 'bg-amber-500/20', dotText: 'text-amber-400', activeBorder: 'border-amber-500/40 bg-amber-500/10', desc: 'Fast stylised images · Pollinations / Qwen fallback' },
+                              { id: 'qwen', name: 'Qwen-Image (NVIDIA NIM)', tag: 'Premium SA', dotBg: 'bg-orange-500/20', dotText: 'text-orange-400', activeBorder: 'border-orange-500/40 bg-orange-500/10', desc: 'Qwen-Image via NVIDIA NIM · SA-context, superior text rendering' },
+                              { id: 'gemini-imagen', name: 'Google Imagen 3', tag: 'Secondary', dotBg: 'bg-sky-500/20', dotText: 'text-sky-400', activeBorder: 'border-sky-500/40 bg-sky-500/10', desc: 'Google Imagen / Gemini · Pollinations fallback' },
+                              { id: 'pollinations', name: 'Pollinations AI', tag: 'Fallback', dotBg: 'bg-pink-500/20', dotText: 'text-pink-400', activeBorder: 'border-pink-500/40 bg-pink-500/10', desc: 'Free open-source flux/turbo models' },
+                            ].map((opt: any) => {
+                              const isSel = imageProvider === opt.id || (opt.id === 'qwen' && imageProvider === 'qwen-image');
+                              return (
+                                <button
+                                  key={opt.id}
+                                  type="button"
+                                  onClick={() => setImageProvider(opt.id)}
+                                  className={`p-4 rounded-2xl border flex items-start gap-3 text-left transition-all cursor-pointer ${isSel ? opt.activeBorder : 'border-white/10 bg-[#0a1226]/60 hover:border-white/25'}`}
+                                >
+                                   <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${isSel ? opt.dotBg : 'bg-white/5'} ${isSel ? opt.dotText : 'text-slate-500'}`}>
+                                      {isSel ? '✓' : '○'}
+                                   </div>
+                                   <div className="flex-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                         <span className="text-white font-bold text-xs">{opt.name}</span>
+                                         <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase ${isSel ? `${opt.dotBg} ${opt.dotText}` : 'bg-white/10 text-slate-400'}`}>{opt.tag}</span>
+                                      </div>
+                                      <p className="text-[10px] text-slate-400 mt-1">{opt.desc}</p>
+                                   </div>
+                                </button>
+                              );
+                            })}
                          </div>
+                         <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
+                            <strong className="text-cyan-400">Qwen-Image (NVIDIA NIM)</strong> uses <code className="font-mono text-cyan-300">qwen/qwen-image</code> on NVIDIA's hosted inference endpoint and produces premium SA-context enhanced educational illustrations with better text rendering and cultural accuracy.
+                         </p>
                       </div>
                    </div>
                 </div>

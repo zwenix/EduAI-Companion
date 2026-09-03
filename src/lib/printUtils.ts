@@ -1,5 +1,10 @@
 import { replaceImagePlaceholders } from './imageReplacer';
 import { patchOklchForHtml2canvas } from './pdfHelper';
+import { isAndroidApp } from './platform';
+// html2pdf.js bundles html2canvas + jsPDF. Imported lazily so server-side
+// rendering / non-browser entry points don't try to load it.
+// @ts-ignore
+import html2pdfLib from 'html2pdf.js';
 
 export interface PrintOptions {
     subject?: string;
@@ -7,6 +12,34 @@ export interface PrintOptions {
     contentType?: string;
     date?: string;
     title?: string;
+}
+
+/**
+ * Extract rendered HTML from an iframe element (such as the live preview
+ * in HtmlPreviewFrame). Falls back to the iframe's srcDoc when the iframe
+ * is sandboxed/cross-origin or contentDocument is unavailable (common in
+ * Android WebView).
+ */
+function extractIframeHTML(iframe: HTMLIFrameElement | null | undefined): string {
+    if (!iframe) return '';
+    try {
+        // Same-origin rendered DOM
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (doc && doc.body) {
+            // Inline computed styles for images/tables so the print window looks
+            // the same as the preview.
+            return doc.body.innerHTML || '';
+        }
+    } catch {
+        // cross-origin / sandboxed — fall through
+    }
+    // Fallback: use the srcDoc attribute which contains the full document
+    const srcDoc = iframe.getAttribute('srcdoc') || '';
+    if (srcDoc) {
+        const bodyMatch = srcDoc.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+        return bodyMatch ? bodyMatch[1] : srcDoc;
+    }
+    return '';
 }
 
 const buildBrandedHeaderHTML = (title: string, options?: PrintOptions): string => {
@@ -35,12 +68,33 @@ export function removeLegacyHeader(html: string): string {
     return cleaned;
 }
 
-function extractHtmlString(input: React.RefObject<HTMLDivElement | null> | HTMLElement | string | null): string {
+function extractHtmlString(input: React.RefObject<HTMLElement | HTMLIFrameElement | null> | HTMLElement | HTMLIFrameElement | string | null): string {
     if (!input) return '';
     if (typeof input === 'string') return input;
-    if ('current' in input && input.current) return input.current.innerHTML || '';
+    if ('current' in input && input.current) {
+        const el = input.current;
+        if (el instanceof HTMLIFrameElement) return extractIframeHTML(el);
+        return (el as HTMLElement).innerHTML || '';
+    }
+    if (input instanceof HTMLIFrameElement) return extractIframeHTML(input);
     if (input instanceof HTMLElement) return input.innerHTML || '';
     return '';
+}
+
+/**
+ * Android (Capacitor WebView): window.open() is silently swallowed and the
+ * invisible-iframe print() call also fails in many WebView builds. Detect
+ * that scenario and fall back to a PDF download using html2pdf, which works
+ * reliably by saving a blob through the filesystem.
+ */
+function isPrintSupported(): boolean {
+    if (typeof window === 'undefined') return false;
+    // Android WebView blocks popups and rarely supports window.print() on an
+    // iframe; detect it so we take the PDF route instead of silently failing.
+    if (isAndroidApp()) return false;
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
+    if (/Android/i.test(ua) && /wv|WebView/i.test(ua)) return false;
+    return true;
 }
 
 export const printContent = (
@@ -104,6 +158,23 @@ export const printContent = (
             </html>
         `;
 
+        // Android WebView: no print() or window.open() — fall back to generating
+        // a PDF blob and triggering download. The user can then open / print /
+        // share the file from the system file picker.
+        if (!isPrintSupported()) {
+            console.log("[Print] Android/WebView detected — routing print request to PDF download instead.");
+            // Build a printable container and hand off to downloadAsPDF
+            const container = document.createElement('div');
+            container.innerHTML = html;
+            // Append doc metadata
+            try {
+                // Reuse downloadAsPDF's core path by calling it with the HTML string
+                return downloadAsPDF(html, `${title.replace(/[^a-z0-9_-]/gi, '_')}.pdf`, options);
+            } catch (e) {
+                console.warn("[Print] PDF fallback failed, doing HTML download:", e);
+            }
+        }
+
         let printWindow: Window | null = null;
         try {
             printWindow = window.open('', '_blank');
@@ -120,9 +191,14 @@ export const printContent = (
                     printWindow?.print();
                 } catch (e) {
                     console.warn("Window print failed, using iframe fallback", e);
+                    tryIframeFallback();
                 }
             }, 600);
         } else {
+            tryIframeFallback();
+        }
+
+        function tryIframeFallback() {
             // Invisible iframe fallback (bypasses browser popup blocks)
             const iframe = document.createElement('iframe');
             iframe.style.position = 'fixed';
@@ -131,6 +207,7 @@ export const printContent = (
             iframe.style.width = '0';
             iframe.style.height = '0';
             iframe.style.border = '0';
+            iframe.setAttribute('aria-hidden', 'true');
             document.body.appendChild(iframe);
             const doc = iframe.contentWindow?.document;
             if (doc) {
@@ -138,14 +215,22 @@ export const printContent = (
                 doc.write(fullDocument);
                 doc.close();
                 setTimeout(() => {
-                    iframe.contentWindow?.focus();
-                    iframe.contentWindow?.print();
+                    try {
+                        iframe.contentWindow?.focus();
+                        iframe.contentWindow?.print();
+                    } catch (printErr) {
+                        console.warn("Iframe print also failed; serving as HTML download:", printErr);
+                        downloadAsHTML(html, `${title.replace(/[^a-z0-9_-]/gi, '_')}.html`, options);
+                    }
                     setTimeout(() => {
                         if (iframe.parentNode) {
                             iframe.parentNode.removeChild(iframe);
                         }
                     }, 3000);
                 }, 500);
+            } else {
+                // Last resort: download as HTML
+                downloadAsHTML(html, `${title.replace(/[^a-z0-9_-]/gi, '_')}.html`, options);
             }
         }
     } catch (e) {
@@ -243,20 +328,64 @@ export const downloadAsPDF = async (
 
         const pdfFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
 
-        // Check if html2pdf is globally available
+        // Use the ES-module import first; fall back to any global that
+        // might have been attached by a CDN script tag.
         const win = window as any;
-        const html2pdfLib = win.html2pdf || (win.default ? win.default.html2pdf : null);
+        const html2pdf = html2pdfLib || win.html2pdf || (win.default ? win.default.html2pdf : null);
 
-        if (html2pdfLib) {
-            const opt = {
-                margin: 0.4,
-                filename: pdfFilename,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, logging: false },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-            };
+        // Resolve any relative image URLs in the container to absolute URLs so
+        // that html2canvas can fetch them cross-origin (relative /api/image-proxy
+        // URLs only resolve from the app's own origin otherwise the canvas
+        // taints and html2pdf produces a blank PDF).
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+        container.querySelectorAll('img').forEach(img => {
             try {
-                await html2pdfLib().set(opt).from(container).save();
+                const src = img.getAttribute('src') || '';
+                if (src && src.startsWith('/') && !src.startsWith('//') && origin) {
+                    img.src = origin + src;
+                    img.crossOrigin = 'anonymous';
+                } else if (src.startsWith('http')) {
+                    img.crossOrigin = 'anonymous';
+                }
+                // Ensure lazy-loaded images don't stay blank in the PDF
+                img.loading = 'eager';
+                img.decoding = 'sync';
+            } catch {}
+        });
+
+        if (html2pdf) {
+            const opt = {
+                margin: [0.4, 0.4, 0.6, 0.4],
+                filename: pdfFilename,
+                image: { type: 'jpeg', quality: 0.96 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false,
+                    backgroundColor: '#ffffff',
+                    imageTimeout: 15000,
+                    removeContainer: false,
+                    foreignObjectRendering: false, // foreignObject breaks on many Android WebViews
+                    scrollX: 0,
+                    scrollY: 0,
+                    windowWidth: 900,
+                    onclone: (clonedDoc: Document, clonedNode: HTMLElement) => {
+                        // Make sure the cloned doc uses white bg (not dark theme) so PDF is print-safe
+                        clonedDoc.body.style.backgroundColor = '#ffffff';
+                        clonedDoc.body.style.color = '#0f172a';
+                        clonedNode.style.backgroundColor = '#ffffff';
+                        clonedNode.style.color = '#0f172a';
+                        return clonedNode;
+                    }
+                },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait', compress: true },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            } as any;
+            try {
+                // html2pdf exports a factory; call it to get a worker.
+                const worker = typeof html2pdf === 'function' ? html2pdf() : html2pdf;
+                await worker.set(opt).from(container).save();
             } catch (pdfErr) {
                 console.warn("html2pdf error, falling back to HTML download:", pdfErr);
                 downloadAsHTML(input, pdfFilename.replace(/\.pdf$/i, '.html'), options);
