@@ -13,7 +13,7 @@ import {
   Ruler,
   AlertTriangle
 } from 'lucide-react';
-import { printContent, downloadAsHTML, PrintOptions, removeLegacyHeader } from '../lib/printUtils';
+import { printContent, downloadAsHTML, downloadAsPDF, PrintOptions, removeLegacyHeader } from '../lib/printUtils';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 
 interface PrintPreviewModalProps {
@@ -135,6 +135,16 @@ export default function PrintPreviewModal({
       contentType: selectedSection === 'memo' ? 'Memorandum Key' : selectedSection === 'rubric' ? 'Assessment Rubric' : options.contentType
     };
     downloadAsHTML(paperRef, filename, printOptions);
+  };
+
+  const handleTriggerDownloadPDF = async () => {
+    const safeSlug = (options.title || title).toLowerCase().replace(/[^a-z0-9_-]+/g, '_').slice(0, 60) || 'eduai';
+    const filename = `${safeSlug}_${selectedSection}.pdf`;
+    const printOptions: PrintOptions = {
+      ...options,
+      contentType: selectedSection === 'memo' ? 'Memorandum Key' : selectedSection === 'rubric' ? 'Assessment Rubric' : options.contentType
+    };
+    await downloadAsPDF(paperRef, filename, printOptions);
   };
 
   return (
@@ -293,7 +303,16 @@ export default function PrintPreviewModal({
                 className="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-brand-cyan hover:bg-cyan-500 text-navy-dark rounded-2xl font-sans font-black uppercase tracking-widest text-xs transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-brand-cyan/20 cursor-pointer"
               >
                 <Printer size={16} strokeWidth={2.5} />
-                <span>Simulate & Print (PDF)</span>
+                <span>Simulate & Print</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleTriggerDownloadPDF}
+                className="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-sans font-black uppercase tracking-widest text-xs transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-600/25 cursor-pointer"
+              >
+                <Download size={16} strokeWidth={2.5} />
+                <span>Download as PDF</span>
               </button>
 
               <button

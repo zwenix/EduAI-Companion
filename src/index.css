@@ -981,6 +981,55 @@ svg:not(.not-sketchy) {
   }
 }
 
+/* Generation-loading mode: disable expensive blur/animation effects globally to
+   prevent the menu/content boxes from flickering while streaming chunks on
+   Android. Add className="eduai-generating" to a parent (e.g. <body>) during
+   generation and remove it when done. */
+.eduai-generating,
+.eduai-generating * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.eduai-generating .menu-glow-card,
+.eduai-generating .glass-neon-card,
+.eduai-generating .glass {
+  background: rgba(12, 18, 37, 0.97) !important;
+}
+/* Kill the continuous scanning sweep & pulsing shadows while generating to
+   avoid repeated layer invalidation that causes flashing on Android. */
+.eduai-generating .animate-pulse,
+.eduai-generating .animate-ping {
+  animation: none !important;
+  opacity: 1 !important;
+}
+.eduai-generating .motion-div,
+.eduai-generating [class*="motion-"] {
+  animation-duration: 0ms !important;
+  transition-duration: 0ms !important;
+}
+
+/* Android WebView global anti-flicker. Force GPU composition on the root
+   surface and on prominent cards so the browser never paints a white frame
+   between React re-renders. */
+html.android-webview body,
+html.android-webview #root,
+html.android-webview .app-shell {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  background-color: #091225 !important;
+}
+html.android-webview .menu-glow-card,
+html.android-webview .rounded-3xl,
+html.android-webview .rounded-2xl {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: auto;
+}
+
 /* Showcase slideshow images — GPU layer, no flashing on Android */
 .showcase-slideshow-img {
   transform: translateZ(0);

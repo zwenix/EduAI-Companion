@@ -20,11 +20,8 @@ import EduVideoPlayer from './EduVideoPlayer';
 import VideoGenerationHistory from './VideoGenerationHistory';
 import { PromptQualityValidator } from '../lib/prompt-validator';
 import { EDUCATIONAL_IMAGE_STYLE } from '../lib/prompt-priority';
-// @ts-ignore
-import html2pdf from 'html2pdf.js';
 import { printContent, downloadAsHTML, downloadAsPDF } from '../lib/printUtils';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
-import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 import PrintPreviewModal from './PrintPreviewModal';
 import { PosterPreview } from './PosterPreview';
 import VideoLabConsole from './VideoLabConsole';
@@ -678,6 +675,16 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
     }
   }, [initialTab]);
 
+  // Toggle the global "eduai-generating" body class while content is being
+  // forged. Android WebView disables heavy blurs/animations under this class
+  // so menu & content cards stop flickering during streaming updates.
+  useEffect(() => {
+    const setGen = (window as any).__eduaiSetGenerating;
+    if (typeof setGen !== 'function') return;
+    setGen(isGenerating);
+    return () => { if (isGenerating) setGen(false); };
+  }, [isGenerating]);
+
   useEffect(() => {
     // Update topics when subject changes
     const gradeKey = getGradeKey(t_grade);
@@ -1127,35 +1134,57 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
     }
   };
 
+  const getActiveSectionHTML = (): string => {
+    if (activeTab === 'teaching' || activeTab === 'grade1') {
+      return activePreviewTab === 'memo'
+        ? (teachingResult?.memo || '')
+        : activePreviewTab === 'rubric'
+        ? (teachingResult?.rubric || '')
+        : (teachingResult?.content || '');
+    }
+    if (activeTab === 'visual') return visualResult?.content || '';
+    return adminResult?.content || '';
+  };
+
   const handlePrint = () => {
-    const docTitle = activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : a_topic || 'EduAI Content';
+    const docTitle = activeTab === 'teaching'
+      ? (t_topic || t_type || 'Lesson Material')
+      : activeTab === 'visual' ? (v_topic || v_type || 'Visual Aid') : (a_topic || 'EduAI Content');
     const activeSubject = activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject;
     const activeGrade = activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade;
-    const activeHtml = (activeTab === 'teaching' || activeTab === 'grade1' ? teachingResult?.content : activeTab === 'visual' ? visualResult?.content : adminResult?.content) || '';
+    const rawHtml = getActiveSectionHTML();
 
-    if (contentRef.current && contentRef.current.innerHTML.trim()) {
-      printContent(contentRef, docTitle, { subject: activeSubject, grade: activeGrade, title: docTitle });
-    } else if (activeHtml) {
-      printContent(activeHtml, docTitle, { subject: activeSubject, grade: activeGrade, title: docTitle });
-    } else {
+    if (!rawHtml) {
       triggerToast('No content available to print yet.', 'info');
+      return;
     }
+    // Strip outer <html>/<body> wrappers so printContent can inject its own header.
+    const bodyOnly = rawHtml.replace(/^[\s\S]*<body[^>]*>/i, '').replace(/<\/body>[\s\S]*$/i, '').replace(/<\/html>[\s\S]*$/i, '');
+    printContent(bodyOnly || rawHtml, docTitle, {
+      subject: activeSubject, grade: activeGrade, title: docTitle,
+      contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : undefined
+    });
   };
 
   const handleDownloadPDF = async () => {
-    const docTitle = activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : a_topic || 'EduAI Content';
-    const filename = `${docTitle.toLowerCase().replace(/[^a-z0-9_-]/g, '_')}_${Date.now()}.pdf`;
+    const docTitle = activeTab === 'teaching'
+      ? (t_topic || t_type || 'Lesson Material')
+      : activeTab === 'visual' ? (v_topic || v_type || 'Visual Aid') : (a_topic || 'EduAI Content');
+    const safeSlug = docTitle.toLowerCase().replace(/[^a-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'eduai';
+    const filename = `${safeSlug}_${Date.now()}.pdf`;
     const activeSubject = activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject;
     const activeGrade = activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade;
-    const activeHtml = (activeTab === 'teaching' || activeTab === 'grade1' ? teachingResult?.content : activeTab === 'visual' ? visualResult?.content : adminResult?.content) || '';
+    const rawHtml = getActiveSectionHTML();
 
-    if (contentRef.current && contentRef.current.innerHTML.trim()) {
-      await downloadAsPDF(contentRef, filename, { subject: activeSubject, grade: activeGrade, title: docTitle });
-    } else if (activeHtml) {
-      await downloadAsPDF(activeHtml, filename, { subject: activeSubject, grade: activeGrade, title: docTitle });
-    } else {
+    if (!rawHtml) {
       triggerToast('No content available to download as PDF yet.', 'info');
+      return;
     }
+    const bodyOnly = rawHtml.replace(/^[\s\S]*<body[^>]*>/i, '').replace(/<\/body>[\s\S]*$/i, '').replace(/<\/html>[\s\S]*$/i, '');
+    await downloadAsPDF(bodyOnly || rawHtml, filename, {
+      subject: activeSubject, grade: activeGrade, title: docTitle,
+      contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : undefined
+    });
   };
 
   const handleToggleEdit = () => {
