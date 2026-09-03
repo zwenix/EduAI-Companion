@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { 
   Printer, 
   Download, 
+  Loader2,
   X, 
   Info, 
   Sparkles, 
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 import { printContent, downloadAsHTML, downloadAsPDF, PrintOptions, removeLegacyHeader } from '../lib/printUtils';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
+import { supportsSystemPrint } from '../lib/platform';
 
 interface PrintPreviewModalProps {
   isOpen: boolean;
@@ -40,7 +42,12 @@ export default function PrintPreviewModal({
   fontStyle = 'Standard System (Inter)'
 }: PrintPreviewModalProps) {
   const [selectedSection, setSelectedSection] = useState<'content' | 'memo' | 'rubric'>('content');
+  const [busyAction, setBusyAction] = useState<'print' | 'pdf' | 'html' | null>(null);
   const paperRef = useRef<HTMLDivElement>(null);
+  // Android (APK WebView *and* Chrome/PWA) has no scriptable print dialog, so
+  // "print" there means: build the PDF, save it on the device and open the system
+  // sheet where Print / Drive / Files / mail are one tap away.
+  const systemPrint = supportsSystemPrint();
 
   const isFoundation = useMemo(() => {
     if (!options.grade) return false;
@@ -117,7 +124,8 @@ export default function PrintPreviewModal({
 
   if (!isOpen) return null;
 
-  const handleTriggerPrint = () => {
+  const handleTriggerPrint = async () => {
+    if (busyAction) return;
     // Generate printed PDF with correct options
     const printTitle = `${options.title || title} - ${selectedSection.toUpperCase()}`;
     const printOptions: PrintOptions = {
@@ -125,26 +133,43 @@ export default function PrintPreviewModal({
       contentType: selectedSection === 'memo' ? 'Memorandum Key' : selectedSection === 'rubric' ? 'Assessment Rubric' : options.contentType,
       title: printTitle
     };
-    printContent(paperRef, printTitle, printOptions);
+    setBusyAction('print');
+    try {
+      await printContent(paperRef, printTitle, printOptions);
+    } finally {
+      setBusyAction(null);
+    }
   };
 
   const handleTriggerDownloadHTML = () => {
+    if (busyAction) return;
     const filename = `${(options.title || title).replace(/\s+/g, '_')}_${selectedSection}.html`;
     const printOptions: PrintOptions = {
       ...options,
       contentType: selectedSection === 'memo' ? 'Memorandum Key' : selectedSection === 'rubric' ? 'Assessment Rubric' : options.contentType
     };
-    downloadAsHTML(paperRef, filename, printOptions);
+    setBusyAction('html');
+    try {
+      downloadAsHTML(paperRef, filename, printOptions);
+    } finally {
+      setBusyAction(null);
+    }
   };
 
   const handleTriggerDownloadPDF = async () => {
+    if (busyAction) return;
     const safeSlug = (options.title || title).toLowerCase().replace(/[^a-z0-9_-]+/g, '_').slice(0, 60) || 'eduai';
     const filename = `${safeSlug}_${selectedSection}.pdf`;
     const printOptions: PrintOptions = {
       ...options,
       contentType: selectedSection === 'memo' ? 'Memorandum Key' : selectedSection === 'rubric' ? 'Assessment Rubric' : options.contentType
     };
-    await downloadAsPDF(paperRef, filename, printOptions);
+    setBusyAction('pdf');
+    try {
+      await downloadAsPDF(paperRef, filename, printOptions);
+    } finally {
+      setBusyAction(null);
+    }
   };
 
   return (
@@ -300,29 +325,40 @@ export default function PrintPreviewModal({
               <button
                 type="button"
                 onClick={handleTriggerPrint}
-                className="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-brand-cyan hover:bg-cyan-500 text-navy-dark rounded-2xl font-sans font-black uppercase tracking-widest text-xs transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-brand-cyan/20 cursor-pointer"
+                disabled={!!busyAction}
+                className={`w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-brand-cyan hover:bg-cyan-500 text-navy-dark rounded-2xl font-sans font-black uppercase tracking-widest text-xs transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-brand-cyan/20 ${busyAction ? 'opacity-60 cursor-wait' : 'cursor-pointer'}`}
               >
-                <Printer size={16} strokeWidth={2.5} />
-                <span>Simulate & Print</span>
+                {busyAction === 'print' ? <Loader2 size={16} className="animate-spin" strokeWidth={2.5} /> : <Printer size={16} strokeWidth={2.5} />}
+                <span>{busyAction === 'print' ? 'Working…' : systemPrint ? 'Simulate & Print' : 'Print / Save PDF'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleTriggerDownloadPDF}
-                className="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-sans font-black uppercase tracking-widest text-xs transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-600/25 cursor-pointer"
+                disabled={!!busyAction}
+                className={`w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-sans font-black uppercase tracking-widest text-xs transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-600/25 ${busyAction ? 'opacity-60 cursor-wait' : 'cursor-pointer'}`}
               >
-                <Download size={16} strokeWidth={2.5} />
-                <span>Download as PDF</span>
+                {busyAction === 'pdf' ? <Loader2 size={16} className="animate-spin" strokeWidth={2.5} /> : <Download size={16} strokeWidth={2.5} />}
+                <span>{busyAction === 'pdf' ? 'Exporting…' : systemPrint ? 'Download as PDF' : 'Export PDF to device'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleTriggerDownloadHTML}
-                className={`w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl font-sans font-black uppercase tracking-widest text-xs transition-all border hover:scale-[1.02] active:scale-[0.98] ${isDarkMode ? 'bg-white/5 hover:bg-transparent text-white border-white/10' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-sm'}`}
+                disabled={!!busyAction}
+                className={`w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl font-sans font-black uppercase tracking-widest text-xs transition-all border hover:scale-[1.02] active:scale-[0.98] ${busyAction ? 'opacity-60 cursor-wait' : ''} ${isDarkMode ? 'bg-white/5 hover:bg-transparent text-white border-white/10' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-sm'}`}
               >
-                <Download size={16} />
-                <span>Download HTML Source</span>
+                {busyAction === 'html' ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                <span>{busyAction === 'html' ? 'Saving…' : 'Download HTML Source'}</span>
               </button>
+
+              {!systemPrint && (
+                <p className="text-[10px] font-bold leading-relaxed text-slate-400/80 px-1">
+                  On Android the PDF is written to your device and the system sheet opens —
+                  choose <span className="text-brand-cyan">Print</span>, <span className="text-brand-cyan">Drive</span>,{' '}
+                  <span className="text-brand-cyan">Files</span> or any app to send it to.
+                </p>
+              )}
             </div>
 
           </div>

@@ -5,6 +5,8 @@ import './index.css';
 
 import { AiProvider } from './contexts/AiContext.tsx';
 import { installImageRecovery } from './lib/imageRecovery.ts';
+import { installNativeDownloadBridge } from './lib/nativeDownloadBridge.ts';
+import { installExportSafetyNet } from './lib/exportSafetyNet.ts';
 
 // Detect Android WebView once at boot and tag <html> so CSS can disable
 // expensive backdrop-blur/animations that cause flickering on that platform.
@@ -29,6 +31,15 @@ import { installImageRecovery } from './lib/imageRecovery.ts';
 // backend-only /api/image-proxy route inside the Android APK) and re-resolve
 // them through the provider chain instead of leaving a blank placeholder.
 installImageRecovery();
+
+// Android WebView drops blob downloads and turns blank popups into external
+// browser intents. This bridge routes every `<a download>` export through the
+// device filesystem + share sheet instead (PDF, HTML, images, video, JSON…).
+installNativeDownloadBridge();
+
+// Remove any invisible html2pdf overlay / cloned iframe left behind by a failed
+// export so a stuck layer can never make the app look frozen.
+installExportSafetyNet();
 
 
 import { NotificationManager } from './lib/notifications/NotificationManager';

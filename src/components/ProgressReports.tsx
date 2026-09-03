@@ -16,6 +16,10 @@ import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, updateDoc, doc, setDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
+import { renderElementToPdfBlob } from '../lib/pdfPaginate';
+import { deliverFile } from '../lib/nativeExport';
+import { beginExport, failExport, finishExport, updateExport } from '../lib/exportProgress';
+import { supportsSystemPrint } from '../lib/platform';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
@@ -542,56 +546,65 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
       // Add a small delay to ensure rendering triggers if needed
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Intercept modern 'oklch' color styles before running html2canvas
-      const restoreGetComputedStyle = patchOklchForHtml2canvas();
+      const filename = `${currentStudent.name.replace(/\s+/g, '_')}_Individual_CAPS_Report.pdf`;
+      beginExport('Exporting progress report', 'Preparing pages…');
 
-      let canvas;
-      try {
-        // Capture element with html2canvas (configured for crisp rendering, background color preservation)
-        canvas = await html2canvas(element, {
-          scale: 2, // High resolution crisp text and graphics
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#0f172a', // Consistent theme background
-          logging: false,
-        });
-      } finally {
-        // Restore standard getComputedStyle immediately
-        restoreGetComputedStyle();
-      }
+      // Page-by-page render (bounded memory, cancellable) — a single tall canvas
+      // exceeds Android WebView limits and used to hang the export.
+      let blob: Blob;
+      if (supportsSystemPrint()) {
+        // Desktop: keep the existing crisp single-shot capture.
+        const restoreGetComputedStyle = patchOklchForHtml2canvas();
+        let canvas;
+        try {
+          canvas = await html2canvas(element, {
+            scale: 2, // High resolution crisp text and graphics
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#0f172a', // Consistent theme background
+            logging: false,
+          });
+        } finally {
+          restoreGetComputedStyle();
+        }
 
-      const imgData = canvas.toDataURL('image/png');
-      
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'px',
-        format: 'a4'
-      });
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        let heightLeft = pdfHeight;
+        let position = 0;
 
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgHeight * pdfWidth) / imgWidth;
-
-      let heightLeft = pdfHeight;
-      let position = 0;
-      const pageHeight = pdf.internal.pageSize.getHeight();
-
-      // Page 1
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pageHeight;
-
-      // multi-page support
-      while (heightLeft > 0) {
-        position = heightLeft - pdfHeight;
-        pdf.addPage();
         pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
         heightLeft -= pageHeight;
+        while (heightLeft > 0) {
+          position = heightLeft - pdfHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+          heightLeft -= pageHeight;
+        }
+        blob = pdf.output('blob') as Blob;
+      } else {
+        blob = await renderElementToPdfBlob(element, {
+          format: 'a4',
+          orientation: 'portrait',
+          backgroundColor: '#0f172a',
+          onPage: (page, totalPages) =>
+            updateExport(`Rendering page ${page} of ${totalPages}…`, Math.round((page / Math.max(1, totalPages)) * 100))
+        });
       }
 
-      pdf.save(`${currentStudent.name.replace(/\s+/g, '_')}_Individual_CAPS_Report.pdf`);
+      updateExport('Saving file…');
+      const result = await deliverFile(blob, filename, {
+        shareTitle: `${currentStudent.name} — CAPS Progress Report`,
+        dialogTitle: 'Print, save or share the report',
+        successMessage: null
+      });
+      finishExport(result.ok ? `${filename} ready.` : undefined);
     } catch (error) {
       console.error("Failed to generate PDF:", error);
+      failExport('Could not build the report PDF — saving the raw data instead.');
       // Fallback: download as raw JSON in worst case scenario
       const blob = new Blob([JSON.stringify(currentStudent, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);

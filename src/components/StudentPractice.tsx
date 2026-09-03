@@ -27,6 +27,7 @@ import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import html2pdf from 'html2pdf.js';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
+import { cleanupExportArtifacts } from '../lib/printUtils';
 import PrintPreviewModal from './PrintPreviewModal';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
@@ -209,6 +210,9 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
       console.error("PDF download failed:", err);
     }).finally(() => {
       restoreGetComputedStyle();
+      // A failed render can leave html2pdf's invisible full-screen overlay (and a
+      // cloned-iframe DOM copy) behind — sweep them so the app stays tappable.
+      cleanupExportArtifacts();
       if (document.body.contains(tempContainer)) {
         document.body.removeChild(tempContainer);
       }

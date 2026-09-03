@@ -94,6 +94,9 @@ const stripMarkdownWrapper = (text: string) => {
 import { replaceImagePlaceholders } from './lib/imageReplacer';
 import { useAndroidBackButton } from './lib/useAndroidBackButton';
 import { isNativeApp } from './lib/platform';
+import { TOAST_EVENT } from './lib/nativeExport';
+import { isExportActive, requestExportCancel } from './lib/exportProgress';
+import ExportProgressDialog from './components/ExportProgressDialog';
 import ContentCreator from './components/ContentCreator';
 import Messenger from './components/Messenger';
 import ProgressReports from './components/ProgressReports';
@@ -696,6 +699,9 @@ export default function App() {
     if (!showDashboard) return false; // Landing page → confirm exit
 
     // 1. Modals & fullscreen overlays
+    //    A running PDF/print export is dismissed first so the device back button
+    //    is always an escape hatch, even mid-render.
+    if (isExportActive()) { requestExportCancel(); return true; }
     if (isOfflineReaderOpen) { setIsOfflineReaderOpen(false); return true; }
     if (apiBlockedAlert) { setApiBlockedAlert(null); return true; }
     if (isOfflineViewerOpen) {
@@ -767,6 +773,19 @@ export default function App() {
       setSyncToast(prev => ({ ...prev, show: false }));
     }, 4500);
   };
+
+  // Library-level code (PDF/print export, the Android download bridge) cannot
+  // reach React state directly, so it announces user-facing messages through a
+  // window event and we surface them with the normal toast.
+  useEffect(() => {
+    const onLibToast = (event: Event) => {
+      const detail = (event as CustomEvent<{ message?: string; type?: 'success' | 'info' | 'error' }>).detail;
+      if (!detail?.message) return;
+      triggerToast(detail.message, detail.type || 'info');
+    };
+    window.addEventListener(TOAST_EVENT, onLibToast as EventListener);
+    return () => window.removeEventListener(TOAST_EVENT, onLibToast as EventListener);
+  }, []);
 
   const handleOfflineSync = async () => {
     setSyncStatus('syncing');
@@ -2707,7 +2726,10 @@ export default function App() {
                       }`}
                     >
                       <option value="perchance">
-                        Perchance AI Text-to-Image (Primary → Pollinations fallback)
+                        Perchance AI Text-to-Image (Primary → Qwen / Pollinations fallback)
+                      </option>
+                      <option value="qwen">
+                        Qwen-Image · NVIDIA NIM (Premium SA → Pollinations fallback)
                       </option>
                       <option value="gemini-imagen">
                         Google Imagen 3 (Secondary → Pollinations fallback)
@@ -3062,6 +3084,9 @@ export default function App() {
 
       {/* Offline sync success/error notifications or generic toast */}
       <AnimatePresence>
+        {/* Global export/print progress overlay (PDF builds, Android saves) */}
+        <ExportProgressDialog />
+
         {syncToast.show && (
           <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.9 }}

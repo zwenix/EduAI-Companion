@@ -11,6 +11,7 @@ import LoadingMascot from './LoadingMascot';
 import StudentAITutorBubble from './StudentAITutorBubble';
 import { runTextGrade, runOCRAndGrade } from '../services/unifiedAiService';
 import { marked } from 'marked';
+import { printContent } from '../lib/printUtils';
 
 const stripMarkdownWrapper = (text: string) => {
   if (!text) return text;
@@ -472,40 +473,25 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
     }
   };
 
+  // Android-safe: `window.open('')` inside the Capacitor WebView becomes an
+  // external browser intent and `window.print()` does nothing there, so the
+  // learner used to lose the worksheet entirely. printContent prints on desktop
+  // and exports a device-saved PDF on Android.
   const handlePrintAssignment = () => {
     if (!selectedAssignment) return;
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>${selectedAssignment.title}</title>
-            <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-            <style>
-              body { padding: 40px; font-family: system-ui, sans-serif; }
-              @media print {
-                body { padding: 0; }
-                button { display: none; }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="max-w-4xl mx-auto">
-              <div class="border-b-2 pb-4 mb-6">
-                <span class="text-xs uppercase font-extrabold tracking-widest text-[#06b6d4]">${selectedAssignment.subject} • Class ${selectedAssignment.grade}</span>
-                <h1 class="text-3xl font-black mt-1">${selectedAssignment.title}</h1>
-                <p class="text-xs text-gray-400 mt-2">Assigned by: ${selectedAssignment.teacherName} • Subject Assessment</style>
-              </div>
-              <div class="prose max-w-none mt-6">
-                ${selectedAssignment.content}
-              </div>
-            </div>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-    }
+    const headerHtml = `
+      <div style="border-bottom:2px solid #e2e8f0;padding-bottom:1rem;margin-bottom:1.5rem;">
+        <span style="font-size:0.7rem;text-transform:uppercase;font-weight:800;letter-spacing:0.12em;color:#0891b2;">${selectedAssignment.subject} • Class ${selectedAssignment.grade}</span>
+        <h1 style="font-size:1.75rem;font-weight:900;margin-top:0.25rem;color:#0f172a;">${selectedAssignment.title}</h1>
+        <p style="font-size:0.7rem;color:#64748b;margin-top:0.5rem;">Assigned by: ${selectedAssignment.teacherName} • Subject Assessment</p>
+      </div>
+    `;
+    void printContent(`${headerHtml}<div class="prose max-w-none">${selectedAssignment.content || ''}</div>`, selectedAssignment.title || 'EduAI Assignment', {
+      title: selectedAssignment.title || 'EduAI Assignment',
+      subject: selectedAssignment.subject,
+      grade: selectedAssignment.grade,
+      contentType: 'Assignment'
+    });
   };
 
   const handleSubmitAssignment = async () => {
