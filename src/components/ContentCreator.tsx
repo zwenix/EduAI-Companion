@@ -1092,9 +1092,105 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
     }
   };
 
+  const handleGenerateFoundation = async (options?: { goals?: string[]; difficulty?: 'linear' | 'adaptive' | 'stepped'; interactionMode?: string }) => {
+    setIsGenerating(true);
+    const progressInterval = startProgress();
+    const activeGoals = options?.goals?.length ? options.goals.join(', ') : (f_topic || 'Phonetic Blending, Sight Words, CVC Patterns');
+    const activeDifficulty = options?.difficulty || 'adaptive';
+    const activeInteractionMode = options?.interactionMode || 'Drag and Drop';
+    const activeGradeStr = f_grade || 'Grade 2';
+    const activeLangStr = f_language || 'English';
+
+    try {
+      const promptInstructions = `Foundation Phase Interactive Game & Reading Activity.
+Learning Goals: ${activeGoals}
+Difficulty Curve: ${activeDifficulty}
+Interaction Mode: ${activeInteractionMode}
+Target Grade: ${activeGradeStr}
+Target Language: ${activeLangStr}
+Instructions: Create a complete, engaging CAPS Foundation Phase educational pack and interactive game logic. Include:
+1. Warm-up & Phonemic Awareness / Letter Sound recognition
+2. Core Gameplay Activity (Interactive matching / CVC spelling / word completion)
+3. Step-by-step game mechanics with clear instructions and rewards
+4. Differentiated challenges (Lower Order to Higher Order progression)
+5. Printable activity sheet & Teacher's Observation Checklist.
+Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast, colorful badges, playful emojis, and clear large typography).`;
+
+      const result = await generateCAPSContent({
+        grade: activeGradeStr,
+        subject: activeLangStr,
+        topic: f_topic || `Foundation Phase - ${activeGoals}`,
+        contentType: 'Interactive Foundation Learning Pack',
+        language: activeLangStr,
+        difficulty: activeDifficulty === 'linear' ? 'Easy (Lower Order Thinking)' : activeDifficulty === 'stepped' ? 'Challenging (Higher Order)' : 'Medium (Mixed)',
+        term: 'Term 1',
+        duration: '30 minutes',
+        learners: `Foundation Phase Learners (${activeGradeStr})`,
+        capsAlignment: 'DBE CAPS Foundation Phase Curriculum Standard',
+        additionalInstructions: promptInstructions,
+        differentiation: 'Auditory, visual and kinesthetic multi-modal activities for young learners',
+        ictIntegration: 'Interactive screen and printable game elements',
+        inclusiveEd: 'SIAS & WP6 inclusive early childhood design',
+        generateImage: true
+      }, provider, (partial) => {
+        if (partial && Object.keys(partial).length > 0) {
+          setTeachingResult(partial);
+          if (partial.content) {
+            const length = partial.content.length;
+            const progress = Math.min(99, Math.round((length / 8000) * 100));
+            setGenerationProgress((prev) => Math.max(prev, progress));
+            setGenerationPhase(`Architecting Foundation game logic... (${length} chars generated)`);
+          }
+        }
+      });
+
+      setGenerationProgress(100);
+      setGenerationPhase('Foundation Logic successfully forged!');
+      setTeachingResult(result);
+      setCurrentDocId(`foundation-${Date.now()}`);
+
+      // Save to versions
+      setVersions((prev: any) => ({
+        ...prev,
+        teaching: [...(prev.teaching || []), {
+          content: result.content,
+          memo: result.memo,
+          rubric: result.rubric,
+          timestamp: new Date().toLocaleString()
+        }]
+      }));
+
+      // Trigger automatic content quality check in background
+      setIsAssessingQuality(true);
+      checkContentQuality({
+        contentType: 'Interactive Foundation Learning Pack',
+        grade: activeGradeStr,
+        subject: activeLangStr,
+        topic: f_topic || `Foundation Phase - ${activeGoals}`,
+        content: result.content,
+        language: activeLangStr,
+        term: 'Term 1'
+      }).then(rating => {
+        setTeachingResult((prev: any) => ({ ...prev, qualityRating: rating }));
+        setIsAssessingQuality(false);
+      }).catch(e => {
+        console.error("Auto quality assessment failed:", e);
+        setIsAssessingQuality(false);
+      });
+    } catch (error: any) {
+      console.error('Foundation generation error:', error);
+      triggerToast(error.message || 'Failed to generate Foundation Phase content', 'error');
+    } finally {
+      clearInterval(progressInterval);
+      setIsGenerating(false);
+    }
+  };
+
   const handleForge = async () => {
-    if (activeTab === 'teaching' || activeTab === 'grade1') {
+    if (activeTab === 'teaching') {
       await handleGenerateTeaching();
+    } else if (activeTab === 'grade1') {
+      await handleGenerateFoundation();
     } else if (activeTab === 'visual') {
       await handleGenerateVisual();
     } else if (activeTab === 'admin') {
@@ -1174,9 +1270,11 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
   const handlePrint = async () => {
     const docTitle = activeTab === 'teaching'
       ? (t_topic || t_type || 'Lesson Material')
+      : activeTab === 'grade1'
+      ? (f_topic || 'Foundation Phase Activity')
       : activeTab === 'visual' ? (v_topic || v_type || 'Visual Aid') : (a_topic || 'EduAI Content');
-    const activeSubject = activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject;
-    const activeGrade = activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade;
+    const activeSubject = activeTab === 'teaching' ? t_subject : activeTab === 'grade1' ? f_language : activeTab === 'visual' ? v_subject : a_subject;
+    const activeGrade = activeTab === 'teaching' ? t_grade : activeTab === 'grade1' ? f_grade : activeTab === 'visual' ? v_grade : a_grade;
     const rawHtml = getActiveSectionHTML();
 
     if (!rawHtml) {
@@ -1208,11 +1306,13 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
   const handleDownloadPDF = async () => {
     const docTitle = activeTab === 'teaching'
       ? (t_topic || t_type || 'Lesson Material')
+      : activeTab === 'grade1'
+      ? (f_topic || 'Foundation Phase Activity')
       : activeTab === 'visual' ? (v_topic || v_type || 'Visual Aid') : (a_topic || 'EduAI Content');
     const safeSlug = docTitle.toLowerCase().replace(/[^a-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'eduai';
     const filename = `${safeSlug}_${Date.now()}.pdf`;
-    const activeSubject = activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject;
-    const activeGrade = activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade;
+    const activeSubject = activeTab === 'teaching' ? t_subject : activeTab === 'grade1' ? f_language : activeTab === 'visual' ? v_subject : a_subject;
+    const activeGrade = activeTab === 'teaching' ? t_grade : activeTab === 'grade1' ? f_grade : activeTab === 'visual' ? v_grade : a_grade;
     const rawHtml = getActiveSectionHTML();
 
     if (!rawHtml) {
@@ -1289,9 +1389,9 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                  activeTab === 'visual' ? visualResult : adminResult,
         timestamp: serverTimestamp(),
         metadata: {
-          grade: activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade,
-          subject: activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : a_subject,
-          topic: activeTab === 'teaching' ? t_topic : activeTab === 'visual' ? v_topic : a_topic,
+          grade: activeTab === 'teaching' ? t_grade : activeTab === 'grade1' ? f_grade : activeTab === 'visual' ? v_grade : a_grade,
+          subject: activeTab === 'teaching' ? t_subject : activeTab === 'grade1' ? f_language : activeTab === 'visual' ? v_subject : a_subject,
+          topic: activeTab === 'teaching' ? t_topic : activeTab === 'grade1' ? (f_topic || 'Foundation Phase Activity') : activeTab === 'visual' ? v_topic : a_topic,
           ...(activeTab === 'admin' ? {
             schoolName: a_school,
             timeDate: a_timeDate,
@@ -1304,7 +1404,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
         }
       };
       
-      await setDoc(doc(db, 'users', userId, 'archive', currentDocId), docData);
+      await setDoc(doc(db, 'users', userId, 'archive', currentDocId || `archive-${Date.now()}`), docData);
       setArchiveSuccess(true);
       setTimeout(() => setArchiveSuccess(false), 2000);
     } catch (error) {
@@ -1353,14 +1453,14 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
     e.preventDefault();
     try {
       const userId = auth.currentUser?.uid || 'guest';
-      const activeHtml = activeTab === 'teaching' 
+      const activeHtml = (activeTab === 'teaching' || activeTab === 'grade1')
         ? (activePreviewTab === 'content' ? (teachingResult?.content || '') : activePreviewTab === 'memo' ? (teachingResult?.memo || '') : (teachingResult?.rubric || ''))
         : activeTab === 'visual' ? (visualResult?.content || '')
         : (adminResult?.content || '');
         
-      const currentTitle = (activeTab === 'teaching' ? t_topic : activeTab === 'visual' ? v_topic : a_topic) || 'CAPS Educational Content';
-      const currentSubject = (activeTab === 'teaching' ? (t_subject === 'Other' ? t_customSubject : t_subject) : activeTab === 'visual' ? (v_subject === 'Other' ? v_customSubject : v_subject) : (a_subject === 'Other' ? a_customSubject : a_subject)) || 'General';
-      const currentGrade = activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : a_grade;
+      const currentTitle = (activeTab === 'teaching' ? t_topic : activeTab === 'grade1' ? (f_topic || 'Foundation Phase Activity') : activeTab === 'visual' ? v_topic : a_topic) || 'CAPS Educational Content';
+      const currentSubject = (activeTab === 'teaching' ? (t_subject === 'Other' ? t_customSubject : t_subject) : activeTab === 'grade1' ? f_language : activeTab === 'visual' ? (v_subject === 'Other' ? v_customSubject : v_subject) : (a_subject === 'Other' ? a_customSubject : a_subject)) || 'General';
+      const currentGrade = activeTab === 'teaching' ? t_grade : activeTab === 'grade1' ? f_grade : activeTab === 'visual' ? v_grade : a_grade;
 
       if (userId && db) {
         const assignDocRef = doc(collection(db, 'assignments'));
@@ -1667,7 +1767,18 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
             </div>
           ) : activeTab === 'grade1' ? (
             <div className="max-w-6xl mx-auto">
-              <FoundationPhaseArchitect isDarkMode={isDarkMode} onClose={onClose} />
+              <FoundationPhaseArchitect 
+                isDarkMode={isDarkMode}
+                teachingResult={teachingResult}
+                isLoading={isGenerating}
+                onGenerate={(opts) => handleGenerateFoundation(opts)}
+                grade={f_grade}
+                onGradeChange={setF_Grade}
+                language={f_language}
+                onLanguageChange={setF_Language}
+                onBack={() => setActiveTab('teaching')}
+                onClose={onClose}
+              />
             </div>
           ) : (
             /* Main Content Grid for Teaching, Visual, Admin */
@@ -3221,7 +3332,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
                     <p className="text-xs text-slate-400">Copy as plain text</p>
                     <button
                       onClick={() => {
-                        const rawText = activeTab === 'teaching'
+                        const rawText = (activeTab === 'teaching' || activeTab === 'grade1')
                           ? teachingResult?.content 
                           : activeTab === 'visual' 
                           ? visualResult?.content 
@@ -3291,22 +3402,24 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
         title={
           activeTab === 'teaching'
             ? (t_topic || t_type || 'Lesson Material')
+            : activeTab === 'grade1'
+            ? (f_topic || 'Foundation Phase Activity')
             : activeTab === 'visual'
             ? (v_topic || v_type || 'Visual Concept')
             : 'Administrative Doc'
         }
         content={
-          activeTab === 'teaching' ? (teachingResult?.content || '') :
+          (activeTab === 'teaching' || activeTab === 'grade1') ? (teachingResult?.content || '') :
           activeTab === 'visual' ? (visualResult?.content || '') :
           (adminResult?.content || '')
         }
-        memo={activeTab === 'teaching' ? teachingResult?.memo : undefined}
-        rubric={activeTab === 'teaching' ? teachingResult?.rubric : undefined}
+        memo={(activeTab === 'teaching' || activeTab === 'grade1') ? teachingResult?.memo : undefined}
+        rubric={(activeTab === 'teaching' || activeTab === 'grade1') ? teachingResult?.rubric : undefined}
         options={{
-          subject: (activeTab === 'teaching' ? t_subject : activeTab === 'visual' ? v_subject : 'Administration') || 'General',
-          grade: (activeTab === 'teaching' ? t_grade : activeTab === 'visual' ? v_grade : 'All') || 'N/A',
-          contentType: (activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : 'Notice') || 'Document',
-          title: (activeTab === 'teaching' ? t_topic || t_type : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation'
+          subject: (activeTab === 'teaching' ? t_subject : activeTab === 'grade1' ? f_language : activeTab === 'visual' ? v_subject : 'Administration') || 'General',
+          grade: (activeTab === 'teaching' ? t_grade : activeTab === 'grade1' ? f_grade : activeTab === 'visual' ? v_grade : 'All') || 'N/A',
+          contentType: (activeTab === 'teaching' ? t_type : activeTab === 'grade1' ? 'Foundation Phase Activity' : activeTab === 'visual' ? v_type : 'Notice') || 'Document',
+          title: (activeTab === 'teaching' ? t_topic || t_type : activeTab === 'grade1' ? (f_topic || 'Foundation Phase Activity') : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation'
         }}
         isDarkMode={isDarkMode}
         fontStyle={fontStyle}
