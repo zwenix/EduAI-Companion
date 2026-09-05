@@ -427,10 +427,10 @@ export default function CollaborativeWorkspace({ isDarkMode }: CollaborativeWork
           <Sparkles size={14} className="animate-spin" />
           <span>Live Synced Workspace</span>
         </div>
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white font-display tracking-tight mb-3">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white font-display tracking-tight mb-3 art-title">
           ✨ Collaborative Workspace ✨
         </h1>
-        <p className="text-slate-300 max-w-2xl mx-auto text-sm sm:text-base font-medium">
+        <p className="text-slate-200 max-w-2xl mx-auto text-sm sm:text-base font-medium art-body">
           Connect with classmates in real time. Work on assignments, divide research activities, and track live teammate presence instantly.
         </p>
       </div>

@@ -268,6 +268,15 @@ service cloud.firestore {
       allow delete: if isSignedIn() && existing().teacherId == request.auth.uid;
     }
 
+    // Learner academic portfolio items. Teachers (and admins) curate them;
+    // learners and parents get read access only — mirrors the UI, where the
+    // portfolio editor is rendered exclusively for teacher/admin roles.
+    match /portfolio_items/{itemId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isSignedIn() && existing().teacherId == request.auth.uid;
+    }
+
     // Attendance, behaviour/conduct and welfare records. Teachers create them;
     // parents and learners read them for their own children.
     match /student_records/{recordId} {

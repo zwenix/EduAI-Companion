@@ -262,10 +262,10 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
            <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-transparent backdrop-blur-md px-4 py-1.5 text-sm font-bold text-emerald-300 mb-6 shadow-sm">
              <Trophy size={16} className="text-emerald-400" /> Practice Zone
            </motion.div>
-           <h1 className="text-4xl lg:text-6xl font-hand tracking-wide leading-tight mb-4 drop-shadow-md">
+           <h1 className="text-4xl lg:text-6xl font-hand tracking-wide leading-tight mb-4 drop-shadow-md art-title">
              Practice & <span className="text-brand-cyan">Exercises</span>
            </h1>
-           <p className="text-slate-300 font-medium text-sm lg:text-base leading-relaxed max-w-lg">
+           <p className="text-slate-200 font-medium text-sm lg:text-base leading-relaxed max-w-lg art-body">
              Generate CAPS-aligned mock assessments, practice your skills, and get instant, detailed feedback on your handwritten answers.
            </p>
         </div>

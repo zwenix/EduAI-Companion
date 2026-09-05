@@ -189,17 +189,17 @@ export default function ContentSlideshow({ slides = TOOLBOX_SLIDES, tall = false
                   <span className={`px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest text-white bg-gradient-to-r ${currentSlide.badgeColor} shadow-sm`}>
                     {currentSlide.tag}
                   </span>
-                  <span className="text-[10px] font-mono font-bold text-slate-400">
+                  <span className="text-[10px] font-mono font-bold text-slate-300 art-chip">
                     0{index + 1} / 0{slides.length}
                   </span>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-display font-black text-white tracking-tight leading-tight drop-shadow-md">
+                <h3 className="text-xl sm:text-2xl font-display font-black text-white tracking-tight leading-tight drop-shadow-md art-title">
                   {currentSlide.title}
                 </h3>
               </div>
             </div>
 
-            <p className="text-xs sm:text-sm text-slate-200 font-medium leading-relaxed line-clamp-3 max-w-xl">
+            <p className="text-xs sm:text-sm text-slate-100 font-medium leading-relaxed line-clamp-3 max-w-xl art-body">
               {currentSlide.description}
             </p>
           </motion.div>

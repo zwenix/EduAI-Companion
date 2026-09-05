@@ -118,7 +118,7 @@ import CollaborativeWorkspace from './components/CollaborativeWorkspace';
 import StudentDashboard from './components/StudentDashboard';
 import TeacherDashboard from './components/TeacherDashboard';
 import AlertsPage from './components/AlertsPage';
-import StudentPortfolio from './components/StudentPortfolio';
+import LearnerPortfolioHub from './components/LearnerPortfolioHub';
 import CurriculumSuite from './components/CurriculumSuite';
 import ParentDashboard from './components/ParentDashboard';
 import ReaderModeModal from './components/ReaderModeModal';
@@ -1854,7 +1854,7 @@ export default function App() {
       </motion.aside>
 
       {/* Main Content — navy canvas end-to-end so overlay never leaves white bands */}
-      <main className={`flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden relative app-main-surface ${isDarkMode ? 'dark-theme' : themeMode === 'peach' ? 'peach-theme' : ''} transition-colors duration-500`}>
+      <main className={`flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden relative app-main-surface ${isDarkMode ? 'dark-theme' : themeMode === 'peach' ? 'peach-theme' : 'light-theme'} transition-colors duration-500`}>
         {/* Full-main overlay plate (behind header + content) so top/bottom never flash white */}
         <PageOverlay route={activeTab} blend="normal" opacity={0.45} vignette={false} drift={false} />
 
@@ -2962,7 +2962,7 @@ export default function App() {
                     ) : activeTab === 'class-management' ? (
                       <ClassManagement isDarkMode={isDarkMode} />
                     ) : activeTab === 'learner-intervention' ? (
-                      <LearnerInterventionHub isDarkMode={isDarkMode} triggerToast={triggerToast} onNavigateTab={(t) => changeTab(t)} />
+                      <LearnerInterventionHub isDarkMode={isDarkMode} userRole={userRole} triggerToast={triggerToast} onNavigateTab={(t) => changeTab(t)} />
                     ) : activeTab === 'ocr' ? (
                       <AutoGrading />
                     ) : activeTab === 'archive' ? (
@@ -2992,7 +2992,15 @@ export default function App() {
                     ) : activeTab === 'student-development' ? (
                       <StudentDevelopmentHub isDarkMode={isDarkMode} />
                     ) : activeTab === 'portfolios' ? (
-                      <StudentPortfolio isDarkMode={isDarkMode} />
+                      // Teachers/admins get the full learner vault (every learner,
+                      // grouped by class/alphabetically, editable). Learners and
+                      // parents get the same dossiers locked to read-only.
+                      <LearnerPortfolioHub
+                        isDarkMode={isDarkMode}
+                        userRole={userRole}
+                        onNavigateTab={(t) => changeTab(t)}
+                        triggerToast={triggerToast}
+                      />
                     ) : activeTab === 'curriculum' ? (
                       <CurriculumSuite isDarkMode={isDarkMode} userRole={userRole} />
                     ) : activeTab === 'settings' ? (

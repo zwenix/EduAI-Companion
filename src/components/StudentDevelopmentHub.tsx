@@ -94,9 +94,26 @@ export default function StudentDevelopmentHub({ isDarkMode }: { isDarkMode: bool
         )
       : null;
 
+    // The Learner Intervention Hub writes its SIAS plans to
+    // `learner_interventions` (not `interventions`), so learners never saw the
+    // support plans their teacher built for them. Listen to that collection too,
+    // matching on the learner link or on their name.
+    const unsubHub = onSnapshot(
+      collection(db, 'learner_interventions'),
+      (snapshot) => {
+        const name = (student.name || '').trim().toLowerCase();
+        const docs = snapshot.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter((iv: any) => iv.studentId === student.id || String(iv.learnerName || '').trim().toLowerCase() === name);
+        setInterventions(prev => merge(prev.filter((p: any) => p.__src !== 'hub'), docs.map(d => ({ ...d, __src: 'hub' }))));
+      },
+      (error) => console.warn('Interventions (hub) load note:', error)
+    );
+
     return () => {
       unsubById();
       if (unsubByName) unsubByName();
+      unsubHub();
     };
   }, [student?.id, student?.name]);
 
