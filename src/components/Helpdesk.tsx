@@ -965,7 +965,7 @@ export default function Helpdesk({ initialPane = 'howtos', onNavigate }: Helpdes
                             <div className="relative h-28 overflow-hidden">
                               <img src={guide.image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                               <div className="absolute inset-0 bg-gradient-to-t from-[#0c1024] to-transparent" />
-                              <span className="absolute bottom-2 left-3 text-[10px] font-black text-white/80 flex items-center gap-1"><Play size={10} /> {guide.steps.length * CLIP_SECONDS_PER_STEP}s clip</span>
+                              <span className="absolute bottom-2 left-3 text-[10px] font-black text-white flex items-center gap-1 art-chip"><Play size={10} /> {guide.steps.length * CLIP_SECONDS_PER_STEP}s clip</span>
                               {selected && isPlaying && <span className="absolute top-2 right-3 px-2 py-0.5 rounded-full bg-cyan-500 text-[#0c1024] text-[9px] font-black uppercase animate-pulse">Playing</span>}
                             </div>
                             <div className="p-3 bg-[#141a2e]">

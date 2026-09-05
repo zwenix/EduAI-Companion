@@ -244,12 +244,12 @@ function ShowcaseCard({
         </div>
         <div className="space-y-1">
           <div className="flex items-center justify-center gap-1.5">
-            <h3 className="text-[15px] font-black font-display leading-tight text-white group-hover:text-white">
+            <h3 className="text-[15px] font-black font-display leading-tight text-white art-title group-hover:text-white">
               {title}
             </h3>
             {badge}
           </div>
-          <p className="text-[11px] leading-snug font-medium text-slate-300">
+          <p className="text-[11px] leading-snug font-medium text-slate-200 art-body">
             {desc}
           </p>
         </div>
@@ -633,8 +633,11 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         <TeachingOuterSlideshow />
         <div className="absolute inset-0 bg-slate-950/40 pointer-events-none rounded-[28px]" />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 via-slate-950/20 to-transparent pointer-events-none rounded-[28px]" />
+        {/* Legibility scrim — additive layer above the backdrop art, under the copy.
+            The slideshow itself and its existing veils are untouched. */}
+        <div className="showcase-scrim" aria-hidden="true" />
 
-        <h2 className="relative z-10 text-xl font-display font-black tracking-widest text-cyan-400 uppercase flex items-center gap-2">
+        <h2 className="relative z-10 text-xl font-display font-black tracking-widest text-cyan-400 uppercase flex items-center gap-2 art-title">
           <span>TEACHING COMMAND CENTER</span>
           <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
         </h2>

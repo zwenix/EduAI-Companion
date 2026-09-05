@@ -454,10 +454,10 @@ export default function ContentArchive() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 lg:gap-6 bg-gradient-to-r from-cyan-600 to-indigo-600 p-6 lg:p-10 rounded-2xl lg:rounded-[3rem] text-white shadow-xl mb-6 lg:mb-8 relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
         <div className="relative z-10">
-          <h1 className="text-3xl lg:text-5xl font-hand flex items-center gap-3 lg:gap-4 text-white">
+          <h1 className="text-3xl lg:text-5xl font-hand flex items-center gap-3 lg:gap-4 text-white art-title">
             <Box className="h-8 w-8 lg:h-10 lg:w-10 text-brand-yellow" /> Content & Archive
           </h1>
-          <p className="text-sm lg:text-lg text-cyan-100 font-medium mt-1 lg:mt-2 max-w-2xl">
+          <p className="text-sm lg:text-lg text-cyan-50 font-medium mt-1 lg:mt-2 max-w-2xl art-body">
             Central repository for your generated materials, templates, and school documents.
           </p>
         </div>

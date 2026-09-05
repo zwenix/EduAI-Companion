@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { printContent } from '../lib/printUtils';
 import { 
   HeartHandshake, 
@@ -31,17 +31,54 @@ import {
   MessageSquare,
   ShieldAlert,
   Zap,
-  HelpCircle
+  HelpCircle,
+  Users,
+  History,
+  BarChart3,
+  Eye,
+  ListChecks,
+  ClipboardList,
+  Send,
+  Lock
 } from 'lucide-react';
 import { generateEducationalContent } from '../services/geminiService';
 import bgInterventionSupport from '../assets/images/intervention_support_bg_1786952984.jpg';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { useLearnerDirectory, LearnerSummary, initialsOf } from '../lib/learnerDirectory';
+import { subscribeTeacherReports } from '../lib/portfolioData';
 
 const overlayTeachersToolbox = bgInterventionSupport;
 
+/** Firestore timestamps, ISO strings and `en-ZA` date strings → epoch millis. */
+function toMillis(value: any): number {
+  if (!value) return 0;
+  try {
+    if (typeof value.toDate === 'function') return value.toDate().getTime();
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      const direct = new Date(value);
+      if (!isNaN(direct.getTime())) return direct.getTime();
+      const dmy = value.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+      if (dmy) {
+        const year = dmy[3].length === 2 ? 2000 + parseInt(dmy[3], 10) : parseInt(dmy[3], 10);
+        return new Date(year, parseInt(dmy[2], 10) - 1, parseInt(dmy[1], 10)).getTime();
+      }
+    }
+  } catch { /* fall through */ }
+  return 0;
+}
+
+function formatDate(value: any): string {
+  const ms = toMillis(value);
+  if (!ms) return '—';
+  return new Date(ms).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 interface LearnerInterventionProfile {
   id: string;
+  /** Links the plan to a learner on the teacher's register (when picked). */
+  studentId?: string;
   learnerName: string;
   grade: string;
   subject: string;
@@ -57,6 +94,8 @@ interface LearnerInterventionProfile {
   durationWeeks: number;
   sessionsPerWeek: number;
   createdAt: string;
+  /** Firestore timestamp of the last write — drives the history ordering. */
+  updatedAt?: any;
   generatedContentHtml?: string;
   status: 'Active' | 'Under Review' | 'Completed';
   progressPercentage: number;
@@ -66,19 +105,25 @@ interface LearnerInterventionHubProps {
   isDarkMode?: boolean;
   onNavigateTab?: (tabId: string) => void;
   triggerToast?: (msg: string, type?: 'success' | 'error' | 'info') => void;
+  /** 'teacher' | 'admin' can edit; learners/parents get a read-only view. */
+  userRole?: string | null;
 }
 
 export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
   isDarkMode = true,
   onNavigateTab,
-  triggerToast
+  triggerToast,
+  userRole = 'teacher'
 }) => {
+  const canManage = userRole === 'teacher' || userRole === 'admin';
+
   // Navigation & View Mode
-  const [activeTab, setActiveTab] = useState<'wizard' | 'quick-load' | 'library' | 'exercises' | 'timetable'>('wizard');
+  const [activeTab, setActiveTab] = useState<'wizard' | 'quick-load' | 'learners' | 'library' | 'history' | 'exercises' | 'timetable'>('wizard');
 
   // Wizard State (Steps 1 to 5)
   const [wizardStep, setWizardStep] = useState<number>(1);
   const [formData, setFormData] = useState({
+    studentId: '',
     learnerName: '',
     grade: 'Grade 4',
     subject: 'Mathematics',
@@ -157,6 +202,18 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
   // Search & Filter in Library
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<string>('All');
+  const [libraryClassFilter, setLibraryClassFilter] = useState<string>('All');
+
+  // ── The teacher's learner register ────────────────────────────────────────
+  // Every learner must be visible here so a teacher can see who is on support,
+  // who still needs a plan, and open any learner's records in one click.
+  const { learners } = useLearnerDirectory(canManage ? 'teacher' : (userRole as any));
+
+  // ── Every report the teacher owns (OCR ledger + published progress) ───────
+  const [gradingReports, setGradingReports] = useState<any[]>([]);
+  const [publishedReports, setPublishedReports] = useState<any[]>([]);
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'plans' | 'graded' | 'published'>('all');
+  const [historySearch, setHistorySearch] = useState<string>('');
 
   // Dedicated Exercise Generator State
   const [exerciseSubject, setExerciseSubject] = useState<string>('Mathematics');
@@ -205,6 +262,139 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
       }
     });
   }, [savedProfiles]);
+
+  // Load the teacher's full report ledger. `auto_grading_reports` carries the
+  // owning teacherId; `published_reports` does not, so those are matched back to
+  // the register by studentId / studentName.
+  const learnerIdsKey = useMemo(() => learners.map(l => l.id).join(','), [learners]);
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user || !canManage) return;
+
+    const ids = new Set(learnerIdsKey ? learnerIdsKey.split(',') : []);
+    const names = new Set(learners.map(l => (l.name || '').trim().toLowerCase()).filter(Boolean));
+
+    const unsubGraded = subscribeTeacherReports(user.uid, (reports) => setGradingReports(reports));
+
+    let unsubPublished: (() => void) | null = null;
+    try {
+      unsubPublished = onSnapshot(collection(db, 'published_reports'), (snap) => {
+        const all = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+        setPublishedReports(all.filter((r: any) =>
+          r.teacherId === user.uid ||
+          ids.has(r.studentId) ||
+          names.has(String(r.studentName || '').trim().toLowerCase())
+        ));
+      }, (err) => console.warn('Published reports load note:', err));
+    } catch (err) {
+      console.warn('Published reports subscription failed:', err);
+    }
+
+    return () => {
+      try { unsubGraded(); } catch { /* noop */ }
+      if (unsubPublished) { try { unsubPublished(); } catch { /* noop */ } }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canManage, learnerIdsKey]);
+
+  // Interventions that belong to a learner on the register (matched by id or name)
+  const plansByLearner = useMemo(() => {
+    const map = new Map<string, LearnerInterventionProfile[]>();
+    const byName = new Map<string, LearnerInterventionProfile[]>();
+    savedProfiles.forEach(p => {
+      if (p.studentId) {
+        if (!map.has(p.studentId)) map.set(p.studentId, []);
+        (map.get(p.studentId) as LearnerInterventionProfile[]).push(p);
+      }
+      const key = (p.learnerName || '').trim().toLowerCase();
+      if (key) {
+        if (!byName.has(key)) byName.set(key, []);
+        (byName.get(key) as LearnerInterventionProfile[]).push(p);
+      }
+    });
+    return { byId: map, byName };
+  }, [savedProfiles]);
+
+  const plansForLearner = (learner: LearnerSummary): LearnerInterventionProfile[] => {
+    const fromId = plansByLearner.byId.get(learner.id) || [];
+    const fromName = plansByLearner.byName.get((learner.name || '').trim().toLowerCase()) || [];
+    const seen = new Set<string>();
+    return [...fromId, ...fromName].filter(p => (seen.has(p.id) ? false : (seen.add(p.id), true)));
+  };
+
+  /** Unified, chronological intervention history + report ledger. */
+  const historyEvents = useMemo(() => {
+    type Ev = {
+      id: string;
+      kind: 'plan' | 'graded' | 'published';
+      title: string;
+      learner: string;
+      studentId?: string;
+      when: number;
+      badge: string;
+      tone: 'cyan' | 'emerald' | 'purple' | 'amber';
+      detail?: string;
+      profile?: LearnerInterventionProfile;
+    };
+    const events: Ev[] = [];
+
+    savedProfiles.forEach(p => {
+      events.push({
+        id: `plan-${p.id}`,
+        kind: 'plan',
+        title: `${p.subject || 'General'} intervention • ${p.siasLevel || 'SIAS'}`,
+        learner: p.learnerName || 'Learner',
+        studentId: p.studentId,
+        when: toMillis(p.updatedAt) || toMillis(p.createdAt),
+        badge: p.status || 'Active',
+        tone: p.status === 'Completed' ? 'emerald' : p.status === 'Under Review' ? 'amber' : 'cyan',
+        detail: p.targetGoal || p.barrierDescription,
+        profile: p
+      });
+    });
+
+    gradingReports.forEach((r: any) => {
+      events.push({
+        id: `graded-${r.id}`,
+        kind: 'graded',
+        title: r.assignmentTitle || r.fileName || 'Auto-graded assessment',
+        learner: r.studentName || 'Unassigned learner',
+        studentId: r.studentId || undefined,
+        when: toMillis(r.createdAt),
+        badge: r.totalScore != null ? String(r.totalScore) : 'Graded',
+        tone: 'emerald',
+        detail: r.feedback || ''
+      });
+    });
+
+    publishedReports.forEach((r: any) => {
+      events.push({
+        id: `published-${r.id}`,
+        kind: 'published',
+        title: `${r.term || 'Term'} official progress report`,
+        learner: r.studentName || 'Learner',
+        studentId: r.studentId || undefined,
+        when: toMillis(r.publishedAt) || toMillis(r.createdAt),
+        badge: r.idp ? 'IDP attached' : 'Published',
+        tone: 'purple',
+        detail: Array.isArray(r.subjects) ? r.subjects.map((sb: any) => `${sb.name}: ${sb.mark}%`).join(' • ') : ''
+      });
+    });
+
+    return events.sort((a, b) => b.when - a.when);
+  }, [savedProfiles, gradingReports, publishedReports]);
+
+  const filteredHistory = useMemo(() => {
+    const q = historySearch.trim().toLowerCase();
+    return historyEvents.filter(ev => {
+      const matchesKind = historyFilter === 'all' || ev.kind === historyFilter;
+      const matchesSearch = !q
+        || ev.learner.toLowerCase().includes(q)
+        || ev.title.toLowerCase().includes(q)
+        || (ev.detail || '').toLowerCase().includes(q);
+      return matchesKind && matchesSearch;
+    });
+  }, [historyEvents, historyFilter, historySearch]);
 
   // Preset Barrier Tags Options
   const presetBarrierOptions = [
@@ -268,8 +458,17 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
     setIsGenerating(true);
     setGenerationProgressMsg('Analyzing diagnostic profile & CAPS learning barriers...');
 
+    // Quick-load: try to attach the plan to a real learner on the register by
+    // matching a first name inside the natural-language description.
+    const matchedLearner: LearnerSummary | undefined = source === 'quick-prompt'
+      ? learners.find(l => {
+          const first = (l.name || '').split(/\s+/)[0].toLowerCase();
+          return first.length > 2 && quickPromptText.toLowerCase().includes(first);
+        })
+      : learners.find(l => l.id === formData.studentId);
+
     const learnerName = source === 'wizard' ? (formData.learnerName || 'Learner A') : 'Learner Profile';
-    const grade = source === 'wizard' ? formData.grade : 'Grade 4-7';
+    const grade = source === 'wizard' ? formData.grade : (matchedLearner?.grade || 'Grade 4-7');
     const subject = source === 'wizard' ? formData.subject : 'General Subject';
 
     try {
@@ -337,7 +536,8 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
 
       const newProfile: LearnerInterventionProfile = {
         id: `inter-${Date.now()}`,
-        learnerName: source === 'wizard' ? (formData.learnerName || 'New Learner') : 'Extracted Learner Profile',
+        studentId: source === 'wizard' ? (formData.studentId || undefined) : (matchedLearner?.id),
+        learnerName: source === 'wizard' ? (formData.learnerName || 'New Learner') : (matchedLearner?.name || 'Extracted Learner Profile'),
         grade,
         subject,
         siasLevel: source === 'wizard' ? formData.siasLevel : 'Level 2 (SBST Support)',
@@ -416,6 +616,97 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
     });
   };
 
+  // Removing a plan must also remove it from Firestore, otherwise the realtime
+  // listener immediately resurrected it on the next snapshot (and on every
+  // learner/parent device that had read access).
+  const handleDeleteProfile = async (profile: LearnerInterventionProfile) => {
+    if (selectedProfile?.id === profile.id) setSelectedProfile(null);
+    setSavedProfiles(prev => prev.filter(x => x.id !== profile.id));
+    try {
+      localStorage.setItem(
+        'eduai_learner_interventions',
+        JSON.stringify(savedProfiles.filter(x => x.id !== profile.id))
+      );
+    } catch { /* ignore quota errors */ }
+    try {
+      await deleteDoc(doc(db, 'learner_interventions', profile.id));
+    } catch (err) {
+      console.warn('Intervention delete note (removed locally):', err);
+    }
+    if (triggerToast) triggerToast(`Intervention plan for ${profile.learnerName} deleted`, 'info');
+  };
+
+  // Learner register filters (shared search box + class/grade dropdown)
+  const learnerClassOptions = useMemo(() => {
+    const set = new Set<string>();
+    learners.forEach(l => { if (l.className) set.add(l.className); });
+    return ['All', ...Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))];
+  }, [learners]);
+
+  const filteredLearners = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return learners.filter(l => {
+      const matchesSearch = !q
+        || (l.name || '').toLowerCase().includes(q)
+        || (l.email || '').toLowerCase().includes(q)
+        || (l.className || '').toLowerCase().includes(q)
+        || (l.grade || '').toLowerCase().includes(q);
+      const matchesClass = libraryClassFilter === 'All' || l.className === libraryClassFilter;
+      return matchesSearch && matchesClass;
+    });
+  }, [learners, searchQuery, libraryClassFilter]);
+
+  // Real SBST timetable: every active plan contributes its weekly session
+  // allowance, distributed across the school week (was hard-coded to two
+  // demo learners, which made the schedule meaningless for real registers).
+  const WEEK_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  const weeklySchedule = useMemo(() => {
+    const slots: Record<string, Array<{ id: string; learner: string; subject: string; focus: string; level: string }>> = {};
+    WEEK_DAYS.forEach(d => { slots[d] = []; });
+
+    const active = savedProfiles.filter(p => p.status !== 'Completed');
+    let cursor = 0;
+    active.forEach(p => {
+      const sessions = Math.min(5, Math.max(1, p.sessionsPerWeek || 2));
+      for (let i = 0; i < sessions; i++) {
+        const day = WEEK_DAYS[(cursor + i) % WEEK_DAYS.length];
+        slots[day].push({
+          id: `${p.id}-${day}-${i}`,
+          learner: p.learnerName || 'Learner',
+          subject: p.subject || 'General',
+          focus: (p.presetTags && p.presetTags[0]) || p.targetGoal || 'SBST support session',
+          level: p.siasLevel || 'SIAS'
+        });
+      }
+      cursor += sessions;
+    });
+    return slots;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedProfiles]);
+
+  const weeklySessionTotal = useMemo(
+    () => WEEK_DAYS.reduce((sum, d) => sum + (weeklySchedule[d]?.length || 0), 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [weeklySchedule]
+  );
+
+  const learnersOnSupport = useMemo(
+    () => learners.filter(l => plansForLearner(l).length > 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [learners, savedProfiles]
+  );
+
+  // Learners on support whose parents have not received a published report yet.
+  const pendingParentUpdates = useMemo(() => {
+    return learnersOnSupport.filter(l => {
+      const name = (l.name || '').trim().toLowerCase();
+      return !publishedReports.some((r: any) =>
+        r.studentId === l.id || String(r.studentName || '').trim().toLowerCase() === name
+      );
+    }).length;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [learnersOnSupport, publishedReports]);
+
   // Filtered Saved Profiles
   const filteredProfiles = savedProfiles.filter(p => {
     const matchesSearch = p.learnerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -463,8 +754,8 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
                   <span>Learner Intervention Hub</span>
                   <Sparkles size={30} className="text-amber-300 animate-pulse" />
                 </h1>
-                <p className="text-xs lg:text-sm text-slate-300 leading-relaxed font-medium">
-                  Diagnose student learning barriers, generate CAPS-aligned Individualized Learning Plans (ILPs), scaffolded remedial exercises, and actionable intervention timetables.
+                <p className="text-xs lg:text-sm text-slate-200 leading-relaxed font-medium art-body">
+                  Diagnose learning barriers, generate CAPS-aligned Individualized Learning Plans (ILPs) and scaffolded remedial exercises — then track every learner, the full intervention history and all reports in one place.
                 </p>
               </div>
 
@@ -511,6 +802,18 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
               </button>
 
               <button
+                onClick={() => setActiveTab('learners')}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border cursor-pointer ${
+                  activeTab === 'learners'
+                    ? 'bg-sky-500 text-slate-950 border-sky-400 font-extrabold shadow-md'
+                    : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10'
+                }`}
+              >
+                <Users size={15} />
+                <span>3. My Learners ({learners.length})</span>
+              </button>
+
+              <button
                 onClick={() => setActiveTab('library')}
                 className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border cursor-pointer ${
                   activeTab === 'library'
@@ -519,7 +822,19 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
                 }`}
               >
                 <UserCheck size={15} />
-                <span>3. Intervention Library ({savedProfiles.length})</span>
+                <span>4. Intervention Library ({savedProfiles.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('history')}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border cursor-pointer ${
+                  activeTab === 'history'
+                    ? 'bg-rose-500 text-white border-rose-400 font-extrabold shadow-md'
+                    : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10'
+                }`}
+              >
+                <History size={15} />
+                <span>5. History &amp; All Reports ({historyEvents.length})</span>
               </button>
 
               <button
@@ -531,7 +846,7 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
                 }`}
               >
                 <Layers size={15} />
-                <span>4. Exercise Generator</span>
+                <span>6. Exercise Generator</span>
               </button>
 
               <button
@@ -543,7 +858,7 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
                 }`}
               >
                 <Calendar size={15} />
-                <span>5. Schedule & SBST Log</span>
+                <span>7. Schedule &amp; SBST Log</span>
               </button>
             </div>
           </div>
@@ -619,10 +934,85 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
             {/* STEP 1: CONTEXT & LEARNER DETAILS */}
             {wizardStep === 1 && (
               <div className="space-y-6 animate-fade-in">
-                <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-300 flex items-center gap-3">
-                  <Lightbulb size={18} className="shrink-0 text-cyan-400" />
-                  <span>Start by entering basic learner identifier details, CAPS grade level, subject, and SIAS support tier.</span>
+                <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-200 flex items-center gap-3">
+                  <Lightbulb size={18} className="shrink-0 text-cyan-300" />
+                  <span className="font-medium">Start by picking the learner from your register (or typing their details), then set the CAPS grade, subject and SIAS support tier.</span>
                 </div>
+
+                {/* Link the plan to a real learner on the register so it shows up
+                    against that learner everywhere (roster, history, portfolio). */}
+                {learners.length > 0 && (
+                  <div className={`p-4 rounded-2xl border space-y-3 ${
+                    isDarkMode ? 'bg-slate-900/60 border-white/10' : 'bg-slate-50 border-slate-200'
+                  }`}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                        <Users size={14} className="text-sky-400" /> Learner on your register
+                      </span>
+                      {formData.studentId ? (
+                        <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">
+                          <CheckCircle2 size={11} className="inline mr-1" /> Linked to register
+                        </span>
+                      ) : (
+                        <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border ${
+                          isDarkMode ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-white border-slate-200 text-slate-500'
+                        }`}>
+                          Manual entry
+                        </span>
+                      )}
+                    </div>
+
+                    <select
+                      value={formData.studentId}
+                      onChange={(e) => {
+                        const picked = learners.find(l => l.id === e.target.value);
+                        setFormData(prev => ({
+                          ...prev,
+                          studentId: e.target.value,
+                          learnerName: picked ? picked.name : prev.learnerName,
+                          grade: picked ? (picked.grade || prev.grade) : prev.grade
+                        }));
+                      }}
+                      className={`w-full px-4 py-3 rounded-xl text-sm font-semibold border focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer ${
+                        isDarkMode ? 'bg-slate-900 border-white/15 text-white' : 'bg-white border-slate-300 text-slate-900'
+                      }`}
+                    >
+                      <option value="">— Not on the register / type manually —</option>
+                      {learners.map(l => (
+                        <option key={l.id} value={l.id}>{l.name} • {l.className || l.grade}{l.average ? ` • ${l.average}% avg` : ''}</option>
+                      ))}
+                    </select>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {learners.slice(0, 10).map(l => (
+                        <button
+                          key={`chip-${l.id}`}
+                          type="button"
+                          onClick={() => setFormData(prev => ({
+                            ...prev,
+                            studentId: l.id,
+                            learnerName: l.name,
+                            grade: l.grade || prev.grade
+                          }))}
+                          className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                            formData.studentId === l.id
+                              ? 'bg-sky-500 text-slate-950 border-sky-300 font-extrabold'
+                              : isDarkMode
+                                ? 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
+                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                          }`}
+                        >
+                          {l.name}
+                        </button>
+                      ))}
+                      {learners.length > 10 && (
+                        <span className={`px-2.5 py-1.5 text-[11px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                          +{learners.length - 10} more in the dropdown
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -1124,6 +1514,228 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
           </div>
         )}
 
+        {/* TAB 3: LEARNER REGISTER — every learner the teacher is responsible for */}
+        {!isGenerating && activeTab === 'learners' && !selectedProfile && (
+          <div className="space-y-6">
+
+            {/* Register statistics */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: 'Learners On Register', value: learners.length, icon: Users, tint: 'text-sky-300 bg-sky-500/10 border-sky-500/30' },
+                { label: 'On Intervention Support', value: learnersOnSupport.length, icon: HeartHandshake, tint: 'text-rose-300 bg-rose-500/10 border-rose-500/30' },
+                { label: 'Awaiting A First Plan', value: Math.max(0, learners.length - learnersOnSupport.length), icon: AlertTriangle, tint: 'text-amber-300 bg-amber-500/10 border-amber-500/30' },
+                { label: 'Reports On File', value: gradingReports.length + publishedReports.length, icon: FileSpreadsheet, tint: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30' }
+              ].map(stat => (
+                <div
+                  key={stat.label}
+                  className={`p-4 rounded-2xl border flex items-center gap-3 ${
+                    isDarkMode ? 'bg-[#0a1224]/90 border-white/10' : 'bg-white border-slate-200 shadow-sm'
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${stat.tint}`}>
+                    <stat.icon size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className={`text-xl font-black leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stat.value}</p>
+                    <p className={`text-[9px] font-black uppercase tracking-widest mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{stat.label}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Search + class filter */}
+            <div className={`p-4 rounded-2xl border flex flex-col md:flex-row md:items-center gap-3 ${
+              isDarkMode ? 'bg-[#0a1224] border-white/10' : 'bg-white border-slate-200'
+            }`}>
+              <div className="relative w-full md:w-80">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Search learner name, class or email…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-xs font-semibold border focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                    isDarkMode ? 'bg-slate-900 border-white/15 text-white placeholder:text-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400'
+                  }`}
+                />
+              </div>
+
+              <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto custom-scrollbar">
+                {learnerClassOptions.map((cls) => (
+                  <button
+                    key={cls}
+                    onClick={() => setLibraryClassFilter(cls)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border shrink-0 cursor-pointer ${
+                      libraryClassFilter === cls
+                        ? 'bg-sky-500 text-slate-950 border-sky-400 font-extrabold'
+                        : isDarkMode
+                          ? 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
+                          : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 hover:text-slate-900'
+                    }`}
+                  >
+                    {cls === 'All' ? 'All classes' : cls}
+                  </button>
+                ))}
+              </div>
+
+              <p className={`md:ml-auto text-[11px] font-bold shrink-0 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                {filteredLearners.length} of {learners.length} learners shown
+              </p>
+            </div>
+
+            {filteredLearners.length === 0 ? (
+              <div className={`p-12 rounded-3xl border-2 border-dashed text-center space-y-3 ${
+                isDarkMode ? 'border-white/10 bg-white/[0.02]' : 'border-slate-300 bg-slate-50'
+              }`}>
+                <Users size={40} className={`mx-auto ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`} />
+                <h4 className={`text-base font-black ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                  {learners.length === 0 ? 'No learners found on your register' : 'No learners match that search'}
+                </h4>
+                <p className={`text-xs max-w-md mx-auto leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {learners.length === 0
+                    ? 'Add learners from Classes & Learners → Class Management (manual or CSV bulk import) and they will appear here with their intervention status.'
+                    : 'Clear the search box or pick another class to see the rest of your register.'}
+                </p>
+                {learners.length === 0 && onNavigateTab && (
+                  <button
+                    onClick={() => onNavigateTab('class-management')}
+                    className="px-6 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-[11px] font-black uppercase tracking-widest transition-all cursor-pointer inline-flex items-center gap-2"
+                  >
+                    <Users size={14} /> Open Class Management
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {filteredLearners.map((l) => {
+                  const plans = plansForLearner(l);
+                  const bestProgress = plans.reduce((max, p) => Math.max(max, p.progressPercentage || 0), 0);
+                  const activePlans = plans.filter(p => p.status !== 'Completed');
+                  return (
+                    <div
+                      key={l.id}
+                      className={`p-5 rounded-3xl border transition-all space-y-3.5 hover:border-sky-500/40 ${
+                        isDarkMode ? 'bg-[#0a1224]/90 border-white/10 shadow-lg' : 'bg-white border-slate-200 shadow-sm'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`w-11 h-11 rounded-2xl border flex items-center justify-center text-xs font-black shrink-0 ${
+                            plans.length > 0
+                              ? 'bg-rose-500/15 border-rose-400/35 text-rose-200'
+                              : 'bg-sky-500/15 border-sky-400/35 text-sky-200'
+                          }`}>
+                            {initialsOf(l.name)}
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className={`text-sm font-black truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{l.name}</h3>
+                            <p className={`text-[11px] font-semibold truncate mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                              {l.className || l.grade}{l.average ? ` • ${l.average}% avg` : ''}
+                            </p>
+                          </div>
+                        </div>
+                        {plans.length > 0 ? (
+                          <span className="shrink-0 px-2 py-1 rounded-lg bg-rose-500/15 border border-rose-400/30 text-rose-300 text-[9px] font-black uppercase tracking-wider">
+                            {activePlans.length > 0 ? `${activePlans.length} active` : 'completed'}
+                          </span>
+                        ) : (
+                          <span className={`shrink-0 px-2 py-1 rounded-lg border text-[9px] font-black uppercase tracking-wider ${
+                            isDarkMode ? 'bg-white/5 border-white/10 text-slate-500' : 'bg-slate-100 border-slate-200 text-slate-500'
+                          }`}>
+                            No plan
+                          </span>
+                        )}
+                      </div>
+
+                      {plans.length > 0 ? (
+                        <div className="space-y-2">
+                          {plans.slice(0, 2).map(p => (
+                            <div key={p.id} className={`p-2.5 rounded-xl border ${
+                              isDarkMode ? 'bg-slate-900/70 border-white/10' : 'bg-slate-50 border-slate-200'
+                            }`}>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className={`text-[11px] font-bold truncate ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                                  {p.subject} • {p.grade}
+                                </span>
+                                <span className={`text-[9px] font-black uppercase tracking-wider shrink-0 ${
+                                  p.status === 'Completed' ? 'text-emerald-400' : p.status === 'Under Review' ? 'text-amber-400' : 'text-cyan-400'
+                                }`}>{p.status}</span>
+                              </div>
+                              <div className={`w-full h-1.5 rounded-full overflow-hidden mt-1.5 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                                <div className="bg-gradient-to-r from-rose-500 to-cyan-400 h-full transition-all duration-500" style={{ width: `${Math.min(100, p.progressPercentage || 0)}%` }} />
+                              </div>
+                            </div>
+                          ))}
+                          {plans.length > 2 && (
+                            <p className={`text-[10px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                              +{plans.length - 2} more plan{plans.length - 2 === 1 ? '' : 's'} on file
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className={`text-[11px] leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                          No intervention plan yet. {l.idp ? 'An IDP is published for this learner.' : 'Start one from the guided wizard to flag barriers and set SMART goals.'}
+                        </p>
+                      )}
+
+                      {bestProgress > 0 && (
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[10px] font-bold">
+                            <span className={isDarkMode ? 'text-slate-400' : 'text-slate-500'}>Best plan progress</span>
+                            <span className="text-cyan-400">{bestProgress}%</span>
+                          </div>
+                          <div className={`w-full h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                            <div className="bg-cyan-400 h-full transition-all duration-500" style={{ width: `${bestProgress}%` }} />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                        {plans.length > 0 && (
+                          <button
+                            onClick={() => { setSelectedProfile(plans[0]); setActiveTab('library'); }}
+                            className="flex-1 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                          >
+                            <BookOpen size={13} /> Open ILP
+                          </button>
+                        )}
+                        {canManage && (
+                          <button
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, studentId: l.id, learnerName: l.name, grade: l.grade || prev.grade }));
+                              setSelectedProfile(null);
+                              setActiveTab('wizard');
+                              setWizardStep(plans.length > 0 ? 2 : 1);
+                            }}
+                            className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer border transition-all ${
+                              isDarkMode
+                                ? 'bg-white/5 hover:bg-white/10 text-slate-200 border-white/15'
+                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                            }`}
+                          >
+                            <Plus size={13} /> {plans.length > 0 ? 'New Plan' : 'Start Plan'}
+                          </button>
+                        )}
+                        {onNavigateTab && (
+                          <button
+                            onClick={() => onNavigateTab('portfolios')}
+                            title="Open the learner portfolio vault"
+                            className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
+                              isDarkMode ? 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/15' : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
+                            }`}
+                          >
+                            <Eye size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* TAB 3: INTERVENTION LIBRARY & ACTIVE ILPS */}
         {!isGenerating && activeTab === 'library' && !selectedProfile && (
           <div className="space-y-6">
@@ -1145,8 +1757,8 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
                 />
               </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
-                {['All', 'Mathematics', 'English FAL', 'Natural Sciences'].map((sub) => (
+              <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto custom-scrollbar">
+                {['All', ...Array.from(new Set(savedProfiles.map(p => p.subject).filter(Boolean))).sort()].map((sub) => (
                   <button
                     key={sub}
                     onClick={() => setSelectedSubjectFilter(sub)}
@@ -1187,16 +1799,15 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
                         <p className="text-xs text-slate-400 font-medium">{p.grade} • {p.subject} • Created {p.createdAt}</p>
                       </div>
 
-                      <button
-                        onClick={() => {
-                          setSavedProfiles(prev => prev.filter(x => x.id !== p.id));
-                          if (triggerToast) triggerToast('Intervention profile deleted', 'info');
-                        }}
-                        className="p-2 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
-                        title="Delete profile"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      {canManage && (
+                        <button
+                          onClick={() => handleDeleteProfile(p)}
+                          className="p-2 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
+                          title="Delete profile"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
 
                     <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed font-medium">
@@ -1240,6 +1851,211 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB 5: INTERVENTION HISTORY & COMPLETE REPORT VAULT */}
+        {!isGenerating && activeTab === 'history' && !selectedProfile && (
+          <div className="space-y-6">
+
+            {/* Vault statistics */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: 'History Entries', value: historyEvents.length, icon: History, tint: 'text-rose-300 bg-rose-500/10 border-rose-500/30' },
+                { label: 'Intervention Plans', value: savedProfiles.length, icon: Brain, tint: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/30' },
+                { label: 'Graded Assessments', value: gradingReports.length, icon: FileText, tint: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30' },
+                { label: 'Published Reports', value: publishedReports.length, icon: Send, tint: 'text-purple-300 bg-purple-500/10 border-purple-500/30' }
+              ].map(stat => (
+                <div
+                  key={stat.label}
+                  className={`p-4 rounded-2xl border flex items-center gap-3 ${
+                    isDarkMode ? 'bg-[#0a1224]/90 border-white/10' : 'bg-white border-slate-200 shadow-sm'
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${stat.tint}`}>
+                    <stat.icon size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className={`text-xl font-black leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stat.value}</p>
+                    <p className={`text-[9px] font-black uppercase tracking-widest mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{stat.label}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Filters */}
+            <div className={`p-4 rounded-2xl border flex flex-col lg:flex-row lg:items-center gap-3 ${
+              isDarkMode ? 'bg-[#0a1224] border-white/10' : 'bg-white border-slate-200'
+            }`}>
+              <div className="relative w-full lg:w-80">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Search history by learner, report or goal…"
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-xs font-semibold border focus:outline-none focus:ring-2 focus:ring-rose-500 ${
+                    isDarkMode ? 'bg-slate-900 border-white/15 text-white placeholder:text-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400'
+                  }`}
+                />
+              </div>
+
+              <div className="flex items-center gap-2 w-full lg:w-auto overflow-x-auto custom-scrollbar">
+                {([
+                  { id: 'all' as const, label: 'Everything', count: historyEvents.length },
+                  { id: 'plans' as const, label: 'Intervention Plans', count: savedProfiles.length },
+                  { id: 'graded' as const, label: 'Graded Assessments', count: gradingReports.length },
+                  { id: 'published' as const, label: 'Published Reports', count: publishedReports.length }
+                ]).map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => setHistoryFilter(f.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                      historyFilter === f.id
+                        ? 'bg-rose-500 text-white border-rose-400 font-extrabold'
+                        : isDarkMode
+                          ? 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
+                          : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 hover:text-slate-900'
+                    }`}
+                  >
+                    {f.label}
+                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                      historyFilter === f.id ? 'bg-white/25 text-white' : isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-white text-slate-600'
+                    }`}>{f.count}</span>
+                  </button>
+                ))}
+              </div>
+
+              <p className={`lg:ml-auto text-[11px] font-bold shrink-0 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                {filteredHistory.length} entr{filteredHistory.length === 1 ? 'y' : 'ies'} • newest first
+              </p>
+            </div>
+
+            {/* Timeline */}
+            {filteredHistory.length === 0 ? (
+              <div className={`p-12 rounded-3xl border-2 border-dashed text-center space-y-3 ${
+                isDarkMode ? 'border-white/10 bg-white/[0.02]' : 'border-slate-300 bg-slate-50'
+              }`}>
+                <History size={40} className={`mx-auto ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`} />
+                <h4 className={`text-base font-black ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Nothing recorded here yet</h4>
+                <p className={`text-xs max-w-md mx-auto leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Every intervention plan you generate, every OCR-graded assessment and every progress report you publish
+                  lands in this history automatically.
+                </p>
+                {canManage && (
+                  <button
+                    onClick={() => { setActiveTab('wizard'); setWizardStep(1); setSelectedProfile(null); }}
+                    className="px-6 py-3 rounded-xl bg-rose-500 hover:bg-rose-400 text-white text-[11px] font-black uppercase tracking-widest transition-all cursor-pointer inline-flex items-center gap-2"
+                  >
+                    <Plus size={14} /> Create the first intervention plan
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className={`rounded-[28px] border overflow-hidden ${
+                isDarkMode ? 'bg-[#0a1224]/90 border-white/10' : 'bg-white border-slate-200 shadow-sm'
+              }`}>
+                <div className="divide-y divide-white/5">
+                  {filteredHistory.map(ev => {
+                    const toneMap: Record<string, string> = {
+                      cyan: 'bg-cyan-500/15 border-cyan-400/30 text-cyan-300',
+                      emerald: 'bg-emerald-500/15 border-emerald-400/30 text-emerald-300',
+                      purple: 'bg-purple-500/15 border-purple-400/30 text-purple-300',
+                      amber: 'bg-amber-500/15 border-amber-400/30 text-amber-300'
+                    };
+                    const KindIcon = ev.kind === 'plan' ? Brain : ev.kind === 'graded' ? FileText : Send;
+                    const kindLabel = ev.kind === 'plan' ? 'Intervention Plan' : ev.kind === 'graded' ? 'Graded Assessment' : 'Published Report';
+                    return (
+                      <div key={ev.id} className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start gap-4 transition-colors ${
+                        isDarkMode ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50 border-b border-slate-100 last:border-0'
+                      }`}>
+                        {/* Date rail */}
+                        <div className="flex sm:flex-col items-center gap-3 sm:gap-1 sm:w-24 shrink-0">
+                          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${toneMap[ev.tone]}`}>
+                            <KindIcon size={17} />
+                          </div>
+                          <span className={`text-[10px] font-black uppercase tracking-widest sm:text-center ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                            {formatDate(ev.when)}
+                          </span>
+                        </div>
+
+                        {/* Body */}
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${toneMap[ev.tone]}`}>
+                              {kindLabel}
+                            </span>
+                            <span className={`text-[11px] font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{ev.learner}</span>
+                          </div>
+                          <p className={`text-sm font-bold leading-snug ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>{ev.title}</p>
+                          {ev.detail && (
+                            <p className={`text-xs leading-relaxed line-clamp-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{ev.detail}</p>
+                          )}
+                        </div>
+
+                        {/* Status + action */}
+                        <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0">
+                          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${toneMap[ev.tone]}`}>
+                            {ev.badge}
+                          </span>
+                          {ev.kind === 'plan' && ev.profile && (
+                            <button
+                              onClick={() => { setSelectedProfile(ev.profile as LearnerInterventionProfile); setActiveTab('library'); }}
+                              className="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 text-cyan-200 text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer inline-flex items-center gap-1.5"
+                            >
+                              <BookOpen size={12} /> View ILP
+                            </button>
+                          )}
+                          {ev.kind !== 'plan' && ev.studentId && onNavigateTab && (
+                            <button
+                              onClick={() => onNavigateTab('portfolios')}
+                              className={`px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer inline-flex items-center gap-1.5 ${
+                                isDarkMode ? 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/15' : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
+                              }`}
+                            >
+                              <Eye size={12} /> Portfolio
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Learners covered / not covered summary */}
+            <div className={`p-5 rounded-[24px] border space-y-3 ${
+              isDarkMode ? 'bg-[#0a1224]/90 border-white/10' : 'bg-white border-slate-200 shadow-sm'
+            }`}>
+              <h3 className={`text-xs font-black uppercase tracking-widest flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                <ListChecks size={15} className="text-cyan-400" /> Register coverage
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {learners.slice(0, 12).map(l => {
+                  const plans = plansForLearner(l);
+                  return (
+                    <div key={l.id} className={`p-3 rounded-xl border flex items-center justify-between gap-2 ${
+                      isDarkMode ? 'bg-slate-900/60 border-white/10' : 'bg-slate-50 border-slate-200'
+                    }`}>
+                      <span className={`text-xs font-bold truncate ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{l.name}</span>
+                      <span className={`text-[9px] font-black uppercase tracking-wider shrink-0 px-2 py-0.5 rounded border ${
+                        plans.length > 0
+                          ? 'bg-emerald-500/15 border-emerald-400/30 text-emerald-300'
+                          : 'bg-amber-500/15 border-amber-400/30 text-amber-300'
+                      }`}>
+                        {plans.length > 0 ? `${plans.length} plan${plans.length === 1 ? '' : 's'}` : 'no plan'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              {learners.length > 12 && (
+                <p className={`text-[10px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  + {learners.length - 12} more learners — see the "My Learners" tab for the full register
+                </p>
+              )}
+            </div>
           </div>
         )}
 
@@ -1364,61 +2180,102 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
               <p className="text-xs text-slate-400 mt-1">Schedule intervention slots, log formative milestone check-ins, and manage SBST case reviews.</p>
             </div>
 
+            {/* Live SBST metrics — computed from the teacher's real register */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className={`p-5 rounded-2xl border space-y-2 ${isDarkMode ? 'bg-slate-900/80 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-slate-400 uppercase">Active Case Files</span>
+                  <span className={`text-xs font-bold uppercase ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Active Case Files</span>
                   <Award size={18} className="text-cyan-400" />
                 </div>
-                <h3 className="text-2xl font-black text-white font-display">{savedProfiles.length} Learners</h3>
-                <p className="text-[11px] text-slate-400">Enrolled under SBST intervention monitoring.</p>
+                <h3 className={`text-2xl font-black font-display ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                  {learnersOnSupport.length} <span className="text-sm font-bold">of {learners.length} learners</span>
+                </h3>
+                <p className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Enrolled under SBST intervention monitoring ({savedProfiles.filter(p => p.status !== 'Completed').length} plans still open).
+                </p>
               </div>
 
               <div className={`p-5 rounded-2xl border space-y-2 ${isDarkMode ? 'bg-slate-900/80 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-slate-400 uppercase">Weekly Session Slots</span>
+                  <span className={`text-xs font-bold uppercase ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Weekly Session Slots</span>
                   <Clock size={18} className="text-amber-400" />
                 </div>
-                <h3 className="text-2xl font-black text-white font-display">8 Sessions / Wk</h3>
-                <p className="text-[11px] text-slate-400">Allocated during morning reading & study periods.</p>
+                <h3 className={`text-2xl font-black font-display ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                  {weeklySessionTotal} <span className="text-sm font-bold">sessions / wk</span>
+                </h3>
+                <p className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Built from each plan's session frequency (20 minutes per session).
+                </p>
               </div>
 
               <div className={`p-5 rounded-2xl border space-y-2 ${isDarkMode ? 'bg-slate-900/80 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-slate-400 uppercase">Parent Updates Pending</span>
+                  <span className={`text-xs font-bold uppercase ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Parent Updates Pending</span>
                   <MessageSquare size={18} className="text-purple-400" />
                 </div>
-                <h3 className="text-2xl font-black text-white font-display">2 Feedback Notes</h3>
-                <p className="text-[11px] text-slate-400">Ready for home support dispatch.</p>
+                <h3 className={`text-2xl font-black font-display ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                  {pendingParentUpdates} <span className="text-sm font-bold">feedback notes</span>
+                </h3>
+                <p className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Learners on support with no progress report published to parents yet.
+                </p>
               </div>
             </div>
 
-            {/* Weekly Timetable Grid */}
+            {/* Weekly Timetable Grid — derived from the active plans */}
             <div className="space-y-3">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Weekly Intervention Session Calendar</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day, idx) => (
-                  <div key={day} className={`p-4 rounded-2xl border space-y-3 ${isDarkMode ? 'bg-slate-900/60 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className="flex justify-between items-center border-b border-white/10 pb-2">
-                      <span className="text-xs font-bold text-cyan-400 uppercase font-display">{day}</span>
-                      <span className="text-[10px] text-slate-500 font-bold">20 min</span>
-                    </div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                  Weekly Intervention Session Calendar
+                </h3>
+                {onNavigateTab && (
+                  <button
+                    onClick={() => onNavigateTab('reports')}
+                    className={`px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer inline-flex items-center gap-1.5 ${
+                      isDarkMode ? 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/15' : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
+                    }`}
+                  >
+                    <Send size={12} /> Publish reports to parents
+                  </button>
+                )}
+              </div>
 
-                    <div className="space-y-2 text-xs">
-                      {idx % 2 === 0 ? (
-                        <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 space-y-1">
-                          <span className="font-bold block">Sipho N. (Maths)</span>
-                          <span className="text-[10px] text-slate-400 block">Number line subtraction drill</span>
-                        </div>
-                      ) : (
-                        <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 space-y-1">
-                          <span className="font-bold block">Keira v. (Phonics)</span>
-                          <span className="text-[10px] text-slate-400 block">Vowel blend flashcard practice</span>
-                        </div>
-                      )}
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                {WEEK_DAYS.map((day) => {
+                  const sessions = weeklySchedule[day] || [];
+                  return (
+                    <div key={day} className={`p-4 rounded-2xl border space-y-3 ${isDarkMode ? 'bg-slate-900/60 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className={`flex justify-between items-center border-b pb-2 ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>
+                        <span className="text-xs font-bold text-cyan-400 uppercase font-display">{day}</span>
+                        <span className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                          {sessions.length} × 20 min
+                        </span>
+                      </div>
+
+                      <div className="space-y-2 text-xs">
+                        {sessions.length === 0 ? (
+                          <p className={`text-[11px] italic ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`}>No sessions booked</p>
+                        ) : sessions.map((slot, i) => (
+                          <div
+                            key={slot.id}
+                            className={`p-2.5 rounded-xl border space-y-1 ${
+                              i % 2 === 0
+                                ? 'bg-cyan-500/10 border-cyan-500/25'
+                                : 'bg-purple-500/10 border-purple-500/25'
+                            }`}
+                          >
+                            <span className={`font-bold block truncate ${i % 2 === 0 ? 'text-cyan-200' : 'text-purple-200'}`}>
+                              {slot.learner} ({slot.subject})
+                            </span>
+                            <span className={`text-[10px] block line-clamp-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                              {slot.focus}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

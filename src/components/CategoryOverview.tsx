@@ -216,6 +216,12 @@ function InteractiveShowcaseCard({
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/35 to-transparent pointer-events-none z-0" />
       </div>
 
+      {/* Legibility scrim — paints over the slideshow artwork and under the
+          copy so titles, descriptions and pills are never washed out by the
+          background. Additive layer only: the card's border, glow, hover state,
+          slideshow timing and existing dark veils are unchanged. */}
+      <div className="showcase-scrim" aria-hidden="true" />
+
       {/* Foreground Interactive Layout */}
       <div className="showcase-content w-full h-full flex flex-col items-center justify-center">
         {children}
@@ -783,10 +789,10 @@ export default function CategoryOverview({
             </span>
             <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)]">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)] art-title">
             AI Studio
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
+          <p className="text-xs sm:text-sm text-slate-200 mt-2 max-w-xl mx-auto font-medium art-body">
             Personalized Tutor • Auto-Grading Lab • Adaptive Curriculum Support
           </p>
         </div>
@@ -822,10 +828,10 @@ export default function CategoryOverview({
               </div>
 
               <div>
-                <h3 className="text-2xl font-display font-black text-white group-hover:text-amber-200 transition-colors">
+                <h3 className="text-2xl font-display font-black text-white group-hover:text-amber-200 transition-colors art-title">
                   AI Tutor Companion
                 </h3>
-                <p className="text-xs text-slate-300 leading-relaxed mt-2">
+                <p className="text-xs text-slate-200 leading-relaxed mt-2 art-body">
                   Engage with our localized AI tutor for homework help, syllabus explanations, and personalized study drills tailored to your unique learning style!
                 </p>
               </div>
@@ -877,16 +883,16 @@ export default function CategoryOverview({
                 <Brain size={44} />
               </div>
 
-              <div>
-                <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-orange-300 transition-colors mb-2">
+              <div className="copy-plate w-full px-5 py-4">
+                <h2 className="text-2xl font-display font-extrabold text-white art-title group-hover:text-orange-300 transition-colors mb-2">
                   AI Tutor Companion
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed max-w-sm art-body">
                   Personalized 1-on-1 tutoring sessions with adaptive support for various subjects and learning phases.
                 </p>
               </div>
 
-              <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+              <div className="showcase-pill-row mt-1 px-2.5 py-2.5 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   className="px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/30 border border-orange-500/40 text-[11px] font-bold text-orange-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
                 >
@@ -914,16 +920,16 @@ export default function CategoryOverview({
                 <ScanLine size={44} />
               </div>
 
-              <div>
-                <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-cyan-200 transition-colors mb-2">
+              <div className="copy-plate w-full px-5 py-4">
+                <h2 className="text-2xl font-display font-extrabold text-white art-title group-hover:text-cyan-200 transition-colors mb-2">
                   OCR Auto-Grading
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed max-w-sm art-body">
                   Leverage AI vision to scan physical student answer sheets and provide instant, objective auto-grading.
                 </p>
               </div>
 
-              <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+              <div className="showcase-pill-row mt-1 px-2.5 py-2.5 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   className="px-3 py-1.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/30 border border-cyan-500/40 text-[11px] font-bold text-cyan-300 hover:text-white hover:scale-105 transition-all cursor-pointer"
                 >
@@ -994,10 +1000,10 @@ export default function CategoryOverview({
               <Icon size={36} className="text-white" />
             </div>
             
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black tracking-tight text-white mb-3">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black tracking-tight text-white mb-3 art-title">
               {categoryLabel === 'Message & Collaborate' ? 'Message & Collaborate Hub' : categoryLabel}
             </h1>
-            <p className="text-sm sm:text-base text-slate-300 font-normal max-w-xl mx-auto">
+            <p className="text-sm sm:text-base text-slate-200 font-normal max-w-xl mx-auto art-body">
               {isStudyTools
                 ? 'Practice your skills, collaborate with classmates, and create your own AI study materials — everything you need to prepare for assessments.'
                 : 'Connect with parents, students, and faculty. Share updates, assignments, and class resources in real-time.'}
@@ -1040,12 +1046,12 @@ export default function CategoryOverview({
                     <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-cyan-500/20 border border-white/15 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
                       <ItemIcon size={26} className="text-white" />
                     </div>
-                    <h3 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight group-hover:text-cyan-400 transition-colors">
+                    <h3 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight group-hover:text-cyan-400 transition-colors art-title">
                       {item.label}
                     </h3>
                   </div>
 
-                  <p className="text-sm sm:text-base text-slate-300 font-normal leading-relaxed relative z-10">
+                  <p className="text-sm sm:text-base text-slate-200 font-normal leading-relaxed relative z-10 art-body">
                     {desc}
                   </p>
                 </motion.button>
@@ -1098,10 +1104,10 @@ export default function CategoryOverview({
             </span>
             <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)]">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)] art-title">
             Diary Planner
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
+          <p className="text-xs sm:text-sm text-slate-200 mt-2 max-w-xl mx-auto font-medium art-body">
             CAPS Timetables • ATP Deadline Alerts • Teacher's Diary Logs • Broadcast Memos
           </p>
         </div>
@@ -1127,10 +1133,10 @@ export default function CategoryOverview({
                 <span className="px-2.5 py-0.5 rounded-full bg-pink-500/20 text-[10px] font-black uppercase text-pink-300 tracking-wider">
                   CAPS & ATP Flags
                 </span>
-                <h3 className="text-2xl font-display font-black text-white mt-1">
+                <h3 className="text-2xl font-display font-black text-white mt-1 art-title">
                   Alerts & Reminders
                 </h3>
-                <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                <p className="text-xs text-slate-200 mt-2 leading-relaxed art-body">
                   Track curriculum pacing alerts, ATP deadline warnings, and struggling learner risk indicators in real-time.
                 </p>
               </div>
@@ -1158,10 +1164,10 @@ export default function CategoryOverview({
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-[10px] font-black uppercase text-emerald-300 tracking-wider">
                   Weekly Timetables
                 </span>
-                <h3 className="text-2xl font-display font-black text-white mt-1">
+                <h3 className="text-2xl font-display font-black text-white mt-1 art-title">
                   Planner & Diary
                 </h3>
-                <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                <p className="text-xs text-slate-200 mt-2 leading-relaxed art-body">
                   Manage weekly CAPS schedules, personal diary logs, classroom period planners, and lesson calendars.
                 </p>
               </div>
@@ -1189,10 +1195,10 @@ export default function CategoryOverview({
                 <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-[10px] font-black uppercase text-cyan-300 tracking-wider">
                   School Communications
                 </span>
-                <h3 className="text-2xl font-display font-black text-white mt-1">
+                <h3 className="text-2xl font-display font-black text-white mt-1 art-title">
                   Broadcast Memos
                 </h3>
-                <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                <p className="text-xs text-slate-200 mt-2 leading-relaxed art-body">
                   Draft parent letters, administrative announcements, emergency bulletins, and school circulars.
                 </p>
               </div>
@@ -1258,10 +1264,10 @@ export default function CategoryOverview({
             </span>
             <Sparkles className="w-5 h-5 text-cyan-400 animate-pulse" />
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-cyan-400 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(34,211,238,0.6)]">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-cyan-400 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(34,211,238,0.6)] art-title">
             Planning Hub
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
+          <p className="text-xs sm:text-sm text-slate-200 mt-2 max-w-xl mx-auto font-medium art-body">
             CAPS Syllabus Hub • Weekly Planner • Teacher's Planner & Diary • Lesson Architect & Alerts
           </p>
         </div>
@@ -1291,10 +1297,10 @@ export default function CategoryOverview({
               </div>
 
               <div>
-                <h3 className="text-2xl font-display font-black text-white group-hover:text-cyan-200 transition-colors">
+                <h3 className="text-2xl font-display font-black text-white group-hover:text-cyan-200 transition-colors art-title">
                   Weekly Planner & Syllabus
                 </h3>
-                <p className="text-xs text-slate-300 leading-relaxed mt-2">
+                <p className="text-xs text-slate-200 leading-relaxed mt-2 art-body">
                   Organize term topics, ATP progress, weekly lesson schedules, daily task reminders, and notifications seamlessly in one place.
                 </p>
               </div>
@@ -1343,8 +1349,8 @@ export default function CategoryOverview({
               <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
                 <Calendar size={28} />
               </div>
-              <h3 className="text-xl font-display font-black text-white group-hover:text-cyan-300">Weekly Planner</h3>
-              <p className="text-xs text-slate-300 leading-relaxed">Schedule weekly lesson milestones, timetable periods, and term pacing.</p>
+              <h3 className="text-xl font-display font-black text-white group-hover:text-cyan-300 art-title">Weekly Planner</h3>
+              <p className="text-xs text-slate-200 leading-relaxed art-body">Schedule weekly lesson milestones, timetable periods, and term pacing.</p>
             </div>
             <button className="mt-4 px-4 py-2 rounded-xl bg-cyan-500/20 text-cyan-300 font-bold text-xs hover:bg-cyan-500/30 transition-all text-center relative">
               Open Weekly Planner →
@@ -1365,8 +1371,8 @@ export default function CategoryOverview({
               <div className="w-14 h-14 rounded-2xl bg-pink-500/10 border border-pink-500/40 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform">
                 <BookOpen size={28} />
               </div>
-              <h3 className="text-xl font-display font-black text-white group-hover:text-pink-300">Lesson Architect</h3>
-              <p className="text-xs text-slate-300 leading-relaxed">Create step-by-step CAPS lesson plans, worksheets, and teaching aids.</p>
+              <h3 className="text-xl font-display font-black text-white group-hover:text-pink-300 art-title">Lesson Architect</h3>
+              <p className="text-xs text-slate-200 leading-relaxed art-body">Create step-by-step CAPS lesson plans, worksheets, and teaching aids.</p>
             </div>
             <button className="mt-4 px-4 py-2 rounded-xl bg-pink-500/20 text-pink-300 font-bold text-xs hover:bg-pink-500/30 transition-all text-center relative">
               Open Lesson Architect →
@@ -1387,8 +1393,8 @@ export default function CategoryOverview({
               <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/40 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
                 <FileText size={28} />
               </div>
-              <h3 className="text-xl font-display font-black text-white group-hover:text-purple-300">Teacher's Diary</h3>
-              <p className="text-xs text-slate-300 leading-relaxed">Personal teaching log, daily reflections, reminders, and class task lists.</p>
+              <h3 className="text-xl font-display font-black text-white group-hover:text-purple-300 art-title">Teacher's Diary</h3>
+              <p className="text-xs text-slate-200 leading-relaxed art-body">Personal teaching log, daily reflections, reminders, and class task lists.</p>
             </div>
             <button className="mt-4 px-4 py-2 rounded-xl bg-purple-500/20 text-purple-300 font-bold text-xs hover:bg-purple-500/30 transition-all text-center relative">
               Open Teacher's Diary →
@@ -1409,8 +1415,8 @@ export default function CategoryOverview({
               <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
                 <Layers size={28} />
               </div>
-              <h3 className="text-xl font-display font-black text-white group-hover:text-emerald-300">CAPS Syllabus Hub</h3>
-              <p className="text-xs text-slate-300 leading-relaxed">Full South African CAPS curriculum documents, assessment plans, and topics.</p>
+              <h3 className="text-xl font-display font-black text-white group-hover:text-emerald-300 art-title">CAPS Syllabus Hub</h3>
+              <p className="text-xs text-slate-200 leading-relaxed art-body">Full South African CAPS curriculum documents, assessment plans, and topics.</p>
             </div>
             <button className="mt-4 px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold text-xs hover:bg-emerald-500/30 transition-all text-center relative">
               Explore CAPS Hub →
@@ -1431,8 +1437,8 @@ export default function CategoryOverview({
               <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/40 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
                 <Bell size={28} />
               </div>
-              <h3 className="text-xl font-display font-black text-white group-hover:text-amber-300">Notifications & Alerts</h3>
-              <p className="text-xs text-slate-300 leading-relaxed">Stay updated with planning reminders, assignment deadlines, and alerts.</p>
+              <h3 className="text-xl font-display font-black text-white group-hover:text-amber-300 art-title">Notifications & Alerts</h3>
+              <p className="text-xs text-slate-200 leading-relaxed art-body">Stay updated with planning reminders, assignment deadlines, and alerts.</p>
             </div>
             <button className="mt-4 px-4 py-2 rounded-xl bg-amber-500/20 text-amber-300 font-bold text-xs hover:bg-amber-500/30 transition-all text-center relative">
               View Notifications →
@@ -1453,8 +1459,8 @@ export default function CategoryOverview({
               <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/40 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
                 <Archive size={28} />
               </div>
-              <h3 className="text-xl font-display font-black text-white group-hover:text-indigo-300">Content Archive</h3>
-              <p className="text-xs text-slate-300 leading-relaxed">Access all saved plans, exported workbooks, and generated teaching resources.</p>
+              <h3 className="text-xl font-display font-black text-white group-hover:text-indigo-300 art-title">Content Archive</h3>
+              <p className="text-xs text-slate-200 leading-relaxed art-body">Access all saved plans, exported workbooks, and generated teaching resources.</p>
             </div>
             <button className="mt-4 px-4 py-2 rounded-xl bg-indigo-500/20 text-indigo-300 font-bold text-xs hover:bg-indigo-500/30 transition-all text-center relative">
               Open Archive →
@@ -1500,10 +1506,10 @@ export default function CategoryOverview({
             </span>
             <Sparkles className="w-5 h-5 text-cyan-300 animate-pulse" />
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-cyan-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(34,211,238,0.6)]">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-cyan-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(34,211,238,0.6)] art-title">
             Reports
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
+          <p className="text-xs sm:text-sm text-slate-200 mt-2 max-w-xl mx-auto font-medium art-body">
             Progress Reports • Academic Analytics • CAPS & Gamification Hub
           </p>
         </div>
@@ -1534,10 +1540,10 @@ export default function CategoryOverview({
               </div>
 
               <div>
-                <h3 className="text-2xl font-display font-black text-white group-hover:text-emerald-200 transition-colors">
+                <h3 className="text-2xl font-display font-black text-white group-hover:text-emerald-200 transition-colors art-title">
                   Learner Portfolio Spotlight
                 </h3>
-                <p className="text-xs text-slate-300 leading-relaxed mt-2">
+                <p className="text-xs text-slate-200 leading-relaxed mt-2 art-body">
                   Showcase continuous learner work — homework, submissions, custom marks, and teacher feedback — in one living portfolio that follows every student.
                 </p>
               </div>
@@ -1602,7 +1608,7 @@ export default function CategoryOverview({
                     {cfg.title}
                   </h3>
 
-                  <p className="mt-2 text-xs sm:text-sm text-slate-300 leading-relaxed flex-1">
+                  <p className="mt-2 text-xs sm:text-sm text-slate-200 leading-relaxed flex-1 art-body">
                     {cfg.desc}
                   </p>
 
@@ -1687,10 +1693,10 @@ export default function CategoryOverview({
             </span>
             <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)]">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)] art-title">
             Learners
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
+          <p className="text-xs sm:text-sm text-slate-200 mt-2 max-w-xl mx-auto font-medium art-body">
             Classrooms Manager • Attendance & Parent Records • Learner Intervention Hub • Living Portfolios
           </p>
         </div>
@@ -1725,10 +1731,10 @@ export default function CategoryOverview({
               </div>
 
               <div>
-                <h3 className="text-2xl font-display font-black text-white group-hover:text-emerald-200 transition-colors">
+                <h3 className="text-2xl font-display font-black text-white group-hover:text-emerald-200 transition-colors art-title">
                   Classrooms Manager
                 </h3>
-                <p className="text-xs text-slate-300 leading-relaxed mt-2">
+                <p className="text-xs text-slate-200 leading-relaxed mt-2 art-body">
                   Register learners, manage parent contact records, and design visual seating profiles for every classroom — all inside one secure South African classroom hub!
                 </p>
               </div>
@@ -1786,17 +1792,17 @@ export default function CategoryOverview({
                 </svg>
               </div>
 
-              <div>
-                <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-pink-300 transition-colors mb-2">
+              <div className="copy-plate w-full px-5 py-4">
+                <h2 className="text-2xl font-display font-extrabold text-white art-title group-hover:text-pink-300 transition-colors mb-2">
                   Classrooms Manager
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed max-w-sm art-body">
                   Manage learner registers, parent information, class lists, and visual seating profiles for every grade you teach.
                 </p>
               </div>
 
               {/* Sub-action Pills */}
-              <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+              <div className="showcase-pill-row mt-1 px-2.5 py-2.5 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('class-management'); }}
                   className="px-3 py-1.5 rounded-full bg-pink-500/10 hover:bg-pink-500/30 border border-pink-500/40 text-[11px] font-bold text-pink-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
@@ -1832,17 +1838,17 @@ export default function CategoryOverview({
                 </svg>
               </div>
 
-              <div>
-                <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-cyan-200 transition-colors mb-2">
+              <div className="copy-plate w-full px-5 py-4">
+                <h2 className="text-2xl font-display font-extrabold text-white art-title group-hover:text-cyan-200 transition-colors mb-2">
                   Learner Intervention Hub
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed max-w-sm art-body">
                   Flag struggling learners early with SIAS-aligned risk indicators and design personalised support plans with parents.
                 </p>
               </div>
 
               {/* Sub-action Pills */}
-              <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+              <div className="showcase-pill-row mt-1 px-2.5 py-2.5 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('learner-intervention'); }}
                   className="px-3 py-1.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/30 border border-cyan-500/40 text-[11px] font-bold text-cyan-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
@@ -1878,17 +1884,17 @@ export default function CategoryOverview({
                 </svg>
               </div>
 
-              <div>
-                <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-emerald-200 transition-colors mb-2">
+              <div className="copy-plate w-full px-5 py-4">
+                <h2 className="text-2xl font-display font-extrabold text-white art-title group-hover:text-emerald-200 transition-colors mb-2">
                   Learner Profiles & Portfolios
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed max-w-sm art-body">
                   Browse living portfolios of continuous homework, custom marks, and personalised teacher feedback for every learner.
                 </p>
               </div>
 
               {/* Sub-action Pills */}
-              <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+              <div className="showcase-pill-row mt-1 px-2.5 py-2.5 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('portfolios'); }}
                   className="px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
@@ -1920,16 +1926,16 @@ export default function CategoryOverview({
                 <Users size={44} />
               </div>
 
-              <div>
-                <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-orange-300 transition-colors mb-2">
+              <div className="copy-plate w-full px-5 py-4">
+                <h2 className="text-2xl font-display font-extrabold text-white art-title group-hover:text-orange-300 transition-colors mb-2">
                   Attendance & Parent Records
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed max-w-sm art-body">
                   Walk the room, mark the roll, and keep POPIA-safe parent contact records ready for every learner in the class.
                 </p>
               </div>
 
-              <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+              <div className="showcase-pill-row mt-1 px-2.5 py-2.5 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('class-management'); }}
                   className="px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/30 border border-orange-500/40 text-[11px] font-bold text-orange-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
@@ -2022,10 +2028,10 @@ export default function CategoryOverview({
             </span>
             <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)]">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)] art-title">
             Toolbox
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
+          <p className="text-xs sm:text-sm text-slate-200 mt-2 max-w-xl mx-auto font-medium art-body">
             CAPS Lesson Architect • Instant QR Camera Auto-Grading • Creative Media Suite
           </p>
         </div>
@@ -2055,10 +2061,10 @@ export default function CategoryOverview({
               </div>
 
               <div>
-                <h3 className="text-2xl font-display font-black text-white group-hover:text-cyan-200 transition-colors">
+                <h3 className="text-2xl font-display font-black text-white group-hover:text-cyan-200 transition-colors art-title">
                   Worksheet QR Scanner
                 </h3>
-                <p className="text-xs text-slate-300 leading-relaxed mt-2">
+                <p className="text-xs text-slate-200 leading-relaxed mt-2 art-body">
                   Scan physical printed worksheet QR codes using your phone or laptop camera for instant diagnostic scoring, student mark recording, and memorandum breakdown!
                 </p>
               </div>
@@ -2115,17 +2121,17 @@ export default function CategoryOverview({
                 </svg>
               </div>
 
-              <div>
-                <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-pink-300 transition-colors mb-2">
+              <div className="copy-plate w-full px-5 py-4">
+                <h2 className="text-2xl font-display font-extrabold text-white art-title group-hover:text-pink-300 transition-colors mb-2">
                   CAPS Tools Factory
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed max-w-sm art-body">
                   Generate detailed CAPS-aligned lesson plans, unit planners, and foundation phase learning materials in seconds!
                 </p>
               </div>
 
               {/* Sub-action Pills */}
-              <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+              <div className="showcase-pill-row mt-1 px-2.5 py-2.5 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('teaching'); }}
                   className="px-3 py-1.5 rounded-full bg-pink-500/10 hover:bg-pink-500/30 border border-pink-500/40 text-[11px] font-bold text-pink-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
@@ -2163,17 +2169,17 @@ export default function CategoryOverview({
                 </svg>
               </div>
 
-              <div>
-                <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-orange-300 transition-colors mb-2">
+              <div className="copy-plate w-full px-5 py-4">
+                <h2 className="text-2xl font-display font-extrabold text-white art-title group-hover:text-orange-300 transition-colors mb-2">
                   Quiz Wizard
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed max-w-sm art-body">
                   Interactive diagnostic quizzes, formal exam papers, answer memorandums, and student practice exercises.
                 </p>
               </div>
 
               {/* Sub-action Pills */}
-              <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+              <div className="showcase-pill-row mt-1 px-2.5 py-2.5 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('student-practice'); }}
                   className="px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/30 border border-orange-500/40 text-[11px] font-bold text-orange-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
@@ -2211,17 +2217,17 @@ export default function CategoryOverview({
                 </svg>
               </div>
 
-              <div>
-                <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-cyan-200 transition-colors mb-2">
+              <div className="copy-plate w-full px-5 py-4">
+                <h2 className="text-2xl font-display font-extrabold text-white art-title group-hover:text-cyan-200 transition-colors mb-2">
                   Admin & Reports Cabinet
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed max-w-sm art-body">
                   Generate learner report comments, parent communication notices, newsletters, and administrative logs.
                 </p>
               </div>
 
               {/* Sub-action Pills */}
-              <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+              <div className="showcase-pill-row mt-1 px-2.5 py-2.5 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('admin'); }}
                   className="px-3 py-1.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/30 border border-cyan-500/40 text-[11px] font-bold text-cyan-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
@@ -2258,17 +2264,17 @@ export default function CategoryOverview({
                 </svg>
               </div>
 
-              <div>
-                <h2 className="text-2xl font-display font-extrabold text-white group-hover:text-emerald-200 transition-colors mb-2">
+              <div className="copy-plate w-full px-5 py-4">
+                <h2 className="text-2xl font-display font-extrabold text-white art-title group-hover:text-emerald-200 transition-colors mb-2">
                   Media Tools Designer
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed max-w-sm art-body">
                   Design rich classroom posters, educational infographics, AI teacher video avatars, and visual flashcards.
                 </p>
               </div>
 
               {/* Sub-action Pills */}
-              <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+              <div className="showcase-pill-row mt-1 px-2.5 py-2.5 flex flex-wrap items-center justify-center gap-2 w-full">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelect('visual'); }}
                   className="px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
@@ -2400,10 +2406,10 @@ export default function CategoryOverview({
             </span>
             <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)]">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-amber-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(252,211,77,0.6)] art-title">
             Desk
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto font-medium">
+          <p className="text-xs sm:text-sm text-slate-200 mt-2 max-w-xl mx-auto font-medium art-body">
             Playable Walkthrough Clips • CAPS &amp; POPIA Knowledge Base • Settings, AI Engines &amp; Live Support
           </p>
         </div>
@@ -2439,10 +2445,10 @@ export default function CategoryOverview({
               </div>
 
               <div>
-                <h3 className="text-2xl font-display font-black text-white group-hover:text-violet-200 transition-colors">
+                <h3 className="text-2xl font-display font-black text-white group-hover:text-violet-200 transition-colors art-title">
                   Learn Any Tool in Minutes
                 </h3>
-                <p className="text-xs text-slate-300 leading-relaxed mt-2">
+                <p className="text-xs text-slate-200 leading-relaxed mt-2 art-body">
                   {HOW_TO_GUIDES.length} playable how-to clips across {HOW_TO_CATEGORIES.length - 1} topic groups, each about {CLIP_SECONDS_PER_STEP} seconds per step — watch it, then tap Open Feature to land straight on the live page.
                 </p>
               </div>
@@ -2496,17 +2502,17 @@ export default function CategoryOverview({
                     <CardIcon size={44} strokeWidth={1.8} />
                   </div>
 
-                  <div>
-                    <h2 className={`text-2xl font-display font-extrabold text-white transition-colors mb-2 ${theme.titleHoverClass}`}>
+                  <div className="copy-plate w-full px-5 py-4">
+                    <h2 className={`text-2xl font-display font-extrabold text-white art-title transition-colors mb-2 ${theme.titleHoverClass}`}>
                       {card.title}
                     </h2>
-                    <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
+                    <p className="text-xs sm:text-sm text-slate-200 leading-relaxed max-w-sm art-body">
                       {card.desc}
                     </p>
                   </div>
 
                   {/* Sub-action Pills */}
-                  <div className="pt-3 flex flex-wrap items-center justify-center gap-2 w-full">
+                  <div className="showcase-pill-row mt-1 px-2.5 py-2.5 flex flex-wrap items-center justify-center gap-2 w-full">
                     {card.pills.map((pill) => (
                       <button
                         key={`${card.key}-${pill.label}`}

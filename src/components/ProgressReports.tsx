@@ -713,10 +713,10 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
           <Sparkles size={14} className="animate-spin" />
           <span>Analytics Cognitive Centre</span>
         </div>
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white font-display tracking-tight mb-3">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white font-display tracking-tight mb-3 art-title">
           ✨ Analytics & Reports ✨
         </h1>
-        <p className="text-slate-300 max-w-2xl mx-auto text-sm sm:text-base font-medium">
+        <p className="text-slate-200 max-w-2xl mx-auto text-sm sm:text-base font-medium art-body">
           Audit class academic stats, review student performance dossiers, and produce AI-driven Individual Development Plans.
         </p>
         <div className="mt-6 flex justify-center gap-3">

@@ -7,7 +7,7 @@ import {
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
-import StudentPortfolio from './StudentPortfolio';
+import LearnerPortfolioHub from './LearnerPortfolioHub';
 import { LearnerInterventionHub } from './LearnerInterventionHub';
 import StudentRecordsPanel from './StudentRecordsPanel';
 
@@ -123,9 +123,9 @@ function ClassroomShowcaseCard({
         </div>
 
         <div>
-          <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">{subtitle}</p>
+          <p className="text-[10px] uppercase font-black tracking-widest text-slate-300 art-chip">{subtitle}</p>
           <h3 className={cn(
-            "text-lg font-black font-display tracking-tight transition-colors mt-0.5",
+            "text-lg font-black font-display tracking-tight transition-colors mt-0.5 art-title",
             isActive ? "text-amber-300 drop-shadow-[0_0_10px_rgba(252,211,77,0.5)]" : "text-white group-hover:text-cyan-200"
           )}>
             {title}
@@ -135,7 +135,7 @@ function ClassroomShowcaseCard({
 
       {/* Footer Stat */}
       <div className="relative z-10 pt-2.5 border-t border-white/10 flex items-center justify-between mt-3">
-        <span className="text-xs font-black font-mono text-slate-200">{stat}</span>
+        <span className="text-xs font-black font-mono text-slate-100 art-chip">{stat}</span>
         <span className={cn(
           "text-[11px] font-bold flex items-center gap-1 transition-colors",
           isActive ? "text-amber-400" : "text-cyan-400 group-hover:translate-x-1"
@@ -724,14 +724,15 @@ export default function ClassManagement({ isDarkMode = true }: { isDarkMode?: bo
             {/* TAB: LEARNER INTERVENTION HUB */}
             {activeTab === 'intervention' && (
               <div className="bg-slate-900/60 border border-white/10 rounded-3xl p-2 sm:p-4 backdrop-blur-xl shadow-2xl">
-                <LearnerInterventionHub isDarkMode={isDarkMode} />
+                <LearnerInterventionHub isDarkMode={isDarkMode} userRole="teacher" />
               </div>
             )}
 
-            {/* TAB: LEARNER PORTFOLIOS */}
+            {/* TAB: LEARNER PORTFOLIOS — every learner on the register, grouped
+                by class / alphabetically, with teacher edit rights and the IDP. */}
             {activeTab === 'portfolios' && (
               <div className="bg-slate-900/60 border border-white/10 rounded-3xl p-2 sm:p-4 backdrop-blur-xl shadow-2xl">
-                <StudentPortfolio isDarkMode={isDarkMode} />
+                <LearnerPortfolioHub isDarkMode={isDarkMode} userRole="teacher" />
               </div>
             )}
           {/* TAB 1: LEARNERS ROSTER */}
