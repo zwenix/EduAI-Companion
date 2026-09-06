@@ -1,0 +1,8 @@
+﻿id,1148040
+apiKey,sk-ws-H.DDLYMLM.kx83.MEUCIQCZO0xKN1tdr2zwk2T-PSO7e_HcMd4GWB38DYURW9cpTwIgaV8ZDeDu2SxYW54ZrWwu-Y2dwFGzoTbLSFIHVQdYtCw
+apiHost,ws-8ldb9u90tetxcada.ap-southeast-1.maas.aliyuncs.com
+openAiCompatible,https://ws-8ldb9u90tetxcada.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1
+dashScope,https://ws-8ldb9u90tetxcada.ap-southeast-1.maas.aliyuncs.com/api/v1
+description,EduAI Companion 
+workspaceName,Default Workspace
+workspaceId,ws-8ldb9u90tetxcada
