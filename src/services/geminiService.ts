@@ -13,10 +13,10 @@ import { isNativeApp } from "../lib/platform";
 // a CORS/network refusal simply moves the chain along to the next provider.
 const LAST_RESORT_PROVIDERS: { name: string; url: string; key: () => string; models: string[] }[] = [
   {
-    name: "NVIDIA",
-    url: "https://integrate.api.nvidia.com/v1/chat/completions",
-    key: () => AI_SECRETS.NVIDIA_API_KEY,
-    models: ["nvidia/llama-3.3-nemotron-super-49b-v1"]
+    name: "Alibaba Qwen 3.8",
+    url: "https://ws-8ldb9u90tetxcada.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/chat/completions",
+    key: () => AI_SECRETS.ALIBABA_API_KEY,
+    models: ["qwen3.8-max"]
   },
   {
     name: "Groq",

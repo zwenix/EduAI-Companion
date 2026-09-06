@@ -304,6 +304,6 @@ export const HOW_TO_FAQS: { q: string; a: string; tags: string }[] = [
   { q: 'Can I work offline?', a: 'Install the PWA from the sidebar. Students tap Sync to cache lessons in the Offline Vault.', tags: 'offline pwa' },
   { q: 'Is content CAPS aligned?', a: 'Yes. Studio documents target DBE CAPS for Grades R–12. The quality score after generation reports CAPS, pedagogy and SA context.', tags: 'caps dbe' },
   { q: 'The AI answer looks wrong.', a: 'Switch model under Tools → AI Engines, or rephrase with grade + subject. You can also report the tutor message.', tags: 'tutor ai model' },
-  { q: 'Which AI models power EduAI?', a: 'Primary text is Gemini. You can switch to NVIDIA Llama 3.3 Nemotron Super 49B or Nemotron-3 Ultra 550B under Tools → AI Engines. The tutor uses South African examples (rands, local names, CAPS topics).', tags: 'gemini nvidia model tutor' },
+  { q: 'Which AI models power EduAI?', a: 'Primary text is Gemini 3.8 Flash (latest GA model). You can switch to Qwen 3.8 Max from Alibaba Model Studio under Tools → AI Engines. The tutor uses South African examples (rands, local names, CAPS topics).', tags: 'gemini qwen model tutor' },
   { q: 'How is learner data protected?', a: 'We follow POPIA. Do not store ID numbers in notes. Marks and photos stay in your signed-in workspace.', tags: 'popia privacy' },
 ];

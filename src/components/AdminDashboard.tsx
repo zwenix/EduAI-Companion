@@ -74,19 +74,23 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  // Legacy NVIDIA Nemotron log entries are grouped under the Qwen 3.8 engine.
+  const normalizeProvider = (p: string) =>
+    (p === 'nvidia-nemotron' || p === 'nvidia-nemotron-ultra' || p === 'groq-qwen') ? 'alibaba-qwen' : p;
+
   const filteredErrors = providerFilter === 'all' 
     ? errors 
-    : errors.filter((err: any) => err.provider === providerFilter);
+    : errors.filter((err: any) => normalizeProvider(err.provider) === providerFilter);
 
   // Group count for visual reference
   const getProviderBadgeStyle = (provider: string) => {
     switch (provider) {
       case 'gemini':
         return 'bg-violet-500/10 text-violet-400 border-violet-500/25';
+      case 'alibaba-qwen':
       case 'nvidia-nemotron':
-        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25';
       case 'nvidia-nemotron-ultra':
-        return 'bg-amber-500/10 text-amber-400 border-amber-500/25';
+        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25';
       default:
         return 'bg-slate-500/10 text-slate-400 border-slate-500/25';
     }
@@ -372,10 +376,10 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
 
           {/* Filtering Tab Pills */}
           <div className="flex flex-wrap gap-2 pb-2">
-            {['all', 'gemini', 'nvidia-nemotron', 'nvidia-nemotron-ultra'].map((prov) => {
+            {['all', 'gemini', 'alibaba-qwen'].map((prov) => {
               const count = prov === 'all' 
                 ? errors.length 
-                : errors.filter(e => e.provider === prov).length;
+                : errors.filter(e => normalizeProvider(e.provider) === prov).length;
               return (
                 <button
                   key={prov}
@@ -388,7 +392,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  {prov === 'all' ? 'ALL' : prov === 'gemini' ? 'GEMINI' : prov === 'nvidia-nemotron' ? 'NEMOTRON 49B' : 'NEMOTRON 550B'} ({count})
+                  {prov === 'all' ? 'ALL' : prov === 'gemini' ? 'GEMINI 3.8' : 'QWEN 3.8'} ({count})
                 </button>
               );
             })}

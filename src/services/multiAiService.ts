@@ -3,64 +3,56 @@ import { checkAndReportApiError } from '../lib/apiErrorHelper';
 import { AI_SECRETS } from '../lib/aiSecrets';
 import { isNativeApp } from '../lib/platform';
 
-export type AIProvider = 'nvidia-nemotron' | 'nvidia-nemotron-ultra' | 'groq-qwen';
+export type AIProvider = 'alibaba-qwen';
 
-const executeClientMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
-  let url = "https://api.groq.com/openai/v1/chat/completions";
-  let apiKey = ((process.env as any).GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || AI_SECRETS.GROQ_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
+// ─── Qwen 3.8 via Alibaba Cloud Model Studio (OpenAI-compatible) ─────────────
+// Workspace-scoped endpoint (see Model Studio → API KEY dialog). Override with
+// VITE_ALIBABA_API_BASE / ALIBABA_API_BASE if the workspace or region changes.
+const QWEN_BASE_URL = "https://ws-8ldb9u90tetxcada.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1";
+const QWEN_DEFAULT_MODEL = "qwen3.8-max";
+
+// Legacy provider ids that used to route to NVIDIA Nemotron / Groq — all now
+// transparently map to the Qwen 3.8 engine.
+const LEGACY_PROVIDERS = ['nvidia-nemotron', 'nvidia-nemotron-ultra', 'groq-qwen'];
+
+const executeClientMultiAi = async (provider: AIProvider | string, messages: any[], model?: string) => {
+  const baseUrl = String(
+    (import.meta as any).env?.VITE_ALIBABA_API_BASE ||
+    (process.env as any).ALIBABA_API_BASE ||
+    QWEN_BASE_URL
+  ).trim().replace(/\/+$/, "");
+  const url = `${baseUrl}/chat/completions`;
+  const apiKey = String(
+    (process.env as any).ALIBABA_API_KEY ||
+    (import.meta as any).env?.VITE_ALIBABA_API_KEY ||
+    (process.env as any).DASHSCOPE_API_KEY ||
+    AI_SECRETS.ALIBABA_API_KEY || ""
+  ).trim().replace(/^['"\s]+|['"\s]+$/g, "");
+
+  // Never forward a legacy provider id or NVIDIA model slug to Model Studio.
   let selectedModel = model;
-  const isAltModel = provider === 'nvidia-nemotron' || provider === 'nvidia-nemotron-ultra' || provider === 'groq-qwen';
-
-  if (isAltModel) {
-    if (provider === 'nvidia-nemotron') {
-      url = "https://integrate.api.nvidia.com/v1/chat/completions";
-      apiKey = ((process.env as any).NVIDIA_API_KEY || (import.meta as any).env?.VITE_NVIDIA_API_KEY || (process.env as any).OPENROUTER_API_KEY || (import.meta as any).env?.VITE_OPENROUTER_API_KEY || AI_SECRETS.NVIDIA_API_KEY || AI_SECRETS.OPENROUTER_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
-      if (!selectedModel || selectedModel === 'nvidia-nemotron') {
-        selectedModel = "nvidia/llama-3.3-nemotron-super-49b-v1";
-      }
-    } else if (provider === 'nvidia-nemotron-ultra' || provider === 'groq-qwen') {
-      url = "https://integrate.api.nvidia.com/v1/chat/completions";
-      apiKey = ((process.env as any).NVIDIA_API_KEY || (import.meta as any).env?.VITE_NVIDIA_API_KEY || (process.env as any).OPENROUTER_API_KEY || (import.meta as any).env?.VITE_OPENROUTER_API_KEY || AI_SECRETS.NVIDIA_API_KEY || AI_SECRETS.OPENROUTER_API_KEY || "").trim().replace(/^['"\s]+|['"\s]+$/g, "");
-      if (!selectedModel || selectedModel === 'nvidia-nemotron-ultra' || selectedModel === 'groq-qwen') {
-        selectedModel = "nvidia/nemotron-3-ultra-550b-a55b";
-      }
-    }
-  } else {
-    if (provider === 'nvidia-nemotron') {
-      if (!selectedModel || selectedModel === 'nvidia-nemotron') {
-        selectedModel = "nvidia/llama-3.3-nemotron-super-49b-v1";
-      }
-    } else if (provider === 'nvidia-nemotron-ultra' || provider === 'groq-qwen') {
-      if (!selectedModel || selectedModel === 'nvidia-nemotron-ultra' || selectedModel === 'groq-qwen') {
-        selectedModel = "nvidia/nemotron-3-ultra-550b-a55b";
-      }
-    }
+  if (
+    !selectedModel ||
+    selectedModel === provider ||
+    LEGACY_PROVIDERS.includes(selectedModel) ||
+    /nemotron|nvidia\//i.test(selectedModel)
+  ) {
+    selectedModel = QWEN_DEFAULT_MODEL;
   }
 
   if (!apiKey) {
-    const keyName = (provider === 'nvidia-nemotron' || provider === 'nvidia-nemotron-ultra' || provider === 'groq-qwen') ? 'NVIDIA_API_KEY' : 'GROQ_API_KEY';
-    throw new Error(`API key (${keyName}) for ${provider} is not configured in settings or environment. Please add it.`);
+    throw new Error(`API key (ALIBABA_API_KEY / Model Studio) for Qwen 3.8 is not configured in settings or environment. Please add it.`);
   }
 
   const payload: any = {
     model: selectedModel,
     messages,
     temperature: 0.7,
+    top_p: 0.95,
+    max_tokens: 16384,
   };
 
-  if (provider === 'nvidia-nemotron') {
-    payload.temperature = 0.6;
-    payload.top_p = 0.95;
-    payload.max_tokens = 16384;
-    payload.frequency_penalty = 0;
-    payload.presence_penalty = 0;
-  } else if (provider === 'nvidia-nemotron-ultra' || provider === 'groq-qwen') {
-    payload.temperature = 0.7;
-    payload.top_p = 0.95;
-    payload.max_tokens = 16384;
-  }
-
-  // Let the prompt dictate JSON mode, do not force it which causes issues with certain models on openrouter
+  // Let the prompt dictate JSON mode, do not force it which causes issues with certain models
 
   const response = await axios.post(
     url,

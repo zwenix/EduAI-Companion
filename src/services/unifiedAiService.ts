@@ -57,8 +57,8 @@ export const generateEducationalContent = async (type: string, details: string, 
       return await geminiGenerateContent(type, details);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to nvidia-nemotron...");
-        provider = 'nvidia-nemotron';
+        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8)...");
+        provider = 'alibaba-qwen';
       } else {
         throw err;
       }
@@ -92,8 +92,8 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
       return await geminiGenerateCAPS(input, onProgress);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to nvidia-nemotron...");
-        provider = 'nvidia-nemotron';
+        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8)...");
+        provider = 'alibaba-qwen';
       } else {
         throw err;
       }
@@ -164,8 +164,8 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini',
       return await geminiGenerateVisual(input, onProgress);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to nvidia-nemotron...");
-        provider = 'nvidia-nemotron';
+        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8)...");
+        provider = 'alibaba-qwen';
       } else {
         throw err;
       }
@@ -303,8 +303,8 @@ export const generateAdminDoc = async (input: any, provider: string = 'gemini', 
       return await geminiGenerateAdmin(input, onProgress);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to nvidia-nemotron...");
-        provider = 'nvidia-nemotron';
+        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8)...");
+        provider = 'alibaba-qwen';
       } else {
         throw err;
       }
@@ -403,8 +403,8 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
       return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to nvidia-nemotron for grading and ocrspace for scanning...");
-        provider = 'nvidia-nemotron';
+        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8) for grading and ocrspace for scanning...");
+        provider = 'alibaba-qwen';
         ocrProvider = 'ocrspace';
       } else {
         throw err;
@@ -434,7 +434,7 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
       return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
     } catch(err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        provider = 'nvidia-nemotron';
+        provider = 'alibaba-qwen';
       } else {
         throw err;
       }
@@ -442,7 +442,7 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
   }
 
   try {
-    let model = provider === 'nvidia-nemotron' ? 'nvidia/llama-3.3-nemotron-super-49b-v1' : 'nvidia/nemotron-3-ultra-550b-a55b';
+    let model = 'qwen3.8-max';
     
     const grading = await callMultiAi(provider as AIProvider, messages, model);
     
@@ -476,7 +476,7 @@ export const chatWithTutor = async (messages: any[], provider: string = 'gemini'
          if (hasImage) {
            throw new Error("Cannot fallback, Image context requires Gemini API, but quota is exceeded.");
          }
-         provider = 'nvidia-nemotron';
+         provider = 'alibaba-qwen';
        } else {
          throw err;
        }
