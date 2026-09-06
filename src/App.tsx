@@ -404,9 +404,8 @@ export default function App() {
     triggerToast("Initiating regional model speed diagnostic...", "info");
     
     const candidates = [
-      { id: 'gemini', label: 'Gemini 3.5' },
-      { id: 'nvidia-nemotron', label: 'Llama 3.3 Nemotron 49B' },
-      { id: 'nvidia-nemotron-ultra', label: 'Nemotron Ultra 550B' }
+      { id: 'gemini', label: 'Gemini 3.8 Flash' },
+      { id: 'alibaba-qwen', label: 'Qwen 3.8 Max' }
     ];
 
     const results: Record<string, number | 'failed'> = {};
@@ -2604,9 +2603,8 @@ export default function App() {
                                 : 'bg-slate-50 border border-slate-200 text-slate-705 hover:border-brand-cyan/50 focus:border-brand-cyan shadow-sm [&>option]:bg-white'
                           }`}
                         >
-                          <option value="gemini">Gemini (Primary - Recommended)</option>
-                          <option value="nvidia-nemotron">NVIDIA Llama 3.3 Nemotron Super 49B (NVIDIA Integration)</option>
-                          <option value="nvidia-nemotron-ultra">NVIDIA Nemotron-3 Ultra 550B (NVIDIA Integration)</option>
+                          <option value="gemini">Gemini 3.8 Flash (Primary - Recommended)</option>
+                          <option value="alibaba-qwen">Qwen 3.8 Max (Alibaba Model Studio)</option>
                         </select>
                       </div>
                       <button
@@ -2664,10 +2662,10 @@ export default function App() {
                           <span>Regional Latency Results</span>
                           <span className="text-[9px] font-bold text-amber-500 lowercase">fastest selected</span>
                         </div>
-                        <div className="grid grid-cols-3 gap-1.5 text-center font-mono">
-                          {['gemini', 'nvidia-nemotron', 'nvidia-nemotron-ultra'].map((pId) => {
+                        <div className="grid grid-cols-2 gap-1.5 text-center font-mono">
+                          {['gemini', 'alibaba-qwen'].map((pId) => {
                             const lat = optimizationStats[pId];
-                            const name = pId === 'gemini' ? 'Gemini' : pId === 'nvidia-nemotron' ? 'Nemotron 49B' : 'Nemotron 550B';
+                            const name = pId === 'gemini' ? 'Gemini 3.8' : 'Qwen 3.8';
                             const isCurrent = provider === pId;
                             return (
                               <div 
@@ -3175,7 +3173,7 @@ export default function App() {
                   <span className={`font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Recommended Solutions:</span>
                   {apiBlockedAlert.isServerError ? (
                     <ul className={`list-disc list-inside space-y-1.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      <li>Verify your <b>GEMINI_API_KEY</b>, <b>HUGGINGFACE_API_KEY</b>, or <b>NVIDIA_API_KEY</b> is correctly declared in settings or server config.</li>
+                      <li>Verify your <b>GEMINI_API_KEY</b>, <b>HUGGINGFACE_API_KEY</b>, or <b>ALIBABA_API_KEY</b> (Alibaba Model Studio / Qwen 3.8) is correctly declared in settings or server config.</li>
                       <li>Consult the <b>Debug Console</b> in the Admin Dashboard to review real-time network request payloads.</li>
                       <li>Confirm that the server is not throttled, and that the specified AI model is supported.</li>
                     </ul>

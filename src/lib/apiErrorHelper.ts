@@ -67,6 +67,8 @@ export function checkAndReportApiError(error: any, provider: string, targetUrl?:
     rawMsg.includes("fallback") ||
     provider.includes("nvidia") ||
     provider.includes("nemotron") ||
+    provider.includes("alibaba") ||
+    provider.includes("qwen") ||
     provider.includes("perchance") ||
     provider.includes("pollinations")
   ) {
