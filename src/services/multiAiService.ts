@@ -2,70 +2,131 @@ import axios from 'axios';
 import { checkAndReportApiError } from '../lib/apiErrorHelper';
 import { AI_SECRETS } from '../lib/aiSecrets';
 import { isNativeApp } from '../lib/platform';
+import {
+  ALIBABA_DEFAULT_BASE_URL,
+  TextEngineId,
+  buildChatPayload,
+  buildFallbackChain,
+  extractMessageText,
+  getEngine,
+  isNvidiaEngine,
+  normalizeEngineId,
+} from '../lib/aiModels';
 
-export type AIProvider = 'alibaba-qwen';
+export type AIProvider = TextEngineId;
 
-// ─── Qwen 3.8 via Alibaba Cloud Model Studio (OpenAI-compatible) ─────────────
-// Workspace-scoped endpoint (see Model Studio → API KEY dialog). Override with
-// VITE_ALIBABA_API_BASE / ALIBABA_API_BASE if the workspace or region changes.
-const QWEN_BASE_URL = "https://ws-8ldb9u90tetxcada.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1";
-const QWEN_DEFAULT_MODEL = "qwen3.8-max";
-
-// Legacy provider ids that used to route to NVIDIA Nemotron / Groq — all now
-// transparently map to the Qwen 3.8 engine.
-const LEGACY_PROVIDERS = ['nvidia-nemotron', 'nvidia-nemotron-ultra', 'groq-qwen'];
-
-const executeClientMultiAi = async (provider: AIProvider | string, messages: any[], model?: string) => {
-  const baseUrl = String(
-    (import.meta as any).env?.VITE_ALIBABA_API_BASE ||
-    (process.env as any).ALIBABA_API_BASE ||
-    QWEN_BASE_URL
-  ).trim().replace(/\/+$/, "");
-  const url = `${baseUrl}/chat/completions`;
-  const apiKey = String(
-    (process.env as any).ALIBABA_API_KEY ||
-    (import.meta as any).env?.VITE_ALIBABA_API_KEY ||
-    (process.env as any).DASHSCOPE_API_KEY ||
-    AI_SECRETS.ALIBABA_API_KEY || ""
-  ).trim().replace(/^['"\s]+|['"\s]+$/g, "");
-
-  // Never forward a legacy provider id or NVIDIA model slug to Model Studio.
-  let selectedModel = model;
-  if (
-    !selectedModel ||
-    selectedModel === provider ||
-    LEGACY_PROVIDERS.includes(selectedModel) ||
-    /nemotron|nvidia\//i.test(selectedModel)
-  ) {
-    selectedModel = QWEN_DEFAULT_MODEL;
+/**
+ * Resolve the credential for an engine. Order of preference:
+ *   1. Vite build-time env (VITE_*)
+ *   2. Node/Define-injected process.env
+ *   3. Locally stored override (Settings → API keys)
+ *   4. Baked-in key (Android APK, where there is no backend to proxy)
+ */
+const readEnv = (name: string): string => {
+  try {
+    const viteEnv = (import.meta as any)?.env || {};
+    const nodeEnv = (typeof process !== 'undefined' ? (process as any).env : {}) || {};
+    return String(viteEnv[`VITE_${name}`] || viteEnv[name] || nodeEnv[name] || '').trim();
+  } catch {
+    return '';
   }
+};
+
+const readLocalOverride = (keys: string[]): string => {
+  try {
+    if (typeof localStorage === 'undefined') return '';
+    for (const key of keys) {
+      const value = localStorage.getItem(key);
+      if (value && value.trim()) return value.trim();
+    }
+  } catch {
+    /* localStorage unavailable (SSR / privacy mode) */
+  }
+  return '';
+};
+
+const resolveEngineKey = (engineId: TextEngineId): string => {
+  const engine = getEngine(engineId);
+  const clean = (v: string) => v.replace(/^['"\s]+|['"\s]+$/g, '');
+
+  if (isNvidiaEngine(engineId)) {
+    return clean(
+      readEnv('NVIDIA_API_KEY') ||
+        readLocalOverride(['eduai_nvidia_key', 'nvidia_api_key']) ||
+        AI_SECRETS.NVIDIA_API_KEY ||
+        ''
+    );
+  }
+
+  if (engine.id === 'alibaba-qwen') {
+    return clean(
+      readEnv('ALIBABA_API_KEY') ||
+        readEnv('DASHSCOPE_API_KEY') ||
+        readLocalOverride(['eduai_alibaba_key', 'alibaba_api_key']) ||
+        AI_SECRETS.ALIBABA_API_KEY ||
+        ''
+    );
+  }
+
+  return clean(readEnv('GEMINI_API_KEY') || AI_SECRETS.GEMINI_API_KEY || '');
+};
+
+const resolveEngineBaseUrl = (engineId: TextEngineId): string => {
+  const engine = getEngine(engineId);
+  if (engine.id === 'alibaba-qwen') {
+    const override = readEnv('ALIBABA_API_BASE') || readEnv('DASHSCOPE_BASE_URL');
+    return (override || ALIBABA_DEFAULT_BASE_URL).replace(/\/+$/, '');
+  }
+  if (isNvidiaEngine(engineId)) {
+    const override = readEnv('NVIDIA_API_BASE');
+    return (override || engine.baseUrl).replace(/\/+$/, '');
+  }
+  return engine.baseUrl.replace(/\/+$/, '');
+};
+
+interface CallOptions {
+  model?: string;
+  reasoning?: boolean;
+  temperature?: number;
+  maxTokens?: number;
+}
+
+/**
+ * Direct browser → provider call (used by the Android APK, and as a rescue
+ * path when the Express proxy is unreachable).
+ */
+const executeClientMultiAi = async (
+  provider: AIProvider | string,
+  messages: any[],
+  options: CallOptions = {}
+): Promise<string> => {
+  const engineId = normalizeEngineId(provider) || 'alibaba-qwen';
+  const engine = getEngine(engineId);
+  const apiKey = resolveEngineKey(engineId);
 
   if (!apiKey) {
-    throw new Error(`API key (ALIBABA_API_KEY / Model Studio) for Qwen 3.8 is not configured in settings or environment. Please add it.`);
+    throw new Error(
+      `API key (${engine.keyName}) for ${engine.label} is not configured in settings or environment. Please add it.`
+    );
   }
 
-  const payload: any = {
-    model: selectedModel,
-    messages,
-    temperature: 0.7,
-    top_p: 0.95,
-    max_tokens: 16384,
-  };
+  const url = `${resolveEngineBaseUrl(engineId)}/chat/completions`;
+  const payload = buildChatPayload(engineId, messages, {
+    model: options.model,
+    reasoning: options.reasoning,
+    temperature: options.temperature,
+    maxTokens: options.maxTokens,
+  });
 
-  // Let the prompt dictate JSON mode, do not force it which causes issues with certain models
+  const response = await axios.post(url, payload, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    timeout: 180000,
+  });
 
-  const response = await axios.post(
-    url,
-    payload,
-    {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-    }
-  );
-  const msg = response.data.choices[0]?.message || {};
-  return msg.content || msg.reasoning_content || "";
+  return extractMessageText(response.data?.choices?.[0]?.message);
 };
 
 const executeClientOCR = async (base64Image: string, language: string = "eng") => {
@@ -84,28 +145,56 @@ const executeClientOCR = async (base64Image: string, language: string = "eng") =
   return "";
 };
 
-export const callMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
-  // Native app: no backend — call the provider API directly.
+/**
+ * Call a text engine.
+ *
+ * Web  → POST /api/ai/:provider (the Express proxy keeps keys server-side and
+ *        owns the Gemini safety net).
+ * APK  → direct provider call, walking the engine's own fallback chain
+ *        (e.g. Nemotron Ultra → Nemotron Lightning → Qwen) before surfacing an
+ *        error so unifiedAiService can hand over to Gemini.
+ */
+export const callMultiAi = async (
+  provider: AIProvider,
+  messages: any[],
+  model?: string,
+  options: CallOptions = {}
+) => {
+  const engineId = normalizeEngineId(provider) || 'gemini';
+
+  // Native app: no backend — call the provider APIs directly.
   if (isNativeApp()) {
-    try {
-      return await executeClientMultiAi(provider, messages, model);
-    } catch (clientErr: any) {
-      console.log(`[AI Routing] Native client call for ${provider} failed, transitioning to Gemini fallback.`);
-      throw clientErr;
+    const chain = buildFallbackChain(engineId).filter((id) => id !== 'gemini');
+    let lastErr: any = null;
+    for (const candidate of chain) {
+      try {
+        const text = await executeClientMultiAi(candidate, messages, { ...options, model: candidate === engineId ? model : undefined });
+        if (text && text.trim()) return text;
+      } catch (clientErr: any) {
+        lastErr = clientErr;
+        console.log(`[AI Routing] Native client call for ${candidate} failed, trying next engine in the chain.`);
+      }
     }
+    console.log(`[AI Routing] All native engines exhausted for ${engineId}, transitioning to Gemini fallback.`);
+    throw lastErr || new Error(`No native engine available for ${engineId}`);
   }
 
   try {
-    const response = await axios.post(`/api/ai/${provider}`, { messages, model });
-    const msg = response.data.choices[0]?.message || {};
-    return msg.content || msg.reasoning_content || "";
+    const response = await axios.post(`/api/ai/${engineId}`, {
+      messages,
+      model,
+      ...(typeof options.reasoning === 'boolean' ? { reasoning: options.reasoning } : {}),
+      ...(typeof options.temperature === 'number' ? { temperature: options.temperature } : {}),
+      ...(options.maxTokens ? { max_tokens: options.maxTokens } : {}),
+    });
+    return extractMessageText(response.data?.choices?.[0]?.message);
   } catch (error: any) {
     const status = error.response?.status;
     const backendError = error.response?.data?.error || {};
     const errorMsg = typeof backendError === 'string' ? backendError : backendError?.message || error?.message || '';
 
-    console.log(`[AI Routing] Provider ${provider} unavailable or transitioned (Status: ${status || 'Network'}). Seamlessly routing to Gemini.`);
-    throw new Error(`Provider ${provider} unavailable, transitioning to Gemini fallback: ${errorMsg}`);
+    console.log(`[AI Routing] Provider ${engineId} unavailable or transitioned (Status: ${status || 'Network'}). Seamlessly routing to Gemini.`);
+    throw new Error(`Provider ${engineId} unavailable, transitioning to Gemini fallback: ${errorMsg}`);
   }
 };
 
@@ -134,4 +223,24 @@ export const performOCR = async (base64Image: string, language: string = 'eng') 
     checkAndReportApiError(error, 'OCR Space');
     throw new Error("OCR failed");
   }
+};
+
+/**
+ * Multimodal call for Nemotron 3 Nano Omni — accepts images (and, on the NIM
+ * endpoint, audio/video frames) alongside text. Used by the OCR / marking and
+ * document-intelligence paths.
+ */
+export const callOmniVision = async (
+  messages: any[],
+  options: CallOptions = {}
+): Promise<string> => {
+  const engineId: TextEngineId = 'nvidia-nemotron-3-omni';
+  if (isNativeApp()) {
+    return await executeClientMultiAi(engineId, messages, options);
+  }
+  const response = await axios.post(`/api/ai/${engineId}`, {
+    messages,
+    ...(typeof options.reasoning === 'boolean' ? { reasoning: options.reasoning } : {}),
+  });
+  return extractMessageText(response.data?.choices?.[0]?.message);
 };

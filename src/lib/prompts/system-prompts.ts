@@ -1,7 +1,15 @@
 /**
  * EduAI Companion - South African CAPS Expert System Prompts
- * Updated to user's 2026 premium design brief: semi-realistic Disney 3D, no emojis, museum-quality
+ * Version 4.0 — every prompt is fronted by the World-Class Output Standard so
+ * that the same publisher-grade bar applies across Gemini 3.8 Flash,
+ * Nemotron 3 Ultra 550B, Nemotron 3.5 Lightning, Nemotron 3 Nano Omni and
+ * Qwen 3.8 Max.
  */
+
+import {
+  WORLD_CLASS_QUALITY_MANDATE,
+  WORLD_CLASS_QUALITY_MANDATE_COMPACT,
+} from './world-class-standard';
 
 export const SYSTEM_PROMPTS = {
   // Worksheet Generation — includes hero illustration rule
@@ -198,7 +206,8 @@ OUTPUT: Complete HTML with Tailwind CSS, printable format, complete and producti
 };
 
 /**
- * Get system prompt for specific content type
+ * Get system prompt for specific content type.
+ * Every returned prompt is fronted by the World-Class Output Standard.
  */
 export const getSystemPrompt = (contentType: string): string => {
   const typeMap: Record<string, string> = {
@@ -231,7 +240,8 @@ export const getSystemPrompt = (contentType: string): string => {
   };
 
   const normalizedType = contentType.trim().toLowerCase().replace(/[\s_]+/g, '-');
-  return typeMap[normalizedType] || SYSTEM_PROMPTS.WORKSHEET;
+  const base = typeMap[normalizedType] || SYSTEM_PROMPTS.WORKSHEET;
+  return `${WORLD_CLASS_QUALITY_MANDATE}\n\n${base}`;
 };
 
 /**
@@ -274,13 +284,18 @@ CONTEXT:
   enhanced += `
 
 CRITICAL REQUIREMENTS:
-1. Content must be 100% complete (no placeholders, no "etc.")
+1. Content must be 100% complete (no placeholders, no "etc.", no "...", no "content continues")
 2. Must be 100% CAPS curriculum aligned (specify CAPS code where relevant)
-3. Must be print-ready and professional (Tailwind, @media print, WCAG 4.5:1)
+3. Must be print-ready and professional (Tailwind, @media print, WCAG 4.5:1, A4, no clipped or split blocks)
 4. Must include South African context and diversity (never emojis, never cheap clipart)
 5. Must be age-appropriate for Grade ${grade} (Foundation: Patrick Hand >=18pt, no text-xs/sm; Senior: structured bento grid)
 6. Must follow Bloom's taxonomy progression and include 2–3 [Illustration: ...] placeholders (Disney 3D Character & 3D Icon, SA context, museum-quality) — the system replaces them with generated images ending with the golden rule
 7. Must be inclusive and accessible (EAL/FAL bilingual glossaries, scaffolding, extensions)
+8. Every question must have a fully worked memorandum answer; every mark total must reconcile exactly
+9. Name at least one common learner misconception about this topic and address it directly in the material
+10. Emit ONLY the finished artefact — no chain-of-thought, no <think> blocks, no "Here is..." preamble
+
+${WORLD_CLASS_QUALITY_MANDATE_COMPACT}
 
 Generate the complete, production-ready content now.`;
 

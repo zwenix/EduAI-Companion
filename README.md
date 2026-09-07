@@ -16,6 +16,7 @@
   <img src="https://img.shields.io/badge/Firebase-v11-orange?logo=firebase" alt="Firebase">
   <img src="https://img.shields.io/badge/Tailwind_CSS-v3-blue?logo=tailwind-css" alt="Tailwind CSS">
   <img src="https://img.shields.io/badge/AI-Google_Gemini-blue?logo=google" alt="Google Gemini">
+  <img src="https://img.shields.io/badge/AI-NVIDIA_Nemotron_3-76B900?logo=nvidia" alt="NVIDIA Nemotron 3">
 </p>
 
 ---
@@ -64,11 +65,43 @@ To get this project running locally, follow these steps.
 
 ### 1. Set Up Environment Variables
 
-Create a `.env` file in the root of your project and add your Gemini API key:
+Create a `.env` file in the root of your project and add your keys:
 
 ```
 GEMINI_API_KEY=YOUR_API_KEY_HERE
+
+# NVIDIA NIM — powers the free Nemotron 3 text engines AND Qwen-Image.
+# Create a key at https://build.nvidia.com (it starts with "nvapi-").
+NVIDIA_API_KEY=nvapi-YOUR_KEY_HERE
+
+# Optional — Alibaba Model Studio (Qwen 3.8 Max)
+ALIBABA_API_KEY=
 ```
+
+See [`.env.example`](.env.example) for the full list of supported keys.
+
+## 🧠 AI Engine Line-up
+
+EduAI Companion routes every generation through a registry of text engines
+(`src/lib/aiModels.ts`). Pick your engine in **Settings → AI Configuration**;
+whichever you choose, the app walks that engine's own fallback chain and
+finally lands on Gemini, so a rate-limited provider never blocks a teacher.
+
+| Engine | Model slug | Context | Best for | Cost |
+| :--- | :--- | ---: | :--- | :--- |
+| **Nemotron 3 Ultra 550B** | `nvidia/nemotron-3-ultra-550b-a55b` | 1M | Frontier reasoning — full CAPS lesson plans, ATPs, exam papers, memoranda | **Free NIM endpoint** |
+| **Nemotron 3.5 Lightning 30B** | `nvidia/nemotron-3.5-lightning-30b-a3b` | 1M | High-volume text generation — worksheets, notices, report comments, rubrics | **Free NIM endpoint** |
+| **Nemotron 3 Nano Omni 30B** | `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` | 256k | Multimodal reasoning — handwriting OCR, marking scanned scripts, chart/document intelligence, audio & video | **Free NIM endpoint** |
+| **Gemini 3.8 Flash** | `gemini-3.8-flash` | 1M | Universal safety net, vision OCR, voice tutor | Google AI |
+| **Qwen 3.8 Max** | `qwen3.8-max` | 262k | Multilingual home-language material | Alibaba Model Studio |
+
+All three NVIDIA engines are served over the OpenAI-compatible NIM gateway at
+`https://integrate.api.nvidia.com/v1` using a single `NVIDIA_API_KEY`. The
+hybrid `enable_thinking` flag, reasoning budget and grace period are managed
+per engine by the registry, and any chain-of-thought is stripped before the
+response reaches the UI.
+
+Engine metadata is also exposed at runtime: `GET /api/ai/models`.
 
 ### 2. Install Dependencies
 

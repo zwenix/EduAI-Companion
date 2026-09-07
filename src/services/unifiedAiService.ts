@@ -12,9 +12,16 @@ import {
   safeJsonParse
 } from './geminiService';
 
-import { callMultiAi, performOCR, AIProvider } from './multiAiService';
+import { callMultiAi, callOmniVision, performOCR, AIProvider } from './multiAiService';
 import { EduAIPromptEngine } from '../lib/prompt-engine';
 import { buildInstructorPriority, EDUCATIONAL_IMAGE_STYLE } from '../lib/prompt-priority';
+import { getEngine } from '../lib/aiModels';
+
+/**
+ * When Gemini hits its quota, hand over to the strongest configured
+ * alternative rather than a hard-coded provider id.
+ */
+const QUOTA_FALLBACK_ENGINE = 'nvidia-nemotron-3-ultra';
 
 const isProviderFailure = (error: any): boolean => {
   const status = error.response?.status || error.status;
@@ -57,8 +64,8 @@ export const generateEducationalContent = async (type: string, details: string, 
       return await geminiGenerateContent(type, details);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8)...");
-        provider = 'alibaba-qwen';
+        console.warn(`Gemini limit hit, auto-falling back to ${getEngine(QUOTA_FALLBACK_ENGINE).label}...`);
+        provider = QUOTA_FALLBACK_ENGINE;
       } else {
         throw err;
       }
@@ -92,8 +99,8 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
       return await geminiGenerateCAPS(input, onProgress);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8)...");
-        provider = 'alibaba-qwen';
+        console.warn(`Gemini limit hit, auto-falling back to ${getEngine(QUOTA_FALLBACK_ENGINE).label}...`);
+        provider = QUOTA_FALLBACK_ENGINE;
       } else {
         throw err;
       }
@@ -164,8 +171,8 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini',
       return await geminiGenerateVisual(input, onProgress);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8)...");
-        provider = 'alibaba-qwen';
+        console.warn(`Gemini limit hit, auto-falling back to ${getEngine(QUOTA_FALLBACK_ENGINE).label}...`);
+        provider = QUOTA_FALLBACK_ENGINE;
       } else {
         throw err;
       }
@@ -303,8 +310,8 @@ export const generateAdminDoc = async (input: any, provider: string = 'gemini', 
       return await geminiGenerateAdmin(input, onProgress);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8)...");
-        provider = 'alibaba-qwen';
+        console.warn(`Gemini limit hit, auto-falling back to ${getEngine(QUOTA_FALLBACK_ENGINE).label}...`);
+        provider = QUOTA_FALLBACK_ENGINE;
       } else {
         throw err;
       }
@@ -375,14 +382,49 @@ export const runOCRScan = async (imageData: string | string[], provider: string 
       return await geminiOCRScan(imageData, language, isHandwritten);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to ocrspace...");
-        ocrProvider = 'ocrspace';
+        console.warn("Gemini limit hit, auto-falling back to Nemotron 3 Nano Omni...");
+        ocrProvider = 'nemotron-omni';
       } else {
         throw err;
       }
     }
   }
-  
+
+  // ── NVIDIA Nemotron 3 Nano Omni — omni-modal document intelligence ─────────
+  // Best-in-class on OCRBench v2 / MMLongBench-Doc: reads handwriting, charts,
+  // tables and multi-page scans in a single 256k-token context.
+  if (ocrProvider === 'nemotron-omni') {
+    try {
+      const images = (Array.isArray(imageData) ? imageData : [imageData]).filter(Boolean);
+      const content: any[] = [
+        {
+          type: 'text',
+          text: `Transcribe this South African ${isHandwritten ? 'handwritten' : 'printed'} learner script exactly as written, in ${language}.
+Rules:
+- Preserve the original question numbering, layout order, line breaks, tables and mathematical notation.
+- Transcribe misspellings and errors verbatim — do NOT silently correct the learner's work.
+- Render mathematics in plain readable notation (e.g. 3/4, x², 12 ÷ 4 = 3).
+- Describe any diagram or drawing inline as [Diagram: short factual description].
+- Output ONLY the transcription. No commentary, no headings you invented, no reasoning.`,
+        },
+        ...images.map((img) => ({
+          type: 'image_url',
+          image_url: { url: img.startsWith('data:') ? img : `data:image/jpeg;base64,${img}` },
+        })),
+      ];
+
+      const extractedText = await callOmniVision([{ role: 'user', content }], { reasoning: false });
+      if (extractedText && extractedText.trim()) {
+        return { extractedText };
+      }
+      console.warn('[AI Routing] Nemotron Omni returned an empty transcription, falling back to OCR Space...');
+      ocrProvider = 'ocrspace';
+    } catch (err: any) {
+      console.warn('[AI Routing] Nemotron Omni OCR failed, falling back to OCR Space:', err?.message);
+      ocrProvider = 'ocrspace';
+    }
+  }
+
   const firstImage = Array.isArray(imageData) ? imageData[0] || '' : imageData;
   
   try {
@@ -403,9 +445,9 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
       return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8) for grading and ocrspace for scanning...");
-        provider = 'alibaba-qwen';
-        ocrProvider = 'ocrspace';
+        console.warn("Gemini limit hit, auto-falling back to Nemotron 3 Ultra for grading and Nemotron 3 Nano Omni for scanning...");
+        provider = QUOTA_FALLBACK_ENGINE;
+        ocrProvider = 'nemotron-omni';
       } else {
         throw err;
       }
@@ -434,7 +476,7 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
       return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
     } catch(err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        provider = 'alibaba-qwen';
+        provider = QUOTA_FALLBACK_ENGINE;
       } else {
         throw err;
       }
@@ -442,9 +484,7 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
   }
 
   try {
-    let model = 'qwen3.8-max';
-    
-    const grading = await callMultiAi(provider as AIProvider, messages, model);
+    const grading = await callMultiAi(provider as AIProvider, messages);
     
     try {
       if (typeof grading === 'string') {
@@ -473,10 +513,9 @@ export const chatWithTutor = async (messages: any[], provider: string = 'gemini'
        return await geminiChat(messages);
      } catch(err: any) {
        if (err.message && (err.message.includes('Quota') || err.message.includes('429'))) {
-         if (hasImage) {
-           throw new Error("Cannot fallback, Image context requires Gemini API, but quota is exceeded.");
-         }
-         provider = 'alibaba-qwen';
+         // Nemotron 3 Nano Omni reads images natively, so a vision turn can
+         // still be served when Gemini is rate-limited.
+         provider = hasImage ? 'nvidia-nemotron-3-omni' : QUOTA_FALLBACK_ENGINE;
        } else {
          throw err;
        }

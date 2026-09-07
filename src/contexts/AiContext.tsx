@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { TEXT_ENGINE_ORDER, TextEngineId, normalizeEngineId } from '../lib/aiModels';
 
-export type AIProvider = 'gemini' | 'alibaba-qwen';
+export type AIProvider = TextEngineId;
 export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
-export type OCRProvider = 'gemini' | 'ocrspace';
+export type OCRProvider = 'gemini' | 'ocrspace' | 'nemotron-omni';
 export type ImageProvider = 'gemini-imagen' | 'perchance' | 'pollinations' | 'qwen' | 'qwen-image';
 
 interface AiContextType {
@@ -18,22 +19,20 @@ interface AiContextType {
 
 const AiContext = createContext<AiContextType | undefined>(undefined);
 
-const VALID_PROVIDERS: AIProvider[] = ['gemini', 'alibaba-qwen'];
+const VALID_PROVIDERS: AIProvider[] = [...TEXT_ENGINE_ORDER];
 const VALID_TTS: TTSProvider[] = ['browser', 'groq-whisper', 'huggingface', 'google-tts'];
-const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace'];
+const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace', 'nemotron-omni'];
 const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'perchance', 'pollinations', 'qwen', 'qwen-image'];
 
 export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_provider');
-      // Migrate retired providers (NVIDIA Nemotron / Groq) to the Qwen 3.8 engine.
-      if (saved === 'groq-qwen' || saved === 'nvidia-nemotron' || saved === 'nvidia-nemotron-ultra') {
-        localStorage.setItem('eduai_provider', 'alibaba-qwen');
-        return 'alibaba-qwen';
-      }
-      if (saved && VALID_PROVIDERS.includes(saved as AIProvider)) {
-        return saved as AIProvider;
+      // Upgrade any historical id (retired NVIDIA/Groq slugs) to a current engine.
+      const normalized = normalizeEngineId(saved);
+      if (normalized) {
+        if (normalized !== saved) localStorage.setItem('eduai_provider', normalized);
+        return normalized;
       }
       return 'gemini';
     } catch (e) {

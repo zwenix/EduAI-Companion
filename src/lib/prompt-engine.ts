@@ -22,6 +22,7 @@ import {
   PROGRESS_TRACKER_TEMPLATE
 } from './prompts/assessment-templates';
 import { buildInstructorPriority, EDUCATIONAL_IMAGE_STYLE } from './prompt-priority';
+import { WORLD_CLASS_QUALITY_MANDATE_COMPACT } from './prompts/world-class-standard';
 
 // SA Compliance imports — new from CAPS document
 import {
@@ -275,6 +276,9 @@ You MUST ALSO generate:
 5. OPTIMIZED FOR SPEED: Keep the HTML clean, well-structured, and concise without excessive repetitive boilerplate text so that generation completes rapidly and within token boundaries.
 6. SA COMPLIANCE VISUALS: Include SA flag stripe (6px gradient: black, gold, green, white, red, blue), school header with DBE branding, compliance stamps (CAPS Aligned, NPA Compliant, POPIA Compliant, SIAS Inclusive, WP6 Differentiated), differentiation boxes (Core/Extended/Simplified), SIAS support boxes, NPA 7-point table, Bloom's tags on every question, POPIA footer with 2026 date.
 7. QWEN IMAGE INTEGRATION: All [Illustration: ...] placeholders will be replaced by Qwen-Image (NVIDIA NIM qwen/qwen-image) with SA context enhancement — ensure prompts are ultra-detailed, SA-specific, no text overlays, 300 DPI, Disney 3D style.
+8. REASONING HYGIENE: If you are a hybrid-reasoning model (NVIDIA Nemotron 3 Ultra / 3.5 Lightning / Nano Omni), plan privately and emit ONLY the finished artefact. Never output <think> blocks, planning notes, self-commentary, or a preamble such as "Here is the lesson plan".
+9. NUMERICAL INTEGRITY: Re-verify every calculation, mark allocation, subtotal and grand total before you respond. Mark totals printed in the header MUST equal the sum of the marks printed on the questions.
+10. MEMORANDUM PARITY: Every question you write must have a matching, fully worked answer in the memo, in the same order and with the same numbering. No answer may be "see above" or "learner's own answer" unless the task is genuinely open-ended — and then supply an exemplar response plus marking guidance.
 `;
 
     systemPrompt += antiSummaryMandate;
@@ -362,7 +366,8 @@ Generate 1 image for official header — seal, coat of arms style.
   
   private static getCompressedSystemPrompt(phase: string): string {
     const gradeRange = this.getGradeRange(phase);
-    return `You are EduAI Pro, the world's most sophisticated educational content designer for South African schools (${gradeRange}, ${phase}). Generate high-quality CAPS-aligned lesson plans/worksheets in raw HTML/Tailwind inside JSON values. No markdown.
+    return `${WORLD_CLASS_QUALITY_MANDATE_COMPACT}
+You are EduAI Pro, the world's most sophisticated educational content designer for South African schools (${gradeRange}, ${phase}). Generate high-quality CAPS-aligned lesson plans/worksheets in raw HTML/Tailwind inside JSON values. No markdown.
 Visual Hierarchy:
 - HERO: 25-30% top space for illustration placeholder.
 - BANNER: Gradient banner with subject color coding (Math: #2563eb->#60a5fa blue, Languages: #7c3aed->#a78bfa purple, Life Skills: #f97316->#fbbf24 orange, Science: #059669->#34d399 green) + SA flag stripe (6px black/gold/green/white/red/blue).

@@ -55,7 +55,7 @@ export function preFlightCheck(request: SAContentRequest): ReturnType<typeof val
 // ── Text content generation via existing multi-AI pipeline ──
 export async function generateSATextContent(
   request: SAContentRequest,
-  provider: string = "alibaba-qwen",
+  provider: string = "nvidia-nemotron-3-ultra",
   onProgress?: (partial: any) => void
 ): Promise<DocumentData> {
   console.log(`📝 Generating ${request.contentType} via ${provider}...`);
@@ -227,7 +227,7 @@ export function postAudit(data: DocumentData): { passed: number; total: number; 
 // ── Full pipeline ──
 export async function generateFullSAPackage(
   request: SAContentRequest,
-  provider: string = "alibaba-qwen",
+  provider: string = "nvidia-nemotron-3-ultra",
   options: {
     generateImages?: boolean;
     onProgress?: (partial: any) => void;

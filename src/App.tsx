@@ -207,6 +207,7 @@ const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDark
 // Inline LandingPage removed in favor of imported component from './components/LandingPage'
 
 import { useAi, AIProvider as AIProviderType } from './contexts/AiContext';
+import { TEXT_ENGINE_LIST, TEXT_ENGINE_ORDER, getEngine } from './lib/aiModels';
 
 export default function App() {
   const { provider, setProvider, ttsProvider, setTtsProvider, ocrProvider, setOcrProvider, imageProvider, setImageProvider } = useAi();
@@ -403,10 +404,7 @@ export default function App() {
     setOptimizationStats({});
     triggerToast("Initiating regional model speed diagnostic...", "info");
     
-    const candidates = [
-      { id: 'gemini', label: 'Gemini 3.8 Flash' },
-      { id: 'alibaba-qwen', label: 'Qwen 3.8 Max' }
-    ];
+    const candidates = TEXT_ENGINE_LIST.map((engine) => ({ id: engine.id, label: engine.label }));
 
     const results: Record<string, number | 'failed'> = {};
 
@@ -2604,6 +2602,9 @@ export default function App() {
                           }`}
                         >
                           <option value="gemini">Gemini 3.8 Flash (Primary - Recommended)</option>
+                          <option value="nvidia-nemotron-3-ultra">Nemotron 3 Ultra 550B (NVIDIA NIM · World Class)</option>
+                          <option value="nvidia-nemotron-3-lightning">Nemotron 3.5 Lightning 30B (NVIDIA NIM · Fast Text)</option>
+                          <option value="nvidia-nemotron-3-omni">Nemotron 3 Nano Omni 30B (NVIDIA NIM · Multimodal Reasoning)</option>
                           <option value="alibaba-qwen">Qwen 3.8 Max (Alibaba Model Studio)</option>
                         </select>
                       </div>
@@ -2663,9 +2664,9 @@ export default function App() {
                           <span className="text-[9px] font-bold text-amber-500 lowercase">fastest selected</span>
                         </div>
                         <div className="grid grid-cols-2 gap-1.5 text-center font-mono">
-                          {['gemini', 'alibaba-qwen'].map((pId) => {
+                          {TEXT_ENGINE_ORDER.map((pId) => {
                             const lat = optimizationStats[pId];
-                            const name = pId === 'gemini' ? 'Gemini 3.8' : 'Qwen 3.8';
+                            const name = getEngine(pId).shortLabel;
                             const isCurrent = provider === pId;
                             return (
                               <div 
@@ -2705,6 +2706,7 @@ export default function App() {
                       }`}
                     >
                       <option value="gemini">Gemini OCR Vision (Multimodal)</option>
+                      <option value="nemotron-omni">Nemotron 3 Nano Omni (Document Intelligence)</option>
                       <option value="ocrspace">OCR Space Engine</option>
                     </select>
                   </div>

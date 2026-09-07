@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { IconSettings, IconLogout } from './LocalIcons';
 import { useAi } from '../contexts/AiContext';
+import { TEXT_ENGINE_LIST } from '../lib/aiModels';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
@@ -402,26 +403,56 @@ export default function Settings({
                    <div className="p-8 rounded-[40px] border border-white/5 bg-white/5 space-y-6">
                       <div>
                          <h4 className="text-white font-bold text-base mb-1">Text Generation Engine</h4>
-                         <p className="text-slate-400 text-xs mb-4">Primary reasoning and lesson authoring engine. Alternative models fall back to Gemini automatically.</p>
+                         <p className="text-slate-400 text-xs mb-4">Primary reasoning and authoring engine. The selected engine is tried first; every engine degrades automatically down its own fallback chain and finally to Gemini, so a rate-limited provider never blocks a generation.</p>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div className="p-4 rounded-2xl border border-brand-cyan/40 bg-brand-cyan/10 flex items-start gap-3">
-                               <div className="w-8 h-8 rounded-xl bg-brand-cyan/20 flex items-center justify-center text-brand-cyan font-black text-xs shrink-0">1</div>
-                               <div>
-                                  <div className="flex items-center gap-2">
-                                     <span className="text-white font-bold text-xs">Gemini 3.8 Flash</span>
-                                     <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase">Primary</span>
-                                  </div>
-                                  <p className="text-[10px] text-slate-400 mt-1">Latest GA Flash model · CAPS Lesson Planning, Auto-Grading & Voice Tutor</p>
-                               </div>
-                            </div>
-                            <div className="p-4 rounded-2xl border border-white/10 bg-navy-dark/40 flex items-start gap-3">
-                               <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-black text-xs shrink-0">2</div>
-                               <div>
-                                  <span className="text-white font-bold text-xs">Qwen 3.8 Max</span>
-                                  <p className="text-[10px] text-slate-400 mt-1">Alibaba Model Studio (qwen3.8-max) • Fallback: Gemini</p>
-                               </div>
-                            </div>
+                            {TEXT_ENGINE_LIST.map((engine, index) => {
+                              const isSel = provider === engine.id;
+                              return (
+                                <button
+                                  key={engine.id}
+                                  type="button"
+                                  onClick={() => setProvider(engine.id)}
+                                  className={`p-4 rounded-2xl border flex items-start gap-3 text-left transition-all cursor-pointer ${isSel ? engine.accent.activeBorder : 'border-white/10 bg-navy-dark/40 hover:border-white/25'}`}
+                                >
+                                   <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${isSel ? `${engine.accent.dotBg} ${engine.accent.dotText}` : 'bg-white/5 text-slate-500'}`}>
+                                      {isSel ? '✓' : index + 1}
+                                   </div>
+                                   <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                         <span className="text-white font-bold text-xs">{engine.label}</span>
+                                         <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase ${isSel ? `${engine.accent.dotBg} ${engine.accent.dotText}` : 'bg-white/10 text-slate-400'}`}>{engine.badge}</span>
+                                         {engine.free && (
+                                           <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase">Free</span>
+                                         )}
+                                      </div>
+                                      <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">{engine.description}</p>
+                                      <p className="text-[9px] text-slate-500 mt-1 font-mono truncate">{engine.model}</p>
+                                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                         <span className="px-1.5 py-0.5 rounded-md bg-white/5 text-[9px] font-bold text-slate-400">
+                                            {(engine.contextWindow / 1000).toLocaleString('en-ZA', { maximumFractionDigits: 0 })}k context
+                                         </span>
+                                         {engine.reasoning.supported && (
+                                           <span className="px-1.5 py-0.5 rounded-md bg-white/5 text-[9px] font-bold text-slate-400">Hybrid reasoning</span>
+                                         )}
+                                         {engine.modalities.image && (
+                                           <span className="px-1.5 py-0.5 rounded-md bg-white/5 text-[9px] font-bold text-slate-400">Vision</span>
+                                         )}
+                                         {engine.modalities.audio && (
+                                           <span className="px-1.5 py-0.5 rounded-md bg-white/5 text-[9px] font-bold text-slate-400">Audio</span>
+                                         )}
+                                         {engine.modalities.video && (
+                                           <span className="px-1.5 py-0.5 rounded-md bg-white/5 text-[9px] font-bold text-slate-400">Video</span>
+                                         )}
+                                      </div>
+                                   </div>
+                                </button>
+                              );
+                            })}
                          </div>
+                         <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
+                            <strong className="text-emerald-400">Nemotron 3 Ultra (550B-A55B)</strong> runs on NVIDIA's <strong>free</strong> NIM endpoint <code className="font-mono text-cyan-300">integrate.api.nvidia.com/v1</code> and is the highest-fidelity engine for full CAPS lesson plans, ATPs, exam papers and memoranda.
+                            <strong className="text-lime-400"> Nemotron 3.5 Lightning</strong> is the high-volume text-generation workhorse, and <strong className="text-cyan-400">Nemotron 3 Nano Omni</strong> adds image, document, audio and video understanding for handwriting OCR and script marking.
+                         </p>
                       </div>
 
                       <div className="pt-4 border-t border-white/5">

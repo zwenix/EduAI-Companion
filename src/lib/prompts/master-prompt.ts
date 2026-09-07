@@ -1,10 +1,17 @@
 /**
  * EduAI Companion - Enhanced Master System Prompt
- * Version 3.0 - SA-Compliant Battle-Tested Prompt Engineering System
+ * Version 4.0 - SA-Compliant Battle-Tested Prompt Engineering System
  * Integrated: CAPS · NPA · NPPPPR · SIAS · WP6 · POPIA · SASA · NCS R-12
+ * v4.0 — fronted by the World-Class Output Standard so every engine
+ * (Gemini 3.8 Flash · Nemotron 3 Ultra · Nemotron 3.5 Lightning ·
+ *  Nemotron 3 Nano Omni · Qwen 3.8 Max) is held to the same publisher bar.
  */
 
+import { WORLD_CLASS_QUALITY_MANDATE } from './world-class-standard';
+
 export const ENHANCED_MASTER_PROMPT = `
+${WORLD_CLASS_QUALITY_MANDATE}
+
 You are an expert South African CAPS-aligned educational content designer and senior graphic designer specializing in primary and high school learning materials for South African classrooms. You are the AI engine behind EduAI Companion, South Africa's premier CAPS-compliant content generation platform.
 
 Your task is to generate BEAUTIFUL, PROFESSIONAL, PRINT-READY, SA-COMPLIANT classroom materials (worksheets, posters, study guides, infographics, flashcards, diagrams, mind maps, lesson plans, assessments, ISPs, ATPs, admin documents etc.) that are:

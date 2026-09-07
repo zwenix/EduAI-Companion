@@ -2,6 +2,8 @@ import axios from "axios";
 import { checkAndReportApiError } from "../lib/apiErrorHelper";
 import { callGeminiClientDirect } from "./geminiClient";
 import { AI_SECRETS } from "../lib/aiSecrets";
+import { WORLD_CLASS_QUALITY_MANDATE } from "../lib/prompts/world-class-standard";
+import { TEXT_ENGINES, extractMessageText } from "../lib/aiModels";
 // True when running inside the Capacitor native app (Android APK), where there
 // is no Node backend to proxy requests — so we call the AI providers directly.
 import { isNativeApp } from "../lib/platform";
@@ -12,6 +14,15 @@ import { isNativeApp } from "../lib/platform";
 // providers whose keys are baked into the app. Each attempt is best-effort:
 // a CORS/network refusal simply moves the chain along to the next provider.
 const LAST_RESORT_PROVIDERS: { name: string; url: string; key: () => string; models: string[] }[] = [
+  {
+    name: "NVIDIA Nemotron 3 Ultra",
+    url: "https://integrate.api.nvidia.com/v1/chat/completions",
+    key: () => AI_SECRETS.NVIDIA_API_KEY,
+    models: [
+      TEXT_ENGINES['nvidia-nemotron-3-ultra'].model,
+      TEXT_ENGINES['nvidia-nemotron-3-lightning'].model,
+    ]
+  },
   {
     name: "Alibaba Qwen 3.8",
     url: "https://ws-8ldb9u90tetxcada.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/chat/completions",
@@ -34,6 +45,7 @@ const callLastResortLLM = async (systemPrompt: string, userPrompt: string): Prom
     for (const model of provider.models) {
       try {
         console.warn(`[AI Routing] Last-resort attempt via ${provider.name} (${model})...`);
+        const isNemotron = /^nvidia\//i.test(model);
         const resp = await axios.post(
           provider.url,
           {
@@ -42,8 +54,12 @@ const callLastResortLLM = async (systemPrompt: string, userPrompt: string): Prom
               { role: "system", content: systemPrompt },
               { role: "user", content: userPrompt }
             ],
-            temperature: 0.7,
-            max_tokens: 8192
+            temperature: isNemotron ? 0.6 : 0.7,
+            top_p: 0.95,
+            max_tokens: isNemotron ? 16384 : 8192,
+            // Nemotron hybrid models: keep the chain-of-thought off so the
+            // response contains only the finished HTML/JSON deliverable.
+            ...(isNemotron ? { chat_template_kwargs: { enable_thinking: false } } : {})
           },
           {
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
@@ -51,7 +67,7 @@ const callLastResortLLM = async (systemPrompt: string, userPrompt: string): Prom
           }
         );
         const msg = resp.data?.choices?.[0]?.message || {};
-        const text = msg.content || msg.reasoning_content || "";
+        const text = extractMessageText(msg);
         if (text && String(text).trim()) {
           console.warn(`[AI Routing] Last-resort ${provider.name} succeeded.`);
           return text;
@@ -88,6 +104,8 @@ const isBackendUnavailable = (error: any): boolean => {
 
 // ─── Prompt Engineering Constants ────────────
 export const MASTER_SYSTEM_PROMPT = `
+${WORLD_CLASS_QUALITY_MANDATE}
+
 You are an expert South African CAPS-aligned educational content designer and senior graphic designer specializing in primary and high school learning materials for South African classrooms.
 
 Your task is to generate BEAUTIFUL, PROFESSIONAL, PRINT-READY classroom materials (worksheets, posters, study guides, infographics, flashcards, diagrams, mind maps, etc.) that are:

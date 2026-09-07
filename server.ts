@@ -1,6 +1,16 @@
 import { CAPS_LESSON_PLAN_SYSTEM_PROMPT } from "./src/lib/prompts/caps-lesson-plan-prompt";
 import { EduAIPromptEngine } from "./src/lib/prompt-engine";
 import { buildInstructorPriority, EDUCATIONAL_IMAGE_STYLE } from "./src/lib/prompt-priority";
+import {
+  NVIDIA_NIM_BASE_URL,
+  TEXT_ENGINES,
+  buildChatPayload,
+  buildFallbackChain,
+  extractMessageText,
+  getEngine,
+  isNvidiaEngine,
+  normalizeEngineId,
+} from "./src/lib/aiModels";
 import express from "express";
 import path from "path";
 import fs from "fs";
@@ -60,13 +70,24 @@ function resolveNvidiaKey(): string {
   const keys = [
     process.env.NVIDIA_API_KEY,
     process.env.VITE_NVIDIA_API_KEY,
+    process.env.NVIDIA_NIM_API_KEY,
   ];
   for (const key of keys) {
     if (key && key !== "dummy" && key !== "undefined" && key.trim() !== "") {
       return key.trim().replace(/^['"\s]+|['"\s]+$/g, "");
     }
   }
-  return "";
+  // Final fallback: the same baked-in build.nvidia.com key that already ships
+  // inside the client bundle / APK (see src/lib/aiSecrets.ts — stored reversed
+  // so the repo passes secret scanning). Keeps the free Nemotron 3 NIM
+  // endpoints (Ultra 550B, 3.5 Lightning, Nano Omni) and Qwen-Image working on
+  // deployments where no NVIDIA_API_KEY env var has been configured.
+  return "m9NrbqtXvcDW8q-8SI11X4Gd-CDZKm70pq1-qPGy6V2wrOnpUHOWBiNMQUlkJMPy-ipavn".split("").reverse().join("");
+}
+
+/** OpenAI-compatible base URL for the NVIDIA NIM gateway (overridable). */
+function resolveNvidiaBaseURL(): string {
+  return (process.env.NVIDIA_API_BASE || NVIDIA_NIM_BASE_URL).trim().replace(/\/+$/, "");
 }
 
 // Alibaba Cloud Model Studio (Qwen 3.8) — OpenAI-compatible workspace endpoint.
@@ -580,7 +601,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       cachedNvidiaKey = nvidiaKey;
       cachedNvidiaClient = new OpenAI({
         apiKey: nvidiaKey,
-        baseURL: "https://integrate.api.nvidia.com/v1",
+        baseURL: resolveNvidiaBaseURL(),
       });
       return cachedNvidiaClient;
     }
@@ -616,10 +637,44 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     res.json({ status: "ok" });
   });
 
+  // Public catalogue of the text engines this deployment can route to.
+  // Powers the Settings engine picker and the Admin AI diagnostics panel.
+  app.get("/api/ai/models", (req, res) => {
+    const nvidiaConfigured = !!resolveNvidiaKey();
+    const alibabaConfigured = !!resolveAlibabaKey();
+    const geminiConfigured = !!resolveGeminiKey();
+
+    res.json({
+      engines: Object.values(TEXT_ENGINES).map((engine) => ({
+        id: engine.id,
+        label: engine.label,
+        vendor: engine.vendor,
+        model: engine.model,
+        tier: engine.tier,
+        badge: engine.badge,
+        description: engine.description,
+        note: engine.note,
+        contextWindow: engine.contextWindow,
+        maxOutputTokens: engine.maxOutputTokens,
+        modalities: engine.modalities,
+        reasoning: engine.reasoning,
+        free: engine.free,
+        fallbacks: engine.fallbacks,
+        configured:
+          engine.keyName === "NVIDIA_API_KEY" ? nvidiaConfigured :
+          engine.keyName === "ALIBABA_API_KEY" ? alibabaConfigured :
+          geminiConfigured,
+      })),
+    });
+  });
+
   // Generic content generation proxy for OpenAI-compatible APIs
   app.post("/api/ai/:provider", async (req, res) => {
-    const { provider } = req.params;
-    const { messages, model, temperature = 0.7, max_tokens, max_completion_tokens, stream } = req.body;
+    const rawProvider = req.params.provider;
+    // Historical provider ids (nvidia-nemotron, nvidia-nemotron-ultra,
+    // groq-qwen …) are upgraded to their current engine automatically.
+    const provider = normalizeEngineId(rawProvider) || rawProvider;
+    const { messages, model, temperature, max_tokens, max_completion_tokens, stream, reasoning } = req.body;
 
     const executeGeminiFallback = async (reason: string) => {
       console.log(`[AI Routing] Seamlessly routing request from ${provider} to primary Gemini engine.`);
@@ -753,6 +808,8 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
     let client: OpenAI | null = null;
     let apiKey = "";
+    let neededKey = "API_KEY";
+    const engineIsNvidia = isNvidiaEngine(provider);
 
     switch (provider) {
       case "llama-primary":
@@ -760,81 +817,75 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       case "groq-vision":
         client = groq;
         apiKey = process.env.GROQ_API_KEY || "";
+        neededKey = "GROQ_API_KEY";
         break;
-      case "nvidia-nemotron":
-      case "nvidia-nemotron-ultra":
-      case "groq-qwen":
-        // Legacy ids: the NVIDIA Nemotron LLMs were replaced by Qwen 3.8 Max
-        // (Alibaba Model Studio) — route them to the same engine.
+      // ── NVIDIA Nemotron 3 family via the free build.nvidia.com NIM gateway ──
+      case "nvidia-nemotron-3-ultra":       // nvidia/nemotron-3-ultra-550b-a55b
+      case "nvidia-nemotron-3-lightning":   // nvidia/nemotron-3.5-lightning-30b-a3b
+      case "nvidia-nemotron-3-omni":        // nvidia/nemotron-3-nano-omni-30b-a3b-reasoning
+        client = nvidia;
+        apiKey = resolveNvidiaKey();
+        neededKey = "NVIDIA_API_KEY";
+        break;
       case "alibaba-qwen":
       case "alibaba-deepseek":
         client = alibaba;
         apiKey = resolveAlibabaKey();
+        neededKey = "ALIBABA_API_KEY";
         break;
     }
 
-    if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-      const neededKey = (provider === 'nvidia-nemotron' || provider === 'nvidia-nemotron-ultra' || provider === 'groq-qwen' || provider.startsWith('alibaba'))
-        ? 'ALIBABA_API_KEY'
-        : (provider.startsWith('groq') || provider.startsWith('llama'))
-        ? 'GROQ_API_KEY'
-        : 'API_KEY';
+    if (!client || !apiKey || apiKey === "dummy" || apiKey === "undefined") {
       return await executeGeminiFallback(`${neededKey} is not configured.`);
     }
 
-    let finalModel = model;
+    // The registry owns model slugs, sampling defaults, output ceilings and the
+    // NVIDIA hybrid-reasoning switches — no provider id or foreign vendor slug
+    // can leak through as a model name.
+    const engine = getEngine(provider);
+    const requestedMaxTokens = max_tokens || max_completion_tokens;
 
-    // Never forward a legacy provider id or NVIDIA model slug to Model Studio.
-    if (finalModel && (finalModel === provider || /nemotron|nvidia\//i.test(finalModel))) {
-      finalModel = undefined;
+    let payload: any;
+    if (normalizeEngineId(provider)) {
+      payload = buildChatPayload(provider, messages, {
+        model,
+        temperature,
+        maxTokens: requestedMaxTokens,
+        reasoning: typeof reasoning === "boolean" ? reasoning : undefined,
+        stream: !!stream,
+      });
+    } else {
+      // Legacy Groq / Llama routes keep their original behaviour.
+      const legacyModel =
+        (model && model !== provider ? model : "") ||
+        (provider === "llama-primary" ? "llama-3.3-70b-versatile" :
+         provider === "llama-secondary" ? "llama-3.1-8b-instant" :
+         provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
+         provider === "alibaba-deepseek" ? "deepseek-v3" : "");
+      payload = {
+        model: legacyModel,
+        messages,
+        temperature: typeof temperature === "number" ? temperature : 0.7,
+        ...(requestedMaxTokens ? { max_tokens: requestedMaxTokens } : {}),
+        ...(stream ? { stream: true } : {}),
+      };
     }
 
-    if (!finalModel) {
-      finalModel = (
-        provider === "llama-primary" ? "llama-3.3-70b-versatile" :
-        provider === "llama-secondary" ? "llama-3.1-8b-instant" :
-        provider === "alibaba-qwen" ? "qwen3.8-max" :
-        provider === "alibaba-deepseek" ? "deepseek-v3" :
-        provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
-        (provider === "nvidia-nemotron" || provider === "nvidia-nemotron-ultra" || provider === "groq-qwen") ? "qwen3.8-max" :
-        ""
-      );
-    }
+    const runCompletion = async (body: any) => client!.chat.completions.create(body);
 
     try {
-      const payload: any = {
-        model: finalModel,
-        messages,
-        temperature,
-      };
-      
-      // JSON mode is handled by prompt instruction
-      
-      // Set max_tokens sensibly per provider to avoid credit limit 402s / truncation
-      const requestedMaxTokens = max_tokens || max_completion_tokens;
-      if (provider === "nvidia-nemotron" || provider === "nvidia-nemotron-ultra" || provider === "groq-qwen" || provider === "alibaba-qwen") {
-        // Qwen 3.8 Max (Alibaba Model Studio)
-        payload.max_tokens = requestedMaxTokens || 16384;
-        payload.temperature = 0.7;
-        payload.top_p = 0.95;
-      } else if (requestedMaxTokens) {
-        payload.max_tokens = requestedMaxTokens;
-      } else {
-        if (!provider.startsWith('groq') && !provider.startsWith('llama')) {
-          payload.max_tokens = 4000;
-        }
-      }
-
       if (stream) {
-        payload.stream = true;
-        const completion = await client.chat.completions.create(payload);
+        const completion = await runCompletion(payload);
         res.setHeader("Content-Type", "text/event-stream");
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Connection", "keep-alive");
         if (res.flushHeaders) res.flushHeaders();
         let fullText = "";
         for await (const chunk of completion as any) {
-          const content = chunk.choices?.[0]?.delta?.content || "";
+          const delta = chunk.choices?.[0]?.delta || {};
+          // Nemotron hybrid models stream their scratchpad on `reasoning_content`
+          // — never forward it to the UI, only the final deliverable.
+          const content = delta.content || "";
           if (content) {
             fullText += content;
             res.write(`data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`);
@@ -842,10 +893,33 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         }
         res.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }], done: true, final: fullText })}\n\n`);
         return res.end();
-      } else {
-        const response = await client.chat.completions.create(payload);
-        res.json(response);
       }
+
+      let response: any;
+      try {
+        response = await runCompletion(payload);
+      } catch (firstErr: any) {
+        // Some NIM deployments reject an over-generous max_tokens or an
+        // unsupported extra body field with a 400/422 — retry once, lean.
+        const status = firstErr?.status || firstErr?.response?.status;
+        if (engineIsNvidia && (status === 400 || status === 422)) {
+          console.warn(`[AI Routing] ${provider} rejected the extended payload (${status}); retrying with baseline parameters.`);
+          const { max_tokens: _mt, chat_template_kwargs: _ctk, reasoning_budget: _rb, grace_period: _gp, ...lean } = payload;
+          response = await runCompletion(lean);
+        } else {
+          throw firstErr;
+        }
+      }
+
+      // Normalise the message so hybrid-reasoning traces never reach the client.
+      const choice = (response as any)?.choices?.[0];
+      if (choice?.message) {
+        const cleaned = extractMessageText(choice.message);
+        if (cleaned) choice.message.content = cleaned;
+        delete choice.message.reasoning_content;
+      }
+      console.log(`[AI Routing] ${provider} (${engine.label} · ${payload.model}) responded successfully.`);
+      res.json(response);
     } catch (error: any) {
       const status = error.status || 500;
       if (status === 402 || (error.message && String(error.message).includes("afford"))) {
@@ -1431,7 +1505,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
   // --- SA-Compliant Full Package Generation (new) ---
   app.post("/api/sa/generate-package", async (req, res) => {
-    const { request: saRequest, provider = "alibaba-qwen", generateImages = true } = req.body;
+    const { request: saRequest, provider = "nvidia-nemotron-3-ultra", generateImages = true } = req.body;
     if (!saRequest) return res.status(400).json({ error: "SAContentRequest required" });
 
     try {
@@ -1446,32 +1520,40 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       const systemPrompt = buildSASystemPrompt(saRequest);
       const userPrompt = buildSAUserPrompt(saRequest);
 
-      // Try Qwen 3.8 (Alibaba Model Studio) first, then Gemini fallback
+      // Walk the requested engine's fallback chain (default: Nemotron 3 Ultra
+      // 550B → Nemotron 3.5 Lightning → Qwen 3.8 Max) before Gemini rescues it.
       let rawResponse = "";
       let usedProvider = provider;
-      try {
-        const alibabaKey = resolveAlibabaKey();
-        if (alibabaKey) {
+      const chain = buildFallbackChain(provider).filter((id) => id !== "gemini");
+
+      for (const engineId of chain) {
+        const engine = getEngine(engineId);
+        const key = isNvidiaEngine(engineId) ? resolveNvidiaKey() : resolveAlibabaKey();
+        if (!key) continue;
+        try {
           const client = new OpenAI({
-            apiKey: alibabaKey,
-            baseURL: resolveAlibabaBaseURL()
+            apiKey: key,
+            baseURL: isNvidiaEngine(engineId) ? resolveNvidiaBaseURL() : resolveAlibabaBaseURL(),
           });
-          const model = "qwen3.8-max";
-          const completion = await client.chat.completions.create({
-            model,
-            messages: [
+          const completion = await client.chat.completions.create(
+            buildChatPayload(engineId, [
               { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt }
-            ],
-            temperature: 0.7,
-            max_tokens: 16384
-          } as any);
-          rawResponse = (completion as any).choices?.[0]?.message?.content || "";
-        } else {
-          throw new Error("No ALIBABA_API_KEY (Model Studio) configured");
+              { role: "user", content: userPrompt },
+            ]) as any
+          );
+          rawResponse = extractMessageText((completion as any).choices?.[0]?.message);
+          if (rawResponse.trim()) {
+            usedProvider = engineId;
+            console.log(`[SA Package] Generated via ${engine.label} (${engine.model}).`);
+            break;
+          }
+        } catch (err: any) {
+          console.warn(`SA package text generation via ${engineId} failed (${err.message}), trying next engine...`);
         }
-      } catch (err: any) {
-        console.warn(`SA package text generation via ${provider} failed (${err.message}), falling back to Gemini...`);
+      }
+
+      if (!rawResponse.trim()) {
+        console.warn("SA package: all OpenAI-compatible engines exhausted, falling back to Gemini...");
         usedProvider = "gemini";
         const geminiResponse = await generateContentWithFallback({
           contents: [

@@ -4,6 +4,7 @@ import {
   Terminal, Bug, RefreshCw, Trash2, AlertTriangle, CheckCircle, Copy, ChevronDown, ChevronUp 
 } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { TEXT_ENGINE_ORDER, getEngine, normalizeEngineId } from '../lib/aiModels';
 
 const userGrowthData = [
   { name: 'Jan', students: 1200, teachers: 80 },
@@ -74,9 +75,8 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Legacy NVIDIA Nemotron log entries are grouped under the Qwen 3.8 engine.
-  const normalizeProvider = (p: string) =>
-    (p === 'nvidia-nemotron' || p === 'nvidia-nemotron-ultra' || p === 'groq-qwen') ? 'alibaba-qwen' : p;
+  // Historical provider ids in the error log are grouped under their current engine.
+  const normalizeProvider = (p: string) => normalizeEngineId(p) || p;
 
   const filteredErrors = providerFilter === 'all' 
     ? errors 
@@ -84,13 +84,17 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
 
   // Group count for visual reference
   const getProviderBadgeStyle = (provider: string) => {
-    switch (provider) {
+    switch (normalizeProvider(provider)) {
       case 'gemini':
         return 'bg-violet-500/10 text-violet-400 border-violet-500/25';
-      case 'alibaba-qwen':
-      case 'nvidia-nemotron':
-      case 'nvidia-nemotron-ultra':
+      case 'nvidia-nemotron-3-ultra':
         return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25';
+      case 'nvidia-nemotron-3-lightning':
+        return 'bg-lime-500/10 text-lime-400 border-lime-500/25';
+      case 'nvidia-nemotron-3-omni':
+        return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/25';
+      case 'alibaba-qwen':
+        return 'bg-orange-500/10 text-orange-400 border-orange-500/25';
       default:
         return 'bg-slate-500/10 text-slate-400 border-slate-500/25';
     }
@@ -376,7 +380,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
 
           {/* Filtering Tab Pills */}
           <div className="flex flex-wrap gap-2 pb-2">
-            {['all', 'gemini', 'alibaba-qwen'].map((prov) => {
+            {['all', ...TEXT_ENGINE_ORDER].map((prov) => {
               const count = prov === 'all' 
                 ? errors.length 
                 : errors.filter(e => normalizeProvider(e.provider) === prov).length;
@@ -392,7 +396,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  {prov === 'all' ? 'ALL' : prov === 'gemini' ? 'GEMINI 3.8' : 'QWEN 3.8'} ({count})
+                  {prov === 'all' ? 'ALL' : getEngine(prov).shortLabel.toUpperCase()} ({count})
                 </button>
               );
             })}
