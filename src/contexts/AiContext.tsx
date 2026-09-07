@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type AIProvider = 'gemini' | 'alibaba-qwen';
+export type AIProvider = 'gemini' | 'alibaba-qwen' | 'nvidia-nemotron-nano' | 'nvidia-nemotron-ultra' | 'nvidia-nemotron-lightning';
 export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
 export type OCRProvider = 'gemini' | 'ocrspace';
 export type ImageProvider = 'gemini-imagen' | 'perchance' | 'pollinations' | 'qwen' | 'qwen-image';
@@ -18,7 +18,7 @@ interface AiContextType {
 
 const AiContext = createContext<AiContextType | undefined>(undefined);
 
-const VALID_PROVIDERS: AIProvider[] = ['gemini', 'alibaba-qwen'];
+const VALID_PROVIDERS: AIProvider[] = ['gemini', 'alibaba-qwen', 'nvidia-nemotron-nano', 'nvidia-nemotron-ultra', 'nvidia-nemotron-lightning'];
 const VALID_TTS: TTSProvider[] = ['browser', 'groq-whisper', 'huggingface', 'google-tts'];
 const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace'];
 const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'perchance', 'pollinations', 'qwen', 'qwen-image'];
@@ -27,7 +27,7 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_provider');
-      // Migrate retired providers (NVIDIA Nemotron / Groq) to the Qwen 3.8 engine.
+      // Migrate retired providers (old NVIDIA Nemotron / Groq) to the Qwen 3.8 engine.
       if (saved === 'groq-qwen' || saved === 'nvidia-nemotron' || saved === 'nvidia-nemotron-ultra') {
         localStorage.setItem('eduai_provider', 'alibaba-qwen');
         return 'alibaba-qwen';

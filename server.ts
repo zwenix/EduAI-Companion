@@ -761,8 +761,15 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         client = groq;
         apiKey = process.env.GROQ_API_KEY || "";
         break;
-      case "nvidia-nemotron":
+      case "nvidia-nemotron-nano":
       case "nvidia-nemotron-ultra":
+      case "nvidia-nemotron-lightning":
+        // New NVIDIA NIM Nemotron models — route to NVIDIA endpoint
+        client = nvidia;
+        apiKey = resolveNvidiaKey();
+        break;
+      case "nvidia-nemotron":
+      case "nvidia-nemotron-ultra-legacy":
       case "groq-qwen":
         // Legacy ids: the NVIDIA Nemotron LLMs were replaced by Qwen 3.8 Max
         // (Alibaba Model Studio) — route them to the same engine.
@@ -774,7 +781,9 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     }
 
     if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-      const neededKey = (provider === 'nvidia-nemotron' || provider === 'nvidia-nemotron-ultra' || provider === 'groq-qwen' || provider.startsWith('alibaba'))
+      const neededKey = (provider === 'nvidia-nemotron-nano' || provider === 'nvidia-nemotron-ultra' || provider === 'nvidia-nemotron-lightning')
+        ? 'NVIDIA_API_KEY'
+        : (provider === 'nvidia-nemotron' || provider === 'nvidia-nemotron-ultra-legacy' || provider === 'groq-qwen' || provider.startsWith('alibaba'))
         ? 'ALIBABA_API_KEY'
         : (provider.startsWith('groq') || provider.startsWith('llama'))
         ? 'GROQ_API_KEY'
@@ -796,7 +805,10 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         provider === "alibaba-qwen" ? "qwen3.8-max" :
         provider === "alibaba-deepseek" ? "deepseek-v3" :
         provider === "groq-vision" ? "llama-3.2-11b-vision-instant" :
-        (provider === "nvidia-nemotron" || provider === "nvidia-nemotron-ultra" || provider === "groq-qwen") ? "qwen3.8-max" :
+        provider === "nvidia-nemotron-nano" ? "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning" :
+        provider === "nvidia-nemotron-ultra" ? "nvidia/nemotron-ultra-550b-a55b" :
+        provider === "nvidia-nemotron-lightning" ? "nvidia/nemotron-3.5-lightning-30b-a3b" :
+        (provider === "nvidia-nemotron" || provider === "nvidia-nemotron-ultra-legacy" || provider === "groq-qwen") ? "qwen3.8-max" :
         ""
       );
     }
@@ -812,7 +824,12 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       
       // Set max_tokens sensibly per provider to avoid credit limit 402s / truncation
       const requestedMaxTokens = max_tokens || max_completion_tokens;
-      if (provider === "nvidia-nemotron" || provider === "nvidia-nemotron-ultra" || provider === "groq-qwen" || provider === "alibaba-qwen") {
+      if (provider === "nvidia-nemotron-nano" || provider === "nvidia-nemotron-ultra" || provider === "nvidia-nemotron-lightning") {
+        // NVIDIA NIM Nemotron models
+        payload.max_tokens = requestedMaxTokens || 16384;
+        payload.temperature = 0.7;
+        payload.top_p = 0.95;
+      } else if (provider === "alibaba-qwen" || provider === "nvidia-nemotron" || provider === "nvidia-nemotron-ultra-legacy" || provider === "groq-qwen") {
         // Qwen 3.8 Max (Alibaba Model Studio)
         payload.max_tokens = requestedMaxTokens || 16384;
         payload.temperature = 0.7;

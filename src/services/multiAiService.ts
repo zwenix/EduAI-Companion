@@ -3,7 +3,7 @@ import { checkAndReportApiError } from '../lib/apiErrorHelper';
 import { AI_SECRETS } from '../lib/aiSecrets';
 import { isNativeApp } from '../lib/platform';
 
-export type AIProvider = 'alibaba-qwen';
+export type AIProvider = 'alibaba-qwen' | 'nvidia-nemotron-nano' | 'nvidia-nemotron-ultra' | 'nvidia-nemotron-lightning';
 
 // ─── Qwen 3.8 via Alibaba Cloud Model Studio (OpenAI-compatible) ─────────────
 // Workspace-scoped endpoint (see Model Studio → API KEY dialog). Override with
@@ -11,11 +11,65 @@ export type AIProvider = 'alibaba-qwen';
 const QWEN_BASE_URL = "https://ws-8ldb9u90tetxcada.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1";
 const QWEN_DEFAULT_MODEL = "qwen3.8-max";
 
+// NVIDIA NIM Endpoints for Nemotron models
+const NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
+
+// NVIDIA Nemotron Models Configuration
+const NVIDIA_MODELS: Record<string, string> = {
+  'nvidia-nemotron-nano': 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
+  'nvidia-nemotron-ultra': 'nvidia/nemotron-ultra-550b-a55b',
+  'nvidia-nemotron-lightning': 'nvidia/nemotron-3.5-lightning-30b-a3b',
+};
+
 // Legacy provider ids that used to route to NVIDIA Nemotron / Groq — all now
 // transparently map to the Qwen 3.8 engine.
-const LEGACY_PROVIDERS = ['nvidia-nemotron', 'nvidia-nemotron-ultra', 'groq-qwen'];
+const LEGACY_PROVIDERS = ['groq-qwen'];
 
 const executeClientMultiAi = async (provider: AIProvider | string, messages: any[], model?: string) => {
+  // Handle NVIDIA NIM providers
+  if (provider && provider.startsWith('nvidia-nemotron')) {
+    const nvidiaModel = NVIDIA_MODELS[provider];
+    if (!nvidiaModel) {
+      throw new Error(`Unknown NVIDIA Nemotron model: ${provider}`);
+    }
+    
+    const baseUrl = NVIDIA_BASE_URL;
+    const url = `${baseUrl}/chat/completions`;
+    const apiKey = String(
+      (process.env as any).NVIDIA_API_KEY ||
+      (import.meta as any).env?.VITE_NVIDIA_API_KEY ||
+      AI_SECRETS.NVIDIA_API_KEY || ""
+    ).trim().replace(/^['"\s]+|['"\s]+$/g, "");
+    
+    if (!apiKey) {
+      throw new Error(`API key (NVIDIA_API_KEY) for NVIDIA NIM is not configured. Please add it.`);
+    }
+    
+    const selectedModel = model && !/nemotron|nvidia\//i.test(model) ? model : nvidiaModel;
+    
+    const payload: any = {
+      model: selectedModel,
+      messages,
+      temperature: 0.7,
+      top_p: 0.95,
+      max_tokens: 16384,
+    };
+    
+    const response = await axios.post(
+      url,
+      payload,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+      }
+    );
+    const msg = response.data.choices[0]?.message || {};
+    return msg.content || msg.reasoning_content || "";
+  }
+  
+  // Handle Alibaba Qwen providers
   const baseUrl = String(
     (import.meta as any).env?.VITE_ALIBABA_API_BASE ||
     (process.env as any).ALIBABA_API_BASE ||
