@@ -143,7 +143,10 @@ export const SA_COLOURS = {
   blue: "#002395",
   white: "#FFFFFF",
   lightGreen: "#f0f7f0",
-  darkGreen: "#005c3a"
+  darkGreen: "#005c3a",
+  // Template-derived colors from c659da21115e4f5ca2a94b0ee3e846f4.png
+  headerAccent: "rgb(193, 217, 247)",  // Light blue from template header
+  footerNavy: "rgb(27, 49, 87)"        // Dark navy from template footer
 };
 
 // ── CSS Shared Styles — Enhanced for classroom print ──
@@ -167,7 +170,7 @@ export const SA_BASE_CSS = `
   .page {
     width: 210mm;
     min-height: 297mm;
-    padding: 15mm 20mm;
+    padding: 12mm 18mm;
     margin: 0 auto;
     background: white;
     position: relative;
@@ -175,7 +178,7 @@ export const SA_BASE_CSS = `
 
   /* ── SA FLAG STRIPE HEADER ── */
   .sa-flag-stripe {
-    height: 6px;
+    height: 4px;
     background: linear-gradient(
       to right,
       ${SA_COLOURS.black} 0%, ${SA_COLOURS.black} 16.6%,
@@ -186,20 +189,21 @@ export const SA_BASE_CSS = `
       ${SA_COLOURS.blue} 83.3%, ${SA_COLOURS.blue} 100%
     );
     width: 100%;
-    margin-bottom: 12px;
-    border-radius: 3px;
+    margin-bottom: 8px;
+    border-radius: 2px;
   }
 
   /* ── SCHOOL HEADER ── */
+  /* Template-compliant: header section kept compact (max 25% of page) */
   .school-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 3px solid ${SA_COLOURS.green};
-    padding-bottom: 12px;
-    margin-bottom: 16px;
+    border-bottom: 2px solid ${SA_COLOURS.headerAccent};
+    padding-bottom: 8px;
+    margin-bottom: 10px;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 10px;
   }
 
   .school-header .school-info {
@@ -208,133 +212,135 @@ export const SA_BASE_CSS = `
   }
 
   .school-header .school-name {
-    font-size: 18pt;
-    font-weight: 800;
-    color: ${SA_COLOURS.green};
+    font-size: 14pt;
+    font-weight: 700;
+    color: ${SA_COLOURS.footerNavy};
     text-transform: uppercase;
     letter-spacing: 0.5px;
     line-height: 1.2;
   }
 
   .school-header .school-details {
-    font-size: 8pt;
+    font-size: 7.5pt;
     color: #666;
-    margin-top: 4px;
-    line-height: 1.4;
+    margin-top: 3px;
+    line-height: 1.35;
   }
 
   .school-header .dbe-badge {
     text-align: right;
-    font-size: 8pt;
+    font-size: 7.5pt;
     color: #666;
-    border-left: 2px solid ${SA_COLOURS.gold};
-    padding-left: 12px;
-    margin-left: 12px;
-    min-width: 150px;
+    border-left: 2px solid ${SA_COLOURS.headerAccent};
+    padding-left: 10px;
+    margin-left: 10px;
+    min-width: 140px;
   }
 
   .school-header .dbe-badge .dbe-title {
     font-weight: 700;
-    color: ${SA_COLOURS.green};
-    font-size: 9pt;
+    color: ${SA_COLOURS.footerNavy};
+    font-size: 8.5pt;
   }
 
   /* ── DOCUMENT TITLE BLOCK ── */
+  /* Template-compliant: reduced padding and margins to keep header under 30% */
   .doc-title-block {
-    background: linear-gradient(135deg, ${SA_COLOURS.green} 0%, ${SA_COLOURS.darkGreen} 100%);
+    background: linear-gradient(135deg, ${SA_COLOURS.headerAccent} 0%, ${SA_COLOURS.footerNavy} 100%);
     color: white;
-    padding: 18px 22px;
-    border-radius: 10px;
-    margin-bottom: 16px;
+    padding: 10px 16px;
+    border-radius: 6px;
+    margin-bottom: 10px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,119,73,0.15);
+    box-shadow: 0 2px 8px rgba(27,49,87,0.12);
   }
 
   .doc-title-block::after {
     content: '';
     position: absolute;
-    right: -20px;
-    top: -20px;
-    width: 120px;
-    height: 120px;
-    background: rgba(255,184,28,0.15);
+    right: -15px;
+    top: -15px;
+    width: 80px;
+    height: 80px;
+    background: rgba(255,255,255,0.1);
     border-radius: 50%;
   }
 
   .doc-title-block::before {
     content: '';
     position: absolute;
-    left: -30px;
-    bottom: -30px;
-    width: 80px;
-    height: 80px;
-    background: rgba(255,255,255,0.08);
+    left: -20px;
+    bottom: -20px;
+    width: 60px;
+    height: 60px;
+    background: rgba(255,255,255,0.06);
     border-radius: 50%;
   }
 
   .doc-title-block h1 {
-    font-size: 17pt;
-    font-weight: 800;
-    margin-bottom: 6px;
+    font-size: 13pt;
+    font-weight: 700;
+    margin-bottom: 4px;
     position: relative;
     z-index: 1;
     line-height: 1.3;
   }
 
   .doc-title-block .doc-meta {
-    font-size: 9pt;
+    font-size: 8pt;
     opacity: 0.95;
     display: flex;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
     position: relative;
     z-index: 1;
   }
 
   .doc-title-block .doc-meta span {
-    background: rgba(255,255,255,0.18);
-    padding: 3px 10px;
-    border-radius: 20px;
+    background: rgba(255,255,255,0.15);
+    padding: 2px 8px;
+    border-radius: 12px;
     font-weight: 500;
     backdrop-filter: blur(4px);
   }
 
   /* ── CAPS REFERENCE BAR ── */
+  /* Template-compliant: compact reference bar */
   .caps-ref-bar {
-    background: ${SA_COLOURS.lightGreen};
-    border: 1px solid ${SA_COLOURS.green};
-    border-left: 4px solid ${SA_COLOURS.green};
-    padding: 10px 14px;
-    font-size: 9pt;
-    margin-bottom: 16px;
-    border-radius: 0 6px 6px 0;
+    background: #f8f9fa;
+    border: 1px solid #e5e7eb;
+    border-left: 3px solid ${SA_COLOURS.headerAccent};
+    padding: 6px 10px;
+    font-size: 8pt;
+    margin-bottom: 10px;
+    border-radius: 0 4px 4px 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
   }
 
   .caps-ref-bar .caps-label {
     font-weight: 700;
-    color: ${SA_COLOURS.green};
+    color: ${SA_COLOURS.footerNavy};
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
 
   .caps-ref-bar .blooms-mini {
     display: flex;
-    gap: 6px;
-    font-size: 7pt;
+    gap: 4px;
+    font-size: 6.5pt;
     flex-wrap: wrap;
   }
 
   .caps-ref-bar .blooms-mini span {
-    background: ${SA_COLOURS.green};
-    color: white;
-    padding: 2px 6px;
-    border-radius: 10px;
+    background: ${SA_COLOURS.headerAccent};
+    color: ${SA_COLOURS.footerNavy};
+    padding: 2px 5px;
+    border-radius: 8px;
     font-weight: 600;
   }
 
@@ -570,17 +576,18 @@ export const SA_BASE_CSS = `
   }
 
   /* ── FOOTER ── */
+  /* Template-compliant: footer matches template navy color and compact size */
   .page-footer {
-    margin-top: 30px;
-    border-top: 2px solid ${SA_COLOURS.green};
-    padding-top: 10px;
-    font-size: 7.5pt;
-    color: #6b7280;
+    margin-top: 20px;
+    border-top: 2px solid ${SA_COLOURS.footerNavy};
+    padding-top: 8px;
+    font-size: 7pt;
+    color: ${SA_COLOURS.footerNavy};
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 8px;
-    line-height: 1.4;
+    gap: 6px;
+    line-height: 1.35;
   }
 
   .page-footer .popia-notice {
