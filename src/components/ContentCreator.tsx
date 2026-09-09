@@ -22,7 +22,7 @@ import { PromptQualityValidator } from '../lib/prompt-validator';
 import { EDUCATIONAL_IMAGE_STYLE } from '../lib/prompt-priority';
 import { printContent, downloadAsHTML, downloadAsPDF } from '../lib/printUtils';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
-import { wrapWithTemplate, type ContentTemplateMeta } from '../lib/contentTemplate';
+import { wrapWithTemplate, EDUAI_LIGHT_CSS, type ContentTemplateMeta } from '../lib/contentTemplate';
 import PrintPreviewModal from './PrintPreviewModal';
 import { PosterPreview } from './PosterPreview';
 import VideoLabConsole from './VideoLabConsole';
@@ -252,6 +252,18 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
       : fontStyle.includes('Lexend') ? '"Lexend", sans-serif'
       : 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
+    // Non-standard font choice (e.g. Patrick Hand for Foundation Phase) wins
+    // over the LIGHT Fredoka/Inter pairing throughout the preview document.
+    const useStandardFonts = fontStyle.includes('Standard System');
+    const fontOverrideCss = useStandardFonts ? '' : `
+    body, .header-text, .site-footer,
+    .eduai-light-scope .page, .eduai-light-scope .card,
+    .eduai-light-scope h1, .eduai-light-scope h2, .eduai-light-scope h3,
+    .eduai-light-scope .lesson-title, .eduai-light-scope .activity-header,
+    .eduai-light-scope .btn {
+      font-family: ${fontCss} !important;
+    }`;
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -259,7 +271,7 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&family=Kalam:wght@300;400;700&family=Lexend:wght@300;400;500;600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Comic+Neue:wght@300;400;700&family=Kalam:wght@300;400;700&family=Lexend:wght@300;400;500;600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
   <script>
     const originalWarn = console.warn;
     console.warn = function(...args) {
@@ -272,31 +284,26 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
   <style>
+    /* EduAI LIGHT Template v4 — the single source of truth lives in
+       src/lib/contentTemplate.ts (EDUAI_LIGHT_CSS); wrapWithTemplate also
+       embeds it, so preview, print, PDF and HTML exports always match. */
+    ${EDUAI_LIGHT_CSS}
     * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
     body {
       background-color: #ffffff;
-      color: #0f172a;
-      font-family: ${fontCss};
+      color: #1e293b;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
       margin: 0;
-      padding: 2rem;
-      line-height: 2.2rem;
+      padding: 0;
+      line-height: 1.65;
       font-size: 16px;
+      min-height: 100vh;
+      position: relative;
     }
-    h1 { font-size: 2rem; font-weight: 800; color: #0f172a; border-bottom: 2px solid #0284c7; padding-bottom: 0.5rem; margin-top: 0; }
-    h2 { font-size: 1.5rem; font-weight: 700; color: #0369a1; margin-top: 1.5rem; }
-    h3 { font-size: 1.2rem; font-weight: 700; color: #0284c7; margin-top: 1.2rem; }
-    p { margin-bottom: 1rem; font-size: 1rem; line-height: 2.2rem; }
-    table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 14px; }
-    th, td { border: 1px solid #cbd5e1; padding: 12px 16px; text-align: left; }
-    th { background-color: #f1f5f9; font-weight: 700; color: #1e293b; }
-    ul, ol { padding-left: 2rem; margin-bottom: 1.5rem; line-height: 2.2rem; }
-    li { margin-bottom: 0.5rem; }
-    img { max-width: 100%; height: auto; border-radius: 0.5rem; display: block; margin: 1.5rem 0; }
     .score-badge { display: inline-block; padding: 6px 14px; border-radius: 8px; font-weight: 800; border: 2px solid #f59e0b; background: #fef3c7; color: #92400e; }
     .header-badge { border: 1px solid #94a3b8; padding: 10px 14px; border-radius: 6px; font-weight: 600; background: #f8fafc; }
-    @media print {
-      body { padding: 0; }
-    }
+    ${fontOverrideCss}
   </style>
 </head>
 <body>

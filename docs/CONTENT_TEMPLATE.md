@@ -1,16 +1,19 @@
-# EduAI Companion — Official Content Template
+# EduAI Companion — Official Content Template (LIGHT v4)
 
-> Source artwork: `docs/c659da21115e4f5ca2a94b0ee3e846f4 (1).png`
-> (the official EduAI Companion template poster).
+> Source artwork:
+> `docs/Decrease-the-size-of-the-header-banner-by-30-or-try-any-method-to-fit-all-text-in-the-header-into-1- (4).html`
+> ("EduAI Companion 2026 | LIGHT Template v4").
 
 Every piece of generated content in the app — worksheets, lesson plans,
 posters, assessments, memos, rubrics, admin documents, student notes and
-practice — is now wrapped in this template. The **format and style** of the
-original artwork are retained exactly; the placeholder text was replaced with
-live informational and compliance data.
+practice — is wrapped in this template. The **format and style** of the
+artwork are retained exactly; the informational slots are filled with live
+grade / term / subject / content-type / date data.
 
-A pixel-accurate static demo of the markup lives in
-[`docs/content-template-preview.html`](./content-template-preview.html).
+A static demo rendered byte-for-byte by the production `wrapWithTemplate()`
+lives in [`docs/content-template-preview.html`](./content-template-preview.html).
+(Regenerate it any time with `./node_modules/.bin/tsx /tmp/light-test.mts` —
+step 6 of the script; it also runs the 21 template assertions.)
 
 ---
 
@@ -18,48 +21,55 @@ A pixel-accurate static demo of the markup lives in
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│  GREY GRADIENT HEADER BAND  (#cfd1d2 → #bcbdbd → #a9aeb4)        │
-│                                                                  │
-│   ✓ CAPS COMPLIANT            ( ◉ LOGO )      GRADE 5 • TERM 2   │
-│   ✓ NPA COMPLIANT (GR R-12)   white ring       POPIA SECURE ✓     │
-│                               centred          SIAS INCLUSIVE     │
-│   ──────────────────────────────────────────────────────────     │
-│   WORKSHEET • MATHEMATICS • 09/09/2026 • SOUTH AFRICAN           │
-│   EDUCATIONAL RESOURCE                                           │
+│  TRANSLUCENT HEADER BAR  (60px, sticky, backdrop blur, 0.92)     │
+│   (logo 36px)  EDUAI COMPANION 2026 | CAPS COMPLIANT EDUCATION   │
+│                RESOURCE | GRADE 5 • TERM 2 • MATHEMATICS • …     │
+│   ─────────────── 2.5px #2563eb underline ──────────────────     │
 ├──────────────────────────────────────────────────────────────────┤
-│  WHITE CONTENT AREA                                              │
-│                                                                  │
-│        …faded EduAI elephant watermark (opacity 0.14)…           │
-│        …dynamic AI-generated content on top (z-index 1)…         │
-│                                                                  │
+│  WHITE PAGE (max 800px, centred)                                 │
+│   ┌─ card (white, 16px radius, soft navy shadow) ─────────────┐  │
+│   │  Lesson title (Fredoka 32px, #1e3a5f)                     │  │
+│   │  (Grade 5) (Mathematics) (Worksheet) (Term 2) (CAPS …)    │  │
+│   │  …dynamic AI-generated content…                           │  │
+│   └───────────────────────────────────────────────────────────┘  │
+│        …faded EduAI watermark behind the cards (opacity 0.5)…    │
 ├──────────────────────────────────────────────────────────────────┤
-│  NAVY FOOTER BAND  (#1e3559 → #1a3057 → #142640)                 │
-│   ALL CONTENT RIGHTS RESERVED TO     GENERATED: 09/09/2026 •     │
-│   DEVELOPER: Z MSUTHU (C) 2026       WORKSHEET                   │
-│                                      HTTPS://EDUAI-COMPANION.    │
-│                                      VERCEL.APP                  │
+│  NAVY FOOTER BAND  (#1e3a5f, centred, Fredoka 8pt)               │
+│   © 2026 EduAI Companion | CAPS Compliant Educational Resource   │
+│   | Developed for South African Educators                        │
+│   ALL CONTENT RIGHTS RESERVED TO • DEVELOPER: Z MSUTHU (C) 2026  │
+│   • GENERATED: 09/09/2026 • WORKSHEET • EDUAI-COMPANION.…        │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-### Header data (replaces the artwork placeholder text)
+### Header (single-line strapline — never wraps)
 
 | Slot | Data |
 | --- | --- |
-| Left line 1 | `✓ CAPS COMPLIANT` (CAPS compliance badge) |
-| Left line 2 | `✓ NPA COMPLIANT (GR R-12)` (National Protocol for Assessment) |
-| Right line 1 | `GRADE {grade} • TERM {term}` (auto current SA term when not supplied) |
-| Right line 2 | `POPIA SECURE ✓ SIAS INCLUSIVE` |
-| Bottom strip | `{CONTENT TYPE} • {SUBJECT} • {DD/MM/YYYY} • SOUTH AFRICAN EDUCATIONAL RESOURCE` |
+| Fixed lead | `EDUAI COMPANION 2026 \| CAPS COMPLIANT EDUCATION RESOURCE` |
+| Dynamic trail | `GRADE {grade} • TERM {term} • {SUBJECT} • {CONTENT TYPE}` (auto current SA term when not supplied) |
 
-Typography mirrors the artwork: heavy black uppercase ("Arial Black" stack)
-with a white halo rendered via `text-shadow`.
+Fredoka 600, 6pt, uppercase, `#1e3a5f`, clamped to **one line** with an
+ellipsis so the 60px bar can never grow on narrow screens.
 
-### Footer (rights band — retained from the artwork)
+### Title block + meta pills
+
+Plain AI fragments are lifted into an opaque white `<article class="card">`
+(the cards stay fully legible over the watermark) and open with an
+`<h1 class="lesson-title">` plus pills: grade, subject, content type, term,
+`CAPS Aligned`. Fragments that already use LIGHT card structure
+(`article.card` / `.lesson-title`) are kept as-is. AI prompts
+(`src/lib/prompts/master-prompt.ts`, `system-prompts.ts`) steer the model to
+emit this structure natively: `<h2>` sections, `<ul class="objectives">`,
+`<div class="activity">`, `<div class="tip">` — and never its own page-level
+header/footer chrome.
+
+### Footer (rights band)
 
 | Slot | Data |
 | --- | --- |
-| Left | `ALL CONTENT RIGHTS RESERVED TO / DEVELOPER: Z MSUTHU (C) 2026` |
-| Right | `GENERATED: {date} • {content type}` + `HTTPS://EDUAI-COMPANION.VERCEL.APP` |
+| Primary line | `© 2026 EduAI Companion \| CAPS Compliant Educational Resource \| Developed for South African Educators` (exactly as drawn) |
+| Sub-line (muted) | rights + developer + `GENERATED: {date} • {content type}` + school (if any) + official URL |
 
 ---
 
@@ -67,17 +77,33 @@ with a white halo rendered via `text-shadow`.
 
 | Surface | File | How |
 | --- | --- | --- |
-| **Single source of truth** | `src/lib/contentTemplate.ts` | `buildTemplateHeaderHTML`, `buildTemplateFooterHTML`, `buildTemplateWatermarkHTML`, `wrapWithTemplate`, `metaFromPrintOptions` |
-| **On-screen generation preview** (iframe) | `src/components/ContentCreator.tsx` (`HtmlPreviewFrame`) | content wrapped with `wrapWithTemplate` when metadata is available |
-| **Print / PDF / HTML exports** | `src/lib/printUtils.ts` | `wrapWithBrandedTemplate` used by `printContent`, `downloadAsPDF`, `downloadAsHTML` (replaces the old one-line header) |
-| **Print preview modal (paper view)** | `src/components/PrintPreviewModal.tsx` | renders the identical header band, watermark and footer band — WYSIWYG with exports |
-| **SA structured document pipeline** | `src/lib/templates/sa-html-templates.ts` | `buildFullHTML` + `wrapContentWithSABranding` open with the header band and close with the navy footer (POPIA notice kept above it) |
-| **DOCX exports** | `src/lib/assemblers/docx-assembler.ts` | footer carries the rights line + official URL |
-| **Server-side PDF exports** | `src/lib/assemblers/pdf-assembler.ts` | Chromium footer template carries the rights line + official URL |
+| **Single source of truth** | `src/lib/contentTemplate.ts` | `EDUAI_LIGHT_CSS`, `buildTemplateHeaderHTML`, `buildTemplateFooterHTML`, `buildTemplateWatermarkHTML`, `buildTemplateTitleBlockHTML`, `wrapWithTemplate` (idempotent), `metaFromPrintOptions` |
+| **On-screen generation preview** (iframe) | `src/components/ContentCreator.tsx` (`HtmlPreviewFrame`) | full LIGHT document shell (Fredoka/Inter + `EDUAI_LIGHT_CSS`); content wrapped with `wrapWithTemplate` when metadata is available; teacher font choice overrides via `fontOverrideCss` |
+| **Print / PDF / HTML exports** | `src/lib/printUtils.ts` | `wrapWithBrandedTemplate` used by `printContent`, `downloadAsPDF`, `downloadAsHTML`; neutral shells (LIGHT owns all spacing) + `@page 15mm` |
+| **Print preview modal (paper view)** | `src/components/PrintPreviewModal.tsx` | renders the exact `wrapWithTemplate()` output — WYSIWYG with exports; Foundation/alt fonts via a template-scoped override that also survives re-export |
+| **SA structured document pipeline** | `src/lib/templates/sa-html-templates.ts` | `buildFullHTML` + `wrapContentWithSABranding` open with the LIGHT header and close with the LIGHT footer (POPIA notice kept above it); LIGHT stylesheet injected into `<head>` (content selectors are `.eduai-light-scope`d, so SA `.page` styles never collide) |
+| **DOCX exports** | `src/lib/assemblers/docx-assembler.ts` | running header/footer carry the LIGHT strapline/footer text in LIGHT navy |
+| **Server-side PDF exports** | `src/lib/assemblers/pdf-assembler.ts` | Chromium footer template carries the LIGHT footer text in LIGHT navy |
 
-The template logo is served from `public/eduai-logo.png` (copy of
-`assets/logo.png`) and resolved to an absolute URL at render time so it
-survives iframe previews, popup print windows and html2canvas rasterisation.
+The template logo is served from `public/eduai-logo.png` and resolved to an
+absolute URL at render time so it survives iframe previews, popup print
+windows and html2canvas rasterisation. (The artwork file's embedded base64
+images are intentionally *not* copied — one shared asset keeps every export
+light.)
+
+Portability guarantees:
+
+- Header / watermark / footer / page-shell layout is **fully inline**, so the
+  markup survives React previews, iframe srcDocs, `window.print()` documents,
+  html2canvas rasterisation and HTML downloads identically.
+- Component styling ships as an embedded `<style data-eduai-light="v4">`
+  block, so offscreen PDF containers and print windows are styled without
+  `<head>` control.
+- `wrapWithTemplate()` is **idempotent**: already-wrapped markup (including
+  legacy chrome) passes through untouched instead of double-wrapping — this
+  also fixed print/PDF/HTML re-exports launched from the preview paper.
+- Print rules: sticky header goes static, cards avoid breaking inside, and
+  interactive `.btn` elements are hidden on paper.
 
 ## Usage
 
@@ -85,6 +111,7 @@ survives iframe previews, popup print windows and html2canvas rasterisation.
 import { wrapWithTemplate } from '../lib/contentTemplate';
 
 const html = wrapWithTemplate(generatedBodyHtml, {
+  title: 'Fractions: Halves and Quarters',
   subject: 'Mathematics',
   grade: '5',
   term: 'Term 2',
@@ -93,15 +120,17 @@ const html = wrapWithTemplate(generatedBodyHtml, {
 });
 ```
 
-`PrintOptions` (used across all export helpers) now accepts `term`, `school`
-and `teacher`, which flow straight into the template bands.
+`PrintOptions` (used across all export helpers) accepts `term`, `school`
+and `teacher`, which flow straight into the template.
 
 ## Palette (sampled from the artwork)
 
 | Token | Value |
 | --- | --- |
-| Header band | `#cfd1d2 → #bcbdbd → #a9aeb4` (bottom border `#8f979f`) |
-| Header text | `#000000` with `#ffffff` halo |
-| Footer band | `#1e3559 → #1a3057 → #142640` |
-| Footer text | `#ffffff` (muted `#c7d2e4`) |
-| Paper | `#ffffff` |
+| Navy / header text / footer band | `#1e3a5f` |
+| Accent / header underline | `#2563eb` (light `#3b82f6`) |
+| Header bar | `rgba(255,255,255,0.35)` + 8px blur, opacity 0.92 |
+| Footer text | `#e2e8f0` (sub-line `#9fb3cc`) |
+| Paper / cards | `#ffffff` (card border `#e2e8f0`) |
+| Body text | `#334155` (muted `#475569`) |
+| Meta pills | bg `#eff6ff`, border `#dbeafe`, text `#2563eb` |

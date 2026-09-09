@@ -17,7 +17,7 @@ import {
 import { printContent, downloadAsHTML, downloadAsPDF, PrintOptions, removeLegacyHeader } from '../lib/printUtils';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { supportsSystemPrint } from '../lib/platform';
-import { buildTemplateHeaderHTML, buildTemplateFooterHTML, buildTemplateWatermarkHTML, metaFromPrintOptions } from '../lib/contentTemplate';
+import { wrapWithTemplate, metaFromPrintOptions } from '../lib/contentTemplate';
 
 interface PrintPreviewModalProps {
   isOpen: boolean;
@@ -123,12 +123,35 @@ export default function PrintPreviewModal({
     return removeLegacyHeader(replaceImagePlaceholders(rawHTML));
   }, [selectedSection, memo, rubric, content]);
 
-  // Official EduAI content template metadata — mirrors exactly what the
+  // Official EduAI LIGHT Template v4 metadata — mirrors exactly what the
   // print/PDF/HTML exports will wrap around this document.
   const templateMeta = metaFromPrintOptions({
     ...options,
     contentType: selectedSection === 'memo' ? 'Memorandum Key' : selectedSection === 'rubric' ? 'Assessment Rubric' : options.contentType,
   }, title);
+
+  // The simulated paper renders the exact same wrapWithTemplate() output as the
+  // exports (WYSIWYG). A non-standard font choice (Foundation Phase defaults to
+  // Patrick Hand) wins over the LIGHT Fredoka/Inter pairing via a
+  // template-scoped override — the selectors only ever match template chrome,
+  // so the <style> also survives re-export (print/PDF/HTML read the paper's
+  // innerHTML verbatim) without leaking onto app UI.
+  const useStandardFonts = !isFoundation && (fontStyle || '').includes('Standard System');
+  const paperHTML = (() => {
+    const wrapped = wrapWithTemplate(activeHTML, templateMeta);
+    if (useStandardFonts) return wrapped;
+    return `${wrapped}
+<style data-eduai-light-font-override>
+.header-text, .site-footer,
+.eduai-light-scope .page, .eduai-light-scope .card,
+.eduai-light-scope h1, .eduai-light-scope h2,
+.eduai-light-scope h3, .eduai-light-scope .lesson-title,
+.eduai-light-scope .activity-header, .eduai-light-scope .btn {
+  font-family: ${fontFamily} !important;
+}
+.eduai-light-scope .page { font-size: 1.15rem; }
+</style>`;
+  })();
 
   if (!isOpen) return null;
 
@@ -292,7 +315,7 @@ export default function PrintPreviewModal({
                 <div className="space-y-2 text-[11px] font-bold text-slate-400 dark:text-emerald-200/80 leading-relaxed font-sans">
                   <div className="flex gap-2 items-start">
                     <span className="text-emerald-400">✔</span>
-                    <span><strong>True A4 Canvas</strong> simulates physical margins of 20mm, providing a flawless print page structure.</span>
+                    <span><strong>LIGHT Template v4 canvas</strong> — translucent header, centred 800px page and navy footer, with 15mm print margins applied at print time.</span>
                   </div>
                   <div className="flex gap-2 items-start mt-2">
                     <span className="text-emerald-400">✔</span>
@@ -376,51 +399,22 @@ export default function PrintPreviewModal({
             
             {/* Visual Margin Indicators overlay */}
             <div className="absolute top-2 left-6 right-6 hidden xl:flex justify-between text-[10px] font-mono font-bold text-slate-500 select-none pointer-events-none">
-              <span>🡐 A4 Landscape View Limit</span>
-              <span>20mm Printable Margin Locked 🡒</span>
+              <span>🡐 A4 Page</span>
+              <span>LIGHT Template v4 • 15mm Print Margins 🡒</span>
             </div>
 
-            {/* Simulated Printed Page Sheet (Forcing bright high-contrast theme layout always since print uses black ink on white paper) */}
+            {/* Simulated Printed Page Sheet — LIGHT Template v4 owns all inner
+                spacing (full-bleed header, centred 800px page, navy footer),
+                so the paper shell carries no padding of its own. */}
             <div 
               ref={paperRef}
-              className="w-full max-w-[210mm] min-h-[297mm] bg-white text-slate-800 p-[20mm] shadow-2xl rounded-sm border border-slate-200 text-left relative flex flex-col shrink-0 overflow-visible select-text"
+              className="eduai-print-paper w-full max-w-[210mm] min-h-[297mm] bg-white text-slate-800 shadow-2xl rounded-sm border border-slate-200 text-left relative flex flex-col shrink-0 overflow-visible select-text"
               style={{
                 boxSizing: 'border-box',
                 fontFamily,
-                fontSize: isFoundation ? '1.25rem' : undefined,
-                lineHeight: isFoundation ? '1.6' : undefined
               }}
-            >
-              {/* Official EduAI Content Template — grey compliance header band (CAPS • NPA • term • grade • content type) */}
-              <div
-                className="mb-5 select-none"
-                dangerouslySetInnerHTML={{ __html: buildTemplateHeaderHTML(templateMeta) }}
-              />
-
-              {/* Dynamic generated content inside paper wrapper, over the template watermark */}
-              <div className="relative flex-1">
-                <div
-                  className="absolute inset-0 pointer-events-none select-none"
-                  dangerouslySetInnerHTML={{ __html: buildTemplateWatermarkHTML() }}
-                />
-                <div
-                  className={`relative z-10 prose max-w-none text-slate-800 ${isFoundation ? 'text-lg font-medium' : 'text-sm leading-relaxed'}`}
-                  style={isFoundation ? {
-                    fontFamily: '"Patrick Hand", "Comic Neue", cursive, sans-serif',
-                    fontSize: '1.2rem',
-                    lineHeight: '1.6'
-                  } : undefined}
-                  dangerouslySetInnerHTML={{ __html: activeHTML }}
-                />
-              </div>
-
-              {/* Official EduAI Content Template — navy rights footer band */}
-              <div
-                className="mt-10 select-none"
-                dangerouslySetInnerHTML={{ __html: buildTemplateFooterHTML(templateMeta) }}
-              />
-
-            </div>
+              dangerouslySetInnerHTML={{ __html: paperHTML }}
+            />
 
           </div>
 
