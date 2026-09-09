@@ -80,9 +80,22 @@ const isBackendUnavailable = (error: any): boolean => {
   // the server — the client-side engine has its own baked-in key, so treat it
   // as "backend unavailable" and fall back instead of failing the generation.
   const dataMsg = String(error.response?.data?.error || '').toLowerCase();
-  if (dataMsg.includes('not configured') || dataMsg.includes('api key')) return true;
+  if (
+    dataMsg.includes('not configured') ||
+    dataMsg.includes('api key') ||
+    dataMsg.includes('unavailable') ||
+    dataMsg.includes('overloaded') ||
+    dataMsg.includes('quota') ||
+    dataMsg.includes('resource exhausted') ||
+    dataMsg.includes('429')
+  ) return true;
   const msg = String(error.message || '').toLowerCase();
-  if (msg.includes('network error') || msg.includes('failed to fetch') || msg.includes('load failed') || msg.includes('timeout')) return true;
+  if (
+    msg.includes('network error') || msg.includes('failed to fetch') || msg.includes('fetch failed') ||
+    msg.includes('load failed') || msg.includes('timeout') || msg.includes('unavailable') || msg.includes('overloaded') ||
+    msg.includes('quota') || msg.includes('resource exhausted') || msg.includes('429') ||
+    msg.includes('503') || msg.includes('500')
+  ) return true;
   return false;
 };
 
@@ -520,7 +533,14 @@ const _fetchActionSingleBackend = async (action: string, input: any, onProgress?
     });
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      // Read the error body so the fallback logic can detect server-side key
+      // / quota / availability problems instead of throwing a bare HTTP error.
+      let detail = '';
+      try {
+        const errData = await response.json();
+        detail = typeof errData?.error === 'string' ? errData.error : (errData?.error?.message || JSON.stringify(errData));
+      } catch { /* non-JSON error body */ }
+      throw new Error(`HTTP error! status: ${response.status}${detail ? `: ${detail}` : ''}`);
     }
     
     const reader = response.body?.getReader();

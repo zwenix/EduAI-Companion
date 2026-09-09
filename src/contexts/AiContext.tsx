@@ -27,8 +27,9 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_provider');
-      // Migrate retired providers (old NVIDIA Nemotron / Groq) to the Qwen 3.8 engine.
-      if (saved === 'groq-qwen' || saved === 'nvidia-nemotron' || saved === 'nvidia-nemotron-ultra') {
+      // Migrate retired providers (old NVIDIA Nemotron / Groq text engines) to
+      // the Qwen 3.8 engine — the only text engine they now resolve to.
+      if (saved === 'groq-qwen' || saved === 'nvidia-nemotron' || saved === 'nvidia-nemotron-ultra' || saved === 'nvidia-nemotron-nano' || saved === 'nvidia-nemotron-lightning') {
         localStorage.setItem('eduai_provider', 'alibaba-qwen');
         return 'alibaba-qwen';
       }
