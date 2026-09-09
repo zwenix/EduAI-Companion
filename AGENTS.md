@@ -6,33 +6,76 @@ This file contains strict project-level constraints and instructions that MUST b
 
 ## 🚀 1. STRICT MODEL SELECTION & NO AUTO-MAPPING (CRITICAL)
 
-Under no circumstances is any agent permitted to map the user's selected models to alternative models or fallbacks. The requested models exist, are official, and must be called directly and exactly as specified below:
+The five models below are the ONLY models permitted in the app for AI text
+content generation, reasoning, OCR-grading and tutor chat. They are FROZEN:
+no agent, assistant, service or future change may swap, alias, upgrade,
+downgrade, or re-route them to other versions, providers or fallback engines.
+Every one of the allowed models must be called directly and exactly as
+specified below.
 
-### Model Mappings & Identifiers
-* **`gemini`**: Primary model for all content generation, OCR, and reasoning. MUST map directly to:
-  `gemini-3.8-flash` (or `gemini-3.7-flash` / `gemini-3.6-flash`)
-  * *DO NOT map this to outdated models like `gemini-2.0-flash`, `gemini-1.5`, `gemini-2.1`, or older 3.x Flash releases as primary defaults. EVER.*
-* **Supported Gemini 3 Series Models**:
-  - `gemini-3.8-flash` (Latest GA flagship, superior reasoning, speed and intelligence — released 2026-09-02)
-  - `gemini-3.7-flash` (High performance agentic/coding workhorse)
-  - `gemini-3.6-flash` (High performance, balanced speed and intelligence)
-  - `gemini-3.5-flash` (Frontier performance on agentic and coding tasks)
-  - `gemini-3.5-flash-lite` (Fastest, cost-effective execution)
-  - `gemini-3.1-flash-lite` (High performance)
-  - `gemini-2.5-flash` (Low latency price-performance)
-* **`alibaba-qwen`**: Secondary model provider (Alibaba Cloud Model Studio, OpenAI-compatible endpoint) MUST map directly and exclusively to:
-  `qwen3.8-max`
-  * Legacy ids `nvidia-nemotron`, `nvidia-nemotron-ultra`, and `groq-qwen` (NVIDIA Nemotron LLMs — REMOVED) route to the same `qwen3.8-max` engine.
-  * Endpoint: `https://ws-8ldb9u90tetxcada.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1` (override with `ALIBABA_API_BASE`), key: `ALIBABA_API_KEY`.
+### The ONLY allowed models (FROZEN — do not change)
 
-### Strictly Banned / Removed Models:
-* Outdated Gemini defaults (`gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-2.1`) MUST NOT be used as primary defaults.
-* NVIDIA Nemotron LLMs (`nvidia/llama-3.3-nemotron-super-49b-v1`, `nvidia/nemotron-3-ultra-550b-a55b`) MUST NOT be used for text generation — replaced by Qwen 3.8 Max.
+| App provider id | Model to call (exactly) | Provider / endpoint |
+| --- | --- | --- |
+| `gemini` | `gemini-3.8-flash` (latest GA; reasoning chain `gemini-3.7-flash` → `gemini-3.6-flash` → `gemini-3.5-flash` → `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite` → `gemini-2.5-flash` only when 3.8 is unavailable) | Google Gemini API |
+| `alibaba-qwen` | `qwen3.8-max` | Alibaba Cloud Model Studio (OpenAI-compatible endpoint `https://ws-8ldb9u90tetxcada.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1`, key `ALIBABA_API_KEY`) |
+| `nvidia-nemotron-nano` | `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
+| `nvidia-nemotron-ultra` | `nvidia/nemotron-ultra-550b-a55b` (Nemotron 3 Ultra 550B-A55B) | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
+| `nvidia-nemotron-lightning` | `nvidia/nemotron-3.5-lightning-30b-a3b` | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
+
+### NVIDIA NIM is MANDATORY for every Nemotron model
+* ALL Nemotron models MUST use the FREE NVIDIA NIM endpoint
+  (`https://integrate.api.nvidia.com/v1`). NEVER route Nemotron through Groq,
+  OpenRouter, Alibaba Model Studio, or any other provider or aggregator.
+* Never fall back to the same request through Groq or OpenRouter when the
+  NVIDIA key is missing — the baked `NVIDIA_API_KEY` (same key the client/APK
+  ships, see `src/lib/aiSecrets.ts`) is the intended server fallback.
+* The provider switch in `server.ts` (`/api/ai/:provider`) routes the three
+  `nvidia-nemotron-*` ids to the NVIDIA NIM client and maps each id to its
+  exact model slug above. Do not remove, rename or re-map those cases.
+
+### Gemini rules
+* `gemini` is the primary engine and maps to `gemini-3.8-flash` (the current
+  latest GA). DO NOT map it to outdated models like `gemini-2.0-flash`,
+  `gemini-1.5`, `gemini-2.1`, or older 3.x Flash releases as primary defaults.
+  EVER.
+
+### Legacy ids (internal aliases only — not models)
+* `nvidia-nemotron` (old Llama-based Nemotron 49B) and `groq-qwen` /
+  `nvidia-nemotron-ultra-legacy` are retired ids kept ONLY so stale saved
+  settings keep working. They must resolve to the Qwen 3.8 Max engine
+  (`alibaba-qwen`) — never resurrected as their own models.
+
+### Strictly Banned / Removed
+* Llama-family models are REMOVED from the app: no Llama model of any version
+  or size, and no Groq-hosted model, may appear anywhere in the app code or UI.
+* Groq and OpenRouter are banned as model providers for text generation — no
+  Groq client, no OpenRouter client, no Groq/OpenRouter key fallback.
+* Any other model not listed above (DeepSeek, etc.) is banned from text
+  content generation.
+* Outdated Gemini defaults (`gemini-2.0-flash`, `gemini-1.5-flash`,
+  `gemini-2.1`) MUST NOT be used as primary defaults.
+* Image generation (Perchance / Qwen-Image NIM / Google Imagen 3 /
+  Pollinations), OCR engines and TTS/voice engines are separate pipelines —
+  leave them exactly as configured.
 
 ### Application Files Governing Models:
-* **`server.ts`**: The API proxy handling `/api/ai/:provider` must resolve `gemini` as `gemini-3.8-flash` with fallback to `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`, `gemini-2.5-flash`. `alibaba-qwen` (and legacy nemotron ids) must resolve to `qwen3.8-max` via the Model Studio endpoint.
-* **`src/services/multiAiService.ts`**: The frontend service calling chat completions must use these exact model strings when constructing payload queries.
-* **`src/services/unifiedAiService.ts`**: The unified engine must dispatch OCR grading and fallback logic to these exact model strings.
+* **`server.ts`**: The API proxy handling `/api/ai/:provider` must resolve
+  `gemini` to the Gemini chain above, `alibaba-qwen` to `qwen3.8-max` via Model
+  Studio, and the three `nvidia-nemotron-*` ids to their exact NIM model slugs
+  via the NVIDIA NIM endpoint. It contains NO Groq or OpenRouter clients.
+* **`src/contexts/AiContext.tsx`**: `AIProvider` type and `VALID_PROVIDERS`
+  must list exactly `gemini`, `alibaba-qwen`, `nvidia-nemotron-nano`,
+  `nvidia-nemotron-ultra`, `nvidia-nemotron-lightning`.
+* **`src/App.tsx`**: The AI-engine picker and auto-optimize candidates must
+  expose exactly these five providers (Gemini 3.8 Flash, Qwen 3.8 Max, Nemotron
+  3 Nano, Nemotron 3 Ultra 550B, Nemotron 3.5 Lightning).
+* **`src/services/multiAiService.ts`**: NVIDIA NIM client must call the exact
+  Nemotron slugs above on `https://integrate.api.nvidia.com/v1`; Model Studio
+  calls must use `qwen3.8-max`.
+* **`src/services/geminiClient.ts` / `geminiService.ts` /
+  `unifiedAiService.ts`**: Must dispatch OCR grading and fallback logic to
+  these exact model strings only.
 
 ---
 
