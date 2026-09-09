@@ -74,9 +74,13 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Legacy NVIDIA Nemotron log entries are grouped under the Qwen 3.8 engine.
+  // Only retired legacy ids (old non-NIM Nemotron / Groq-era aliases) group
+  // under the Qwen 3.8 engine. The three ACTIVE NVIDIA NIM Nemotron providers
+  // keep their own identity — they are never the Qwen engine.
   const normalizeProvider = (p: string) =>
-    (p === 'nvidia-nemotron' || p === 'nvidia-nemotron-ultra' || p === 'groq-qwen') ? 'alibaba-qwen' : p;
+    (p === 'nvidia-nemotron' || p === 'nvidia-nemotron-ultra-legacy' || p === 'groq-qwen') ? 'alibaba-qwen'
+    : (p === 'nvidia-nemotron-nano' || p === 'nvidia-nemotron-ultra' || p === 'nvidia-nemotron-lightning') ? 'nvidia-nemotron'
+    : p;
 
   const filteredErrors = providerFilter === 'all' 
     ? errors 
@@ -88,9 +92,12 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
       case 'gemini':
         return 'bg-violet-500/10 text-violet-400 border-violet-500/25';
       case 'alibaba-qwen':
-      case 'nvidia-nemotron':
-      case 'nvidia-nemotron-ultra':
         return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25';
+      case 'nvidia-nemotron':
+      case 'nvidia-nemotron-nano':
+      case 'nvidia-nemotron-ultra':
+      case 'nvidia-nemotron-lightning':
+        return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/25';
       default:
         return 'bg-slate-500/10 text-slate-400 border-slate-500/25';
     }
@@ -376,7 +383,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
 
           {/* Filtering Tab Pills */}
           <div className="flex flex-wrap gap-2 pb-2">
-            {['all', 'gemini', 'alibaba-qwen'].map((prov) => {
+            {['all', 'gemini', 'alibaba-qwen', 'nvidia-nemotron'].map((prov) => {
               const count = prov === 'all' 
                 ? errors.length 
                 : errors.filter(e => normalizeProvider(e.provider) === prov).length;
@@ -392,7 +399,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  {prov === 'all' ? 'ALL' : prov === 'gemini' ? 'GEMINI 3.8' : 'QWEN 3.8'} ({count})
+                  {prov === 'all' ? 'ALL' : prov === 'gemini' ? 'GEMINI 3.8' : prov === 'alibaba-qwen' ? 'QWEN 3.8' : 'NEMOTRON (NIM)'} ({count})
                 </button>
               );
             })}

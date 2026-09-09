@@ -6,23 +6,17 @@ import { AI_SECRETS } from "../lib/aiSecrets";
 // is no Node backend to proxy requests — so we call the AI providers directly.
 import { isNativeApp } from "../lib/platform";
 
-// ─── Browser-side multi-provider LAST RESORT ────────────────────────────────
+// ─── Browser-side LAST RESORT ───────────────────────────────────────────────
 // If both the backend AND the direct Gemini engine fail (e.g. the shared
-// Gemini key is quota-exhausted or blocked), try the other OpenAI-compatible
-// providers whose keys are baked into the app. Each attempt is best-effort:
-// a CORS/network refusal simply moves the chain along to the next provider.
+// Gemini key is quota-exhausted or blocked), make one final attempt through
+// the Qwen 3.8 Max engine whose key is baked into the app. No other provider
+// participates in this chain.
 const LAST_RESORT_PROVIDERS: { name: string; url: string; key: () => string; models: string[] }[] = [
   {
     name: "Alibaba Qwen 3.8",
     url: "https://ws-8ldb9u90tetxcada.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/chat/completions",
     key: () => AI_SECRETS.ALIBABA_API_KEY,
     models: ["qwen3.8-max"]
-  },
-  {
-    name: "Groq",
-    url: "https://api.groq.com/openai/v1/chat/completions",
-    key: () => AI_SECRETS.GROQ_API_KEY,
-    models: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
   }
 ];
 
@@ -80,22 +74,9 @@ const isBackendUnavailable = (error: any): boolean => {
   // the server — the client-side engine has its own baked-in key, so treat it
   // as "backend unavailable" and fall back instead of failing the generation.
   const dataMsg = String(error.response?.data?.error || '').toLowerCase();
-  if (
-    dataMsg.includes('not configured') ||
-    dataMsg.includes('api key') ||
-    dataMsg.includes('unavailable') ||
-    dataMsg.includes('overloaded') ||
-    dataMsg.includes('quota') ||
-    dataMsg.includes('resource exhausted') ||
-    dataMsg.includes('429')
-  ) return true;
+  if (dataMsg.includes('not configured') || dataMsg.includes('api key')) return true;
   const msg = String(error.message || '').toLowerCase();
-  if (
-    msg.includes('network error') || msg.includes('failed to fetch') || msg.includes('fetch failed') ||
-    msg.includes('load failed') || msg.includes('timeout') || msg.includes('unavailable') || msg.includes('overloaded') ||
-    msg.includes('quota') || msg.includes('resource exhausted') || msg.includes('429') ||
-    msg.includes('503') || msg.includes('500')
-  ) return true;
+  if (msg.includes('network error') || msg.includes('failed to fetch') || msg.includes('load failed') || msg.includes('timeout')) return true;
   return false;
 };
 
@@ -533,14 +514,7 @@ const _fetchActionSingleBackend = async (action: string, input: any, onProgress?
     });
     
     if (!response.ok) {
-      // Read the error body so the fallback logic can detect server-side key
-      // / quota / availability problems instead of throwing a bare HTTP error.
-      let detail = '';
-      try {
-        const errData = await response.json();
-        detail = typeof errData?.error === 'string' ? errData.error : (errData?.error?.message || JSON.stringify(errData));
-      } catch { /* non-JSON error body */ }
-      throw new Error(`HTTP error! status: ${response.status}${detail ? `: ${detail}` : ''}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
     
     const reader = response.body?.getReader();
