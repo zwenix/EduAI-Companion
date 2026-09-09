@@ -64,10 +64,10 @@ function extractIframeHTML(iframe: HTMLIFrameElement | null | undefined): string
 }
 
 /**
- * Wrap generated content in the official EduAI Companion content template —
- * the grey compliance header band (CAPS · NPA · term · grade · content type),
- * the watermark body and the navy rights footer — used identically by print,
- * PDF and HTML exports so every exported document carries the same branding.
+ * Wrap generated content in the official EduAI Companion LIGHT Template v4 —
+ * the translucent header bar, watermark body with centred 800px page, and
+ * navy footer — used identically by print, PDF and HTML exports so every
+ * exported document carries the same branding.
  */
 const wrapWithBrandedTemplate = (html: string, options?: PrintOptions, title?: string): string => {
     const meta: ContentTemplateMeta = metaFromPrintOptions(options, title);
@@ -195,21 +195,25 @@ export const printContent = (
                 <title>${title}</title>
                 ${getParentStyles()}
                 <style>
-                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono&display=swap');
+                    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono&display=swap');
                     @media print {
                         @page { margin: 15mm; }
                         body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                         .print\\:hidden { display: none !important; }
                     }
+                    /* LIGHT Template v4 owns all inner spacing (full-bleed
+                       header, centred 800px page) — the shell stays neutral. */
                     body {
                         font-family: 'Inter', system-ui, -apple-system, sans-serif;
-                        padding: 2rem;
+                        padding: 0;
+                        margin: 0;
                         background-color: #ffffff;
-                        color: #0f172a;
+                        color: #1e293b;
+                        line-height: 1.65;
                     }
                 </style>
             </head>
-            <body class="p-8 prose max-w-none text-slate-800 bg-white">
+            <body>
                 ${html}
             </body>
             </html>
@@ -312,15 +316,16 @@ export const downloadAsHTML = (
             <head>
                 <title>${filename}</title>
                 <style>
-                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono&display=swap');
+                    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono&display=swap');
+                    /* LIGHT Template v4 owns all inner spacing (full-bleed
+                       header, centred 800px page) — the shell stays neutral. */
                     body {
                         font-family: 'Inter', system-ui, -apple-system, sans-serif;
-                        padding: 2.5rem;
-                        max-width: 800px;
-                        margin: 0 auto;
+                        padding: 0;
+                        margin: 0;
                         color: #1e293b;
                         background-color: #ffffff;
-                        line-height: 1.6;
+                        line-height: 1.65;
                     }
                     .print\\:hidden { display: none !important; }
                 </style>
@@ -459,7 +464,9 @@ export const downloadAsPDF = async (
 
         // Container element
         container = document.createElement('div');
-        container.className = 'p-8 bg-white text-slate-900 prose max-w-none';
+        // LIGHT Template v4 owns all inner spacing/typography — no padding or
+        // prose classes on the shell, or the header/footer would inset.
+        container.className = 'bg-white text-slate-900';
         container.style.width = '800px';
         container.style.position = 'fixed';
         container.style.left = '-9999px';

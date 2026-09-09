@@ -4,7 +4,7 @@
 // Enhanced for EduAI Companion — Merged from CAPS Document
 // ============================================================
 
-import { buildTemplateHeaderHTML, buildTemplateFooterHTML, ContentTemplateMeta } from "../contentTemplate";
+import { buildTemplateHeaderHTML, buildTemplateFooterHTML, buildTemplateStyleHTML, ContentTemplateMeta } from "../contentTemplate";
 
 export interface RenderedSection {
   sectionId: number;
@@ -634,9 +634,9 @@ export const SA_BASE_CSS = `
 // ── HTML DOCUMENT BUILDER ──
 
 /**
- * Map SA pipeline document metadata onto the official EduAI content template
- * (grey compliance header band + navy rights footer) so structured CAPS
- * documents carry the same branding as every other generated resource.
+ * Map SA pipeline document metadata onto the official EduAI LIGHT Template v4
+ * (translucent header bar + navy footer) so structured CAPS documents carry
+ * the same branding as every other generated resource.
  */
 function templateMetaFromData(data: DocumentData, today: string): ContentTemplateMeta {
   return {
@@ -814,12 +814,15 @@ export function buildFullHTML(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(data.metadata.title)} — EduAI Companion</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>${SA_BASE_CSS}</style>
+  ${buildTemplateStyleHTML()}
 </head>
 <body>
   <div class="page">
 
-    <!-- EduAI Content Template — grey compliance header band (CAPS • NPA • grade • term) -->
+    <!-- EduAI LIGHT Template v4 — translucent header bar (logo + single-line strapline) -->
     ${buildTemplateHeaderHTML(templateMetaFromData(data, today))}
 
     <!-- SA Flag Stripe -->
@@ -912,11 +915,14 @@ function wrapContentWithSABranding(data: DocumentData, content: string, school: 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(data.metadata.title)} — EduAI Companion</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>${SA_BASE_CSS}</style>
+  ${buildTemplateStyleHTML()}
 </head>
 <body>
   <div class="page">
-    <!-- EduAI Content Template — grey compliance header band (CAPS • NPA • grade • term) -->
+    <!-- EduAI LIGHT Template v4 — translucent header bar (logo + single-line strapline) -->
     ${buildTemplateHeaderHTML(templateMetaFromData(data, today))}
 
     <div class="sa-flag-stripe"></div>

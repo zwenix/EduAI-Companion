@@ -95,7 +95,7 @@ Design specifications:
 
 Content: 4–6 key concepts, concise bullets (6–10 words), South African context, age-appropriate, no emojis, no smileys, no stick figures.
 
-Output: Complete HTML with Tailwind CSS, elegant card containers (rounded-2xl, shadow-xl), professional footer ("EduAI CAPS Aligned — 2026"), print-ready, ultra-detailed image prompts ending with golden rule.
+Output: HTML fragment with Tailwind CSS inside LIGHT Template v4 cards (<article class="card">, <h1 class="lesson-title">, <div class="lesson-meta"> pills) — never your own page header/footer, the app wraps it automatically. Print-ready, ultra-detailed image prompts ending with golden rule.
 
 Make this the most beautiful educational poster a South African teacher has ever hung.`,
 

@@ -285,10 +285,10 @@ export async function generateDOCXServer(
             children: [
               new Paragraph({
                 children: [
-                  new TextRun({ text: "All content rights reserved to Developer: Z Msuthu (C) 2026 | CAPS Aligned | POPIA Compliant | eduai-companion.vercel.app | Page ", size: 14, color: "AAAAAA" }),
-                  new TextRun({ children: [PageNumber.CURRENT], size: 14, color: "AAAAAA" }),
-                  new TextRun({ text: " of ", size: 14, color: "AAAAAA" }),
-                  new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 14, color: "AAAAAA" })
+                  new TextRun({ text: "© 2026 EduAI Companion | CAPS Compliant Educational Resource | Developed for South African Educators | eduai-companion.vercel.app | Page ", size: 14, color: "1E3A5F" }),
+                  new TextRun({ children: [PageNumber.CURRENT], size: 14, color: "1E3A5F" }),
+                  new TextRun({ text: " of ", size: 14, color: "1E3A5F" }),
+                  new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 14, color: "1E3A5F" })
                 ],
                 alignment: AlignmentType.CENTER
               })

@@ -131,9 +131,9 @@ export async function generatePDFServer(
         displayHeaderFooter: options.includeHeaderFooter !== false,
         headerTemplate: `<div></div>`,
         footerTemplate: `
-          <div style="width:100%;text-align:center;font-size:8px;color:#999;padding:5px;">
+          <div style="width:100%;text-align:center;font-size:8px;color:#1e3a5f;padding:5px;">
             Page <span class="pageNumber"></span> of <span class="totalPages"></span>
-            &nbsp;|&nbsp; All content rights reserved to Developer: Z Msuthu (C) 2026 &nbsp;|&nbsp; CAPS Aligned &nbsp;|&nbsp; POPIA Compliant &nbsp;|&nbsp; eduai-companion.vercel.app
+            &nbsp;|&nbsp; © 2026 EduAI Companion &nbsp;|&nbsp; CAPS Compliant Educational Resource &nbsp;|&nbsp; Developed for South African Educators &nbsp;|&nbsp; eduai-companion.vercel.app
           </div>`,
       });
 
