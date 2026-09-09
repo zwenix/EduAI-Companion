@@ -405,10 +405,7 @@ export default function App() {
     
     const candidates = [
       { id: 'gemini', label: 'Gemini 3.8 Flash' },
-      { id: 'alibaba-qwen', label: 'Qwen 3.8 Max' },
-      { id: 'nvidia-nemotron-nano', label: 'Nemotron 3 Nano (30B)' },
-      { id: 'nvidia-nemotron-ultra', label: 'Nemotron 3 Ultra (550B)' },
-      { id: 'nvidia-nemotron-lightning', label: 'Nemotron 3.5 Lightning' }
+      { id: 'alibaba-qwen', label: 'Qwen 3.8 Max' }
     ];
 
     const results: Record<string, number | 'failed'> = {};
@@ -2608,9 +2605,6 @@ export default function App() {
                         >
                           <option value="gemini">Gemini 3.8 Flash (Primary - Recommended)</option>
                           <option value="alibaba-qwen">Qwen 3.8 Max (Alibaba Model Studio)</option>
-                          <option value="nvidia-nemotron-nano">Nemotron 3 Nano (30B) — Free NIM ✅</option>
-                          <option value="nvidia-nemotron-ultra">Nemotron 3 Ultra (550B-A55B) — Free NIM ✅</option>
-                          <option value="nvidia-nemotron-lightning">Nemotron 3.5 Lightning (30B) — Fast Text Gen</option>
                         </select>
                       </div>
                       <button

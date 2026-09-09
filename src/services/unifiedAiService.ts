@@ -374,12 +374,11 @@ export const runOCRScan = async (imageData: string | string[], provider: string 
     try {
       return await geminiOCRScan(imageData, language, isHandwritten);
     } catch (err: any) {
-      if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to ocrspace...");
-        ocrProvider = 'ocrspace';
-      } else {
-        throw err;
-      }
+      // Any Gemini failure (quota, outage, credentials, ...) — never surface a
+      // hard "Gemini API unavailable" error: seamlessly continue with the
+      // OCRSpace engine so scanning still produces content.
+      console.warn(`Gemini OCR unavailable (${err?.message || err}), auto-falling back to ocrspace...`);
+      ocrProvider = 'ocrspace';
     }
   }
   
@@ -402,13 +401,12 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
     try {
       return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
     } catch (err: any) {
-      if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8) for grading and ocrspace for scanning...");
-        provider = 'alibaba-qwen';
-        ocrProvider = 'ocrspace';
-      } else {
-        throw err;
-      }
+      // Any Gemini failure (quota, outage, credentials, ...) — never surface a
+      // hard "Gemini API unavailable" error: seamlessly continue with Qwen 3.8
+      // Max for grading and OCRSpace for the scanning step.
+      console.warn(`Gemini OCR grading unavailable (${err?.message || err}), auto-falling back to alibaba-qwen (Qwen 3.8) for grading and ocrspace for scanning...`);
+      provider = 'alibaba-qwen';
+      ocrProvider = 'ocrspace';
     }
   }
   
@@ -468,18 +466,21 @@ export const chatWithTutor = async (messages: any[], provider: string = 'gemini'
   const hasImage = messages.some(m => m.parts?.some((p: any) => p.inlineData));
   
   if (provider === 'gemini' || hasImage) {
-     // Force gemini if there are images, because text-only models throw 400s
+     // Gemini first (image chats previously had no alternative). Whenever it
+     // is unavailable — quota, outage, credentials — seamlessly continue with
+     // Qwen 3.8 Max below; Qwen's OpenAI-compatible endpoint accepts the
+     // image_url payloads we build, so image chats keep answering instead of
+     // surfacing a hard "Gemini API unavailable" error.
      try {
        return await geminiChat(messages);
      } catch(err: any) {
-       if (err.message && (err.message.includes('Quota') || err.message.includes('429'))) {
-         if (hasImage) {
-           throw new Error("Cannot fallback, Image context requires Gemini API, but quota is exceeded.");
-         }
-         provider = 'alibaba-qwen';
-       } else {
+       const msg = err?.message || '';
+       const isGeminiOnlyFailure = provider === 'gemini' && !hasImage && !(msg.includes('Quota') || msg.includes('429') || msg.includes('unavailable') || msg.includes('overloaded') || msg.includes('fetch failed') || msg.includes('network') || msg.includes('not configured') || msg.includes('api key') || msg.includes('resource exhausted'));
+       if (isGeminiOnlyFailure) {
          throw err;
        }
+       console.warn(`[AI Routing] Gemini tutor chat unavailable (${msg || err}) — seamless fallback to Qwen 3.8 Max.`);
+       provider = 'alibaba-qwen';
      }
   }
   
