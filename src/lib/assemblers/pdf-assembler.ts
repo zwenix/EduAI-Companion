@@ -133,7 +133,7 @@ export async function generatePDFServer(
         footerTemplate: `
           <div style="width:100%;text-align:center;font-size:8px;color:#999;padding:5px;">
             Page <span class="pageNumber"></span> of <span class="totalPages"></span>
-            &nbsp;|&nbsp; EduAI Companion &nbsp;|&nbsp; CAPS Aligned &nbsp;|&nbsp; POPIA Compliant &nbsp;|&nbsp; 2026
+            &nbsp;|&nbsp; All content rights reserved to Developer: Z Msuthu (C) 2026 &nbsp;|&nbsp; CAPS Aligned &nbsp;|&nbsp; POPIA Compliant &nbsp;|&nbsp; eduai-companion.vercel.app
           </div>`,
       });
 

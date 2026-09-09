@@ -22,6 +22,7 @@ import { PromptQualityValidator } from '../lib/prompt-validator';
 import { EDUCATIONAL_IMAGE_STYLE } from '../lib/prompt-priority';
 import { printContent, downloadAsHTML, downloadAsPDF } from '../lib/printUtils';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
+import { wrapWithTemplate, type ContentTemplateMeta } from '../lib/contentTemplate';
 import PrintPreviewModal from './PrintPreviewModal';
 import { PosterPreview } from './PosterPreview';
 import VideoLabConsole from './VideoLabConsole';
@@ -196,7 +197,7 @@ const SIDEBAR_MENU = [
 
 // ─── Shared UI Components (Simulating Shadcn) ───────────────────────────────
 
-const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle = "Standard System (Inter)" }: { html: string; minHeight?: string; className?: string; fontStyle?: string }) => {
+const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle = "Standard System (Inter)", meta }: { html: string; minHeight?: string; className?: string; fontStyle?: string; meta?: ContentTemplateMeta }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
@@ -244,7 +245,6 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
   const fullDocument = useMemo(() => {
     const isFullDoc = cleanedHtml.includes('<html') || cleanedHtml.includes('<!DOCTYPE');
     if (isFullDoc) return cleanedHtml;
-
     const fontCss = fontStyle.includes('Patrick Hand') ? '"Patrick Hand", "Comic Neue", cursive, sans-serif'
       : fontStyle.includes('Comic Neue') ? '"Comic Neue", cursive, sans-serif'
       : fontStyle.includes('Sassoon') ? '"Sassoon Primary", cursive, sans-serif'
@@ -300,7 +300,7 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
   </style>
 </head>
 <body>
-  ${cleanedHtml}
+  ${meta ? wrapWithTemplate(cleanedHtml, meta) : cleanedHtml}
   <script>
     // Each illustration already ships with a working src (direct image API, or
     // the backend proxy on web). We only ask the host app to regenerate through
@@ -345,7 +345,7 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
   </script>
 </body>
 </html>`;
-  }, [cleanedHtml, fontStyle]);
+  }, [cleanedHtml, fontStyle, meta]);
 
   return (
     <iframe
@@ -2849,6 +2849,11 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                               html={replaceImagePlaceholders(activeHtml, activeTab === 'teaching' ? t_generateImage : activeTab === 'visual' ? v_generateImage : a_generateImage)}
                               fontStyle={fontStyle}
                               minHeight="520px"
+                              meta={activeTab === 'teaching'
+                                ? { subject: t_subject, grade: t_grade, term: t_term, contentType: t_type, title: t_topic }
+                                : activeTab === 'visual'
+                                  ? { subject: v_subject, grade: v_grade, contentType: v_type, title: v_topic }
+                                  : { subject: 'Administration', contentType: 'Notice', title: 'Administrative Document' }}
                             />
                           </div>
                         </div>
@@ -3007,6 +3012,11 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                     fontStyle={fontStyle}
                     minHeight="100%"
                     className="w-full h-full max-w-5xl"
+                    meta={activeTab === 'teaching'
+                      ? { subject: t_subject, grade: t_grade, term: t_term, contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : t_type, title: t_topic }
+                      : activeTab === 'visual'
+                        ? { subject: v_subject, grade: v_grade, contentType: v_type, title: v_topic }
+                        : { subject: 'Administration', contentType: 'Notice', title: 'Administrative Document' }}
                   />
                 </div>
               </motion.div>
@@ -3419,7 +3429,8 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
           subject: (activeTab === 'teaching' ? t_subject : activeTab === 'grade1' ? f_language : activeTab === 'visual' ? v_subject : 'Administration') || 'General',
           grade: (activeTab === 'teaching' ? t_grade : activeTab === 'grade1' ? f_grade : activeTab === 'visual' ? v_grade : 'All') || 'N/A',
           contentType: (activeTab === 'teaching' ? t_type : activeTab === 'grade1' ? 'Foundation Phase Activity' : activeTab === 'visual' ? v_type : 'Notice') || 'Document',
-          title: (activeTab === 'teaching' ? t_topic || t_type : activeTab === 'grade1' ? (f_topic || 'Foundation Phase Activity') : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation'
+          title: (activeTab === 'teaching' ? t_topic || t_type : activeTab === 'grade1' ? (f_topic || 'Foundation Phase Activity') : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation',
+          term: (activeTab === 'teaching' ? t_term : getCurrentTerm())
         }}
         isDarkMode={isDarkMode}
         fontStyle={fontStyle}

@@ -17,6 +17,7 @@ import {
 import { printContent, downloadAsHTML, downloadAsPDF, PrintOptions, removeLegacyHeader } from '../lib/printUtils';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { supportsSystemPrint } from '../lib/platform';
+import { buildTemplateHeaderHTML, buildTemplateFooterHTML, buildTemplateWatermarkHTML, metaFromPrintOptions } from '../lib/contentTemplate';
 
 interface PrintPreviewModalProps {
   isOpen: boolean;
@@ -121,6 +122,13 @@ export default function PrintPreviewModal({
     const rawHTML = selectedSection === 'memo' ? (memo || '') : selectedSection === 'rubric' ? (rubric || '') : content;
     return removeLegacyHeader(replaceImagePlaceholders(rawHTML));
   }, [selectedSection, memo, rubric, content]);
+
+  // Official EduAI content template metadata — mirrors exactly what the
+  // print/PDF/HTML exports will wrap around this document.
+  const templateMeta = metaFromPrintOptions({
+    ...options,
+    contentType: selectedSection === 'memo' ? 'Memorandum Key' : selectedSection === 'rubric' ? 'Assessment Rubric' : options.contentType,
+  }, title);
 
   if (!isOpen) return null;
 
@@ -383,30 +391,34 @@ export default function PrintPreviewModal({
                 lineHeight: isFoundation ? '1.6' : undefined
               }}
             >
-              {/* Paper Top Branding Header (on-screen 1/2 line watermark) */}
-              <div className="mb-6 pb-2 border-b border-slate-200 select-none flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-wider">
-                <span>EduAI Companion PRO v2.0 - CAPS Aligned South African Educational Resource</span>
-                <span className="font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[8px]">
-                  {subjectStyling.category} {options.grade && `• Gr ${options.grade}`}
-                </span>
-              </div>
-
-              {/* Dynamic generated content inside paper wrapper */}
-              <div 
-                className={`prose max-w-none text-slate-800 flex-1 ${isFoundation ? 'text-lg font-medium' : 'text-sm leading-relaxed'}`}
-                style={isFoundation ? {
-                  fontFamily: '"Patrick Hand", "Comic Neue", cursive, sans-serif',
-                  fontSize: '1.2rem',
-                  lineHeight: '1.6'
-                } : undefined}
-                dangerouslySetInnerHTML={{ __html: activeHTML }}
+              {/* Official EduAI Content Template — grey compliance header band (CAPS • NPA • term • grade • content type) */}
+              <div
+                className="mb-5 select-none"
+                dangerouslySetInnerHTML={{ __html: buildTemplateHeaderHTML(templateMeta) }}
               />
 
-              {/* Paper Footer information */}
-              <div className="mt-12 pt-4 border-t border-dashed border-slate-200 flex justify-between items-center text-[8px] font-semibold text-slate-400 uppercase tracking-widest select-none">
-                <span>EduAI Companion • CAPS Aligned • Developer & Owner: Z. Msuthu © 2026</span>
-                <span>eduai-companion.vercel.app</span>
+              {/* Dynamic generated content inside paper wrapper, over the template watermark */}
+              <div className="relative flex-1">
+                <div
+                  className="absolute inset-0 pointer-events-none select-none"
+                  dangerouslySetInnerHTML={{ __html: buildTemplateWatermarkHTML() }}
+                />
+                <div
+                  className={`relative z-10 prose max-w-none text-slate-800 ${isFoundation ? 'text-lg font-medium' : 'text-sm leading-relaxed'}`}
+                  style={isFoundation ? {
+                    fontFamily: '"Patrick Hand", "Comic Neue", cursive, sans-serif',
+                    fontSize: '1.2rem',
+                    lineHeight: '1.6'
+                  } : undefined}
+                  dangerouslySetInnerHTML={{ __html: activeHTML }}
+                />
               </div>
+
+              {/* Official EduAI Content Template — navy rights footer band */}
+              <div
+                className="mt-10 select-none"
+                dangerouslySetInnerHTML={{ __html: buildTemplateFooterHTML(templateMeta) }}
+              />
 
             </div>
 
