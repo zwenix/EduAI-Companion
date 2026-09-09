@@ -2,6 +2,7 @@ import { replaceImagePlaceholders } from './imageReplacer';
 import { patchOklchForHtml2canvas } from './pdfHelper';
 import { isAndroidDevice, isNativeApp, supportsSystemPrint } from './platform';
 import { deliverFile, notify, triggerWebDownload } from './nativeExport';
+import { wrapWithTemplate, metaFromPrintOptions, ContentTemplateMeta } from './contentTemplate';
 import {
   beginExport,
   failExport,
@@ -26,6 +27,12 @@ export interface PrintOptions {
     contentType?: string;
     date?: string;
     title?: string;
+    /** School term, e.g. "Term 2" — rendered in the template header. */
+    term?: string;
+    /** Optional school name for the template footer. */
+    school?: string;
+    /** Optional teacher name for the template footer. */
+    teacher?: string;
 }
 
 /**
@@ -56,16 +63,15 @@ function extractIframeHTML(iframe: HTMLIFrameElement | null | undefined): string
     return '';
 }
 
-const buildBrandedHeaderHTML = (title: string, options?: PrintOptions): string => {
-    const subject = options?.subject || "Administration";
-    const grade = options?.grade || "All";
-    
-    return `
-<div class="eduai-branded-header mb-6 pb-2 border-b border-slate-200" style="font-family: 'Inter', system-ui, -apple-system, sans-serif; box-sizing: border-box; width: 100%; display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.2;">
-  <span>EduAI Companion PRO v2.0 - CAPS Aligned South African Educational Resource</span>
-  <span style="font-family: monospace; opacity: 0.85; background-color: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.6rem;">${subject} ${grade !== 'All' && grade !== 'N/A' && grade ? `• Gr ${grade}` : ''}</span>
-</div>
-`;
+/**
+ * Wrap generated content in the official EduAI Companion content template —
+ * the grey compliance header band (CAPS · NPA · term · grade · content type),
+ * the watermark body and the navy rights footer — used identically by print,
+ * PDF and HTML exports so every exported document carries the same branding.
+ */
+const wrapWithBrandedTemplate = (html: string, options?: PrintOptions, title?: string): string => {
+    const meta: ContentTemplateMeta = metaFromPrintOptions(options, title);
+    return wrapWithTemplate(html, meta);
 };
 
 export function removeLegacyHeader(html: string): string {
@@ -168,8 +174,7 @@ export const printContent = (
         let cleaned = replaceImagePlaceholders(rawHtml);
         cleaned = removeLegacyHeader(cleaned);
 
-        const headerHtml = buildBrandedHeaderHTML(title, options);
-        const html = headerHtml + cleaned;
+        const html = wrapWithBrandedTemplate(cleaned, options, title);
 
         const getParentStyles = () => {
             return Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
@@ -206,10 +211,6 @@ export const printContent = (
             </head>
             <body class="p-8 prose max-w-none text-slate-800 bg-white">
                 ${html}
-                <footer style="margin-top: 5rem; border-top: 1px dashed #e2e8f0; padding-top: 1rem; text-align: center; font-size: 0.55rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center; page-break-inside: avoid;">
-                  <span>EduAI Companion • CAPS Aligned • Developer & Owner: Z. Msuthu © 2026</span>
-                  <span>eduai-companion.vercel.app</span>
-                </footer>
             </body>
             </html>
         `;
@@ -303,8 +304,7 @@ export const downloadAsHTML = (
         let html = replaceImagePlaceholders(rawHtml);
         html = removeLegacyHeader(html);
         
-        const headerHtml = buildBrandedHeaderHTML(filename.replace(/\.html$/i, ''), options);
-        html = headerHtml + html;
+        html = wrapWithBrandedTemplate(html, options, filename.replace(/\.html$/i, ''));
         
         const completeHtml = `
             <!DOCTYPE html>
@@ -327,10 +327,6 @@ export const downloadAsHTML = (
             </head>
             <body>
                 ${html}
-                <footer style="margin-top: 5rem; border-top: 1px dashed #e2e8f0; padding-top: 1rem; text-align: center; font-size: 0.55rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center;">
-                  <span>EduAI Companion • CAPS Aligned • Developer & Owner: Z. Msuthu © 2026</span>
-                  <span>eduai-companion.vercel.app</span>
-                </footer>
             </body>
             </html>
         `;
@@ -457,8 +453,7 @@ export const downloadAsPDF = async (
 
         let html = replaceImagePlaceholders(rawHtml);
         html = removeLegacyHeader(html);
-        const headerHtml = buildBrandedHeaderHTML(options?.title || pdfFilename.replace(/\.pdf$/i, ''), options);
-        html = headerHtml + html;
+        html = wrapWithBrandedTemplate(html, options, options?.title || pdfFilename.replace(/\.pdf$/i, ''));
 
         beginExport(options?.title ? `Exporting “${options.title}”` : 'Exporting your PDF', 'Preparing print layout…');
 

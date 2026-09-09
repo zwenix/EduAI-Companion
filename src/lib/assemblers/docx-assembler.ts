@@ -285,7 +285,7 @@ export async function generateDOCXServer(
             children: [
               new Paragraph({
                 children: [
-                  new TextRun({ text: "EduAI Companion | CAPS Aligned | POPIA Compliant | Page ", size: 14, color: "AAAAAA" }),
+                  new TextRun({ text: "All content rights reserved to Developer: Z Msuthu (C) 2026 | CAPS Aligned | POPIA Compliant | eduai-companion.vercel.app | Page ", size: 14, color: "AAAAAA" }),
                   new TextRun({ children: [PageNumber.CURRENT], size: 14, color: "AAAAAA" }),
                   new TextRun({ text: " of ", size: 14, color: "AAAAAA" }),
                   new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 14, color: "AAAAAA" })
