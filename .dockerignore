@@ -1,0 +1,32 @@
+# VCS / CI
+.git
+.github
+
+# Dependencies & build output (rebuilt inside the image)
+node_modules
+dist
+apk
+
+# Android / native (not needed in the web container)
+android
+signing
+
+# Docs, one-off fix scripts, test scratch files
+docs
+*.md
+*.patch
+*.py
+*.cjs
+*.log
+*.tmp
+*.temp
+
+# Secrets & local env (never bake into the image)
+.env
+.env.local
+.env.*
+
+# Editor / OS noise
+.vscode
+.idea
+.DS_Store

@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eduaicompanion
+  labels:
+    app: eduaicompanion
+    app.kubernetes.io/name: eduaicompanion
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: eduaicompanion
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: eduaicompanion
+        app.kubernetes.io/name: eduaicompanion
+      annotations:
+        # Force a fresh rolling update whenever the tag changes
+        prometheus.io/scrape: "false"
+    spec:
+      containers:
+        - name: app
+          # Tag is updated automatically by CI (kubectl set image).
+          # The value in git is a placeholder — never deploy :0.0.0.
+          image: ghcr.io/zwenix/eduaicompanion:0.0.0
+          imagePullPolicy: IfNotPresent
+          imagePullSecrets:
+            - name: ghcr-pull
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          # All API keys / runtime config live in this Secret (see secret.example.yaml).
+          # optional: true → manifests apply cleanly even before the Secret exists.
+          envFrom:
+            - secretRef:
+                name: eduaicompanion-secrets
+                optional: true
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+      terminationGracePeriodSeconds: 30

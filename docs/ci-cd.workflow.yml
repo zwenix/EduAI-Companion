@@ -1,0 +1,298 @@
+# ⚠️ TEMPLATE — intended content of .github/workflows/ci-cd.yml
+#
+# The assistant's GitHub App token cannot push new files to .github/workflows/*
+# ("refusing to allow a GitHub App to create or update workflow … without
+# `workflows` permission") — same limitation documented for
+# docs/build-android2.workflow.yml. This is the one file that needs a manual
+# one-time paste (~1 minute, no terminal). Everything else (Dockerfile,
+# versioning script, K8s manifests, docs) is already pushed with the PR.
+#
+# To apply — option A (recommended, validates the pipeline before merge):
+#   1. Open the PR for this branch and go to:
+#      https://github.com/zwenix/EduAI-Companion/edit/arena%2F01a085bd-eduai-companion/.github/workflows/ci-cd.yml
+#   2. Select all, replace with THIS file's content (header included or not —
+#      both work; the header is just comments), commit to the PR branch.
+#   3. The PR immediately runs the full pipeline: Lint & Build → Docker Build
+#      & Push (tag :pr-<number>) — an end-to-end validation before merging.
+#      Merge to main → automatic semver release + rolling K8s deploy.
+#
+# To apply — option B (direct to main, like build-android2.yml):
+#   1. Open https://github.com/zwenix/EduAI-Companion/edit/main/.github/workflows/ci-cd.yml
+#   2. Replace with this file's content, commit to main.
+#   3. The pipeline runs immediately for that commit.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# EduAI Companion — fully automated CI/CD pipeline
+#
+#   push to main  → test → Docker build+push (GHCR) → semver tag + GitHub
+#                   Release → rolling Kubernetes deploy
+#   pull request  → test → Docker build+push (PR-tagged image)
+#   manual        → "Run workflow" (main) behaves like a push to main
+#
+# Versioning is automatic (scripts/compute-version.mjs):
+#   • image tags:  <semver>  +  <sha>  (+ :latest on main, :pr-<n> on PRs)
+#   • git tag + GitHub Release vX.Y.Z cut on every new main commit
+#     (major/minor/patch from Conventional Commits, idempotent re-runs)
+#
+# Secrets (repo Settings → Secrets and variables → Actions):
+#   KUBE_CONFIG_DATA   raw kubeconfig YAML  (enables the deploy job)
+#   KUBE_CONTEXT       optional cluster context name
+#   KUBE_NAMESPACE     optional, default "eduaicompanion"
+#   GHCR_PAT           optional fine-grained PAT with read:packages,
+#                      used to sync the in-cluster ghcr-pull Secret
+#
+# See docs/cicd.md for full setup.
+# ─────────────────────────────────────────────────────────────────────────────
+name: CI/CD — Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    branches: [main]
+
+permissions:
+  contents: write      # git tag + GitHub Release
+  packages: write      # push images to GHCR
+  pull-requests: read  # PR metadata
+
+concurrency:
+  group: cicd-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  REGISTRY: ghcr.io
+  # GHCR image names must be lowercase
+  IMAGE_NAME: zwenix/eduaicompanion
+
+jobs:
+  # ── 1. CI gate: type-check, production build, boot smoke test ──────────────
+  test:
+    name: Lint & Build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund || npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Type check
+        run: npm run lint
+
+      - name: Production build
+        run: npm run build
+
+      - name: Boot smoke test (serves dist/ + /api/health)
+        run: |
+          set -e
+          NODE_ENV=production PORT=3111 node dist/server.cjs > server.log 2>&1 &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3111/api/health > /dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:3111/api/health
+          echo
+          curl -fsS -o /dev/null -w "GET / → %{http_code}\n" http://127.0.0.1:3111/
+          kill $SERVER_PID || true
+
+  # ── 2. Container: compute version, build image, push to GHCR ───────────────
+  build-push:
+    name: Docker Build & Push
+    runs-on: ubuntu-24.04
+    needs: test
+    timeout-minutes: 30
+    # Push builds on main; for PRs only from the same repo (fork PRs have no
+    # package write permission and no secrets).
+    if: >
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      sha: ${{ steps.version.outputs.sha }}
+      already_released: ${{ steps.version.outputs.already_released }}
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - name: Checkout (full history for tag analysis)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Compute version (auto semver)
+        id: version
+        run: node scripts/compute-version.mjs
+
+      - name: Determine image tags
+        id: meta
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA_SHORT: ${{ steps.version.outputs.sha_short }}
+        run: |
+          TAGS="--tag ${REGISTRY}/${IMAGE_NAME}:${SHA_SHORT} --tag ${REGISTRY}/${IMAGE_NAME}:${VERSION}"
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            TAGS="$TAGS --tag ${REGISTRY}/${IMAGE_NAME}:latest"
+          fi
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            TAGS="$TAGS --tag ${REGISTRY}/${IMAGE_NAME}:pr-${{ github.event.number }}"
+          fi
+          {
+            echo "tags=$TAGS"
+            echo "image=${REGISTRY}/${IMAGE_NAME}:${VERSION}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Pushing: ${REGISTRY}/${IMAGE_NAME} → $TAGS"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+          labels: |
+            org.opencontainers.image.title=EduAI-Companion
+            org.opencontainers.image.revision=${{ steps.version.outputs.sha }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+
+  # ── 3. Versioning: git tag + GitHub Release (main only, idempotent) ────────
+  release:
+    name: Tag & Release
+    runs-on: ubuntu-24.04
+    needs: build-push
+    timeout-minutes: 10
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create git tag + GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.build-push.outputs.version }}
+          ALREADY_RELEASED: ${{ needs.build-push.outputs.already_released }}
+          IMAGE: ${{ needs.build-push.outputs.image }}
+          COMMIT: ${{ needs.build-push.outputs.sha }}
+        run: |
+          if [ "$ALREADY_RELEASED" = "true" ]; then
+            echo "HEAD is already tagged v${VERSION} — nothing to release (idempotent re-run)."
+            exit 0
+          fi
+          cat > release-notes.md <<EOF
+          ## EduAI Companion v${VERSION}
+
+          Fully automated release — no manual steps.
+
+          | | |
+          |---|---|
+          | Commit | [\`${COMMIT:0:7}\`](https://github.com/${GITHUB_REPOSITORY}/commit/${COMMIT}) |
+          | Image | \`${IMAGE}\` |
+          | Run | [${GITHUB_RUN_NUMBER}](https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}) |
+
+          Deployed to Kubernetes automatically by the **Deploy to Kubernetes** job.
+          EOF
+          gh release create "v${VERSION}" \
+            --title "EduAI Companion v${VERSION}" \
+            --notes-file release-notes.md \
+            --latest
+          echo "Released v${VERSION} (${IMAGE})"
+
+  # ── 4. K8s: rolling deploy (main only, skips itself if not configured) ─────
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-24.04
+    needs: release
+    timeout-minutes: 15
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    env:
+      KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+      KUBE_CONTEXT: ${{ secrets.KUBE_CONTEXT }}
+      NAMESPACE: ${{ secrets.KUBE_NAMESPACE || 'eduaicompanion' }}
+      GHCR_PAT: ${{ secrets.GHCR_PAT }}
+    steps:
+      - name: Check cluster is configured
+        if: env.KUBE_CONFIG_DATA == ''
+        run: |
+          echo "::notice::K8s deploy skipped — add the KUBE_CONFIG_DATA secret (raw kubeconfig YAML) to enable it."
+          echo "::group::One-time setup (see docs/cicd.md)"
+          echo "1. kubectl create secret generic eduaicompanion-secrets -n eduaicompanion --from-literal=GEMINI_API_KEY=... (see deploy/k8s/base/secret.example.yaml)"
+          echo "2. GitHub secrets: KUBE_CONFIG_DATA (required), KUBE_CONTEXT + KUBE_NAMESPACE (optional), GHCR_PAT (optional)"
+          echo "3. kubectl apply -k deploy/k8s/base   (creates ns/deployment/service)"
+          echo "::endgroup::"
+
+      - name: Checkout (K8s manifests)
+        if: env.KUBE_CONFIG_DATA != ''
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl context
+        if: env.KUBE_CONFIG_DATA != ''
+        uses: azure/k8s-set-context@v5
+        with:
+          kubeconfig: ${{ env.KUBE_CONFIG_DATA }}
+          kubecontext: ${{ env.KUBE_CONTEXT }}
+          namespace: ${{ env.NAMESPACE }}
+
+      - name: Ensure namespace exists
+        if: env.KUBE_CONFIG_DATA != ''
+        run: |
+          kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Sync ghcr-pull imagePullSecret (from GHCR_PAT)
+        if: env.KUBE_CONFIG_DATA != '' && env.GHCR_PAT != ''
+        run: |
+          kubectl create secret docker-registry ghcr-pull \
+            --docker-server="${REGISTRY}" \
+            --docker-username="eduaicompanion-bot" \
+            --docker-password="${GHCR_PAT}" \
+            --namespace="$NAMESPACE" \
+            --dry-run=client -o yaml | kubectl apply -f -
+          echo "ghcr-pull secret synced into namespace $NAMESPACE"
+
+      - name: Apply base manifests (create/update if missing)
+        if: env.KUBE_CONFIG_DATA != ''
+        run: kubectl apply -k deploy/k8s/base
+
+      - name: Rolling update to new image
+        if: env.KUBE_CONFIG_DATA != ''
+        run: |
+          kubectl set image deployment/eduaicompanion \
+            "app=${REGISTRY}/${IMAGE_NAME}:${{ needs.build-push.outputs.version }}" \
+            --namespace="$NAMESPACE"
+          echo "Image set to ${REGISTRY}/${IMAGE_NAME}:${{ needs.build-push.outputs.version }}"
+
+      - name: Wait for rollout
+        if: env.KUBE_CONFIG_DATA != ''
+        run: kubectl rollout status deployment/eduaicompanion --namespace="$NAMESPACE" --timeout=300s
+
+      - name: Cluster status
+        if: env.KUBE_CONFIG_DATA != ''
+        run: |
+          kubectl get deployment,service,pods -n "$NAMESPACE" -o wide
+          echo "Deployed: ${REGISTRY}/${IMAGE_NAME}:${{ needs.build-push.outputs.version }}"
