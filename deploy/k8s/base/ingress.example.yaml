@@ -1,0 +1,38 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Optional — apply manually once a real domain + TLS cert exist.
+# Not part of kustomization.yaml on purpose, so the base apply never
+# references a host that doesn't resolve yet.
+#
+#   kubectl apply -f deploy/k8s/base/ingress.example.yaml
+#
+# Requires an Ingress controller (e.g. ingress-nginx) in the cluster.
+# Replace eduaicompanion.example.com with your real domain and adjust the
+# ingressClassName / cert-manager annotation for your cluster.
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: eduaicompanion
+  namespace: eduaicompanion
+  labels:
+    app: eduaicompanion
+    app.kubernetes.io/name: eduaicompanion
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - eduaicompanion.example.com
+      secretName: eduaicompanion-tls
+  rules:
+    - host: eduaicompanion.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: eduaicompanion
+                port:
+                  number: 80

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: eduaicompanion
+  labels:
+    app.kubernetes.io/name: eduaicompanion
+    app.kubernetes.io/part-of: eduaicompanion

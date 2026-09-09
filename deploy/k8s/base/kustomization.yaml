@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: eduaicompanion
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: eduaicompanion
+      app.kubernetes.io/part-of: eduaicompanion
+      app.kubernetes.io/managed-by: github-actions
+
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+
+# NOTE: the container image tag is NOT managed here.
+# CI updates it in-cluster with:
+#   kubectl set image deployment/eduaicompanion app=ghcr.io/zwenix/eduaicompanion:<version>
+# so that manual "kubectl apply -k" can never roll the app back to a stale tag.
+#
+# ingress.example.yaml and secret.example.yaml are intentionally excluded:
+# apply them once (with real values) before the first deploy.

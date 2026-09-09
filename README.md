@@ -16,6 +16,7 @@
   <img src="https://img.shields.io/badge/Firebase-v11-orange?logo=firebase" alt="Firebase">
   <img src="https://img.shields.io/badge/Tailwind_CSS-v3-blue?logo=tailwind-css" alt="Tailwind CSS">
   <img src="https://img.shields.io/badge/AI-Google_Gemini-blue?logo=google" alt="Google Gemini">
+  <img src="https://github.com/zwenix/EduAI-Companion/actions/workflows/ci-cd.yml/badge.svg" alt="CI/CD">
 </p>
 
 ---
@@ -111,6 +112,29 @@ The codebase is organized to maintain a clean separation of concerns:
 ├── lib/               # Utility functions, type definitions, and static data
 └── styles/            # Global CSS styles
 ```
+
+## 🔄 CI/CD — fully automated
+
+Every code change flows end-to-end with **zero manual intervention**, powered by [GitHub Actions](.github/workflows/ci-cd.yml):
+
+```
+push / PR ──► test (tsc + build + boot smoke test)
+            ──► Docker build & push → GHCR (ghcr.io/zwenix/eduaicompanion)
+            ──► auto semver → git tag vX.Y.Z + GitHub Release   (main only)
+            ──► rolling Kubernetes deploy (kubectl set image)   (main only)
+```
+
+- **Versioning** is computed automatically from Conventional Commits
+  (`feat:` → minor, `feat!:` / `BREAKING CHANGE` → major, everything else → patch)
+  by [`scripts/compute-version.mjs`](scripts/compute-version.mjs).
+  Images are tagged `<version>`, `<sha>` and `:latest` (main) / `:pr-<n>` (PRs).
+- **Container**: multi-stage [`Dockerfile`](Dockerfile) (Vite build stage + lean Node 22 runtime, non-root, `/api/health` healthcheck).
+- **Kubernetes**: manifests in [`deploy/k8s/base/`](deploy/k8s/base) (Namespace, Deployment with rolling update + probes, Service; optional Ingress).
+- **One-time cluster setup** (namespace, app Secret, GitHub secrets) is a ~5 minute job — see **[docs/cicd.md](docs/cicd.md)**.
+- _Activation note:_ the workflow file itself ships as the paste-ready template
+  [`docs/ci-cd.workflow.yml`](docs/ci-cd.workflow.yml) — paste it to
+  `.github/workflows/ci-cd.yml` via the GitHub web UI (one-time, ~1 minute;
+  reason and exact steps in the template header).
 
 ## 🤝 Contributing
 
