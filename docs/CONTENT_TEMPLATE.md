@@ -21,10 +21,10 @@ step 6 of the script; it also runs the 21 template assertions.)
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│  TRANSLUCENT HEADER BAR  (60px, sticky, backdrop blur, 0.92)     │
-│   (logo 36px)  EDUAI COMPANION 2026 | CAPS COMPLIANT EDUCATION   │
+│  TRANSLUCENT HEADER BAR  (42px, 30% reduced, sticky, blur, 0.92) │
+│   (logo 25px)  EDUAI COMPANION 2026 | CAPS COMPLIANT EDUCATION   │
 │                RESOURCE | GRADE 5 • TERM 2 • MATHEMATICS • …     │
-│   ─────────────── 2.5px #2563eb underline ──────────────────     │
+│   ─────────────── 2px #2563eb underline ──────────────────       │
 ├──────────────────────────────────────────────────────────────────┤
 │  WHITE PAGE (max 800px, centred)                                 │
 │   ┌─ card (white, 16px radius, soft navy shadow) ─────────────┐  │
@@ -49,8 +49,11 @@ step 6 of the script; it also runs the 21 template assertions.)
 | Fixed lead | `EDUAI COMPANION 2026 \| CAPS COMPLIANT EDUCATION RESOURCE` |
 | Dynamic trail | `GRADE {grade} • TERM {term} • {SUBJECT} • {CONTENT TYPE}` (auto current SA term when not supplied) |
 
-Fredoka 600, 6pt, uppercase, `#1e3a5f`, clamped to **one line** with an
-ellipsis so the 60px bar can never grow on narrow screens.
+Fredoka 600, 6pt (`clamp(5px,1.1vw,8px)` fluid), uppercase, `#1e3a5f`,
+clamped to **one line** with `white-space:nowrap` + `text-overflow:ellipsis` +
+fluid `clamp()` so the 42px bar (30% reduced) can never grow or wrap on narrow
+screens — the strapline scales down smoothly and truncates with an ellipsis
+when needed.
 
 ### Title block + meta pills
 

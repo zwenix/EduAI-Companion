@@ -9,9 +9,9 @@
  *   ("EduAI Companion 2026 | LIGHT Template v4")
  *
  *   ┌─────────────────────────────────────────────────────────────┐
- *   │  TRANSLUCENT HEADER BAR (60px, sticky, blur)                │
- *   │   (logo 36px)  EDUAI COMPANION 2026 | CAPS COMPLIANT …      │
- *   │   ─────────────── 2.5px #2563eb underline ───────────────   │
+ *   │  TRANSLUCENT HEADER BAR (42px, 30% reduced, sticky, blur)  │
+ *   │   (logo 25px)  EDUAI COMPANION 2026 | CAPS COMPLIANT …      │
+ *   │   ─────────────── 2px #2563eb underline ───────────────     │
  *   ├─────────────────────────────────────────────────────────────┤
  *   │  WHITE PAGE (max 800px, centred) over a faded watermark     │
  *   │   ┌─ card ─────────────────────────────────────────────┐   │
@@ -105,9 +105,9 @@ export const EDUAI_LIGHT_CSS = `
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 12px;
-    padding: 0 20px;
-    height: 60px;
+    gap: 8px;
+    padding: 0 14px;
+    height: 42px;
     background-color: rgba(255,255,255,0.35);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -115,19 +115,20 @@ export const EDUAI_LIGHT_CSS = `
     position: sticky;
     top: 0;
     z-index: 20;
-    border-bottom: 2.5px solid #2563eb;
+    border-bottom: 2px solid #2563eb;
     width: 100%;
     box-sizing: border-box;
+    min-width: 0;
 }
 .site-header .logo {
-    height: 36px;
+    height: 25px;
     width: auto;
     display: block;
     flex-shrink: 0;
 }
 .header-text {
     font-family: 'Fredoka', sans-serif;
-    font-size: 6pt;
+    font-size: clamp(5px, 1.1vw, 8px);
     font-weight: 600;
     color: #1e3a5f;
     white-space: nowrap;
@@ -312,15 +313,18 @@ export const EDUAI_LIGHT_CSS = `
 .eduai-light-scope ul.objectives { padding-left: 0; }
 .eduai-light-scope a { color: #2563eb; }
 @media (max-width: 640px) {
-    .site-header { padding: 0 14px; gap: 10px; height: 56px; }
-    .site-header .logo { height: 32px; }
+    .site-header { padding: 0 10px; gap: 8px; height: 38px; }
+    .site-header .logo { height: 22px; }
+    .header-text { font-size: clamp(4.5px, 1.5vw, 7px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .eduai-light-scope .page { padding: 20px 14px 50px; }
     .eduai-light-scope .card { padding: 20px; border-radius: 14px; }
     .eduai-light-scope .lesson-title { font-size: 26px; }
     .eduai-light-scope h2 { font-size: 20px; }
 }
 @media (max-width: 390px) {
-    .site-header { gap: 8px; padding: 0 12px; }
+    .site-header { gap: 6px; padding: 0 8px; height: 36px; }
+    .site-header .logo { height: 20px; }
+    .header-text { font-size: clamp(4px, 1.4vw, 6px); }
     .eduai-light-scope .lesson-meta { gap: 6px; }
     .eduai-light-scope .card { padding: 18px 16px; }
 }
@@ -410,10 +414,11 @@ const pillTerm = (term?: string): string => {
 };
 
 /**
- * The LIGHT translucent header bar: 36px logo + a single-line Fredoka 6pt
- * uppercase strapline. Dynamic grade / term / subject / type trail behind the
- * fixed artwork lead; the line is clamped to ONE line with an ellipsis so it
- * can never wrap or push the 60px bar taller on narrow screens.
+ * The LIGHT translucent header bar: 25px logo (42px bar, 30% reduced) + a
+ * single-line Fredoka 6pt uppercase strapline. Dynamic grade / term / subject /
+ * type trail behind the fixed artwork lead; the line is clamped to ONE line
+ * with an ellipsis and fluid clamp() sizing so it can never wrap or push the
+ * bar taller on narrow screens.
  */
 export const buildTemplateHeaderHTML = (meta: ContentTemplateMeta = {}): string => {
     const grade = normGrade(meta.grade);
@@ -424,9 +429,9 @@ export const buildTemplateHeaderHTML = (meta: ContentTemplateMeta = {}): string 
     const strapline = trail ? `${EDUAI_TEMPLATE_HEADER_BASE} | ${trail}` : `${EDUAI_TEMPLATE_HEADER_BASE} |`;
 
     return `
-<header class="site-header" style="box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 0 20px; height: 60px; background-color: ${EDUAI_TEMPLATE_COLOURS.headerBg}; border-bottom: 2.5px solid ${EDUAI_TEMPLATE_COLOURS.headerBorder}; width: 100%; opacity: 0.92; page-break-inside: avoid; break-inside: avoid;">
-  <img src="${getTemplateLogoSrc()}" alt="EduAI Logo" class="logo" style="height: 36px; width: auto; display: block; flex-shrink: 0;" />
-  <span class="header-text" style="font-family: ${LIGHT_HEADING_FONT}; font-size: 8px; font-weight: 600; color: ${EDUAI_TEMPLATE_COLOURS.headerText}; white-space: nowrap; letter-spacing: 0.4px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">${esc(strapline)}</span>
+<header class="site-header" style="box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; gap: 8px; padding: 0 14px; height: 42px; background-color: ${EDUAI_TEMPLATE_COLOURS.headerBg}; border-bottom: 2px solid ${EDUAI_TEMPLATE_COLOURS.headerBorder}; width: 100%; opacity: 0.92; page-break-inside: avoid; break-inside: avoid; min-width: 0;">
+  <img src="${getTemplateLogoSrc()}" alt="EduAI Logo" class="logo" style="height: 25px; width: auto; display: block; flex-shrink: 0;" />
+  <span class="header-text" style="font-family: ${LIGHT_HEADING_FONT}; font-size: clamp(5px, 1.1vw, 8px); font-weight: 600; color: ${EDUAI_TEMPLATE_COLOURS.headerText}; white-space: nowrap; letter-spacing: 0.4px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">${esc(strapline)}</span>
 </header>`.trim();
 };
 

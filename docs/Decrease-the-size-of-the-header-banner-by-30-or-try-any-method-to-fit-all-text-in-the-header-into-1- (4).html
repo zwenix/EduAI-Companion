@@ -35,14 +35,14 @@ body {
     user-select: none;
 }
 
-/* === HEADER - UPDATED v4 === */
+/* === HEADER - UPDATED v4 — 30% reduced, single-line strapline === */
 .site-header {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 12px;
-    padding: 0 20px;
-    height: 60px;
+    gap: 8px;
+    padding: 0 14px;
+    height: 42px;
     background-color: rgba(255,255,255,0.35);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -50,12 +50,14 @@ body {
     position: sticky;
     top: 0;
     z-index: 20;
-    border-bottom: 2.5px solid #2563eb;
+    border-bottom: 2px solid #2563eb;
     width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
 }
 
 .site-header .logo {
-    height: 36px;
+    height: 25px;
     width: auto;
     display: block;
     flex-shrink: 0;
@@ -63,12 +65,16 @@ body {
 
 .header-text {
     font-family: 'Fredoka', sans-serif;
-    font-size: 6pt;
+    font-size: clamp(5px, 1.1vw, 8px);
     font-weight: 600;
     color: #1e3a5f;
     white-space: nowrap;
     letter-spacing: 0.4px;
     text-transform: uppercase;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
 }
 
 /* Main Content Wrapper */
@@ -226,18 +232,19 @@ p { margin-bottom: 14px; color: #334155; }
     letter-spacing: 0.3px;
 }
 
-/* Mobile Optimization */
+/* Mobile Optimization — header stays single-line at all widths */
 @media (max-width: 640px) {
     .site-header {
-        padding: 0 14px;
-        gap: 10px;
-        height: 56px;
+        padding: 0 10px;
+        gap: 8px;
+        height: 38px;
     }
-    .site-header .logo { height: 32px; }
+    .site-header .logo { height: 22px; }
     .header-text {
-        font-size: 5.5pt;
-        white-space: normal;
-        line-height: 1.15;
+        font-size: clamp(4.5px, 1.5vw, 7px);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     .page { padding: 20px 14px 50px; }
     .card { padding: 20px; border-radius: 14px; }
@@ -246,8 +253,9 @@ p { margin-bottom: 14px; color: #334155; }
 }
 
 @media (max-width: 390px) {
-    .site-header { gap: 8px; padding: 0 12px; }
-    .header-text { font-size: 5pt; }
+    .site-header { gap: 6px; padding: 0 8px; height: 36px; }
+    .site-header .logo { height: 20px; }
+    .header-text { font-size: clamp(4px, 1.4vw, 6px); }
     .lesson-meta { gap: 6px; }
     .card { padding: 18px 16px; }
 }
