@@ -30,6 +30,7 @@
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
+    "web-push": "^3.6.7",
     "firebase": "^12.13.0",
     "google-tts-api": "^2.0.2",
     "hls.js": "^1.6.16",
