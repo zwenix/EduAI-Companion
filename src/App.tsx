@@ -119,6 +119,7 @@ import StudentDashboard from './components/StudentDashboard';
 import TeacherDashboard from './components/TeacherDashboard';
 import AlertsPage from './components/AlertsPage';
 import LearnerPortfolioHub from './components/LearnerPortfolioHub';
+import FoundationPhaseTemplateStudio from './components/FoundationPhaseTemplateStudio';
 import CurriculumSuite from './components/CurriculumSuite';
 import ParentDashboard from './components/ParentDashboard';
 import ReaderModeModal from './components/ReaderModeModal';
@@ -1106,6 +1107,7 @@ export default function App() {
           return [
             { id: 'weekly-planner', label: 'Weekly Planner', icon: IconMagicPlanner },
             { id: 'teaching', label: 'Content Factory', icon: CreativeCanvasIcon },
+            { id: 'foundation-templates', label: 'CAPS Template Studio (R–3)', icon: SuperWorksheetsIcon },
             { id: 'archive', label: 'Content Archive Storage', icon: IconResources },
             { id: 'illustrations', label: 'Illustration Library', icon: CreativeCanvasIcon }
           ];
@@ -1116,6 +1118,7 @@ export default function App() {
             { id: 'planner', label: "Teacher's Planner & Diary", icon: IconMagicPlanner },
             { id: 'curriculum', label: 'CAPS Syllabus Hub', icon: QuizQuestsIcon },
             { id: 'alerts', label: 'Notifications & Planning Reminders', icon: Bell },
+            { id: 'foundation-templates', label: 'CAPS Template Studio (R–3)', icon: SuperWorksheetsIcon },
             { id: 'archive', label: 'Content Archive Storage', icon: IconResources },
             { id: 'illustrations', label: 'Illustration Library', icon: CreativeCanvasIcon }
           ];
@@ -1240,6 +1243,8 @@ export default function App() {
           return 'Content Archive';
         case 'illustrations':
           return 'Illustration Library';
+        case 'foundation-templates':
+          return 'CAPS Template Studio (R–3)';
         case 'alerts':
           return 'Alerts & Reminders';
         case 'reports':
@@ -2975,6 +2980,15 @@ export default function App() {
                       <TeacherPlanner isDarkMode={isDarkMode} onBack={() => setActiveTab('dashboard')} userRole={userRole} />
                     ) : activeTab === 'weekly-planner' ? (
                       <WeeklyPlanner isDarkMode={isDarkMode} onBack={() => setActiveTab('dashboard')} userRole={userRole} />
+                    ) : activeTab === 'foundation-templates' ? (
+                      <FoundationPhaseTemplateStudio
+                        isDarkMode={isDarkMode}
+                        teacherName={userName}
+                        onBack={() => {
+                          setActiveTab('dashboard');
+                          setActiveCategory('teacher-dashboard-menu');
+                        }}
+                      />
                     ) : activeTab === 'illustrations' ? (
                       <IllustrationLibrary isDarkMode={isDarkMode} />
                     ) : activeTab === 'ai-tutor' ? (
