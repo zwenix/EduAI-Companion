@@ -1216,6 +1216,8 @@ export default function App() {
           return 'Admin Lab';
         case 'grade1':
           return 'Foundation Hub';
+        case 'caps-templates':
+          return 'CAPS Template Studio';
         default:
           return activeCreatorTab.charAt(0).toUpperCase() + activeCreatorTab.slice(1);
       }
@@ -2868,7 +2870,7 @@ export default function App() {
                       isDarkMode={isDarkMode}
                       onSelect={(tabId) => {
                         setCategoryOverviewActive(null);
-                        if (['teaching', 'grade1', 'admin', 'visual', 'video'].includes(tabId)) {
+                        if (['teaching', 'grade1', 'admin', 'visual', 'video', 'caps-templates'].includes(tabId)) {
                           setActiveCreatorTab(tabId);
                           setActiveTab('teaching');
                         } else {
@@ -3060,7 +3062,7 @@ export default function App() {
                         isDarkMode={isDarkMode}
                         initialPane={activeTab === 'faq' ? 'faqs' : 'howtos'}
                         onNavigate={(tabId) => {
-                          if (['teaching', 'visual', 'video', 'admin', 'grade1'].includes(tabId)) {
+                          if (['teaching', 'visual', 'video', 'admin', 'grade1', 'caps-templates'].includes(tabId)) {
                             setActiveCreatorTab(tabId);
                             setActiveTab('teaching');
                           } else {

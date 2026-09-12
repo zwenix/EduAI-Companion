@@ -245,6 +245,25 @@ const ADMIN_REPORTS_SLIDES = [
   { image: bgLandingAnalytics, title: 'Analytics & Comments', description: 'Generate individual learner comments and track key performance metrics.' }
 ];
 
+/* CAPS Template Studio + offline printable pack (Teacher's Toolbox, cards 5 & 6)
+   Same slide-array pattern as the frozen showcase cards: module-scope consts,
+   artwork re-used from the existing toolbox backgrounds. */
+const CAPS_TEMPLATE_STUDIO_SLIDES = [
+  { image: bgToolboxFoundationHub, title: 'CAPS Template Studio', description: 'Print awards, worksheets, classroom exercises and homework for Grade R–3.' },
+  { image: bgToolboxContentStudio, title: 'Awards & Praise Slips', description: 'Bright certificates for good academic achievement — ready for assembly.' }
+];
+
+const PRINTABLE_PACK_SLIDES = [
+  { image: bgToolboxVault, title: 'Offline Printable Pack', description: 'Open the A4 pack straight in your browser — no login, no AI token.' },
+  { image: bgToolboxVisualLab, title: 'Print Every Sheet', description: 'One print job for all 28 CAPS Foundation Phase templates.' }
+];
+
+const OPEN_FP_PACK = (file: string) => {
+  const url = `/templates/foundation-phase/${file}`;
+  const win = window.open(url, '_blank', 'noopener');
+  if (!win) window.location.href = url;
+};
+
 const MEDIA_TOOLS_SLIDES = [
   { image: bgToolboxVisualLab, title: 'Visual Lab Posters', description: 'Design educational infographics and vivid classroom science posters.' },
   { image: bgToolboxVideoAvatars, title: 'Video Avatars', description: 'Produce captivating teacher video guides using digital presentation avatars.' },
@@ -1952,6 +1971,108 @@ export default function CategoryOverview({
             </div>
           </InteractiveShowcaseCard>
 
+          {/* CARD 5: CAPS Template Studio (Amber/Yellow Border Glow) */}
+          <InteractiveShowcaseCard
+            slides={CAPS_TEMPLATE_STUDIO_SLIDES}
+            borderColorClass="border-amber-400/90"
+            shadowColorClass="shadow-[0_0_30px_rgba(251,191,36,0.35)]"
+            hoverBorderColorClass="hover:border-amber-300"
+            hoverShadowColorClass="hover:shadow-[0_0_50px_rgba(251,191,36,0.65)]"
+            glowColorClass="shadow-[0_0_20px_rgba(251,191,36,0.4)] group-hover:bg-amber-400/20 group-hover:shadow-[0_0_30px_rgba(251,191,36,0.6)]"
+            onClick={() => onSelect('caps-templates')}
+          >
+            <div className="space-y-4 w-full h-full flex flex-col items-center justify-between">
+              {/* Custom Amber Certificate Icon */}
+              <div className="w-20 h-20 rounded-3xl bg-amber-400/10 border-2 border-amber-400/50 flex items-center justify-center text-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.4)] group-hover:scale-110 group-hover:bg-amber-400/20 group-hover:shadow-[0_0_30px_rgba(251,191,36,0.6)] transition-all duration-300">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="13" rx="2" stroke="#fbbf24" strokeWidth="2" />
+                  <circle cx="12" cy="9.5" r="2.6" stroke="#fbbf24" strokeWidth="2" />
+                  <path d="M10 11.6l-1.2 3.1 3.2-1.5 3.2 1.5L14 11.6" stroke="#fbbf24" strokeWidth="2" />
+                  <path d="M3 19.5h7M14 19.5h7" stroke="#fbbf24" strokeWidth="2" />
+                </svg>
+              </div>
+
+              <div className="copy-plate w-full px-5 py-4">
+                <h2 className="text-2xl font-display font-extrabold text-white art-title group-hover:text-amber-200 transition-colors mb-2">
+                  CAPS Template Studio
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed max-w-sm art-body">
+                  28 ready-to-print Grade R–3 documents: awards for good academic achievement, worksheets, classroom exercises and homework — each with its CAPS content area, ATP week, marks, memo, bilingual labels and cartoon art.
+                </p>
+              </div>
+
+              {/* Sub-action Pills */}
+              <div className="showcase-pill-row mt-1 px-2.5 py-2.5 flex flex-wrap items-center justify-center gap-2 w-full">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSelect('caps-templates'); }}
+                  className="px-3 py-1.5 rounded-full bg-amber-400/10 hover:bg-amber-400/30 border border-amber-400/40 text-[11px] font-bold text-amber-200 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
+                >
+                  🏆 Awards & Praise
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSelect('caps-templates'); }}
+                  className="px-3 py-1.5 rounded-full bg-amber-400/10 hover:bg-amber-400/30 border border-amber-400/40 text-[11px] font-bold text-amber-200 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
+                >
+                  ✏️ Worksheets
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSelect('caps-templates'); }}
+                  className="px-3 py-1.5 rounded-full bg-amber-400/10 hover:bg-amber-400/30 border border-amber-400/40 text-[11px] font-bold text-amber-200 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
+                >
+                  🎒 Homework
+                </button>
+              </div>
+            </div>
+          </InteractiveShowcaseCard>
+
+          {/* CARD 6: Offline Printable Pack (Violet Border Glow) */}
+          <InteractiveShowcaseCard
+            slides={PRINTABLE_PACK_SLIDES}
+            borderColorClass="border-violet-500/90"
+            shadowColorClass="shadow-[0_0_30px_rgba(139,92,246,0.35)]"
+            hoverBorderColorClass="hover:border-violet-400"
+            hoverShadowColorClass="hover:shadow-[0_0_50px_rgba(139,92,246,0.65)]"
+            glowColorClass="shadow-[0_0_20px_rgba(139,92,246,0.4)] group-hover:bg-violet-500/20 group-hover:shadow-[0_0_30px_rgba(139,92,246,0.6)]"
+            onClick={() => OPEN_FP_PACK('index.html')}
+          >
+            <div className="space-y-4 w-full h-full flex flex-col items-center justify-between">
+              {/* Custom Violet Printer Icon */}
+              <div className="w-20 h-20 rounded-3xl bg-violet-500/10 border-2 border-violet-500/50 flex items-center justify-center text-violet-300 shadow-[0_0_20px_rgba(139,92,246,0.4)] group-hover:scale-110 group-hover:bg-violet-500/20 group-hover:shadow-[0_0_30px_rgba(139,92,246,0.6)] transition-all duration-300">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 9V3h12v6" stroke="#a78bfa" strokeWidth="2" />
+                  <rect x="3" y="9" width="18" height="8" rx="2" stroke="#a78bfa" strokeWidth="2" />
+                  <path d="M7 17h10v4H7z" stroke="#a78bfa" strokeWidth="2" />
+                  <circle cx="17.5" cy="12" r="0.9" fill="#a78bfa" stroke="none" />
+                </svg>
+              </div>
+
+              <div className="copy-plate w-full px-5 py-4">
+                <h2 className="text-2xl font-display font-extrabold text-white art-title group-hover:text-violet-200 transition-colors mb-2">
+                  Printable Pack (R–3)
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed max-w-sm art-body">
+                  Every template also ships as a standalone A4 HTML pack. Open it, hit Print or Save as PDF — perfect for the school photocopier, a USB stick, or a day with no data.
+                </p>
+              </div>
+
+              {/* Sub-action Pills */}
+              <div className="showcase-pill-row mt-1 px-2.5 py-2.5 flex flex-wrap items-center justify-center gap-2 w-full">
+                <button
+                  onClick={(e) => { e.stopPropagation(); OPEN_FP_PACK('index.html'); }}
+                  className="px-3 py-1.5 rounded-full bg-violet-500/10 hover:bg-violet-500/30 border border-violet-500/40 text-[11px] font-bold text-violet-200 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
+                >
+                  📚 Template Gallery
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); OPEN_FP_PACK('all-templates.html'); }}
+                  className="px-3 py-1.5 rounded-full bg-violet-500/10 hover:bg-violet-500/30 border border-violet-500/40 text-[11px] font-bold text-violet-200 hover:text-white hover:scale-105 transition-all cursor-pointer relative z-20"
+                >
+                  🖨️ Print All 28 Sheets
+                </button>
+              </div>
+            </div>
+          </InteractiveShowcaseCard>
+
         </div>
 
         {/* BOTTOM QUICK SHORTCUTS STRIP */}
@@ -2308,6 +2429,7 @@ export default function CategoryOverview({
             {[
               { id: 'teaching', label: 'Content Studio', icon: FlaskConical },
               { id: 'grade1', label: 'Foundation Hub (R-3)', icon: Sparkles },
+              { id: 'caps-templates', label: 'CAPS Template Studio', icon: Layers },
               { id: 'admin', label: 'Admin Lab', icon: FileText },
               { id: 'visual', label: 'Visual Lab', icon: Palette },
               { id: 'video', label: 'Video Lab', icon: Video },
