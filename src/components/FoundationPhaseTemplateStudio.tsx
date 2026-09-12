@@ -286,7 +286,7 @@ export default function FoundationPhaseTemplateStudio({
 
     function FilterBar() {
         return (
-            <div className={cn('rounded-[26px] p-3 md:p-4', isDarkMode ? 'glass' : 'bg-white border border-slate-200 shadow-sm')}>
+            <div className={cn('rounded-[26px] p-3 md:p-4', isDarkMode ? 'menu-glow-card glow-cyan' : 'bg-white border border-slate-200 shadow-sm rounded-[26px]')}>
                 <div className="flex flex-wrap items-center gap-2">
                     {(['all', 'award', 'worksheet', 'classroom', 'homework'] as const).map((k) => {
                         const Icon = k === 'all' ? Sparkles : KIND_ICONS[k];
@@ -491,14 +491,14 @@ export default function FoundationPhaseTemplateStudio({
                         <span className="rounded-full bg-white/20 px-2.5 py-1">{FOUNDATION_LIBRARY_STATS.withMemo} with memoranda</span>
                         <span className="rounded-full bg-white/20 px-2.5 py-1">Bilingual labels</span>
                         <span className="rounded-full bg-yellow-300 px-2.5 py-1 text-amber-900">No AI call needed — works offline</span>
-                        <button onClick={downloadSelection} disabled={isBusy} className="ml-auto rounded-full bg-white px-3 py-1 text-[11px] font-black text-cyan-700 shadow hover:bg-yellow-300 hover:text-amber-900 disabled:opacity-60">
+                        <button onClick={downloadSelection} disabled={isBusy} className="ml-auto rounded-full bg-white px-3 py-1 text-[10.5px] font-black uppercase tracking-wider text-cyan-700 shadow hover:bg-yellow-300 hover:text-amber-900 disabled:opacity-60">
                             {isBusy ? 'Bundling…' : ` Print-pack this selection (${templates.length})`}
                         </button>
-                        <button onClick={() => setShowHelp((v) => !v)} className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-black hover:bg-white/30">
+                        <button onClick={() => setShowHelp((v) => !v)} className="rounded-full bg-white/20 px-3 py-1 text-[10.5px] font-black uppercase tracking-wider hover:bg-white/30">
                             {showHelp ? 'Hide how-to' : 'How to use →'}
                         </button>
                         {onBack && (
-                            <button onClick={onBack} className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-black hover:bg-white/30">
+                            <button onClick={onBack} className="rounded-full bg-white/20 px-3 py-1 text-[10.5px] font-black uppercase tracking-wider hover:bg-white/30">
                                 ← Back
                             </button>
                         )}
@@ -532,7 +532,7 @@ export default function FoundationPhaseTemplateStudio({
                 <div className="space-y-3">{cards}</div>
 
                 {/* Preview + controls */}
-                <div className={cn('rounded-[28px] p-3 md:p-4', isDarkMode ? 'glass' : 'bg-white border border-slate-200 shadow-sm')}>
+                <div className={cn('rounded-[28px] p-3 md:p-4', isDarkMode ? 'menu-glow-card glow-cyan' : 'bg-white border border-slate-200 shadow-sm rounded-[28px]')}>
                     <div className="mb-3 flex flex-wrap items-center gap-2">
                         <div className="min-w-0 flex-1">
                             <p className="text-[10px] font-black uppercase tracking-[.2em]" style={{ color: theme.band }}>
@@ -541,10 +541,10 @@ export default function FoundationPhaseTemplateStudio({
                             <h3 className={cn('truncate font-display text-lg leading-tight', isDarkMode ? 'text-white' : 'text-slate-900')}>{selected.title}</h3>
                             <p className={cn('truncate text-[11.5px] font-semibold', isDarkMode ? 'text-slate-400' : 'text-slate-500')}>{selected.subtitle}</p>
                         </div>
-                        <button onClick={printPreview} className="flex items-center gap-1.5 rounded-full bg-cyan-500 px-3.5 py-2 text-[12px] font-black text-white shadow-lg shadow-cyan-500/30 transition hover:bg-cyan-400">
+                        <button onClick={printPreview} className="flex items-center gap-1.5 rounded-full bg-cyan-500 px-3.5 py-2 text-[11px] font-black uppercase tracking-wider text-white shadow-lg shadow-cyan-500/30 transition hover:bg-cyan-400">
                             <Printer size={14} /> Print / Save as PDF
                         </button>
-                        <button onClick={downloadOne} disabled={isBusy} className="flex items-center gap-1.5 rounded-full bg-fuchsia-500 px-3 py-2 text-[12px] font-black text-white shadow-lg shadow-fuchsia-500/25 transition hover:bg-fuchsia-400 disabled:opacity-60">
+                        <button onClick={downloadOne} disabled={isBusy} className="flex items-center gap-1.5 rounded-full bg-fuchsia-500 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-white shadow-lg shadow-fuchsia-500/25 transition hover:bg-fuchsia-400 disabled:opacity-60">
                             <Download size={14} /> {isBusy ? '…' : 'Download'}
                         </button>
                         <button onClick={copyHtml} className={cn('flex h-9 w-9 items-center justify-center rounded-full transition', isDarkMode ? 'bg-white/5 text-slate-300 hover:bg-white/15' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')} title="Copy template HTML">

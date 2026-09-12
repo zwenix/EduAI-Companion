@@ -42,7 +42,18 @@ public/illustrations/foundation/                   # Elly mascot + cartoon spot 
 
 ## 2. Using it in the app
 
-**Sidebar → Curriculum & Planning (or Lesson Planning) → “CAPS Template Studio (R–3)”.**
+Three ways in, all reachable from the **Teacher's Toolbox**:
+
+1. **Teacher's Toolbox → page menu → “CAPS Template Studio”** (the studio tab
+   strip next to Content Studio / Visual Lab / Video Lab / Admin Lab /
+   Foundation Hub). This is the main entrance — the Studio opens as a full page
+   inside the Content Factory, on the app's dark neon canvas.
+2. **Teacher's Toolbox landing cards** — “CAPS Template Studio” (with
+   Awards / Worksheets / Homework quick pills) and “Printable Pack (R–3)”
+   (opens the offline A4 gallery or the print-all-28 file), plus the
+   “CAPS Template Studio” pill in the *Direct Tool Access* strip.
+3. **Sidebar → Teacher's Toolbox (or Curriculum & Planning) →
+   “CAPS Template Studio (R–3)”** for the same page without the studio chrome.
 
 1. Filter by family, grade (R, 1, 2, 3), CAPS learning area, or free-text search
    (“arrays”, “phonics”, “money”, “Grade R”).
