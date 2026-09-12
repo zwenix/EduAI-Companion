@@ -84,6 +84,33 @@ Artwork is referenced relatively (`../../illustrations/foundation/*.png`) so the
 folder can be copied onto a school USB stick. **Never hand-edit the generated
 HTML** — edit the data and rebuild.
 
+### Opening the pack when you can't log in
+
+The pack is **static HTML inside the repo** — it is not behind EduAI's login, and
+the app never needs to start for it to work. Pick whichever is easiest:
+
+| Situation | How |
+| :--- | :--- |
+| On a computer with this repo | Double-click `public/templates/foundation-phase/index.html`. Works straight off the disk (`file://`), no server, no browser account, no internet. |
+| A dev/preview server is running | Open `http://localhost:3000/templates/foundation-phase/index.html` (or the preview URL + that path). Static files are served before any auth, so you can be signed out. |
+| Another device, same network | `npx vite preview` / `npm run dev`, then open the machine's LAN address (`http://192.168.x.x:3000/templates/foundation-phase/index.html`) on the phone/laptop. |
+| A parent's or colleague's device, no access to this repo | **Build the portable pack and send it:** `npm run build:fp-pack` → `build/foundation-phase-pack/` (self-contained: sheets + artwork + `START-HERE.html` + `HOW-TO-PRINT.txt`). Zip that folder and email / WhatsApp / Google-Drop it, or copy it to a USB stick. Nothing to install, nothing to sign in to. |
+| GitHub only | On the branch (or `main` once the PR is merged) use **Code ▸ Download ZIP**, unzip, open `public/templates/foundation-phase/index.html`. |
+
+```bash
+npm run build:fp-pack          # → build/foundation-phase-pack/ (git-ignored, ~15 MB with artwork)
+FP_PACK_OUT=~/Desktop/FPS-pack npx tsx scripts/build-foundation-template-portable-pack.ts
+```
+
+Send the **folder** (or its zip), not a single `.html`: the sheets reference
+`../../illustrations/foundation/*.png`. A lone file still prints — it just loses its
+cartoon art. To send one truly standalone file instead, use the in-app Studio's
+**Download** button (art embedded as data URIs) or print to PDF.
+
+Fonts are the only network request (`@import` from Google Fonts). Offline the pack
+falls back to Comic Neue → Trebuchet MS for headings and Segoe Print → Comic Sans
+for the handwriting tracers, so it prints fine on any machine with no connection.
+
 ### Print settings that always work (A4)
 
 * A4 portrait, **100 % scale** (never “fit to page” — it clips the colour border).

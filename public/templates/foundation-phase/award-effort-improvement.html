@@ -48,30 +48,30 @@
 /* ── banner ─────────────────────────────────────────── */
 .fp-banner { position: relative; display: flex; align-items: flex-start; gap: 5mm; margin-bottom: 4mm; }
 .fp-banner-text { flex: 1 1 auto; min-width: 0; }
-.fp-kicker { font-family: 'Fredoka', sans-serif; font-size: 8pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--fp-band, #1e3a5f); margin: 0 0 1mm; }
-.fp-title { font-family: 'Fredoka', sans-serif; font-size: 23pt; line-height: 1.06; font-weight: 700; color: var(--fp-band, #1e3a5f); margin: 0; letter-spacing: -.01em; }
+.fp-kicker { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--fp-band, #1e3a5f); margin: 0 0 1mm; }
+.fp-title { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 23pt; line-height: 1.06; font-weight: 700; color: var(--fp-band, #1e3a5f); margin: 0; letter-spacing: -.01em; }
 .fp-subtitle { font-size: 10.5pt; font-weight: 700; color: #334155; margin: 1.5mm 0 0; }
 .fp-art { display: block; flex: 0 0 auto; text-align: center; }
 .fp-float-left { float: none; }
 .fp-float-right { float: none; }
 .fp-rainbow { margin: 1mm 0 3mm; }
 .fp-badge-row { display: flex; flex-wrap: wrap; gap: 2mm; margin: 0 0 3mm; }
-.fp-pill { font-family: 'Fredoka', sans-serif; font-size: 8.2pt; font-weight: 600; padding: 1.2mm 3mm; border-radius: 99mm; border: .5mm solid var(--fp-primary, #06b6d4); color: var(--fp-band, #1e3a5f); background: var(--fp-soft, #f6fbff); white-space: nowrap; }
+.fp-pill { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8.2pt; font-weight: 600; padding: 1.2mm 3mm; border-radius: 99mm; border: .5mm solid var(--fp-primary, #06b6d4); color: var(--fp-band, #1e3a5f); background: var(--fp-soft, #f6fbff); white-space: nowrap; }
 .fp-pill.caps { background: #1e3a5f; color: #fff; border-color: #1e3a5f; }
 .fp-pill.bloom { background: #fff; }
 
 /* ── learner header (name / date / marks) ─────────────── */
 .fp-learnerstrip { display: flex; align-items: stretch; gap: 3mm; margin: 0 0 4mm; }
 .fp-field { flex: 1 1 auto; border: .7mm dashed var(--fp-primary, #06b6d4); border-radius: 4mm; padding: 2mm 3mm; background: #fffdf7; }
-.fp-field b { display: block; font-family: 'Fredoka', sans-serif; font-size: 8.6pt; text-transform: uppercase; letter-spacing: .06em; color: var(--fp-band); }
+.fp-field b { display: block; font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8.6pt; text-transform: uppercase; letter-spacing: .06em; color: var(--fp-band); }
 .fp-field .fp-underline { display: block; border-bottom: .45mm dotted #64748b; min-height: 7mm; }
 .fp-scorebox { flex: 0 0 46mm; border: 1.6mm solid #ffb703; border-radius: 4mm; padding: 1.6mm 2.4mm; text-align: center; background: #fffbe6; }
-.fp-scorebox b { font-family: 'Fredoka', sans-serif; font-size: 10pt; display: block; color: #7a4b00; }
+.fp-scorebox b { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 10pt; display: block; color: #7a4b00; }
 .fp-scorebox .fp-box { display: inline-block; border: .5mm solid #b45309; border-radius: 1.5mm; width: 7mm; height: 8mm; margin: .6mm .4mm 0 0; background: #fff; vertical-align: middle; }
 
 /* ── alignment strip ─────────────────────────────────── */
-.fp-caps { border: .55mm solid #dbeafe; border-left: 2.2mm solid var(--fp-primary, #06b6d4); background: #f7fbff; border-radius: 0 3mm 3mm 0; padding: 2.4mm 3mm; margin: 0 0 4mm; font-size: 8.6pt; color: #1e3a5f; break-inside: avoid; }
-.fp-caps h4 { font-family: 'Fredoka', sans-serif; font-size: 9pt; margin: 0 0 1mm; color: #1d4ed8; text-transform: uppercase; letter-spacing: .05em; }
+.fp-caps { border: .55mm solid #dbeafe; border-left: 2.2mm solid var(--fp-primary, #06b6d4); background: #f7fbff; border-radius: 0 3mm 3mm 0; padding: 1.9mm 2.6mm; margin: 0 0 3.4mm; font-size: 8.2pt; color: #1e3a5f; break-inside: avoid; }
+.fp-caps h4 { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 9pt; margin: 0 0 1mm; color: #1d4ed8; text-transform: uppercase; letter-spacing: .05em; }
 .fp-caps dl { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 1mm 5mm; margin: 0; }
 .fp-caps dt { font-weight: 800; }
 .fp-caps dd { margin: 0; }
@@ -88,10 +88,10 @@
 .fp-block:nth-of-type(even) { background: #fdfeff; }
 .fp-block-head { display: flex; align-items: center; gap: 2mm; border-bottom: .9mm solid var(--fp-primary, #06b6d4); padding-bottom: 1.4mm; margin-bottom: 2mm; flex-wrap: wrap; }
 .fp-block-pencil { display: inline-flex; align-items: center; }
-.fp-block-title { font-family: 'Fredoka', sans-serif; font-size: 12.6pt; margin: 0; color: var(--fp-band, #1e3a5f); flex: 1 1 auto; }
+.fp-block-title { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 12.6pt; margin: 0; color: var(--fp-band, #1e3a5f); flex: 1 1 auto; }
 .fp-block-title em { font-style: normal; font-family: 'Nunito', sans-serif; font-size: 9pt; font-weight: 800; color: #9b59b6; margin-left: 1.5mm; }
-.fp-badge { font-family: 'Fredoka', sans-serif; font-size: 7.6pt; font-weight: 600; color: #fff; padding: .8mm 2.4mm; border-radius: 99mm; }
-.fp-marks { font-family: 'Fredoka', sans-serif; font-size: 8.6pt; font-weight: 700; padding: .8mm 2.6mm; border-radius: 99mm; }
+.fp-badge { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 7.6pt; font-weight: 600; color: #fff; padding: .8mm 2.4mm; border-radius: 99mm; }
+.fp-marks { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8.6pt; font-weight: 700; padding: .8mm 2.6mm; border-radius: 99mm; }
 .fp-instruction { margin: 0 0 2mm; font-size: 10pt; font-weight: 700; color: #334155; }
 .fp-instruction em { font-style: normal; color: #9b59b6; font-weight: 800; }
 .fp-bi { font-size: 8.6pt; }
@@ -100,16 +100,16 @@
 .fp-item:last-child { border-bottom: 0; }
 .fp-item-head { display: flex; align-items: center; gap: 2.4mm; }
 .fp-item-symbol { font-size: 13pt; }
-.fp-num { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 7.4mm; height: 7.4mm; border-radius: 99mm; color: #fff; font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 10pt; box-shadow: 0 0 0 .5mm #fff inset; }
+.fp-num { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 7.4mm; height: 7.4mm; border-radius: 99mm; color: #fff; font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-weight: 700; font-size: 10pt; box-shadow: 0 0 0 .5mm #fff inset; }
 .fp-item-text { margin: 0; font-size: 11pt; font-weight: 700; color: #1f2937; flex: 1 1 auto; }
-.fp-item-marks { font-family: 'Fredoka', sans-serif; font-size: 8.6pt; color: #64748b; }
+.fp-item-marks { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8.6pt; color: #64748b; }
 .fp-parts { list-style: none; margin: .5mm 0 0 9mm; padding: 0; display: flex; flex-direction: column; gap: 1.2mm; }
 .fp-parts li { font-size: 10.5pt; }
 .fp-parts li span { font-weight: 800; color: var(--fp-band); margin-right: 1mm; }
 .fp-part-marks { font-style: normal; color: #64748b; font-size: 9pt; }
 .fp-options { display: flex; flex-wrap: wrap; gap: 2mm; margin: 1mm 0 0 9.8mm; }
 .fp-option { display: inline-flex; align-items: center; gap: 1.6mm; border: .5mm solid #d7e3f2; border-radius: 3mm; padding: 1.4mm 2.4mm; font-size: 10.5pt; background: #fff; }
-.fp-option b { font-family: 'Fredoka', sans-serif; color: var(--fp-band); }
+.fp-option b { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; color: var(--fp-band); }
 .fp-tick { display: inline-block; border: .7mm solid #334155; border-radius: 1.4mm; background: #fff; flex: 0 0 auto; }
 .fp-item-lines { margin: .5mm 0 0 0; }
 .fp-copyrow { display: flex; gap: 3mm; margin: 1mm 0 0 0; flex-wrap: wrap; }
@@ -119,26 +119,26 @@
 .fp-writer { display: flex; flex-direction: column; gap: 1mm; }
 .fp-wline { position: relative; height: 11.6mm; border-bottom: .5mm solid #94a3b8; background: linear-gradient(to bottom, transparent 49.6%, #cbd5e1 49.6%, #cbd5e1 50.4%, transparent 50.4%); }
 .fp-wline::before { content: ''; position: absolute; left: 0; right: 0; top: 25%; border-top: .4mm dashed #f2a3c4; }
-.fp-wguide { position: absolute; left: 1mm; bottom: 1mm; font-family: 'Patrick Hand', cursive; font-size: 11mm; color: rgba(100,116,139,.55); }
+.fp-wguide { position: absolute; left: 1mm; bottom: 1mm; font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 11mm; color: rgba(100,116,139,.55); }
 .fp-wdot { position: absolute; inset: 0; }
 
 /* ── tracing ───────────────────────────────────────── */
 .fp-tracer-grid { display: flex; flex-direction: column; gap: 1.5mm; }
 .fp-tracerow { display: flex; align-items: center; gap: 3mm; border-bottom: .35mm dotted #cbd5e1; padding-bottom: .4mm; }
-.fp-tracemodel { flex: 0 0 44mm; font-family: 'Patrick Hand', cursive; font-size: 11.6mm; line-height: 1.05; color: var(--fp-band, #1e3a5f); letter-spacing: .5mm; }
-.fp-tracemodel.fp-manuscript, .fp-ghost.fp-manuscript { font-family: 'Comic Neue', 'Patrick Hand', cursive; letter-spacing: 1mm; }
+.fp-tracemodel { flex: 0 0 44mm; font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 11.6mm; line-height: 1.05; color: var(--fp-band, #1e3a5f); letter-spacing: .5mm; }
+.fp-tracemodel.fp-manuscript, .fp-ghost.fp-manuscript { font-family: 'Comic Neue', 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; letter-spacing: 1mm; }
 .fp-tracepractice { flex: 1 1 auto; display: flex; gap: 3mm; align-items: center; }
-.fp-ghost { font-family: 'Patrick Hand', cursive; font-size: 11.6mm; line-height: 1.05; color: transparent; -webkit-text-stroke: .35mm #b6c6d8; letter-spacing: .5mm; }
+.fp-ghost { font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 11.6mm; line-height: 1.05; color: transparent; -webkit-text-stroke: .35mm #b6c6d8; letter-spacing: .5mm; }
 .fp-frames { display: flex; flex-wrap: wrap; gap: 3mm; margin-top: 2mm; }
 .fp-frame { flex: 1 1 60mm; font-size: 10pt; font-weight: 700; color: #334155; }
-.fp-tracer { font-family: 'Patrick Hand', cursive; font-size: 12mm; color: #cbd5e1; -webkit-text-stroke: .3mm #94a3b8; display: block; }
+.fp-tracer { font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 12mm; color: #cbd5e1; -webkit-text-stroke: .3mm #94a3b8; display: block; }
 
 /* ── counting / boxes ───────────────────────────────── */
 .fp-countgrid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 2.6mm; }
 .fp-countcard { border: .5mm dashed var(--fp-primary); border-radius: 3.5mm; padding: 1.6mm; background: #fff; }
 .fp-countdot-wrap { display: flex; flex-wrap: wrap; gap: 1.2mm; min-height: 12mm; align-items: center; }
 .fp-countdot { font-size: 7.2mm; line-height: 1; }
-.fp-countanswer { display: flex; align-items: center; gap: 1.6mm; margin-top: 1mm; font-family: 'Fredoka', sans-serif; font-size: 10pt; }
+.fp-countanswer { display: flex; align-items: center; gap: 1.6mm; margin-top: 1mm; font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 10pt; }
 .fp-countprompt { margin: .5mm 0 0; font-size: 8.6pt; color: #475569; font-weight: 700; }
 .fp-extra-task { margin: 2mm 0 0; font-size: 9.4pt; font-weight: 800; color: #9b59b6; }
 .fp-boxes { display: inline-flex; gap: 1.2mm; }
@@ -168,14 +168,14 @@
 /* ── tables / grids ─────────────────────────────────── */
 .fp-table { width: 100%; border-collapse: collapse; font-size: 10pt; }
 .fp-table th, .fp-table td { border: .45mm solid #b9cadd; padding: 1.6mm 2mm; text-align: left; vertical-align: middle; }
-.fp-table thead th { font-family: 'Fredoka', sans-serif; background: var(--fp-soft); color: var(--fp-band); text-align: center; }
+.fp-table thead th { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; background: var(--fp-soft); color: var(--fp-band); text-align: center; }
 .fp-blankcell { background: #fffdf7; min-height: 10mm; height: 12mm; }
 .fp-prefill { font-weight: 800; text-align: center; background: #f1f5f9; }
 .fp-gridtable td { height: var(--cell, 13mm); }
 .fp-gbox { display: flex; flex-direction: column; gap: 1.6mm; }
 .fp-gboxrow { display: flex; align-items: center; gap: 1.6mm; }
 .fp-glabel { flex: 0 0 34mm; font-size: 9.6pt; font-weight: 800; }
-.fp-gcell { flex: 1 1 auto; border: .55mm solid #64748b; border-radius: 1.6mm; background: #fffdf7; display: inline-flex; align-items: center; justify-content: center; font-family: 'Fredoka', sans-serif; font-weight: 600; }
+.fp-gcell { flex: 1 1 auto; border: .55mm solid #64748b; border-radius: 1.6mm; background: #fffdf7; display: inline-flex; align-items: center; justify-content: center; font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-weight: 600; }
 .fp-pic { font-size: 6mm; letter-spacing: .5mm; }
 .fp-rubric { font-size: 8.8pt; }
 .fp-rubric th { font-weight: 800; }
@@ -188,17 +188,17 @@
 .fp-cut-label { font-size: 7.6pt; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #ef4444; }
 .fp-strip-wrap { display: flex; flex-wrap: wrap; gap: 1.8mm; align-items: center; border: .5mm dotted #f87171; border-radius: 3mm; padding: 2mm; background: #fff7f7; }
 .fp-piece { flex: 0 1 auto; text-align: center; border: .6mm dashed var(--fp-primary); border-radius: 2.6mm; padding: 1.6mm 3mm; background: #fff; min-width: 16mm; }
-.fp-piece b { font-family: 'Fredoka', sans-serif; font-size: 11pt; display: block; }
+.fp-piece b { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 11pt; display: block; }
 .fp-piece i { font-style: normal; font-size: 6.4pt; text-transform: uppercase; color: #94a3b8; letter-spacing: .08em; }
 .fp-slotgrid { display: flex; flex-direction: column; gap: 2mm; margin-bottom: 2mm; }
 .fp-slotrow { display: flex; align-items: center; gap: 2mm; }
 .fp-slotctx { flex: 0 0 auto; font-size: 10pt; font-weight: 700; }
-.fp-slot { flex: 1 1 auto; min-height: 12mm; border: .6mm dashed #94a3b8; border-radius: 2.4mm; background: repeating-linear-gradient(-45deg, #fbfdff 0 3mm, #f3f8ff 3mm 6mm); display: flex; align-items: center; justify-content: center; font-family: 'Fredoka', sans-serif; font-size: 11pt; }
+.fp-slot { flex: 1 1 auto; min-height: 12mm; border: .6mm dashed #94a3b8; border-radius: 2.4mm; background: repeating-linear-gradient(-45deg, #fbfdff 0 3mm, #f3f8ff 3mm 6mm); display: flex; align-items: center; justify-content: center; font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 11pt; }
 .fp-cardgrid { display: flex; flex-wrap: wrap; gap: 2.4mm; }
 .fp-card { position: relative; border: .7mm solid var(--fp-primary); border-radius: 4mm; padding: 2.6mm 2mm; text-align: center; background: #fff; min-height: 26mm; display: flex; flex-direction: column; justify-content: center; gap: 1mm; }
 .fp-card-dashed { border-style: dashed; }
 .fp-card-scalloped { border-style: solid; box-shadow: 0 0 0 .5mm #fff, 0 0 0 1mm var(--fp-primary); }
-.fp-card-face { font-family: 'Fredoka', sans-serif; font-size: 14pt; font-weight: 700; color: var(--fp-band); line-height: 1.1; }
+.fp-card-face { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 14pt; font-weight: 700; color: var(--fp-band); line-height: 1.1; }
 .fp-card-symbol { font-size: 9mm; line-height: 1; }
 .fp-card-cap { font-size: 8.4pt; font-weight: 700; color: #475569; }
 .fp-card-note { font-size: 7.2pt; color: #94a3b8; font-style: italic; }
@@ -207,18 +207,18 @@
 
 /* ── word bank ─────────────────────────────────────── */
 .fp-bank { display: flex; flex-wrap: wrap; gap: 1.8mm; border: .6mm dashed var(--fp-primary); background: var(--fp-soft); border-radius: 3mm; padding: 2mm; margin-bottom: 2.4mm; }
-.fp-bankword { font-family: 'Fredoka', sans-serif; font-size: 11pt; font-weight: 600; background: #fff; border: .4mm solid #dbeafe; border-radius: 2mm; padding: 1mm 2.4mm; }
+.fp-bankword { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 11pt; font-weight: 600; background: #fff; border: .4mm solid #dbeafe; border-radius: 2mm; padding: 1mm 2.4mm; }
 .fp-sents { display: flex; flex-direction: column; gap: 1.6mm; }
 .fp-sent { display: flex; align-items: baseline; gap: 2mm; font-size: 10.6pt; font-weight: 700; }
-.fp-sentno { font-family: 'Fredoka', sans-serif; color: var(--fp-band); }
+.fp-sentno { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; color: var(--fp-band); }
 .fp-gap { display: inline-block; min-width: 26mm; border-bottom: .5mm dotted #64748b; margin: 0 1mm; height: .8em; }
 
 /* ── comprehension ─────────────────────────────────── */
 .fp-passage { position: relative; border: .5mm solid #e2e8f0; background: #fffdf7; border-radius: 4mm; padding: 3mm; margin-bottom: 2.4mm; }
-.fp-passage-title { font-family: 'Fredoka', sans-serif; font-size: 13pt; margin: 0 0 1.6mm; color: var(--fp-band); }
+.fp-passage-title { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 13pt; margin: 0 0 1.6mm; color: var(--fp-band); }
 .fp-passage-line { margin: 0 0 1.6mm; font-size: 11.6pt; line-height: 1.75; font-family: 'Comic Neue', 'Nunito', sans-serif; }
 .fp-vocab { margin: 0 0 2mm; }
-.fp-vocab h5 { font-family: 'Fredoka', sans-serif; font-size: 9.6pt; margin: 0 0 1mm; color: var(--fp-band); text-transform: uppercase; letter-spacing: .05em; }
+.fp-vocab h5 { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 9.6pt; margin: 0 0 1mm; color: var(--fp-band); text-transform: uppercase; letter-spacing: .05em; }
 .fp-vocab ol { margin: 0; padding-left: 5mm; font-size: 9.6pt; }
 
 /* ── checklists / rewards ──────────────────────────── */
@@ -228,18 +228,18 @@
 .fp-heart { font-size: 6mm; line-height: 1; color: #FF69B4; border: .5mm solid #FF69B4; border-radius: 1mm; padding: 0 1.2mm; }
 .fp-checkfoot { margin: 2mm 0 0; font-size: 9.4pt; font-weight: 800; color: #475569; }
 .fp-reward { background: linear-gradient(135deg, #fff9e8, #fff); }
-.fp-praise p { margin: 0 0 1mm; font-family: 'Patrick Hand', cursive; font-size: 12pt; color: var(--fp-band); }
+.fp-praise p { margin: 0 0 1mm; font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 12pt; color: var(--fp-band); }
 .fp-stickerrow { display: flex; gap: 2mm; margin-top: 1.5mm; }
 .fp-stickerslot { flex: 1 1 auto; height: 13mm; border: .6mm dotted #cbd5e1; border-radius: 3mm; display: inline-flex; align-items: center; justify-content: center; background: #fff; }
 .fp-signrow { display: flex; gap: 6mm; margin-top: 3mm; }
 .fp-signline { flex: 1 1 auto; }
-.fp-signname { display: block; min-height: 6mm; font-family: 'Patrick Hand', cursive; font-size: 10.5pt; }
+.fp-signname { display: block; min-height: 6mm; font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 10.5pt; }
 .fp-signrule { display: block; border-bottom: .5mm solid #334155; }
 .fp-signlabel { display: block; font-size: 8.4pt; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #475569; }
 
 /* ── callouts ───────────────────────────────────────── */
 .fp-callout { position: relative; overflow: hidden; border-left: 2.4mm solid var(--fp-primary); border-radius: 0 3mm 3mm 0; padding: 2mm 2.6mm; margin: 0 0 3.2mm; break-inside: avoid; }
-.fp-callout h4 { font-family: 'Fredoka', sans-serif; font-size: 10.4pt; margin: 0 0 1mm; color: var(--fp-band); position: relative; }
+.fp-callout h4 { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 10.4pt; margin: 0 0 1mm; color: var(--fp-band); position: relative; }
 .fp-callout h4 em { font-style: normal; color: #9b59b6; margin-left: 1.5mm; }
 .fp-callout ul { margin: 0; padding-left: 4.6mm; font-size: 9.2pt; color: #334155; position: relative; }
 .fp-callout li { margin-bottom: .6mm; }
@@ -248,34 +248,34 @@
 .fp-cert { position: relative; text-align: center; padding: 6mm 4mm 4mm; }
 .fp-cert-medal { position: absolute; top: -3mm; right: -1mm; width: 34mm; height: 34mm; overflow: hidden; border-radius: 50%; box-shadow: 0 2mm 6mm rgba(15,42,74,.16); }
 .fp-cert-medal img { width: 100%; display: block; }
-.fp-cert-eyebrow { font-family: 'Fredoka', sans-serif; text-transform: uppercase; letter-spacing: .22em; font-size: 8.6pt; color: var(--fp-band); margin: 0; }
-.fp-cert-award { font-family: 'Fredoka', sans-serif; font-size: 26pt; line-height: 1.1; margin: 2mm 0 1mm; color: #1e3a5f; }
-.fp-cert-ribbon { display: inline-block; font-family: 'Fredoka', sans-serif; font-size: 9.4pt; font-weight: 700; color: #fff; padding: 1.2mm 4mm; border-radius: 99mm; margin: 0 0 3mm; }
+.fp-cert-eyebrow { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; text-transform: uppercase; letter-spacing: .22em; font-size: 8.6pt; color: var(--fp-band); margin: 0; }
+.fp-cert-award { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 26pt; line-height: 1.1; margin: 2mm 0 1mm; color: #1e3a5f; }
+.fp-cert-ribbon { display: inline-block; font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 9.4pt; font-weight: 700; color: #fff; padding: 1.2mm 4mm; border-radius: 99mm; margin: 0 0 3mm; }
 .fp-cert-line { font-size: 12pt; margin: 0 0 2mm; color: #334155; }
-.fp-learner { display: block; font-family: 'Patrick Hand', cursive; font-size: 26pt; color: var(--fp-band); border-bottom: .6mm dashed var(--fp-primary); padding: 0 4mm 1mm; margin: 1mm auto 3mm; }
+.fp-learner { display: block; font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 26pt; color: var(--fp-band); border-bottom: .6mm dashed var(--fp-primary); padding: 0 4mm 1mm; margin: 1mm auto 3mm; }
 .fp-cert-reason { display: inline-flex; flex-direction: column; gap: 1mm; border: .55mm dashed var(--fp-primary); border-radius: 4mm; padding: 2.4mm 4mm; background: var(--fp-soft); margin-bottom: 3mm; }
-.fp-cert-reason-label { font-family: 'Fredoka', sans-serif; font-size: 8pt; text-transform: uppercase; letter-spacing: .12em; color: var(--fp-band); }
-.fp-cert-reason-text { font-family: 'Patrick Hand', cursive; font-size: 14pt; color: #1f2937; }
+.fp-cert-reason-label { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8pt; text-transform: uppercase; letter-spacing: .12em; color: var(--fp-band); }
+.fp-cert-reason-text { font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 14pt; color: #1f2937; }
 .fp-cert-meta { display: flex; justify-content: center; flex-wrap: wrap; gap: 4mm; font-size: 9.4pt; margin: 0 0 2mm; }
-.fp-cert-meta b { font-family: 'Fredoka', sans-serif; color: var(--fp-band); display: block; font-size: 8pt; text-transform: uppercase; letter-spacing: .06em; }
+.fp-cert-meta b { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; color: var(--fp-band); display: block; font-size: 8pt; text-transform: uppercase; letter-spacing: .06em; }
 .fp-cert-stickers { display: flex; justify-content: center; gap: 2mm; margin: 1mm 0 2mm; }
-.fp-cert-message { font-family: 'Patrick Hand', cursive; font-size: 13pt; color: #475569; margin: 1mm 0 4mm; }
+.fp-cert-message { font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 13pt; color: #475569; margin: 1mm 0 4mm; }
 .fp-cert-signs { margin-top: 6mm; text-align: left; }
 .fp-cert-signs .fp-signblock { flex: 1 1 0; }
 
 /* ── memo ───────────────────────────────────────────── */
 .fp-memo { border: .55mm solid #bbf7d0; background: #f2fdf5; border-radius: 4mm; padding: 3mm; break-inside: avoid; margin-top: 3mm; }
 .fp-memo-head { display: flex; align-items: center; justify-content: space-between; gap: 3mm; margin-bottom: 1.6mm; }
-.fp-memo-head h3 { font-family: 'Fredoka', sans-serif; font-size: 12pt; margin: 0; color: #15803d; }
-.fp-memo-total { font-family: 'Fredoka', sans-serif; font-size: 9.4pt; background: #16a34a; color: #fff; border-radius: 99mm; padding: .8mm 3mm; }
+.fp-memo-head h3 { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 12pt; margin: 0; color: #15803d; }
+.fp-memo-total { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 9.4pt; background: #16a34a; color: #fff; border-radius: 99mm; padding: .8mm 3mm; }
 .fp-memo-table { font-size: 9pt; background: #fff; }
-.fp-memo-ref { width: 14mm; font-family: 'Fredoka', sans-serif; color: #15803d; font-weight: 700; }
+.fp-memo-ref { width: 14mm; font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; color: #15803d; font-weight: 700; }
 .fp-memo-marks { width: 16mm; text-align: center; }
 .fp-memo-table i { color: #64748b; }
 
 /* ── footer ─────────────────────────────────────────── */
 .fp-foot { margin-top: 4mm; }
-.fp-foot-text { display: flex; justify-content: space-between; align-items: center; gap: 3mm; font-size: 7.4pt; color: #64748b; margin: 1mm 0 0; font-family: 'Fredoka', sans-serif; letter-spacing: .02em; flex-wrap: wrap; }
+.fp-foot-text { display: flex; justify-content: space-between; align-items: center; gap: 3mm; font-size: 7.4pt; color: #64748b; margin: 1mm 0 0; font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; letter-spacing: .02em; flex-wrap: wrap; }
 .fp-foot-text b { color: #1e3a5f; }
 .fp-scall-top { transform: rotate(180deg); margin-bottom: -1mm; }
 
@@ -317,7 +317,7 @@
 </head>
 <body>
 <div class="fp-toolbar fp-noprint">
-  <h2>Brilliant Effort &amp; Improvement Award — 2 × A4 at 100 % scale · print in colour</h2>
+  <h2>Brilliant Effort &amp; Improvement Award — ≈2 × A4 at 100 % scale · print in colour</h2>
   <div>
     <button class="fp-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
     <a class="fp-btn alt" href="index.html">📚 All templates</a>

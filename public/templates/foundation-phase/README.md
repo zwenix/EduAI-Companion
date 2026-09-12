@@ -1,6 +1,6 @@
 # CAPS Foundation Phase Printable Pack (Grade R–3)
 
-Generated 11 September 2026 by `npx tsx scripts/build-foundation-template-pack.ts`.
+Generated 12 September 2026 by `npx tsx scripts/build-foundation-template-pack.ts`.
 Source of truth: `src/lib/templates/foundation/` — edit the data there and re-run; never hand-edit the HTML in this folder.
 
 **28 templates** · 🏆 6 awards · ✏️ 10 worksheets · 🎲 6 classroom exercises · 🎒 6 homework · 21 with a printed memo.
