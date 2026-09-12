@@ -135,13 +135,53 @@ const geminiAi = new Proxy({} as GoogleGenAI, {
   }
 });
 
-const generateContentWithFallback = async (options: { model?: string, contents: any, config?: any }) => {
-  const modelsToTry = cachedWorkingModel 
-    ? [cachedWorkingModel, "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
-    : ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
-  
+// The frozen Gemini fallback chain (AGENTS.md §1 — order must never change).
+const GEMINI_MODEL_CHAIN = [
+  "gemini-3.8-flash",
+  "gemini-3.7-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite",
+  "gemini-2.5-flash",
+];
+
+// When EVERY candidate just failed (e.g. a global Google "high demand" 503
+// spike), stop preferring the previously-cached model for a short window so
+// the next request restarts cleanly at the top of the frozen chain instead of
+// re-validating a model that is currently failing.
+let cachedWorkingModelFailedAt = 0;
+const WORKING_MODEL_FAILURE_WINDOW_MS = 60000;
+
+// Gentle escalation between candidates: when Google answers 503/429 ("high
+// demand" / rate limited), hammering the next candidate instantly burns the
+// whole chain in ~1s and the user sees "Generation error". A short, capped
+// pause gives the spike time to clear and lets one of the later candidates
+// actually answer.
+const geminiCandidateBackoffMs = (candidateIndex: number, err: any): number => {
+  const status = err?.status || err?.response?.status || err?.code;
+  if (status === 503 || status === 429) {
+    return Math.min(2000, 400 * (candidateIndex + 1));
+  }
+  return 0;
+};
+
+const buildGeminiModelsToTry = (): string[] => {
+  const preferCached = !!cachedWorkingModel &&
+    (Date.now() - cachedWorkingModelFailedAt > WORKING_MODEL_FAILURE_WINDOW_MS);
+  const chain = preferCached && cachedWorkingModel
+    ? [cachedWorkingModel, ...GEMINI_MODEL_CHAIN]
+    : [...GEMINI_MODEL_CHAIN];
+  // De-duplicate while preserving order (cached model is always in the chain).
+  return [...new Set(chain)];
+};
+
+const geminiGenerateWithFallback = async (options: { model?: string, contents: any, config?: any }) => {
+  const modelsToTry = buildGeminiModelsToTry();
+
   let lastError: any = null;
-  for (const candidate of modelsToTry) {
+  for (let i = 0; i < modelsToTry.length; i++) {
+    const candidate = modelsToTry[i];
     try {
       const actualOptions = {
         ...options,
@@ -154,23 +194,28 @@ const generateContentWithFallback = async (options: { model?: string, contents: 
       const result = await geminiAi.models.generateContent(actualOptions);
       if (result) {
         cachedWorkingModel = candidate; // Cache successfully validated model
+        cachedWorkingModelFailedAt = 0;
         return result;
       }
     } catch (err: any) {
       lastError = err;
       console.info(`Gemini candidate model '${candidate}' is currently unavailable (${err.message}). Trying alternative...`);
+      const waitMs = geminiCandidateBackoffMs(i, err);
+      if (waitMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+      }
     }
   }
+  cachedWorkingModelFailedAt = Date.now();
   throw lastError || new Error("All candidate Gemini models were unavailable.");
 };
 
-const generateContentStreamWithFallback = async (options: { model?: string, contents: any, config?: any }) => {
-  const modelsToTry = cachedWorkingModel 
-    ? [cachedWorkingModel, "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
-    : ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
-  
+const geminiStreamWithFallback = async (options: { model?: string, contents: any, config?: any }) => {
+  const modelsToTry = buildGeminiModelsToTry();
+
   let lastError: any = null;
-  for (const candidate of modelsToTry) {
+  for (let i = 0; i < modelsToTry.length; i++) {
+    const candidate = modelsToTry[i];
     try {
       const actualOptions = {
         ...options,
@@ -183,18 +228,28 @@ const generateContentStreamWithFallback = async (options: { model?: string, cont
       const streamResult = await geminiAi.models.generateContentStream(actualOptions);
       if (streamResult) {
         cachedWorkingModel = candidate;
+        cachedWorkingModelFailedAt = 0;
         return streamResult;
       }
     } catch (err: any) {
       lastError = err;
       console.info(`Gemini candidate streaming model '${candidate}' is currently unavailable (${err.message}). Trying alternative...`);
+      const waitMs = geminiCandidateBackoffMs(i, err);
+      if (waitMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+      }
     }
   }
+  cachedWorkingModelFailedAt = Date.now();
   throw lastError || new Error("All candidate Gemini streaming models were unavailable.");
 };
 
 
 const app = express();
+
+// Behind serverless/proxy hosts (Vercel, Cloud Run) so req.protocol/secure
+// cookies reflect the original https request instead of the internal hop.
+app.set("trust proxy", 1);
 
 const MASTER_SYSTEM_PROMPT = `
 You are an expert South African CAPS-aligned educational content designer and senior graphic designer specializing in primary and high school learning materials for South African classrooms.
@@ -483,6 +538,13 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     cachedAlibabaClient = new OpenAI({
       apiKey: currentKey || "dummy",
       baseURL: resolveAlibabaBaseURL(),
+      // Fail fast when the upstream gateway hangs (connection errors / 504s).
+      // Serverless hosts (e.g. Vercel, 60s cap) kill the whole function if we
+      // wait on a stuck upstream, which prevented the built-in Gemini fallback
+      // from ever running. The timer is cleared once response headers arrive,
+      // so legitimate long generations and streaming are unaffected.
+      timeout: 35000,
+      maxRetries: 0,
     });
     return cachedAlibabaClient;
   }
@@ -534,6 +596,103 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     res.json({ status: "ok" });
   });
 
+  // --- Web Push (VAPID) Notifications ---
+  // Configure VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY (and optionally
+  // VAPID_SUBJECT) as env vars to enable push. Generate a pair with:
+  //   npx web-push generate-vapid-keys
+  // When they are not configured we answer 200 with { enabled: false } so the
+  // client NotificationManager stays silent instead of logging 404s.
+  const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || "";
+  const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || "";
+  const vapidSubject = process.env.VAPID_SUBJECT || "mailto:admin@eduai-companion.app";
+
+  interface PushSubscriptionEntry {
+    subscription: any;
+    userId?: string;
+    createdAt: string;
+  }
+  const pushSubscriptions = new Map<string, PushSubscriptionEntry>();
+
+  // Loaded lazily so the server still boots in environments where the
+  // optional dependency is not installed.
+  const getWebPush = async (): Promise<any | null> => {
+    try {
+      const mod: any = await import("web-push");
+      const webpush = mod.default || mod;
+      if (vapidPublicKey && vapidPrivateKey) {
+        webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+      }
+      return webpush;
+    } catch {
+      return null;
+    }
+  };
+
+  const sendPushToEntry = async (webpush: any, entry: PushSubscriptionEntry, payload: any) => {
+    try {
+      await webpush.sendNotification(entry.subscription, JSON.stringify(payload));
+    } catch (err: any) {
+      const statusCode = err?.statusCode;
+      // 404/410 = subscription expired or revoked on the client side — drop it.
+      if (statusCode === 404 || statusCode === 410) {
+        for (const [key, value] of pushSubscriptions.entries()) {
+          if (value === entry) pushSubscriptions.delete(key);
+        }
+      }
+      throw err;
+    }
+  };
+
+  app.get("/api/notifications/vapid-public-key", (req, res) => {
+    if (!vapidPublicKey || !vapidPrivateKey) {
+      return res.json({ enabled: false, publicKey: null });
+    }
+    return res.json({ enabled: true, publicKey: vapidPublicKey });
+  });
+
+  app.post("/api/notifications/subscribe", async (req, res) => {
+    try {
+      const { subscription, userId } = req.body || {};
+      if (!subscription || !subscription.endpoint) {
+        return res.status(400).json({ error: "A valid push subscription is required." });
+      }
+      pushSubscriptions.set(subscription.endpoint, {
+        subscription,
+        userId,
+        createdAt: new Date().toISOString(),
+      });
+      return res.status(201).json({ ok: true, stored: true });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || "Failed to store subscription." });
+    }
+  });
+
+  app.post("/api/notifications/unsubscribe", async (req, res) => {
+    const { subscription } = req.body || {};
+    if (subscription?.endpoint) {
+      pushSubscriptions.delete(subscription.endpoint);
+    }
+    return res.json({ ok: true });
+  });
+
+  app.post("/api/notifications/test-send", async (req, res) => {
+    if (!vapidPublicKey || !vapidPrivateKey) {
+      return res.status(503).json({ error: "Web push is not configured on this deployment (missing VAPID keys)." });
+    }
+    const webpush = await getWebPush();
+    if (!webpush) {
+      return res.status(503).json({ error: "The web-push package is not installed on this deployment." });
+    }
+
+    const { title = "EduAI Companion", body = "You have a new notification!", url = "/", userId } = req.body || {};
+    const targets = [...pushSubscriptions.values()].filter((entry) => !userId || entry.userId === userId);
+    const results = await Promise.allSettled(
+      targets.map((entry) => sendPushToEntry(webpush, entry, { title, body, url }))
+    );
+    const sent = results.filter((r) => r.status === "fulfilled").length;
+    return res.json({ ok: true, sent, total: targets.length });
+  });
+
   // Generic content generation proxy for OpenAI-compatible APIs
   app.post("/api/ai/:provider", async (req, res) => {
     const { provider } = req.params;
@@ -582,71 +741,37 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         const systemMessages = messages?.filter((m: any) => m.role === 'system');
         const systemInstruction = systemMessages?.map((m: any) => m.content).join("\n\n");
 
-        const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
-          : ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
-        let lastError: any = null;
-        let response: any = null;
+        // Delegate to the shared module-level helpers (same frozen candidate
+        // chain, plus retry backoff + cached-model failure window in one place).
+        // maxOutputTokens matches the 16384 budget used for the alternative
+        // engines so Gemini fallback content is not truncated mid-JSON.
+        const fallbackOptions = {
+          contents: contentsList.length > 0 ? contentsList : [{ role: 'user', parts: [{ text: "Hello" }] }],
+          config: {
+            maxOutputTokens: 16384,
+            ...(systemInstruction ? { systemInstruction } : {})
+          }
+        };
 
         if (stream) {
-          for (const candidate of modelsToTry) {
-            try {
-              const streamResult = await geminiAi.models.generateContentStream({
-                model: candidate,
-                contents: contentsList.length > 0 ? contentsList : [{ role: 'user', parts: [{ text: "Hello" }] }],
-                config: {
-                  maxOutputTokens: 8192,
-                  ...(systemInstruction ? { systemInstruction } : {})
-                }
-              });
-              if (streamResult) {
-                cachedWorkingModel = candidate;
-                res.setHeader("Content-Type", "text/event-stream");
-                res.setHeader("Cache-Control", "no-cache");
-                res.setHeader("Connection", "keep-alive");
-                if (res.flushHeaders) res.flushHeaders();
-                let fullText = "";
-                for await (const chunk of streamResult) {
-                  const chunkText = chunk.text || "";
-                  if (chunkText) {
-                    fullText += chunkText;
-                    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: chunkText } }] })}\n\n`);
-                  }
-                }
-                res.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }], done: true, final: fullText })}\n\n`);
-                return res.end();
-              }
-            } catch (err: any) {
-              lastError = err;
-              console.warn(`Gemini fallback streaming model '${candidate}' is unavailable, trying next candidate...`);
+          const streamResult = await geminiStreamWithFallback(fallbackOptions);
+          res.setHeader("Content-Type", "text/event-stream");
+          res.setHeader("Cache-Control", "no-cache");
+          res.setHeader("Connection", "keep-alive");
+          if (res.flushHeaders) res.flushHeaders();
+          let fullText = "";
+          for await (const chunk of streamResult) {
+            const chunkText = chunk.text || "";
+            if (chunkText) {
+              fullText += chunkText;
+              res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: chunkText } }] })}\n\n`);
             }
           }
-          throw lastError || new Error("All Gemini models failed for streaming.");
+          res.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }], done: true, final: fullText })}\n\n`);
+          return res.end();
         }
 
-        for (const candidate of modelsToTry) {
-          try {
-            response = await geminiAi.models.generateContent({
-              model: candidate,
-              contents: contentsList.length > 0 ? contentsList : [{ role: 'user', parts: [{ text: "Hello" }] }],
-              config: {
-                maxOutputTokens: 8192,
-                ...(systemInstruction ? { systemInstruction } : {})
-              }
-            });
-            if (response) {
-              cachedWorkingModel = candidate;
-              break;
-            }
-          } catch (err: any) {
-            lastError = err;
-            console.warn(`Gemini fallback model '${candidate}' is unavailable, trying next candidate...`);
-          }
-        }
-
-        if (!response) {
-          throw lastError || new Error("All Gemini models failed.");
-        }
+        const response = await geminiGenerateWithFallback(fallbackOptions);
 
         const text = response.text || "";
         return res.json({
@@ -707,47 +832,68 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       finalModel = undefined;
     }
 
-    if (!finalModel) {
-      finalModel = (
-        provider === "alibaba-qwen" ? "qwen3.8-max" :
-        provider === "nvidia-nemotron-nano" ? "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning" :
-        provider === "nvidia-nemotron-ultra" ? "nvidia/nemotron-ultra-550b-a55b" :
-        provider === "nvidia-nemotron-lightning" ? "nvidia/nemotron-3.5-lightning-30b-a3b" :
-        (provider === "nvidia-nemotron" || provider === "nvidia-nemotron-ultra-legacy" || provider === "groq-qwen") ? "qwen3.8-max" :
-        ""
-      );
-    }
+    // Default model slug per provider id (exact models — see AGENTS.md §1).
+    const defaultModelFor = (p: string) => (
+      p === "alibaba-qwen" ? "qwen3.8-max" :
+      p === "nvidia-nemotron-nano" ? "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning" :
+      p === "nvidia-nemotron-ultra" ? "nvidia/nemotron-ultra-550b-a55b" :
+      p === "nvidia-nemotron-lightning" ? "nvidia/nemotron-3.5-lightning-30b-a3b" :
+      (p === "nvidia-nemotron" || p === "nvidia-nemotron-ultra-legacy" || p === "groq-qwen") ? "qwen3.8-max" :
+      ""
+    );
 
-    try {
+    // When one alternative engine is down (gateway timeout / 5xx / rate
+    // limit), try this sibling engine once before spending the remaining
+    // time budget on the Gemini fallback.
+    const alternativeProviderFor = (p: string) => (
+      p === "nvidia-nemotron-ultra" ? "nvidia-nemotron-lightning" :
+      p === "nvidia-nemotron-lightning" ? "nvidia-nemotron-nano" :
+      p === "nvidia-nemotron-nano" ? "alibaba-qwen" :
+      p === "alibaba-qwen" ? "nvidia-nemotron-lightning" :
+      ""
+    );
+
+    const clientFor = (p: string): OpenAI => (
+      (p === "nvidia-nemotron-nano" || p === "nvidia-nemotron-ultra" || p === "nvidia-nemotron-lightning")
+        ? nvidia
+        : alibaba
+    );
+
+    // Sends the request to one alternative provider and writes the response
+    // (streaming or JSON) to `res`. Throws on failure.
+    const runUpstreamProvider = async (targetProvider: string) => {
+      const targetClient = clientFor(targetProvider);
+      // A caller-supplied model is only forwarded to the originally requested
+      // provider; sibling engines always use their own exact default slug.
+      const targetModel = targetProvider === provider
+        ? (finalModel || defaultModelFor(targetProvider))
+        : defaultModelFor(targetProvider);
+
       const payload: any = {
-        model: finalModel,
+        model: targetModel,
         messages,
         temperature,
       };
-      
+
       // JSON mode is handled by prompt instruction
-      
+
       // Set max_tokens sensibly per provider to avoid credit limit 402s / truncation
       const requestedMaxTokens = max_tokens || max_completion_tokens;
-      if (provider === "nvidia-nemotron-nano" || provider === "nvidia-nemotron-ultra" || provider === "nvidia-nemotron-lightning") {
+      if (targetProvider === "nvidia-nemotron-nano" || targetProvider === "nvidia-nemotron-ultra" || targetProvider === "nvidia-nemotron-lightning") {
         // NVIDIA NIM Nemotron models
         payload.max_tokens = requestedMaxTokens || 16384;
         payload.temperature = 0.7;
         payload.top_p = 0.95;
-      } else if (provider === "alibaba-qwen" || provider === "nvidia-nemotron" || provider === "nvidia-nemotron-ultra-legacy" || provider === "groq-qwen") {
-        // Qwen 3.8 Max (Alibaba Model Studio)
+      } else {
+        // Qwen 3.8 Max (Alibaba Model Studio) / legacy ids
         payload.max_tokens = requestedMaxTokens || 16384;
         payload.temperature = 0.7;
         payload.top_p = 0.95;
-      } else if (requestedMaxTokens) {
-        payload.max_tokens = requestedMaxTokens;
-      } else {
-        payload.max_tokens = 4000;
       }
 
       if (stream) {
         payload.stream = true;
-        const completion = await client.chat.completions.create(payload);
+        const completion = await targetClient.chat.completions.create(payload);
         res.setHeader("Content-Type", "text/event-stream");
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Connection", "keep-alive");
@@ -763,9 +909,14 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         res.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }], done: true, final: fullText })}\n\n`);
         return res.end();
       } else {
-        const response = await client.chat.completions.create(payload);
-        res.json(response);
+        const response = await targetClient.chat.completions.create(payload);
+        return res.json(response);
       }
+    };
+
+    const upstreamStartedAt = Date.now();
+    try {
+      return await runUpstreamProvider(provider);
     } catch (error: any) {
       const status = error.status || 500;
       if (status === 402 || (error.message && String(error.message).includes("afford"))) {
@@ -775,6 +926,25 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       } else {
         console.log(`[AI Routing] ${provider} encountered an issue, routing to fallback engine.`);
       }
+
+      // Gateway-style failures (upstream 5xx, rate limits, DNS / connection
+      // errors) are often isolated to one engine. If the first attempt failed
+      // fast enough that the serverless time budget can still fit another
+      // attempt, try one sibling engine before Gemini.
+      const elapsedMs = Date.now() - upstreamStartedAt;
+      const rawErrMsg = String(error.message || "");
+      const isGatewayFailure = [500, 502, 503, 504, 522, 524, 429].includes(status) ||
+        /timeout|eai_again|enotfound|econn(reset|refused|aborted)|fetch failed|connection error|connection closed|socket disconnected|network/i.test(rawErrMsg);
+      const alternative = alternativeProviderFor(provider);
+      if (alternative && isGatewayFailure && elapsedMs < 20000) {
+        try {
+          console.log(`[AI Routing] ${provider} unavailable (${status}) after ${elapsedMs}ms — trying alternative engine ${alternative} before Gemini.`);
+          return await runUpstreamProvider(alternative);
+        } catch (altError: any) {
+          console.log(`[AI Routing] Alternative engine ${alternative} also unavailable (${altError.status || 500}) — routing to Gemini.`);
+        }
+      }
+
       return await executeGeminiFallback(`${provider} API status ${status}`);
     }
   });
@@ -1393,7 +1563,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       } catch (err: any) {
         console.warn(`SA package text generation via ${provider} failed (${err.message}), falling back to Gemini...`);
         usedProvider = "gemini";
-        const geminiResponse = await generateContentWithFallback({
+        const geminiResponse = await geminiGenerateWithFallback({
           contents: [
             { role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }
           ],
@@ -1491,7 +1661,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
         Make sure your recommendations are encouraging and specifically reference their low/high subjects. Align suggestions with South African CAPS-standards (e.g. SBA, formative tests). Do not format the response with markdown formatting (no backticks, no text like 'json' or explanations), only output a parseable JSON block.
       `;
-      const response = await generateContentWithFallback({
+      const response = await geminiGenerateWithFallback({
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -1518,63 +1688,14 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     try {
       const model = "gemini-3.8-flash";
 
-      const generateContentWithFallback = async (options: { model: string, contents: any, config?: any }) => {
-        const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
-          : ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
-        
-        let lastError: any = null;
-        for (const candidate of modelsToTry) {
-          try {
-            const actualOptions = {
-              ...options,
-              model: candidate,
-              config: {
-                maxOutputTokens: 8192,
-                ...(options.config || {})
-              }
-            };
-            const result = await geminiAi.models.generateContent(actualOptions);
-            if (result) {
-              cachedWorkingModel = candidate; // Cache successfully validated model
-              return result;
-            }
-          } catch (err: any) {
-            lastError = err;
-            console.info(`Gemini candidate model '${candidate}' is currently unavailable. trying alternative...`);
-          }
-        }
-        throw lastError || new Error("All candidate Gemini models were unavailable.");
-      };
+      // Delegate to the shared module-level helpers so the retry backoff and
+      // cached-model failure window live in exactly one place (the frozen
+      // candidate chain is identical — see AGENTS.md §1).
+      const generateContentWithFallback = async (options: { model: string, contents: any, config?: any }) =>
+        geminiGenerateWithFallback(options);
 
-      const generateContentStreamWithFallback = async (options: { model: string, contents: any, config?: any }) => {
-        const modelsToTry = cachedWorkingModel 
-          ? [cachedWorkingModel, "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
-          : ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
-        
-        let lastError: any = null;
-        for (const candidate of modelsToTry) {
-          try {
-            const actualOptions = {
-              ...options,
-              model: candidate,
-              config: {
-                maxOutputTokens: 8192,
-                ...(options.config || {})
-              }
-            };
-            const streamResult = await geminiAi.models.generateContentStream(actualOptions);
-            if (streamResult) {
-              cachedWorkingModel = candidate;
-              return streamResult;
-            }
-          } catch (err: any) {
-            lastError = err;
-            console.info(`Gemini candidate model '${candidate}' is currently unavailable for streaming. trying alternative...`);
-          }
-        }
-        throw lastError || new Error("All candidate Gemini models were unavailable for streaming.");
-      };
+      const generateContentStreamWithFallback = async (options: { model: string, contents: any, config?: any }) =>
+        geminiStreamWithFallback(options);
 
       const handleStreamResponse = async (streamResult: any) => {
         res.setHeader("Content-Type", "text/event-stream");
