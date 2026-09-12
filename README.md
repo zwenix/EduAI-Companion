@@ -39,6 +39,7 @@ EduAI Companion is packed with features designed for every user role:
 | 🏫 **Class & Student Management** | Teachers can create classes, manage student rosters, and view all class-related activities from a central dashboard. | Teachers |
 | 📊 **Progress Reports** | Visualize student performance over time with charts and detailed breakdowns of assignment scores and feedback. | Teachers, Parents, Students |
 | 📢 **Communication Portal** | Teachers can post announcements to an entire class, ensuring parents and students stay informed. | Teachers, Parents, Students |
+| 🎨 **CAPS Template Studio (Grade R–3)** | 28 ready-to-print Foundation Phase documents — awards for good academic achievement, worksheets, classroom exercises and homework — bright, cartoon-styled, bilingual-label ready, and printable offline. Lives in **Teacher's Toolbox → CAPS Template Studio**. | Teachers, Parents |
 
 ## 🛠️ Tech Stack
 
@@ -96,6 +97,12 @@ The application will be available at `http://localhost:3000`.
 - `npm run start`: Starts the production server.
 - `npm run lint`: Lints the codebase for potential errors.
 - `npm run genkit:dev`: Starts the Genkit development UI for testing AI flows.
+
+## 📚 Related documentation
+
+- **[FOUNDATION_PHASE_TEMPLATES.md](FOUNDATION_PHASE_TEMPLATES.md)** — the Grade R–3 printable template library (awards, worksheets, classroom & homework exercises), how to print it, and how to add a template.
+- [CAPS_LESSON_PLAN_GUIDE.md](CAPS_LESSON_PLAN_GUIDE.md) — lesson-plan generation for Grades 10–12.
+- [DESIGN.md](DESIGN.md) — the design system, colour tokens and the A4 print blueprint.
 
 ## 📂 Project Structure
 
