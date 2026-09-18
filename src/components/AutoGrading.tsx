@@ -9,6 +9,7 @@ import { db, auth } from '../lib/firebase';
 import { collection, query, onSnapshot, where, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 
 import { printContent, downloadAsHTML, downloadAsPDF } from '../lib/printUtils';
+import { wrapWithTemplate } from '../lib/contentTemplate';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
@@ -100,6 +101,17 @@ export default function AutoGrading() {
   const [labReports, setLabReports] = useState<any[]>([]);
   const [archiveSearchQuery, setArchiveSearchQuery] = useState('');
   const [selectedReportDetail, setSelectedReportDetail] = useState<any | null>(null);
+  const selectedIlpStudent = dbStudents.find((student) => student.id === selectedIlpStudentId);
+  const ilpTitle = `Individualized Learning Plan - ${selectedIlpStudent?.name || 'Learner'}`;
+  const ilpMarkup = ilpResult
+    ? wrapWithTemplate(ilpResult, {
+        title: ilpTitle,
+        subject: 'Individualized Learning Plan',
+        grade: selectedIlpStudent?.grade,
+        term: 'Term 1',
+        contentType: 'SIAS Individualized Learning Plan'
+      })
+    : '';
 
   const handleReattributeReport = async (repId: string, stuId: string) => {
     try {
@@ -2499,19 +2511,19 @@ export default function AutoGrading() {
                   </div>
                   <div className="flex gap-2">
                     <button 
-                      onClick={() => downloadAsPDF(null, `IDP_${dbStudents.find(s => s.id === selectedIlpStudentId)?.name}.pdf`)}
+                      onClick={() => void downloadAsPDF(ilpMarkup, `IDP_${selectedIlpStudent?.name || 'Learner'}.pdf`, { title: ilpTitle, subject: 'Individualized Learning Plan', grade: selectedIlpStudent?.grade, contentType: 'SIAS Individualized Learning Plan' })}
                       className="bg-slate-800 hover:bg-slate-700 p-3 rounded-xl text-slate-200 transition-colors cursor-pointer"
                     >
                       <Download size={18} />
                     </button>
-                    <button className="bg-slate-800 hover:bg-slate-700 p-3 rounded-xl text-slate-200 transition-colors cursor-pointer">
+                    <button onClick={() => printContent(ilpMarkup, ilpTitle, { title: ilpTitle, subject: 'Individualized Learning Plan', grade: selectedIlpStudent?.grade, contentType: 'SIAS Individualized Learning Plan' })} className="bg-slate-800 hover:bg-slate-700 p-3 rounded-xl text-slate-200 transition-colors cursor-pointer">
                       <Printer size={18} />
                     </button>
                   </div>
                 </div>
 
                 <div className="prose prose-invert prose-emerald max-w-none prose-sm sm:prose-base bg-slate-950/30 rounded-2xl p-6 border border-slate-800 overflow-y-auto max-h-[600px] custom-scrollbar">
-                  <div dangerouslySetInnerHTML={{ __html: ilpResult }} />
+                  <div dangerouslySetInnerHTML={{ __html: ilpMarkup }} />
                 </div>
               </motion.div>
             )}

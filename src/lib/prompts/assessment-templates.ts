@@ -126,8 +126,8 @@ Generate a comprehensive assessment rubric with this professional structure:
         <p class="font-medium text-gray-900">Date: _______________</p>
       </div>
       <div class="text-right">
-        <p class="text-sm text-gray-500">EduAI Companion • CAPS Aligned</p>
-        <p class="text-xs text-gray-400 mt-1">eduai-companion.github.io</p>
+        <p class="text-sm text-gray-500">EduAI Companion • Curriculum aligned</p>
+        <p class="text-xs text-gray-400 mt-1">Host template branding is added after generation.</p>
       </div>
     </div>
   </div>
@@ -241,9 +241,7 @@ Generate a CAPS-aligned test/memorandum with this exam-standard structure:
   \` : ''}
 
   <!-- FOOTER -->
-  <footer class="mt-12 pt-6 border-t border-gray-300 text-center text-sm text-gray-600">
-    <p>EduAI Companion • CAPS Aligned • www.eduai-companion.github.io</p>
-  </footer>
+  <!-- Host inserts the single compliance banner and exact canonical footer; do not emit a footer. -->
 
 </body>
 </html>
@@ -284,9 +282,7 @@ Generate a CAPS-aligned test/memorandum with this exam-standard structure:
     \`).join('')}
   </main>
 
-  <footer class="mt-12 pt-6 border-t border-gray-300 text-center text-sm text-gray-600">
-    <p>INTERNAL USE ONLY • EduAI Companion</p>
-  </footer>
+  <!-- Host inserts the single compliance banner and exact canonical footer; do not emit a footer. -->
 
 </body>
 </html>
@@ -422,10 +418,7 @@ Generate a learner progress tracking tool with this comprehensive structure:
   </section>
 
   <!-- FOOTER -->
-  <footer class="bg-gray-100 p-6 text-center text-sm text-gray-600">
-    <p class="font-medium">EduAI Companion • Progress Tracking Tool</p>
-    <p class="text-xs mt-1">Generated: \${new Date().toLocaleDateString('en-ZA')} • Review Date: \${reviewDate}</p>
-  </footer>
+  <!-- Host inserts the single compliance banner and exact canonical footer; do not emit a footer. -->
 
 </article>
 

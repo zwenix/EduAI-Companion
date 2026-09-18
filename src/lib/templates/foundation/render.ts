@@ -28,7 +28,8 @@ import {
     escapeHtml as esc,
 } from './art';
 import { renderBlock, type Ctx, type Theme } from './blocks';
-import { capsFooterLine, SUBJECT_ALLOCATION } from './caps';
+import { SUBJECT_ALLOCATION } from './caps';
+import { buildTemplateComplianceBannerHTML, buildTemplateHeaderHTML, EDUAI_TEMPLATE_FOOTER_LINE } from '../../contentTemplate';
 import { pair } from './labels';
 
 export const KIND_META = {
@@ -112,11 +113,14 @@ export const FP_CSS = `
 .fp-confetti { opacity: .5; }
 
 /* ── banner ─────────────────────────────────────────── */
-.fp-banner { position: relative; display: flex; align-items: flex-start; gap: 5mm; margin-bottom: 4mm; }
+/* Use the full printable page width for the designated content banner; the
+   negative margins consume the page padding without widening the A4 sheet. */
+.fp-banner { position: relative; display: flex; align-items: flex-start; gap: 5mm; width: calc(100% + 24mm); margin: 0 -12mm 4mm; padding: 4mm 5mm; box-sizing: border-box; border-radius: 0 0 5mm 5mm; background: linear-gradient(135deg, var(--fp-band, ${PALETTE.navy}) 0%, var(--fp-primary, ${PALETTE.cyan}) 100%); color: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.fp-page > .site-header { position: relative; margin-bottom: 3mm; border-radius: 2mm; }
 .fp-banner-text { flex: 1 1 auto; min-width: 0; }
-.fp-kicker { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--fp-band, ${PALETTE.navy}); margin: 0 0 1mm; }
-.fp-title { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 23pt; line-height: 1.06; font-weight: 700; color: var(--fp-band, ${PALETTE.navy}); margin: 0; letter-spacing: -.01em; }
-.fp-subtitle { font-size: 10.5pt; font-weight: 700; color: #334155; margin: 1.5mm 0 0; }
+.fp-kicker { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #fff; margin: 0 0 1mm; }
+.fp-title { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 23pt; line-height: 1.06; font-weight: 700; color: #fff; margin: 0; letter-spacing: -.01em; }
+.fp-subtitle { font-size: 10.5pt; font-weight: 700; color: rgba(255,255,255,.92); margin: 1.5mm 0 0; }
 .fp-art { display: block; flex: 0 0 auto; text-align: center; }
 .fp-float-left { float: none; }
 .fp-float-right { float: none; }
@@ -125,6 +129,21 @@ export const FP_CSS = `
 .fp-pill { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8.2pt; font-weight: 600; padding: 1.2mm 3mm; border-radius: 99mm; border: .5mm solid var(--fp-primary, ${PALETTE.cyan}); color: var(--fp-band, ${PALETTE.navy}); background: var(--fp-soft, #f6fbff); white-space: nowrap; }
 .fp-pill.caps { background: ${PALETTE.navy}; color: #fff; border-color: ${PALETTE.navy}; }
 .fp-pill.bloom { background: #fff; }
+.fp-page > .eduai-compliance-banner {
+  display: block;
+  width: calc(100% + 24mm) !important;
+  margin: 0 -12mm 4mm !important;
+  padding: 2.5mm 3mm;
+  border-radius: 0 0 3mm 3mm;
+  box-sizing: border-box;
+  background: linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);
+  color: #fff;
+  border: .3mm solid #93c5fd;
+  font: 700 8pt/1.45 'Nunito',system-ui,sans-serif;
+  overflow-wrap: anywhere;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
 
 /* ── learner header (name / date / marks) ─────────────── */
 .fp-learnerstrip { display: flex; align-items: stretch; gap: 3mm; margin: 0 0 4mm; }
@@ -402,7 +421,7 @@ const taskHeight = (items: Array<{ lines?: number; options?: string[]; parts?: s
 
 export const estimatePageHeightMm = (tpl: FoundationTemplate, opts?: { includeMemo?: boolean }): number => {
     const isAward = tpl.kind === 'award';
-    let mm = 30 /* banner */ + 16 /* name / date / score strip */ + (isAward ? 18 : 34) /* caps strip */ + 14 /* footer */;
+    let mm = 8 /* compact header */ + 30 /* two-colour content banner */ + 14 /* compliance banner */ + 16 /* name / date / score strip */ + (isAward ? 18 : 34) /* caps strip */ + 14 /* footer */;
     const includeMemo = opts?.includeMemo !== false;
     for (const b of tpl.blocks as Block[]) {
         if (b.kind === 'memo' && (!includeMemo || tpl.options?.hideMemo)) continue;
@@ -569,16 +588,9 @@ const corners = (tpl: FoundationTemplate, ctx: Ctx): string => {
 
 const footer = (tpl: FoundationTemplate, ctx: Ctx): string => {
     const t = ctx.theme;
-    const grade = tpl.grades[0] === 'R' || tpl.grades.length > 1 ? tpl.grades.join('/') : tpl.grades[0];
-    const brand = ctx.opts.brand ?? 'EduAI Companion · CAPS Compliant Educational Resource';
-    const teacher = ctx.opts.fields?.teacher ? ` · ${esc(ctx.opts.fields.teacher)}` : '';
     return `<footer class="fp-foot">
   ${scallopBand(t.primary)}
-  <p class="fp-foot-text">
-    <span><b>${esc(brand)}</b>${teacher}</span>
-    <span>${esc(capsFooterLine(grade, tpl.learningArea))}</span>
-    <span>${tpl.caps.timeOnTask} · ${tpl.caps.marks ? `${tpl.caps.marks} marks` : 'informal checklist'}</span>
-  </p>
+  <p class="fp-foot-text" style="justify-content:center;text-align:center;"><span><b>${esc(EDUAI_TEMPLATE_FOOTER_LINE)}</b></span></p>
 </footer>`;
 };
 
@@ -608,12 +620,27 @@ export const renderTemplatePage = (tpl: FoundationTemplate, opts: RenderOptions 
     // demoted to a compact teacher record at the foot of the page instead of
     // sitting above the learner's name.
     const capsHtml = capsStrip(tpl, ctx, isAward);
+    const complianceMeta = {
+        title: tpl.title,
+        subject: tpl.learningArea,
+        grade: tpl.grades[0],
+        term: tpl.caps.terms[0],
+        contentType: KIND_META[tpl.kind].label,
+    };
     return `<div class="${rootClass}" style="${themeVars(theme)}">
   <div class="fp-page" data-template="${esc(tpl.id)}" data-kind="${tpl.kind}">
     ${corners(tpl, ctx)}
     ${confettiStrip(isAward ? 34 : 18, tpl.id.length * 31 + 7)}
     ${isAward ? `<div class="fp-rainbow">${rainbowArc()}</div>` : ''}
+    ${buildTemplateHeaderHTML({
+        title: tpl.title,
+        subject: tpl.learningArea,
+        grade: tpl.grades[0],
+        term: tpl.caps.terms[0],
+        contentType: KIND_META[tpl.kind].label,
+    })}
     ${banner(tpl, ctx)}
+    ${buildTemplateComplianceBannerHTML(complianceMeta)}
     ${fieldStrip(tpl, ctx)}
     ${isAward ? '' : capsHtml}
     ${blocks.map((b) => renderBlock(b, ctx)).join('\n')}
@@ -728,11 +755,11 @@ export const buildPackIndex = (
 *{box-sizing:border-box}
 body{margin:0;font-family:'Nunito',system-ui,sans-serif;color:#12233f;background:linear-gradient(160deg,#fff9e8,#e0f7ff 45%,#ffe6f2)}
 .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
-header{position:relative;overflow:hidden;border-radius:26px;padding:26px 26px 22px;background:#06b6d4;color:#fff;box-shadow:0 18px 40px rgba(6,182,212,.28)}
-header:after{content:"";position:absolute;inset:auto -10% -60% -10%;height:80px;background:radial-gradient(closest-side,#fff8 0,#fff0 100%)}
-.kick{font:600 12px/1 'Fredoka',sans-serif;letter-spacing:.22em;text-transform:uppercase;opacity:.92}
-h1{font-family:'Fredoka',sans-serif;font-size:clamp(28px,4vw,44px);margin:8px 0 6px;line-height:1.05}
-.sub{margin:0;max-width:70ch;font-size:15px;opacity:.96}
+.index-banner{position:relative;overflow:hidden;border-radius:26px;padding:26px 26px 22px;background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);color:#fff;box-shadow:0 18px 40px rgba(30,58,95,.22);width:100%}
+.index-banner:after{content:"";position:absolute;inset:auto -10% -60% -10%;height:80px;background:radial-gradient(closest-side,#fff8 0,#fff0 100%)}
+.index-banner .kick{font:600 12px/1 'Fredoka',sans-serif;letter-spacing:.22em;text-transform:uppercase;opacity:.92}
+.index-banner h1{font-family:'Fredoka',sans-serif;font-size:clamp(28px,4vw,44px);margin:8px 0 6px;line-height:1.05}
+.index-banner .sub{margin:0;max-width:70ch;font-size:15px;opacity:.96}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .chip{font:600 12px 'Fredoka',sans-serif;background:#fff;color:#0e7490;border-radius:99px;padding:6px 12px}
 .chip.a{background:#ffdf40;color:#7a4b00}.chip.b{background:#ff69b4;color:#fff}.chip.c{background:#2ed573;color:#065f46}
@@ -760,9 +787,10 @@ footer{margin-top:26px;font-size:12px;color:#475569;text-align:center}
 </head>
 <body>
 <div class="wrap">
-<header>
+${buildTemplateHeaderHTML({ title: 'Foundation Phase Printable Template Pack', contentType: 'Foundation Phase Pack' })}
+<section class="index-banner" aria-labelledby="foundation-pack-title">
   <p class="kick">EduAI Companion · CAPS compliant · Foundation Phase</p>
-  <h1>Grade R–3 Printable Template Pack 🎨</h1>
+  <h1 id="foundation-pack-title">Grade R–3 Printable Template Pack 🎨</h1>
   <p class="sub">Awards for good academic achievement, worksheets, classroom exercises and homework — bright, cartoon-styled and ready for the photocopier. Every sheet carries its CAPS content area, ATP placement, time on task, marks and memo.</p>
   <div class="chips">
     <span class="chip">${templates.length} templates</span>
@@ -776,11 +804,11 @@ footer{margin-top:26px;font-size:12px;color:#475569;text-align:center}
     <a href="#award">Awards</a><a href="#worksheet">Worksheets</a><a href="#classroom">Classroom</a><a href="#homework">Homework</a>
     <button onclick="window.print()">Print this index</button>
   </div>
-</header>
+</section>
 ${groups}
 ${meta.note ? `<p class="note">${esc(meta.note)}</p>` : ''}
 <footer>
-  ${esc(meta.generatedAt ? `Generated ${meta.generatedAt} · ` : '')}CAPS Grades R–3 (DBE 2011, as amended) · Illustrations: Elly the EduAI mascot · Rights reserved to the developer, Z Msuthu (© 2026)
+  ${esc(EDUAI_TEMPLATE_FOOTER_LINE)}
 </footer>
 </div>
 </body>

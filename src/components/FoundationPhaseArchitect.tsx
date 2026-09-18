@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { wrapWithTemplate } from '../lib/contentTemplate';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   BookOpen, 
@@ -185,6 +186,15 @@ export default function FoundationPhaseArchitect({
   };
 
   const hasGeneratedContent = !!teachingResult?.content && !showSandboxAlways;
+  const generatedMarkup = teachingResult?.content
+    ? wrapWithTemplate(teachingResult.content, {
+        title: 'Foundation Phase Learning Pack',
+        subject: language,
+        grade,
+        term: 'Term 1',
+        contentType: 'Interactive Foundation Learning Pack'
+      })
+    : '';
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6 font-sans w-full pb-12">
@@ -483,15 +493,8 @@ export default function FoundationPhaseArchitect({
               {/* Preview Content */}
               <div className="flex-1 relative flex items-center justify-center p-4 lg:p-6 overflow-hidden">
                  {hasGeneratedContent ? (
-                   <div className="w-full h-full bg-white rounded-2xl sm:rounded-3xl overflow-y-auto p-6 sm:p-8 shadow-2xl text-slate-900 font-sans custom-scrollbar">
-                      <div 
-                        style={{
-                          fontFamily: '"Patrick Hand", "Comic Neue", cursive, sans-serif',
-                          fontSize: '1.25rem',
-                          lineHeight: '1.6'
-                        }}
-                        dangerouslySetInnerHTML={{ __html: teachingResult.content }} 
-                      />
+                   <div className="w-full h-full bg-white rounded-2xl sm:rounded-3xl overflow-y-auto shadow-2xl text-slate-900 font-sans custom-scrollbar">
+                      <div dangerouslySetInnerHTML={{ __html: generatedMarkup }} />
                    </div>
                  ) : (
                    <div className="w-full max-w-xl aspect-video sm:aspect-auto sm:min-h-[420px] bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/10 relative group flex flex-col justify-center">

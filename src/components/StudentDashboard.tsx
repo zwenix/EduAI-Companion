@@ -12,6 +12,7 @@ import StudentAITutorBubble from './StudentAITutorBubble';
 import { runTextGrade, runOCRAndGrade } from '../services/unifiedAiService';
 import { marked } from 'marked';
 import { printContent } from '../lib/printUtils';
+import { wrapWithTemplate } from '../lib/contentTemplate';
 
 const stripMarkdownWrapper = (text: string) => {
   if (!text) return text;
@@ -46,6 +47,19 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
   const [studentRecords, setStudentRecords] = useState<any[]>([]);
   
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
+  const assignmentMarkup = useMemo(() => {
+    const raw = stripMarkdownWrapper(selectedAssignment?.content || '');
+    if (!raw) return '';
+    const isHtml = /<\/?[a-z][\s\S]*>/i.test(raw) && raw.trim().startsWith('<');
+    const body = isHtml ? raw : marked.parse(raw) as string;
+    return wrapWithTemplate(body, {
+      title: selectedAssignment?.title || 'Class Assignment',
+      subject: selectedAssignment?.subject,
+      grade: selectedAssignment?.grade,
+      term: selectedAssignment?.term || selectedAssignment?.metadata?.term,
+      contentType: selectedAssignment?.contentType || 'Class Assignment'
+    });
+  }, [selectedAssignment]);
   const [solvingMode, setSolvingMode] = useState<'online' | 'ocr'>('online');
   const [onlineAnswers, setOnlineAnswers] = useState('');
   const [ocrImage, setOcrImage] = useState<string>('');
@@ -1436,11 +1450,9 @@ export default function StudentDashboard({ isDarkMode, onNavigate }: { isDarkMod
 
                   {/* Render HTML Content */}
                   <div className="prose prose-sm max-w-none dark:prose-invert markdown-body select-text mb-6">
-                    {selectedAssignment.content && selectedAssignment.content.trim().startsWith('<') ? (
-                      <div dangerouslySetInnerHTML={{ __html: selectedAssignment.content }} />
-                    ) : (
-                      <div dangerouslySetInnerHTML={{ __html: (/<\/?[a-z][\s\S]*>/i.test(stripMarkdownWrapper(selectedAssignment.content || '')) && stripMarkdownWrapper(selectedAssignment.content || '').trim().startsWith('<')) ? stripMarkdownWrapper(selectedAssignment.content || '') : marked.parse(stripMarkdownWrapper(selectedAssignment.content || '')) as string }} />
-                    )}
+                    {assignmentMarkup ? (
+                      <div dangerouslySetInnerHTML={{ __html: assignmentMarkup }} />
+                    ) : null}
                   </div>
                 </div>
 

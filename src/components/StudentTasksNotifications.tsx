@@ -34,6 +34,7 @@ import {
 } from 'firebase/firestore';
 import { StudentDoc, MilestoneTask } from '../types';
 import LoadingMascot from './LoadingMascot';
+import { wrapWithTemplate } from '../lib/contentTemplate';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
@@ -66,6 +67,16 @@ export default function StudentTasksNotifications({
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
+  const selectedAssignmentMarkup = useMemo(() => {
+    if (!selectedAssignment?.content) return '';
+    return wrapWithTemplate(selectedAssignment.content, {
+      title: selectedAssignment.title || 'Assigned Educational Resource',
+      subject: selectedAssignment.subject,
+      grade: selectedAssignment.grade,
+      term: selectedAssignment.term || selectedAssignment.metadata?.term,
+      contentType: selectedAssignment.contentType || 'Class Assignment'
+    });
+  }, [selectedAssignment]);
   const [submissionPhoto, setSubmissionPhoto] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
@@ -200,7 +211,14 @@ export default function StudentTasksNotifications({
 
   const downloadAssignment = (assignment: any) => {
     if (!assignment) return;
-    const blob = new Blob([assignment.content || ''], { type: 'text/html' });
+    const branded = wrapWithTemplate(assignment.content || '', {
+      title: assignment.title || 'Assigned Educational Resource',
+      subject: assignment.subject,
+      grade: assignment.grade,
+      term: assignment.term || assignment.metadata?.term,
+      contentType: assignment.contentType || 'Class Assignment'
+    });
+    const blob = new Blob([branded], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -629,7 +647,7 @@ export default function StudentTasksNotifications({
                   {selectedAssignment.content ? (
                     <div
                       className="prose prose-sm max-w-none text-slate-800 [&_h1]:text-slate-900 [&_h2]:text-slate-900 [&_h3]:text-slate-900 [&_table]:border-collapse [&_th]:border [&_th]:border-slate-300 [&_td]:border [&_td]:border-slate-300 [&_td]:p-2 [&_th]:p-2"
-                      dangerouslySetInnerHTML={{ __html: selectedAssignment.content }}
+                      dangerouslySetInnerHTML={{ __html: selectedAssignmentMarkup }}
                     />
                   ) : (
                     <div className="text-center py-6 text-slate-500">

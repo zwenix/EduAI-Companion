@@ -28,6 +28,7 @@ import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp } fr
 import html2pdf from 'html2pdf.js';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 import { cleanupExportArtifacts } from '../lib/printUtils';
+import { wrapWithTemplate } from '../lib/contentTemplate';
 import PrintPreviewModal from './PrintPreviewModal';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
@@ -39,6 +40,25 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
   const [topic, setTopic] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const practiceMarkup = useMemo(() => {
+    if (!result) return '';
+    const toHtml = (value: any): string => {
+      const raw = stripMarkdownWrapper(String(value || ''));
+      if (!raw) return '';
+      return raw.trim().startsWith('<') || /<\/?[a-z][\s\S]*>/i.test(raw)
+        ? replaceImagePlaceholders(raw)
+        : replaceImagePlaceholders(marked.parse(raw) as string);
+    };
+    const content = toHtml(result.content || result);
+    const memo = result.memo ? `<section class="practice-memo" style="page-break-before:always;margin-top:40px;border-top:2px dashed #94a3b8;padding-top:24px;"><h2>Memo &amp; Rubric</h2>${toHtml(result.memo)}</section>` : '';
+    return wrapWithTemplate(`${content}${memo}`, {
+      title: topic || 'Practice Assessment',
+      subject,
+      grade,
+      term: 'Term 1',
+      contentType: 'Practice Assessment'
+    });
+  }, [result, topic, subject, grade]);
   const [showPrintModal, setShowPrintModal] = useState(false);
 
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -145,54 +165,20 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
   };
 
   const handleExportPDF = async () => {
-    if (!result) return;
-    const contentString = result.content || result;
-    const memoString = result.memo;
+    if (!result || !practiceMarkup) return;
     const filename = `${(subject || 'Subject').replace(/\s+/g, '_')}_${(topic || 'Topic').replace(/\s+/g, '_')}_Practice.pdf`;
 
-    // Create offscreen container
+    // Export the exact canonical preview markup. Keeping this path on the
+    // shared wrapper prevents the old ad-hoc header and memo export from
+    // bypassing the single compliance banner/footer contract.
     const tempContainer = document.createElement('div');
-    tempContainer.className = 'bg-white text-slate-900 p-8 markdown-body';
+    tempContainer.className = 'bg-white text-slate-900';
     tempContainer.style.position = 'absolute';
     tempContainer.style.left = '-9999px';
     tempContainer.style.top = '-9999px';
-    tempContainer.style.width = '800px'; 
+    tempContainer.style.width = '800px';
     tempContainer.style.zIndex = '-9999';
-    tempContainer.style.fontFamily = "'Inter', system-ui, -apple-system, sans-serif";
-
-    // Convert potential markdown to HTML first if it's not raw HTML
-    let bodyHtml = typeof contentString === 'string' ? contentString.trim() : '';
-    if (bodyHtml && !bodyHtml.startsWith('<')) {
-      bodyHtml = marked.parse(stripMarkdownWrapper(bodyHtml)) as string;
-    }
-    bodyHtml = replaceImagePlaceholders(bodyHtml);
-
-    let memoHtml = typeof memoString === 'string' ? memoString.trim() : '';
-    if (memoHtml) {
-      if (!memoHtml.startsWith('<')) {
-        memoHtml = marked.parse(stripMarkdownWrapper(memoHtml)) as string;
-      }
-      memoHtml = replaceImagePlaceholders(memoHtml);
-    }
-
-    const contentEl = document.createElement('div');
-    contentEl.className = 'space-y-6 text-slate-800';
-    contentEl.innerHTML = `
-      <div style="margin-bottom: 24px; border-bottom: 2px solid #3b82f6; padding-bottom: 12px;">
-        <h1 style="font-size: 24px; font-weight: 800; color: #1e3a8a; margin: 0;">${subject || 'CAPS Practice Session'}</h1>
-        <p style="font-size: 14px; color: #4b5563; margin: 4px 0 0 0;">Topic: ${topic || 'Practice exercises'} • EduAI Companion</p>
-      </div>
-      <div>
-        ${bodyHtml}
-      </div>
-      ${memoHtml ? `
-        <div class="print-page-break" style="page-break-before: always; margin-top: 40px; border-top: 2px dashed #94a3b8; padding-top: 24px;">
-          <h2 style="font-size: 20px; font-weight: 800; color: #059669; margin-bottom: 16px;">Memo & Answer Guidelines</h2>
-          ${memoHtml}
-        </div>
-      ` : ''}
-    `;
-    tempContainer.appendChild(contentEl);
+    tempContainer.innerHTML = practiceMarkup;
     document.body.appendChild(tempContainer);
 
     const opt = {
@@ -377,27 +363,10 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
                   </button>
                 </div>
                 <div className={`${isDarkMode ? 'bg-slate-900/90 border-white/10 text-slate-200' : 'bg-white text-slate-900 border-slate-200'} p-8 rounded-[36px] border shadow-sm`}>
-                  <div 
-                    dangerouslySetInnerHTML={{ 
-                      __html: (result.content || result).trim().startsWith('<') 
-                        ? replaceImagePlaceholders(result.content || result)
-                        : replaceImagePlaceholders((/<\/?[a-z][\s\S]*>/i.test(stripMarkdownWrapper(result.content || result)) && stripMarkdownWrapper(result.content || result).trim().startsWith('<')) ? stripMarkdownWrapper(result.content || result) : marked.parse(stripMarkdownWrapper(result.content || result)) as string)
-                    }} 
-                    className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-850'}`} 
+                  <div
+                    dangerouslySetInnerHTML={{ __html: practiceMarkup }}
+                    className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-850'}`}
                   />
-                  {result.memo && (
-                    <div className={`mt-8 border-t ${isDarkMode ? 'border-white/10' : 'border-slate-200'} pt-8`}>
-                       <h3 className={`text-2xl font-hand mb-4 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Memo & Rubric</h3>
-                       <div 
-                          dangerouslySetInnerHTML={{ 
-                            __html: result.memo.trim().startsWith('<') 
-                              ? replaceImagePlaceholders(result.memo)
-                              : replaceImagePlaceholders((/<\/?[a-z][\s\S]*>/i.test(stripMarkdownWrapper(result.memo)) && stripMarkdownWrapper(result.memo).trim().startsWith('<')) ? stripMarkdownWrapper(result.memo) : marked.parse(stripMarkdownWrapper(result.memo)) as string)
-                          }} 
-                          className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-800'}`} 
-                       />
-                    </div>
-                  )}
                 </div>
               </div>
             ) : (

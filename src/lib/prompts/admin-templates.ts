@@ -14,7 +14,7 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
 
 🎨 VISUAL STYLE & REVERSE-ENGINEERED COMPONENT DESIGN:
 - No fixed heights - use 'h-auto', dynamic padding ('py-6', 'px-6'), and relaxed flexbox/grid block layouts.
-- Header Block: Stunning full-width card with solid brand color (Teal, Purple, Orange etc., based on subject), with clean rounded top, containing round indicator badges like "CAPS ALIGNED", "LIFE SKILLS: GRADE \${grade}", and "TERM \${term} • WEEK \${week}".
+- Header Block: Stunning full-width card with a two-colour gradient (Teal, Purple, Orange etc., based on subject), with clean rounded top, containing round indicator badges like "CURRICULUM FOCUS", "LIFE SKILLS: GRADE \${grade}", and "TERM \${term} • WEEK \${week}".
 - Symmetric Side-by-Side Cards: Use a two-column grid ("grid grid-cols-1 md:grid-cols-2 gap-6") for "🎯 Aim of the Lesson" and "🎒 Resources Needed" using matching custom colors, thick rounded corners, and clear checkmarks.
 - Prior Knowledge & Preparations: A beautifully highlighted full-width box with custom borders and a highlighted inner yellow container representing "CAPS Connection".
 - Core Content & Key Rules: Clearly outlined, card-style rows enclosing major concepts or emergency golden rules. 
@@ -32,7 +32,7 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
   <!-- HEADER CARD -->
   <header class="bg-[#EA580C] text-white p-8 rounded-b-3xl relative overflow-hidden shadow-lg" style="background-color: \${primary};">
     <div class="flex flex-wrap gap-2 mb-4">
-      <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">CAPS ALIGNED</span>
+      <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">CURRICULUM FOCUS</span>
       <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">\${subject} : GRADE \${grade}</span>
       <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">TERM \${term} • WEEK \${week}</span>
     </div>
@@ -42,7 +42,7 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
     <div class="mt-6 pt-6 border-t border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm font-medium">
       <div class="flex items-center gap-2">⏱️ <span class="font-bold">Duration:</span> \${duration}</div>
       <div class="flex items-center gap-2">🏫 <span class="font-bold">Class Size:</span> 35-40 Learners</div>
-      <div class="flex items-center gap-2">🧬 <span class="font-bold">CAPS Code:</span> \${capsCode}</div>
+      <div class="flex items-center gap-2">🧬 <span class="font-bold">Curriculum reference:</span> \${capsCode}</div>
     </div>
   </header>
 
@@ -191,9 +191,7 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
     </div>
   </div>
 
-  <footer class="bg-slate-200 p-6 text-center text-xs text-slate-500 font-bold border-t border-slate-300">
-    EduAI Companion • CAPS Aligned Lesson Material • eduai-companion.github.io
-  </footer>
+  <!-- Host inserts the single compliance banner and exact canonical footer; do not emit a footer. -->
 </article>
 
 Return as JSON matching:
@@ -285,7 +283,7 @@ Generate personalized, strengths-based report card comments with this structure:
       </div>
       <div class="text-right">
         <p class="text-gray-600">Date: _______________</p>
-        <p class="text-sm text-gray-500 mt-4">EduAI Companion • CAPS Aligned</p>
+        <p class="text-sm text-gray-500 mt-4">EduAI Companion • Curriculum aligned</p>
       </div>
     </div>
   </div>
@@ -405,10 +403,7 @@ Generate a term-long curriculum map with this comprehensive structure:
   </section>
 
   <!-- FOOTER -->
-  <footer class="bg-gray-100 p-6 text-center text-sm text-gray-600">
-    <p class="font-medium">EduAI Companion • CAPS Curriculum Map</p>
-    <p class="text-xs mt-1">Generated: \${new Date().toLocaleDateString('en-ZA')} • eduai-companion.github.io</p>
-  </footer>
+  <!-- Host inserts the single compliance banner and exact canonical footer; do not emit a footer. -->
 </article>
 
 Return as JSON: { "content": "Full complete HTML string for curriculum map without summaries", "resourcesList": "required resources", "crossCurricularLinks": "links to other subjects" }

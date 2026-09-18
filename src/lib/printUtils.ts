@@ -66,8 +66,9 @@ function extractIframeHTML(iframe: HTMLIFrameElement | null | undefined): string
 
 /**
  * Wrap generated content in the official EduAI Companion LIGHT Template v4 —
- * the translucent header bar, watermark body with centred 800px page, and
- * navy footer — used identically by print, PDF and HTML exports so every
+ * the compact translucent white header, full-width two-colour content banner,
+ * watermark body with centred 800px page, and navy footer — used identically by
+ * print, PDF and HTML exports so every
  * exported document carries the same branding.
  */
 const wrapWithBrandedTemplate = (html: string, options?: PrintOptions, title?: string): string => {
