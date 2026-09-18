@@ -1348,14 +1348,26 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
   });
 
   // --- Qwen-Image via NVIDIA NIM (SA Premium) ---
-  const QWEN_MODEL = "qwen/qwen-image";
-  const QWEN_BASE_URL = "https://integrate.api.nvidia.com/v1";
+  //
+  // NVIDIA retires/renames model slugs over time (e.g. `qwen/qwen-image` was
+  // superseded by `qwen/qwen-image-2512`; retired slugs 404 at the gateway
+  // with a plain "404 page not found" body). We therefore walk a list of
+  // known-good slugs instead of failing the whole request on the first 404.
+  // `NVIDIA_BASE_URL` can be overridden for tests/mocks.
+  const QWEN_MODELS = ["qwen/qwen-image-2512", "qwen/qwen-image"];
+  const QWEN_BASE_URL = (process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1").replace(/\/+$/, "");
   const QWEN_SIZE_MAP: Record<string, string> = {
     header: "1792x1024",
     inline: "1024x1024",
     full_width: "1792x1024",
-    sidebar: "1024x1792"
+    sidebar: "1024x1792",
+    square: "1024x1024",
+    portrait: "1024x1792",
+    landscape: "1792x1024",
+    video: "1792x1024"
   };
+  // Stay inside the Vercel function ceiling (see vercel.json maxDuration: 60).
+  const QWEN_REQUEST_TIMEOUT_MS = 50000;
 
   app.post("/api/images/qwen-generate", async (req, res) => {
     const { prompt, placement, grade, subject, saContext } = req.body;
@@ -1387,136 +1399,79 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     const size = QWEN_SIZE_MAP[placement] || "1024x1024";
     const [width, height] = size.split("x").map(Number);
 
-    try {
-      const nvidiaClient = new OpenAI({
-        apiKey: nvidiaKey,
-        baseURL: QWEN_BASE_URL
-      });
-
-      console.log(`[QWEN IMAGE] Generating via NVIDIA NIM: model=${QWEN_MODEL} size=${size} grade=${grade} subject=${subject}`);
-
-      // Qwen-Image via NVIDIA: using chat completions with image generation or direct images endpoint
-      // Try OpenAI images API first (NVIDIA NIM supports it)
+    let lastError = "Unknown error";
+    for (const model of QWEN_MODELS) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), QWEN_REQUEST_TIMEOUT_MS);
+      let nvidiaRes: Response;
       try {
-        const imageResponse: any = await (nvidiaClient as any).images?.generate?.({
-          model: QWEN_MODEL,
-          prompt: enhancedPrompt,
-          n: 1,
-          size: size as any,
-          response_format: "b64_json"
+        nvidiaRes = await fetch(`${QWEN_BASE_URL}/images/generations`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${nvidiaKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model,
+            prompt: enhancedPrompt,
+            n: 1,
+            size,
+            response_format: "b64_json"
+          }),
+          signal: controller.signal
         });
-
-        if (imageResponse?.data?.[0]?.b64_json) {
-          const b64 = imageResponse.data[0].b64_json;
-          console.log(`[QWEN IMAGE] Success via images.generate b64_json`);
-          return res.json({
-            url: `data:image/png;base64,${b64}`,
-            b64_json: b64,
-            provider: "qwen",
-            model: QWEN_MODEL,
-            enhancedPrompt,
-            width,
-            height,
-            size
-          });
-        }
-        if (imageResponse?.data?.[0]?.url) {
-          console.log(`[QWEN IMAGE] Success via images.generate url`);
-          return res.json({
-            url: imageResponse.data[0].url,
-            provider: "qwen",
-            model: QWEN_MODEL,
-            enhancedPrompt,
-            width,
-            height,
-            size
-          });
-        }
-      } catch (imgErr: any) {
-        console.warn(`[QWEN IMAGE] images.generate failed: ${imgErr.message}, trying chat completions...`);
+      } catch (fetchErr: any) {
+        lastError = `NVIDIA gateway unreachable: ${fetchErr.message}`;
+        console.warn(`[QWEN IMAGE] ${model} network error: ${fetchErr.message}`);
+        continue;
+      } finally {
+        clearTimeout(timer);
       }
 
-      // Fallback: chat completions with image as per some NIM implementations
-      const chatResponse = await nvidiaClient.chat.completions.create({
-        model: QWEN_MODEL,
-        messages: [
-          {
-            role: "user",
-            content: enhancedPrompt
-          }
-        ],
-        // Some NIM endpoints expect extra params
-      } as any);
-
-      const choice = (chatResponse as any).choices?.[0];
-      // Try to extract image from various response formats
-      if (choice?.message?.content) {
-        const content = choice.message.content;
-        // Check if content is b64 or url
-        if (typeof content === "string" && content.startsWith("data:")) {
-          return res.json({ url: content, provider: "qwen", model: QWEN_MODEL, enhancedPrompt, width, height, size });
-        }
-        if (typeof content === "string" && content.startsWith("http")) {
-          return res.json({ url: content, provider: "qwen", model: QWEN_MODEL, enhancedPrompt, width, height, size });
-        }
-        // Try to find base64 in content
-        const b64Match = typeof content === "string" ? content.match(/data:image\/[^;]+;base64,([A-Za-z0-9+/=]+)/) : null;
-        if (b64Match) {
-          return res.json({ url: b64Match[0], b64_json: b64Match[1], provider: "qwen", model: QWEN_MODEL, enhancedPrompt, width, height, size });
-        }
+      const bodyText = await nvidiaRes.text();
+      if (nvidiaRes.status === 401 || nvidiaRes.status === 403) {
+        // A bad/revoked key is not worth retrying the next slug with.
+        console.error(`[QWEN IMAGE] NVIDIA NIM rejected the API key (HTTP ${nvidiaRes.status})`);
+        return res.status(401).json({
+          error: `NVIDIA NIM rejected the API key (HTTP ${nvidiaRes.status}). Update NVIDIA_API_KEY.`,
+          provider: "qwen",
+          model,
+          status: nvidiaRes.status
+        });
       }
 
-      // If we get here, try direct fetch to NVIDIA as last resort
-      const directRes = await fetch(`${QWEN_BASE_URL}/images/generations`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${nvidiaKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: QWEN_MODEL,
-          prompt: enhancedPrompt,
-          n: 1,
-          size: size,
-          response_format: "b64_json"
-        })
-      });
-
-      if (directRes.ok) {
-        const directData: any = await directRes.json();
-        if (directData.data?.[0]?.b64_json) {
-          const b64 = directData.data[0].b64_json;
-          console.log(`[QWEN IMAGE] Success via direct fetch b64_json`);
-          return res.json({
-            url: `data:image/png;base64,${b64}`,
-            b64_json: b64,
-            provider: "qwen",
-            model: QWEN_MODEL,
-            enhancedPrompt,
-            width,
-            height,
-            size
-          });
-        }
-        if (directData.data?.[0]?.url) {
-          return res.json({
-            url: directData.data[0].url,
-            provider: "qwen",
-            model: QWEN_MODEL,
-            enhancedPrompt,
-            width,
-            height,
-            size
-          });
-        }
+      if (!nvidiaRes.ok) {
+        // 404 → slug is not routed at the gateway (retired model), try next slug.
+        // 429/5xx → transient, still worth trying the next slug.
+        lastError = `NVIDIA returned HTTP ${nvidiaRes.status} for ${model}: ${bodyText.slice(0, 300)}`;
+        console.warn(`[QWEN IMAGE] ${lastError}`);
+        continue;
       }
 
-      throw new Error(`Qwen generation returned no image data. Status: ${directRes.status}`);
+      let data: any = null;
+      try { data = JSON.parse(bodyText); } catch { data = null; }
+      const b64 = data?.data?.[0]?.b64_json;
+      const url = data?.data?.[0]?.url;
+      if (b64 || url) {
+        console.log(`[QWEN IMAGE] Success via ${model} (${b64 ? "b64_json" : "url"}) size=${size} grade=${grade} subject=${subject}`);
+        return res.json({
+          url: b64 ? `data:image/png;base64,${b64}` : url,
+          ...(b64 ? { b64_json: b64 } : {}),
+          provider: "qwen",
+          model,
+          enhancedPrompt,
+          width,
+          height,
+          size
+        });
+      }
 
-    } catch (e: any) {
-      console.error(`[QWEN IMAGE] Generation failed: ${e.message}`);
-      return res.status(500).json({ error: e.message, provider: "qwen", model: QWEN_MODEL });
+      lastError = `${model} returned no image data: ${bodyText.slice(0, 300)}`;
+      console.warn(`[QWEN IMAGE] ${lastError}`);
     }
+
+    console.error(`[QWEN IMAGE] All model slugs failed. Last error: ${lastError}`);
+    return res.status(502).json({ error: lastError, provider: "qwen", models: QWEN_MODELS });
   });
 
   // --- SA-Compliant Full Package Generation (new) ---

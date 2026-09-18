@@ -72,7 +72,10 @@ const ASPECT_RATIOS = {
 };
 
 export const QWEN_CONFIG = {
-  model: "qwen/qwen-image",
+  // NVIDIA retires slugs (qwen/qwen-image → qwen/qwen-image-2512). The
+  // preferred slug comes first; the legacy slug stays as a fallback.
+  model: "qwen/qwen-image-2512",
+  models: ["qwen/qwen-image-2512", "qwen/qwen-image"],
   baseURL: "https://integrate.api.nvidia.com/v1",
   sizeMap: {
     header: "1792x1024",
@@ -195,31 +198,44 @@ export const generateImagePollinations = async (
   height: number = 1024,
   seed: number = Math.floor(Math.random() * 10000)
 ): Promise<string> => {
-  const imageUrl = buildPollinationsUrl(prompt, width, height, seed);
-  if (typeof Image === 'undefined') return imageUrl;
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    let settled = false;
-    const timeoutId = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      reject(new Error('Pollinations AI image request timed out'));
-    }, 25000);
+  const attempt = (attemptSeed: number): Promise<string> => {
+    const imageUrl = buildPollinationsUrl(prompt, width, height, attemptSeed);
+    if (typeof Image === 'undefined') return Promise.resolve(imageUrl);
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        reject(new Error('Pollinations AI image request timed out'));
+      }, 25000);
 
-    img.onload = () => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeoutId);
-      resolve(imageUrl);
-    };
-    img.onerror = () => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeoutId);
-      reject(new Error('Pollinations AI image request failed'));
-    };
-    img.src = imageUrl;
-  });
+      img.onload = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        resolve(imageUrl);
+      };
+      img.onerror = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        reject(new Error('Pollinations AI image request failed'));
+      };
+      img.src = imageUrl;
+    });
+  };
+
+  try {
+    return await attempt(seed);
+  } catch (err) {
+    // Pollinations rate-limits the free tier (HTTP 429 → <img> onerror). The
+    // failure is usually transient, so retry once with a fresh seed after a
+    // short pause before giving up and moving to the next provider.
+    console.warn('[Image Gen] Pollinations AI failed, retrying once after 3s:', (err as Error).message);
+    await new Promise(r => setTimeout(r, 3000));
+    return attempt(Math.floor(Math.random() * 100000));
+  }
 };
 
 export const generateImageQwen = async (
@@ -246,35 +262,44 @@ export const generateImageQwen = async (
   console.log(`[Image Gen] Qwen-Image request: "${enhancedPrompt.substring(0, 60)}..." | size: ${sizeStr} | grade: ${grade || 'N/A'}`);
 
   if (isNativeApp()) {
-    try {
-      const nvidiaKey = AI_SECRETS.NVIDIA_API_KEY || "";
-      if (!nvidiaKey) throw new Error("NVIDIA API key not configured for Qwen-Image");
-      const response = await fetch(`${QWEN_CONFIG.baseURL}/images/generations`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${nvidiaKey}`
-        },
-        body: JSON.stringify({
-          model: QWEN_CONFIG.model,
-          prompt: enhancedPrompt,
-          n: 1,
-          size: sizeStr as any,
-          response_format: "b64_json"
-        })
-      });
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Qwen NVIDIA API failed ${response.status}: ${errText.slice(0, 200)}`);
+    const nvidiaKey = AI_SECRETS.NVIDIA_API_KEY || "";
+    if (!nvidiaKey) throw new Error("NVIDIA API key not configured for Qwen-Image");
+    // Native apps are exempt from CORS, so the bundled key can call NVIDIA
+    // directly. Walk the slug list (NVIDIA retires slugs — 2512 is current,
+    // the legacy slug is kept as a fallback).
+    let lastError = "No Qwen model available";
+    for (const model of QWEN_CONFIG.models) {
+      try {
+        const response = await fetch(`${QWEN_CONFIG.baseURL}/images/generations`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${nvidiaKey}`
+          },
+          body: JSON.stringify({
+            model,
+            prompt: enhancedPrompt,
+            n: 1,
+            size: sizeStr as any,
+            response_format: "b64_json"
+          })
+        });
+        if (!response.ok) {
+          const errText = await response.text();
+          lastError = `Qwen NVIDIA API (${model}) failed ${response.status}: ${errText.slice(0, 200)}`;
+          console.warn(`[Image Gen] ${lastError}`);
+          continue;
+        }
+        const data = await response.json();
+        const b64 = data.data?.[0]?.b64_json;
+        if (!b64) throw new Error("No b64_json in Qwen response");
+        return `data:image/png;base64,${b64}`;
+      } catch (err: any) {
+        lastError = err.message || String(err);
+        console.warn(`[Image Gen] Qwen direct API attempt failed (${model}):`, err);
       }
-      const data = await response.json();
-      const b64 = data.data?.[0]?.b64_json;
-      if (!b64) throw new Error("No b64_json in Qwen response");
-      return `data:image/png;base64,${b64}`;
-    } catch (err) {
-      console.error("[Image Gen] Qwen direct API failed:", err);
-      throw err;
     }
+    throw new Error(lastError);
   }
 
   try {
@@ -302,40 +327,14 @@ export const generateImageQwen = async (
     if (data.b64) return `data:image/png;base64,${data.b64}`;
     throw new Error("No image URL or b64 in Qwen backend response");
   } catch (backendErr) {
-    console.warn("[Image Gen] Qwen backend failed, trying direct NVIDIA API as fallback:", backendErr);
-    try {
-      const nvidiaKey = (typeof window !== 'undefined' ? (window as any).__NVIDIA_KEY__ : null) || AI_SECRETS.NVIDIA_API_KEY || "";
-      let key = nvidiaKey;
-      if (!key && typeof window !== 'undefined') {
-        try {
-          const stored = localStorage.getItem('eduai_nvidia_key') || localStorage.getItem('nvidia_api_key');
-          if (stored) key = stored;
-        } catch {}
-      }
-      if (!key) throw backendErr;
-      const response = await fetch(`${QWEN_CONFIG.baseURL}/images/generations`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${key}`
-        },
-        body: JSON.stringify({
-          model: QWEN_CONFIG.model,
-          prompt: enhancedPrompt,
-          n: 1,
-          size: sizeStr as any,
-          response_format: "b64_json"
-        })
-      });
-      if (!response.ok) throw new Error(`Qwen direct fallback failed ${response.status}`);
-      const data = await response.json();
-      const b64 = data.data?.[0]?.b64_json;
-      if (!b64) throw new Error("No b64 in direct Qwen fallback");
-      return `data:image/png;base64,${b64}`;
-    } catch (directErr) {
-      console.error("[Image Gen] Qwen direct fallback also failed:", directErr);
-      throw backendErr;
-    }
+    // Web: the backend route is the ONLY viable path. Direct browser calls to
+    // integrate.api.nvidia.com are always CORS-blocked (NVIDIA sends no
+    // Access-Control-Allow-Origin), so a "direct fallback" could never work
+    // here — it only added noise to the console. Rethrow so the provider
+    // fallback chain (Pollinations → Gemini → Perchance) takes over.
+    // (The native app uses its own direct path above, where CORS does not apply.)
+    console.warn("[Image Gen] Qwen backend failed; continuing to next provider:", backendErr);
+    throw backendErr;
   }
 };
 
