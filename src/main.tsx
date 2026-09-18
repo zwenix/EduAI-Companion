@@ -2,6 +2,7 @@ import {StrictMode, useEffect} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { Analytics } from '@vercel/analytics/react';
 
 import { AiProvider } from './contexts/AiContext.tsx';
 import { installImageRecovery } from './lib/imageRecovery.ts';
@@ -56,6 +57,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AiProvider>
       <App />
+      <Analytics />
     </AiProvider>
   </StrictMode>,
 );
