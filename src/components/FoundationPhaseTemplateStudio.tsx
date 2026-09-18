@@ -298,7 +298,7 @@ export default function FoundationPhaseTemplateStudio({
                                 onClick={() => setKind(k)}
                                 className={cn(
                                     'flex items-center gap-2 rounded-full px-3.5 py-2 text-[12px] font-extrabold uppercase tracking-wider transition-all duration-200',
-                                    active ? 'text-slate-900 shadow-md scale-[1.03]' : isDarkMode ? 'text-slate-300 bg-white/5 hover:bg-white/10' : 'text-slate-600 bg-slate-100 hover:bg-slate-200',
+                                    active ? 'text-slate-900 shadow-md scale-[1.03]' : isDarkMode ? 'text-slate-200 bg-[#04091a] border border-white/15 hover:bg-[#101c38] hover:border-white/30' : 'text-slate-600 bg-slate-100 hover:bg-slate-200',
                                 )}
                                 style={active ? { background: color } : undefined}
                             >
@@ -308,7 +308,7 @@ export default function FoundationPhaseTemplateStudio({
                         );
                     })}
                     <div className="ml-auto flex items-center gap-2">
-                        <div className={cn('flex items-center gap-1 rounded-full px-2 py-1', isDarkMode ? 'bg-white/5' : 'bg-slate-100')}>
+                        <div className={cn('flex items-center gap-1 rounded-full px-2 py-1', isDarkMode ? 'bg-[#04091a]' : 'bg-slate-100')}>
                             <Search size={14} className="text-slate-400" />
                             <input
                                 value={query}
@@ -333,7 +333,7 @@ export default function FoundationPhaseTemplateStudio({
                             onClick={() => setGrade(g as any)}
                             className={cn(
                                 'h-8 min-w-8 rounded-xl px-2.5 text-[12px] font-extrabold transition-all',
-                                grade === g ? 'bg-gradient-to-br from-cyan-400 to-blue-500 text-white shadow-md' : isDarkMode ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+                                grade === g ? 'bg-gradient-to-br from-cyan-400 to-blue-500 text-white shadow-md' : isDarkMode ? 'bg-[#04091a] border border-white/15 text-slate-200 hover:bg-[#101c38] hover:border-white/30' : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
                             )}
                         >
                             {g === 'all' ? 'R–3' : g === 'R' ? 'R' : `G${g}`}
@@ -344,7 +344,7 @@ export default function FoundationPhaseTemplateStudio({
                         onChange={(e) => setLearningArea(e.target.value)}
                         className={cn(
                             'h-8 rounded-xl px-2 text-[12px] font-bold outline-none',
-                            isDarkMode ? 'bg-slate-900/60 text-slate-200 border border-white/10' : 'bg-slate-50 text-slate-700 border border-slate-200',
+                            isDarkMode ? 'bg-[#04091a] text-slate-200 border border-white/15' : 'bg-slate-50 text-slate-700 border border-slate-200',
                         )}
                     >
                         <option value="all">All learning areas</option>
@@ -361,7 +361,7 @@ export default function FoundationPhaseTemplateStudio({
                             <select
                                 value={labelLanguage}
                                 onChange={(e) => setLabelLanguage(e.target.value as LabelLanguage)}
-                                className={cn('h-7 rounded-lg px-1.5 text-[11px] font-bold', isDarkMode ? 'bg-slate-900/60 text-slate-200 border border-white/10' : 'bg-slate-50 text-slate-700 border border-slate-200')}
+                                className={cn('h-7 rounded-lg px-1.5 text-[11px] font-bold', isDarkMode ? 'bg-[#04091a] text-slate-200 border border-white/15' : 'bg-slate-50 text-slate-700 border border-slate-200')}
                             >
                                 {LABEL_LANGUAGES.filter((l) => l.id !== 'en').map((l) => (
                                     <option key={l.id} value={l.id}>
@@ -385,7 +385,7 @@ export default function FoundationPhaseTemplateStudio({
                 onClick={onClick}
                 className={cn(
                     'flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-extrabold transition-all',
-                    on ? 'bg-emerald-400 text-emerald-950 shadow' : isDarkMode ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:bg-slate-200',
+                    on ? 'bg-emerald-400 text-emerald-950 shadow' : isDarkMode ? 'bg-[#04091a] border border-white/15 text-slate-300 hover:bg-[#101c38]' : 'bg-slate-100 text-slate-500 hover:bg-slate-200',
                 )}
                 title={label}
             >
@@ -412,8 +412,8 @@ export default function FoundationPhaseTemplateStudio({
                                 exit={{ opacity: 0, y: -8 }}
                                 onClick={() => setSelectedId(tpl.id)}
                                 className={cn(
-                                    'group relative overflow-hidden rounded-[22px] border-2 p-3 text-left transition-all duration-200 kid-shadow',
-                                    active ? 'scale-[1.01] shadow-xl' : isDarkMode ? 'border-white/10 bg-white/[.04] hover:border-white/25' : 'border-slate-200 bg-white hover:border-slate-300',
+                                    'group relative overflow-hidden rounded-[22px] border-2 p-3 text-left transition-colors duration-200 kid-shadow',
+                                    active ? 'scale-[1.01] shadow-xl' : isDarkMode ? 'border-white/15 bg-[#04091a] hover:border-cyan-400/50' : 'border-slate-200 bg-white hover:border-slate-300',
                                 )}
                                 style={active ? { borderColor: t.primary, background: `${t.soft}` } : undefined}
                             >
@@ -509,7 +509,7 @@ export default function FoundationPhaseTemplateStudio({
             <AnimatePresence initial={false}>
                 {showHelp && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                        <div className={cn('grid gap-2 rounded-[24px] border p-3 text-[12px] font-semibold md:grid-cols-2', isDarkMode ? 'border-white/10 bg-white/[.04] text-slate-300' : 'border-slate-200 bg-white text-slate-600')}>
+                        <div className={cn('grid gap-2 rounded-[24px] border p-3 text-[12px] font-semibold md:grid-cols-2', isDarkMode ? 'border-white/15 bg-[#04091a] text-slate-300' : 'border-slate-200 bg-white text-slate-600')}>
                             {[
                                 ['1 · Pick a sheet', 'Filter by family (award / worksheet / classroom / homework), grade and learning area. The gallery shows time on task, marks and whether a memo is included.'],
                                 ['2 · Fill in the names', 'Type the learner, class, school, date and marks in the Fill-in panel — it prints straight onto the sheet, including certificate signature lines.'],
@@ -547,10 +547,10 @@ export default function FoundationPhaseTemplateStudio({
                         <button onClick={downloadOne} disabled={isBusy} className="flex items-center gap-1.5 rounded-full bg-fuchsia-500 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-white shadow-lg shadow-fuchsia-500/25 transition hover:bg-fuchsia-400 disabled:opacity-60">
                             <Download size={14} /> {isBusy ? '…' : 'Download'}
                         </button>
-                        <button onClick={copyHtml} className={cn('flex h-9 w-9 items-center justify-center rounded-full transition', isDarkMode ? 'bg-white/5 text-slate-300 hover:bg-white/15' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')} title="Copy template HTML">
+                        <button onClick={copyHtml} className={cn('flex h-9 w-9 items-center justify-center rounded-full transition', isDarkMode ? 'bg-[#04091a] border border-white/15 text-slate-200 hover:bg-[#101c38]' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')} title="Copy template HTML">
                             <ClipboardCopy size={14} />
                         </button>
-                        <button onClick={() => setShowFields((v) => !v)} className={cn('flex h-9 w-9 items-center justify-center rounded-full transition', showFields ? 'bg-yellow-300 text-amber-900' : isDarkMode ? 'bg-white/5 text-slate-300' : 'bg-slate-100 text-slate-600')} title="Fill in names, dates and marks">
+                        <button onClick={() => setShowFields((v) => !v)} className={cn('flex h-9 w-9 items-center justify-center rounded-full transition', showFields ? 'bg-yellow-300 text-amber-900' : isDarkMode ? 'bg-[#04091a] border border-white/15 text-slate-200' : 'bg-slate-100 text-slate-600')} title="Fill in names, dates and marks">
                             <Eye size={14} />
                         </button>
                     </div>
@@ -558,7 +558,7 @@ export default function FoundationPhaseTemplateStudio({
                     <AnimatePresence initial={false}>
                         {showFields && (
                             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                                <div className={cn('mb-3 rounded-[20px] border p-3', isDarkMode ? 'border-white/10 bg-slate-950/40' : 'border-slate-200 bg-slate-50')}>
+                                <div className={cn('mb-3 rounded-[20px] border p-3', isDarkMode ? 'border-white/15 bg-[#04091a]' : 'border-slate-200 bg-slate-50')}>
                                     <div className="mb-2 flex items-center justify-between">
                                         <p className="text-[10px] font-black uppercase tracking-[.2em] text-cyan-500">Fill in — prints straight onto the sheet</p>
                                         <button onClick={resetFields} className="flex items-center gap-1 text-[10.5px] font-bold text-slate-400 hover:text-rose-500">
@@ -578,14 +578,14 @@ export default function FoundationPhaseTemplateStudio({
                                                         value={(fields as any)[spec.key] ?? ''}
                                                         placeholder={spec.placeholder}
                                                         onChange={(e) => setFields((f) => ({ ...f, [spec.key]: e.target.value }))}
-                                                        className={cn('w-full rounded-xl border px-2 py-1.5 text-[12px] font-semibold outline-none focus:border-cyan-400', isDarkMode ? 'border-white/10 bg-slate-900/60 text-slate-100 placeholder:text-slate-600' : 'border-slate-200 bg-white text-slate-700')}
+                                                        className={cn('w-full rounded-xl border px-2 py-1.5 text-[12px] font-semibold outline-none focus:border-cyan-400', isDarkMode ? 'border-white/15 bg-[#0a1428] text-slate-100 placeholder:text-slate-500' : 'border-slate-200 bg-white text-slate-700')}
                                                     />
                                                 ) : (
                                                     <input
                                                         value={(fields as any)[spec.key] ?? ''}
                                                         placeholder={spec.placeholder}
                                                         onChange={(e) => setFields((f) => ({ ...f, [spec.key]: e.target.value }))}
-                                                        className={cn('w-full rounded-xl border px-2 py-1.5 text-[12px] font-semibold outline-none focus:border-cyan-400', isDarkMode ? 'border-white/10 bg-slate-900/60 text-slate-100 placeholder:text-slate-600' : 'border-slate-200 bg-white text-slate-700')}
+                                                        className={cn('w-full rounded-xl border px-2 py-1.5 text-[12px] font-semibold outline-none focus:border-cyan-400', isDarkMode ? 'border-white/15 bg-[#0a1428] text-slate-100 placeholder:text-slate-500' : 'border-slate-200 bg-white text-slate-700')}
                                                     />
                                                 )}
                                             </label>
@@ -596,7 +596,7 @@ export default function FoundationPhaseTemplateStudio({
                         )}
                     </AnimatePresence>
 
-                    <div className={cn('overflow-hidden rounded-[20px] border-2', isDarkMode ? 'border-white/10 bg-slate-950/40' : 'border-slate-200 bg-slate-100')}>
+                    <div className={cn('overflow-hidden rounded-[20px] border-2', isDarkMode ? 'border-white/15 bg-[#04091a]' : 'border-slate-200 bg-slate-100')}>
                         <iframe
                             ref={previewRef}
                             title={`Preview — ${selected.title}`}
