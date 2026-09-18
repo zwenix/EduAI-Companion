@@ -24,6 +24,7 @@ import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { renderMathInHtml } from '../lib/latexHelper';
 import { educationalData } from '../lib/educational-data';
 import { downloadAsPDF } from '../lib/printUtils';
+import { wrapWithTemplate } from '../lib/contentTemplate';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import ReaderModeModal from './ReaderModeModal';
@@ -42,6 +43,20 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
   const [progress, setProgress] = useState(0);
   const [genError, setGenError] = useState('');
   const [result, setResult] = useState<any>(null);
+  const notesMarkup = useMemo(() => {
+    if (!result) return '';
+    const raw = String(result || '').trim();
+    const body = raw.startsWith('<') || /<\/?[a-z][\s\S]*>/i.test(raw)
+      ? replaceImagePlaceholders(raw)
+      : replaceImagePlaceholders(marked.parse(raw) as string);
+    return wrapWithTemplate(body, {
+      title: topic || 'Study Notes',
+      subject,
+      grade,
+      term: 'Term 1',
+      contentType: format
+    });
+  }, [result, topic, subject, grade, format]);
   const printRef = useRef<HTMLDivElement>(null);
 
   // Archive and Reader states
@@ -398,7 +413,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
                     "prose max-w-none eduai-content font-sans",
                     isDarkMode ? "prose-invert" : ""
                   )}
-                  dangerouslySetInnerHTML={{ __html: result }}
+                  dangerouslySetInnerHTML={{ __html: notesMarkup }}
                 />
               </div>
             </div>
@@ -420,7 +435,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
 
       <AnimatePresence>
         {isReaderOpen && (
-           <ReaderModeModal isOpen={isReaderOpen} content={result} title={topic || 'Study Notes'} onClose={() => setIsReaderOpen(false)} />
+           <ReaderModeModal isOpen={isReaderOpen} content={notesMarkup} title={topic || 'Study Notes'} onClose={() => setIsReaderOpen(false)} />
         )}
       </AnimatePresence>
 
@@ -428,7 +443,7 @@ export default function StudentNotes({ isDarkMode }: { isDarkMode: boolean }) {
         {showPrintModal && (
           <PrintPreviewModal 
             isOpen={showPrintModal}
-            content={result} 
+            content={notesMarkup}
             title={topic || 'Study Notes'}
             isDarkMode={isDarkMode} 
             onClose={() => setShowPrintModal(false)}

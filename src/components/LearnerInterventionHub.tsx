@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { printContent } from '../lib/printUtils';
+import { wrapWithTemplate } from '../lib/contentTemplate';
 import { 
   HeartHandshake, 
   Brain, 
@@ -221,6 +222,22 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
   const [exerciseTopic, setExerciseTopic] = useState<string>('Fractions & Parts of a Whole');
   const [exerciseDifficulty, setExerciseDifficulty] = useState<'Remedial Foundation' | 'Guided Practice' | 'Extension Challenge'>('Remedial Foundation');
   const [exerciseHtml, setExerciseHtml] = useState<string>('');
+  const exerciseMarkup = useMemo(() => wrapWithTemplate(exerciseHtml, {
+    title: exerciseTopic || 'Targeted Remedial Exercise',
+    subject: exerciseSubject,
+    grade: exerciseGrade,
+    term: 'Term 1',
+    contentType: 'SIAS Targeted Exercise'
+  }), [exerciseHtml, exerciseTopic, exerciseSubject, exerciseGrade]);
+  const profileMarkup = useMemo(() => selectedProfile?.generatedContentHtml
+    ? wrapWithTemplate(selectedProfile.generatedContentHtml, {
+        title: `Learner Intervention Package - ${selectedProfile.learnerName || 'Learner'}`,
+        subject: selectedProfile.subject,
+        grade: selectedProfile.grade,
+        term: 'Term 1',
+        contentType: 'SIAS Intervention Package'
+      })
+    : '', [selectedProfile]);
   const [isGeneratingExercise, setIsGeneratingExercise] = useState<boolean>(false);
 
   // Persist intervention profiles so they appear on the teacher dashboard +
@@ -2160,7 +2177,7 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
                   className={`p-6 rounded-2xl border max-h-[500px] overflow-y-auto ${
                     isDarkMode ? 'bg-slate-900 border-white/10 text-slate-100' : 'bg-slate-50 border-slate-300 text-slate-900'
                   }`}
-                  dangerouslySetInnerHTML={{ __html: exerciseHtml }}
+                  dangerouslySetInnerHTML={{ __html: exerciseMarkup }}
                 />
               </div>
             )}
@@ -2309,7 +2326,7 @@ export const LearnerInterventionHub: React.FC<LearnerInterventionHubProps> = ({
                 className={`p-8 rounded-[32px] border space-y-6 ${
                   isDarkMode ? 'bg-[#0a1224] border-white/10 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
                 }`}
-                dangerouslySetInnerHTML={{ __html: selectedProfile.generatedContentHtml }}
+                dangerouslySetInnerHTML={{ __html: profileMarkup }}
               />
             ) : (
               <div className="p-12 text-center space-y-4 rounded-3xl border border-dashed border-white/10">

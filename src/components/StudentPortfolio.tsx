@@ -12,6 +12,7 @@ import jsPDF from 'jspdf';
 import html2pdf from 'html2pdf.js';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 import { cleanupExportArtifacts } from '../lib/printUtils';
+import { buildCAPSCode, EDUAI_COMPLIANCE_LABELS, EDUAI_TEMPLATE_FOOTER_LINE, wrapWithTemplate } from '../lib/contentTemplate';
 import {
   PortfolioRecord,
   PortfolioItemType,
@@ -333,14 +334,14 @@ export default function StudentPortfolio({
 
       let pageNum = 1;
 
-      const drawPageDecorations = (p: jsPDF, page: number) => {
-        p.setDrawColor(6, 182, 212);
+      const drawPageDecorations = (p: jsPDF, _page: number) => {
+        p.setDrawColor(37, 99, 235);
         p.setLineWidth(1.5);
         p.line(40, 45, A4_WIDTH - 40, 45);
 
         p.setFont('Helvetica', 'normal');
         p.setFontSize(8);
-        p.setTextColor(148, 163, 184);
+        p.setTextColor(71, 85, 105);
         p.text('EduAI South Africa • Learning Journey Digest & CAPS Showcase', 40, 36);
         p.text(`Student: ${name} (${grade})`, A4_WIDTH - 40, 36, { align: 'right' });
 
@@ -348,14 +349,20 @@ export default function StudentPortfolio({
         p.setLineWidth(0.5);
         p.line(40, A4_HEIGHT - 45, A4_WIDTH - 40, A4_HEIGHT - 45);
 
-        p.setFontSize(8);
-        p.setTextColor(148, 163, 184);
-        p.text('CONFIDENTIAL • Official Parent Academic Portfolio Report', 40, A4_HEIGHT - 32);
-        p.text(`Page ${page}`, A4_WIDTH - 40, A4_HEIGHT - 32, { align: 'right' });
+        // Every generated PDF page carries the same exact host-owned footer.
+        p.setFontSize(5.5);
+        p.setTextColor(30, 58, 95);
+        p.text(EDUAI_TEMPLATE_FOOTER_LINE, A4_WIDTH / 2, A4_HEIGHT - 28, { align: 'center' });
       };
 
-      pdf.setFillColor(15, 23, 42);
-      pdf.roundedRect(40, 50, A4_WIDTH - 80, 95, 8, 8, 'F');
+      // Two adjacent fills are the PDF equivalent of the host two-colour
+      // gradient; the compliance line below is the single designated banner.
+      const bannerX = 40;
+      const bannerWidth = A4_WIDTH - 80;
+      pdf.setFillColor(30, 58, 95);
+      pdf.rect(bannerX, 50, bannerWidth / 2, 95, 'F');
+      pdf.setFillColor(37, 99, 235);
+      pdf.rect(bannerX + bannerWidth / 2, 50, bannerWidth / 2, 95, 'F');
 
       pdf.setTextColor(255, 255, 255);
       pdf.setFont('Helvetica', 'bold');
@@ -371,7 +378,23 @@ export default function StudentPortfolio({
       pdf.setFontSize(8);
       pdf.text('A curated collection of distinguished projects, continuous assessments, and academic milestones.', 60, 126);
 
-      let currentY = 170;
+      const complianceText = `CAPS Code:${buildCAPSCode({
+        title: 'Learning Journey Portfolio',
+        subject: 'Academic Portfolio',
+        grade,
+        term: 'Term 1',
+        contentType: 'Academic Portfolio'
+      })} ${EDUAI_COMPLIANCE_LABELS}`;
+      pdf.setFillColor(30, 58, 95);
+      pdf.rect(40, 150, bannerWidth / 2, 30, 'F');
+      pdf.setFillColor(37, 99, 235);
+      pdf.rect(40 + bannerWidth / 2, 150, bannerWidth / 2, 30, 'F');
+      pdf.setFont('Helvetica', 'bold');
+      pdf.setFontSize(5.4);
+      pdf.setTextColor(255, 255, 255);
+      pdf.text(complianceText, A4_WIDTH / 2, 168, { align: 'center' });
+
+      let currentY = 195;
       pdf.setFillColor(248, 250, 252);
       pdf.setDrawColor(226, 232, 240);
       pdf.setLineWidth(1);
@@ -593,9 +616,9 @@ export default function StudentPortfolio({
             <p style="font-size: 10.5px; color: #cbd5e1; margin: 0;"><strong>Action plan progress:</strong> ${completedMissions}/${actionPlan.length} milestones complete (${planProgress}%).</p>
           </div>` : '';
 
-      element.innerHTML = `
+      const journeyBody = `
         <div style="border: 2px solid rgba(6, 182, 212, 0.15); border-radius: 24px; padding: 35px; background-color: #0b1329; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);">
-          <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid rgba(255,255,255,0.08); padding-bottom: 24px; margin-bottom: 28px;">
+          <div class="content-banner" style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid rgba(255,255,255,0.08); padding: 24px; margin-bottom: 28px; background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); border-radius: 16px;">
             <div>
               <p style="font-size: 10px; color: #22d3ee; text-transform: uppercase; letter-spacing: 2.5px; font-weight: 800; margin: 0 0 6px 0;">Learner Continuous CAPS Assessment Portfolio</p>
               <h1 style="font-size: 28px; font-weight: 900; letter-spacing: -0.5px; color: #ffffff; margin: 0 0 6px 0;">LEARNING JOURNEY DOSSIER</h1>
@@ -674,12 +697,15 @@ export default function StudentPortfolio({
           </div>
           ${idpBlock}
 
-          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; margin-top: 28px; font-size: 9px; color: #475569;">
-            <p>© Continuous Evaluation Portfolio Registry • EduAI Analytics</p>
-            <p style="letter-spacing: 0.5px; font-family: monospace;">STAMP: DEEP-VAL-${new Date().toISOString().replace('T', '_').split('.')[0]}</p>
-          </div>
         </div>
       `;
+      element.innerHTML = wrapWithTemplate(journeyBody, {
+        title: 'Learning Journey Dossier',
+        subject: 'Academic Portfolio',
+        grade,
+        term: 'Term 1',
+        contentType: 'Learner Portfolio'
+      });
 
       document.body.appendChild(element);
 

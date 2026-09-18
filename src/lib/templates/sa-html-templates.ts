@@ -4,7 +4,14 @@
 // Enhanced for EduAI Companion — Merged from CAPS Document
 // ============================================================
 
-import { buildTemplateHeaderHTML, buildTemplateFooterHTML, buildTemplateStyleHTML, ContentTemplateMeta } from "../contentTemplate";
+import {
+  buildTemplateHeaderHTML,
+  buildTemplateFooterHTML,
+  buildTemplateStyleHTML,
+  buildTemplateComplianceBannerHTML,
+  cleanGeneratedBodyHTML,
+  ContentTemplateMeta
+} from "../contentTemplate";
 
 export interface RenderedSection {
   sectionId: number;
@@ -38,6 +45,7 @@ export interface DocumentData {
     phase: string;
     term: number;
     capsReference?: string;
+    capsCode?: string;
     atpWeek?: string;
     contentType: string;
     duration?: string | null;
@@ -191,6 +199,26 @@ export const SA_BASE_CSS = `
     margin-bottom: 12px;
     border-radius: 3px;
   }
+
+  /* Generated top banners always use the same two-colour gradient as the
+     host-owned banner, even when an AI fragment uses a generic header class. */
+  .ai-generated-content header:not(.site-header),
+  .ai-generated-content .content-banner,
+  .ai-generated-content .top-banner,
+  .ai-generated-content .header-banner,
+  .ai-generated-content .banner,
+  .ai-generated-content [class*="banner"] {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%) !important;
+    background-image: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%) !important;
+    color: #ffffff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .ai-generated-content header:not(.site-header) *,
+  .ai-generated-content .content-banner *,
+  .ai-generated-content .top-banner *,
+  .ai-generated-content .header-banner *,
+  .ai-generated-content .banner * { color: inherit; }
 
   /* ── SCHOOL HEADER ── */
   .school-header {
@@ -350,8 +378,10 @@ export const SA_BASE_CSS = `
   }
 
   .section-heading {
-    background: ${SA_COLOURS.green};
+    background: linear-gradient(135deg, ${SA_COLOURS.green} 0%, ${SA_COLOURS.darkGreen} 100%);
     color: white;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
     padding: 10px 16px;
     font-size: 11.5pt;
     font-weight: 700;
@@ -645,9 +675,18 @@ function templateMetaFromData(data: DocumentData, today: string): ContentTemplat
     grade: String(data.metadata.grade ?? ""),
     term: data.metadata.term ? `Term ${data.metadata.term}` : undefined,
     contentType: data.metadata.contentType || "CAPS Educational Resource",
+    capsCode: data.metadata.capsCode,
     date: today,
   };
 }
+
+/** Remove model-authored compliance/footer text from individual structured fields. */
+const cleanGeneratedText = (value: unknown): string => cleanGeneratedBodyHTML(String(value ?? ""))
+  .replace(/<br\s*\/?>(?=\S)/gi, "\n")
+  .replace(/<[^>]*>/g, "")
+  .trim();
+
+const cleanGeneratedFragment = (value: unknown): string => cleanGeneratedBodyHTML(String(value ?? ""));
 
 export function buildFullHTML(
   data: DocumentData,
@@ -662,13 +701,10 @@ export function buildFullHTML(
   // If content already contains full HTML (from AI), wrap it with SA branding header/footer
   if (data.content && data.content.includes("<") && data.content.length > 500) {
     // Check if it's already a full HTML document
-    const isFullDoc = data.content.includes("<html") || data.content.includes("<!DOCTYPE");
-    if (isFullDoc) {
-      // Inject SA flag stripe and compliance stamps if not present
-      return data.content;
-    }
-    // Otherwise wrap the content with SA branding
-    return wrapContentWithSABranding(data, data.content, school, today);
+    // Models sometimes return a complete HTML document with their own
+    // compliance badges/footer. Reduce it to a body fragment and let the host
+    // template render one canonical compliance banner and footer.
+    return wrapContentWithSABranding(data, cleanGeneratedBodyHTML(data.content), school, today);
   }
 
   // ── Build sections HTML from structured data ──
@@ -678,6 +714,7 @@ export function buildFullHTML(
     const imgSpec = data.imagePrompts?.find(ip => ip.sectionId === section.sectionId);
     const imgSrc = img?.base64Data ? (img.base64Data.startsWith("http") || img.base64Data.startsWith("data:") ? img.base64Data : `data:image/png;base64,${img.base64Data}`) : img?.url || "";
 
+    const sectionContent = cleanGeneratedBodyHTML(section.content || '').replace(/\n/g, '<br>');
     sectionsHTML += `
     <div class="section">
       <div class="section-heading">
@@ -688,10 +725,10 @@ export function buildFullHTML(
         </div>
       </div>
       <div class="section-body">
-        <p>${(section.content || "").replace(/\n/g, "<br>")}</p>
+        <p>${sectionContent}</p>
 
         ${section.bulletPoints?.length ? `
-        <ul>${section.bulletPoints.map(bp => `<li>${escapeHtml(bp)}</li>`).join("")}</ul>` : ""}
+        <ul>${section.bulletPoints.map(bp => `<li>${escapeHtml(cleanGeneratedText(bp))}</li>`).join("")}</ul>` : ""}
 
         ${imgSrc ? `
         <div class="img-container">
@@ -703,23 +740,23 @@ export function buildFullHTML(
         ${section.differentiatedContent ? `
         <div class="diff-box diff-core">
           <div class="diff-header">📗 Core Activity (All Learners)</div>
-          <div class="diff-content">${section.differentiatedContent.core}</div>
+          <div class="diff-content">${cleanGeneratedFragment(section.differentiatedContent.core)}</div>
         </div>
         ${section.differentiatedContent.extended ? `
         <div class="diff-box diff-extended">
           <div class="diff-header">📘 Extended Activity (Advanced Learners)</div>
-          <div class="diff-content">${section.differentiatedContent.extended}</div>
+          <div class="diff-content">${cleanGeneratedFragment(section.differentiatedContent.extended)}</div>
         </div>` : ""}
         ${section.differentiatedContent.simplified ? `
         <div class="diff-box diff-simplified">
           <div class="diff-header">📙 Simplified Activity (Support Learners)</div>
-          <div class="diff-content">${section.differentiatedContent.simplified}</div>
+          <div class="diff-content">${cleanGeneratedFragment(section.differentiatedContent.simplified)}</div>
         </div>` : ""}` : ""}
 
         ${section.siasNotes ? `
         <div class="sias-box">
           <div class="sias-title">🤝 SIAS Support Notes (Teacher Use Only)</div>
-          <p>${escapeHtml(section.siasNotes)}</p>
+          <p>${escapeHtml(cleanGeneratedText(section.siasNotes))}</p>
         </div>` : ""}
       </div>
     </div>`;
@@ -730,18 +767,18 @@ export function buildFullHTML(
   if (data.siasSupport) {
     siasHTML = `
     <div class="section">
-      <div class="section-heading" style="background: ${SA_COLOURS.gold}; color: #333;">
+      <div class="section-heading" style="background: linear-gradient(135deg, ${SA_COLOURS.gold} 0%, #f59e0b 100%); color: #333;">
         <span>🤝 SIAS — Inclusive Education Support</span>
         <span class="blooms-tag" style="background:#333;color:white;">${escapeHtml(data.siasSupport.supportLevel)}</span>
       </div>
       <div class="section-body">
-        <p><strong>Teacher Notes:</strong> ${escapeHtml(data.siasSupport.teacherNotes)}</p>
+        <p><strong>Teacher Notes:</strong> ${escapeHtml(cleanGeneratedText(data.siasSupport.teacherNotes))}</p>
         <p style="margin-top:8px;"><strong>Accommodations:</strong></p>
-        <ul>${data.siasSupport.accommodations.map(a => `<li>${escapeHtml(a)}</li>`).join("")}</ul>
+        <ul>${data.siasSupport.accommodations.map(a => `<li>${escapeHtml(cleanGeneratedText(a))}</li>`).join("")}</ul>
         ${data.siasSupport.referralGuidance ? `
         <div class="sias-box">
           <div class="sias-title">⚠️ Referral Guidance</div>
-          <p>${escapeHtml(data.siasSupport.referralGuidance)}</p>
+          <p>${escapeHtml(cleanGeneratedText(data.siasSupport.referralGuidance))}</p>
         </div>` : ""}
       </div>
     </div>`;
@@ -752,7 +789,7 @@ export function buildFullHTML(
   if (data.answerKey?.questions?.length) {
     answerKeyHTML = `
     <div class="section" style="page-break-before: always;">
-      <div class="section-heading" style="background: ${SA_COLOURS.blue};">
+      <div class="section-heading" style="background: linear-gradient(135deg, ${SA_COLOURS.blue} 0%, #1e3a8a 100%);">
         <span>📝 Memorandum / Answer Key</span>
         <span class="blooms-tag">Total: ${data.answerKey.totalMarks} marks</span>
       </div>
@@ -768,7 +805,7 @@ export function buildFullHTML(
             ${data.answerKey.questions.map(q => `
             <tr>
               <td><strong>${q.questionNumber}</strong></td>
-              <td style="text-align:left">${escapeHtml(q.answer)}</td>
+              <td style="text-align:left">${escapeHtml(cleanGeneratedText(q.answer))}</td>
               <td>${escapeHtml(q.bloomsLevel)}</td>
               <td>${escapeHtml(q.cognitiveLevel)}</td>
               <td><strong>${q.marks}</strong></td>
@@ -858,26 +895,17 @@ export function buildFullHTML(
         ${data.metadata.totalMarks ? `<span>📝 Total: ${data.metadata.totalMarks} marks</span>` : ""}
         <span>📆 ${escapeHtml(today)}</span>
       </div>
+      ${buildTemplateComplianceBannerHTML(templateMetaFromData(data, today))}
     </div>
 
     <!-- CAPS Reference Bar -->
     <div class="caps-ref-bar">
       <div>
         <span class="caps-label">CAPS:</span>
-        ${escapeHtml(data.metadata.capsReference || `${data.metadata.subject} — ${data.metadata.grade} — Term ${data.metadata.term}`)}
+        ${escapeHtml(cleanGeneratedText(data.metadata.capsReference || `${data.metadata.subject} — ${data.metadata.grade} — Term ${data.metadata.term}`))}
         ${data.metadata.atpWeek ? ` | ATP: ${escapeHtml(data.metadata.atpWeek)}` : ""}
       </div>
       ${bloomsMini ? `<div class="blooms-mini">${bloomsMini}</div>` : ""}
-    </div>
-
-    <!-- Compliance Stamps -->
-    <div class="compliance-stamp">
-      <span class="stamp">✅ CAPS Aligned</span>
-      <span class="stamp">✅ NPA Compliant</span>
-      <span class="stamp">✅ POPIA Compliant</span>
-      ${data.metadata.siasCompliance?.accommodationsIncluded ? '<span class="stamp">✅ SIAS Inclusive</span>' : ""}
-      ${data.metadata.siasCompliance?.differentiationIncluded ? '<span class="stamp">✅ WP6 Differentiated</span>' : ""}
-      ${data.metadata.npaCompliance?.isFormal ? '<span class="stamp">📝 SBA Formal</span>' : '<span class="stamp">📋 Formative</span>'}
     </div>
 
     <!-- Content Sections -->
@@ -893,7 +921,6 @@ export function buildFullHTML(
     ${answerKeyHTML}
 
     <!-- Footer -->
-    <div class="popia-notice popia-notice-block">POPIA: This document may contain information protected under the Protection of Personal Information Act (Act 4 of 2013). Handle in accordance with DBE policy. AI-generated — verify against official DBE CAPS documents.</div>
     ${buildTemplateFooterHTML(templateMetaFromData(data, today))}
 
   </div>
@@ -955,30 +982,22 @@ function wrapContentWithSABranding(data: DocumentData, content: string, school: 
         ${data.metadata.totalMarks ? `<span>📝 Total: ${data.metadata.totalMarks} marks</span>` : ""}
         <span>📆 ${escapeHtml(today)}</span>
       </div>
+      ${buildTemplateComplianceBannerHTML(templateMetaFromData(data, today))}
     </div>
 
     <div class="caps-ref-bar">
       <div>
         <span class="caps-label">CAPS:</span>
-        ${escapeHtml(data.metadata.capsReference || `${data.metadata.subject} — ${data.metadata.grade} — Term ${data.metadata.term}`)}
+        ${escapeHtml(cleanGeneratedText(data.metadata.capsReference || `${data.metadata.subject} — ${data.metadata.grade} — Term ${data.metadata.term}`))}
         ${data.metadata.atpWeek ? ` | ATP: ${escapeHtml(data.metadata.atpWeek)}` : ""}
       </div>
       ${bloomsMini ? `<div class="blooms-mini">${bloomsMini}</div>` : ""}
-    </div>
-
-    <div class="compliance-stamp">
-      <span class="stamp">✅ CAPS Aligned</span>
-      <span class="stamp">✅ NPA Compliant</span>
-      <span class="stamp">✅ POPIA Compliant</span>
-      ${data.metadata.siasCompliance?.accommodationsIncluded ? '<span class="stamp">✅ SIAS Inclusive</span>' : ""}
-      ${data.metadata.siasCompliance?.differentiationIncluded ? '<span class="stamp">✅ WP6 Differentiated</span>' : ""}
     </div>
 
     <div class="ai-generated-content">
       ${content}
     </div>
 
-    <div class="popia-notice popia-notice-block">POPIA: Protected under Act 4 of 2013. AI-generated — verify against official DBE CAPS documents.</div>
     ${buildTemplateFooterHTML(templateMetaFromData(data, today))}
   </div>
 </body>

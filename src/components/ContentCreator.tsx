@@ -277,12 +277,16 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
   }
 
   const fullDocument = useMemo(() => {
-    const isFullDoc = cleanedHtml.includes('<html') || cleanedHtml.includes('<!DOCTYPE');
+    // Normalize both HTML fragments and standalone AI documents through the
+    // same host template. This is the single choke point that removes any
+    // model-emitted duplicate compliance badges and adds one banner/footer.
+    const renderedHtml = stableMeta ? wrapWithTemplate(cleanedHtml, stableMeta) : cleanedHtml;
+    const isFullDoc = renderedHtml.includes('<html') || renderedHtml.includes('<!DOCTYPE');
     if (isFullDoc) {
       // AI-emitted standalone documents sometimes embed the Tailwind CDN
       // runtime — swap it for the static, zero-JS utility layer so the
       // document styles on first paint (no flash, works offline).
-      return cleanedHtml.replace(
+      return renderedHtml.replace(
         /<script[^>]*cdn\.tailwindcss\.com[^>]*>\s*<\/script>/gi,
         `<style data-eduai-doc-tailwind="static">\n${EDUAI_DOC_TAILWIND_CSS}\n</style>`
       );
@@ -348,7 +352,7 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
   </style>
 </head>
 <body>
-  ${stableMeta ? wrapWithTemplate(cleanedHtml, stableMeta) : cleanedHtml}
+  ${renderedHtml}
   <script>
     // Each illustration already ships with a working src (direct image API, or
     // the backend proxy on web). We only ask the host app to regenerate through
@@ -1623,6 +1627,11 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
       return 'text-rose-400 border-rose-500/20 bg-rose-500/10';
     };
 
+    const previewMarkup = wrapWithTemplate(
+      replaceImagePlaceholders(html || '', allowImages),
+      { title: label, subject, grade, contentType }
+    );
+
     return (
       <div className={cn(
         "rounded-2xl border p-6 space-y-4 overflow-hidden",
@@ -1693,7 +1702,7 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
             "prose prose-sm max-w-none overflow-x-auto",
             isDarkMode ? "text-slate-300" : "text-slate-700"
           )}
-          dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(html, allowImages) }}
+          dangerouslySetInnerHTML={{ __html: previewMarkup }}
         />
         
         {imagePrompt && (
@@ -2621,7 +2630,14 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                                   "prose prose-invert max-w-none text-left leading-relaxed",
                                   isDarkMode ? "text-slate-100" : "text-slate-900"
                                 )}
-                                dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(currentLiveContent, activeTab === 'teaching' ? t_generateImage : activeTab === 'visual' ? v_generateImage : a_generateImage) }}
+                                dangerouslySetInnerHTML={{ __html: wrapWithTemplate(
+                                  replaceImagePlaceholders(currentLiveContent, activeTab === 'teaching' ? t_generateImage : activeTab === 'visual' ? v_generateImage : a_generateImage),
+                                  activeTab === 'teaching'
+                                    ? { subject: t_subject, grade: t_grade, term: t_term, contentType: t_type, title: t_topic }
+                                    : activeTab === 'visual'
+                                      ? { subject: v_subject, grade: v_grade, contentType: v_type, title: v_topic }
+                                      : { subject: 'Administration', contentType: a_type || 'Notice', title: a_topic || 'Administrative Document' }
+                                ) }}
                               />
                               <div className="mt-4 flex items-center gap-2 text-cyan-400 text-xs font-mono animate-pulse">
                                 <span className="inline-block w-2 h-4 bg-cyan-400 animate-pulse" />

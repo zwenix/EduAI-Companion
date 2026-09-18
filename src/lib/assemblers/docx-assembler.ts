@@ -5,10 +5,16 @@
 // ============================================================
 
 import { DocumentData, RenderedImage, SA_COLOURS } from "../templates/sa-html-templates";
+import { buildCAPSCode, EDUAI_COMPLIANCE_LABELS, EDUAI_TEMPLATE_FOOTER_LINE, stripGeneratedComplianceMarkup } from "../contentTemplate";
 
 export interface DOCXOptions {
   filename?: string;
 }
+
+const cleanDocxText = (value: unknown): string => stripGeneratedComplianceMarkup(String(value ?? ""))
+  .replace(/<br\s*\/?>(?=\S)/gi, "\n")
+  .replace(/<[^>]*>/g, "")
+  .trim();
 
 /**
  * Server-side DOCX generation using 'docx' package
@@ -34,7 +40,7 @@ export async function generateDOCXServer(
 
     const {
       Document, Packer, Paragraph, TextRun, HeadingLevel,
-      AlignmentType, ShadingType, Header, Footer, PageNumber
+      AlignmentType, ShadingType, Header, Footer, Table, TableRow, TableCell, WidthType
     } = docxModule as any;
 
     const today = data.metadata.generatedDate || new Date().toLocaleDateString("en-ZA");
@@ -87,20 +93,48 @@ export async function generateDOCXServer(
       })
     );
 
-    // Compliance stamps
-    const stamps = ["CAPS Aligned", "NPA Compliant", "POPIA Compliant"];
-    if (data.metadata.siasCompliance?.accommodationsIncluded) stamps.push("SIAS Inclusive");
-    if (data.metadata.siasCompliance?.differentiationIncluded) stamps.push("WP6 Differentiated");
-
+    // One designated compliance banner. The HTML/PDF template uses the same
+    // canonical text; DOCX keeps it as one designated table banner so labels
+    // are never repeated in separate stamp rows.
+    const capsCode = buildCAPSCode({
+      capsCode: data.metadata.capsCode,
+      title: data.metadata.title,
+      subject: data.metadata.subject,
+      grade: data.metadata.grade,
+      term: `Term ${data.metadata.term}`,
+      contentType: data.metadata.contentType
+    });
+    const complianceText = `CAPS Code:${capsCode} ${EDUAI_COMPLIANCE_LABELS}`;
+    const complianceSplit = complianceText.indexOf('POPIA Compliant');
     children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: stamps.map(s => `[✅ ${s}]`).join("  "),
-            size: 16, color: SA_COLOURS.green.replace("#", ""), bold: true
-          })
-        ],
-        spacing: { after: 200 }
+      // Word does not support CSS gradients. Two adjacent shaded cells provide
+      // the same two-colour banner treatment without emitting another stamp row.
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 58, type: WidthType.PERCENTAGE },
+              shading: { type: ShadingType.SOLID, color: "1E3A5F" },
+              children: [new Paragraph({
+                children: [new TextRun({
+                  text: complianceSplit > 0 ? complianceText.slice(0, complianceSplit) : complianceText,
+                  size: 16, color: "FFFFFF", bold: true
+                })]
+              })]
+            }),
+            new TableCell({
+              width: { size: 42, type: WidthType.PERCENTAGE },
+              shading: { type: ShadingType.SOLID, color: "2563EB" },
+              children: [new Paragraph({
+                children: [new TextRun({
+                  text: complianceSplit > 0 ? complianceText.slice(complianceSplit) : '',
+                  size: 16, color: "FFFFFF", bold: true
+                })]
+              })]
+            })
+          ]
+        })]
       })
     );
 
@@ -134,7 +168,7 @@ export async function generateDOCXServer(
       );
 
       if (section.content) {
-        const contentLines = section.content.split("\n");
+        const contentLines = cleanDocxText(section.content).split("\n");
         for (const line of contentLines) {
           if (line.trim()) {
             children.push(
@@ -151,7 +185,7 @@ export async function generateDOCXServer(
         for (const bp of section.bulletPoints) {
           children.push(
             new Paragraph({
-              children: [new TextRun({ text: bp, size: 22 })],
+              children: [new TextRun({ text: cleanDocxText(bp), size: 22 })],
               bullet: { level: 0 },
               spacing: { after: 20 }
             })
@@ -162,9 +196,9 @@ export async function generateDOCXServer(
       // Differentiation
       if (section.differentiatedContent) {
         const diffLevels = [
-          { label: "📗 Core Activity (All Learners)", content: section.differentiatedContent.core },
-          { label: "📘 Extended Activity (Advanced)", content: section.differentiatedContent.extended },
-          { label: "📙 Simplified Activity (Support)", content: section.differentiatedContent.simplified }
+          { label: "📗 Core Activity (All Learners)", content: cleanDocxText(section.differentiatedContent.core) },
+          { label: "📘 Extended Activity (Advanced)", content: cleanDocxText(section.differentiatedContent.extended) },
+          { label: "📙 Simplified Activity (Support)", content: cleanDocxText(section.differentiatedContent.simplified) }
         ];
 
         for (const diff of diffLevels) {
@@ -176,7 +210,7 @@ export async function generateDOCXServer(
                 spacing: { before: 80, after: 20 }
               }),
               new Paragraph({
-                children: [new TextRun({ text: diff.content, size: 20 })],
+                children: [new TextRun({ text: cleanDocxText(diff.content), size: 20 })],
                 indent: { left: 360 },
                 spacing: { after: 60 }
               })
@@ -190,7 +224,7 @@ export async function generateDOCXServer(
           new Paragraph({
             children: [
               new TextRun({ text: "🤝 SIAS Support: ", bold: true, size: 18, color: "7B6B00" }),
-              new TextRun({ text: section.siasNotes, size: 18, color: "555555", italics: true })
+              new TextRun({ text: cleanDocxText(section.siasNotes), size: 18, color: "555555", italics: true })
             ],
             shading: { type: ShadingType.SOLID, color: "FFF8E1" },
             spacing: { before: 60, after: 60 }
@@ -214,7 +248,7 @@ export async function generateDOCXServer(
       for (const acc of data.siasSupport.accommodations) {
         children.push(
           new Paragraph({
-            children: [new TextRun({ text: acc, size: 20 })],
+            children: [new TextRun({ text: cleanDocxText(acc), size: 20 })],
             bullet: { level: 0 },
             spacing: { after: 20 }
           })
@@ -240,7 +274,7 @@ export async function generateDOCXServer(
           new Paragraph({
             children: [
               new TextRun({ text: `Q${q.questionNumber}: `, bold: true, size: 20 }),
-              new TextRun({ text: q.answer, size: 20 }),
+              new TextRun({ text: cleanDocxText(q.answer), size: 20 }),
               new TextRun({ text: `  [${q.bloomsLevel}]`, color: SA_COLOURS.green.replace("#", ""), size: 16 }),
               new TextRun({ text: `  (${q.marks} marks)`, bold: true, size: 16 })
             ],
@@ -249,17 +283,6 @@ export async function generateDOCXServer(
         );
       }
     }
-
-    // POPIA Footer
-    children.push(
-      new Paragraph({
-        children: [new TextRun({
-          text: "POPIA Notice: This document may contain information protected under the Protection of Personal Information Act (Act 4 of 2013). Generated by EduAI Companion. AI-generated content — verify against official DBE records. 2026",
-          size: 14, color: "999999", italics: true
-        })],
-        spacing: { before: 300 }
-      })
-    );
 
     const doc = new Document({
       sections: [{
@@ -285,10 +308,7 @@ export async function generateDOCXServer(
             children: [
               new Paragraph({
                 children: [
-                  new TextRun({ text: "© 2026 EduAI Companion | CAPS Compliant Educational Resource | Developed for South African Educators | eduai-companion.vercel.app | Page ", size: 14, color: "1E3A5F" }),
-                  new TextRun({ children: [PageNumber.CURRENT], size: 14, color: "1E3A5F" }),
-                  new TextRun({ text: " of ", size: 14, color: "1E3A5F" }),
-                  new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 14, color: "1E3A5F" })
+                  new TextRun({ text: EDUAI_TEMPLATE_FOOTER_LINE, size: 14, color: "1E3A5F" })
                 ],
                 alignment: AlignmentType.CENTER
               })

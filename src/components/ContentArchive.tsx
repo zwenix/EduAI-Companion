@@ -19,7 +19,27 @@ const stripMarkdownWrapper = (text: string) => {
   return cleaned;
 };
 
+const renderArchivedGeneratedContent = (item: any): string => {
+  const raw = stripMarkdownWrapper(item?.content || '');
+  const isHtml = /<\/?[a-z][\s\S]*>/i.test(raw) && raw.trim().startsWith('<');
+  const html = isHtml ? raw : marked.parse(raw) as string;
+  const memoRaw = stripMarkdownWrapper(item?.memo || '');
+  const memoSource = memoRaw.trim().startsWith('div ') ? `<${memoRaw}` : memoRaw;
+  const memoHtml = memoSource
+    ? `<section class="archive-memo"><h2>MARKING MEMORANDUM</h2>${marked.parse(memoSource) as string}</section>`
+    : '';
+  return wrapWithTemplate(`${replaceImagePlaceholders(html)}${memoHtml}`, {
+    title: item?.title || 'Archived Educational Resource',
+    subject: item?.subject,
+    grade: item?.grade,
+    term: item?.term || item?.metadata?.term,
+    contentType: item?.contentType || item?.type || 'Educational Resource',
+    date: item?.createdAt ? new Date(item.createdAt).toLocaleDateString('en-ZA') : undefined
+  });
+};
+
 import { printContent, downloadAsHTML, downloadAsPDF } from '../lib/printUtils';
+import { wrapWithTemplate } from '../lib/contentTemplate';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 // PrintHeader import removed as per user request
 import { PosterPreview } from './PosterPreview';
@@ -696,10 +716,16 @@ export default function ContentArchive() {
                     
                     {selectedItem.content ? (
                       selectedItem.content.includes('poster-container') || selectedItem.content.includes('content-card') ? (
-                        <PosterPreview html={selectedItem.content} />
+                        <PosterPreview
+                          html={selectedItem.content}
+                          title={selectedItem.title}
+                          subject={selectedItem.subject}
+                          grade={selectedItem.grade}
+                          contentType={selectedItem.contentType || 'Educational Poster'}
+                        />
                       ) : (
                         <div className="prose prose-sm lg:prose-base max-w-none markdown-body"
-                          dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(/<\/?[a-z][\s\S]*>/i.test(stripMarkdownWrapper(selectedItem.content)) && stripMarkdownWrapper(selectedItem.content).trim().startsWith('<') ? stripMarkdownWrapper(selectedItem.content) : marked.parse(stripMarkdownWrapper(selectedItem.content)) as string) }}
+                          dangerouslySetInnerHTML={{ __html: renderArchivedGeneratedContent(selectedItem) }}
                         />
                       )
                     ) : (
@@ -708,14 +734,6 @@ export default function ContentArchive() {
                       </div>
                     )}
 
-                    {selectedItem.memo && (
-                      <div className="mt-10 pt-10 border-t-2 border-dashed border-slate-200">
-                        <h2 className="text-xl font-bold text-slate-800 mb-4">MARKING MEMORANDUM</h2>
-                        <div className="prose prose-sm max-w-none markdown-body"
-                          dangerouslySetInnerHTML={{ __html: replaceImagePlaceholders(marked.parse(selectedItem.memo.trim().startsWith('div ') ? '<' + selectedItem.memo : selectedItem.memo) as string) }}
-                        />
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>

@@ -251,14 +251,7 @@ FOOTER:
 • Subtle design with branding
 • Print instructions
 • Contact/website info
-  <footer class="mt-12 pt-6 border-t-2 border-dashed border-slate-200 text-center">
-    <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">
-      EduAI Companion • CAPS Aligned • eduai-companion.github.io
-    </p>
-    <p class="text-xs text-slate-400 mt-2">
-      Print tip: Use "Fit to Page" for best results • 300 DPI recommended
-    </p>
-  </footer>
+  <!-- Host inserts the single compliance banner and exact canonical footer; do not emit a footer. -->
 
 🎨 IMAGE PROMPT SPECIFICATION:
 "Professional educational illustration for South African Grade [X] [Subject]: [Topic]. Style: Semi-realistic digital painting, children's non-fiction book aesthetic."
@@ -319,7 +312,7 @@ TOP BANNER (Hero Section):
         </div>
         <div class="flex items-center gap-2">
           <span class="text-xl">🎯</span>
-          <span class="font-semibold">CAPS Aligned</span>
+          <span class="font-semibold">Curriculum aligned</span>
         </div>
         <div class="flex items-center gap-2 font-mono">
           <span class="text-xl">📅</span>
@@ -431,14 +424,7 @@ QUICK FACTS SECTION:
     </div>
   </div>
 
-  <footer class="footer bg-gradient-to-r from-gray-100 to-gray-50 p-6 text-center border-t-2 border-gray-200">
-    <p class="text-sm font-bold text-gray-700 uppercase tracking-wider">
-      EduAI Companion • CAPS Curriculum • Print-Ready Design
-    </p>
-    <p class="text-xs text-gray-500 mt-2">
-      Optimized for A3/A2 printing • 300 DPI • CMYK color space
-    </p>
-  </footer>
+  <!-- Host inserts the single compliance banner and exact canonical footer; do not emit a footer. -->
 </article>
 
 🎨 IMAGE PROMPT SPECIFICATION:
@@ -486,7 +472,7 @@ COVER SECTION:
       
       <div class="mt-8 flex flex-wrap justify-center gap-4">
         <span class="badge bg-white/20 backdrop-blur-md px-6 py-3 rounded-full text-sm font-bold border border-white/30">
-          ✓ CAPS Aligned
+          ✓ Curriculum aligned
         </span>
         <span class="badge bg-white/20 backdrop-blur-md px-6 py-3 rounded-full text-sm font-bold border border-white/30 font-mono">
           📅 Term \subTerm \${term}
@@ -638,14 +624,7 @@ QUICK REFERENCE SECTION:
     </div>
   </aside>
 
-  <footer class="footer bg-gradient-to-r from-gray-100 to-gray-50 p-8 text-center border-t-2 border-gray-200">
-    <p class="text-sm font-bold text-gray-700 uppercase tracking-wider">
-      EduAI Companion • CAPS Curriculum Study Guide
-    </p>
-    <p class="text-xs text-gray-500 mt-2">
-      Print tip: Use "Fit to Page" • For best results, print on A4 at 300 DPI
-    </p>
-  </footer>
+  <!-- Host inserts the single compliance banner and exact canonical footer; do not emit a footer. -->
 </article>
 
 🎨 HERO IMAGE PROMPT:

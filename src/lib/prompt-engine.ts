@@ -139,7 +139,7 @@ WHITE PAPER 6 — Differentiation:
 
 POPIA — Protection of Personal Information Act (Act 4 of 2013):
 - NO real learner data — use placeholders ONLY: ${POPIA_GUIDELINES.fictionalNames.slice(0, 6).join(", ")} (fictional)
-- Include POPIA confidentiality notice in footer
+- Use privacy-safe placeholders; the host owns the single compliance banner and exact footer
 - ${context.containsLearnerData ? "⚠️ Learner data flagged — anonymise!" : "No PII — compliant"}
 
 SA CONTEXT:
@@ -155,11 +155,11 @@ SA CONTEXT:
     } catch (e) {
       // Fallback if grade parsing fails
       return `
-🇿🇦 SA COMPLIANCE — CAPS Aligned | NPA Compliant | POPIA Compliant | SIAS Inclusive | WP6 Differentiated
+🇿🇦 SA COMPLIANCE CONTEXT — the host adds the single CAPS/NPA/POPIA/SIAS/WP6 compliance banner after generation
 - Year: 2026 (not 2024)
 - Currency: Rand (R), Date: DD/MM/YYYY, SA English spelling
 - Illustrations: ${EDUCATIONAL_IMAGE_STYLE}, diverse SA learners
-- Include POPIA notice, compliance stamps, SA flag stripe
+- Include privacy-safe teaching guidance and an SA flag stripe where relevant; do not output a compliance banner, compliance labels, or footer because the host adds them once
 `;
     }
   }
@@ -273,7 +273,7 @@ You MUST ALSO generate:
 3. FULL TEACHING MATERIALS: If generating a lesson plan, include all 5 detailed teaching phases, scripts, and accommodations. If generating a worksheet, test, or memo, write out every single question and every single answer without short-cutting.
 4. METADATA & CONTEXT: Add explicit CAPS-aligned metadata such as learning objectives, duration, and cognitive levels. Incorporate South African contexts, such as sorting local animals, indigenous fruits, or typical school items to align with cultural relevance requirements.
 5. OPTIMIZED FOR SPEED: Keep the HTML clean, well-structured, and concise without excessive repetitive boilerplate text so that generation completes rapidly and within token boundaries.
-6. SA COMPLIANCE VISUALS: Include SA flag stripe (6px gradient: black, gold, green, white, red, blue), school header with DBE branding, compliance stamps (CAPS Aligned, NPA Compliant, POPIA Compliant, SIAS Inclusive, WP6 Differentiated), differentiation boxes (Core/Extended/Simplified), SIAS support boxes, NPA 7-point table, Bloom's tags on every question, POPIA footer with 2026 date.
+6. SA COMPLIANCE VISUALS: Include an SA flag stripe (6px gradient: black, gold, green, white, red, blue) where relevant, school header with DBE branding, differentiation boxes (Core/Extended/Simplified), SIAS support boxes, NPA 7-point table and Bloom's tags. Do not emit compliance labels or a footer; the host adds one compliance banner and the exact 2026 footer.
 7. QWEN IMAGE INTEGRATION: All [Illustration: ...] placeholders will be replaced by Qwen-Image (NVIDIA NIM qwen/qwen-image) with SA context enhancement — ensure prompts are ultra-detailed, SA-specific, no text overlays, 300 DPI, Disney 3D style.
 `;
 
@@ -306,12 +306,12 @@ Grade: \${grade} | Subject: \${subject} | Topic: \${topic} | Term: \${term}
 Language: \${language} | Duration: \${duration} | Total Marks: \${totalMarks}
 
 SA Requirements:
-- CAPS Aligned: \${capsCode}
+- CAPS curriculum reference: \${capsCode}
 - NPA: 7-point scale, Bloom's tagged, SBA weighting
 - SIAS: \${siasSupportLevel} accommodations
 - POPIA: Placeholder names only, confidentiality notice
 - SA Context: Rand, SA places, SA names, IKS, 2026 year
-- Visuals: ${EDUCATIONAL_IMAGE_STYLE}, SA flag stripe, compliance stamps
+- Visuals: ${EDUCATIONAL_IMAGE_STYLE}, SA flag stripe, the host compliance banner (do not duplicate it)
 
 Content must be complete, print-ready, Tailwind CSS, high contrast.
 `;
@@ -352,7 +352,7 @@ ADMIN DOCUMENT STRUCTURE (SA Official):
 - Reply slip if applicable
 - Signatures: Class Teacher, Principal, SGB placeholders
 - Distribution list
-- POPIA confidentiality notice, footer with 2026
+- Privacy-safe placeholders; do not generate a footer because the host inserts the exact canonical 2026 footer
 Generate 1 image for official header — seal, coat of arms style.
 `;
       default:
@@ -366,12 +366,12 @@ Generate 1 image for official header — seal, coat of arms style.
 Visual Hierarchy:
 - HERO: 25-30% top space for illustration placeholder.
 - BANNER: Gradient banner with subject color coding (Math: #2563eb->#60a5fa blue, Languages: #7c3aed->#a78bfa purple, Life Skills: #f97316->#fbbf24 orange, Science: #059669->#34d399 green) + SA flag stripe (6px black/gold/green/white/red/blue).
-- METADATA/BADGE: Circular Grade badge. Underlined Name, Date, and Score cards. Compliance stamps: CAPS Aligned, NPA Compliant, POPIA Compliant, SIAS Inclusive, WP6 Differentiated.
+- METADATA/BADGE: Circular Grade badge. Underlined Name, Date, and Score cards. Host compliance banner: do not emit CAPS/NPA/POPIA/SIAS/WP6 stamps or labels.
 - QUESTIONS: Bold questions, numbered circle headers, Bloom's tags (Remembering, Understanding, Applying, Analyzing, Evaluating, Creating), marks visible. Pill-shaped answer containers matching subject color.
 - DIFFERENTIATION: Core (green #007749), Extended (blue #002395), Simplified (gold #FFB81C) boxes with WP6 strategies.
 - SIAS: Yellow #FFB81C boxes with teacher notes, accommodations, referral guidance.
 - NPA: 7-point rating table (Code 1-7, 0-100%).
-- FOOTER: POPIA notice, 2026 date, school branding.
+- FOOTER: Do not generate a footer; the host inserts the exact canonical footer once.
 Phase Rules:
 - Foundation Phase (R-3): Use Patrick's Hand or similar child-friendly handwritten font (font-hand class, 'Patrick Hand' font-family), increased font sizes (min 18pt or text-lg/xl), high-contrast, simple icons, generous padding (min 1.5rem).
 - Intermediate Phase (4-6): Sans-serif (min 14pt), bold key terms, simple labeled diagrams, "Challenge Corner".

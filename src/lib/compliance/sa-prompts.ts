@@ -79,7 +79,7 @@ ${ENHANCED_MASTER_PROMPT}
 
 6. POPIA — Protection of Personal Information Act (Act 4 of 2013)
    NO real learner data. Use placeholder names ONLY: ${POPIA_GUIDELINES.fictionalNames.slice(0, 6).join(", ")} — ALL fictional.
-   Include POPIA confidentiality notice in footer.
+   Use privacy-safe placeholders; do not generate a footer because the host inserts the exact canonical footer.
    ${request.containsLearnerData ? "⚠️ Learner data flagged — ensure anonymisation" : ""}
 
 7. SA CONTEXT & LANGUAGE
@@ -158,13 +158,13 @@ When HTML is requested (default for EduAI Companion classroom use):
 - Output complete standalone HTML5 with Tailwind CSS via CDN
 - Include SA flag stripe header (green/gold/black/red/blue)
 - School header with DBE branding
-- Compliance stamps: CAPS Aligned, NPA Compliant, POPIA Compliant, SIAS Inclusive, WP6 Differentiated
+- Do not output compliance stamps or a branded footer; the EduAI host adds one canonical compliance banner and the exact official footer after generation.
 - Differentiation boxes (Core/Extended/Simplified) with WP6 colours
 - SIAS support boxes with teacher notes
 - NPA 7-point rating table
 - Bloom's tags on every question
 - Illustration placeholders: [Illustration: <detailed SA context prompt, ${EDUCATIONAL_IMAGE_STYLE}>]
-- Footer with POPIA notice and 2026 date
+- Do not generate a footer; the host inserts the exact canonical 2026 footer.
 - High contrast: dark text on light banners, white text only on deep dark backgrounds
 
 CRITICAL RULES:
@@ -220,7 +220,7 @@ MANDATORY SECTIONS (DBE Lesson Plan Template):
 14. IKS Integration — indigenous knowledge relevant to topic
 15. Homework / Extension
 16. SIAS Support Box — accommodations, referral guidance if needed
-17. POPIA Footer — confidentiality notice
+17. Privacy-safe placeholder guidance (the host owns the compliance banner and footer)
 
 ${request.differentiationRequired ? "DIFFERENTIATION MANDATORY: Provide Core (All), Extended (Advanced), Simplified (Support) versions of main activities with WP6 strategies." : "Include UDL differentiation notes."}
 ${request.includeInclusiveSupport ? `SIAS Level: ${request.siasSupportLevel || "level_1"} — Include teacher support notes, accommodations, and referral pathway.` : ""}
@@ -260,7 +260,7 @@ STRUCTURE (SA School Branded):
 9. NPA Rating Code conversion table (7-point scale)
 10. SIAS Accommodations Box (if inclusive support enabled)
 11. Differentiation Box — Core/Extended/Simplified where appropriate
-12. POPIA Footer
+12. Privacy-safe placeholder guidance (the host owns the compliance banner and footer)
 
 ${request.includeInclusiveSupport ? `SIAS Level: ${request.siasSupportLevel || "level_1"} — Include accommodations section with teacher notes.` : ""}
 ${request.differentiationRequired ? "WP6 Differentiation: Provide tiered versions for diverse learners." : ""}
@@ -299,7 +299,7 @@ SECTIONS (SA Branded, Visual-Rich):
 10. Did You Know? — SA context / IKS facts (e.g., Table Mountain, Kruger, indigenous plants)
 11. Self-Assessment Checklist — learner reflection
 12. SIAS Support Notes — if enabled
-13. POPIA Footer — 2026 date
+13. Privacy-safe placeholder guidance (the host owns the compliance banner and exact 2026 footer)
 
 ${request.differentiationRequired ? "DIFFERENTIATION: Provide simplified and extended versions with visual supports." : "Include UDL visual supports."}
 ${request.includeInclusiveSupport ? `SIAS: ${request.siasSupportLevel || "level_1"} accommodations included.` : ""}

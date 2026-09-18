@@ -1,14 +1,19 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { parsePosterHtml } from '../lib/posterParser';
+import { buildTemplateComplianceBannerHTML, EDUAI_TEMPLATE_FOOTER_LINE, stripGeneratedComplianceMarkup, wrapWithTemplate } from '../lib/contentTemplate';
 
 interface PosterPreviewProps {
   html: string;
   grade?: string;
+  subject?: string;
+  title?: string;
+  contentType?: string;
 }
 
-export function PosterPreview({ html, grade }: PosterPreviewProps) {
-  const parsed = React.useMemo(() => parsePosterHtml(html), [html]);
+export function PosterPreview({ html, grade, subject, title, contentType = 'Educational Poster' }: PosterPreviewProps) {
+  const meta = { title: title || 'Educational Poster', subject, grade, contentType };
+  const parsed = React.useMemo(() => parsePosterHtml(stripGeneratedComplianceMarkup(html)), [html]);
 
   const isFoundation = React.useMemo(() => {
     if (!grade) return false;
@@ -27,7 +32,7 @@ export function PosterPreview({ html, grade }: PosterPreviewProps) {
           fontSize: '1.25rem',
           lineHeight: '1.6'
         } : undefined}
-        dangerouslySetInnerHTML={{ __html: html }} 
+        dangerouslySetInnerHTML={{ __html: wrapWithTemplate(html, meta) }}
       />
     );
   }
@@ -82,11 +87,15 @@ export function PosterPreview({ html, grade }: PosterPreviewProps) {
         lineHeight: '1.6'
       } : undefined}
     >
-      
+      {/* One host-owned compliance section; model-authored status rows are
+          removed before parsing so posters cannot repeat the labels. */}
+      <div dangerouslySetInnerHTML={{ __html: buildTemplateComplianceBannerHTML(meta) }} />
+
       {/* Banner Section */}
       {parsed.bannerHtml && (
-        <div 
-          className="banner bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-700 p-6 text-white"
+        <div
+          className="banner p-6 text-white"
+          style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)' }}
           dangerouslySetInnerHTML={{ __html: parsed.bannerHtml }}
         />
       )}
@@ -127,13 +136,11 @@ export function PosterPreview({ html, grade }: PosterPreviewProps) {
         />
       )}
 
-      {/* Footer Section */}
-      {parsed.footerHtml && (
-        <footer 
-          className="footer bg-slate-100/80 p-4 text-center text-xs text-slate-500 border-t border-slate-200"
-          dangerouslySetInnerHTML={{ __html: parsed.footerHtml }}
-        />
-      )}
+      {/* Exact host-owned footer; the model's poster footer is intentionally
+          not rendered so it cannot create a second copyright line. */}
+      <footer className="footer p-4 text-center text-xs text-slate-500 border-t border-slate-200">
+        {EDUAI_TEMPLATE_FOOTER_LINE}
+      </footer>
 
     </div>
   );

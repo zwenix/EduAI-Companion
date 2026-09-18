@@ -39,11 +39,31 @@ export async function createZipPackageServer(
     if (!archiverModule) {
       throw new Error("archiver package not available");
     }
-    const archiver = (archiverModule as any).default || archiverModule;
+    const moduleValue = archiverModule as any;
+    const archiverFactory = typeof moduleValue === "function"
+      ? moduleValue
+      : typeof moduleValue.default === "function"
+        ? moduleValue.default
+        : typeof moduleValue.default?.default === "function"
+          ? moduleValue.default.default
+          : null;
 
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
-      const archive = archiver("zip", { zlib: { level: 9 } });
+      // archiver <= 7 exports a callable factory; archiver 8 exposes named
+      // archive classes instead. Support both shapes so server ZIP export is
+      // reliable in fresh installs and in existing deployments.
+      const archive = archiverFactory
+        ? archiverFactory("zip", { zlib: { level: 9 } })
+        : moduleValue.ZipArchive
+          ? new moduleValue.ZipArchive({ zlib: { level: 9 } })
+          : moduleValue.default?.ZipArchive
+            ? new moduleValue.default.ZipArchive({ zlib: { level: 9 } })
+            : null;
+      if (!archive) {
+        reject(new Error("archiver package does not expose a ZIP implementation"));
+        return;
+      }
 
       archive.on("data", (chunk: Buffer) => chunks.push(chunk));
       archive.on("end", () => resolve(Buffer.concat(chunks)));
@@ -109,14 +129,12 @@ ${contents.metadata ? `
 - \`data/\` — Raw structured JSON data with CAPS compliance metadata
 
 ## Compliance
-✅ CAPS Aligned | ✅ NPA Compliant (7-point scale) | ✅ POPIA Compliant (Act 4 of 2013) | ✅ SIAS Inclusive | ✅ WP6 Differentiated
-✅ Bloom's Taxonomy tagged | ✅ ATP Aligned | ✅ SA Context (Rand, SA places, SA names, IKS)
+The rendered HTML/PDF/DOCX carries one host-owned compliance banner with the applicable CAPS code and status labels. It also carries the exact canonical 2026 footer; no duplicate stamp rows or model-authored footer are added.
 
 ## SA Branding
 - Flag stripe: Black, Gold, Green, White, Red, Blue
-- School header: DBE compliant with EMIS, District, Province
-- Compliance stamps: CAPS, NPA, POPIA, SIAS, WP6
-- POPIA notice included in footer
+- School header: DBE context with EMIS, District, Province
+- One designated host compliance section; no separate compliance stamp rows
 - Year: 2026 (not 2024)
 
 ## Image Generation
@@ -134,7 +152,7 @@ Please verify against official DBE CAPS documents before classroom use.
 POPIA: Handle all personal information in accordance with the Protection of Personal Information Act.
 Generated: ${new Date().toLocaleDateString("en-ZA")} 2026
 
-© EduAI Companion — 2026 — All Rights Reserved
+© 2026 EduAI Companion | CAPS Compliant Educational Resource | Developed for South African Educators | All Rights Reserved to Developer: Z MSUTHU © 2026 |
 `;
         archive.append(readme, { name: "README.md" });
       }
@@ -218,7 +236,11 @@ export async function createZipPackageClient(
         const readme = `# EduAI Companion — Generated Content Package
 ${contents.metadata ? `Title: ${contents.metadata.title}\nSubject: ${contents.metadata.subject}\nGrade: ${contents.metadata.grade}\nTerm: ${contents.metadata.term}` : ""}
 Generated: ${new Date().toLocaleDateString("en-ZA")} 2026
-Compliance: CAPS Aligned | NPA Compliant | POPIA Compliant | SIAS Inclusive
+
+## Compliance and branding
+The HTML/PDF/DOCX outputs contain one host-owned compliance section with the applicable CAPS code and status values, followed by one exact official footer. Model-authored duplicate badges and footers are removed before export.
+
+© 2026 EduAI Companion | CAPS Compliant Educational Resource | Developed for South African Educators | All Rights Reserved to Developer: Z MSUTHU © 2026 |
 `;
         zip.file("README.md", readme);
       }
@@ -233,7 +255,7 @@ Compliance: CAPS Aligned | NPA Compliant | POPIA Compliant | SIAS Inclusive
         html: contents.htmlContent,
         data: contents.jsonData,
         generated: new Date().toISOString(),
-        compliance: "CAPS+NPA+SIAS+WP6+POPIA"
+        compliance: "One host-owned compliance section"
       };
       const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
       return blob;

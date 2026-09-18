@@ -296,7 +296,7 @@ OUTPUT FORMATTING GOLDEN RULE:
 - If user requests **JSON**: Follow the specified schemas precisely.
 - Never output raw Markdown (like # or ** in HTML values). Use correct bold/heading tags or tailwind classes instead.
 - STRICT BANNER & TEXT COLOR CONTRAST RULE: To guarantee perfect accessibility and readability, all generated text over any background or banner MUST have high visual contrast (ratio ≥ 4.5:1). If a banner uses light or highly vibrant colors (such as orange, amber, yellow, cyan, mint, lime, or any light pastel/accent color), you MUST use dark text (e.g. text-slate-900 or text-black). Do NOT use white text (text-white) over yellow, orange, cyan, mint, or light blue backgrounds. White text is strictly restricted to deep, dark background colors (such as dark royal blue, deep purple, forest green, or dark slate).
-- Include a formal, printable Header and Footer stating: "EduAI CAPS Aligned Worksheet".
+- Do not generate a page-level header/footer or compliance stamp row; the host adds the official two-colour banner, one compliance section and canonical 2026 footer.
 Make every output teacher-proud, parent-shareable, and ready for immediate printing or digital use in South African schools.
 
 `;

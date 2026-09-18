@@ -9,7 +9,7 @@
  *   ("EduAI Companion 2026 | LIGHT Template v4")
  *
  *   ┌─────────────────────────────────────────────────────────────┐
- *   │  SOLID WHITE HEADER BAR (44px, sticky, 2px blue underline) │
+ *   │  TWO-COLOUR GRADIENT HEADER BAR (44px, sticky, 2px blue underline) │
  *   │   (logo 25px)  EDUAI COMPANION 2026 | CAPS COMPLIANT …      │
  *   │   ─────────────── 2px #2563eb underline ───────────────     │
  *   ├─────────────────────────────────────────────────────────────┤
@@ -53,7 +53,9 @@ export interface ContentTemplateMeta {
     contentType?: string;
     /** Generation date DD/MM/YYYY — defaults to today (SA format). */
     date?: string;
-    /** CAPS compliance line — defaults to "CAPS Compliant". */
+    /** Optional explicit CAPS code (for example FP-MATH-G2-T3-DH01). */
+    capsCode?: string;
+    /** CAPS compliance line — retained for backwards-compatible callers. */
     capsStatus?: string;
     /** NPA compliance line — defaults to "NPA Compliant (Gr R-12)". */
     npaStatus?: string;
@@ -68,11 +70,11 @@ export const EDUAI_TEMPLATE_COLOURS = {
     navy: '#1e3a5f',
     accent: '#2563eb',
     accentLight: '#3b82f6',
-    // v4.1 visibility pass: solid header (was rgba(255,255,255,0.35) — the
-    // translucent bar vanished on busy backgrounds).
-    headerBg: '#ffffff',
-    headerBorder: '#2563eb',
-    headerText: '#1e3a5f',
+    // Generated-content chrome uses a two-colour gradient so the top banner
+    // remains visually distinct in previews, print windows and exported files.
+    headerGradient: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)',
+    headerBorder: '#93c5fd',
+    headerText: '#ffffff',
     footerBg: '#1e3a5f',
     footerText: '#e2e8f0',
     footerMuted: '#9fb3cc',
@@ -90,9 +92,17 @@ export const EDUAI_TEMPLATE_RIGHTS_LINE_2 = 'DEVELOPER: Z MSUTHU (C) 2026';
 
 /** Fixed LIGHT header lead — dynamic grade/term/subject/type trail behind it. */
 export const EDUAI_TEMPLATE_HEADER_BASE = 'EDUAI COMPANION 2026 | CAPS COMPLIANT EDUCATION RESOURCE';
-/** Primary LIGHT footer line — exactly as drawn in the template artwork. */
+/** Canonical footer text for every generated/exported educational resource. */
 export const EDUAI_TEMPLATE_FOOTER_LINE =
-    '© 2026 EduAI Companion | CAPS Compliant Educational Resource | Developed for South African Educators';
+    '© 2026 EduAI Companion | CAPS Compliant Educational Resource | Developed for South African Educators | All Rights Reserved to Developer: Z MSUTHU © 2026 |';
+
+/**
+ * One canonical compliance block is rendered by the host template. AI output
+ * is cleaned of its own badges before this block is added, which prevents the
+ * same labels from appearing in the document body, banner and footer.
+ */
+export const EDUAI_COMPLIANCE_LABELS =
+    '🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated';
 
 const LIGHT_HEADING_FONT = `'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif`;
 const LIGHT_BODY_FONT = `'Inter', system-ui, -apple-system, sans-serif`;
@@ -110,16 +120,16 @@ export const EDUAI_LIGHT_CSS = `
     gap: 8px;
     padding: 0 14px;
     height: 44px;
-    /* v4.1 visibility pass: the bar is now SOLID white (no alpha, no element
-       opacity, no backdrop-filter). The old 35%-translucent ghost header was
-       invisible on busy backgrounds and re-painted visibly on every preview
-       reload ("menus constantly flashing / lost in the background"). */
-    background-color: #ffffff;
+    /* Two-colour generated-content banner: never fall back to a single solid
+       colour, even when the document is rendered outside the app. */
+    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
     position: sticky;
     top: 0;
     z-index: 20;
-    border-bottom: 2px solid #2563eb;
-    box-shadow: 0 1px 0 rgba(30,58,95,0.08);
+    border-bottom: 2px solid #93c5fd;
+    box-shadow: 0 1px 0 rgba(30,58,95,0.18);
     width: 100%;
     box-sizing: border-box;
     min-width: 0;
@@ -135,7 +145,7 @@ export const EDUAI_LIGHT_CSS = `
     /* v4.1: readable strapline. The old clamp(5px…8px) was illegible. */
     font-size: clamp(9px, 1.35vw, 12px);
     font-weight: 600;
-    color: #1e3a5f;
+    color: #ffffff;
     white-space: nowrap;
     letter-spacing: 0.3px;
     text-transform: uppercase;
@@ -175,6 +185,48 @@ export const EDUAI_LIGHT_CSS = `
     text-transform: uppercase;
     margin-top: 4px;
 }
+.eduai-compliance-banner {
+    display: block;
+    width: 100%;
+    margin: 14px 0 20px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+    color: #ffffff;
+    border: 1px solid #93c5fd;
+    box-shadow: 0 3px 10px rgba(30,58,95,0.16);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0.1px;
+    text-align: left;
+    overflow-wrap: anywhere;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+.eduai-compliance-banner strong { font-weight: 800; }
+/* AI-authored documents use a variety of banner class names. Give all of
+   their top/header banners the same two-colour treatment without touching
+   ordinary cards and body sections. */
+.eduai-light-scope > .page > article > header:not(.site-header),
+.eduai-light-scope header:not(.site-header),
+.eduai-light-scope .content-banner,
+.eduai-light-scope .top-banner,
+.eduai-light-scope .header-banner,
+.eduai-light-scope .banner,
+.eduai-light-scope [class*="banner"] {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%) !important;
+    background-image: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%) !important;
+    color: #ffffff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+.eduai-light-scope header:not(.site-header) *,
+.eduai-light-scope .content-banner *,
+.eduai-light-scope .top-banner *,
+.eduai-light-scope .header-banner *,
+.eduai-light-scope .banner * { color: inherit; }
 .eduai-light-scope {
     position: relative;
     background: #ffffff;
@@ -324,6 +376,7 @@ export const EDUAI_LIGHT_CSS = `
     .eduai-light-scope .page { padding: 20px 14px 50px; }
     .eduai-light-scope .card { padding: 20px; border-radius: 14px; }
     .eduai-light-scope .lesson-title { font-size: 26px; }
+    .eduai-compliance-banner { font-size: 10px; padding: 10px 11px; }
     .eduai-light-scope h2 { font-size: 20px; }
 }
 @media (max-width: 390px) {
@@ -423,13 +476,96 @@ const pillTerm = (term?: string): string => {
     return raw;
 };
 
+
+/** Build a stable, readable CAPS code when a caller has not supplied one. */
+export const buildCAPSCode = (meta: ContentTemplateMeta = {}): string => {
+    const explicit = String(meta.capsCode || '').trim();
+    if (explicit) return explicit;
+
+    const grade = normGrade(meta.grade);
+    const gradeNumber = grade.match(/GRADE\s*([R\d]+)/i)?.[1]?.toUpperCase() || 'X';
+    const phase = gradeNumber === 'R' || ['1', '2', '3'].includes(gradeNumber)
+        ? 'FP'
+        : ['4', '5', '6'].includes(gradeNumber)
+            ? 'IP'
+            : ['7', '8', '9'].includes(gradeNumber)
+                ? 'SP'
+                : ['10', '11', '12'].includes(gradeNumber) ? 'FET' : 'EDU';
+    const subjectRaw = String(meta.subject || '').toLowerCase();
+    const subject = subjectRaw.includes('math') ? 'MATH'
+        : subjectRaw.includes('english') || subjectRaw.includes('language') ? 'LANG'
+            : subjectRaw.includes('science') ? 'SCI'
+                : subjectRaw.includes('life') ? 'LS'
+                    : subjectRaw.includes('social') ? 'SS'
+                        : subjectRaw.replace(/[^a-z0-9]/g, '').slice(0, 6).toUpperCase() || 'GEN';
+    const termMatch = String(meta.term || '').match(/(?:term\s*)?([1-4])/i);
+    const term = termMatch ? `T${termMatch[1]}` : 'T1';
+    const topic = String(meta.title || meta.contentType || '').toLowerCase();
+    const topicCode = topic.includes('data') || topic.includes('handling') ? 'DH'
+        : topic.includes('fraction') ? 'FR'
+            : topic.includes('time') ? 'TM'
+                : topic.includes('number') ? 'NUM'
+                    : topic.split(/[^a-z0-9]+/).filter(Boolean).map((word) => word[0]).join('').slice(0, 3).toUpperCase() || 'RES';
+    return `${phase}-${subject}-G${gradeNumber}-${term}-${topicCode}01`;
+};
+
 /**
- * The LIGHT solid-white header bar (v4.1): 25px logo (44px bar) + a
+ * Extract the body fragment from an AI document so the host can apply one
+ * consistent banner/footer. Keeping this dependency-free also makes it safe in
+ * server-side HTML generation where DOMParser is unavailable.
+ */
+export const extractGeneratedBodyHTML = (html: string): string => {
+    let source = String(html || '').trim();
+    const body = source.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
+    if (body) source = body[1];
+    source = source.replace(/<!doctype[^>]*>/gi, '');
+    source = source.replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi, '');
+    source = source.replace(/<\/?html\b[^>]*>/gi, '');
+    return source.trim();
+};
+
+/**
+ * Remove compliance chrome emitted by an AI model. The renderer owns the
+ * canonical block below; removing model-authored variants is what guarantees
+ * the labels appear exactly once in each generated document.
+ */
+export const stripGeneratedComplianceMarkup = (html: string): string => {
+    let cleaned = String(html || '');
+    // Even a model-authored copy that uses our canonical class is removed here:
+    // wrapWithTemplate will add the one host-owned copy after sanitisation.
+    cleaned = cleaned.replace(/<([a-z][\w:-]*)\b(?=[^>]*(?:class|id)\s*=\s*[\"'][^\"']*eduai-compliance-banner[^\"']*[\"'])[^>]*>[\s\S]*?<\/\1>/gi, '');
+    cleaned = cleaned.replace(/<([a-z][\w:-]*)\b(?=[^>]*(?:class|id)\s*=\s*[\"'][^\"']*(?:compliance|stamp)[^\"']*[\"'])[^>]*>[\s\S]*?<\/\1>/gi, '');
+    cleaned = cleaned.replace(/<[^>]+>\s*(?:🇿🇦\s*)?(?:✅\s*)?(?:CAPS\s+Aligned|NPA\s+Compliant|POPIA\s+Compliant(?:\s*\(2026\))?|SIAS(?:\s+Level\s*1)?\s+Inclusive|WP6\s+Differentiated)\s*<\/[^>]+>/gi, '');
+    // Also remove a single plain-text status row where models separate labels
+    // with pipes or tightly packed check marks instead of individual spans.
+    cleaned = cleaned.replace(/<([a-z][\w:-]*)\b[^>]*>(?=[^<]*(?:CAPS\s+Aligned|NPA\s+Compliant))(?=[^<]*(?:POPIA\s+Compliant|SIAS(?:\s+Level\s*1)?\s+Inclusive|WP6\s+Differentiated))[^<]*<\/\1>/gi, '');
+    cleaned = cleaned.replace(/CAPS\s*Code\s*:[^<\n]*(?:<br\s*\/?>)?/gi, '');
+    const complianceLabel = '(?:CAPS\\s+Aligned|NPA\\s+Compliant|POPIA\\s+Compliant(?:\\s*\\(2026\\))?|SIAS(?:\\s+Level\\s*1)?\\s+Inclusive|WP6\\s+Differentiated)';
+    cleaned = cleaned.replace(new RegExp(`(?:🇿🇦\\s*)?(?:✅\\s*)?${complianceLabel}(?:\\s*(?:🇿🇦|✅|[|•·,;:/])?\\s*${complianceLabel})+`, 'gi'), '');
+    cleaned = cleaned.replace(new RegExp(`(?:🇿🇦\\s*)?(?:✅\\s*)?${complianceLabel}(?:\\s*✅)?`, 'gi'), '');
+    cleaned = cleaned.replace(/(?:^|>)\s*(?:🇿🇦\s*)?(?:✅\s*)?(?:CAPS\s+Aligned|NPA\s+Compliant|POPIA\s+Compliant(?:\s*\(2026\))?|SIAS(?:\s+Level\s*1)?\s+Inclusive|WP6\s+Differentiated)\s*(?=<|$)/gim, '$1');
+    // Remove model-authored copies of either the old or new footer text. The
+    // host adds the canonical footer after this cleanup.
+    cleaned = cleaned.replace(/©\s*20\d{2}\s+EduAI\s+Companion[^<\n]*/gi, '');
+    cleaned = cleaned.replace(/EduAI\s+Companion\s*[•|]\s*(?:CAPS|Curriculum)[^<\n]*/gi, '');
+    cleaned = cleaned.replace(/(?:www\.)?eduai-companion\.(?:github\.io|vercel\.app)[^<\n]*/gi, '');
+    return cleaned.trim();
+};
+
+/** Remove model footers before the single EduAI footer is appended. */
+export const cleanGeneratedBodyHTML = (html: string): string => {
+    let cleaned = stripGeneratedComplianceMarkup(extractGeneratedBodyHTML(html));
+    cleaned = cleaned.replace(/<footer\b[^>]*>[\s\S]*?<\/footer>/gi, '');
+    return cleaned.trim();
+};
+
+/**
+ * The LIGHT two-colour gradient header bar: 25px logo (44px bar) + a
  * single-line Fredoka uppercase strapline, sized fluidly with clamp() so it is
  * always legible. Dynamic grade / term / subject / type trail behind the fixed
  * artwork lead; the line is clamped to ONE line with an ellipsis so it can
- * never wrap or push the bar taller on narrow screens. Solid (not translucent)
- * so the bar — the document's persistent "menu" strip — stays visible.
+ * never wrap or push the bar taller on narrow screens. The gradient keeps the
+ * bar — the document's persistent "menu" strip — visible on every background.
  */
 export const buildTemplateHeaderHTML = (meta: ContentTemplateMeta = {}): string => {
     const grade = normGrade(meta.grade);
@@ -440,27 +576,17 @@ export const buildTemplateHeaderHTML = (meta: ContentTemplateMeta = {}): string 
     const strapline = trail ? `${EDUAI_TEMPLATE_HEADER_BASE} | ${trail}` : `${EDUAI_TEMPLATE_HEADER_BASE} |`;
 
     return `
-<header class="site-header" style="box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; gap: 8px; padding: 0 14px; height: 44px; background-color: ${EDUAI_TEMPLATE_COLOURS.headerBg}; border-bottom: 2px solid ${EDUAI_TEMPLATE_COLOURS.headerBorder}; box-shadow: 0 1px 0 rgba(30,58,95,0.08); width: 100%; page-break-inside: avoid; break-inside: avoid; min-width: 0;">
+<header class="site-header" style="box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; gap: 8px; padding: 0 14px; height: 44px; background: ${EDUAI_TEMPLATE_COLOURS.headerGradient}; border-bottom: 2px solid ${EDUAI_TEMPLATE_COLOURS.headerBorder}; box-shadow: 0 1px 0 rgba(30,58,95,0.08); width: 100%; page-break-inside: avoid; break-inside: avoid; min-width: 0;">
   <img src="${getTemplateLogoSrc()}" alt="EduAI Logo" class="logo" style="height: 25px; width: auto; display: block; flex-shrink: 0;" />
-  <span class="header-text" style="font-family: ${LIGHT_HEADING_FONT}; font-size: clamp(9px, 1.35vw, 12px); font-weight: 600; color: ${EDUAI_TEMPLATE_COLOURS.headerText}; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">${esc(strapline)}</span>
+  <span class="header-text" style="font-family: ${LIGHT_HEADING_FONT}; font-size: clamp(9px, 1.35vw, 12px); font-weight: 600; color: ${EDUAI_TEMPLATE_COLOURS.headerText}; -webkit-print-color-adjust: exact; print-color-adjust: exact; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">${esc(strapline)}</span>
 </header>`.trim();
 };
 
-/**
- * The LIGHT navy footer band: the exact artwork line, plus a small muted
- * sub-line preserving the rights / developer / generation / URL chain.
- */
-export const buildTemplateFooterHTML = (meta: ContentTemplateMeta = {}): string => {
-    const date = esc(meta.date || saToday());
-    const contentType = esc((meta.contentType || 'Educational Resource').toUpperCase());
-    const school = meta.school ? ` • ${esc(String(meta.school).toUpperCase())}` : '';
-
-    return `
+/** The single canonical footer band used by every generated export. */
+export const buildTemplateFooterHTML = (_meta: ContentTemplateMeta = {}): string => `
 <footer class="site-footer" style="box-sizing: border-box; background-color: ${EDUAI_TEMPLATE_COLOURS.footerBg}; color: ${EDUAI_TEMPLATE_COLOURS.footerText}; text-align: center; font-size: 8pt; padding: 16px 20px; font-family: ${LIGHT_HEADING_FONT}; letter-spacing: 0.3px; line-height: 1.6; page-break-inside: avoid; break-inside: avoid;">
   <div>${esc(EDUAI_TEMPLATE_FOOTER_LINE)}</div>
-  <div class="footer-sub" style="font-size: 6.5pt; color: ${EDUAI_TEMPLATE_COLOURS.footerMuted}; letter-spacing: 0.6px; text-transform: uppercase; margin-top: 4px;">${EDUAI_TEMPLATE_RIGHTS_LINE_1} • ${EDUAI_TEMPLATE_RIGHTS_LINE_2} • Generated: ${date} • ${contentType}${school} • ${EDUAI_TEMPLATE_URL}</div>
 </footer>`.trim();
-};
 
 /**
  * The faded EduAI watermark centred behind the content area. Absolutely
@@ -470,6 +596,10 @@ export const buildTemplateFooterHTML = (meta: ContentTemplateMeta = {}): string 
  */
 export const buildTemplateWatermarkHTML = (): string => `
 <img src="${getTemplateLogoSrc()}" alt="" aria-hidden="true" class="watermark" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 75%; max-width: 560px; height: auto; opacity: 0.5; pointer-events: none; z-index: 0;" />`.trim();
+
+/** Render the one designated compliance section for a generated document. */
+export const buildTemplateComplianceBannerHTML = (meta: ContentTemplateMeta = {}): string => `
+<section class="eduai-compliance-banner" aria-label="South African compliance" style="background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); color: #ffffff; border: 1px solid #93c5fd; border-radius: 10px; padding: 11px 14px; margin: 14px 0 20px; font-family: ${LIGHT_BODY_FONT}; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><strong>CAPS Code:${esc(buildCAPSCode(meta))} ${esc(EDUAI_COMPLIANCE_LABELS)}</strong></section>`.trim();
 
 /**
  * The LIGHT title block (lesson-title + meta pills) injected above plain AI
@@ -484,16 +614,19 @@ export const buildTemplateTitleBlockHTML = (meta: ContentTemplateMeta = {}): str
     const subjectPill = String(meta.subject || '').trim();
     const typePill = String(meta.contentType || '').trim();
     const termPill = pillTerm(meta.term);
-    if (!title && !gradePill && !subjectPill && !typePill && !termPill) return '';
-    const pills = [gradePill, subjectPill, typePill, termPill, meta.capsStatus || 'CAPS Aligned'].filter(Boolean);
+    if (!title && !gradePill && !subjectPill && !typePill && !termPill) {
+        return buildTemplateComplianceBannerHTML(meta);
+    }
+    const pills = [gradePill, subjectPill, typePill, termPill].filter(Boolean);
     return `
   <h1 class="lesson-title">${esc(title || 'Educational Resource')}</h1>
-  ${pills.length ? `<div class="lesson-meta">${pills.map((p) => `<span class="meta-pill">${esc(p)}</span>`).join('')}</div>` : ''}`.trim();
+  ${pills.length ? `<div class="lesson-meta">${pills.map((p) => `<span class="meta-pill">${esc(p)}</span>`).join('')}</div>` : ''}
+  ${buildTemplateComplianceBannerHTML(meta)}`.trim();
 };
 
 /** True when the markup already carries LIGHT (or legacy) template chrome. */
 const hasTemplateChrome = (html: string): boolean =>
-    /site-header|eduai-template-header|data-eduai-light/i.test(html || '');
+    /data-eduai-light|eduai-light-scope|class\s*=\s*[\"'][^\"']*site-footer/i.test(html || '');
 
 /** True when the markup already provides its own LIGHT card structure. */
 const hasLightCards = (html: string): boolean =>
@@ -501,18 +634,21 @@ const hasLightCards = (html: string): boolean =>
 
 /**
  * Wrap generated content in the LIGHT Template v4 chrome:
- * translucent header → watermark + centred 800px page → navy footer.
- * Plain fragments are lifted into an opaque white card (with a title block
+ * two-colour gradient header → watermark + centred 800px page → navy footer.
+ * Plain fragments are lifted into an opaque white card (with a title and compliance block
  * when metadata is available); fragments that already use LIGHT card
  * structure are kept as-is. Idempotent — already-wrapped markup passes
  * through untouched.
  */
 export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {}): string => {
-    const html = String(bodyHtml || '');
-    if (hasTemplateChrome(html)) return html;
+    const original = String(bodyHtml || '');
+    // Re-exporting the print-preview paper must remain idempotent. It already
+    // contains the canonical banner/footer, so do not add a second pair.
+    if (hasTemplateChrome(original)) return original;
+    const html = cleanGeneratedBodyHTML(original);
 
     const inner = hasLightCards(html)
-        ? html
+        ? `${buildTemplateComplianceBannerHTML(meta)}\n${html}`
         : `<article class="card">\n${buildTemplateTitleBlockHTML(meta)}\n${html}\n</article>`;
 
     return `

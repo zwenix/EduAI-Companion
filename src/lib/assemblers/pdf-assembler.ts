@@ -155,13 +155,10 @@ export async function generatePDFServer(
         landscape: options.landscape || false,
         printBackground: options.printBackground !== false,
         margin: { top: "10mm", bottom: "15mm", left: "10mm", right: "10mm" },
-        displayHeaderFooter: options.includeHeaderFooter !== false,
-        headerTemplate: `<div></div>`,
-        footerTemplate: `
-          <div style="width:100%;text-align:center;font-size:8px;color:#1e3a5f;padding:5px;">
-            Page <span class="pageNumber"></span> of <span class="totalPages"></span>
-            &nbsp;|&nbsp; © 2026 EduAI Companion &nbsp;|&nbsp; CAPS Compliant Educational Resource &nbsp;|&nbsp; Developed for South African Educators &nbsp;|&nbsp; eduai-companion.vercel.app
-          </div>`,
+        // buildFullHTML already contains the single canonical EduAI footer.
+        // Do not add Puppeteer's separate footer layer: it duplicated the
+        // branding and made the generated footer text disagree with the HTML.
+        displayHeaderFooter: false,
       });
 
       console.log(`✅ PDF generated (server): ${data.metadata.title}`);

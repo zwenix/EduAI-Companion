@@ -46,11 +46,11 @@
 .fp-confetti { opacity: .5; }
 
 /* ── banner ─────────────────────────────────────────── */
-.fp-banner { position: relative; display: flex; align-items: flex-start; gap: 5mm; margin-bottom: 4mm; }
+.fp-banner { position: relative; display: flex; align-items: flex-start; gap: 5mm; margin-bottom: 4mm; padding: 4mm 5mm; border-radius: 5mm; background: linear-gradient(135deg, var(--fp-band, #1e3a5f) 0%, var(--fp-primary, #06b6d4) 100%); color: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .fp-banner-text { flex: 1 1 auto; min-width: 0; }
-.fp-kicker { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--fp-band, #1e3a5f); margin: 0 0 1mm; }
-.fp-title { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 23pt; line-height: 1.06; font-weight: 700; color: var(--fp-band, #1e3a5f); margin: 0; letter-spacing: -.01em; }
-.fp-subtitle { font-size: 10.5pt; font-weight: 700; color: #334155; margin: 1.5mm 0 0; }
+.fp-kicker { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #fff; margin: 0 0 1mm; }
+.fp-title { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 23pt; line-height: 1.06; font-weight: 700; color: #fff; margin: 0; letter-spacing: -.01em; }
+.fp-subtitle { font-size: 10.5pt; font-weight: 700; color: rgba(255,255,255,.92); margin: 1.5mm 0 0; }
 .fp-art { display: block; flex: 0 0 auto; text-align: center; }
 .fp-float-left { float: none; }
 .fp-float-right { float: none; }
@@ -59,6 +59,8 @@
 .fp-pill { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8.2pt; font-weight: 600; padding: 1.2mm 3mm; border-radius: 99mm; border: .5mm solid var(--fp-primary, #06b6d4); color: var(--fp-band, #1e3a5f); background: var(--fp-soft, #f6fbff); white-space: nowrap; }
 .fp-pill.caps { background: #1e3a5f; color: #fff; border-color: #1e3a5f; }
 .fp-pill.bloom { background: #fff; }
+.eduai-compliance-banner { display:block; margin: 0 0 4mm; padding: 2.5mm 3mm; border-radius: 3mm; background: linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%); color:#fff; border: .3mm solid #93c5fd; font: 700 8pt/1.45 'Nunito',system-ui,sans-serif; overflow-wrap:anywhere; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+
 
 /* ── learner header (name / date / marks) ─────────────── */
 .fp-learnerstrip { display: flex; align-items: stretch; gap: 3mm; margin: 0 0 4mm; }
@@ -354,6 +356,7 @@
   <img src="../../illustrations/foundation/elly-counting.png" alt="Elly the elephant counting colourful blocks and beads" style="width:100%;display:block;border-radius:18mm;" />
 </span>
 </header>
+<div class="eduai-compliance-banner">CAPS Code:FP-MATH-G3-T3-FR01 🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated</div>
 <div class="fp-badge-row"><span class="fp-pill caps">✏️ Printable Worksheet </span><span class="fp-pill">Grade 3</span><span class="fp-pill">Mathematics</span><span class="fp-pill">Term 3 · Weeks 2–6</span><span class="fp-pill bloom">Understand → Apply → Analyse</span><span class="fp-pill">Have fun! · Zonwabele!</span></div>
     <div class="fp-learnerstrip">
       <div class="fp-field" style="flex:2 1 1 auto"><b>Name · Igama</b><span class="fp-underline"></span></div><div class="fp-field" style="flex:1 1 auto"><b>Date · Umhla</b><span class="fp-underline"></span></div><div class="fp-field" style="flex:1 1 auto"><b>Class · Iklasi</b><span class="fp-underline"></span></div>
@@ -556,11 +559,7 @@
     
     <footer class="fp-foot">
   <svg class="fp-svg " viewBox="0 0 240 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" preserveAspectRatio="none" style="width:100%;height:6mm;display:block"><path d="M0 24V14q12-14 24 0t24 0 24 0 24 0 24 0 24 0 24 0 24 0 24 0 24 0V24z" fill="#f97316" opacity=".9"/></svg>
-  <p class="fp-foot-text">
-    <span><b>EduAI Companion · CAPS Compliant Foundation Phase Pack</b></span>
-    <span>CAPS Foundation Phase · Grade 3 · Mathematics · DBE (2011, as amended) · ATP-aligned</span>
-    <span>35 min · 30 marks</span>
-  </p>
+  <p class="fp-foot-text" style="justify-content:center;text-align:center;"><span><b>© 2026 EduAI Companion | CAPS Compliant Educational Resource | Developed for South African Educators | All Rights Reserved to Developer: Z MSUTHU © 2026 |</b></span></p>
 </footer>
   </div>
 </div>

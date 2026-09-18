@@ -28,6 +28,7 @@ import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp } fr
 import html2pdf from 'html2pdf.js';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 import { cleanupExportArtifacts } from '../lib/printUtils';
+import { wrapWithTemplate } from '../lib/contentTemplate';
 import PrintPreviewModal from './PrintPreviewModal';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
@@ -39,6 +40,25 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
   const [topic, setTopic] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const practiceMarkup = useMemo(() => {
+    if (!result) return '';
+    const toHtml = (value: any): string => {
+      const raw = stripMarkdownWrapper(String(value || ''));
+      if (!raw) return '';
+      return raw.trim().startsWith('<') || /<\/?[a-z][\s\S]*>/i.test(raw)
+        ? replaceImagePlaceholders(raw)
+        : replaceImagePlaceholders(marked.parse(raw) as string);
+    };
+    const content = toHtml(result.content || result);
+    const memo = result.memo ? `<section class="practice-memo"><h2>Memo &amp; Rubric</h2>${toHtml(result.memo)}</section>` : '';
+    return wrapWithTemplate(`${content}${memo}`, {
+      title: topic || 'Practice Assessment',
+      subject,
+      grade,
+      term: 'Term 1',
+      contentType: 'Practice Assessment'
+    });
+  }, [result, topic, subject, grade]);
   const [showPrintModal, setShowPrintModal] = useState(false);
 
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -377,27 +397,10 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
                   </button>
                 </div>
                 <div className={`${isDarkMode ? 'bg-slate-900/90 border-white/10 text-slate-200' : 'bg-white text-slate-900 border-slate-200'} p-8 rounded-[36px] border shadow-sm`}>
-                  <div 
-                    dangerouslySetInnerHTML={{ 
-                      __html: (result.content || result).trim().startsWith('<') 
-                        ? replaceImagePlaceholders(result.content || result)
-                        : replaceImagePlaceholders((/<\/?[a-z][\s\S]*>/i.test(stripMarkdownWrapper(result.content || result)) && stripMarkdownWrapper(result.content || result).trim().startsWith('<')) ? stripMarkdownWrapper(result.content || result) : marked.parse(stripMarkdownWrapper(result.content || result)) as string)
-                    }} 
-                    className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-850'}`} 
+                  <div
+                    dangerouslySetInnerHTML={{ __html: practiceMarkup }}
+                    className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-850'}`}
                   />
-                  {result.memo && (
-                    <div className={`mt-8 border-t ${isDarkMode ? 'border-white/10' : 'border-slate-200'} pt-8`}>
-                       <h3 className={`text-2xl font-hand mb-4 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Memo & Rubric</h3>
-                       <div 
-                          dangerouslySetInnerHTML={{ 
-                            __html: result.memo.trim().startsWith('<') 
-                              ? replaceImagePlaceholders(result.memo)
-                              : replaceImagePlaceholders((/<\/?[a-z][\s\S]*>/i.test(stripMarkdownWrapper(result.memo)) && stripMarkdownWrapper(result.memo).trim().startsWith('<')) ? stripMarkdownWrapper(result.memo) : marked.parse(stripMarkdownWrapper(result.memo)) as string)
-                          }} 
-                          className={`prose max-w-none ${isDarkMode ? 'prose-invert text-slate-200' : 'text-slate-800'}`} 
-                       />
-                    </div>
-                  )}
                 </div>
               </div>
             ) : (
