@@ -37,10 +37,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: |
-            platform-tools
-            platforms;android-34
-            build-tools;34.0.0
+          packages: platform-tools platforms;android-34 build-tools;34.0.0
 
       - name: Install dependencies
         run: npm ci
@@ -87,6 +84,19 @@ jobs:
       - name: Assemble debug APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Rename APK
+        run: |
+          set -euo pipefail
+
+          SOURCE_APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          OUTPUT_APK="android/app/build/outputs/apk/debug/EduAI-Companion.apk"
+
+          test -f "$SOURCE_APK"
+          mv "$SOURCE_APK" "$OUTPUT_APK"
+          test -f "$OUTPUT_APK"
+
+          echo "APK created at: $OUTPUT_APK"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -140,19 +150,17 @@ jobs:
           Google Cloud project number: \`725068822716\`
           EOF
 
-          cp android/app/build/outputs/apk/debug/app-debug.apk \
-            EduAI-Companion.apk
-
           gh release create "apk-${{ github.run_id }}" \
-            EduAI-Companion.apk \
+            android/app/build/outputs/apk/debug/EduAI-Companion.apk \
             --title "EduAI Companion APK (build ${{ github.run_number }})" \
             --notes-file release-notes.md
 
       - name: Publish APK to apk-artifacts branch
-        env:
-          APK_PATH: android/app/build/outputs/apk/debug/app-debug.apk
         run: |
           set -euo pipefail
+
+          APK_PATH="android/app/build/outputs/apk/debug/EduAI-Companion.apk"
+          test -f "$APK_PATH"
 
           cp "$APK_PATH" /tmp/EduAI-Companion.apk
 
