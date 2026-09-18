@@ -483,14 +483,14 @@ const IconSelector = ({ onSelect, isDarkMode }: { onSelect: (emoji: string) => v
       </Label>
       <span className="text-[10px] text-slate-400">Click to insert</span>
     </div>
-    <div className="grid grid-cols-8 gap-1 p-1.5 rounded-xl border bg-black/20 border-white/10">
+    <div className="grid grid-cols-8 gap-1 p-1.5 rounded-xl border bg-[#03060f] border-white/10">
       {['✏️', '📚', '⭐', '✂️', '👁️', '🗣️', '🎒', '💡', '🧠', '🏆', '🦉', '🎨', '🎵', '🔢', '🔤', '🧩'].map((emoji) => (
         <button
           key={emoji}
           type="button"
           title={`Insert ${emoji}`}
           onClick={() => onSelect(emoji)}
-          className="h-7 rounded-lg border border-white/5 bg-white/5 hover:bg-transparent text-xs flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer"
+          className="h-7 rounded-lg border border-white/10 bg-[#04091a] hover:bg-[#122044] hover:border-white/25 text-xs flex items-center justify-center transition-colors hover:scale-110 active:scale-95 cursor-pointer"
         >
           {emoji}
         </button>
@@ -511,7 +511,7 @@ function AdvancedSection({ children, label, isDarkMode }: { children: React.Reac
         className={cn(
           "w-full flex items-center justify-between text-[11px] font-black uppercase tracking-wider py-1.5 px-3 rounded-xl transition-all cursor-pointer border shadow-sm",
           isDarkMode
-            ? "bg-gradient-to-r from-cyan-950/40 via-purple-950/20 to-slate-900 border-cyan-500/30 text-cyan-300 hover:border-cyan-400"
+            ? "bg-[#0b1228] border-cyan-500/30 text-cyan-300 hover:bg-[#122044] hover:border-cyan-400"
             : "bg-gradient-to-r from-cyan-50 via-purple-50 to-slate-50 border-cyan-200 text-cyan-800 hover:border-cyan-300"
         )}
       >
@@ -1776,9 +1776,10 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                 iconColor = "text-emerald-400";
               } else if (group.id === 'caps-templates') {
                 activeStyle = "bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-400 text-[#3b2500] border-amber-200 shadow-lg shadow-amber-400/35 scale-[1.03]";
+                // v4.2: solid + darker (was /90 alpha — bled into the banner)
                 inactiveStyle = isDarkMode
-                  ? "bg-[#0a1226]/90 border-amber-400/30 text-amber-200 hover:bg-[#122044] hover:border-amber-300"
-                  : "bg-[#0a1226]/90 border-amber-400/30 text-amber-200 hover:bg-[#122044]";
+                  ? "bg-[#050b1a] border-amber-400/40 text-amber-200 hover:bg-[#122044] hover:border-amber-300"
+                  : "bg-[#050b1a] border-amber-400/40 text-amber-200 hover:bg-[#122044]";
                 iconColor = "text-amber-300";
               } else if (group.id === 'grade1') {
                 activeStyle = "bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-white border-amber-300 shadow-lg shadow-amber-500/30 scale-[1.03]";
@@ -1921,11 +1922,15 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                                 type="button"
                                 onClick={() => setActiveSetupTab(activeSetupTab === btn.id ? null : btn.id as any)}
                                 className={cn(
-                                  "w-full py-2.5 px-3 rounded-xl border text-[11px] font-black tracking-widest uppercase transition-all text-center cursor-pointer flex items-center justify-center gap-1.5 shadow-sm backdrop-blur-sm",
+                                  // v4.2: no backdrop-blur (repaint flicker) and a
+                                  // background DARKER than the panel so the button
+                                  // reads as a distinct control instead of
+                                  // blending into it.
+                                  "w-full py-2.5 px-3 rounded-xl border text-[11px] font-black tracking-widest uppercase transition-colors text-center cursor-pointer flex items-center justify-center gap-1.5 shadow-sm",
                                   isActive
                                     ? "bg-cyan-500 text-white border-cyan-400 shadow-md shadow-cyan-500/20 scale-[1.02]"
-                                    : "bg-[#0a1226] border-cyan-500/25 text-cyan-300 hover:bg-[#122044] hover:border-cyan-400 hover:text-white",
-                                  selectedValue && !isActive ? "border-cyan-400/50" : ""
+                                    : "bg-[#04091a] border-cyan-500/40 text-cyan-200 hover:bg-[#122044] hover:border-cyan-400 hover:text-white",
+                                  selectedValue && !isActive ? "border-cyan-400/60" : ""
                                 )}
                               >
                                 <BtnIcon size={13} className={isActive ? "text-white" : "text-cyan-400"} />
@@ -2514,9 +2519,13 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
                 className={cn(
-                  "rounded-3xl border-2 p-6 backdrop-blur-xl flex flex-col justify-between menu-glow-card glow-purple",
+                  // v4.2: SOLID, darker, zero backdrop-filter. The /95 alpha +
+                  // backdrop-blur-xl made this panel repaint visibly on every
+                  // streamed chunk ("content flashing") and let the busy page
+                  // background show through around the buttons.
+                  "rounded-3xl border-2 p-6 flex flex-col justify-between menu-glow-card glow-purple",
                   isDarkMode
-                    ? "bg-[#0a1226]/95 border-purple-500/30 shadow-2xl shadow-black/50"
+                    ? "bg-[#070e1e] border-purple-500/30 shadow-2xl shadow-black/50"
                     : "bg-[#0b142c] text-white border-purple-500/30 shadow-2xl"
                 )}
                 id="preview-panel"
@@ -2539,7 +2548,7 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                           onClick={() => setShowPrintPreviewModal(true)}
                           className={cn(
                             "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border shadow-sm",
-                            isDarkMode ? "bg-white/10 text-cyan-300 border-white/20 hover:bg-white/20" : "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100"
+                            isDarkMode ? "bg-[#04091a] text-cyan-300 border-cyan-500/40 hover:bg-[#122044]" : "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100"
                           )}
                           title="Toggle A4 Print Preview Mode"
                         >
@@ -2557,7 +2566,7 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                         <button
                           onClick={handleClosePreview}
                           title={isGenerating ? "Stop generation & close preview" : "Close Preview"}
-                          className="p-2 rounded-xl bg-slate-500/10 border border-slate-500/30 text-slate-400 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all cursor-pointer flex items-center justify-center"
+                          className="p-2 rounded-xl bg-[#04091a] border border-slate-500/40 text-slate-300 hover:bg-[#3d1024] hover:text-red-400 hover:border-red-500/50 transition-colors cursor-pointer flex items-center justify-center"
                         >
                           <X size={16} />
                         </button>
