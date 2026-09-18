@@ -3,6 +3,7 @@ import { patchOklchForHtml2canvas } from './pdfHelper';
 import { isAndroidDevice, isNativeApp, supportsSystemPrint } from './platform';
 import { deliverFile, notify, triggerWebDownload } from './nativeExport';
 import { wrapWithTemplate, metaFromPrintOptions, ContentTemplateMeta } from './contentTemplate';
+import { EDUAI_DOC_TAILWIND_CSS } from './docTailwindCompat';
 import {
   beginExport,
   failExport,
@@ -194,6 +195,11 @@ export const printContent = (
             <head>
                 <title>${title}</title>
                 ${getParentStyles()}
+                <!-- Static Tailwind compatibility layer: AI-authored documents
+                     use utility classes at runtime that the app's build-time
+                     CSS does not contain, so without this the print window
+                     renders them unstyled ("funny unreadable formatting"). -->
+                <style>${EDUAI_DOC_TAILWIND_CSS}</style>
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono&display=swap');
                     @media print {
@@ -329,6 +335,10 @@ export const downloadAsHTML = (
                     }
                     .print\\:hidden { display: none !important; }
                 </style>
+                <!-- Static Tailwind compatibility layer — the document is
+                     self-contained: no CDN, works fully offline, and the
+                     layout matches the in-app preview exactly. -->
+                <style>${EDUAI_DOC_TAILWIND_CSS}</style>
             </head>
             <body>
                 ${html}
@@ -462,18 +472,28 @@ export const downloadAsPDF = async (
 
         beginExport(options?.title ? `Exporting “${options.title}”` : 'Exporting your PDF', 'Preparing print layout…');
 
-        // Container element
+        // Container element.
+        // `position: absolute` — NOT `fixed`: html2canvas clones the document
+        // into a hidden iframe and compensates for the current page scroll.
+        // A *fixed* offscreen element does not move with that scroll
+        // compensation, so when the teacher had scrolled the app the render
+        // was cropped from the wrong coordinates — the classic blank /
+        // half-shifted PDF. An absolute element scrolls with the document,
+        // so the crop always lines up.
         container = document.createElement('div');
         // LIGHT Template v4 owns all inner spacing/typography — no padding or
         // prose classes on the shell, or the header/footer would inset.
         container.className = 'bg-white text-slate-900';
         container.style.width = '800px';
-        container.style.position = 'fixed';
+        container.style.position = 'absolute';
         container.style.left = '-9999px';
         container.style.top = '0';
         container.style.backgroundColor = '#ffffff';
         container.style.color = '#0f172a';
-        container.innerHTML = html;
+        // Static Tailwind compatibility layer first: AI-authored content uses
+        // runtime utility classes the app's build-time CSS doesn't contain,
+        // so without this the rasterised PDF comes out unstyled.
+        container.innerHTML = `<style>${EDUAI_DOC_TAILWIND_CSS}</style>${html}`;
         document.body.appendChild(container);
 
         // Resolve any relative image URLs in the container to absolute URLs so

@@ -5,6 +5,7 @@
 // ============================================================
 
 import { buildFullHTML, DocumentData, RenderedImage, SA_COLOURS } from "../templates/sa-html-templates";
+import { EDUAI_DOC_TAILWIND_CSS } from "../docTailwindCompat";
 import { cleanupExportArtifacts } from "../printUtils";
 import { deliverFile } from "../nativeExport";
 import { recommendedScale, renderElementToPdfBlob, shouldUsePaginatedRenderer } from "../pdfPaginate";
@@ -34,10 +35,36 @@ export async function generatePDFClient(
 
   const html = buildFullHTML(data, images);
 
+  // Extract the document's <style> blocks and body markup WITHOUT executing
+  // its <script> tags. `buildFullHTML` embeds the Tailwind CDN runtime for the
+  // standalone HTML file; injecting that full document via innerHTML into the
+  // live app would (a) run the CDN, which scans and re-styles the ENTIRE app
+  // DOM while attached, and (b) compile the document's classes asynchronously
+  // — so html2canvas usually captured it before (or without) any styling.
+  // Result: corrupted app UI + unstyled/"funny" exported PDFs. The static
+  // compatibility layer below covers the utility classes deterministically.
+  let bodyHtml = html;
+  let docStyles = "";
+  if (typeof DOMParser !== "undefined") {
+    try {
+      const parsed = new DOMParser().parseFromString(html, "text/html");
+      docStyles = Array.from(parsed.querySelectorAll("head style"))
+        .map((s) => s.textContent || "")
+        .join("\n");
+      if (parsed.body) bodyHtml = parsed.body.innerHTML;
+    } catch {
+      // fall back to the raw string (rendered unbranded rather than not at all)
+    }
+  }
+
   // Temporary render container (kept off-screen but attached, so layout applies).
+  // `position: absolute` — NOT `fixed`: html2canvas compensates for the
+  // current page scroll when it clones the document; a fixed offscreen
+  // element does not follow that compensation, so a scrolled app cropped the
+  // render from the wrong coordinates (blank / shifted PDF pages).
   const container = document.createElement("div");
-  container.innerHTML = html;
-  container.style.position = "fixed";
+  container.innerHTML = `<style>${docStyles}</style><style>${EDUAI_DOC_TAILWIND_CSS}</style>${bodyHtml}`;
+  container.style.position = "absolute";
   container.style.left = "-9999px";
   container.style.top = "0";
   container.style.width = "800px";

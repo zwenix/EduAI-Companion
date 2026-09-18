@@ -337,6 +337,11 @@ export const EDUAI_LIGHT_CSS = `
     .site-header { position: static; }
     .eduai-light-scope .card { box-shadow: none; break-inside: avoid; }
     .eduai-light-scope .btn { display: none !important; }
+    /* The 50%-opacity logo watermark sits at 50% of the *whole* document, so
+       in a browser print (usually without "background graphics") it bleeds
+       through every page of content. Hide it on paper — the footer keeps the
+       branding. It still appears in html2canvas PDFs (screen media). */
+    .watermark { display: none !important; }
 }
 `.trim();
 
