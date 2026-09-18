@@ -91,8 +91,8 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: EduAI-Companion-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: EduAI-Companion-apk
+          path: android/app/build/outputs/apk/debug/EduAI-Companion.apk
           if-no-files-found: error
 
       - name: Create GitHub Release
