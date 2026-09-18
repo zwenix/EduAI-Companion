@@ -296,7 +296,7 @@ OUTPUT FORMATTING GOLDEN RULE:
 - If user requests **JSON**: Follow the specified schemas precisely.
 - Never output raw Markdown (like # or ** in HTML values). Use correct bold/heading tags or tailwind classes instead.
 - STRICT BANNER & TEXT COLOR CONTRAST RULE: To guarantee perfect accessibility and readability, all generated text over any background or banner MUST have high visual contrast (ratio ≥ 4.5:1). If a banner uses light or highly vibrant colors (such as orange, amber, yellow, cyan, mint, lime, or any light pastel/accent color), you MUST use dark text (e.g. text-slate-900 or text-black). Do NOT use white text (text-white) over yellow, orange, cyan, mint, or light blue backgrounds. White text is strictly restricted to deep, dark background colors (such as dark royal blue, deep purple, forest green, or dark slate).
-- Do not generate a page-level header/footer or compliance stamp row; the host adds the official two-colour banner, one compliance section and canonical 2026 footer.
+- Do not generate a page-level header/footer or compliance stamp row; the host adds the compact translucent white header, full-width two-colour content banner, one compliance section and canonical 2026 footer.
 Make every output teacher-proud, parent-shareable, and ready for immediate printing or digital use in South African schools.
 
 `;
@@ -1535,12 +1535,47 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
         return res.status(500).json({ error: "Failed to parse SA content", raw: rawResponse.slice(0, 1000) });
       }
 
-      // Build full HTML if needed
+      // Build the canonical branded HTML at the route boundary as well. This
+      // endpoint is used by package/export clients that do not pass through the
+      // React preview, so returning only the raw AI JSON would bypass the one
+      // compliance banner, compact header and exact footer guarantees.
       const { buildFullHTML } = await import("./src/lib/templates/sa-html-templates");
-      // images will be generated client-side or via separate call; return structure now
+      const phaseConfig = getPhaseConfig(saRequest.grade);
+      const requestedTerm = Number(saRequest.term) || 1;
+      const documentData = {
+        ...parsed,
+        metadata: {
+          ...(parsed.metadata || {}),
+          title: parsed.metadata?.title || `${saRequest.topic || saRequest.contentType} — ${saRequest.subject}`,
+          subject: parsed.metadata?.subject || saRequest.subject,
+          grade: parsed.metadata?.grade || saRequest.grade,
+          phase: parsed.metadata?.phase || phaseConfig.displayName,
+          term: Number(parsed.metadata?.term) || requestedTerm,
+          capsReference: parsed.metadata?.capsReference || saRequest.capsReference,
+          contentType: parsed.metadata?.contentType || saRequest.contentType,
+          generatedDate: parsed.metadata?.generatedDate || new Date().toLocaleDateString("en-ZA"),
+          npaCompliance: parsed.metadata?.npaCompliance || {
+            assessmentType: saRequest.assessmentType || "informal_assessment",
+            isFormal: !!saRequest.isFormal,
+            sbaWeight: phaseConfig.assessmentWeights.schoolBasedAssessment,
+            examWeight: phaseConfig.assessmentWeights.yearEndExam
+          },
+          siasCompliance: parsed.metadata?.siasCompliance || {
+            supportLevel: saRequest.siasSupportLevel || "level_1",
+            accommodationsIncluded: !!saRequest.includeInclusiveSupport,
+            differentiationIncluded: !!saRequest.differentiationRequired
+          },
+          popiaCompliant: true
+        },
+        sections: Array.isArray(parsed.sections) ? parsed.sections : [],
+        content: typeof parsed.content === "string" ? parsed.content : ""
+      };
+      const html = buildFullHTML(documentData);
 
       return res.json({
         content: parsed,
+        document: documentData,
+        html,
         complianceReport: report,
         provider: usedProvider,
         generatedAt: new Date().toISOString(),

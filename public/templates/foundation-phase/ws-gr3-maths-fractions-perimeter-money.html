@@ -47,6 +47,7 @@
 
 /* ── banner ─────────────────────────────────────────── */
 .fp-banner { position: relative; display: flex; align-items: flex-start; gap: 5mm; margin-bottom: 4mm; padding: 4mm 5mm; border-radius: 5mm; background: linear-gradient(135deg, var(--fp-band, #1e3a5f) 0%, var(--fp-primary, #06b6d4) 100%); color: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.fp-page > .site-header { position: relative; margin-bottom: 3mm; border-radius: 2mm; }
 .fp-banner-text { flex: 1 1 auto; min-width: 0; }
 .fp-kicker { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #fff; margin: 0 0 1mm; }
 .fp-title { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 23pt; line-height: 1.06; font-weight: 700; color: #fff; margin: 0; letter-spacing: -.01em; }
@@ -59,8 +60,21 @@
 .fp-pill { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8.2pt; font-weight: 600; padding: 1.2mm 3mm; border-radius: 99mm; border: .5mm solid var(--fp-primary, #06b6d4); color: var(--fp-band, #1e3a5f); background: var(--fp-soft, #f6fbff); white-space: nowrap; }
 .fp-pill.caps { background: #1e3a5f; color: #fff; border-color: #1e3a5f; }
 .fp-pill.bloom { background: #fff; }
-.eduai-compliance-banner { display:block; margin: 0 0 4mm; padding: 2.5mm 3mm; border-radius: 3mm; background: linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%); color:#fff; border: .3mm solid #93c5fd; font: 700 8pt/1.45 'Nunito',system-ui,sans-serif; overflow-wrap:anywhere; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-
+.fp-page > .eduai-compliance-banner {
+  display: block;
+  width: calc(100% + 24mm) !important;
+  margin: 0 -12mm 4mm !important;
+  padding: 2.5mm 3mm;
+  border-radius: 0 0 3mm 3mm;
+  box-sizing: border-box;
+  background: linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);
+  color: #fff;
+  border: .3mm solid #93c5fd;
+  font: 700 8pt/1.45 'Nunito',system-ui,sans-serif;
+  overflow-wrap: anywhere;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
 
 /* ── learner header (name / date / marks) ─────────────── */
 .fp-learnerstrip { display: flex; align-items: stretch; gap: 3mm; margin: 0 0 4mm; }
@@ -346,6 +360,10 @@
 </div>
     <svg class="fp-svg fp-confetti" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"><path d="M92.9 55.1l1.6 1.6M94.5 55.1l-1.6 1.6" stroke="#ffdf40" stroke-width="1.2" stroke-linecap="round"/><path d="M4.3 65.9l1.6 1.6M5.9 65.9l-1.6 1.6" stroke="#2ed573" stroke-width="1.2" stroke-linecap="round"/><rect x="6.0" y="86.5" width="3.9" height="1.6" rx=".8" fill="#ff5a5f" transform="rotate(30 6.0 86.5)"/><path d="M77.8 17.1l1.6 1.6M79.4 17.1l-1.6 1.6" stroke="#9b59b6" stroke-width="1.2" stroke-linecap="round"/><rect x="93.8" y="32.7" width="2.0" height="1.6" rx=".8" fill="#9b59b6" transform="rotate(8 93.8 32.7)"/><path d="M70.1 19.8l1.6 1.6M71.7 19.8l-1.6 1.6" stroke="#9b59b6" stroke-width="1.2" stroke-linecap="round"/><path d="M56.4 42.2l1.6 1.6M58.0 42.2l-1.6 1.6" stroke="#ffdf40" stroke-width="1.2" stroke-linecap="round"/><path d="M44.1 70.0l1.6 1.6M45.7 70.0l-1.6 1.6" stroke="#ffdf40" stroke-width="1.2" stroke-linecap="round"/><path d="M60.3 86.9l1.6 1.6M61.9 86.9l-1.6 1.6" stroke="#ff8a3d" stroke-width="1.2" stroke-linecap="round"/><circle cx="72.2" cy="96.7" r="1.1" fill="#9b59b6"/><rect x="89.6" y="68.4" width="3.9" height="1.6" rx=".8" fill="#2563eb" transform="rotate(16 89.6 68.4)"/><path d="M9.9 46.4l1.6 1.6M11.5 46.4l-1.6 1.6" stroke="#ff8a3d" stroke-width="1.2" stroke-linecap="round"/><path d="M23.9 59.8l1.6 1.6M25.5 59.8l-1.6 1.6" stroke="#ff8a3d" stroke-width="1.2" stroke-linecap="round"/><path d="M5.9 20.3l1.6 1.6M7.5 20.3l-1.6 1.6" stroke="#ffdf40" stroke-width="1.2" stroke-linecap="round"/><path d="M74.9 41.7l1.6 1.6M76.5 41.7l-1.6 1.6" stroke="#ff5a5f" stroke-width="1.2" stroke-linecap="round"/><rect x="5.3" y="62.0" width="3.3" height="1.6" rx=".8" fill="#2563eb" transform="rotate(44 5.3 62.0)"/><rect x="95.6" y="9.7" width="2.5" height="1.6" rx=".8" fill="#ff8a3d" transform="rotate(-54 95.6 9.7)"/><path d="M86.4 64.8l1.6 1.6M88.0 64.8l-1.6 1.6" stroke="#2563eb" stroke-width="1.2" stroke-linecap="round"/></svg>
     
+    <header class="site-header" style="box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; gap: 6px; padding: 0 10px; height: 30px; background: rgba(255,255,255,0.78); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); border-bottom: 1px solid rgba(148,163,184,0.36); box-shadow: none; width: 100%; page-break-inside: avoid; break-inside: avoid; min-width: 0;">
+  <img src="/eduai-logo.png" alt="EduAI Logo" class="logo" style="height: 18px; width: auto; display: block; flex-shrink: 0; opacity: 0.32;" />
+  <span class="header-text" style="font-family: 'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif; font-size: clamp(8px, 1.15vw, 10px); font-weight: 600; color: #1e3a5f; opacity: 0.62; -webkit-print-color-adjust: exact; print-color-adjust: exact; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">EDUAI COMPANION 2026 | CAPS COMPLIANT EDUCATION RESOURCE | GRADE 3 • TERM 3 • MATHEMATICS • PRINTABLE WORKSHEETS</span>
+</header>
     <header class="fp-banner">
   <div class="fp-banner-text">
     <p class="fp-kicker">✏️ EduAI Companion · CAPS Foundation Phase</p>
@@ -356,8 +374,8 @@
   <img src="../../illustrations/foundation/elly-counting.png" alt="Elly the elephant counting colourful blocks and beads" style="width:100%;display:block;border-radius:18mm;" />
 </span>
 </header>
-<div class="eduai-compliance-banner">CAPS Code:FP-MATH-G3-T3-FR01 🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated</div>
 <div class="fp-badge-row"><span class="fp-pill caps">✏️ Printable Worksheet </span><span class="fp-pill">Grade 3</span><span class="fp-pill">Mathematics</span><span class="fp-pill">Term 3 · Weeks 2–6</span><span class="fp-pill bloom">Understand → Apply → Analyse</span><span class="fp-pill">Have fun! · Zonwabele!</span></div>
+    <section class="eduai-compliance-banner" aria-label="South African compliance" style="display:block; width:100%; box-sizing:border-box; background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); color: #ffffff; border: 1px solid #93c5fd; border-radius: 10px; padding: 11px 14px; margin: 14px 0 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><strong>CAPS Code:FP-MATH-G3-T3-FR01 🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated</strong></section>
     <div class="fp-learnerstrip">
       <div class="fp-field" style="flex:2 1 1 auto"><b>Name · Igama</b><span class="fp-underline"></span></div><div class="fp-field" style="flex:1 1 auto"><b>Date · Umhla</b><span class="fp-underline"></span></div><div class="fp-field" style="flex:1 1 auto"><b>Class · Iklasi</b><span class="fp-underline"></span></div>
       <div class="fp-scorebox"><b>Score · Amanqaku / Marks · Amanqaku</b>

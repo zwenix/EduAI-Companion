@@ -335,13 +335,15 @@ export default function StudentPortfolio({
       let pageNum = 1;
 
       const drawPageDecorations = (p: jsPDF, _page: number) => {
-        p.setDrawColor(37, 99, 235);
-        p.setLineWidth(1.5);
+        // Keep the PDF header compact, white and watermark-like: muted text
+        // plus a neutral divider instead of a competing blue header block.
+        p.setDrawColor(203, 213, 225);
+        p.setLineWidth(0.5);
         p.line(40, 45, A4_WIDTH - 40, 45);
 
         p.setFont('Helvetica', 'normal');
-        p.setFontSize(8);
-        p.setTextColor(71, 85, 105);
+        p.setFontSize(7);
+        p.setTextColor(100, 116, 139);
         p.text('EduAI South Africa • Learning Journey Digest & CAPS Showcase', 40, 36);
         p.text(`Student: ${name} (${grade})`, A4_WIDTH - 40, 36, { align: 'right' });
 

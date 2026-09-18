@@ -9,9 +9,9 @@
  *   ("EduAI Companion 2026 | LIGHT Template v4")
  *
  *   ┌─────────────────────────────────────────────────────────────┐
- *   │  TWO-COLOUR GRADIENT HEADER BAR (44px, sticky, 2px blue underline) │
- *   │   (logo 25px)  EDUAI COMPANION 2026 | CAPS COMPLIANT …      │
- *   │   ─────────────── 2px #2563eb underline ───────────────     │
+ *   │  COMPACT TRANSLUCENT WHITE HEADER (30px, sticky, watermark logo)      │
+ *   │   (logo 18px)  EDUAI COMPANION 2026 | CAPS COMPLIANT …      │
+ *   │   ─────────────── subtle neutral divider ───────────────     │
  *   ├─────────────────────────────────────────────────────────────┤
  *   │  WHITE PAGE (max 800px, centred) over a faded watermark     │
  *   │   ┌─ card ─────────────────────────────────────────────┐   │
@@ -70,11 +70,12 @@ export const EDUAI_TEMPLATE_COLOURS = {
     navy: '#1e3a5f',
     accent: '#2563eb',
     accentLight: '#3b82f6',
-    // Generated-content chrome uses a two-colour gradient so the top banner
-    // remains visually distinct in previews, print windows and exported files.
-    headerGradient: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)',
-    headerBorder: '#93c5fd',
-    headerText: '#ffffff',
+    // The compact document header is deliberately white and translucent so it
+    // reads like a watermark. The designated content banner below remains the
+    // two-colour gradient used for compliance/status information.
+    headerGradient: 'rgba(255,255,255,0.78)',
+    headerBorder: '#cbd5e1',
+    headerText: '#1e3a5f',
     footerBg: '#1e3a5f',
     footerText: '#e2e8f0',
     footerMuted: '#9fb3cc',
@@ -117,35 +118,39 @@ export const EDUAI_LIGHT_CSS = `
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 8px;
-    padding: 0 14px;
-    height: 44px;
-    /* Two-colour generated-content banner: never fall back to a single solid
-       colour, even when the document is rendered outside the app. */
-    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+    gap: 6px;
+    padding: 0 10px;
+    height: 30px;
+    /* Compact watermark-like chrome: white/translucent, never a blue bar. */
+    background: rgba(255,255,255,0.78);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
     position: sticky;
     top: 0;
     z-index: 20;
-    border-bottom: 2px solid #93c5fd;
-    box-shadow: 0 1px 0 rgba(30,58,95,0.18);
+    border-bottom: 1px solid rgba(148,163,184,0.36);
+    box-shadow: none;
     width: 100%;
     box-sizing: border-box;
     min-width: 0;
 }
 .site-header .logo {
-    height: 25px;
+    height: 18px;
     width: auto;
     display: block;
     flex-shrink: 0;
+    opacity: 0.32;
 }
 .header-text {
     font-family: 'Fredoka', sans-serif;
-    /* v4.1: readable strapline. The old clamp(5px…8px) was illegible. */
-    font-size: clamp(9px, 1.35vw, 12px);
+    /* Small, muted strapline keeps the header present without competing with
+       the full-width generated content banner. */
+    font-size: clamp(8px, 1.15vw, 10px);
     font-weight: 600;
-    color: #ffffff;
+    color: #1e3a5f;
+    opacity: 0.62;
     white-space: nowrap;
     letter-spacing: 0.3px;
     text-transform: uppercase;
@@ -206,6 +211,24 @@ export const EDUAI_LIGHT_CSS = `
     print-color-adjust: exact;
 }
 .eduai-compliance-banner strong { font-weight: 800; }
+/* The designated banner should span the available page/card width rather than
+   sit inside the card's inner text padding. The negative margins stop at the
+   white page edge and keep the banner visually dominant without widening the
+   document itself. */
+.eduai-light-scope .card > .eduai-compliance-banner {
+    width: calc(100% + 56px) !important;
+    max-width: none;
+    margin-left: -28px !important;
+    margin-right: -28px !important;
+    box-sizing: border-box;
+}
+.eduai-light-scope .page > .eduai-compliance-banner {
+    width: calc(100% + 40px) !important;
+    max-width: none;
+    margin-left: -20px !important;
+    margin-right: -20px !important;
+    box-sizing: border-box;
+}
 /* AI-authored documents use a variety of banner class names. Give all of
    their top/header banners the same two-colour treatment without touching
    ordinary cards and body sections. */
@@ -370,21 +393,25 @@ export const EDUAI_LIGHT_CSS = `
 .eduai-light-scope ul.objectives { padding-left: 0; }
 .eduai-light-scope a { color: #2563eb; }
 @media (max-width: 640px) {
-    .site-header { padding: 0 10px; gap: 8px; height: 40px; }
-    .site-header .logo { height: 22px; }
-    .header-text { font-size: clamp(8px, 1.8vw, 10px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .site-header { padding: 0 8px; gap: 5px; height: 27px; }
+    .site-header .logo { height: 16px; }
+    .header-text { font-size: clamp(7px, 1.6vw, 9px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .eduai-light-scope .page { padding: 20px 14px 50px; }
     .eduai-light-scope .card { padding: 20px; border-radius: 14px; }
+    .eduai-light-scope .card > .eduai-compliance-banner { width: calc(100% + 40px) !important; margin-left: -20px !important; margin-right: -20px !important; }
+    .eduai-light-scope .page > .eduai-compliance-banner { width: calc(100% + 28px) !important; margin-left: -14px !important; margin-right: -14px !important; }
     .eduai-light-scope .lesson-title { font-size: 26px; }
     .eduai-compliance-banner { font-size: 10px; padding: 10px 11px; }
     .eduai-light-scope h2 { font-size: 20px; }
 }
 @media (max-width: 390px) {
-    .site-header { gap: 6px; padding: 0 8px; height: 38px; }
-    .site-header .logo { height: 20px; }
-    .header-text { font-size: clamp(7px, 1.7vw, 9px); }
+    .site-header { gap: 4px; padding: 0 6px; height: 25px; }
+    .site-header .logo { height: 14px; }
+    .header-text { font-size: clamp(6px, 1.5vw, 8px); }
     .eduai-light-scope .lesson-meta { gap: 6px; }
     .eduai-light-scope .card { padding: 18px 16px; }
+    .eduai-light-scope .card > .eduai-compliance-banner { width: calc(100% + 36px) !important; margin-left: -18px !important; margin-right: -18px !important; }
+    .eduai-light-scope .page > .eduai-compliance-banner { width: calc(100% + 28px) !important; margin-left: -14px !important; margin-right: -14px !important; }
 }
 @media print {
     .site-header { position: static; }
@@ -560,12 +587,12 @@ export const cleanGeneratedBodyHTML = (html: string): string => {
 };
 
 /**
- * The LIGHT two-colour gradient header bar: 25px logo (44px bar) + a
- * single-line Fredoka uppercase strapline, sized fluidly with clamp() so it is
- * always legible. Dynamic grade / term / subject / type trail behind the fixed
- * artwork lead; the line is clamped to ONE line with an ellipsis so it can
- * never wrap or push the bar taller on narrow screens. The gradient keeps the
- * bar — the document's persistent "menu" strip — visible on every background.
+ * The LIGHT compact translucent header: an 18px watermark-like logo in a
+ * 30px white/translucent bar plus a single-line muted strapline. Dynamic grade
+ * / term / subject / type trail behind the fixed artwork lead; the line is
+ * clamped to ONE line with an ellipsis so it can never wrap or push the bar
+ * taller on narrow screens. The designated content banner below carries the
+ * two-colour gradient and compliance/status text.
  */
 export const buildTemplateHeaderHTML = (meta: ContentTemplateMeta = {}): string => {
     const grade = normGrade(meta.grade);
@@ -576,9 +603,9 @@ export const buildTemplateHeaderHTML = (meta: ContentTemplateMeta = {}): string 
     const strapline = trail ? `${EDUAI_TEMPLATE_HEADER_BASE} | ${trail}` : `${EDUAI_TEMPLATE_HEADER_BASE} |`;
 
     return `
-<header class="site-header" style="box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; gap: 8px; padding: 0 14px; height: 44px; background: ${EDUAI_TEMPLATE_COLOURS.headerGradient}; border-bottom: 2px solid ${EDUAI_TEMPLATE_COLOURS.headerBorder}; box-shadow: 0 1px 0 rgba(30,58,95,0.08); width: 100%; page-break-inside: avoid; break-inside: avoid; min-width: 0;">
-  <img src="${getTemplateLogoSrc()}" alt="EduAI Logo" class="logo" style="height: 25px; width: auto; display: block; flex-shrink: 0;" />
-  <span class="header-text" style="font-family: ${LIGHT_HEADING_FONT}; font-size: clamp(9px, 1.35vw, 12px); font-weight: 600; color: ${EDUAI_TEMPLATE_COLOURS.headerText}; -webkit-print-color-adjust: exact; print-color-adjust: exact; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">${esc(strapline)}</span>
+<header class="site-header" style="box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; gap: 6px; padding: 0 10px; height: 30px; background: ${EDUAI_TEMPLATE_COLOURS.headerGradient}; -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); border-bottom: 1px solid rgba(148,163,184,0.36); box-shadow: none; width: 100%; page-break-inside: avoid; break-inside: avoid; min-width: 0;">
+  <img src="${getTemplateLogoSrc()}" alt="EduAI Logo" class="logo" style="height: 18px; width: auto; display: block; flex-shrink: 0; opacity: 0.32;" />
+  <span class="header-text" style="font-family: ${LIGHT_HEADING_FONT}; font-size: clamp(8px, 1.15vw, 10px); font-weight: 600; color: ${EDUAI_TEMPLATE_COLOURS.headerText}; opacity: 0.62; -webkit-print-color-adjust: exact; print-color-adjust: exact; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">${esc(strapline)}</span>
 </header>`.trim();
 };
 
@@ -599,7 +626,7 @@ export const buildTemplateWatermarkHTML = (): string => `
 
 /** Render the one designated compliance section for a generated document. */
 export const buildTemplateComplianceBannerHTML = (meta: ContentTemplateMeta = {}): string => `
-<section class="eduai-compliance-banner" aria-label="South African compliance" style="background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); color: #ffffff; border: 1px solid #93c5fd; border-radius: 10px; padding: 11px 14px; margin: 14px 0 20px; font-family: ${LIGHT_BODY_FONT}; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><strong>CAPS Code:${esc(buildCAPSCode(meta))} ${esc(EDUAI_COMPLIANCE_LABELS)}</strong></section>`.trim();
+<section class="eduai-compliance-banner" aria-label="South African compliance" style="display:block; width:100%; box-sizing:border-box; background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); color: #ffffff; border: 1px solid #93c5fd; border-radius: 10px; padding: 11px 14px; margin: 14px 0 20px; font-family: ${LIGHT_BODY_FONT}; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><strong>CAPS Code:${esc(buildCAPSCode(meta))} ${esc(EDUAI_COMPLIANCE_LABELS)}</strong></section>`.trim();
 
 /**
  * The LIGHT title block (lesson-title + meta pills) injected above plain AI
@@ -634,7 +661,8 @@ const hasLightCards = (html: string): boolean =>
 
 /**
  * Wrap generated content in the LIGHT Template v4 chrome:
- * two-colour gradient header → watermark + centred 800px page → navy footer.
+ * compact translucent white header → full-width two-colour content banner →
+ * watermark + centred 800px page → navy footer.
  * Plain fragments are lifted into an opaque white card (with a title and compliance block
  * when metadata is available); fragments that already use LIGHT card
  * structure are kept as-is. Idempotent — already-wrapped markup passes

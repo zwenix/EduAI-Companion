@@ -211,7 +211,14 @@ export default function StudentTasksNotifications({
 
   const downloadAssignment = (assignment: any) => {
     if (!assignment) return;
-    const blob = new Blob([assignment.content || ''], { type: 'text/html' });
+    const branded = wrapWithTemplate(assignment.content || '', {
+      title: assignment.title || 'Assigned Educational Resource',
+      subject: assignment.subject,
+      grade: assignment.grade,
+      term: assignment.term || assignment.metadata?.term,
+      contentType: assignment.contentType || 'Class Assignment'
+    });
+    const blob = new Blob([branded], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

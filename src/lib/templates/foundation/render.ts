@@ -29,7 +29,7 @@ import {
 } from './art';
 import { renderBlock, type Ctx, type Theme } from './blocks';
 import { SUBJECT_ALLOCATION } from './caps';
-import { buildTemplateComplianceBannerHTML, EDUAI_TEMPLATE_FOOTER_LINE } from '../../contentTemplate';
+import { buildTemplateComplianceBannerHTML, buildTemplateHeaderHTML, EDUAI_TEMPLATE_FOOTER_LINE } from '../../contentTemplate';
 import { pair } from './labels';
 
 export const KIND_META = {
@@ -114,6 +114,7 @@ export const FP_CSS = `
 
 /* ── banner ─────────────────────────────────────────── */
 .fp-banner { position: relative; display: flex; align-items: flex-start; gap: 5mm; margin-bottom: 4mm; padding: 4mm 5mm; border-radius: 5mm; background: linear-gradient(135deg, var(--fp-band, ${PALETTE.navy}) 0%, var(--fp-primary, ${PALETTE.cyan}) 100%); color: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.fp-page > .site-header { position: relative; margin-bottom: 3mm; border-radius: 2mm; }
 .fp-banner-text { flex: 1 1 auto; min-width: 0; }
 .fp-kicker { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #fff; margin: 0 0 1mm; }
 .fp-title { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 23pt; line-height: 1.06; font-weight: 700; color: #fff; margin: 0; letter-spacing: -.01em; }
@@ -126,6 +127,21 @@ export const FP_CSS = `
 .fp-pill { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8.2pt; font-weight: 600; padding: 1.2mm 3mm; border-radius: 99mm; border: .5mm solid var(--fp-primary, ${PALETTE.cyan}); color: var(--fp-band, ${PALETTE.navy}); background: var(--fp-soft, #f6fbff); white-space: nowrap; }
 .fp-pill.caps { background: ${PALETTE.navy}; color: #fff; border-color: ${PALETTE.navy}; }
 .fp-pill.bloom { background: #fff; }
+.fp-page > .eduai-compliance-banner {
+  display: block;
+  width: calc(100% + 24mm) !important;
+  margin: 0 -12mm 4mm !important;
+  padding: 2.5mm 3mm;
+  border-radius: 0 0 3mm 3mm;
+  box-sizing: border-box;
+  background: linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);
+  color: #fff;
+  border: .3mm solid #93c5fd;
+  font: 700 8pt/1.45 'Nunito',system-ui,sans-serif;
+  overflow-wrap: anywhere;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
 
 /* ── learner header (name / date / marks) ─────────────── */
 .fp-learnerstrip { display: flex; align-items: stretch; gap: 3mm; margin: 0 0 4mm; }
@@ -403,7 +419,7 @@ const taskHeight = (items: Array<{ lines?: number; options?: string[]; parts?: s
 
 export const estimatePageHeightMm = (tpl: FoundationTemplate, opts?: { includeMemo?: boolean }): number => {
     const isAward = tpl.kind === 'award';
-    let mm = 30 /* banner */ + 16 /* name / date / score strip */ + (isAward ? 18 : 34) /* caps strip */ + 14 /* footer */;
+    let mm = 8 /* compact header */ + 30 /* two-colour content banner */ + 14 /* compliance banner */ + 16 /* name / date / score strip */ + (isAward ? 18 : 34) /* caps strip */ + 14 /* footer */;
     const includeMemo = opts?.includeMemo !== false;
     for (const b of tpl.blocks as Block[]) {
         if (b.kind === 'memo' && (!includeMemo || tpl.options?.hideMemo)) continue;
@@ -614,6 +630,13 @@ export const renderTemplatePage = (tpl: FoundationTemplate, opts: RenderOptions 
     ${corners(tpl, ctx)}
     ${confettiStrip(isAward ? 34 : 18, tpl.id.length * 31 + 7)}
     ${isAward ? `<div class="fp-rainbow">${rainbowArc()}</div>` : ''}
+    ${buildTemplateHeaderHTML({
+        title: tpl.title,
+        subject: tpl.learningArea,
+        grade: tpl.grades[0],
+        term: tpl.caps.terms[0],
+        contentType: KIND_META[tpl.kind].label,
+    })}
     ${banner(tpl, ctx)}
     ${buildTemplateComplianceBannerHTML(complianceMeta)}
     ${fieldStrip(tpl, ctx)}

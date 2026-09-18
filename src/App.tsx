@@ -92,6 +92,7 @@ const stripMarkdownWrapper = (text: string) => {
 };
 
 import { replaceImagePlaceholders } from './lib/imageReplacer';
+import { wrapWithTemplate } from './lib/contentTemplate';
 import { useAndroidBackButton } from './lib/useAndroidBackButton';
 import { isNativeApp } from './lib/platform';
 import { TOAST_EVENT } from './lib/nativeExport';
@@ -168,6 +169,20 @@ import {
 } from 'recharts';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
+
+const renderOfflineMaterial = (material: any): string => {
+  const raw = stripMarkdownWrapper(String(material?.content || ''));
+  if (!raw) return '';
+  const isHtml = /<\/?[a-z][\s\S]*>/i.test(raw) && raw.trim().startsWith('<');
+  const body = isHtml ? raw : marked.parse(raw) as string;
+  return wrapWithTemplate(replaceImagePlaceholders(body), {
+    title: material?.title || 'Offline Educational Resource',
+    subject: material?.subject,
+    grade: material?.grade,
+    term: material?.term || material?.metadata?.term,
+    contentType: material?.contentType || 'Offline Educational Resource'
+  });
+};
 
 const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDarkMode, themeMode, role }: { id?: string, icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean, isDarkMode?: boolean, themeMode?: string, role?: string | null }) => {
   const displayLabel = id === 'teacher-dashboard-menu' && role !== 'student' ? "Dashboard" : label;
@@ -3427,32 +3442,17 @@ export default function App() {
                               try {
                                 triggerToast("Creating PDF of cached material...", "info");
                                 const containerDiv = document.createElement('div');
-                                containerDiv.style.padding = '40px';
                                 containerDiv.style.width = '800px';
                                 containerDiv.style.backgroundColor = 'white';
                                 containerDiv.style.color = 'black';
                                 containerDiv.style.position = 'absolute';
                                 containerDiv.style.left = '-9999px';
 
-                                const tEl = document.createElement('h1');
-                                tEl.innerText = selectedOfflineMaterial.title;
-                                tEl.style.fontSize = '24px';
-                                tEl.style.marginBottom = '15px';
                                 document.title = selectedOfflineMaterial.title;
-                                containerDiv.appendChild(tEl);
-
-                                const metadataEl = document.createElement('p');
-                                metadataEl.innerText = `${selectedOfflineMaterial.subject} • Grade ${selectedOfflineMaterial.grade || '10'} • Offline Study Notes`;
-                                metadataEl.style.fontSize = '12px';
-                                metadataEl.style.color = '#555';
-                                metadataEl.style.marginBottom = '25px';
-                                containerDiv.appendChild(metadataEl);
-
-                                const txtEl = document.createElement('div');
-                                txtEl.style.fontSize = '13px';
-                                txtEl.style.lineHeight = '1.6';
-                                txtEl.innerHTML = replaceImagePlaceholders((/<\/?[a-z][\s\S]*>/i.test(stripMarkdownWrapper(selectedOfflineMaterial.content || '')) && stripMarkdownWrapper(selectedOfflineMaterial.content || '').trim().startsWith('<')) ? stripMarkdownWrapper(selectedOfflineMaterial.content || '') : marked.parse(stripMarkdownWrapper(selectedOfflineMaterial.content || '')) as string);
-                                containerDiv.appendChild(txtEl);
+                                // Capture the same branded offline preview so the
+                                // cached-material PDF cannot bypass the canonical
+                                // compliance banner/footer contract.
+                                containerDiv.innerHTML = renderOfflineMaterial(selectedOfflineMaterial);
 
                                 document.body.appendChild(containerDiv);
 
@@ -3526,16 +3526,10 @@ export default function App() {
                       </div>
 
                       {/* Lesson Reader scroll area */}
-                      <div className="flex-1 overflow-y-auto p-6 md:p-8">
-                        <div 
-                          className={`p-6 md:p-10 rounded-[28px] shadow-sm border ${
-                            isDarkMode 
-                              ? 'bg-[#1E293B] border-white/5 text-slate-100' 
-                              : 'bg-white border-slate-100 text-slate-700'
-                          } markdown-body`}
-                          dangerouslySetInnerHTML={{
-                            __html: replaceImagePlaceholders((/<\/?[a-z][\s\S]*>/i.test(stripMarkdownWrapper(selectedOfflineMaterial.content || '')) && stripMarkdownWrapper(selectedOfflineMaterial.content || '').trim().startsWith('<')) ? stripMarkdownWrapper(selectedOfflineMaterial.content || '') : marked.parse(stripMarkdownWrapper(selectedOfflineMaterial.content || '*No content available for this study guide. Try sync again.*')) as string)
-                          }}
+                      <div className="flex-1 overflow-y-auto">
+                        <div
+                          className={`${isDarkMode ? 'bg-[#1E293B] text-slate-100' : 'bg-white text-slate-700'} markdown-body`}
+                          dangerouslySetInnerHTML={{ __html: renderOfflineMaterial(selectedOfflineMaterial) }}
                         />
                       </div>
                     </div>
@@ -3586,7 +3580,7 @@ export default function App() {
             isOpen={isOfflineReaderOpen}
             onClose={() => setIsOfflineReaderOpen(false)}
             title={selectedOfflineMaterial.title || 'Syllabus Note Guide'}
-            content={stripMarkdownWrapper(selectedOfflineMaterial.content || '')}
+            content={renderOfflineMaterial(selectedOfflineMaterial)}
             subject={selectedOfflineMaterial.subject}
             grade={selectedOfflineMaterial.grade}
           />

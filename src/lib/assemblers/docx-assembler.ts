@@ -4,7 +4,7 @@
 // Merged from CAPS document, adapted for EduAI Companion
 // ============================================================
 
-import { DocumentData, RenderedImage, SA_COLOURS } from "../templates/sa-html-templates";
+import { buildFullHTML, DocumentData, RenderedImage, SA_COLOURS } from "../templates/sa-html-templates";
 import { buildCAPSCode, EDUAI_COMPLIANCE_LABELS, EDUAI_TEMPLATE_FOOTER_LINE, stripGeneratedComplianceMarkup } from "../contentTemplate";
 
 export interface DOCXOptions {
@@ -33,9 +33,10 @@ export async function generateDOCXServer(
     const docxModule = await import("docx").catch(() => null);
     if (!docxModule) {
       console.warn("docx package not available — returning HTML fallback");
-      // Return HTML that can be opened as docx
-      return `<!-- DOCX generation requires 'docx' npm package. Install: npm install docx -->
-<html><body><h1>${data.metadata.title}</h1><p>DOCX generation not available on this server. Please install 'docx' package.</p></body></html>`;
+      // Return the same canonical HTML fallback rather than an unbranded error
+      // page. Word can open the HTML file, and the one banner/footer contract
+      // remains intact even when the optional DOCX dependency is omitted.
+      return `<!-- DOCX generation requires 'docx' npm package. Install: npm install docx -->\n${buildFullHTML(data, images)}`;
     }
 
     const {

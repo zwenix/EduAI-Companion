@@ -200,6 +200,15 @@ export const SA_BASE_CSS = `
     border-radius: 3px;
   }
 
+  /* The compliance banner owns the full title-block width, not its inner
+     padding, so the status line reads as a true document banner. */
+  .doc-title-block > .eduai-compliance-banner {
+    width: calc(100% + 44px) !important;
+    margin-left: -22px !important;
+    margin-right: -22px !important;
+    border-radius: 0 0 10px 10px;
+  }
+
   /* Generated top banners always use the same two-colour gradient as the
      host-owned banner, even when an AI fragment uses a generic header class. */
   .ai-generated-content header:not(.site-header),

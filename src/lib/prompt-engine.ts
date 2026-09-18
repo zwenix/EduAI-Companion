@@ -309,7 +309,7 @@ SA Requirements:
 - CAPS curriculum reference: \${capsCode}
 - NPA: 7-point scale, Bloom's tagged, SBA weighting
 - SIAS: \${siasSupportLevel} accommodations
-- POPIA: Placeholder names only, confidentiality notice
+- POPIA: Placeholder names only; the host owns the compliance banner and exact footer
 - SA Context: Rand, SA places, SA names, IKS, 2026 year
 - Visuals: ${EDUCATIONAL_IMAGE_STYLE}, SA flag stripe, the host compliance banner (do not duplicate it)
 
