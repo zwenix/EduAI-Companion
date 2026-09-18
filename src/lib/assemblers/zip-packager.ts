@@ -5,6 +5,7 @@
 // ============================================================
 
 import { DocumentData } from "../templates/sa-html-templates";
+import { EDUAI_TEMPLATE_FOOTER_LINE } from "../contentTemplate";
 
 export interface ZipContents {
   pdfData?: Buffer | string;
@@ -152,7 +153,7 @@ Please verify against official DBE CAPS documents before classroom use.
 POPIA: Handle all personal information in accordance with the Protection of Personal Information Act.
 Generated: ${new Date().toLocaleDateString("en-ZA")} 2026
 
-© 2026 EduAI Companion | CAPS Compliant Educational Resource | Developed for South African Educators | All Rights Reserved to Developer: Z MSUTHU © 2026 |
+${EDUAI_TEMPLATE_FOOTER_LINE}
 `;
         archive.append(readme, { name: "README.md" });
       }
@@ -240,7 +241,7 @@ Generated: ${new Date().toLocaleDateString("en-ZA")} 2026
 ## Compliance and branding
 The HTML/PDF/DOCX outputs contain one host-owned compliance section with the applicable CAPS code and status values, followed by one exact official footer. Model-authored duplicate badges and footers are removed before export.
 
-© 2026 EduAI Companion | CAPS Compliant Educational Resource | Developed for South African Educators | All Rights Reserved to Developer: Z MSUTHU © 2026 |
+${EDUAI_TEMPLATE_FOOTER_LINE}
 `;
         zip.file("README.md", readme);
       }

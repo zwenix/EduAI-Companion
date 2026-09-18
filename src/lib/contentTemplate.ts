@@ -9,19 +9,33 @@
  *   ("EduAI Companion 2026 | LIGHT Template v4")
  *
  *   ┌─────────────────────────────────────────────────────────────┐
- *   │  COMPACT TRANSLUCENT WHITE HEADER (26px, sticky, watermark logo)      │
+ *   │  COMPACT HEADER (26px, sticky) — TWO-COLOUR WASH            │
+ *   │   white → pale blue gradient, watermark-strength logo       │
  *   │   (logo 15px)  EDUAI COMPANION 2026 | CAPS COMPLIANT …      │
- *   │   ─────────────── subtle neutral divider ───────────────     │
  *   ├─────────────────────────────────────────────────────────────┤
  *   │  WHITE PAGE (max 800px, centred) over a faded watermark     │
  *   │   ┌─ card ─────────────────────────────────────────────┐   │
  *   │   │ lesson title + meta pills (grade · subject · term) │   │
+ *   │   │ ▓ DESIGNATED COMPLIANCE SECTION ▓ (two-colour      │   │
+ *   │   │   navy → blue gradient) — the ONLY place the CAPS  │   │
+ *   │   │   code and the 🇿🇦/CAPS/NPA/POPIA/SIAS/WP6 labels  │   │
+ *   │   │   are ever written                                 │   │
  *   │   │ …dynamic generated content…                        │   │
  *   │   └────────────────────────────────────────────────────┘   │
  *   ├─────────────────────────────────────────────────────────────┤
  *   │  NAVY FOOTER BAND (#1e3a5f, centred, 8pt)                  │
- *   │   © 2026 EduAI Companion | CAPS Compliant … | Developed…   │
+ *   │   © 2026 EduAI Companion | CAPS Compliant Educational      │
+ *   │   Resource | Developed for South African Educators | All    │
+ *   │   Rights Reserved to Developer: Z MSUTHU © 2026 |           │
  *   └─────────────────────────────────────────────────────────────┘
+ *
+ * Three guarantees this module owns (and the reason it exists):
+ *  1. ONCE — the compliance labels are written exactly one time per document,
+ *     inside the designated gradient section. Model-authored copies (badges,
+ *     stamp rows, banner repeats, plain-text status lines) are stripped first.
+ *  2. GRADIENT — no top banner is ever a single solid colour. The host banner
+ *     and every model-authored banner/hero/header get the two-colour gradient.
+ *  3. FOOTER — one canonical footer line, word for word, on every surface.
  *
  * Portability rules (same guarantees as the previous template):
  *  - Header / watermark / footer / page-shell layout is FULLY INLINE so the
@@ -35,9 +49,11 @@
  *    leak onto app UI or collide with the SA pipeline's own `.page` styles.
  *    The chrome selectors (.site-header / .site-footer / .watermark /
  *    .header-text) are global by design — verified collision-free.
- *  - wrapWithTemplate() is idempotent: markup that already carries template
- *    chrome (e.g. re-exported from the print-preview paper) is returned
- *    untouched instead of being double-wrapped.
+ *  - wrapWithTemplate() is idempotent AND self-healing: current canonical
+ *    output passes through untouched (re-exporting the print-preview paper
+ *    never double-wraps), while older wrapped documents — and model output
+ *    that copied our chrome — are stripped back to content and re-wrapped so
+ *    stale footers, duplicate labels and solid banners cannot survive.
  */
 
 export interface ContentTemplateMeta {
@@ -65,15 +81,23 @@ export interface ContentTemplateMeta {
     teacher?: string;
 }
 
+/**
+ * Every top banner in a generated document is a TWO-COLOUR gradient — never a
+ * solid block of one colour. Navy → accent blue is the official pairing; the
+ * compact document header uses the same idea at watermark strength (white →
+ * pale blue) so it stays quiet above the content banner.
+ */
+export const EDUAI_BANNER_GRADIENT = 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)';
+export const EDUAI_HEADER_GRADIENT = 'linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(219,234,254,0.72) 100%)';
+
 /** LIGHT Template v4 palette — sampled directly from the template artwork. */
 export const EDUAI_TEMPLATE_COLOURS = {
     navy: '#1e3a5f',
     accent: '#2563eb',
     accentLight: '#3b82f6',
-    // The compact document header is deliberately white and translucent so it
-    // reads like a watermark. The designated content banner below remains the
-    // two-colour gradient used for compliance/status information.
-    headerGradient: 'rgba(255,255,255,0.78)',
+    // Two-colour wash (white → pale blue): the compact header reads like a
+    // watermark but is still a gradient, matching every other top banner.
+    headerGradient: EDUAI_HEADER_GRADIENT,
     headerBorder: '#cbd5e1',
     headerText: '#1e3a5f',
     footerBg: '#1e3a5f',
@@ -121,8 +145,10 @@ export const EDUAI_LIGHT_CSS = `
     gap: 6px;
     padding: 0 10px;
     height: 26px;
-    /* Compact watermark-like chrome: white/translucent, never a blue bar. */
-    background: rgba(255,255,255,0.78);
+    /* Compact watermark-like chrome: a quiet two-colour wash (white → pale
+       blue), never a solid bar and never a single flat colour. */
+    background: ${EDUAI_HEADER_GRADIENT};
+    background-image: ${EDUAI_HEADER_GRADIENT};
     -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);
     -webkit-print-color-adjust: exact;
@@ -196,7 +222,8 @@ export const EDUAI_LIGHT_CSS = `
     margin: 14px 0 20px;
     padding: 11px 14px;
     border-radius: 10px;
-    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+    background: ${EDUAI_BANNER_GRADIENT};
+    background-image: ${EDUAI_BANNER_GRADIENT};
     color: #ffffff;
     border: 1px solid #93c5fd;
     box-shadow: 0 3px 10px rgba(30,58,95,0.16);
@@ -264,8 +291,8 @@ export const EDUAI_LIGHT_CSS = `
 .eduai-light-scope .header-banner,
 .eduai-light-scope .banner,
 .eduai-light-scope [class*="banner"] {
-    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%) !important;
-    background-image: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%) !important;
+    background: ${EDUAI_BANNER_GRADIENT} !important;
+    background-image: ${EDUAI_BANNER_GRADIENT} !important;
     color: #ffffff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -576,6 +603,32 @@ export const extractGeneratedBodyHTML = (html: string): string => {
     return source.trim();
 };
 
+/** Minimal entity decode for text lifted back out of rendered markup. */
+const decodeEntities = (value: string): string =>
+    String(value || '')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#0?39;/g, "'")
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&');
+
+/**
+ * Lift the status labels (and their 🇿🇦 / ✅ marks and separators) out of a run
+ * of plain text, returning whatever real wording is left. An empty result means
+ * the text was nothing but a compliance stamp row.
+ */
+const stripStatusLabelText = (text: string): string => {
+    const labels = '(?:CAPS\\s+Aligned|NPA\\s+Compliant|POPIA\\s+Compliant(?:\\s*\\(2026\\))?|SIAS(?:\\s+Level\\s*1)?\\s+Inclusive|WP6\\s+Differentiated)';
+    return decodeEntities(String(text || ''))
+        .replace(new RegExp(`(?:🇿🇦\\s*)?(?:✅\\s*)?${labels}`, 'gi'), ' ')
+        .replace(/CAPS\s*Code\s*:?\s*[A-Z0-9-]*/gi, ' ')
+        .replace(/[🇿🇦✅]/gu, ' ')
+        .replace(/\s*[|•·,;:/]\s*/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+};
+
 /**
  * Remove compliance chrome emitted by an AI model. The renderer owns the
  * canonical block below; removing model-authored variants is what guarantees
@@ -588,9 +641,16 @@ export const stripGeneratedComplianceMarkup = (html: string): string => {
     cleaned = cleaned.replace(/<([a-z][\w:-]*)\b(?=[^>]*(?:class|id)\s*=\s*[\"'][^\"']*eduai-compliance-banner[^\"']*[\"'])[^>]*>[\s\S]*?<\/\1>/gi, '');
     cleaned = cleaned.replace(/<([a-z][\w:-]*)\b(?=[^>]*(?:class|id)\s*=\s*[\"'][^\"']*(?:compliance|stamp)[^\"']*[\"'])[^>]*>[\s\S]*?<\/\1>/gi, '');
     cleaned = cleaned.replace(/<[^>]+>\s*(?:🇿🇦\s*)?(?:✅\s*)?(?:CAPS\s+Aligned|NPA\s+Compliant|POPIA\s+Compliant(?:\s*\(2026\))?|SIAS(?:\s+Level\s*1)?\s+Inclusive|WP6\s+Differentiated)\s*<\/[^>]+>/gi, '');
-    // Also remove a single plain-text status row where models separate labels
-    // with pipes or tightly packed check marks instead of individual spans.
-    cleaned = cleaned.replace(/<([a-z][\w:-]*)\b[^>]*>(?=[^<]*(?:CAPS\s+Aligned|NPA\s+Compliant))(?=[^<]*(?:POPIA\s+Compliant|SIAS(?:\s+Level\s*1)?\s+Inclusive|WP6\s+Differentiated))[^<]*<\/\1>/gi, '');
+    // A plain-text status row (models separate labels with pipes or tightly
+    // packed check marks instead of individual spans) is dropped whole — but
+    // only when the labels are ALL the element says. Real sentences that merely
+    // mention a status keep their wording with the labels lifted out.
+    cleaned = cleaned.replace(/<([a-z][\w:-]*)\b([^>]*)>([^<]*)<\/\1>/gi, (match, tag: string, attrs: string, text: string) => {
+        if (!/(?:CAPS\s+Aligned|NPA\s+Compliant)/i.test(text)) return match;
+        if (!/(?:POPIA\s+Compliant|SIAS(?:\s+Level\s*1)?\s+Inclusive|WP6\s+Differentiated)/i.test(text)) return match;
+        const residue = stripStatusLabelText(text);
+        return residue ? `<${tag}${attrs}>${residue}</${tag}>` : '';
+    });
     cleaned = cleaned.replace(/CAPS\s*Code\s*:[^<\n]*(?:<br\s*\/?>)?/gi, '');
     const complianceLabel = '(?:CAPS\\s+Aligned|NPA\\s+Compliant|POPIA\\s+Compliant(?:\\s*\\(2026\\))?|SIAS(?:\\s+Level\\s*1)?\\s+Inclusive|WP6\\s+Differentiated)';
     cleaned = cleaned.replace(new RegExp(`(?:🇿🇦\\s*)?(?:✅\\s*)?${complianceLabel}(?:\\s*(?:🇿🇦|✅|[|•·,;:/])?\\s*${complianceLabel})+`, 'gi'), '');
@@ -628,7 +688,7 @@ export const buildTemplateHeaderHTML = (meta: ContentTemplateMeta = {}): string 
     const strapline = trail ? `${EDUAI_TEMPLATE_HEADER_BASE} | ${trail}` : `${EDUAI_TEMPLATE_HEADER_BASE} |`;
 
     return `
-<header class="site-header" style="box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; gap: 6px; padding: 0 10px; height: 26px; background: ${EDUAI_TEMPLATE_COLOURS.headerGradient}; -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); border-bottom: 1px solid rgba(148,163,184,0.36); box-shadow: none; width: 100%; page-break-inside: avoid; break-inside: avoid; min-width: 0;">
+<header class="site-header" style="box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; gap: 6px; padding: 0 10px; height: 26px; background: ${EDUAI_TEMPLATE_COLOURS.headerGradient}; background-image: ${EDUAI_HEADER_GRADIENT}; -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); border-bottom: 1px solid rgba(148,163,184,0.36); box-shadow: none; width: 100%; page-break-inside: avoid; break-inside: avoid; min-width: 0;">
   <img src="${getTemplateLogoSrc()}" alt="EduAI Logo" class="logo" style="height: 15px; width: auto; display: block; flex-shrink: 0; opacity: 0.28;" />
   <span class="header-text" style="font-family: ${LIGHT_HEADING_FONT}; font-size: clamp(7px, 1.05vw, 9px); font-weight: 600; color: ${EDUAI_TEMPLATE_COLOURS.headerText}; opacity: 0.56; -webkit-print-color-adjust: exact; print-color-adjust: exact; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">${esc(strapline)}</span>
 </header>`.trim();
@@ -651,7 +711,7 @@ export const buildTemplateWatermarkHTML = (): string => `
 
 /** Render the one designated compliance section for a generated document. */
 export const buildTemplateComplianceBannerHTML = (meta: ContentTemplateMeta = {}): string => `
-<section class="eduai-compliance-banner" aria-label="South African compliance" style="display:block; width:100%; box-sizing:border-box; background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); color: #ffffff; border: 1px solid #93c5fd; border-radius: 10px; padding: 11px 14px; margin: 14px 0 20px; font-family: ${LIGHT_BODY_FONT}; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><strong>CAPS Code:${esc(buildCAPSCode(meta))} ${esc(EDUAI_COMPLIANCE_LABELS)}</strong></section>`.trim();
+<section class="eduai-compliance-banner" aria-label="South African compliance" style="display:block; width:100%; box-sizing:border-box; background: ${EDUAI_BANNER_GRADIENT}; background-image: ${EDUAI_BANNER_GRADIENT}; color: #ffffff; border: 1px solid #93c5fd; border-radius: 10px; padding: 11px 14px; margin: 14px 0 20px; font-family: ${LIGHT_BODY_FONT}; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><strong>CAPS Code:${esc(buildCAPSCode(meta))} ${esc(EDUAI_COMPLIANCE_LABELS)}</strong></section>`.trim();
 
 /**
  * The LIGHT title block (lesson-title + meta pills) injected above plain AI
@@ -676,9 +736,244 @@ export const buildTemplateTitleBlockHTML = (meta: ContentTemplateMeta = {}): str
   ${buildTemplateComplianceBannerHTML(meta)}`.trim();
 };
 
-/** True when the markup already carries LIGHT (or legacy) template chrome. */
-const hasTemplateChrome = (html: string): boolean =>
-    /data-eduai-light|eduai-light-scope|class\s*=\s*[\"'][^\"']*site-footer/i.test(html || '');
+/**
+ * Marker left where the host compliance banner was lifted out of markup that is
+ * being re-wrapped. Remembering the position keeps re-wrapping stable: the
+ * banner goes back exactly where the host first put it, so a document can never
+ * end up carrying two copies of the compliance labels.
+ */
+const COMPLIANCE_SLOT = '<!--EDUAI_COMPLIANCE_SLOT-->';
+
+interface ElementRange {
+    /** Index of the opening tag. */
+    start: number;
+    /** Index just after the matching closing tag. */
+    end: number;
+    /** Index just after the opening tag. */
+    innerStart: number;
+    /** Index of the matching closing tag. */
+    innerEnd: number;
+}
+
+/**
+ * Dependency-free element scanner: finds every element whose class contains
+ * `classToken` and returns its exact span (matching close tag found by depth
+ * counting, so nested elements of the same tag are handled). Unbalanced markup
+ * is skipped rather than mangled.
+ */
+const findElementRangesByClass = (source: string, classToken: string): ElementRange[] => {
+    const ranges: ElementRange[] = [];
+    const openRe = new RegExp(
+        `<([a-z][\\w:-]*)\\b[^>]*class\\s*=\\s*["'][^"']*\\b${classToken}\\b[^"']*["'][^>]*>`,
+        'gi',
+    );
+    let match: RegExpExecArray | null;
+    while ((match = openRe.exec(source)) !== null) {
+        const tag = match[1];
+        const innerStart = match.index + match[0].length;
+        if (/\/>\s*$/.test(match[0])) {
+            ranges.push({ start: match.index, end: innerStart, innerStart, innerEnd: innerStart });
+            openRe.lastIndex = innerStart;
+            continue;
+        }
+        const scan = new RegExp(`<${tag}\\b[^>]*>|</${tag}\\s*>`, 'gi');
+        scan.lastIndex = innerStart;
+        let depth = 1;
+        let closeStart = -1;
+        let closeEnd = -1;
+        let inner: RegExpExecArray | null;
+        while ((inner = scan.exec(source)) !== null) {
+            if (inner[0].startsWith('</')) {
+                depth -= 1;
+                if (depth === 0) {
+                    closeStart = inner.index;
+                    closeEnd = inner.index + inner[0].length;
+                    break;
+                }
+            } else if (!/\/>\s*$/.test(inner[0])) {
+                depth += 1;
+            }
+        }
+        if (closeStart === -1) continue;
+        ranges.push({ start: match.index, end: closeEnd, innerStart, innerEnd: closeStart });
+        openRe.lastIndex = closeEnd;
+    }
+    return ranges;
+};
+
+const spliceRanges = (source: string, ranges: ElementRange[], render: (range: ElementRange) => string): string => {
+    if (!ranges.length) return source;
+    let out = '';
+    let cursor = 0;
+    for (const range of ranges) {
+        out += source.slice(cursor, range.start) + render(range);
+        cursor = range.end;
+    }
+    return out + source.slice(cursor);
+};
+
+/** Delete every element carrying `classToken`, optionally leaving a marker. */
+const removeElementsByClass = (source: string, classToken: string, replacement = ''): string =>
+    spliceRanges(source, findElementRangesByClass(source, classToken), () => replacement);
+
+/** Replace every element carrying `classToken` with its own inner markup. */
+const unwrapElementsByClass = (source: string, classToken: string): string =>
+    spliceRanges(source, findElementRangesByClass(source, classToken), (range) =>
+        source.slice(range.innerStart, range.innerEnd));
+
+const countMatches = (source: string, pattern: RegExp): number =>
+    (String(source || '').match(new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`)) || []).length;
+
+/** The five status labels, as individual matchers, for duplicate detection. */
+const COMPLIANCE_LABEL_PATTERNS: RegExp[] = [
+    /CAPS\s+Aligned/i,
+    /NPA\s+Compliant/i,
+    /POPIA\s+Compliant/i,
+    /SIAS[^<\n]{0,14}Inclusive/i,
+    /WP6\s+Differentiated/i,
+];
+
+/**
+ * True when markup is already the CURRENT canonical template output: the LIGHT
+ * v4 style block, exactly one compliance banner, exactly one footer band and
+ * each status label exactly once. Such documents pass through untouched, so
+ * re-exporting the print-preview paper stays byte-stable. Anything older — or
+ * model output that copied our chrome — is normalised by wrapWithTemplate.
+ */
+export const isCurrentTemplateOutput = (html: string): boolean => {
+    const source = String(html || '');
+    if (!/data-eduai-light="v4"/.test(source)) return false;
+    if (!source.includes(EDUAI_TEMPLATE_FOOTER_LINE)) return false;
+    if (countMatches(source, /<[a-z][\w:-]*\b[^>]*class\s*=\s*["'][^"']*\beduai-compliance-banner\b/i) !== 1) return false;
+    if (countMatches(source, /<footer\b[^>]*class\s*=\s*["'][^"']*\bsite-footer\b/i) !== 1) return false;
+    return COMPLIANCE_LABEL_PATTERNS.every((pattern) => countMatches(source, pattern) === 1);
+};
+
+/**
+ * Lift host/legacy template chrome out of markup so it can be re-wrapped in the
+ * CURRENT canonical chrome. Documents saved before a template revision (or model
+ * output that copied our header/footer) keep their content but lose the stale
+ * bands — this is what stops a second footer, a second header or a second set of
+ * compliance labels from surviving into a preview, print or PDF export.
+ */
+export const stripTemplateChrome = (html: string): string => {
+    let out = String(html || '');
+    // Embedded LIGHT stylesheets (any version) — re-added by wrapWithTemplate.
+    out = out.replace(/<style\b[^>]*data-eduai-light[^>]*>[\s\S]*?<\/style\s*>/gi, '');
+    // Compliance banner: remember where it sat, drop the (possibly stale) copy.
+    out = removeElementsByClass(out, 'eduai-compliance-banner', COMPLIANCE_SLOT);
+    // Sticky document header, footer bands and the watermark artwork.
+    out = removeElementsByClass(out, 'site-header');
+    out = out.replace(/<footer\b[^>]*>[\s\S]*?<\/footer\s*>/gi, '');
+    out = out.replace(/<img\b[^>]*class\s*=\s*["'][^"']*\bwatermark\b[^"']*["'][^>]*\/?>/gi, '');
+    // Page shell: keep the content, drop the wrapper so it is never nested twice.
+    out = unwrapElementsByClass(out, 'eduai-light-scope');
+    out = out.replace(/<main\b[^>]*class\s*=\s*["'][^"']*\bpage\b[^"']*["'][^>]*>([\s\S]*?)<\/main\s*>/gi, '$1');
+    // At most one slot marker survives, whatever the input carried.
+    if (countMatches(out, /<!--EDUAI_COMPLIANCE_SLOT-->/) > 1) {
+        const parts = out.split(COMPLIANCE_SLOT);
+        out = `${parts[0]}${COMPLIANCE_SLOT}${parts.slice(1).join('')}`;
+    }
+    return out.trim();
+};
+
+/** "MATHEMATICS" → "Mathematics" (used when recovering meta from old chrome). */
+const titleCaseWords = (value: string): string =>
+    decodeEntities(value)
+        .toLowerCase()
+        .replace(/\b[a-z]/g, (letter) => letter.toUpperCase())
+        .trim();
+
+/**
+ * Recover metadata from chrome that is about to be discarded, so re-wrapping an
+ * archived document never loses the grade/term/subject/type its header carried
+ * — or the CAPS code its banner displayed. Explicit caller metadata always wins.
+ */
+export const harvestMetaFromChrome = (html: string): ContentTemplateMeta => {
+    const source = String(html || '');
+    const harvested: ContentTemplateMeta = {};
+
+    const capsCode = source.match(/CAPS\s*Code\s*:?\s*<\/?(?:strong|b|span|em)?[^>]*>\s*([A-Z]{2,4}-[A-Z]{2,6}-G[R\d]{1,2}-T\d-[A-Z]{2,4}\d{2})/i)?.[1]
+        || source.match(/\b([A-Z]{2,4}-[A-Z]{2,6}-G[R\d]{1,2}-T\d-[A-Z]{2,4}\d{2})\b/)?.[1];
+    if (capsCode) harvested.capsCode = capsCode.toUpperCase();
+
+    const title = source.match(/<h1\b[^>]*class\s*=\s*["'][^"']*\blesson-title\b[^"']*["'][^>]*>([\s\S]*?)<\/h1\s*>/i)?.[1];
+    if (title) {
+        const cleanTitle = decodeEntities(title.replace(/<[^>]+>/g, '')).trim();
+        if (cleanTitle) harvested.title = cleanTitle;
+    }
+
+    const strapline = source.match(/class\s*=\s*["'][^"']*\bheader-text\b[^"']*["'][^>]*>([\s\S]*?)<\/[a-z]/i)?.[1];
+    if (strapline) {
+        const trail = decodeEntities(strapline).split('|').pop() || '';
+        const parts = trail.split('•').map((part) => part.trim()).filter(Boolean);
+        const gradePart = parts.find((part) => /^GRADE\s+[R\d]{1,2}$/i.test(part));
+        const termPart = parts.find((part) => /^TERM\s+\d$/i.test(part));
+        if (gradePart) harvested.grade = gradePart.replace(/^GRADE\s+/i, '').toUpperCase();
+        if (termPart) harvested.term = `Term ${termPart.replace(/^TERM\s+/i, '')}`;
+        const rest = parts.filter((part) => part !== gradePart && part !== termPart);
+        if (rest[0]) harvested.subject = titleCaseWords(rest[0]);
+        if (rest[1]) harvested.contentType = titleCaseWords(rest[1]);
+    }
+
+    return harvested;
+};
+
+/** Merge recovered chrome metadata with caller metadata (caller wins). */
+const mergeMeta = (base: ContentTemplateMeta, override: ContentTemplateMeta): ContentTemplateMeta => {
+    const merged: ContentTemplateMeta = { ...base };
+    (Object.keys(override) as (keyof ContentTemplateMeta)[]).forEach((key) => {
+        const value = override[key];
+        if (value !== undefined && String(value).trim() !== '') merged[key] = value;
+    });
+    return merged;
+};
+
+/** Class/id fragments that identify a model-authored banner container. */
+const BANNER_HINT = /banner|hero|masthead|title-block|doc-title|page-title|cover-head|top-bar/i;
+
+/**
+ * Inline declarations that force the official two-colour gradient. Inline +
+ * !important beats Tailwind utilities and model CSS everywhere the document is
+ * rendered: browser, iframe preview, html2canvas rasterisation and Chromium PDF.
+ */
+const BANNER_GRADIENT_DECLARATIONS =
+    `background:${EDUAI_BANNER_GRADIENT} !important;background-image:${EDUAI_BANNER_GRADIENT} !important;color:#ffffff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;`;
+
+const withGradientStyle = (attrs: string): string => {
+    const styleMatch = attrs.match(/style\s*=\s*(["'])([\s\S]*?)\1/i);
+    if (!styleMatch) return `${attrs} style="${BANNER_GRADIENT_DECLARATIONS}"`;
+    const quote = styleMatch[1];
+    const kept = styleMatch[2]
+        // Drop every solid background/colour the model chose …
+        .replace(/background(?:-color|-image|-blend-mode|-size|-position)?\s*:[^;"']*;?/gi, '')
+        .replace(/(?:^|;)\s*color\s*:[^;"']*;?/gi, ';')
+        .replace(/;{2,}/g, ';')
+        .replace(/^;+|;+$/g, '')
+        .trim();
+    const merged = kept ? `${kept};${BANNER_GRADIENT_DECLARATIONS}` : BANNER_GRADIENT_DECLARATIONS;
+    return attrs.replace(styleMatch[0], () => `style=${quote}${merged}${quote}`);
+};
+
+/**
+ * Convert every solid top banner in generated content to the official
+ * two-colour gradient. Model output uses dozens of banner spellings
+ * (`<header>`, `.banner`, `.hero`, `.doc-title`, inline `background:#007749`,
+ * Tailwind `bg-emerald-700`), so the gradient is written inline on each of them
+ * instead of relying on a class name surviving. The host's own compliance
+ * banner and the compact document header are left exactly as built.
+ */
+export const applyBannerGradients = (html: string): string => {
+    const source = String(html || '');
+    return source.replace(/<(?!\/)([a-z][\w:-]*)\b([^>]*)>/gi, (match, tag: string, attrs: string) => {
+        if (/^(style|script|svg|path|circle|rect|line|polygon|polyline|ellipse|g|defs|use|text|tspan)$/i.test(tag)) return match;
+        if (/site-header|header-text|eduai-compliance-banner/i.test(attrs)) return match;
+        const isHeaderTag = /^header$/i.test(tag);
+        const classOrId = `${attrs.match(/class\s*=\s*["'][^"']*["']/i)?.[0] ?? ''} ${attrs.match(/id\s*=\s*["'][^"']*["']/i)?.[0] ?? ''}`;
+        if (!isHeaderTag && !BANNER_HINT.test(classOrId)) return match;
+        return `<${tag}${withGradientStyle(attrs)}>`;
+    });
+};
 
 /** True when the markup already provides its own LIGHT card structure. */
 const hasLightCards = (html: string): boolean =>
@@ -686,34 +981,48 @@ const hasLightCards = (html: string): boolean =>
 
 /**
  * Wrap generated content in the LIGHT Template v4 chrome:
- * compact translucent white header → full-width two-colour content banner →
+ * compact two-colour header wash → full-width two-colour content banner →
  * watermark + centred 800px page → navy footer.
- * Plain fragments are lifted into an opaque white card (with a title and compliance block
- * when metadata is available); fragments that already use LIGHT card
- * structure are kept as-is. Idempotent — already-wrapped markup passes
- * through untouched.
+ *
+ * Plain fragments are lifted into an opaque white card (with a title block and
+ * the designated compliance section); fragments that already use LIGHT card
+ * structure keep it. The call is idempotent AND self-healing:
+ *
+ *  - current canonical output passes through byte-for-byte (print-preview
+ *    re-exports never double-wrap);
+ *  - older wrapped documents and model-copied chrome are stripped back to
+ *    content and re-wrapped, so stale footers, duplicate compliance labels and
+ *    solid banners cannot survive into a preview, print, PDF or HTML export.
  */
 export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {}): string => {
     const original = String(bodyHtml || '');
-    // Re-exporting the print-preview paper must remain idempotent. It already
-    // contains the canonical banner/footer, so do not add a second pair.
-    if (hasTemplateChrome(original)) return original;
-    const html = cleanGeneratedBodyHTML(original);
+    if (!original.trim()) return original;
+    if (isCurrentTemplateOutput(original)) return original;
 
-    const inner = hasLightCards(html)
-        ? `${buildTemplateComplianceBannerHTML(meta)}\n${html}`
-        : `<article class="card">\n${buildTemplateTitleBlockHTML(meta)}\n${html}\n</article>`;
+    const effectiveMeta = mergeMeta(harvestMetaFromChrome(original), meta);
+    const cleaned = cleanGeneratedBodyHTML(stripTemplateChrome(original));
+    const banner = buildTemplateComplianceBannerHTML(effectiveMeta);
+
+    let inner: string;
+    if (cleaned.includes(COMPLIANCE_SLOT)) {
+        // Exactly one banner, restored to the position the host gave it first.
+        inner = cleaned.replace(COMPLIANCE_SLOT, () => banner);
+    } else if (hasLightCards(cleaned)) {
+        inner = `${banner}\n${cleaned}`;
+    } else {
+        inner = `<article class="card">\n${buildTemplateTitleBlockHTML(effectiveMeta)}\n${cleaned}\n</article>`;
+    }
 
     return `
 ${buildTemplateStyleHTML()}
-${buildTemplateHeaderHTML(meta)}
+${buildTemplateHeaderHTML(effectiveMeta)}
 <div class="eduai-light-scope" style="position: relative; background: ${EDUAI_TEMPLATE_COLOURS.paper}; overflow: hidden;">
   ${buildTemplateWatermarkHTML()}
   <main class="page" style="position: relative; z-index: 1; max-width: 800px; margin: 0 auto; padding: 28px 20px 60px; font-family: ${LIGHT_BODY_FONT}; color: #1e293b; line-height: 1.65; box-sizing: border-box;">
-${inner}
+${applyBannerGradients(inner)}
   </main>
 </div>
-${buildTemplateFooterHTML(meta)}`.trim();
+${buildTemplateFooterHTML(effectiveMeta)}`.trim();
 };
 
 /** Map the print/export options onto the template metadata. */
