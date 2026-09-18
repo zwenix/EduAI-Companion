@@ -159,8 +159,18 @@
     visibility: visible;
   }
 
-  /* Neutralize all parent overflows and sizing that could clip content */
-  html, body, #root, .flex-1, .overflow-hidden, .overflow-y-auto, main, div {
+  /* Neutralize all parent overflows and sizing that could clip content.
+     Scoped to pages that actually contain a .printable-doc — the unscoped
+     version leaked into print windows and export documents (copied via
+     printUtils.getParentStyles), where it turned every div (including the
+     template's positioned scope) static/height:auto and destroyed the
+     document layout ("funny unreadable formatting"). */
+  html:has(body .printable-doc) body,
+  body:has(.printable-doc) .flex-1,
+  body:has(.printable-doc) .overflow-hidden,
+  body:has(.printable-doc) .overflow-y-auto,
+  body:has(.printable-doc) main,
+  body:has(.printable-doc) div {
     overflow: visible !important;
     position: static !important;
     height: auto !important;
@@ -911,7 +921,10 @@ svg:not(.not-sketchy) {
   border-width: 2px;
   border-style: solid;
   border-radius: 32px;
-  background: rgba(15, 23, 42, 0.92);
+  /* v4.1 (issue #42): fully OPAQUE. The 0.92 alpha let the background bleed
+     through and read as "the menu is lost in the background". Solid = no
+     bleed, no flicker on repaint. */
+  background: #0f172a;
   outline: 1px solid transparent;
   background-clip: padding-box;
   transition: border-color 220ms ease, box-shadow 220ms ease, filter 220ms ease, transform 220ms ease;

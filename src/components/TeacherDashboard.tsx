@@ -481,7 +481,23 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         const qInt = query(collection(db, 'learner_interventions'), where('teacherId', '==', user.uid));
         unsubInt = onSnapshot(qInt, (snap) => {
           setLiveInterventions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        }, (err) => console.warn("Interventions sync err", err));
+        }, (err) => {
+          // Live sync unavailable — usually because the rules deployed to the
+          // Firebase project predate the `learner_interventions` collection
+          // (deploy the repo's firestore.rules, see scripts/deploy-firestore-rules.sh).
+          // Fall back to the local mirror so the dashboard still shows the
+          // teacher's intervention plans.
+          console.warn("Interventions sync err (falling back to local mirror):", err);
+          try {
+            const stored = localStorage.getItem('eduai_learner_interventions');
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              if (Array.isArray(parsed)) setLiveInterventions(parsed);
+            }
+          } catch (localErr) {
+            console.warn("Interventions local mirror unavailable:", localErr);
+          }
+        });
       }
     });
 

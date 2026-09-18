@@ -104,6 +104,26 @@ The application will be available at `http://localhost:3000`.
 - [CAPS_LESSON_PLAN_GUIDE.md](CAPS_LESSON_PLAN_GUIDE.md) — lesson-plan generation for Grades 10–12.
 - [DESIGN.md](DESIGN.md) — the design system, colour tokens and the A4 print blueprint.
 
+## 🔒 Deploying Firestore Security Rules
+
+The app's Firestore project (`gen-lang-client-0448588221`, see
+`firebase-applet-config.json`) only has the rules from `firestore.rules` once
+they are deployed. Collections added to the repo's rules file later —
+`learner_interventions`, `portfolio_items`, `student_records`, … — are denied
+by the stale deployed rules until then, which shows up in the browser as
+`FirebaseError: Missing or insufficient permissions` (e.g. the Teacher
+Dashboard "Interventions sync err").
+
+```bash
+npm install -g firebase-tools   # once
+firebase login                  # once
+bash scripts/deploy-firestore-rules.sh
+```
+
+Until the rules are deployed, the client automatically falls back to its
+`localStorage` mirror for intervention profiles, so the dashboards keep
+working.
+
 ## 📂 Project Structure
 
 The codebase is organized to maintain a clean separation of concerns:
