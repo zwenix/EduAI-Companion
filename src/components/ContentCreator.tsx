@@ -23,6 +23,7 @@ import { EDUCATIONAL_IMAGE_STYLE } from '../lib/prompt-priority';
 import { printContent, downloadAsHTML, downloadAsPDF } from '../lib/printUtils';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { wrapWithTemplate, EDUAI_LIGHT_CSS, type ContentTemplateMeta } from '../lib/contentTemplate';
+import { EDUAI_DOC_TAILWIND_CSS } from '../lib/docTailwindCompat';
 import PrintPreviewModal from './PrintPreviewModal';
 import { PosterPreview } from './PosterPreview';
 import VideoLabConsole from './VideoLabConsole';
@@ -227,16 +228,39 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  // ── Flash fix (issue #42) ────────────────────────────────────────────────
+  // While AI content streams in, `html` changes on EVERY chunk. Replacing the
+  // iframe srcDoc per chunk made the whole document — menus included —
+  // reload-and-flash constantly, and the old Tailwind CDN runtime then
+  // re-compiled styles on top of every reload. A short trailing debounce
+  // coalesces the stream into at most ~3 preview refreshes per second and
+  // leaves the document perfectly still once generation settles.
+  const [stableHtml, setStableHtml] = useState(html);
+  useEffect(() => {
+    if (html === stableHtml) return;
+    const t = setTimeout(() => setStableHtml(html), html ? 300 : 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [html]);
+
   const cleanedHtml = useMemo(() => {
-    if (!html || typeof html !== 'string') return "";
-    let clean = html.trim();
+    if (!stableHtml || typeof stableHtml !== 'string') return "";
+    let clean = stableHtml.trim();
     if (clean.startsWith("```html")) {
       clean = clean.replace(/^```html\s*/i, "").replace(/\s*```$/, "");
     } else if (clean.startsWith("```")) {
       clean = clean.replace(/^```\s*/i, "").replace(/\s*```$/, "");
     }
     return clean;
-  }, [html]);
+  }, [stableHtml]);
+
+  // Meta arrives as a fresh object literal from the parent on every render;
+  // memoise on its serialised value so fullDocument (and thus the iframe
+  // srcDoc) only changes when the metadata actually changes.
+  const metaKey = useMemo(() => JSON.stringify(meta || null), [meta]);
+  const stableMeta = useMemo(() => {
+    try { return metaKey ? JSON.parse(metaKey) as ContentTemplateMeta : undefined; } catch { return undefined; }
+  }, [metaKey]);
 
   if (!cleanedHtml || !cleanedHtml.trim()) {
     return (
@@ -254,7 +278,15 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
 
   const fullDocument = useMemo(() => {
     const isFullDoc = cleanedHtml.includes('<html') || cleanedHtml.includes('<!DOCTYPE');
-    if (isFullDoc) return cleanedHtml;
+    if (isFullDoc) {
+      // AI-emitted standalone documents sometimes embed the Tailwind CDN
+      // runtime — swap it for the static, zero-JS utility layer so the
+      // document styles on first paint (no flash, works offline).
+      return cleanedHtml.replace(
+        /<script[^>]*cdn\.tailwindcss\.com[^>]*>\s*<\/script>/gi,
+        `<style data-eduai-doc-tailwind="static">\n${EDUAI_DOC_TAILWIND_CSS}\n</style>`
+      );
+    }
     const fontCss = fontStyle.includes('Patrick Hand') ? '"Patrick Hand", "Comic Neue", cursive, sans-serif'
       : fontStyle.includes('Comic Neue') ? '"Comic Neue", cursive, sans-serif'
       : fontStyle.includes('Sassoon') ? '"Sassoon Primary", cursive, sans-serif'
@@ -282,22 +314,21 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Comic+Neue:wght@300;400;700&family=Kalam:wght@300;400;700&family=Lexend:wght@300;400;500;600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
-  <script>
-    const originalWarn = console.warn;
-    console.warn = function(...args) {
-      if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com')) {
-        return;
-      }
-      originalWarn.apply(console, args);
-    };
-  </script>
-  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
   <style>
     /* EduAI LIGHT Template v4 — the single source of truth lives in
        src/lib/contentTemplate.ts (EDUAI_LIGHT_CSS); wrapWithTemplate also
-       embeds it, so preview, print, PDF and HTML exports always match. */
+       embeds it, so preview, print, PDF and HTML exports always match.
+
+       v4.1 — the Tailwind CDN runtime is GONE. It used to JIT-compile styles
+       after first paint (flash on every reload), recompile on every DOM
+       mutation, and leave documents unstyled when the CDN was slow/blocked
+       (menus lost in the background). In its place is a static, zero-JS
+       utility layer (EDUAI_DOC_TAILWIND_CSS) covering the generator's class
+       vocabulary, plus a zero-specificity menu safety net — the document is
+       fully styled on the very first paint, even offline. */
     ${EDUAI_LIGHT_CSS}
+    ${EDUAI_DOC_TAILWIND_CSS}
     * { box-sizing: border-box; }
     html { -webkit-text-size-adjust: 100%; }
     body {
@@ -317,7 +348,7 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
   </style>
 </head>
 <body>
-  ${meta ? wrapWithTemplate(cleanedHtml, meta) : cleanedHtml}
+  ${stableMeta ? wrapWithTemplate(cleanedHtml, stableMeta) : cleanedHtml}
   <script>
     // Each illustration already ships with a working src (direct image API, or
     // the backend proxy on web). We only ask the host app to regenerate through
@@ -362,7 +393,7 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
   </script>
 </body>
 </html>`;
-  }, [cleanedHtml, fontStyle, meta]);
+  }, [cleanedHtml, fontStyle, stableMeta]);
 
   return (
     <iframe
@@ -1686,8 +1717,10 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
         {/* Page Content — the app shell owns scrolling, so no nested scroller here */}
         <main className="relative w-full p-4 sm:p-6 lg:p-8">
           <div className="relative z-10 max-w-6xl mx-auto">
-          {/* Content Factory Header Band — compact, aligned with app theme. Lab switcher lives at the top of the banner as requested. */}
-          <div className="relative overflow-hidden rounded-2xl border border-cyan-500/20 bg-[#0b1226]/95 backdrop-blur-xl shadow-xl mb-4 sm:mb-6">
+          {/* Content Factory Header Band — compact, aligned with app theme. Lab switcher lives at the top of the banner as requested.
+              v4.1 (issue #42): solid background — the /95 alpha + backdrop-blur-xl
+              combo made the banner (and the menus on it) flicker on repaint. */}
+          <div className="relative overflow-hidden rounded-2xl border border-cyan-500/20 bg-[#0b1226] shadow-xl mb-4 sm:mb-6">
             <div className="absolute -top-16 -left-12 w-56 h-56 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-16 -right-12 w-56 h-56 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
             <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4">
@@ -1713,29 +1746,33 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
             {GENERATOR_GROUPS.map((group) => {
               const isActive = activeTab === group.id;
               
+              // v4.1 (issue #42): SOLID tab backgrounds (no /90 alpha, no
+              // backdrop-blur) so the studio menu is always readable and never
+              // repaints — the translucent blur chips were the "flashing,
+              // lost in the background" menus on the Template Studio page.
               let activeStyle = "bg-gradient-to-r from-cyan-500 to-blue-600 text-white border-cyan-300 shadow-lg shadow-cyan-500/30 scale-[1.03]";
               let inactiveStyle = isDarkMode
-                ? "bg-[#0a1226]/90 border-cyan-500/30 text-cyan-300 hover:bg-[#122044] hover:border-cyan-400"
-                : "bg-[#0a1226]/90 border-cyan-500/30 text-cyan-300 hover:bg-[#122044]";
+                ? "bg-[#0a1226] border-cyan-500/40 text-cyan-200 hover:bg-[#122044] hover:border-cyan-400"
+                : "bg-[#0a1226] border-cyan-500/40 text-cyan-200 hover:bg-[#122044]";
               let iconColor = "text-cyan-400";
 
               if (group.id === 'visual') {
                 activeStyle = "bg-gradient-to-r from-purple-500 via-fuchsia-600 to-indigo-600 text-white border-purple-300 shadow-lg shadow-purple-500/30 scale-[1.03]";
                 inactiveStyle = isDarkMode
-                  ? "bg-[#0a1226]/90 border-purple-500/30 text-purple-300 hover:bg-[#122044] hover:border-purple-400"
-                  : "bg-[#0a1226]/90 border-purple-500/30 text-purple-300 hover:bg-[#122044]";
+                  ? "bg-[#0a1226] border-purple-500/40 text-purple-200 hover:bg-[#122044] hover:border-purple-400"
+                  : "bg-[#0a1226] border-purple-500/40 text-purple-200 hover:bg-[#122044]";
                 iconColor = "text-purple-400";
               } else if (group.id === 'video') {
                 activeStyle = "bg-gradient-to-r from-rose-500 via-pink-600 to-orange-500 text-white border-rose-300 shadow-lg shadow-rose-500/30 scale-[1.03]";
                 inactiveStyle = isDarkMode
-                  ? "bg-[#0a1226]/90 border-rose-500/30 text-rose-300 hover:bg-[#122044] hover:border-rose-400"
-                  : "bg-[#0a1226]/90 border-rose-500/30 text-rose-300 hover:bg-[#122044]";
+                  ? "bg-[#0a1226] border-rose-500/40 text-rose-200 hover:bg-[#122044] hover:border-rose-400"
+                  : "bg-[#0a1226] border-rose-500/40 text-rose-200 hover:bg-[#122044]";
                 iconColor = "text-rose-400";
               } else if (group.id === 'admin') {
                 activeStyle = "bg-gradient-to-r from-emerald-500 via-teal-600 to-blue-600 text-white border-emerald-300 shadow-lg shadow-emerald-500/30 scale-[1.03]";
                 inactiveStyle = isDarkMode
-                  ? "bg-[#0a1226]/90 border-emerald-500/30 text-emerald-300 hover:bg-[#122044] hover:border-emerald-400"
-                  : "bg-[#0a1226]/90 border-emerald-500/30 text-emerald-300 hover:bg-[#122044]";
+                  ? "bg-[#0a1226] border-emerald-500/40 text-emerald-200 hover:bg-[#122044] hover:border-emerald-400"
+                  : "bg-[#0a1226] border-emerald-500/40 text-emerald-200 hover:bg-[#122044]";
                 iconColor = "text-emerald-400";
               } else if (group.id === 'caps-templates') {
                 activeStyle = "bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-400 text-[#3b2500] border-amber-200 shadow-lg shadow-amber-400/35 scale-[1.03]";
@@ -1746,8 +1783,8 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
               } else if (group.id === 'grade1') {
                 activeStyle = "bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-white border-amber-300 shadow-lg shadow-amber-500/30 scale-[1.03]";
                 inactiveStyle = isDarkMode
-                  ? "bg-[#0a1226]/90 border-amber-500/30 text-amber-300 hover:bg-[#122044] hover:border-amber-400"
-                  : "bg-[#0a1226]/90 border-amber-500/30 text-amber-300 hover:bg-[#122044]";
+                  ? "bg-[#0a1226] border-amber-500/40 text-amber-200 hover:bg-[#122044] hover:border-amber-400"
+                  : "bg-[#0a1226] border-amber-500/40 text-amber-200 hover:bg-[#122044]";
                 iconColor = "text-amber-400";
               }
 
@@ -1756,11 +1793,14 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                   key={group.id}
                   onClick={() => setActiveTab(group.id)}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border transition-all cursor-pointer font-black text-[11px] uppercase tracking-wider shadow-md backdrop-blur-md",
+                    // Solid, GPU-cheap chip: no backdrop-blur (the #1 source of
+                    // WebView border flicker) and no pulsing icon, so the menu
+                    // sits perfectly still whether idle or while streaming.
+                    "flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border transition-colors cursor-pointer font-black text-[11px] uppercase tracking-wider shadow-md",
                     isActive ? activeStyle : inactiveStyle
                   )}
                 >
-                  <group.icon size={16} className={isActive ? "text-white animate-pulse" : iconColor} />
+                  <group.icon size={16} className={isActive ? "text-white" : iconColor} />
                   <span>{group.label}</span>
                 </button>
               );
@@ -1823,9 +1863,12 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
                 className={cn(
-                  "rounded-3xl border-2 p-6 backdrop-blur-xl menu-glow-card glow-cyan",
+                  // v4.1 (issue #42): solid, no backdrop-blur. The /95 alpha +
+                  // backdrop-blur-xl made this panel flicker on every streamed
+                  // repaint and let the busy background bleed through.
+                  "rounded-3xl border-2 p-6 menu-glow-card glow-cyan",
                   isDarkMode
-                    ? "bg-[#0a1226]/95 border-cyan-500/30 shadow-2xl shadow-black/50"
+                    ? "bg-[#0a1226] border-cyan-500/30 shadow-2xl shadow-black/50"
                     : "bg-[#0b142c] text-white border-cyan-500/30 shadow-2xl"
                 )}
               >
@@ -2314,7 +2357,7 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                             type="checkbox"
                             checked={t_capsAlignment}
                             onChange={(e) => setT_CapsAlignment(e.target.checked)}
-                            className="w-4 h-4 accent-cyan-400 animate-pulse"
+                            className="w-4 h-4 accent-cyan-400"
                           />
                           Enforce CAPS Curriculum Pacing Alignment
                         </label>
@@ -2862,19 +2905,32 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                           "rounded-3xl border shadow-2xl overflow-hidden flex flex-col min-h-[520px]",
                           isDarkMode ? "bg-[#050a18] border-white/10" : "bg-white border-slate-200"
                         )}>
-                          {/* Document Viewer Frame Header */}
+                          {/* Document Viewer Frame Header — v4.1 redesign (issue #42):
+                              solid strip that names the document being previewed
+                              (was a ghosted mono label on a /5-alpha bar). */}
                           <div className={cn(
-                            "p-1 flex items-center gap-2 border-b",
-                            isDarkMode ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200"
+                            "h-12 flex items-center gap-3 border-b px-3",
+                            isDarkMode ? "bg-[#0a1226] border-white/10" : "bg-slate-50 border-slate-200"
                           )}>
-                            <div className="flex gap-1.5 ml-2">
-                              <div className="w-2.5 h-2.5 rounded-full bg-red-400/40" />
-                              <div className="w-2.5 h-2.5 rounded-full bg-amber-400/40" />
-                              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400/40" />
+                            <div className="flex gap-1.5 shrink-0">
+                              <div className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
+                              <div className="w-2.5 h-2.5 rounded-full bg-amber-400/90" />
+                              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400/90" />
                             </div>
-                            <div className="flex-1 text-center">
-                              <span className="text-[10px] font-mono text-slate-500 tracking-wider uppercase">eduai-preview-viewport.caps</span>
+                            <div className="min-w-0 flex-1">
+                              <p className={cn("truncate text-xs font-bold leading-tight", isDarkMode ? "text-white" : "text-slate-800")}>
+                                {currentTopic || 'Untitled document'}
+                              </p>
+                              <p className={cn("truncate text-[10px] font-semibold uppercase tracking-wider leading-tight mt-0.5", isDarkMode ? "text-slate-400" : "text-slate-500")}>
+                                {currentType} • Grade {currentGrade} • {currentSubject}
+                              </p>
                             </div>
+                            <span className={cn(
+                              "shrink-0 hidden sm:inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider",
+                              isDarkMode ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-300" : "border-cyan-300 bg-cyan-50 text-cyan-700"
+                            )}>
+                              <Eye size={10} strokeWidth={2.5} /> CAPS Preview
+                            </span>
                           </div>
 
                           {/* Interactive Page Viewport */}

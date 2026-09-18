@@ -911,7 +911,10 @@ svg:not(.not-sketchy) {
   border-width: 2px;
   border-style: solid;
   border-radius: 32px;
-  background: rgba(15, 23, 42, 0.92);
+  /* v4.1 (issue #42): fully OPAQUE. The 0.92 alpha let the background bleed
+     through and read as "the menu is lost in the background". Solid = no
+     bleed, no flicker on repaint. */
+  background: #0f172a;
   outline: 1px solid transparent;
   background-clip: padding-box;
   transition: border-color 220ms ease, box-shadow 220ms ease, filter 220ms ease, transform 220ms ease;

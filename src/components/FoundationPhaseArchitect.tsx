@@ -251,7 +251,7 @@ export default function FoundationPhaseArchitect({
         {/* Left Column: Parameters */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           {/* Global Parameters */}
-          <div className="bg-[#0a1226]/95 border border-cyan-500/30 rounded-[32px] p-6 flex flex-col gap-6 shadow-2xl backdrop-blur-xl">
+          <div className="bg-[#0a1226] border border-cyan-500/30 rounded-[32px] p-6 flex flex-col gap-6 shadow-2xl">
              <div className="flex items-center gap-2 text-[10px] font-black text-white uppercase tracking-widest border-b border-white/10 pb-4">
               <Settings2 size={14} className="text-cyan-400" />
               <span>Global Parameters</span>
@@ -367,7 +367,7 @@ export default function FoundationPhaseArchitect({
           </div>
 
           {/* Learning Goals */}
-          <div className="bg-[#0a1226]/95 border border-cyan-500/30 rounded-[32px] p-6 flex flex-col gap-6 shadow-2xl backdrop-blur-xl flex-1">
+          <div className="bg-[#0a1226] border border-cyan-500/30 rounded-[32px] p-6 flex flex-col gap-6 shadow-2xl flex-1">
              <div className="flex items-center gap-2 text-[10px] font-black text-white uppercase tracking-widest border-b border-white/10 pb-4">
               <Sparkles size={14} className="text-purple-400" />
               <span>Learning Goals</span>

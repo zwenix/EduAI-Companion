@@ -9,7 +9,7 @@
  *   ("EduAI Companion 2026 | LIGHT Template v4")
  *
  *   ┌─────────────────────────────────────────────────────────────┐
- *   │  TRANSLUCENT HEADER BAR (42px, 30% reduced, sticky, blur)  │
+ *   │  SOLID WHITE HEADER BAR (44px, sticky, 2px blue underline) │
  *   │   (logo 25px)  EDUAI COMPANION 2026 | CAPS COMPLIANT …      │
  *   │   ─────────────── 2px #2563eb underline ───────────────     │
  *   ├─────────────────────────────────────────────────────────────┤
@@ -68,7 +68,9 @@ export const EDUAI_TEMPLATE_COLOURS = {
     navy: '#1e3a5f',
     accent: '#2563eb',
     accentLight: '#3b82f6',
-    headerBg: 'rgba(255,255,255,0.35)',
+    // v4.1 visibility pass: solid header (was rgba(255,255,255,0.35) — the
+    // translucent bar vanished on busy backgrounds).
+    headerBg: '#ffffff',
     headerBorder: '#2563eb',
     headerText: '#1e3a5f',
     footerBg: '#1e3a5f',
@@ -107,15 +109,17 @@ export const EDUAI_LIGHT_CSS = `
     justify-content: flex-start;
     gap: 8px;
     padding: 0 14px;
-    height: 42px;
-    background-color: rgba(255,255,255,0.35);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    opacity: 0.92;
+    height: 44px;
+    /* v4.1 visibility pass: the bar is now SOLID white (no alpha, no element
+       opacity, no backdrop-filter). The old 35%-translucent ghost header was
+       invisible on busy backgrounds and re-painted visibly on every preview
+       reload ("menus constantly flashing / lost in the background"). */
+    background-color: #ffffff;
     position: sticky;
     top: 0;
     z-index: 20;
     border-bottom: 2px solid #2563eb;
+    box-shadow: 0 1px 0 rgba(30,58,95,0.08);
     width: 100%;
     box-sizing: border-box;
     min-width: 0;
@@ -128,11 +132,12 @@ export const EDUAI_LIGHT_CSS = `
 }
 .header-text {
     font-family: 'Fredoka', sans-serif;
-    font-size: clamp(5px, 1.1vw, 8px);
+    /* v4.1: readable strapline. The old clamp(5px…8px) was illegible. */
+    font-size: clamp(9px, 1.35vw, 12px);
     font-weight: 600;
     color: #1e3a5f;
     white-space: nowrap;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.3px;
     text-transform: uppercase;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -313,18 +318,18 @@ export const EDUAI_LIGHT_CSS = `
 .eduai-light-scope ul.objectives { padding-left: 0; }
 .eduai-light-scope a { color: #2563eb; }
 @media (max-width: 640px) {
-    .site-header { padding: 0 10px; gap: 8px; height: 38px; }
+    .site-header { padding: 0 10px; gap: 8px; height: 40px; }
     .site-header .logo { height: 22px; }
-    .header-text { font-size: clamp(4.5px, 1.5vw, 7px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .header-text { font-size: clamp(8px, 1.8vw, 10px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .eduai-light-scope .page { padding: 20px 14px 50px; }
     .eduai-light-scope .card { padding: 20px; border-radius: 14px; }
     .eduai-light-scope .lesson-title { font-size: 26px; }
     .eduai-light-scope h2 { font-size: 20px; }
 }
 @media (max-width: 390px) {
-    .site-header { gap: 6px; padding: 0 8px; height: 36px; }
+    .site-header { gap: 6px; padding: 0 8px; height: 38px; }
     .site-header .logo { height: 20px; }
-    .header-text { font-size: clamp(4px, 1.4vw, 6px); }
+    .header-text { font-size: clamp(7px, 1.7vw, 9px); }
     .eduai-light-scope .lesson-meta { gap: 6px; }
     .eduai-light-scope .card { padding: 18px 16px; }
 }
@@ -414,11 +419,12 @@ const pillTerm = (term?: string): string => {
 };
 
 /**
- * The LIGHT translucent header bar: 25px logo (42px bar, 30% reduced) + a
- * single-line Fredoka 6pt uppercase strapline. Dynamic grade / term / subject /
- * type trail behind the fixed artwork lead; the line is clamped to ONE line
- * with an ellipsis and fluid clamp() sizing so it can never wrap or push the
- * bar taller on narrow screens.
+ * The LIGHT solid-white header bar (v4.1): 25px logo (44px bar) + a
+ * single-line Fredoka uppercase strapline, sized fluidly with clamp() so it is
+ * always legible. Dynamic grade / term / subject / type trail behind the fixed
+ * artwork lead; the line is clamped to ONE line with an ellipsis so it can
+ * never wrap or push the bar taller on narrow screens. Solid (not translucent)
+ * so the bar — the document's persistent "menu" strip — stays visible.
  */
 export const buildTemplateHeaderHTML = (meta: ContentTemplateMeta = {}): string => {
     const grade = normGrade(meta.grade);
@@ -429,9 +435,9 @@ export const buildTemplateHeaderHTML = (meta: ContentTemplateMeta = {}): string 
     const strapline = trail ? `${EDUAI_TEMPLATE_HEADER_BASE} | ${trail}` : `${EDUAI_TEMPLATE_HEADER_BASE} |`;
 
     return `
-<header class="site-header" style="box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; gap: 8px; padding: 0 14px; height: 42px; background-color: ${EDUAI_TEMPLATE_COLOURS.headerBg}; border-bottom: 2px solid ${EDUAI_TEMPLATE_COLOURS.headerBorder}; width: 100%; opacity: 0.92; page-break-inside: avoid; break-inside: avoid; min-width: 0;">
+<header class="site-header" style="box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; gap: 8px; padding: 0 14px; height: 44px; background-color: ${EDUAI_TEMPLATE_COLOURS.headerBg}; border-bottom: 2px solid ${EDUAI_TEMPLATE_COLOURS.headerBorder}; box-shadow: 0 1px 0 rgba(30,58,95,0.08); width: 100%; page-break-inside: avoid; break-inside: avoid; min-width: 0;">
   <img src="${getTemplateLogoSrc()}" alt="EduAI Logo" class="logo" style="height: 25px; width: auto; display: block; flex-shrink: 0;" />
-  <span class="header-text" style="font-family: ${LIGHT_HEADING_FONT}; font-size: clamp(5px, 1.1vw, 8px); font-weight: 600; color: ${EDUAI_TEMPLATE_COLOURS.headerText}; white-space: nowrap; letter-spacing: 0.4px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">${esc(strapline)}</span>
+  <span class="header-text" style="font-family: ${LIGHT_HEADING_FONT}; font-size: clamp(9px, 1.35vw, 12px); font-weight: 600; color: ${EDUAI_TEMPLATE_COLOURS.headerText}; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">${esc(strapline)}</span>
 </header>`.trim();
 };
 
