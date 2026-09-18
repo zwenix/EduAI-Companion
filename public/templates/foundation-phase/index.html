@@ -9,11 +9,11 @@
 *{box-sizing:border-box}
 body{margin:0;font-family:'Nunito',system-ui,sans-serif;color:#12233f;background:linear-gradient(160deg,#fff9e8,#e0f7ff 45%,#ffe6f2)}
 .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
-header{position:relative;overflow:hidden;border-radius:26px;padding:26px 26px 22px;background:linear-gradient(135deg,#06b6d4 0%,#2563eb 100%);color:#fff;box-shadow:0 18px 40px rgba(6,182,212,.28)}
-header:after{content:"";position:absolute;inset:auto -10% -60% -10%;height:80px;background:radial-gradient(closest-side,#fff8 0,#fff0 100%)}
-.kick{font:600 12px/1 'Fredoka',sans-serif;letter-spacing:.22em;text-transform:uppercase;opacity:.92}
-h1{font-family:'Fredoka',sans-serif;font-size:clamp(28px,4vw,44px);margin:8px 0 6px;line-height:1.05}
-.sub{margin:0;max-width:70ch;font-size:15px;opacity:.96}
+.index-banner{position:relative;overflow:hidden;border-radius:26px;padding:26px 26px 22px;background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);color:#fff;box-shadow:0 18px 40px rgba(30,58,95,.22);width:100%}
+.index-banner:after{content:"";position:absolute;inset:auto -10% -60% -10%;height:80px;background:radial-gradient(closest-side,#fff8 0,#fff0 100%)}
+.index-banner .kick{font:600 12px/1 'Fredoka',sans-serif;letter-spacing:.22em;text-transform:uppercase;opacity:.92}
+.index-banner h1{font-family:'Fredoka',sans-serif;font-size:clamp(28px,4vw,44px);margin:8px 0 6px;line-height:1.05}
+.index-banner .sub{margin:0;max-width:70ch;font-size:15px;opacity:.96}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .chip{font:600 12px 'Fredoka',sans-serif;background:#fff;color:#0e7490;border-radius:99px;padding:6px 12px}
 .chip.a{background:#ffdf40;color:#7a4b00}.chip.b{background:#ff69b4;color:#fff}.chip.c{background:#2ed573;color:#065f46}
@@ -41,9 +41,13 @@ footer{margin-top:26px;font-size:12px;color:#475569;text-align:center}
 </head>
 <body>
 <div class="wrap">
-<header>
+<header class="site-header" style="box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; gap: 6px; padding: 0 10px; height: 26px; background: rgba(255,255,255,0.78); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); border-bottom: 1px solid rgba(148,163,184,0.36); box-shadow: none; width: 100%; page-break-inside: avoid; break-inside: avoid; min-width: 0;">
+  <img src="/eduai-logo.png" alt="EduAI Logo" class="logo" style="height: 15px; width: auto; display: block; flex-shrink: 0; opacity: 0.28;" />
+  <span class="header-text" style="font-family: 'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif; font-size: clamp(7px, 1.05vw, 9px); font-weight: 600; color: #1e3a5f; opacity: 0.56; -webkit-print-color-adjust: exact; print-color-adjust: exact; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">EDUAI COMPANION 2026 | CAPS COMPLIANT EDUCATION RESOURCE | FOUNDATION PHASE PACK</span>
+</header>
+<section class="index-banner" aria-labelledby="foundation-pack-title">
   <p class="kick">EduAI Companion · CAPS compliant · Foundation Phase</p>
-  <h1>Grade R–3 Printable Template Pack 🎨</h1>
+  <h1 id="foundation-pack-title">Grade R–3 Printable Template Pack 🎨</h1>
   <p class="sub">Awards for good academic achievement, worksheets, classroom exercises and homework — bright, cartoon-styled and ready for the photocopier. Every sheet carries its CAPS content area, ATP placement, time on task, marks and memo.</p>
   <div class="chips">
     <span class="chip">28 templates</span>
@@ -57,7 +61,7 @@ footer{margin-top:26px;font-size:12px;color:#475569;text-align:center}
     <a href="#award">Awards</a><a href="#worksheet">Worksheets</a><a href="#classroom">Classroom</a><a href="#homework">Homework</a>
     <button onclick="window.print()">Print this index</button>
   </div>
-</header>
+</section>
 <section class="grp" id="award">
   <h2 style="--k:#ffdf40">🏆 Awards &amp; Certificates <small>6</small></h2>
   <p class="grp-blurb">Bright certificates, praise slips and sticker awards for good academic achievement.</p>

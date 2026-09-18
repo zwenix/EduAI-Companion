@@ -229,6 +229,19 @@ export const SA_BASE_CSS = `
   .ai-generated-content .header-banner *,
   .ai-generated-content .banner * { color: inherit; }
 
+  /* Direct generated banners use the complete printable page width. */
+  .ai-generated-content > header:not(.site-header),
+  .ai-generated-content > .content-banner,
+  .ai-generated-content > .top-banner,
+  .ai-generated-content > .header-banner,
+  .ai-generated-content > .banner {
+    width: calc(100% + 40mm) !important;
+    max-width: none;
+    margin-left: -20mm !important;
+    margin-right: -20mm !important;
+    box-sizing: border-box;
+  }
+
   /* ── SCHOOL HEADER ── */
   .school-header {
     display: flex;

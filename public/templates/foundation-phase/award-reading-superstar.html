@@ -46,7 +46,9 @@
 .fp-confetti { opacity: .5; }
 
 /* ── banner ─────────────────────────────────────────── */
-.fp-banner { position: relative; display: flex; align-items: flex-start; gap: 5mm; margin-bottom: 4mm; padding: 4mm 5mm; border-radius: 5mm; background: linear-gradient(135deg, var(--fp-band, #1e3a5f) 0%, var(--fp-primary, #06b6d4) 100%); color: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+/* Use the full printable page width for the designated content banner; the
+   negative margins consume the page padding without widening the A4 sheet. */
+.fp-banner { position: relative; display: flex; align-items: flex-start; gap: 5mm; width: calc(100% + 24mm); margin: 0 -12mm 4mm; padding: 4mm 5mm; box-sizing: border-box; border-radius: 0 0 5mm 5mm; background: linear-gradient(135deg, var(--fp-band, #1e3a5f) 0%, var(--fp-primary, #06b6d4) 100%); color: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .fp-page > .site-header { position: relative; margin-bottom: 3mm; border-radius: 2mm; }
 .fp-banner-text { flex: 1 1 auto; min-width: 0; }
 .fp-kicker { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #fff; margin: 0 0 1mm; }
@@ -363,9 +365,9 @@
     <div class="fp-rainbow"><svg class="fp-svg " viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" preserveAspectRatio="none" style="width:100%;height:16mm;display:block"><path d="M14 58a86 86 0 01172 0" fill="none" stroke="#ff5a5f" stroke-width="5.4" stroke-linecap="round"/><path d="M20 58a74 74 0 01148 0" fill="none" stroke="#ff8a3d" stroke-width="5.4" stroke-linecap="round"/><path d="M26 58a62 62 0 01124 0" fill="none" stroke="#ffdf40" stroke-width="5.4" stroke-linecap="round"/><path d="M32 58a50 50 0 01100 0" fill="none" stroke="#2ed573" stroke-width="5.4" stroke-linecap="round"/><path d="M38 58a38 38 0 0176 0" fill="none" stroke="#2563eb" stroke-width="5.4" stroke-linecap="round"/><path d="M44 58a26 26 0 0152 0" fill="none" stroke="#9b59b6" stroke-width="5.4" stroke-linecap="round"/>
          <circle cx="16" cy="58" r="8" fill="#fff" stroke="#06b6d4" stroke-width="2.6"/>
          <circle cx="184" cy="58" r="8" fill="#fff" stroke="#06b6d4" stroke-width="2.6"/></svg></div>
-    <header class="site-header" style="box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; gap: 6px; padding: 0 10px; height: 30px; background: rgba(255,255,255,0.78); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); border-bottom: 1px solid rgba(148,163,184,0.36); box-shadow: none; width: 100%; page-break-inside: avoid; break-inside: avoid; min-width: 0;">
-  <img src="/eduai-logo.png" alt="EduAI Logo" class="logo" style="height: 18px; width: auto; display: block; flex-shrink: 0; opacity: 0.32;" />
-  <span class="header-text" style="font-family: 'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif; font-size: clamp(8px, 1.15vw, 10px); font-weight: 600; color: #1e3a5f; opacity: 0.62; -webkit-print-color-adjust: exact; print-color-adjust: exact; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">EDUAI COMPANION 2026 | CAPS COMPLIANT EDUCATION RESOURCE | GRADE 1 • TERM 1 • HOME LANGUAGE • AWARDS &amp; CERTIFICATES</span>
+    <header class="site-header" style="box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; gap: 6px; padding: 0 10px; height: 26px; background: rgba(255,255,255,0.78); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); border-bottom: 1px solid rgba(148,163,184,0.36); box-shadow: none; width: 100%; page-break-inside: avoid; break-inside: avoid; min-width: 0;">
+  <img src="/eduai-logo.png" alt="EduAI Logo" class="logo" style="height: 15px; width: auto; display: block; flex-shrink: 0; opacity: 0.28;" />
+  <span class="header-text" style="font-family: 'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif; font-size: clamp(7px, 1.05vw, 9px); font-weight: 600; color: #1e3a5f; opacity: 0.56; -webkit-print-color-adjust: exact; print-color-adjust: exact; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">EDUAI COMPANION 2026 | CAPS COMPLIANT EDUCATION RESOURCE | GRADE 1 • TERM 1 • HOME LANGUAGE • AWARDS &amp; CERTIFICATES</span>
 </header>
     <header class="fp-banner">
   <div class="fp-banner-text">
