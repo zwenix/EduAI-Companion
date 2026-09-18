@@ -9,7 +9,9 @@
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "build:fp-templates": "tsx scripts/build-foundation-template-pack.ts",
+    "build:fp-pack": "tsx scripts/build-foundation-template-portable-pack.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.0",

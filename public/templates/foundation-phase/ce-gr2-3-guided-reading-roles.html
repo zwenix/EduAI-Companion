@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Guided Reading Table — Role Cards · EduAI Companion CAPS Foundation Phase</title>
+<meta name="description" content="Sixteen minutes at the teacher's table with role cards (Reader, Word Catcher, Question Maker, Reteller, Recorder, Checker) plus a text-dependant question strip." />
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Patrick+Hand&family=Comic+Neue:wght@400;700&family=Nunito:wght@400;600;700;800&display=swap');
+
+.fp-root {
+  --ink: #12233f;
+  --navy: #1e3a5f;
+  font-family: 'Nunito', 'Comic Neue', ui-sans-serif, system-ui, sans-serif;
+  color: var(--ink);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  line-height: 1.45;
+}
+.fp-page {
+  position: relative;
+  box-sizing: border-box;
+  width: 190mm;
+  min-height: 272mm;
+  margin: 0 auto;
+  padding: 12mm 12mm 10mm;
+  background: #fff;
+  border: 2.2mm solid var(--fp-primary, #06b6d4);
+  border-radius: 10mm;
+  overflow: hidden;
+}
+.fp-page::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 8mm;
+  border: 1mm dotted rgba(255,255,255,.9);
+  pointer-events: none;
+}
+.fp-corners { position: absolute; inset: 0; pointer-events: none; }
+.fp-corner { position: absolute; }
+.fp-corner.tl { top: -4mm; left: -3mm; }
+.fp-corner.tr { top: -3mm; right: -3mm; }
+.fp-corner.bl { bottom: 1mm; left: -2mm; }
+.fp-corner.br { bottom: 1mm; right: -3mm; }
+.fp-confetti { opacity: .5; }
+
+/* ── banner ─────────────────────────────────────────── */
+.fp-banner { position: relative; display: flex; align-items: flex-start; gap: 5mm; margin-bottom: 4mm; }
+.fp-banner-text { flex: 1 1 auto; min-width: 0; }
+.fp-kicker { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--fp-band, #1e3a5f); margin: 0 0 1mm; }
+.fp-title { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 23pt; line-height: 1.06; font-weight: 700; color: var(--fp-band, #1e3a5f); margin: 0; letter-spacing: -.01em; }
+.fp-subtitle { font-size: 10.5pt; font-weight: 700; color: #334155; margin: 1.5mm 0 0; }
+.fp-art { display: block; flex: 0 0 auto; text-align: center; }
+.fp-float-left { float: none; }
+.fp-float-right { float: none; }
+.fp-rainbow { margin: 1mm 0 3mm; }
+.fp-badge-row { display: flex; flex-wrap: wrap; gap: 2mm; margin: 0 0 3mm; }
+.fp-pill { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8.2pt; font-weight: 600; padding: 1.2mm 3mm; border-radius: 99mm; border: .5mm solid var(--fp-primary, #06b6d4); color: var(--fp-band, #1e3a5f); background: var(--fp-soft, #f6fbff); white-space: nowrap; }
+.fp-pill.caps { background: #1e3a5f; color: #fff; border-color: #1e3a5f; }
+.fp-pill.bloom { background: #fff; }
+
+/* ── learner header (name / date / marks) ─────────────── */
+.fp-learnerstrip { display: flex; align-items: stretch; gap: 3mm; margin: 0 0 4mm; }
+.fp-field { flex: 1 1 auto; border: .7mm dashed var(--fp-primary, #06b6d4); border-radius: 4mm; padding: 2mm 3mm; background: #fffdf7; }
+.fp-field b { display: block; font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8.6pt; text-transform: uppercase; letter-spacing: .06em; color: var(--fp-band); }
+.fp-field .fp-underline { display: block; border-bottom: .45mm dotted #64748b; min-height: 7mm; }
+.fp-scorebox { flex: 0 0 46mm; border: 1.6mm solid #ffb703; border-radius: 4mm; padding: 1.6mm 2.4mm; text-align: center; background: #fffbe6; }
+.fp-scorebox b { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 10pt; display: block; color: #7a4b00; }
+.fp-scorebox .fp-box { display: inline-block; border: .5mm solid #b45309; border-radius: 1.5mm; width: 7mm; height: 8mm; margin: .6mm .4mm 0 0; background: #fff; vertical-align: middle; }
+
+/* ── alignment strip ─────────────────────────────────── */
+.fp-caps { border: .55mm solid #dbeafe; border-left: 2.2mm solid var(--fp-primary, #06b6d4); background: #f7fbff; border-radius: 0 3mm 3mm 0; padding: 1.9mm 2.6mm; margin: 0 0 3.4mm; font-size: 8.2pt; color: #1e3a5f; break-inside: avoid; }
+.fp-caps h4 { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 9pt; margin: 0 0 1mm; color: #1d4ed8; text-transform: uppercase; letter-spacing: .05em; }
+.fp-caps dl { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 1mm 5mm; margin: 0; }
+.fp-caps dt { font-weight: 800; }
+.fp-caps dd { margin: 0; }
+.fp-caps .fp-caps-note { margin: 1.5mm 0 0; font-style: italic; color: #475569; }
+.fp-caps-compact { margin: 4mm 0 0; padding: 1.8mm 2.4mm; font-size: 7.4pt; background: #fbfdff; border-left-width: 1.6mm; }
+.fp-caps-compact h4 { font-size: 7.6pt; margin: 0 0 .6mm; }
+.fp-caps-compact dl { grid-template-columns: repeat(4, minmax(0,1fr)); gap: .4mm 4mm; }
+.fp-caps-compact dt { font-size: 6.8pt; }
+.fp-caps-compact dd { font-size: 7.4pt; }
+.fp-caps-compact .fp-caps-note { font-size: 7pt; margin-top: 1mm; }
+
+/* ── blocks ──────────────────────────────────────────── */
+.fp-block { position: relative; margin: 0 0 3.6mm; padding: 2.4mm 3mm 2.8mm; border: .5mm solid #e6eef7; border-radius: 4.5mm; background: #fff; break-inside: avoid; page-break-inside: avoid; }
+.fp-block:nth-of-type(even) { background: #fdfeff; }
+.fp-block-head { display: flex; align-items: center; gap: 2mm; border-bottom: .9mm solid var(--fp-primary, #06b6d4); padding-bottom: 1.4mm; margin-bottom: 2mm; flex-wrap: wrap; }
+.fp-block-pencil { display: inline-flex; align-items: center; }
+.fp-block-title { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 12.6pt; margin: 0; color: var(--fp-band, #1e3a5f); flex: 1 1 auto; }
+.fp-block-title em { font-style: normal; font-family: 'Nunito', sans-serif; font-size: 9pt; font-weight: 800; color: #9b59b6; margin-left: 1.5mm; }
+.fp-badge { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 7.6pt; font-weight: 600; color: #fff; padding: .8mm 2.4mm; border-radius: 99mm; }
+.fp-marks { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8.6pt; font-weight: 700; padding: .8mm 2.6mm; border-radius: 99mm; }
+.fp-instruction { margin: 0 0 2mm; font-size: 10pt; font-weight: 700; color: #334155; }
+.fp-instruction em { font-style: normal; color: #9b59b6; font-weight: 800; }
+.fp-bi { font-size: 8.6pt; }
+.fp-items { display: block; }
+.fp-item { display: flex; flex-direction: column; gap: 1mm; padding: 1.1mm 0; border-bottom: .35mm dotted #cbd5e1; }
+.fp-item:last-child { border-bottom: 0; }
+.fp-item-head { display: flex; align-items: center; gap: 2.4mm; }
+.fp-item-symbol { font-size: 13pt; }
+.fp-num { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 7.4mm; height: 7.4mm; border-radius: 99mm; color: #fff; font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-weight: 700; font-size: 10pt; box-shadow: 0 0 0 .5mm #fff inset; }
+.fp-item-text { margin: 0; font-size: 11pt; font-weight: 700; color: #1f2937; flex: 1 1 auto; }
+.fp-item-marks { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8.6pt; color: #64748b; }
+.fp-parts { list-style: none; margin: .5mm 0 0 9mm; padding: 0; display: flex; flex-direction: column; gap: 1.2mm; }
+.fp-parts li { font-size: 10.5pt; }
+.fp-parts li span { font-weight: 800; color: var(--fp-band); margin-right: 1mm; }
+.fp-part-marks { font-style: normal; color: #64748b; font-size: 9pt; }
+.fp-options { display: flex; flex-wrap: wrap; gap: 2mm; margin: 1mm 0 0 9.8mm; }
+.fp-option { display: inline-flex; align-items: center; gap: 1.6mm; border: .5mm solid #d7e3f2; border-radius: 3mm; padding: 1.4mm 2.4mm; font-size: 10.5pt; background: #fff; }
+.fp-option b { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; color: var(--fp-band); }
+.fp-tick { display: inline-block; border: .7mm solid #334155; border-radius: 1.4mm; background: #fff; flex: 0 0 auto; }
+.fp-item-lines { margin: .5mm 0 0 0; }
+.fp-copyrow { display: flex; gap: 3mm; margin: 1mm 0 0 0; flex-wrap: wrap; }
+.fp-copycell { flex: 1 1 40mm; }
+
+/* ── writer's lines ─────────────────────────────────── */
+.fp-writer { display: flex; flex-direction: column; gap: 1mm; }
+.fp-wline { position: relative; height: 11.6mm; border-bottom: .5mm solid #94a3b8; background: linear-gradient(to bottom, transparent 49.6%, #cbd5e1 49.6%, #cbd5e1 50.4%, transparent 50.4%); }
+.fp-wline::before { content: ''; position: absolute; left: 0; right: 0; top: 25%; border-top: .4mm dashed #f2a3c4; }
+.fp-wguide { position: absolute; left: 1mm; bottom: 1mm; font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 11mm; color: rgba(100,116,139,.55); }
+.fp-wdot { position: absolute; inset: 0; }
+
+/* ── tracing ───────────────────────────────────────── */
+.fp-tracer-grid { display: flex; flex-direction: column; gap: 1.5mm; }
+.fp-tracerow { display: flex; align-items: center; gap: 3mm; border-bottom: .35mm dotted #cbd5e1; padding-bottom: .4mm; }
+.fp-tracemodel { flex: 0 0 44mm; font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 11.6mm; line-height: 1.05; color: var(--fp-band, #1e3a5f); letter-spacing: .5mm; }
+.fp-tracemodel.fp-manuscript, .fp-ghost.fp-manuscript { font-family: 'Comic Neue', 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; letter-spacing: 1mm; }
+.fp-tracepractice { flex: 1 1 auto; display: flex; gap: 3mm; align-items: center; }
+.fp-ghost { font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 11.6mm; line-height: 1.05; color: transparent; -webkit-text-stroke: .35mm #b6c6d8; letter-spacing: .5mm; }
+.fp-frames { display: flex; flex-wrap: wrap; gap: 3mm; margin-top: 2mm; }
+.fp-frame { flex: 1 1 60mm; font-size: 10pt; font-weight: 700; color: #334155; }
+.fp-tracer { font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 12mm; color: #cbd5e1; -webkit-text-stroke: .3mm #94a3b8; display: block; }
+
+/* ── counting / boxes ───────────────────────────────── */
+.fp-countgrid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 2.6mm; }
+.fp-countcard { border: .5mm dashed var(--fp-primary); border-radius: 3.5mm; padding: 1.6mm; background: #fff; }
+.fp-countdot-wrap { display: flex; flex-wrap: wrap; gap: 1.2mm; min-height: 12mm; align-items: center; }
+.fp-countdot { font-size: 7.2mm; line-height: 1; }
+.fp-countanswer { display: flex; align-items: center; gap: 1.6mm; margin-top: 1mm; font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 10pt; }
+.fp-countprompt { margin: .5mm 0 0; font-size: 8.6pt; color: #475569; font-weight: 700; }
+.fp-extra-task { margin: 2mm 0 0; font-size: 9.4pt; font-weight: 800; color: #9b59b6; }
+.fp-boxes { display: inline-flex; gap: 1.2mm; }
+.fp-box { border: .55mm solid #64748b; border-radius: 1.4mm; background: #fffdf7; display: inline-block; }
+
+/* ── matching ──────────────────────────────────────── */
+.fp-match { display: flex; flex-direction: column; gap: 3.2mm; }
+.fp-matchrow { display: grid; grid-template-columns: 1fr 24mm 1fr; align-items: center; gap: 0; }
+.fp-matchcell { border: .5mm solid #d7e3f2; border-radius: 3mm; padding: 2mm 2.4mm; font-size: 10.6pt; font-weight: 700; background: #fff; }
+.fp-match-left { border-color: var(--fp-primary); background: var(--fp-soft); }
+.fp-matchline { height: 22mm; background: repeating-linear-gradient(90deg, #94a3b8 0 2mm, transparent 2mm 4mm) center/100% .4mm no-repeat; position: relative; }
+.fp-matchline::before, .fp-matchline::after { content: ''; position: absolute; top: 50%; width: 2.4mm; height: 2.4mm; border-radius: 99mm; background: var(--fp-primary); transform: translateY(-50%); }
+.fp-matchline::before { left: 0; } .fp-matchline::after { right: 0; }
+
+/* ── colour / circle ────────────────────────────────── */
+.fp-swatches { display: flex; flex-wrap: wrap; gap: 1.6mm; margin-bottom: 2mm; }
+.fp-swatch { display: inline-flex; align-items: center; gap: 1.2mm; font-size: 8.6pt; font-weight: 800; text-transform: capitalize; border: .4mm solid #e2e8f0; border-radius: 99mm; padding: .6mm 2mm; background: #fff; }
+.fp-swatch-dot { width: 3.4mm; height: 3.4mm; border-radius: 99mm; border: .4mm solid #334155; }
+.fp-citems { display: flex; flex-wrap: wrap; gap: 2.4mm; }
+.fp-citems-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); }
+.fp-citem { position: relative; min-width: 24mm; text-align: center; border: .6mm dashed #94a3b8; border-radius: 4mm; padding: 2mm 2mm 5mm; background: #fff; }
+.fp-citem-face { font-size: 13mm; line-height: 1.1; display: block; font-weight: 800; font-family: 'Comic Neue', cursive; }
+.fp-citem-cap { display: block; font-size: 8.6pt; font-weight: 700; color: #475569; }
+.fp-citem-actions { position: absolute; bottom: .8mm; left: 0; right: 0; display: flex; justify-content: center; gap: 1.2mm; }
+.fp-citem-actions i { font-style: normal; font-size: 7.4pt; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; background: var(--fp-soft); border-radius: 99mm; padding: .3mm 1.6mm; color: var(--fp-band); }
+
+/* ── tables / grids ─────────────────────────────────── */
+.fp-table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+.fp-table th, .fp-table td { border: .45mm solid #b9cadd; padding: 1.6mm 2mm; text-align: left; vertical-align: middle; }
+.fp-table thead th { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; background: var(--fp-soft); color: var(--fp-band); text-align: center; }
+.fp-blankcell { background: #fffdf7; min-height: 10mm; height: 12mm; }
+.fp-prefill { font-weight: 800; text-align: center; background: #f1f5f9; }
+.fp-gridtable td { height: var(--cell, 13mm); }
+.fp-gbox { display: flex; flex-direction: column; gap: 1.6mm; }
+.fp-gboxrow { display: flex; align-items: center; gap: 1.6mm; }
+.fp-glabel { flex: 0 0 34mm; font-size: 9.6pt; font-weight: 800; }
+.fp-gcell { flex: 1 1 auto; border: .55mm solid #64748b; border-radius: 1.6mm; background: #fffdf7; display: inline-flex; align-items: center; justify-content: center; font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-weight: 600; }
+.fp-pic { font-size: 6mm; letter-spacing: .5mm; }
+.fp-rubric { font-size: 8.8pt; }
+.fp-rubric th { font-weight: 800; }
+.fp-rubric-crit { width: 26%; }
+
+/* ── cut & paste / cards ────────────────────────────── */
+.fp-cutline { display: flex; align-items: center; gap: 1.6mm; margin: 1mm 0 1.6mm; }
+.fp-cut-icon { display: inline-flex; }
+.fp-cut-dash { flex: 1 1 auto; border-top: .6mm dashed #f87171; }
+.fp-cut-label { font-size: 7.6pt; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #ef4444; }
+.fp-strip-wrap { display: flex; flex-wrap: wrap; gap: 1.8mm; align-items: center; border: .5mm dotted #f87171; border-radius: 3mm; padding: 2mm; background: #fff7f7; }
+.fp-piece { flex: 0 1 auto; text-align: center; border: .6mm dashed var(--fp-primary); border-radius: 2.6mm; padding: 1.6mm 3mm; background: #fff; min-width: 16mm; }
+.fp-piece b { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 11pt; display: block; }
+.fp-piece i { font-style: normal; font-size: 6.4pt; text-transform: uppercase; color: #94a3b8; letter-spacing: .08em; }
+.fp-slotgrid { display: flex; flex-direction: column; gap: 2mm; margin-bottom: 2mm; }
+.fp-slotrow { display: flex; align-items: center; gap: 2mm; }
+.fp-slotctx { flex: 0 0 auto; font-size: 10pt; font-weight: 700; }
+.fp-slot { flex: 1 1 auto; min-height: 12mm; border: .6mm dashed #94a3b8; border-radius: 2.4mm; background: repeating-linear-gradient(-45deg, #fbfdff 0 3mm, #f3f8ff 3mm 6mm); display: flex; align-items: center; justify-content: center; font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 11pt; }
+.fp-cardgrid { display: flex; flex-wrap: wrap; gap: 2.4mm; }
+.fp-card { position: relative; border: .7mm solid var(--fp-primary); border-radius: 4mm; padding: 2.6mm 2mm; text-align: center; background: #fff; min-height: 26mm; display: flex; flex-direction: column; justify-content: center; gap: 1mm; }
+.fp-card-dashed { border-style: dashed; }
+.fp-card-scalloped { border-style: solid; box-shadow: 0 0 0 .5mm #fff, 0 0 0 1mm var(--fp-primary); }
+.fp-card-face { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 14pt; font-weight: 700; color: var(--fp-band); line-height: 1.1; }
+.fp-card-symbol { font-size: 9mm; line-height: 1; }
+.fp-card-cap { font-size: 8.4pt; font-weight: 700; color: #475569; }
+.fp-card-note { font-size: 7.2pt; color: #94a3b8; font-style: italic; }
+.fp-cardfield { display: flex; align-items: flex-end; gap: 1.4mm; font-size: 8.4pt; font-weight: 800; color: #475569; text-align: left; }
+.fp-cardrule { flex: 1 1 auto; display: block; border-bottom: .45mm dotted #64748b; min-width: 10mm; height: .4mm; }
+
+/* ── word bank ─────────────────────────────────────── */
+.fp-bank { display: flex; flex-wrap: wrap; gap: 1.8mm; border: .6mm dashed var(--fp-primary); background: var(--fp-soft); border-radius: 3mm; padding: 2mm; margin-bottom: 2.4mm; }
+.fp-bankword { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 11pt; font-weight: 600; background: #fff; border: .4mm solid #dbeafe; border-radius: 2mm; padding: 1mm 2.4mm; }
+.fp-sents { display: flex; flex-direction: column; gap: 1.6mm; }
+.fp-sent { display: flex; align-items: baseline; gap: 2mm; font-size: 10.6pt; font-weight: 700; }
+.fp-sentno { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; color: var(--fp-band); }
+.fp-gap { display: inline-block; min-width: 26mm; border-bottom: .5mm dotted #64748b; margin: 0 1mm; height: .8em; }
+
+/* ── comprehension ─────────────────────────────────── */
+.fp-passage { position: relative; border: .5mm solid #e2e8f0; background: #fffdf7; border-radius: 4mm; padding: 3mm; margin-bottom: 2.4mm; }
+.fp-passage-title { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 13pt; margin: 0 0 1.6mm; color: var(--fp-band); }
+.fp-passage-line { margin: 0 0 1.6mm; font-size: 11.6pt; line-height: 1.75; font-family: 'Comic Neue', 'Nunito', sans-serif; }
+.fp-vocab { margin: 0 0 2mm; }
+.fp-vocab h5 { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 9.6pt; margin: 0 0 1mm; color: var(--fp-band); text-transform: uppercase; letter-spacing: .05em; }
+.fp-vocab ol { margin: 0; padding-left: 5mm; font-size: 9.6pt; }
+
+/* ── checklists / rewards ──────────────────────────── */
+.fp-checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1.8mm; }
+.fp-checklist li { display: flex; align-items: center; gap: 2.2mm; font-size: 10.4pt; font-weight: 700; }
+.fp-mark-star { filter: drop-shadow(0 0 .3mm rgba(0,0,0,.15)); }
+.fp-heart { font-size: 6mm; line-height: 1; color: #FF69B4; border: .5mm solid #FF69B4; border-radius: 1mm; padding: 0 1.2mm; }
+.fp-checkfoot { margin: 2mm 0 0; font-size: 9.4pt; font-weight: 800; color: #475569; }
+.fp-reward { background: linear-gradient(135deg, #fff9e8, #fff); }
+.fp-praise p { margin: 0 0 1mm; font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 12pt; color: var(--fp-band); }
+.fp-stickerrow { display: flex; gap: 2mm; margin-top: 1.5mm; }
+.fp-stickerslot { flex: 1 1 auto; height: 13mm; border: .6mm dotted #cbd5e1; border-radius: 3mm; display: inline-flex; align-items: center; justify-content: center; background: #fff; }
+.fp-signrow { display: flex; gap: 6mm; margin-top: 3mm; }
+.fp-signline { flex: 1 1 auto; }
+.fp-signname { display: block; min-height: 6mm; font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 10.5pt; }
+.fp-signrule { display: block; border-bottom: .5mm solid #334155; }
+.fp-signlabel { display: block; font-size: 8.4pt; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #475569; }
+
+/* ── callouts ───────────────────────────────────────── */
+.fp-callout { position: relative; overflow: hidden; border-left: 2.4mm solid var(--fp-primary); border-radius: 0 3mm 3mm 0; padding: 2mm 2.6mm; margin: 0 0 3.2mm; break-inside: avoid; }
+.fp-callout h4 { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 10.4pt; margin: 0 0 1mm; color: var(--fp-band); position: relative; }
+.fp-callout h4 em { font-style: normal; color: #9b59b6; margin-left: 1.5mm; }
+.fp-callout ul { margin: 0; padding-left: 4.6mm; font-size: 9.2pt; color: #334155; position: relative; }
+.fp-callout li { margin-bottom: .6mm; }
+
+/* ── certificate ───────────────────────────────────── */
+.fp-cert { position: relative; text-align: center; padding: 6mm 4mm 4mm; }
+.fp-cert-medal { position: absolute; top: -3mm; right: -1mm; width: 34mm; height: 34mm; overflow: hidden; border-radius: 50%; box-shadow: 0 2mm 6mm rgba(15,42,74,.16); }
+.fp-cert-medal img { width: 100%; display: block; }
+.fp-cert-eyebrow { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; text-transform: uppercase; letter-spacing: .22em; font-size: 8.6pt; color: var(--fp-band); margin: 0; }
+.fp-cert-award { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 26pt; line-height: 1.1; margin: 2mm 0 1mm; color: #1e3a5f; }
+.fp-cert-ribbon { display: inline-block; font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 9.4pt; font-weight: 700; color: #fff; padding: 1.2mm 4mm; border-radius: 99mm; margin: 0 0 3mm; }
+.fp-cert-line { font-size: 12pt; margin: 0 0 2mm; color: #334155; }
+.fp-learner { display: block; font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 26pt; color: var(--fp-band); border-bottom: .6mm dashed var(--fp-primary); padding: 0 4mm 1mm; margin: 1mm auto 3mm; }
+.fp-cert-reason { display: inline-flex; flex-direction: column; gap: 1mm; border: .55mm dashed var(--fp-primary); border-radius: 4mm; padding: 2.4mm 4mm; background: var(--fp-soft); margin-bottom: 3mm; }
+.fp-cert-reason-label { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8pt; text-transform: uppercase; letter-spacing: .12em; color: var(--fp-band); }
+.fp-cert-reason-text { font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 14pt; color: #1f2937; }
+.fp-cert-meta { display: flex; justify-content: center; flex-wrap: wrap; gap: 4mm; font-size: 9.4pt; margin: 0 0 2mm; }
+.fp-cert-meta b { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; color: var(--fp-band); display: block; font-size: 8pt; text-transform: uppercase; letter-spacing: .06em; }
+.fp-cert-stickers { display: flex; justify-content: center; gap: 2mm; margin: 1mm 0 2mm; }
+.fp-cert-message { font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 13pt; color: #475569; margin: 1mm 0 4mm; }
+.fp-cert-signs { margin-top: 6mm; text-align: left; }
+.fp-cert-signs .fp-signblock { flex: 1 1 0; }
+
+/* ── memo ───────────────────────────────────────────── */
+.fp-memo { border: .55mm solid #bbf7d0; background: #f2fdf5; border-radius: 4mm; padding: 3mm; break-inside: avoid; margin-top: 3mm; }
+.fp-memo-head { display: flex; align-items: center; justify-content: space-between; gap: 3mm; margin-bottom: 1.6mm; }
+.fp-memo-head h3 { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 12pt; margin: 0; color: #15803d; }
+.fp-memo-total { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 9.4pt; background: #16a34a; color: #fff; border-radius: 99mm; padding: .8mm 3mm; }
+.fp-memo-table { font-size: 9pt; background: #fff; }
+.fp-memo-ref { width: 14mm; font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; color: #15803d; font-weight: 700; }
+.fp-memo-marks { width: 16mm; text-align: center; }
+.fp-memo-table i { color: #64748b; }
+
+/* ── footer ─────────────────────────────────────────── */
+.fp-foot { margin-top: 4mm; }
+.fp-foot-text { display: flex; justify-content: space-between; align-items: center; gap: 3mm; font-size: 7.4pt; color: #64748b; margin: 1mm 0 0; font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; letter-spacing: .02em; flex-wrap: wrap; }
+.fp-foot-text b { color: #1e3a5f; }
+.fp-scall-top { transform: rotate(180deg); margin-bottom: -1mm; }
+
+/* ── accessibility variants ─────────────────────────── */
+.fp-large .fp-page { font-size: 12pt; }
+.fp-large .fp-item-text, .fp-large .fp-passage-line { font-size: 14pt; letter-spacing: .02em; }
+.fp-large .fp-instruction { font-size: 11.6pt; }
+.fp-large .fp-block { padding: 4mm; }
+.fp-large .fp-wline { height: 15mm; }
+.fp-large .fp-tracemodel, .fp-large .fp-ghost { font-size: 16mm; }
+.fp-large .fp-countdot { font-size: 9.5mm; }
+
+.fp-ink .fp-page { border-color: #334155; }
+.fp-ink .fp-block:nth-of-type(even) { background: #fff; }
+.fp-ink .fp-pill, .fp-ink .fp-badge, .fp-ink .fp-marks, .fp-ink .fp-marks * { color: #1f2937 !important; background: #fff !important; }
+.fp-ink .fp-pill.caps { background: #fff !important; }
+.fp-ink .fp-caps, .fp-ink .fp-callout, .fp-ink .fp-memo { background: #fff; }
+.fp-ink .fp-scorebox { border-color: #334155; background: #fff; }
+.fp-ink .fp-confetti { opacity: .18; }
+.fp-ink .fp-cert-award, .fp-ink .fp-title { color: #000; }
+.fp-ink .fp-ghost { -webkit-text-stroke: .35mm #64748b; }
+.fp-ink .fp-art img { filter: grayscale(.82) contrast(1.05); }
+
+@media screen {
+  .fp-root { padding: 6mm 0; background: #eef4fb; }
+  .fp-page { box-shadow: 0 12px 34px rgba(15,42,74,.18); }
+}
+@media print {
+  @page { size: A4 portrait; margin: 8mm; }
+  html, body { background: #fff !important; }
+  .fp-root { padding: 0 !important; background: #fff !important; }
+  .fp-page { box-shadow: none !important; margin: 0 auto !important; width: 100% !important; min-height: auto !important; border-width: 2mm !important; }
+  .fp-noprint { display: none !important; }
+  .fp-block, .fp-callout, .fp-memo, .fp-card, .fp-countcard, .fp-item, .fp-cert { break-inside: avoid; page-break-inside: avoid; }
+  .fp-page-break { break-before: page; page-break-before: always; }
+}
+</style>
+<style>body{margin:0;background:#eef4fb;font-family:'Nunito',system-ui,sans-serif}.fp-toolbar{max-width:190mm;margin:0 auto 4mm;display:flex;flex-wrap:wrap;gap:2mm;align-items:center;justify-content:space-between;padding:0 2mm}.fp-toolbar h2{font:600 11pt 'Fredoka',sans-serif;color:#1e3a5f;margin:0}.fp-btn{font:600 10pt 'Fredoka',sans-serif;border:0;border-radius:99mm;padding:2.4mm 5mm;background:#06b6d4;color:#fff;cursor:pointer;box-shadow:0 2mm 6mm rgba(6,182,212,.3)}.fp-btn.alt{background:#9b59b6;box-shadow:0 2mm 6mm rgba(155,89,182,.28)}.fp-btn.ghost{background:#fff;color:#1e3a5f;border:1px solid #cbd5e1;box-shadow:none}@media print{.fp-toolbar{display:none!important}}</style>
+</head>
+<body>
+<div class="fp-toolbar fp-noprint">
+  <h2>Guided Reading Table — Role Cards — ≈2 × A4 at 100 % scale · print in colour</h2>
+  <div>
+    <button class="fp-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    <a class="fp-btn alt" href="index.html">📚 All templates</a>
+  </div>
+</div>
+<div class="fp-root" style="--fp-primary:#8b5cf6;--fp-band:#7c3aed;--fp-soft:#efe9ff;">
+  <div class="fp-page" data-template="ce-gr2-3-guided-reading-roles" data-kind="classroom">
+    <div class="fp-corners" aria-hidden="true">
+  <span class="fp-corner tl"><svg class="fp-svg " viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" width="24" height="24"><g stroke="#ff8a3d" stroke-width="3.4" stroke-linecap="round">
+           <line x1="54.0" y1="32.0" x2="61.0" y2="32.0"/><line x1="47.6" y1="47.6" x2="52.5" y2="52.5"/><line x1="32.0" y1="54.0" x2="32.0" y2="61.0"/><line x1="16.4" y1="47.6" x2="11.5" y2="52.5"/><line x1="10.0" y1="32.0" x2="3.0" y2="32.0"/><line x1="16.4" y1="16.4" x2="11.5" y2="11.5"/><line x1="32.0" y1="10.0" x2="32.0" y2="3.0"/><line x1="47.6" y1="16.4" x2="52.5" y2="11.5"/>
+         </g>
+         <circle cx="32" cy="32" r="17" fill="#ffdf40" stroke="#12233f" stroke-width="2.2"/>
+         <circle cx="26.5" cy="30" r="2" fill="#12233f"/><circle cx="37.5" cy="30" r="2" fill="#12233f"/>
+         <path d="M25.5 36q6.5 6 13 0" fill="none" stroke="#12233f" stroke-width="2.4" stroke-linecap="round"/></svg></span>
+  <span class="fp-corner tr"><svg class="fp-svg " viewBox="0 0 80 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" width="32" height="20"><path d="M16 40q-12 0-12-11t12-11q2-13 16-13t18 12q12-1 13 10t-11 13z" fill="#ffffff" stroke="#06b6d4" stroke-width="2.6" stroke-linejoin="round"/>
+         <circle cx="30" cy="24" r="2" fill="#12233f"/><circle cx="44" cy="24" r="2" fill="#12233f"/>
+         <path d="M30 30q7 5 14 0" fill="none" stroke="#12233f" stroke-width="2.2" stroke-linecap="round"/></svg></span>
+  <span class="fp-corner bl"><svg class="fp-svg " viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" width="18" height="18"><path d="M24 3l5.6 12.2L43 17l-9.4 9.1L36 39.5 24 33.1 12 39.5l2.4-13.4L5 17l13.4-1.8z" fill="#c4b5fd" stroke="#12233f" stroke-width="2.2" stroke-linejoin="round"/>
+     <circle cx="19.5" cy="20" r="1.7" fill="#12233f"/><circle cx="28.5" cy="20" r="1.7" fill="#12233f"/>
+     <path d="M19 25q5 4.5 10 0" fill="none" stroke="#12233f" stroke-width="2" stroke-linecap="round"/></svg></span>
+  <span class="fp-corner br"><svg class="fp-svg " viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" width="18" height="18"><path d="M24 3l5.6 12.2L43 17l-9.4 9.1L36 39.5 24 33.1 12 39.5l2.4-13.4L5 17l13.4-1.8z" fill="#8b5cf6" stroke="#12233f" stroke-width="2.2" stroke-linejoin="round"/>
+     <circle cx="19.5" cy="20" r="1.7" fill="#12233f"/><circle cx="28.5" cy="20" r="1.7" fill="#12233f"/>
+     <path d="M19 25q5 4.5 10 0" fill="none" stroke="#12233f" stroke-width="2" stroke-linecap="round"/></svg></span>
+</div>
+    <svg class="fp-svg fp-confetti" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"><rect x="56.1" y="30.7" width="3.7" height="1.6" rx=".8" fill="#ffdf40" transform="rotate(-27 56.1 30.7)"/><circle cx="71.5" cy="7.8" r="2.0" fill="#9b59b6"/><rect x="60.0" y="29.2" width="3.9" height="1.6" rx=".8" fill="#9b59b6" transform="rotate(27 60.0 29.2)"/><path d="M35.1 92.7l1.6 1.6M36.7 92.7l-1.6 1.6" stroke="#ff8a3d" stroke-width="1.2" stroke-linecap="round"/><path d="M96.5 9.5l1.6 1.6M98.1 9.5l-1.6 1.6" stroke="#9b59b6" stroke-width="1.2" stroke-linecap="round"/><rect x="46.5" y="26.6" width="2.9" height="1.6" rx=".8" fill="#9b59b6" transform="rotate(-50 46.5 26.6)"/><path d="M21.3 25.2l1.6 1.6M22.9 25.2l-1.6 1.6" stroke="#ffdf40" stroke-width="1.2" stroke-linecap="round"/><circle cx="47.4" cy="76.8" r="1.4" fill="#9b59b6"/><path d="M98.4 92.4l1.6 1.6M100.0 92.4l-1.6 1.6" stroke="#ff5a5f" stroke-width="1.2" stroke-linecap="round"/><path d="M0.6 70.0l1.6 1.6M2.2 70.0l-1.6 1.6" stroke="#2ed573" stroke-width="1.2" stroke-linecap="round"/><rect x="61.1" y="78.9" width="3.6" height="1.6" rx=".8" fill="#2ed573" transform="rotate(42 61.1 78.9)"/><path d="M48.5 95.2l1.6 1.6M50.1 95.2l-1.6 1.6" stroke="#ff5a5f" stroke-width="1.2" stroke-linecap="round"/><circle cx="20.1" cy="68.0" r="2.0" fill="#9b59b6"/><rect x="73.6" y="23.4" width="3.4" height="1.6" rx=".8" fill="#9b59b6" transform="rotate(-35 73.6 23.4)"/><path d="M49.5 39.5l1.6 1.6M51.1 39.5l-1.6 1.6" stroke="#ff5a5f" stroke-width="1.2" stroke-linecap="round"/><circle cx="91.1" cy="13.2" r="1.3" fill="#2563eb"/><rect x="83.1" y="19.9" width="3.7" height="1.6" rx=".8" fill="#ff5a5f" transform="rotate(-49 83.1 19.9)"/><circle cx="48.9" cy="23.4" r="1.0" fill="#ff5a5f"/></svg>
+    
+    <header class="fp-banner">
+  <div class="fp-banner-text">
+    <p class="fp-kicker"> EduAI Companion · CAPS Foundation Phase</p>
+    <h1 class="fp-title">Guided Reading Table — Role Cards</h1>
+    <p class="fp-subtitle">Home Language Grades 2–3 · Reading &amp; Viewing · 5-role guided reading group</p>
+  </div>
+  <span class="fp-art  fp-float-right" style="width:46mm;background:#ffe0f0;border-radius:22mm;padding:3mm;">
+  <img src="../../illustrations/foundation/elly-reading.png" alt="Elly the elephant reading a storybook with two learners" style="width:100%;display:block;border-radius:18mm;" />
+</span>
+</header>
+<div class="fp-badge-row"><span class="fp-pill caps"> Classroom Exercise </span><span class="fp-pill">Grade 2</span><span class="fp-pill">Grade 3</span><span class="fp-pill">Home Language</span><span class="fp-pill">Term 1 – Term 4 · 3 sessions per week per group</span><span class="fp-pill bloom">Understand → Apply → Analyse → Evaluate</span><span class="fp-pill">Have fun! · Zonwabele!</span></div>
+    <div class="fp-learnerstrip">
+      <div class="fp-field" style="flex:2 1 1 auto"><b>Name · Igama</b><span class="fp-underline"></span></div><div class="fp-field" style="flex:1 1 auto"><b>Date · Umhla</b><span class="fp-underline"></span></div><div class="fp-field" style="flex:1 1 auto"><b>Class · Iklasi</b><span class="fp-underline"></span></div>
+      <div class="fp-scorebox"><b>Score · Amanqaku / Marks · Amanqaku</b>
+        <span style="display:block"><span class="fp-box"></span><span class="fp-box"></span> / <span class="fp-box"></span><span class="fp-box"></span></span>
+      </div>
+    </div>
+    <div class="fp-caps">
+  <h4>Assessment · Uvavanyo · CAPS alignment (DBE, Foundation Phase)</h4>
+  <dl><div><dt>Subject · Isifundo</dt><dd>Home Language · Grade 2, 3</dd></div><div><dt>Content area</dt><dd>Reading and Viewing · Listening and Speaking (supported/group reading)</dd></div><div><dt>Week · Iveki</dt><dd>Term 1 – Term 4 · 3 sessions per week per group</dd></div><div><dt>Time · Ixesha</dt><dd>16 min per group of 5–6</dd></div><div><dt>Skills practised</dt><dd>read a familiar text aloud with accuracy, pace and expression; decode an unfamiliar word using context and letter-sound knowledge; ask and answer literal and inferential questions about the text; retell in sequence without looking at the text</dd></div><div><dt>Assessment</dt><dd>AS 2 &amp; AS 4 — reading &amp; viewing, language structures in context · 12 marks</dd></div><div><dt>Setting</dt><dd>Guided reading / group table</dd></div><div><dt>Weekly allocation</dt><dd>7–8 h HL</dd></div></dl>
+  <p class="fp-caps-note">Home Language timetables allocate daily reading and viewing time; a guided group of 5–6 for 15–20 minutes is the CAPS-recommended structure in Grades 2–3. · Bloom's: Understand, Apply, Analyse, Evaluate.</p>
+</div>
+    <section class="fp-block fp-cards" id="roles">
+  <header class="fp-block-head" style="border-color:#8b5cf6">
+    <span class="fp-block-pencil"><svg class="fp-svg " viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" width="17" height="17"><path d="M6 42l4-12L32 8l8 8-22 22z" fill="#ff8a3d" stroke="#12233f" stroke-width="2.4" stroke-linejoin="round"/>
+         <path d="M32 8l8 8 4-4a3 3 0 000-4l-4-4a3 3 0 00-4 0z" fill="#FF69B4" stroke="#12233f" stroke-width="2.2"/>
+         <path d="M10 30l8 8" stroke="#12233f" stroke-width="2"/></svg></span>
+    <h3 class="fp-block-title">Role cards — laminate once, use all year</h3>
+    
+    
+  </header>
+  
+  <div class="fp-cutline"><span class="fp-cut-icon"><svg class="fp-svg " viewBox="0 0 48 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" width="16" height="11"><circle cx="9" cy="24" r="6" fill="none" stroke="#12233f" stroke-width="2.6"/><circle cx="9" cy="8" r="6" fill="none" stroke="#12233f" stroke-width="2.6"/><path d="M14 12l28 16M14 20L42 4" stroke="#12233f" stroke-width="2.6" stroke-linecap="round"/></svg></span><span class="fp-cut-dash"></span><span class="fp-cut-label">Cut along the dashed lines</span></div><div class="fp-cardgrid"><div class="fp-card fp-card-scalloped" style="border-color:#8b5cf6;flex:1 1 56mm">
+      <span class="fp-card-symbol">📖</span>
+      <span class="fp-card-face">READER</span>
+      <span class="fp-card-cap">Reads first. Finger under the words, voice loud enough for the table.</span>
+      
+      
+    </div><div class="fp-card fp-card-scalloped" style="border-color:#8b5cf6;flex:1 1 56mm">
+      <span class="fp-card-symbol">🔍</span>
+      <span class="fp-card-face">WORD CATCHER</span>
+      <span class="fp-card-cap">Stops on a tricky word. Asks: what sound? what would make sense?</span>
+      
+      
+    </div><div class="fp-card fp-card-scalloped" style="border-color:#8b5cf6;flex:1 1 56mm">
+      <span class="fp-card-symbol">❓</span>
+      <span class="fp-card-face">QUESTION MAKER</span>
+      <span class="fp-card-cap">Must ask ONE question that is not answered in the first line.</span>
+      
+      
+    </div><div class="fp-card fp-card-scalloped" style="border-color:#8b5cf6;flex:1 1 56mm">
+      <span class="fp-card-symbol">🗣️</span>
+      <span class="fp-card-face">RETELLER</span>
+      <span class="fp-card-cap">Tells the story without looking: first … then … last.</span>
+      
+      
+    </div><div class="fp-card fp-card-scalloped" style="border-color:#8b5cf6;flex:1 1 56mm">
+      <span class="fp-card-symbol">✍️</span>
+      <span class="fp-card-face">RECORDER</span>
+      <span class="fp-card-cap">Writes the group answer on the sheet in the neatest handwriting.</span>
+      
+      
+    </div><div class="fp-card fp-card-scalloped" style="border-color:#8b5cf6;flex:1 1 56mm">
+      <span class="fp-card-symbol">✅</span>
+      <span class="fp-card-face">CHECKER</span>
+      <span class="fp-card-cap">Checks punctuation and that every answer is a FULL sentence.</span>
+      
+      
+    </div></div>
+</section>
+<section class="fp-block fp-task" id="questions">
+  <header class="fp-block-head" style="border-color:#8b5cf6">
+    <span class="fp-block-pencil"><svg class="fp-svg " viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" width="17" height="17"><path d="M6 42l4-12L32 8l8 8-22 22z" fill="#ff8a3d" stroke="#12233f" stroke-width="2.4" stroke-linejoin="round"/>
+         <path d="M32 8l8 8 4-4a3 3 0 000-4l-4-4a3 3 0 00-4 0z" fill="#FF69B4" stroke="#12233f" stroke-width="2.2"/>
+         <path d="M10 30l8 8" stroke="#12233f" stroke-width="2"/></svg></span>
+    <h3 class="fp-block-title">Question strip for any text (teacher asks, group answers)</h3>
+    <span class="fp-badge" style="background:#c4b5fd">&lt;span class=&quot;fp-bi&quot;&gt;Answer · Phendula&lt;/span&gt;</span>
+    <span class="fp-marks" style="background:#efe9ff;color:#1e3a5f">8 marks · amanqaku</span>
+  </header>
+  <p class="fp-instruction">Choose 4 questions. Put a tick next to the ones the group answered in full sentences.</p>
+  <div class="fp-items"><div class="fp-item">
+  <div class="fp-item-head"><span class="fp-num" style="background:#8b5cf6">1</span>
+    <p class="fp-item-text">What is the text mostly about?</p><span class="fp-item-marks">[1]</span></div>
+  
+  <div class="fp-item-lines"><div class="fp-writer"><div class="fp-wline">
+        <span class="fp-wguide"></span>
+        <span class="fp-wdot"></span>
+      </div></div></div>
+</div><div class="fp-item">
+  <div class="fp-item-head"><span class="fp-num" style="background:#8b5cf6">2</span>
+    <p class="fp-item-text">Find the word that tells us how the character felt. What made you choose it?</p><span class="fp-item-marks">[2]</span></div>
+  
+  <div class="fp-item-lines"><div class="fp-writer"><div class="fp-wline">
+        <span class="fp-wguide"></span>
+        <span class="fp-wdot"></span>
+      </div><div class="fp-wline">
+        <span class="fp-wguide"></span>
+        <span class="fp-wdot"></span>
+      </div></div></div>
+</div><div class="fp-item">
+  <div class="fp-item-head"><span class="fp-num" style="background:#8b5cf6">3</span>
+    <p class="fp-item-text">What do you think will happen next? Why?</p><span class="fp-item-marks">[2]</span></div>
+  
+  <div class="fp-item-lines"><div class="fp-writer"><div class="fp-wline">
+        <span class="fp-wguide"></span>
+        <span class="fp-wdot"></span>
+      </div><div class="fp-wline">
+        <span class="fp-wguide"></span>
+        <span class="fp-wdot"></span>
+      </div></div></div>
+</div><div class="fp-item">
+  <div class="fp-item-head"><span class="fp-num" style="background:#8b5cf6">4</span>
+    <p class="fp-item-text">Which sentence is your favourite? Read it to us with feeling.</p><span class="fp-item-marks">[1]</span></div>
+  
+  <div class="fp-item-lines"><div class="fp-writer"><div class="fp-wline">
+        <span class="fp-wguide"></span>
+        <span class="fp-wdot"></span>
+      </div></div></div>
+</div><div class="fp-item">
+  <div class="fp-item-head"><span class="fp-num" style="background:#8b5cf6">5</span>
+    <p class="fp-item-text">Is the character right or wrong? Tell me your reason.</p><span class="fp-item-marks">[2]</span></div>
+  
+  <div class="fp-item-lines"><div class="fp-writer"><div class="fp-wline">
+        <span class="fp-wguide"></span>
+        <span class="fp-wdot"></span>
+      </div><div class="fp-wline">
+        <span class="fp-wguide"></span>
+        <span class="fp-wdot"></span>
+      </div></div></div>
+</div></div>
+</section>
+<section class="fp-block fp-check" id="log">
+  <header class="fp-block-head" style="border-color:#8b5cf6">
+    <span class="fp-block-pencil"><svg class="fp-svg " viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" width="17" height="17"><path d="M6 42l4-12L32 8l8 8-22 22z" fill="#ff8a3d" stroke="#12233f" stroke-width="2.4" stroke-linejoin="round"/>
+         <path d="M32 8l8 8 4-4a3 3 0 000-4l-4-4a3 3 0 00-4 0z" fill="#FF69B4" stroke="#12233f" stroke-width="2.2"/>
+         <path d="M10 30l8 8" stroke="#12233f" stroke-width="2"/></svg></span>
+    <h3 class="fp-block-title">Weekly guided-reading log (5 groups a week)</h3>
+    
+    
+  </header>
+  
+  <ul class="fp-checklist"><li><span class="fp-tick" style="width:9mm;height:9mm"></span><span>Mon · Group 1 (names): ____________________  ✔ read ✔ decode ✔ answer ✔ retell</span></li><li><span class="fp-tick" style="width:9mm;height:9mm"></span><span>Tue · Group 2 (names): ____________________  ✔ read ✔ decode ✔ answer ✔ retell</span></li><li><span class="fp-tick" style="width:9mm;height:9mm"></span><span>Wed · Group 3 (names): ____________________  ✔ read ✔ decode ✔ answer ✔ retell</span></li><li><span class="fp-tick" style="width:9mm;height:9mm"></span><span>Thu · Group 4 (names): ____________________  ✔ read ✔ decode ✔ answer ✔ retell</span></li><li><span class="fp-tick" style="width:9mm;height:9mm"></span><span>Fri · Group 5 / re-teach group: ____________  ✔ read ✔ decode ✔ answer ✔ retell</span></li></ul><p class="fp-checkfoot">Text used / title: ______________________________  Level: ____________</p>
+</section>
+<aside class="fp-callout fp-callout-tip" style="border-left-color:#8b5cf6;background:#efe9ff">
+  <h4>💡 Teaching tip — text selection</h4>
+  <ul><li>Rotate three texts: one at frustration level (taught by you), one at instructional level (the group), one independent (their choice).</li><li>Never let the group answer in single words — the Checker's job exists precisely for &quot;make it a sentence&quot;.</li><li>Record the reading speed and one strategy used; that is your informal assessment entry for the week.</li></ul>
+  <svg class="fp-svg fp-confetti" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"><path d="M58.2 52.0l1.6 1.6M59.8 52.0l-1.6 1.6" stroke="#9b59b6" stroke-width="1.2" stroke-linecap="round"/><circle cx="75.3" cy="68.9" r="1.1" fill="#2ed573"/><path d="M22.6 28.7l1.6 1.6M24.2 28.7l-1.6 1.6" stroke="#9b59b6" stroke-width="1.2" stroke-linecap="round"/><circle cx="67.1" cy="36.2" r="2.3" fill="#ff8a3d"/><circle cx="85.0" cy="84.0" r="2.2" fill="#ffdf40"/><path d="M4.5 76.6l1.6 1.6M6.1 76.6l-1.6 1.6" stroke="#9b59b6" stroke-width="1.2" stroke-linecap="round"/></svg>
+</aside>
+<section class="fp-memo">
+  <header class="fp-memo-head"><h3>Iimpendulo · Memorandum</h3><span class="fp-memo-total">Zizonke · Total: 12</span></header>
+  <table class="fp-table fp-memo-table"><thead><tr><th>Ref</th><th>Expected answer</th><th>Marks</th></tr></thead><tbody><tr><td class="fp-memo-ref">Read</td><td>≥95 % accuracy for Gr 3 / ≥90 % for Gr 2 at 60+ wpm, with phrasing = 4 marks.</td><td class="fp-memo-marks">4</td></tr><tr><td class="fp-memo-ref">Words</td><td>3 tricky words decoded and re-read in the sentence = 2 marks.</td><td class="fp-memo-marks">2</td></tr><tr><td class="fp-memo-ref">Q&amp;A</td><td>2 literal answers in full sentences (2) + 1 inference with text evidence (2) = 4 marks.</td><td class="fp-memo-marks">4</td></tr><tr><td class="fp-memo-ref">Retell</td><td>Beginning–middle–end, 3 events in order = 2 marks.</td><td class="fp-memo-marks">2</td></tr></tbody></table>
+</section>
+    
+    <footer class="fp-foot">
+  <svg class="fp-svg " viewBox="0 0 240 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" preserveAspectRatio="none" style="width:100%;height:6mm;display:block"><path d="M0 24V14q12-14 24 0t24 0 24 0 24 0 24 0 24 0 24 0 24 0 24 0 24 0V24z" fill="#8b5cf6" opacity=".9"/></svg>
+  <p class="fp-foot-text">
+    <span><b>EduAI Companion · CAPS Compliant Foundation Phase Pack</b></span>
+    <span>CAPS Foundation Phase · Grade 2/3 · Home Language · DBE (2011, as amended) · ATP-aligned</span>
+    <span>16 min per group of 5–6 · 12 marks</span>
+  </p>
+</footer>
+  </div>
+</div>
+</body>
+</html>

@@ -4,7 +4,7 @@ import {
   FlaskConical, Palette, FileText, Eye, BookOpen, GraduationCap,
   ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Zap, ClipboardList, ImageIcon, Settings2, RefreshCw, Lightbulb,
   Check, X, Plus, Users, Layout, Video, FileCode, HelpCircle, Archive, UserCircle, Image, AlertCircle,
-  Edit2, History, Share2, Copy, Link, Mail, FileJson, Maximize2, Minimize2,
+  Edit2, History, Share2, Copy, Link, Mail, FileJson, Maximize2, Minimize2, LayoutTemplate,
   Timer, Volume2, VolumeX, Bell, Menu, Home, Brain, Wrench, Layers, FolderOpen, ArrowLeft, Award, ShieldCheck, CheckCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -27,6 +27,7 @@ import PrintPreviewModal from './PrintPreviewModal';
 import { PosterPreview } from './PosterPreview';
 import VideoLabConsole from './VideoLabConsole';
 import FoundationPhaseArchitect from './FoundationPhaseArchitect';
+import FoundationPhaseTemplateStudio from './FoundationPhaseTemplateStudio';
 import { GRADE_2_DATA_HANDLING_WORKSHEET } from '../data/grade2DataHandlingWorksheet';
 import { db, auth } from '../lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -179,6 +180,15 @@ const GENERATOR_GROUPS = [
     color: 'text-yellow-400',
     bg: 'bg-yellow-500/10',
     border: 'border-yellow-500/30 shadow-yellow-500/10',
+  },
+  {
+    id: 'caps-templates',
+    label: 'CAPS Template Studio',
+    icon: LayoutTemplate,
+    desc: 'Print 28 ready-made CAPS Foundation Phase documents — academic-achievement awards, worksheets, classroom exercises and homework — with memos, bilingual labels and cartoon art. No AI call needed.',
+    color: 'text-amber-300',
+    bg: 'bg-amber-400/10',
+    border: 'border-amber-400/30 shadow-amber-500/10',
   }
 ];
 
@@ -1727,6 +1737,12 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                   ? "bg-[#0a1226]/90 border-emerald-500/30 text-emerald-300 hover:bg-[#122044] hover:border-emerald-400"
                   : "bg-[#0a1226]/90 border-emerald-500/30 text-emerald-300 hover:bg-[#122044]";
                 iconColor = "text-emerald-400";
+              } else if (group.id === 'caps-templates') {
+                activeStyle = "bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-400 text-[#3b2500] border-amber-200 shadow-lg shadow-amber-400/35 scale-[1.03]";
+                inactiveStyle = isDarkMode
+                  ? "bg-[#0a1226]/90 border-amber-400/30 text-amber-200 hover:bg-[#122044] hover:border-amber-300"
+                  : "bg-[#0a1226]/90 border-amber-400/30 text-amber-200 hover:bg-[#122044]";
+                iconColor = "text-amber-300";
               } else if (group.id === 'grade1') {
                 activeStyle = "bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-white border-amber-300 shadow-lg shadow-amber-500/30 scale-[1.03]";
                 inactiveStyle = isDarkMode
@@ -1770,6 +1786,17 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                 onGenerate={handleGenerateVideo}
                 isLoading={videoLoading}
                 videoResult={videoResult}
+              />
+            </div>
+          ) : activeTab === 'caps-templates' ? (
+            /* CAPS Template Studio — Grade R–3 printable library. Rendered on the
+               dark Content-Factory canvas, so the Studio always gets the dark
+               theme regardless of the app-wide toggle. */
+            <div className="max-w-6xl mx-auto">
+              <FoundationPhaseTemplateStudio
+                isDarkMode={true}
+                teacherName={userName}
+                onBack={() => setActiveTab('grade1')}
               />
             </div>
           ) : activeTab === 'grade1' ? (
