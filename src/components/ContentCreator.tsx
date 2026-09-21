@@ -280,7 +280,9 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
     // Normalize both HTML fragments and standalone AI documents through the
     // same host template. This is the single choke point that removes any
     // model-emitted duplicate compliance badges and adds one banner/footer.
-    const renderedHtml = stableMeta ? wrapWithTemplate(cleanedHtml, stableMeta) : cleanedHtml;
+    // It runs even when no metadata was supplied: the template still owns the
+    // header wash, the designated compliance section and the canonical footer.
+    const renderedHtml = wrapWithTemplate(cleanedHtml, stableMeta || {});
     const isFullDoc = renderedHtml.includes('<html') || renderedHtml.includes('<!DOCTYPE');
     if (isFullDoc) {
       // AI-emitted standalone documents sometimes embed the Tailwind CDN

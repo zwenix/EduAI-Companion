@@ -11,6 +11,8 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "build:fp-templates": "tsx scripts/build-foundation-template-pack.ts",
+    "render:template-demo": "tsx scripts/render-content-template-demo.ts",
+    "verify:template": "tsx scripts/verify-content-template.ts",
     "build:fp-pack": "tsx scripts/build-foundation-template-portable-pack.ts"
   },
   "dependencies": {
