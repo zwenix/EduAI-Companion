@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     Printer,
     Download,
@@ -277,203 +277,12 @@ export default function FoundationPhaseTemplateStudio({
     const resetFields = () => setFields({ ...BLANKS, ...readSchoolDefaults(), teacher: teacherName || '' });
 
     const theme = themeFor(selected.theme);
-    const cards = (
-        <>
-            <FilterBar />
-            <GalleryList />
-        </>
-    );
-
-    function FilterBar() {
-        return (
-            <div className={cn('rounded-[26px] p-3 md:p-4', isDarkMode ? 'menu-glow-card glow-cyan' : 'bg-white border border-slate-200 shadow-sm rounded-[26px]')}>
-                <div className="flex flex-wrap items-center gap-2">
-                    {(['all', 'award', 'worksheet', 'classroom', 'homework'] as const).map((k) => {
-                        const Icon = k === 'all' ? Sparkles : KIND_ICONS[k];
-                        const active = kind === k;
-                        const color = k === 'all' ? '#06b6d4' : KIND_META[k].color;
-                        return (
-                            <button
-                                key={k}
-                                onClick={() => setKind(k)}
-                                className={cn(
-                                    'flex items-center gap-2 rounded-full px-3.5 py-2 text-[12px] font-extrabold uppercase tracking-wider transition-all duration-200',
-                                    active ? 'text-slate-900 shadow-md scale-[1.03]' : isDarkMode ? 'text-slate-200 bg-[#04091a] border border-white/15 hover:bg-[#101c38] hover:border-white/30' : 'text-slate-600 bg-slate-100 hover:bg-slate-200',
-                                )}
-                                style={active ? { background: color } : undefined}
-                            >
-                                <Icon size={14} />
-                                {k === 'all' ? `All ${FOUNDATION_LIBRARY_STATS.total}` : KIND_META[k].label.split(' ')[0]}
-                            </button>
-                        );
-                    })}
-                    <div className="ml-auto flex items-center gap-2">
-                        <div className={cn('flex items-center gap-1 rounded-full px-2 py-1', isDarkMode ? 'bg-[#04091a]' : 'bg-slate-100')}>
-                            <Search size={14} className="text-slate-400" />
-                            <input
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                                placeholder="Search CAPS topic, skill, tag…"
-                                className={cn('w-40 md:w-56 bg-transparent text-[13px] font-semibold outline-none', isDarkMode ? 'text-white placeholder:text-slate-500' : 'text-slate-700')}
-                            />
-                            {query && (
-                                <button onClick={() => setQuery('')} className="text-slate-400 hover:text-rose-500">
-                                    <X size={13} />
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <span className="text-[10.5px] font-extrabold uppercase tracking-widest text-cyan-500">Grade</span>
-                    {(['all', ...FOUNDATION_GRADES] as const).map((g) => (
-                        <button
-                            key={g}
-                            onClick={() => setGrade(g as any)}
-                            className={cn(
-                                'h-8 min-w-8 rounded-xl px-2.5 text-[12px] font-extrabold transition-all',
-                                grade === g ? 'bg-gradient-to-br from-cyan-400 to-blue-500 text-white shadow-md' : isDarkMode ? 'bg-[#04091a] border border-white/15 text-slate-200 hover:bg-[#101c38] hover:border-white/30' : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
-                            )}
-                        >
-                            {g === 'all' ? 'R–3' : g === 'R' ? 'R' : `G${g}`}
-                        </button>
-                    ))}
-                    <select
-                        value={learningArea}
-                        onChange={(e) => setLearningArea(e.target.value)}
-                        className={cn(
-                            'h-8 rounded-xl px-2 text-[12px] font-bold outline-none',
-                            isDarkMode ? 'bg-[#04091a] text-slate-200 border border-white/15' : 'bg-slate-50 text-slate-700 border border-slate-200',
-                        )}
-                    >
-                        <option value="all">All learning areas</option>
-                        {LEARNING_AREAS.filter((a) => a !== 'General').map((a) => (
-                            <option key={a} value={a}>
-                                {a}
-                            </option>
-                        ))}
-                        <option value="General">General / whole school</option>
-                    </select>
-                    <div className="ml-auto flex flex-wrap items-center gap-1.5">
-                        <ToggleChip on={bilingual} onClick={() => setBilingual((v) => !v)} icon={Languages} label="Bilingual labels" />
-                        {bilingual && (
-                            <select
-                                value={labelLanguage}
-                                onChange={(e) => setLabelLanguage(e.target.value as LabelLanguage)}
-                                className={cn('h-7 rounded-lg px-1.5 text-[11px] font-bold', isDarkMode ? 'bg-[#04091a] text-slate-200 border border-white/15' : 'bg-slate-50 text-slate-700 border border-slate-200')}
-                            >
-                                {LABEL_LANGUAGES.filter((l) => l.id !== 'en').map((l) => (
-                                    <option key={l.id} value={l.id}>
-                                        {l.name}
-                                    </option>
-                                ))}
-                            </select>
-                        )}
-                        <ToggleChip on={showMemo} onClick={() => setShowMemo((v) => !v)} icon={CheckCircle2} label="Print memo" />
-                        <ToggleChip on={largePrint} onClick={() => setLargePrint((v) => !v)} icon={AlignJustify} label="Large print" />
-                        <ToggleChip on={inkSaver} onClick={() => setInkSaver((v) => !v)} icon={inkSaver ? Moon : SunMedium} label="Ink saver" />
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    function ToggleChip({ on, onClick, icon: Icon, label }: { on: boolean; onClick: () => void; icon: any; label: string }) {
-        return (
-            <button
-                onClick={onClick}
-                className={cn(
-                    'flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-extrabold transition-all',
-                    on ? 'bg-emerald-400 text-emerald-950 shadow' : isDarkMode ? 'bg-[#04091a] border border-white/15 text-slate-300 hover:bg-[#101c38]' : 'bg-slate-100 text-slate-500 hover:bg-slate-200',
-                )}
-                title={label}
-            >
-                <Icon size={12} />
-                {label}
-            </button>
-        );
-    }
-
-    function GalleryList() {
-        return (
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                <AnimatePresence mode="popLayout">
-                    {templates.map((tpl) => {
-                        const t = themeFor(tpl.theme);
-                        const active = tpl.id === selected.id;
-                        const Icon = KIND_ICONS[tpl.kind];
-                        return (
-                            <motion.button
-                                layout
-                                key={tpl.id}
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -8 }}
-                                onClick={() => setSelectedId(tpl.id)}
-                                className={cn(
-                                    'group relative overflow-hidden rounded-[22px] border-2 p-3 text-left transition-colors duration-200 kid-shadow',
-                                    active ? 'scale-[1.01] shadow-xl' : isDarkMode ? 'border-white/15 bg-[#04091a] hover:border-cyan-400/50' : 'border-slate-200 bg-white hover:border-slate-300',
-                                )}
-                                style={active ? { borderColor: t.primary, background: `${t.soft}` } : undefined}
-                            >
-                                <span className="absolute inset-y-0 left-0 w-1.5" style={{ background: t.band }} />
-                                <div className="flex items-start gap-2.5 pl-2">
-                                    {tpl.art ? (
-                                        <img
-                                            src={artSrc(tpl.art, 'app')}
-                                            alt=""
-                                            className="h-12 w-12 shrink-0 rounded-xl object-cover ring-2 ring-white/70"
-                                            loading="lazy"
-                                        />
-                                    ) : (
-                                        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: t.primary }}>
-                                            <Icon size={20} />
-                                        </span>
-                                    )}
-                                    <div className="min-w-0 flex-1">
-                                        <p className="flex items-center gap-1.5 text-[9.5px] font-black uppercase tracking-[.14em]" style={{ color: t.band }}>
-                                            <span>{KIND_META[tpl.kind].emoji}</span>
-                                            {tpl.learningArea}
-                                        </p>
-                                        <h4 className={cn('truncate text-[14px] font-extrabold leading-tight', isDarkMode ? 'text-white' : 'text-slate-900')}>{tpl.title}</h4>
-                                        <p className={cn('mt-0.5 line-clamp-2 text-[11px] font-semibold leading-snug', isDarkMode ? 'text-slate-400' : 'text-slate-500')}>{tpl.blurb}</p>
-                                        <div className="mt-1.5 flex flex-wrap gap-1">
-                                            {tpl.grades.map((g) => (
-                                                <span key={g} className={cn('rounded-md px-1.5 py-0.5 text-[9.5px] font-black', isDarkMode ? 'bg-cyan-400/20 text-cyan-300' : 'bg-cyan-500/15 text-cyan-700')}>
-                                                    Gr {g}
-                                                </span>
-                                            ))}
-                                            <span className={cn('rounded-md px-1.5 py-0.5 text-[9.5px] font-black', pageOf(tpl) > 1 ? 'bg-rose-500/15 text-rose-600' : 'bg-amber-400/20 text-amber-600')}>
-          ≈{pageOf(tpl)} × A4 · {tpl.caps.timeOnTask}
-        </span>
-                                            {typeof tpl.caps.marks === 'number' && (
-                                                <span className="rounded-md bg-fuchsia-500/15 px-1.5 py-0.5 text-[9.5px] font-black text-fuchsia-600">{tpl.caps.marks} marks</span>
-                                            )}
-                                            {(tpl.caps.memo?.length ?? 0) > 0 && (
-                                                <span className="rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[9.5px] font-black text-emerald-600">memo</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </motion.button>
-                        );
-                    })}
-                </AnimatePresence>
-                {!templates.length && (
-                    <div className={cn('col-span-full rounded-[22px] border-2 border-dashed p-8 text-center', isDarkMode ? 'border-white/10 text-slate-400' : 'border-slate-200 text-slate-500')}>
-                        <Filter size={22} className="mx-auto mb-2 opacity-60" />
-                        <p className="text-sm font-bold">No template matches that filter yet.</p>
-                        <p className="text-xs">Try a different learning area, or clear the search box.</p>
-                    </div>
-                )}
-            </div>
-        );
-    }
-
     const fieldRows = (selected.fields ?? []).slice();
-    const pageOf = (tpl: FoundationTemplate) =>
-        estimatePageCount(tpl, { includeMemo: showMemo && !tpl.options?.hideMemo });
+    // Stable callback: the gallery only needs the memo toggle to size a sheet.
+    const pageOf = useCallback(
+        (tpl: FoundationTemplate) => estimatePageCount(tpl, { includeMemo: showMemo && !tpl.options?.hideMemo }),
+        [showMemo],
+    );
 
     return (
         <div className="space-y-4">
@@ -529,7 +338,36 @@ export default function FoundationPhaseTemplateStudio({
             </AnimatePresence>
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(300px,380px)_1fr]">
-                <div className="space-y-3">{cards}</div>
+                <div className="space-y-3">
+                    <FilterBar
+                        isDarkMode={isDarkMode}
+                        kind={kind}
+                        grade={grade}
+                        learningArea={learningArea}
+                        query={query}
+                        bilingual={bilingual}
+                        labelLanguage={labelLanguage}
+                        showMemo={showMemo}
+                        largePrint={largePrint}
+                        inkSaver={inkSaver}
+                        onKindChange={setKind}
+                        onGradeChange={setGrade}
+                        onLearningAreaChange={setLearningArea}
+                        onQueryChange={setQuery}
+                        onBilingualChange={setBilingual}
+                        onLabelLanguageChange={setLabelLanguage}
+                        onShowMemoChange={setShowMemo}
+                        onLargePrintChange={setLargePrint}
+                        onInkSaverChange={setInkSaver}
+                    />
+                    <GalleryList
+                        templates={templates}
+                        selectedId={selected.id}
+                        isDarkMode={isDarkMode}
+                        onSelect={setSelectedId}
+                        pageOf={pageOf}
+                    />
+                </div>
 
                 {/* Preview + controls */}
                 <div className={cn('rounded-[28px] p-3 md:p-4', isDarkMode ? 'menu-glow-card glow-cyan' : 'bg-white border border-slate-200 shadow-sm rounded-[28px]')}>
@@ -615,6 +453,271 @@ export default function FoundationPhaseTemplateStudio({
                     </div>
                 </div>
             </div>
+        </div>
+    );
+}
+
+/**
+ * FilterBar / ToggleChip / GalleryList live at module scope on purpose.
+ *
+ * They used to be declared *inside* the Studio's render body, which gave them a
+ * brand-new component identity on every render. React treats a changed type as a
+ * different element, so it unmounted and remounted the whole filter menu and the
+ * template gallery on each pass — the motion cards replayed their
+ * `opacity: 0 → 1` entrance, the glow cards restarted their transition and the
+ * search box lost focus. Because `App` ticks a clock once per second, the menu
+ * remounted (and visibly flashed) every second. Passing props keeps the subtree
+ * mounted and only re-renders what actually changed.
+ */
+
+interface FilterBarProps {
+    isDarkMode: boolean;
+    kind: TemplateKind | 'all';
+    grade: FoundationGrade | 'all';
+    learningArea: string;
+    query: string;
+    bilingual: boolean;
+    labelLanguage: LabelLanguage;
+    showMemo: boolean;
+    largePrint: boolean;
+    inkSaver: boolean;
+    onKindChange: (kind: TemplateKind | 'all') => void;
+    onGradeChange: (grade: FoundationGrade | 'all') => void;
+    onLearningAreaChange: (learningArea: string) => void;
+    onQueryChange: (query: string) => void;
+    onBilingualChange: (bilingual: boolean) => void;
+    onLabelLanguageChange: (labelLanguage: LabelLanguage) => void;
+    onShowMemoChange: (showMemo: boolean) => void;
+    onLargePrintChange: (largePrint: boolean) => void;
+    onInkSaverChange: (inkSaver: boolean) => void;
+}
+
+interface ToggleChipProps {
+    on: boolean;
+    onClick: () => void;
+    icon: any;
+    label: string;
+    isDarkMode: boolean;
+}
+
+interface GalleryListProps {
+    templates: FoundationTemplate[];
+    selectedId: string;
+    isDarkMode: boolean;
+    onSelect: (id: string) => void;
+    pageOf: (tpl: FoundationTemplate) => number;
+}
+
+/* Memoised as well: every prop is a primitive, a stable `setState` function or a
+   memoised array/callback, so an unrelated parent re-render (toast timer,
+   streaming state in the Content Factory that hosts this Studio) no longer
+   repaints the 28-card gallery. */
+const FilterBar = memo(FilterBarBase);
+const GalleryList = memo(GalleryListBase);
+
+function FilterBarBase({
+    isDarkMode,
+    kind,
+    grade,
+    learningArea,
+    query,
+    bilingual,
+    labelLanguage,
+    showMemo,
+    largePrint,
+    inkSaver,
+    onKindChange,
+    onGradeChange,
+    onLearningAreaChange,
+    onQueryChange,
+    onBilingualChange,
+    onLabelLanguageChange,
+    onShowMemoChange,
+    onLargePrintChange,
+    onInkSaverChange,
+}: FilterBarProps) {
+    return (
+        <div className={cn('rounded-[26px] p-3 md:p-4', isDarkMode ? 'menu-glow-card glow-cyan' : 'bg-white border border-slate-200 shadow-sm rounded-[26px]')}>
+            <div className="flex flex-wrap items-center gap-2">
+                {(['all', 'award', 'worksheet', 'classroom', 'homework'] as const).map((k) => {
+                    const Icon = k === 'all' ? Sparkles : KIND_ICONS[k];
+                    const active = kind === k;
+                    const color = k === 'all' ? '#06b6d4' : KIND_META[k].color;
+                    return (
+                        <button
+                            key={k}
+                            onClick={() => onKindChange(k)}
+                            className={cn(
+                                'flex items-center gap-2 rounded-full px-3.5 py-2 text-[12px] font-extrabold uppercase tracking-wider transition-all duration-200',
+                                active ? 'text-slate-900 shadow-md scale-[1.03]' : isDarkMode ? 'text-slate-200 bg-[#04091a] border border-white/15 hover:bg-[#101c38] hover:border-white/30' : 'text-slate-600 bg-slate-100 hover:bg-slate-200',
+                            )}
+                            style={active ? { background: color } : undefined}
+                        >
+                            <Icon size={14} />
+                            {k === 'all' ? `All ${FOUNDATION_LIBRARY_STATS.total}` : KIND_META[k].label.split(' ')[0]}
+                        </button>
+                    );
+                })}
+                <div className="ml-auto flex items-center gap-2">
+                    <div className={cn('flex items-center gap-1 rounded-full px-2 py-1', isDarkMode ? 'bg-[#04091a]' : 'bg-slate-100')}>
+                        <Search size={14} className="text-slate-400" />
+                        <input
+                            value={query}
+                            onChange={(e) => onQueryChange(e.target.value)}
+                            placeholder="Search CAPS topic, skill, tag…"
+                            className={cn('w-40 md:w-56 bg-transparent text-[13px] font-semibold outline-none', isDarkMode ? 'text-white placeholder:text-slate-500' : 'text-slate-700')}
+                        />
+                        {query && (
+                            <button onClick={() => onQueryChange('')} className="text-slate-400 hover:text-rose-500">
+                                <X size={13} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="text-[10.5px] font-extrabold uppercase tracking-widest text-cyan-500">Grade</span>
+                {(['all', ...FOUNDATION_GRADES] as const).map((g) => (
+                    <button
+                        key={g}
+                        onClick={() => onGradeChange(g as any)}
+                        className={cn(
+                            'h-8 min-w-8 rounded-xl px-2.5 text-[12px] font-extrabold transition-all',
+                            grade === g ? 'bg-gradient-to-br from-cyan-400 to-blue-500 text-white shadow-md' : isDarkMode ? 'bg-[#04091a] border border-white/15 text-slate-200 hover:bg-[#101c38] hover:border-white/30' : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+                        )}
+                    >
+                        {g === 'all' ? 'R–3' : g === 'R' ? 'R' : `G${g}`}
+                    </button>
+                ))}
+                <select
+                    value={learningArea}
+                    onChange={(e) => onLearningAreaChange(e.target.value)}
+                    className={cn(
+                        'h-8 rounded-xl px-2 text-[12px] font-bold outline-none',
+                        isDarkMode ? 'bg-[#04091a] text-slate-200 border border-white/15' : 'bg-slate-50 text-slate-700 border border-slate-200',
+                    )}
+                >
+                    <option value="all">All learning areas</option>
+                    {LEARNING_AREAS.filter((a) => a !== 'General').map((a) => (
+                        <option key={a} value={a}>
+                            {a}
+                        </option>
+                    ))}
+                    <option value="General">General / whole school</option>
+                </select>
+                <div className="ml-auto flex flex-wrap items-center gap-1.5">
+                    <ToggleChip on={bilingual} onClick={() => onBilingualChange(!bilingual)} icon={Languages} label="Bilingual labels" isDarkMode={isDarkMode} />
+                    {bilingual && (
+                        <select
+                            value={labelLanguage}
+                            onChange={(e) => onLabelLanguageChange(e.target.value as LabelLanguage)}
+                            className={cn('h-7 rounded-lg px-1.5 text-[11px] font-bold', isDarkMode ? 'bg-[#04091a] text-slate-200 border border-white/15' : 'bg-slate-50 text-slate-700 border border-slate-200')}
+                        >
+                            {LABEL_LANGUAGES.filter((l) => l.id !== 'en').map((l) => (
+                                <option key={l.id} value={l.id}>
+                                    {l.name}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                    <ToggleChip on={showMemo} onClick={() => onShowMemoChange(!showMemo)} icon={CheckCircle2} label="Print memo" isDarkMode={isDarkMode} />
+                    <ToggleChip on={largePrint} onClick={() => onLargePrintChange(!largePrint)} icon={AlignJustify} label="Large print" isDarkMode={isDarkMode} />
+                    <ToggleChip on={inkSaver} onClick={() => onInkSaverChange(!inkSaver)} icon={inkSaver ? Moon : SunMedium} label="Ink saver" isDarkMode={isDarkMode} />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ToggleChip({ on, onClick, icon: Icon, label, isDarkMode }: ToggleChipProps) {
+    return (
+        <button
+            onClick={onClick}
+            className={cn(
+                'flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-extrabold transition-all',
+                on ? 'bg-emerald-400 text-emerald-950 shadow' : isDarkMode ? 'bg-[#04091a] border border-white/15 text-slate-300 hover:bg-[#101c38]' : 'bg-slate-100 text-slate-500 hover:bg-slate-200',
+            )}
+            title={label}
+        >
+            <Icon size={12} />
+            {label}
+        </button>
+    );
+}
+
+function GalleryListBase({ templates, selectedId, isDarkMode, onSelect, pageOf }: GalleryListProps) {
+    return (
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+            <AnimatePresence mode="popLayout">
+                {templates.map((tpl) => {
+                    const t = themeFor(tpl.theme);
+                    const active = tpl.id === selectedId;
+                    const Icon = KIND_ICONS[tpl.kind];
+                    return (
+                        <motion.button
+                            layout
+                            key={tpl.id}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            onClick={() => onSelect(tpl.id)}
+                            className={cn(
+                                'group relative overflow-hidden rounded-[22px] border-2 p-3 text-left transition-colors duration-200 kid-shadow',
+                                active ? 'scale-[1.01] shadow-xl' : isDarkMode ? 'border-white/15 bg-[#04091a] hover:border-cyan-400/50' : 'border-slate-200 bg-white hover:border-slate-300',
+                            )}
+                            style={active ? { borderColor: t.primary, background: `${t.soft}` } : undefined}
+                        >
+                            <span className="absolute inset-y-0 left-0 w-1.5" style={{ background: t.band }} />
+                            <div className="flex items-start gap-2.5 pl-2">
+                                {tpl.art ? (
+                                    <img
+                                        src={artSrc(tpl.art, 'app')}
+                                        alt=""
+                                        className="h-12 w-12 shrink-0 rounded-xl object-cover ring-2 ring-white/70"
+                                        loading="lazy"
+                                    />
+                                ) : (
+                                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: t.primary }}>
+                                        <Icon size={20} />
+                                    </span>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                    <p className="flex items-center gap-1.5 text-[9.5px] font-black uppercase tracking-[.14em]" style={{ color: t.band }}>
+                                        <span>{KIND_META[tpl.kind].emoji}</span>
+                                        {tpl.learningArea}
+                                    </p>
+                                    <h4 className={cn('truncate text-[14px] font-extrabold leading-tight', isDarkMode ? 'text-white' : 'text-slate-900')}>{tpl.title}</h4>
+                                    <p className={cn('mt-0.5 line-clamp-2 text-[11px] font-semibold leading-snug', isDarkMode ? 'text-slate-400' : 'text-slate-500')}>{tpl.blurb}</p>
+                                    <div className="mt-1.5 flex flex-wrap gap-1">
+                                        {tpl.grades.map((g) => (
+                                            <span key={g} className={cn('rounded-md px-1.5 py-0.5 text-[9.5px] font-black', isDarkMode ? 'bg-cyan-400/20 text-cyan-300' : 'bg-cyan-500/15 text-cyan-700')}>
+                                                Gr {g}
+                                            </span>
+                                        ))}
+                                        <span className={cn('rounded-md px-1.5 py-0.5 text-[9.5px] font-black', pageOf(tpl) > 1 ? 'bg-rose-500/15 text-rose-600' : 'bg-amber-400/20 text-amber-600')}>
+      ≈{pageOf(tpl)} × A4 · {tpl.caps.timeOnTask}
+    </span>
+                                        {typeof tpl.caps.marks === 'number' && (
+                                            <span className="rounded-md bg-fuchsia-500/15 px-1.5 py-0.5 text-[9.5px] font-black text-fuchsia-600">{tpl.caps.marks} marks</span>
+                                        )}
+                                        {(tpl.caps.memo?.length ?? 0) > 0 && (
+                                            <span className="rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[9.5px] font-black text-emerald-600">memo</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.button>
+                    );
+                })}
+            </AnimatePresence>
+            {!templates.length && (
+                <div className={cn('col-span-full rounded-[22px] border-2 border-dashed p-8 text-center', isDarkMode ? 'border-white/10 text-slate-400' : 'border-slate-200 text-slate-500')}>
+                    <Filter size={22} className="mx-auto mb-2 opacity-60" />
+                    <p className="text-sm font-bold">No template matches that filter yet.</p>
+                    <p className="text-xs">Try a different learning area, or clear the search box.</p>
+                </div>
+            )}
         </div>
     );
 }

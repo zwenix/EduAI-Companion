@@ -264,18 +264,13 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(false);
   const [headerCabinetOpen, setHeaderCabinetOpen] = useState(false);
 
-  // Real-time device clock for sidebar
-  const [currentTime, setCurrentTime] = useState<string>('');
-
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setCurrentTime(now.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  // NOTE: the old "real-time device clock for sidebar" lived here. Nothing in the
+  // tree rendered `currentTime` any more, yet the 1 s interval still re-rendered
+  // the whole App 60× a minute — that tick is what made the CAPS Template Studio
+  // (Foundation Phase) filter menu and template gallery replay their entrance
+  // animation every second and read as "flashing". If a sidebar clock is ever
+  // wanted again, keep it inside a small leaf component so the tick never
+  // re-renders the app tree.
 
   // Real-time Teacher Dashboard students & aggregates
   const [dashboardStudents, setDashboardStudents] = useState<any[]>([]);
