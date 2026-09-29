@@ -174,6 +174,32 @@ glows).
 
 ---
 
+## 🔁 3c. WHEN A MENU "FLASHES", IT IS A REMOUNT — NOT AN ANIMATION
+
+Every "the menus are all flashing" report so far has been React unmounting and
+remounting a subtree, not a CSS animation. Check these two habits **before**
+touching the frozen glow/border CSS in 3b:
+
+1. **Sub-components declared inside a render body.** A `function FilterBar() {…}`
+   written *inside* another component gets a brand-new component identity on
+   every render, so React treats it as a different element type and
+   unmounts/remounts the whole subtree: `motion` cards replay their
+   `initial → animate` entrance, `.menu-glow-card` restarts its transition, and
+   text inputs lose focus after every keystroke. Declare them at **module
+   scope** and pass props — see `FilterBarBase` / `ToggleChip` /
+   `GalleryListBase` in `src/components/FoundationPhaseTemplateStudio.tsx`
+   (the CAPS Template Studio / Foundation Phase template archive).
+2. **A ticking state high in the tree.** `App` kept a `currentTime` clock that
+   nothing rendered; its 1 s `setInterval` re-rendered the entire app 60× a
+   minute, which turned habit (1) into a visible once-per-second flash. Keep a
+   clock/timer inside the leaf component that actually displays it, and delete
+   intervals whose value is no longer rendered.
+
+Both fixes are structural only — markup, class names and `AnimatePresence`
+config stay byte-identical, so the frozen designs in 3b are unaffected.
+
+---
+
 ## 🔒 4. PROTECTION OF BUILT-IN PROMPTS
 
 * The prompt engineering templates located in the project (e.g., in `src/lib/prompt-engine.ts`, `src/services/unifiedAiService.ts`, etc.) contain meticulous, reverse-engineered CAPS instruction layouts.
