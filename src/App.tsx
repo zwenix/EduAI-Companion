@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, type ReactNode } from 'react';
 import { 
   BookOpen, 
   FileText, 
@@ -125,6 +125,7 @@ import CurriculumSuite from './components/CurriculumSuite';
 import ParentDashboard from './components/ParentDashboard';
 import ReaderModeModal from './components/ReaderModeModal';
 import PageOverlay from './components/PageOverlay';
+import { overlayRouteFor } from './lib/overlays';
 import { LearnerInterventionHub } from './components/LearnerInterventionHub';
 
 import { TeacherPlanner } from './components/TeacherPlanner';
@@ -184,41 +185,321 @@ const renderOfflineMaterial = (material: any): string => {
   });
 };
 
-const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDarkMode, themeMode, role }: { id?: string, icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean, isDarkMode?: boolean, themeMode?: string, role?: string | null }) => {
+/* ──────────────────────────────────────────────────────────────────────────
+ * Sidebar
+ *
+ * Widths live here so the placeholder that reserves the space, the animated
+ * <aside> and the mobile drawer can never drift apart.
+ *
+ * The sidebar is a dark navy panel in EVERY theme (`.app-shell` pins its
+ * background-color), so everything inside it is written light-on-dark and
+ * avoids the utilities the light/peach themes rewrite (text-slate-400…900,
+ * bg-white, .glass, border-slate-100/200). Do not "theme" it with isDarkMode.
+ * ────────────────────────────────────────────────────────────────────────── */
+const SIDEBAR_W_OPEN = 296;
+const SIDEBAR_W_RAIL = 80;
+
+/** Soft per-hub colour for the idle icon (the active item is always cyan). */
+const SIDEBAR_ICON_TINT: Record<string, string> = {
+  'teacher-dashboard-menu': 'text-cyan-300',
+  'lesson-planning': 'text-pink-300',
+  'curriculum-planning': 'text-amber-300',
+  'intelligence-ai': 'text-violet-300',
+  'class-management': 'text-emerald-300',
+  'class-analytics': 'text-sky-300',
+  'student-class-management': 'text-orange-300',
+  'system-support': 'text-fuchsia-300',
+};
+
+const SIDEBAR_AVATAR_SRC = 'https://lh3.googleusercontent.com/aida-public/AB6AXuC84-NEFvwZ7DJM6n9YadrglDB8eRZh5QhtpIKevJPmkMBaZ3RkjJ9cIZKMDhDdhi3Fm2vPK5KwuuIpM9M0T1QWfIrr9FYQZDoWaA5vG-P0gwhFLuHvW-kHBMutdlciDTTSzWc4OgZqI2wnPR8TKZEQ2JwrAhN01mVbao5KXaNjC2TkVtzJ_KpaSWV8kvi3RcI2ij0P6uiU4J4MCueD2QLas3WSqTUUAQPuhOnbmyer0gb5k78eHF-Eew';
+
+const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, role }: { id?: string, icon: any, label: string, active?: boolean, onClick: () => void, collapsed: boolean, role?: string | null }) => {
   const displayLabel = id === 'teacher-dashboard-menu' && role !== 'student' ? "Dashboard" : label;
 
   return (
     <button
+      type="button"
       onClick={onClick}
       title={collapsed ? displayLabel : undefined}
+      aria-label={collapsed ? displayLabel : undefined}
+      aria-current={active ? 'page' : undefined}
       className={cn(
-        "flex items-center w-full gap-2 transition-all duration-200 relative cursor-pointer border-0 outline-none group py-1.5 px-2.5 rounded-xl mb-0.5 font-['Patrick_Hand',cursive]",
-        collapsed ? "justify-center py-1.5 px-1 rounded-xl" : "py-1.5 px-2.5 rounded-xl",
-        active 
-          ? "bg-cyan-500/20 text-cyan-200 font-bold border border-cyan-400/50 shadow-[0_0_18px_rgba(34,211,238,0.45),inset_0_0_10px_rgba(34,211,238,0.15)]"
-          : "text-slate-300 hover:text-white hover:bg-white/[0.06] hover:border-cyan-400/30 hover:shadow-[0_0_14px_rgba(34,211,238,0.25)] border border-transparent"
+        "group relative flex items-center w-full border rounded-2xl cursor-pointer outline-none font-['Patrick_Hand',cursive]",
+        collapsed ? "justify-center p-0.5" : "gap-3 py-1.5 pl-2.5 pr-7 text-left",
+        active
+          ? "text-white bg-gradient-to-r from-cyan-500/30 via-cyan-500/10 to-transparent border-cyan-400/50 shadow-[0_0_22px_rgba(34,211,238,0.35),inset_0_0_14px_rgba(34,211,238,0.12)]"
+          : "text-slate-200 border-transparent hover:text-white hover:bg-white/[0.06]"
       )}
     >
-      <Icon 
-        size={collapsed ? 18 : 15} 
+      {/* Neon edge marker on the active item */}
+      {active && !collapsed && (
+        <span aria-hidden="true" className="absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-r-full bg-gradient-to-b from-cyan-300 to-emerald-300 shadow-[0_0_10px_rgba(34,211,238,0.9)]" />
+      )}
+
+      {/* Icon tile */}
+      <span
         className={cn(
-          "shrink-0 transition-transform duration-200 group-hover:scale-110",
-          active ? "text-cyan-400" : "text-slate-400 group-hover:text-cyan-300"
-        )} 
-      />
-      
+          "grid place-items-center shrink-0 rounded-xl border transition-transform duration-200 group-hover:scale-105",
+          collapsed ? "w-12 h-12" : "w-10 h-10",
+          active
+            ? "bg-gradient-to-br from-cyan-300 to-sky-500 border-cyan-100/60 text-[#06182b] shadow-[0_0_16px_rgba(34,211,238,0.6)]"
+            : cn("bg-white/[0.05] border-white/10 group-hover:bg-white/[0.09] group-hover:border-white/20", SIDEBAR_ICON_TINT[id ?? ''] ?? 'text-cyan-300')
+        )}
+      >
+        <Icon size={collapsed ? 24 : 22} />
+      </span>
+
       {!collapsed && (
-        <span className="text-[15px] leading-snug font-['Patrick_Hand',cursive] font-bold truncate text-left tracking-wide">
+        <span
+          className={cn(
+            "flex-1 min-w-0 line-clamp-2 text-left text-[20px] leading-[1.1] font-bold tracking-wide",
+            active && "drop-shadow-[0_0_10px_rgba(34,211,238,0.35)]"
+          )}
+        >
           {displayLabel}
         </span>
       )}
-      
+
       {active && !collapsed && (
-         <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+        <span aria-hidden="true" className="absolute right-3.5 w-2 h-2 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.9)]" />
       )}
     </button>
   );
 };
+
+const SidebarSectionLabel = ({ collapsed, children }: { collapsed: boolean, children: ReactNode }) =>
+  collapsed ? (
+    <div aria-hidden="true" className="mx-auto mb-3 h-px w-8 bg-white/15" />
+  ) : (
+    <div className="mb-3 flex items-center gap-3 px-2">
+      <span className="font-sans text-[12px] font-extrabold uppercase tracking-[0.24em] text-cyan-200/60">{children}</span>
+      <span aria-hidden="true" className="h-px flex-1 bg-gradient-to-r from-cyan-300/35 to-transparent" />
+    </div>
+  );
+
+const SidebarBrand = ({ expanded, isMobile, isSidebarOpen, onToggleSidebar, onCloseMobile }: { expanded: boolean, isMobile: boolean, isSidebarOpen: boolean, onToggleSidebar: () => void, onCloseMobile: () => void }) => (
+  <div className={cn("relative z-10 mb-5 shrink-0", expanded ? "flex items-center gap-3 pl-1" : "flex flex-col items-center gap-3")}>
+    <div className="relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-cyan-300/25 bg-gradient-to-br from-cyan-400/20 via-white/[0.03] to-emerald-400/20 shadow-[0_0_22px_rgba(34,211,238,0.22),inset_0_0_14px_rgba(255,255,255,0.05)]">
+      <Logo className="h-9 w-9 shrink-0" />
+    </div>
+
+    {expanded && (
+      <div className="flex min-w-0 flex-1 flex-col text-left animate-fadeIn">
+        <span className="font-['Patrick_Hand',cursive] text-[28px] font-bold leading-none tracking-wide text-white drop-shadow-[0_0_15px_rgba(0,225,255,0.4)]">
+          Edu<span className="text-[#00ff9f]">AI</span>
+        </span>
+        <span className="mt-1.5 font-['Patrick_Hand',cursive] text-[15px] font-bold leading-none tracking-wide text-cyan-200/75">Lead Navigator</span>
+      </div>
+    )}
+
+    {!isMobile && (
+      <button
+        type="button"
+        onClick={onToggleSidebar}
+        title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+        aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+        className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-xl border border-white/10 bg-white/[0.05] text-slate-200 outline-none hover:bg-white/10 hover:text-cyan-300"
+      >
+        {isSidebarOpen ? <ChevronLeft size={18} strokeWidth={3} /> : <ChevronRight size={18} strokeWidth={3} />}
+      </button>
+    )}
+
+    {isMobile && (
+      <button
+        type="button"
+        onClick={onCloseMobile}
+        title="Close menu"
+        aria-label="Close menu"
+        className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-xl border border-white/10 bg-white/[0.05] text-slate-200 outline-none hover:bg-white/10 hover:text-white"
+      >
+        <X size={22} />
+      </button>
+    )}
+  </div>
+);
+
+const SidebarInstallPromo = ({ expanded, onInstall }: { expanded: boolean, onInstall: () => void }) =>
+  expanded ? (
+    <button
+      type="button"
+      onClick={onInstall}
+      className="flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl border-0 bg-gradient-to-r from-brand-cyan to-indigo-500 px-4 py-3 font-display text-[12px] font-black tracking-wider text-white shadow-md shadow-brand-cyan/15 outline-none transition-all hover:to-indigo-600 hover:scale-[1.02] active:scale-[0.98]"
+    >
+      <Smartphone size={18} className="shrink-0 animate-bounce" />
+      <span>INSTALL OFFLINE APP</span>
+    </button>
+  ) : (
+    <button
+      type="button"
+      onClick={onInstall}
+      title="Install EduAI Companion Offline App"
+      aria-label="Install EduAI Companion Offline App"
+      className="grid h-12 w-12 cursor-pointer place-items-center rounded-2xl border-0 bg-gradient-to-tr from-brand-cyan to-indigo-500 text-white shadow-md shadow-brand-cyan/20 outline-none transition-all hover:scale-110 active:scale-90"
+    >
+      <Smartphone size={20} className="animate-pulse" />
+    </button>
+  );
+
+const SidebarSyncCard = ({ expanded, status, progress, lastSynced, onSync, onOpenVault }: { expanded: boolean, status: 'synced' | 'pending' | 'syncing' | 'error', progress: number, lastSynced: string, onSync: () => void, onOpenVault: () => void }) => {
+  if (!expanded) {
+    // Rail: two compact tiles
+    return (
+      <div className="flex flex-col items-center gap-3">
+        <button
+          type="button"
+          onClick={onSync}
+          disabled={status === 'syncing'}
+          title={`Offline Access Sync (${status === 'synced' ? 'Ready' : 'Needs Sync'})`}
+          aria-label="Sync offline lessons"
+          className={cn(
+            "relative grid h-12 w-12 cursor-pointer place-items-center rounded-2xl border outline-none transition-all hover:scale-105",
+            status === 'syncing'
+              ? "border-amber-400/30 bg-amber-500/10 text-amber-300"
+              : status === 'synced'
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+                : "border-rose-400/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
+          )}
+        >
+          <RefreshCcw size={22} className={status === 'syncing' ? 'animate-spin' : ''} />
+          <span className={cn("absolute right-1 top-1 h-2.5 w-2.5 rounded-full", status === 'syncing' ? 'bg-amber-400' : status === 'synced' ? 'bg-emerald-400' : 'bg-rose-500')} />
+        </button>
+        <button
+          type="button"
+          onClick={onOpenVault}
+          title="Offline Lesson Vault"
+          aria-label="Open offline lesson vault"
+          className="grid h-12 w-12 cursor-pointer place-items-center rounded-2xl border border-white/10 bg-white/[0.05] text-cyan-300 outline-none transition-all hover:scale-105 hover:bg-white/10"
+        >
+          <BookOpen size={22} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3.5">
+      <div className="flex items-center gap-2.5">
+        <div className="relative flex h-3 w-3 shrink-0">
+          {status === 'syncing' ? (
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+          ) : status === 'synced' ? (
+            <span className="absolute inline-flex h-full w-full animate-pulse rounded-full bg-emerald-400 opacity-75"></span>
+          ) : (
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400/55 opacity-75"></span>
+          )}
+          <span className={cn("relative inline-flex h-3 w-3 rounded-full", status === 'syncing' ? 'bg-amber-500' : status === 'synced' ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse')}></span>
+        </div>
+        <span className="font-['Patrick_Hand',cursive] text-[19px] font-bold uppercase leading-none tracking-wide text-slate-100">
+          {status === 'syncing' ? 'Syncing...' : status === 'synced' ? 'Offline Ready' : 'Sync Needed'}
+        </span>
+      </div>
+      <div className="mt-1.5 font-mono text-[11px] font-bold text-slate-300/70">Last: {lastSynced}</div>
+
+      {status === 'syncing' ? (
+        <div className="mb-3 mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
+          <motion.div
+            className="h-full rounded-full bg-brand-cyan"
+            initial={{ width: '0%' }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.1 }}
+          />
+        </div>
+      ) : (
+        <div className="mb-3 mt-2 font-['Patrick_Hand',cursive] text-[16px] leading-snug text-slate-300/80">
+          Assigned lessons & notes cached securely.
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          disabled={status === 'syncing'}
+          onClick={onSync}
+          className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-500 px-3 py-2 font-['Patrick_Hand',cursive] text-[18px] font-bold leading-none text-[#06182b] shadow-md outline-none transition-all active:scale-95 disabled:opacity-50"
+        >
+          <RefreshCcw size={16} className={cn("shrink-0", status === 'syncing' && 'animate-spin')} />
+          Sync
+        </button>
+        <button
+          type="button"
+          onClick={onOpenVault}
+          className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-cyan-400/30 bg-white/[0.05] px-3 py-2 font-['Patrick_Hand',cursive] text-[18px] font-bold leading-none text-cyan-200 outline-none transition-all active:scale-95"
+        >
+          <BookOpen size={16} className="shrink-0" />
+          Vault
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const SidebarNightVision = ({ isDarkMode, onToggle }: { isDarkMode: boolean, onToggle: () => void }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={isDarkMode}
+    onClick={onToggle}
+    title="Toggle Dark/Light Mode"
+    className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.04] py-2 pl-2.5 pr-3.5 text-left outline-none"
+  >
+    <span className="flex min-w-0 items-center gap-3">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-indigo-300/25 bg-indigo-400/10 text-indigo-200">
+        {isDarkMode ? <Moon size={20} /> : <Sun size={20} />}
+      </span>
+      <span className="truncate font-['Patrick_Hand',cursive] text-[19px] font-bold leading-none tracking-wide text-slate-200">Night Vision</span>
+    </span>
+    <span aria-hidden="true" className="flex h-7 w-12 shrink-0 items-center rounded-full border border-white/15 bg-slate-950/80 p-0.5">
+      <span className={cn("block h-5 w-5 rounded-full bg-[#00ff9f] shadow-[0_0_10px_rgba(0,255,159,0.8)] transition-transform duration-300", isDarkMode ? "translate-x-[22px]" : "translate-x-0")} />
+    </span>
+  </button>
+);
+
+const SidebarProfile = ({ expanded, active, userName, role, onClick }: { expanded: boolean, active: boolean, userName: string, role: string | null, onClick: () => void }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    title={!expanded ? (userName || 'Profile') : undefined}
+    aria-label={!expanded ? `${userName || 'Profile'} — settings` : undefined}
+    aria-current={active ? 'page' : undefined}
+    className={cn(
+      "group relative flex w-full cursor-pointer items-center rounded-2xl border outline-none",
+      expanded ? "gap-3 p-2.5 pr-3.5" : "justify-center p-1.5",
+      active
+        ? "border-cyan-400/50 bg-gradient-to-r from-cyan-500/25 via-cyan-500/10 to-transparent shadow-[0_0_20px_rgba(34,211,238,0.3),inset_0_0_12px_rgba(34,211,238,0.1)]"
+        : "border-white/10 bg-white/[0.04] hover:bg-white/[0.07]"
+    )}
+  >
+    <span className="relative h-11 w-11 shrink-0">
+      <span className="block h-full w-full overflow-hidden rounded-full border-2 border-emerald-400 shadow-[0_0_14px_rgba(52,211,153,0.45)]">
+        <img
+          alt="Profile"
+          className="h-full w-full object-cover"
+          referrerPolicy="no-referrer"
+          src={SIDEBAR_AVATAR_SRC}
+          onError={(e) => {
+            e.currentTarget.src = `https://placehold.co/100/10b981/ffffff?text=${encodeURIComponent((userName || 'ZH').substring(0,2).toUpperCase())}`;
+          }}
+        />
+      </span>
+      <span className="absolute bottom-0 right-0 flex h-3 w-3 translate-x-1/4 translate-y-1/4 items-center justify-center">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75"></span>
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400"></span>
+      </span>
+    </span>
+
+    {expanded && (
+      <>
+        <span className="flex min-w-0 flex-1 flex-col items-start text-left">
+          <span className="w-full truncate font-['Patrick_Hand',cursive] text-[21px] font-bold leading-tight text-white">{userName || 'Zwelakhe Hsuthu'}</span>
+          <span className="mt-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 font-sans text-[11px] font-bold uppercase leading-none tracking-wider text-emerald-300">
+            {role === 'student' ? 'Explorer' : role === 'parent' ? 'Guardian' : 'Master Tutor'}
+          </span>
+        </span>
+        <Settings size={20} className="shrink-0 text-slate-300/70 transition-transform duration-300 group-hover:rotate-45 group-hover:text-cyan-300" />
+      </>
+    )}
+  </button>
+);
 
 // Inline LandingPage removed in favor of imported component from './components/LandingPage'
 
@@ -1547,80 +1828,35 @@ export default function App() {
 
       {/* Sidebar Base Placeholder on Desktop to prevent page content starting at 0 */}
       {!isMobile && (
-        <div className={cn("shrink-0 transition-all duration-300", isSidebarOpen ? "w-[240px]" : "w-[72px]")} />
+        <div className="shrink-0 transition-[width] duration-300" style={{ width: isSidebarOpen ? SIDEBAR_W_OPEN : SIDEBAR_W_RAIL }} />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — always a dark navy panel (see the note above SIDEBAR_W_OPEN) */}
       <motion.aside 
         initial={false}
         animate={{ 
-          width: isMobile ? 240 : (isSidebarOpen ? 240 : 72),
-          x: isMobile ? (isMobileSidebarOpen ? 0 : -240) : 0
+          width: isMobile ? SIDEBAR_W_OPEN : (isSidebarOpen ? SIDEBAR_W_OPEN : SIDEBAR_W_RAIL),
+          x: isMobile ? (isMobileSidebarOpen ? 0 : -SIDEBAR_W_OPEN) : 0
         }}
         transition={{ type: "spring", bounce: 0, duration: 0.3 }}
-        className={cn(
-          "flex flex-col pt-3 pb-3 px-2 fixed left-0 top-0 bottom-0 shrink-0 z-[60] shadow-2xl transition-all duration-300 h-screen app-shell border-r overflow-hidden font-['Patrick_Hand',cursive]",
-          isDarkMode 
-            ? "bg-[#0b101e] border-white/5 text-white backdrop-blur-2xl" 
-            : themeMode === 'peach'
-              ? "bg-[#efe8d9]/75 border-[#dcd4c3] text-[#431407] backdrop-blur-2xl"
-              : "bg-white/75 border-slate-200 text-slate-800 backdrop-blur-2xl"
-        )}
+        style={{ maxWidth: '90vw' }}
+        className="flex flex-col pt-4 pb-4 px-3 fixed left-0 top-0 bottom-0 shrink-0 z-[60] shadow-2xl h-screen app-shell border-r border-cyan-300/15 text-white overflow-hidden font-['Patrick_Hand',cursive] bg-gradient-to-b from-[#0f1b3a] via-[#0a1329] to-[#070d1c]"
       >
-        {isDarkMode && <div className="sidebar-glow-highlight" />}
+        {/* Ambient neon glow + gradient edge (decorative) */}
+        <div className="sidebar-glow-highlight" aria-hidden="true" />
+        <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-px bg-gradient-to-b from-cyan-300/45 via-cyan-300/10 to-emerald-300/40" />
 
-        {/* Center-aligned Animated Logo & Compact Header */}
-        <div className="flex flex-col justify-center h-[42px] mb-2 relative shrink-0">
-          <div className="flex items-center justify-between w-full relative px-1">
-            <div className="flex items-center gap-2">
-              {/* Animated Logo */}
-              <Logo className="w-7 h-7 shrink-0" />
-              
-              {(isSidebarOpen || isMobile) && (
-                <div className="flex flex-col text-left animate-fadeIn">
-                  <span className={cn(
-                    "text-lg font-['Patrick_Hand',cursive] font-bold tracking-wide leading-none text-white drop-shadow-[0_0_15px_rgba(0,225,255,0.4)]"
-                  )}>Edu<span className="text-[#00ff9f]">AI</span></span>
-                  <span className="text-[11px] font-['Patrick_Hand',cursive] font-bold text-slate-400 mt-0.5 leading-none">Lead Navigator</span>
-                </div>
-              )}
-            </div>
+        <SidebarBrand
+          expanded={isSidebarOpen || isMobile}
+          isMobile={isMobile}
+          isSidebarOpen={isSidebarOpen}
+          onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
+          onCloseMobile={() => setMobileSidebarOpen(false)}
+        />
 
-            {/* Collapse button on the right hand side of logo/name */}
-            {!isMobile && (
-              <button
-                onClick={() => setSidebarOpen(!isSidebarOpen)}
-                className={cn(
-                  "p-1 rounded-lg transition-all border outline-none cursor-pointer flex items-center justify-center shrink-0 ml-1.5",
-                  isDarkMode
-                    ? "bg-white/5 border-white/10 hover:bg-white/10 hover:border-cyan-400/30 text-slate-300 hover:text-cyan-400"
-                    : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-600 hover:text-slate-900"
-                )}
-                title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
-              >
-                {isSidebarOpen ? (
-                  <ChevronLeft size={14} strokeWidth={3} />
-                ) : (
-                  <ChevronRight size={14} strokeWidth={3} />
-                )}
-              </button>
-            )}
-
-            {isMobile && (
-              <button 
-                onClick={() => setMobileSidebarOpen(false)} 
-                className={cn(
-                  "p-1.5 rounded-lg transition-all",
-                  isDarkMode ? "text-slate-400 hover:text-white hover:bg-white/10" : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
-                )}
-              >
-                <X size={20} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        <nav className="flex-1 min-h-0 space-y-0.5 overflow-y-auto overflow-x-hidden custom-scrollbar pr-0.5 relative z-10 font-['Patrick_Hand',cursive]">
+        <nav aria-label="Main navigation" className="relative z-10 -mx-2 min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 pb-2 custom-scrollbar font-['Patrick_Hand',cursive]">
+          <SidebarSectionLabel collapsed={!isSidebarOpen && !isMobile}>Main Menu</SidebarSectionLabel>
+          <div className="space-y-1.5">
           {sidebarCategories.map((cat) => {
             const collapsed = !isSidebarOpen && !isMobile;
             const active = activeCategory === cat.id;
@@ -1632,8 +1868,6 @@ export default function App() {
                 icon={cat.icon} 
                 label={cat.label} 
                 active={active} 
-                isDarkMode={isDarkMode}
-                themeMode={themeMode}
                 role={userRole}
                 onClick={() => {
                   window.dispatchEvent(new CustomEvent('close-topbar-menus'));
@@ -1661,217 +1895,57 @@ export default function App() {
               />
             );
           })}
+          </div>
         </nav>
 
-        {/* PWA Install Promo */}
-        {isAppInstallable && (
-          <div className="px-3 py-2 shrink-0 flex justify-center">
-            {(!isSidebarOpen && !isMobile) ? (
-              <button
-                onClick={installPWAApp}
-                title="Install EduAI Companion Offline App"
-                className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-tr from-brand-cyan to-indigo-500 hover:scale-110 active:scale-90 shadow-md shadow-brand-cyan/20 transition-all cursor-pointer border-0 outline-none text-white"
-              >
-                <Smartphone size={16} className="animate-pulse" />
-              </button>
-            ) : (
-              <button
-                onClick={installPWAApp}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2.5xl font-display font-black text-[10px] tracking-wider shadow-md shadow-brand-cyan/15 transform hover:scale-[1.02] active:scale-[0.98] transition-all bg-gradient-to-r from-brand-cyan to-indigo-500 hover:to-indigo-600 text-white cursor-pointer border-0 outline-none"
-              >
-                <Smartphone size={14} className="animate-bounce shrink-0" />
-                <span>INSTALL OFFLINE APP</span>
-              </button>
-            )}
+        {/* Footer: install promo · student sync · Night Vision · profile */}
+        <div className={cn("relative z-10 mt-3 shrink-0 space-y-3 border-t border-white/10 pt-3", !(isSidebarOpen || isMobile) && "flex flex-col items-center")}>
+          {isAppInstallable && (
+            <SidebarInstallPromo expanded={isSidebarOpen || isMobile} onInstall={installPWAApp} />
+          )}
+
+          {userRole === 'student' && (
+            <SidebarSyncCard
+              expanded={isSidebarOpen || isMobile}
+              status={syncStatus}
+              progress={syncProgress}
+              lastSynced={lastSyncedTime}
+              onSync={handleOfflineSync}
+              onOpenVault={() => setIsOfflineViewerOpen(true)}
+            />
+          )}
+
+          {(isSidebarOpen || isMobile) && (
+            <SidebarNightVision isDarkMode={isDarkMode} onToggle={() => setIsDarkMode(!isDarkMode)} />
+          )}
+
+          {/* BEGIN: User Profile Section */}
+          <div data-purpose="user-profile-card" className={cn(!(isSidebarOpen || isMobile) ? "" : "w-full")}>
+            <SidebarProfile
+              expanded={isSidebarOpen || isMobile}
+              active={activeCategory === 'system-support' && activeTab === 'settings'}
+              userName={userName}
+              role={userRole}
+              onClick={() => {
+                setActiveCategory('system-support');
+                const subTabs = getSubTabsForCategory('system-support', userRole);
+                if (subTabs.length > 0) {
+                  changeTab('settings');
+                }
+                if (isMobile) setMobileSidebarOpen(false);
+              }}
+            />
           </div>
-        )}
-
-        {/* Sync Status Section (Only for Students) */}
-        {userRole === 'student' && (
-          <div className="my-4 px-1 shrink-0">
-            {isSidebarOpen || isMobile ? (
-              <div className={`p-4 rounded-[24px] border transition-all duration-300 ${
-                isDarkMode 
-                  ? 'bg-slate-900/60 border-white/5 text-slate-300' 
-                  : 'bg-slate-50 border-slate-200 text-slate-700 shadow-sm'
-              }`}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex h-2.5 w-2.5">
-                      {syncStatus === 'syncing' ? (
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                      ) : syncStatus === 'synced' ? (
-                        <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      ) : (
-                        <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400/55 opacity-75 animate-ping"></span>
-                      )}
-                      <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                        syncStatus === 'syncing' ? 'bg-amber-500' : syncStatus === 'synced' ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'
-                      }`}></span>
-                    </div>
-                    <span className="text-xs font-black tracking-tight uppercase">
-                      {syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'synced' ? 'Offline Ready' : 'Sync Needed'}
-                    </span>
-                  </div>
-                  <span className="text-[10px] opacity-70 font-mono font-bold">Last: {lastSyncedTime}</span>
-                </div>
-
-                {syncStatus === 'syncing' ? (
-                  <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden mb-3 border border-transparent/5">
-                    <motion.div 
-                      className="bg-brand-cyan h-full rounded-full" 
-                      initial={{ width: '0%' }}
-                      animate={{ width: `${syncProgress}%` }}
-                      transition={{ duration: 0.1 }}
-                    />
-                  </div>
-                ) : (
-                  <div className={`text-[11px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mb-3 leading-snug`}>
-                    Assigned lessons & notes cached securely.
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <button
-                    disabled={syncStatus === 'syncing'}
-                    onClick={handleOfflineSync}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-brand-cyan hover:bg-cyan-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    <RefreshCcw size={13} className={`shrink-0 ${syncStatus === 'syncing' && 'animate-spin'}`} />
-                    Sync
-                  </button>
-
-                  <button
-                    onClick={() => setIsOfflineViewerOpen(true)}
-                    className={`flex items-center justify-center gap-1.5 px-3 py-2.5 font-bold text-xs rounded-xl cursor-pointer transition-all active:scale-95 ${
-                      isDarkMode 
-                        ? 'bg-slate-800 hover:bg-slate-700 text-brand-cyan border border-brand-cyan/25' 
-                        : 'bg-white hover:bg-slate-100 text-brand-cyan border border-brand-cyan/35 shadow-sm'
-                    }`}
-                  >
-                    <BookOpen size={13} className="shrink-0" />
-                    Vault
-                  </button>
-                </div>
-              </div>
-            ) : (
-              // Collapsed Sidebar Compact view
-              <div className="flex flex-col items-center gap-4 py-4 rounded-2xl">
-                <button
-                  onClick={handleOfflineSync}
-                  title={`Offline Access Sync (${syncStatus === 'synced' ? 'Ready' : 'Needs Sync'})`}
-                  disabled={syncStatus === 'syncing'}
-                  className={`p-3 rounded-xl transition-all relative group cursor-pointer ${
-                    syncStatus === 'syncing' 
-                      ? 'bg-amber-500/10 text-amber-500' 
-                      : syncStatus === 'synced' 
-                        ? 'bg-emerald-500/10 text-emerald-500 hover:scale-105 hover:bg-emerald-500/20' 
-                        : 'bg-rose-500/10 text-rose-500 hover:scale-105 hover:bg-rose-500/20'
-                  }`}
-                >
-                  <RefreshCcw size={18} className={syncStatus === 'syncing' ? 'animate-spin' : ''} />
-                  <span className={`absolute top-0 right-0 h-2.5 w-2.5 rounded-full ${
-                    syncStatus === 'syncing' ? 'bg-amber-400' : syncStatus === 'synced' ? 'bg-emerald-400' : 'bg-rose-500'
-                  }`} />
-                </button>
-
-                <button
-                  onClick={() => setIsOfflineViewerOpen(true)}
-                  title="Offline Lesson Vault"
-                  className={`p-3 rounded-xl transition-all cursor-pointer ${
-                    isDarkMode ? 'bg-white/5 text-brand-cyan hover:bg-white/10' : 'bg-slate-150 text-brand-cyan hover:bg-slate-200 shadow-sm border border-slate-200'
-                  }`}
-                >
-                  <BookOpen size={18} />
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Sliding Pill Theme Toggle at the bottom */}
-        {(isSidebarOpen || isMobile) && (
-          <div className="mt-auto px-4 mb-4 shrink-0 flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Night Vision</span>
-            <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className="w-11 h-6 rounded-full bg-slate-950/80 border border-white/15 p-0.5 relative cursor-pointer transition-colors duration-300 flex items-center shrink-0"
-              title="Toggle Dark/Light Mode"
-            >
-              <div 
-                className={cn(
-                  "w-4.5 h-4.5 rounded-full bg-[#00ff9f] shadow-[0_0_10px_rgba(0,255,159,0.8)] transition-all duration-300 transform",
-                  isDarkMode ? "translate-x-5" : "translate-x-0"
-                )} 
-              />
-            </button>
-          </div>
-        )}
-
-        {/* BEGIN: User Profile Section */}
-        <div className="mt-auto shrink-0 mb-4 px-1" data-purpose="user-profile-card">
-          <button
-            onClick={() => {
-              setActiveCategory('system-support');
-              const subTabs = getSubTabsForCategory('system-support', userRole);
-              if (subTabs.length > 0) {
-                changeTab('settings');
-              }
-              if (isMobile) setMobileSidebarOpen(false);
-            }}
-            title={(!isSidebarOpen && !isMobile) ? (userName || 'Profile') : undefined}
-            className={cn(
-              "flex items-center w-full gap-3 transition-all duration-300 relative cursor-pointer border-0 outline-none group",
-              (!isSidebarOpen && !isMobile) ? "justify-center p-2 rounded-xl" : "p-3 px-4 rounded-2xl",
-              activeCategory === 'system-support' && activeTab === 'settings'
-                ? isDarkMode
-                  ? "bg-white/[0.08] text-cyan-400 font-black border-l-4 border-cyan-400 rounded-l-none rounded-r-2xl text-glow-cyan"
-                  : "bg-cyan-500/10 text-cyan-700 font-black border-l-4 border-cyan-500 rounded-l-none rounded-r-2xl"
-                : isDarkMode 
-                  ? "text-slate-400 hover:text-white hover:bg-white/[0.03] rounded-2xl font-semibold" 
-                  : themeMode === 'peach'
-                    ? "text-[#431407]/75 hover:text-[#431407] hover:bg-[#431407]/5 rounded-2xl font-semibold"
-                    : "text-slate-500 hover:text-cyan-600 hover:bg-cyan-500/5 rounded-2xl font-semibold"
-            )}
-          >
-            <div className="relative shrink-0 w-6 h-6">
-              <div className="w-full h-full rounded-full overflow-hidden border border-emerald-500 shadow-sm">
-                <img 
-                  alt="Profile" 
-                  className="w-full h-full object-cover" 
-                  referrerPolicy="no-referrer"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuC84-NEFvwZ7DJM6n9YadrglDB8eRZh5QhtpIKevJPmkMBaZ3RkjJ9cIZKMDhDdhi3Fm2vPK5KwuuIpM9M0T1QWfIrr9FYQZDoWaA5vG-P0gwhFLuHvW-kHBMutdlciDTTSzWc4OgZqI2wnPR8TKZEQ2JwrAhN01mVbao5KXaNjC2TkVtzJ_KpaSWV8kvi3RcI2ij0P6uiU4J4MCueD2QLas3WSqTUUAQPuhOnbmyer0gb5k78eHF-Eew" 
-                  onError={(e) => {
-                    e.currentTarget.src = `https://placehold.co/100/10b981/ffffff?text=${encodeURIComponent((userName || 'ZH').substring(0,2).toUpperCase())}`;
-                  }}
-                />
-              </div>
-              <span className="absolute bottom-0 right-0 flex h-2.5 w-2.5 translate-x-1/4 translate-y-1/4 items-center justify-center">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75"></span>
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-              </span>
-            </div>
-            
-            {(isSidebarOpen || isMobile) && (
-              <span className="font-sans text-xs font-semibold text-left flex-1 flex flex-col justify-center min-w-0">
-                <span className={cn(
-                  "truncate font-bold leading-tight",
-                  isDarkMode ? "text-white" : "text-slate-900"
-                )}>{userName || 'Zwelakhe Hsuthu'}</span>
-                <span className="text-[9px] text-slate-400 font-medium truncate leading-none mt-0.5">
-                  {userRole === 'student' ? 'Explorer' : userRole === 'parent' ? 'Guardian' : 'Master Tutor'}
-                </span>
-              </span>
-            )}
-          </button>
+          {/* END: User Profile Section */}
         </div>
-        {/* END: User Profile Section */}
       </motion.aside>
 
       {/* Main Content — navy canvas end-to-end so overlay never leaves white bands */}
       <main className={`flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden relative app-main-surface ${isDarkMode ? 'dark-theme' : themeMode === 'peach' ? 'peach-theme' : 'light-theme'} transition-colors duration-500`}>
-        {/* Full-main overlay plate (behind header + content) so top/bottom never flash white */}
-        <PageOverlay route={activeTab} blend="normal" opacity={0.45} vignette={false} drift={false} />
+        {/* Full-main overlay plate (behind header + content) so top/bottom never flash white.
+            A sidebar landing page (categoryOverviewActive) does not change activeTab, so the
+            route has to account for it or every landing would inherit the dashboard's plate. */}
+        <PageOverlay route={overlayRouteFor({ tab: activeTab, hub: categoryOverviewActive, role: userRole })} blend="normal" opacity={0.45} vignette={false} drift={false} />
 
         {/* Header sits above overlay with translucent glass */}
         <header 
