@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { AI_PROVIDERS, AIProvider, isLegacyProvider } from '../lib/aiModels';
 
-export type AIProvider = 'gemini' | 'alibaba-qwen' | 'nvidia-nemotron-nano' | 'nvidia-nemotron-ultra' | 'nvidia-nemotron-lightning';
+// The five frozen provider ids live in exactly one place — `src/lib/aiModels.ts`
+// (see AGENTS.md §1). Do not inline them here.
+export type { AIProvider } from '../lib/aiModels';
 export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
 export type OCRProvider = 'gemini' | 'ocrspace';
 export type ImageProvider = 'gemini-imagen' | 'perchance' | 'pollinations' | 'qwen' | 'qwen-image';
@@ -18,7 +21,7 @@ interface AiContextType {
 
 const AiContext = createContext<AiContextType | undefined>(undefined);
 
-const VALID_PROVIDERS: AIProvider[] = ['gemini', 'alibaba-qwen', 'nvidia-nemotron-nano', 'nvidia-nemotron-ultra', 'nvidia-nemotron-lightning'];
+const VALID_PROVIDERS: readonly AIProvider[] = AI_PROVIDERS;
 const VALID_TTS: TTSProvider[] = ['browser', 'groq-whisper', 'huggingface', 'google-tts'];
 const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace'];
 const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'perchance', 'pollinations', 'qwen', 'qwen-image'];
@@ -30,7 +33,7 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
       // Migrate only provider ids that are NOT active NIM models anymore.
       // `nvidia-nemotron-ultra` (and the nano/lightning ids) are ACTIVE NVIDIA
       // NIM providers again — they must never be remapped away from NVIDIA NIM.
-      if (saved === 'groq-qwen' || saved === 'nvidia-nemotron' || saved === 'nvidia-nemotron-ultra-legacy') {
+      if (isLegacyProvider(saved)) {
         localStorage.setItem('eduai_provider', 'alibaba-qwen');
         return 'alibaba-qwen';
       }

@@ -1,5 +1,11 @@
 # Manual Push Instructions — EduAI Companion Fixes
 
+> **Historical note (2 October 2026).** The patch this document describes was
+> applied long ago; the branch it refers to is no longer active. `fixes.patch`
+> and the helper scripts it mentions now live in
+> [`archive/legacy-scripts/`](archive/legacy-scripts/) — keep the paths below in
+> mind if you ever need to replay it.
+
 This branch `arena/01a01c47-eduai-companion` was created from `dba746c` (main at 2026-08-19).
 A previous fix for Google Sign-In + flashing menus was merged into `main` as PR #17 (`43c37a2`).
 The current unpushed work (second batch) is still on this branch as *unstaged changes* (14 files) because the GitHub App token cannot push `.github/workflows` files and the session later closed.
@@ -29,8 +35,8 @@ cd /home/user/EduAI-Companion
 git fetch origin
 git checkout -B arena/01a01c47-eduai-companion origin/main
 # apply the patch generated from this session (fixes.patch is in the repo root)
-git apply fixes.patch
-# or if that fails due to whitespace: git apply --reject fixes.patch
+git apply archive/legacy-scripts/fixes.patch
+# or if that fails due to whitespace: git apply --reject archive/legacy-scripts/fixes.patch
 git add -A
 git commit -m "feat: glow borders, remove top bar, dim slideshow bg, redesign Helpdesk, fix clips, update prompts"
 git push origin arena/01a01c47-eduai-companion
@@ -38,15 +44,15 @@ git push origin arena/01a01c47-eduai-companion
 gh pr create --title "feat: glow borders, remove top bar, dim slideshow bg, redesign Helpdesk, fix clips, update prompts" --body "See MANUAL_PUSH.md" --base main --head arena/01a01c47-eduai-companion
 ```
 
-The `fixes.patch` file was generated via `git diff HEAD > fixes.patch` where `HEAD` was `dba746c` and the working tree was the desired final state. It is 176kB and lives at `/home/user/EduAI-Companion/fixes.patch` in this session's snapshot. If you start a new session, the file will still be there if you committed it; otherwise re-generate it:
+The `fixes.patch` file was generated via `git diff HEAD > fixes.patch` where `HEAD` was `dba746c` and the working tree was the desired final state. It is 176kB and lives at `archive/legacy-scripts/fixes.patch` in this session's snapshot. If you start a new session, the file will still be there if you committed it; otherwise re-generate it:
 
 ```bash
-git diff dba746c > fixes.patch   # after you have re-created the changes
+git diff dba746c > archive/legacy-scripts/fixes.patch   # after you have re-created the changes
 ```
 
 ### Option B — Recreate via helper script
 
-A helper `scripts/patch-android-strings.cjs` is already committed (first batch) and `apply_fixes.py` is a stub. For a full recreate, use the patch as above — it is the most reliable.
+A helper `scripts/patch-android-strings.cjs` is already committed (first batch); the historical `apply_fixes.py` now lives in `archive/legacy-scripts/`. For a full recreate, use the patch as above — it is the most reliable.
 
 ### Option C — Direct file overwrite (if patch fails)
 

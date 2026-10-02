@@ -1,6 +1,17 @@
 import { CAPS_LESSON_PLAN_SYSTEM_PROMPT } from "./src/lib/prompts/caps-lesson-plan-prompt";
 import { EduAIPromptEngine } from "./src/lib/prompt-engine";
 import { buildInstructorPriority, EDUCATIONAL_IMAGE_STYLE } from "./src/lib/prompt-priority";
+import { clientKeyFrom, createRateLimiter, ruleForPath } from "./src/lib/rateLimit";
+import {
+  GEMINI_MODEL_CHAIN,
+  NVIDIA_BASE_URL,
+  QWEN_BASE_URL,
+  QWEN_DEFAULT_MODEL,
+  alternativeProviderFor,
+  isLegacyProvider,
+  isNemotronProvider,
+  resolveProviderModel,
+} from "./src/lib/aiModels";
 import express from "express";
 import path from "path";
 import fs from "fs";
@@ -60,7 +71,7 @@ function resolveNvidiaKey(): string {
 // Alibaba Cloud Model Studio (Qwen 3.8) — OpenAI-compatible workspace endpoint.
 // The default is the workspace-scoped host from the Model Studio API key dialog;
 // override with ALIBABA_API_BASE if the workspace/region changes.
-const ALIBABA_DEFAULT_BASE_URL = "https://ws-8ldb9u90tetxcada.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1";
+const ALIBABA_DEFAULT_BASE_URL = QWEN_BASE_URL;
 
 function resolveAlibabaBaseURL(): string {
   const base = (process.env.ALIBABA_API_BASE || process.env.DASHSCOPE_BASE_URL || ALIBABA_DEFAULT_BASE_URL).trim().replace(/\/+$/, "");
@@ -135,16 +146,9 @@ const geminiAi = new Proxy({} as GoogleGenAI, {
   }
 });
 
-// The frozen Gemini fallback chain (AGENTS.md §1 — order must never change).
-const GEMINI_MODEL_CHAIN = [
-  "gemini-3.8-flash",
-  "gemini-3.7-flash",
-  "gemini-3.6-flash",
-  "gemini-3.5-flash",
-  "gemini-3.5-flash-lite",
-  "gemini-3.1-flash-lite",
-  "gemini-2.5-flash",
-];
+// The frozen Gemini fallback chain lives in `src/lib/aiModels.ts` (single
+// source of truth, asserted by tests/ai-models.test.ts). AGENTS.md §1 — order
+// must never change.
 
 // When EVERY candidate just failed (e.g. a global Google "high demand" 503
 // spike), stop preferring the previously-cached model for a short window so
@@ -521,8 +525,46 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
 
   const PORT = 3000;
 
+  // NOTE: `app.set('trust proxy', 1)` is configured above the route handlers,
+  // so `req.ip` is the real client address behind Vercel's proxy — which is
+  // what the rate limiter keys on.
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+  // --- API abuse protection -------------------------------------------------
+  // `/api/*` is an unauthenticated provider gateway, so quota is the asset at
+  // risk (see TECHNICAL_SPECIFICATION.md §13.2). This fixed-window limiter is
+  // deliberately dependency-free and per-process: it blunts casual/accidental
+  // abuse without requiring credentials or breaking existing clients.
+  // Set RATE_LIMIT_DISABLED=true to switch it off (not recommended in public
+  // deployments). Server-side token verification is the recommended follow-up.
+  const rateLimiter = createRateLimiter();
+  const RATE_LIMIT_DISABLED = process.env.RATE_LIMIT_DISABLED === 'true';
+  const RATE_LIMIT_EXEMPT_PATHS = new Set([
+    '/api/health',
+    '/api/notifications/vapid-public-key',
+  ]);
+
+  app.use('/api', (req, res, next) => {
+    if (RATE_LIMIT_DISABLED) return next();
+    const requestPath = (req.originalUrl || req.url || '').split('?')[0];
+    if (RATE_LIMIT_EXEMPT_PATHS.has(requestPath)) return next();
+
+    const rule = ruleForPath(requestPath);
+    const decision = rateLimiter.check(`${rule.name}:${clientKeyFrom(req)}`, rule);
+
+    res.setHeader('X-RateLimit-Limit', String(decision.limit));
+    res.setHeader('X-RateLimit-Remaining', String(decision.remaining));
+
+    if (!decision.allowed) {
+      res.setHeader('Retry-After', String(decision.retryAfterSeconds));
+      return res.status(429).json({
+        error: `Too many ${rule.name} requests. Please retry in ${decision.retryAfterSeconds}s.`,
+        retryAfter: decision.retryAfterSeconds,
+      });
+    }
+    next();
+  });
 
   // --- AI Provider Clients ---
 
@@ -574,7 +616,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     cachedNvidiaKey = nvidiaKey;
     cachedNvidiaClient = new OpenAI({
       apiKey: nvidiaKey || "dummy",
-      baseURL: "https://integrate.api.nvidia.com/v1",
+      baseURL: NVIDIA_BASE_URL,
     });
     return cachedNvidiaClient;
   }
@@ -817,9 +859,9 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
     }
 
     if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-      const neededKey = (provider === 'nvidia-nemotron-nano' || provider === 'nvidia-nemotron-ultra' || provider === 'nvidia-nemotron-lightning')
+      const neededKey = isNemotronProvider(provider)
         ? 'NVIDIA_API_KEY'
-        : (provider === 'nvidia-nemotron' || provider === 'nvidia-nemotron-ultra-legacy' || provider === 'groq-qwen' || provider.startsWith('alibaba'))
+        : (isLegacyProvider(provider) || provider.startsWith('alibaba'))
         ? 'ALIBABA_API_KEY'
         : 'API_KEY';
       return await executeGeminiFallback(`${neededKey} is not configured.`);
@@ -832,31 +874,17 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       finalModel = undefined;
     }
 
-    // Default model slug per provider id (exact models — see AGENTS.md §1).
-    const defaultModelFor = (p: string) => (
-      p === "alibaba-qwen" ? "qwen3.8-max" :
-      p === "nvidia-nemotron-nano" ? "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning" :
-      p === "nvidia-nemotron-ultra" ? "nvidia/nemotron-ultra-550b-a55b" :
-      p === "nvidia-nemotron-lightning" ? "nvidia/nemotron-3.5-lightning-30b-a3b" :
-      (p === "nvidia-nemotron" || p === "nvidia-nemotron-ultra-legacy" || p === "groq-qwen") ? "qwen3.8-max" :
-      ""
-    );
+    // Default model slug per provider id (exact models — see AGENTS.md §1 and
+    // the shared frozen registry in src/lib/aiModels.ts).
+    const defaultModelFor = (p: string) => resolveProviderModel(p);
 
     // When one alternative engine is down (gateway timeout / 5xx / rate
-    // limit), try this sibling engine once before spending the remaining
-    // time budget on the Gemini fallback.
-    const alternativeProviderFor = (p: string) => (
-      p === "nvidia-nemotron-ultra" ? "nvidia-nemotron-lightning" :
-      p === "nvidia-nemotron-lightning" ? "nvidia-nemotron-nano" :
-      p === "nvidia-nemotron-nano" ? "alibaba-qwen" :
-      p === "alibaba-qwen" ? "nvidia-nemotron-lightning" :
-      ""
-    );
+    // limit), the helper `alternativeProviderFor` (src/lib/aiModels.ts) names
+    // the sibling engine to try once before spending the remaining time budget
+    // on the Gemini fallback.
 
     const clientFor = (p: string): OpenAI => (
-      (p === "nvidia-nemotron-nano" || p === "nvidia-nemotron-ultra" || p === "nvidia-nemotron-lightning")
-        ? nvidia
-        : alibaba
+      isNemotronProvider(p) ? nvidia : alibaba
     );
 
     // Sends the request to one alternative provider and writes the response
@@ -1355,7 +1383,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
   // known-good slugs instead of failing the whole request on the first 404.
   // `NVIDIA_BASE_URL` can be overridden for tests/mocks.
   const QWEN_MODELS = ["qwen/qwen-image-2512", "qwen/qwen-image"];
-  const QWEN_BASE_URL = (process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1").replace(/\/+$/, "");
+  const NVIDIA_NIM_BASE_URL = (process.env.NVIDIA_BASE_URL || NVIDIA_BASE_URL).replace(/\/+$/, "");
   const QWEN_SIZE_MAP: Record<string, string> = {
     header: "1792x1024",
     inline: "1024x1024",
@@ -1405,7 +1433,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
       const timer = setTimeout(() => controller.abort(), QWEN_REQUEST_TIMEOUT_MS);
       let nvidiaRes: Response;
       try {
-        nvidiaRes = await fetch(`${QWEN_BASE_URL}/images/generations`, {
+        nvidiaRes = await fetch(`${NVIDIA_NIM_BASE_URL}/images/generations`, {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${nvidiaKey}`,
@@ -1501,7 +1529,7 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
             apiKey: alibabaKey,
             baseURL: resolveAlibabaBaseURL()
           });
-          const model = "qwen3.8-max";
+          const model = QWEN_DEFAULT_MODEL;
           const completion = await client.chat.completions.create({
             model,
             messages: [

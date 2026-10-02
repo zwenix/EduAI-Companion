@@ -59,20 +59,47 @@ specified below.
   Pollinations), OCR engines and TTS/voice engines are separate pipelines —
   leave them exactly as configured.
 
+### The frozen registry — single source of truth (added 2 Oct 2026)
+All five provider ids, their exact model slugs, the Gemini fallback chain, both
+provider endpoints, the legacy-id aliases and the sibling-engine fallback graph
+live in EXACTLY ONE module:
+
+* **`src/lib/aiModels.ts`** — exports `AI_PROVIDERS`, `AI_PROVIDER_LABELS`,
+  `GEMINI_MODEL_CHAIN`, `GEMINI_PRIMARY_MODEL`, `QWEN_DEFAULT_MODEL`,
+  `QWEN_BASE_URL`, `NVIDIA_BASE_URL`, `NVIDIA_MODELS`,
+  `resolveProviderModel()`, `alternativeProviderFor()`,
+  `isNemotronProvider()` and `isLegacyProvider()`.
+
+Every call site IMPORTs from this registry — no model string, endpoint or
+provider-id list may be written as a literal anywhere else. Editing the registry
+is a model-frozen change: it requires an explicit user instruction **and** an
+update to the table above.
+
+### Enforcement (do not weaken)
+* `tests/ai-models.test.ts` asserts every value in this section against
+  `src/lib/aiModels.ts` and fails on any drift — re-map, rename, upgrade,
+  downgrade or re-route. A red test must never be "fixed" by relaxing the test.
+* §7 (Repository Guardrails) defines the CI gate that runs it.
+
 ### Application Files Governing Models:
 * **`server.ts`**: The API proxy handling `/api/ai/:provider` must resolve
   `gemini` to the Gemini chain above, `alibaba-qwen` to `qwen3.8-max` via Model
   Studio, and the three `nvidia-nemotron-*` ids to their exact NIM model slugs
-  via the NVIDIA NIM endpoint. It contains NO Groq or OpenRouter clients.
-* **`src/contexts/AiContext.tsx`**: `AIProvider` type and `VALID_PROVIDERS`
-  must list exactly `gemini`, `alibaba-qwen`, `nvidia-nemotron-nano`,
-  `nvidia-nemotron-ultra`, `nvidia-nemotron-lightning`.
-* **`src/App.tsx`**: The AI-engine picker and auto-optimize candidates must
-  expose exactly these five providers (Gemini 3.8 Flash, Qwen 3.8 Max, Nemotron
+  via the NVIDIA NIM endpoint. It contains NO Groq or OpenRouter clients. It
+  imports the ids, slugs, endpoints, legacy aliases and sibling-engine graph from
+  `src/lib/aiModels.ts` — do not re-inline them.
+* **`src/contexts/AiContext.tsx`**: `AIProvider` is re-exported from, and
+  `VALID_PROVIDERS` derived from, `AI_PROVIDERS` in `src/lib/aiModels.ts`. The
+  resolved list must still be exactly `gemini`, `alibaba-qwen`,
+  `nvidia-nemotron-nano`, `nvidia-nemotron-ultra`, `nvidia-nemotron-lightning`.
+* **`src/App.tsx`**: The AI-engine picker and auto-optimize candidates map over
+  `AI_PROVIDERS` + `AI_PROVIDER_LABELS` from `src/lib/aiModels.ts`, so exactly
+  these five providers are exposed (Gemini 3.8 Flash, Qwen 3.8 Max, Nemotron
   3 Nano, Nemotron 3 Ultra 550B, Nemotron 3.5 Lightning).
 * **`src/services/multiAiService.ts`**: NVIDIA NIM client must call the exact
   Nemotron slugs above on `https://integrate.api.nvidia.com/v1`; Model Studio
-  calls must use `qwen3.8-max`.
+  calls must use `qwen3.8-max`. Both come from `src/lib/aiModels.ts`
+  (`NVIDIA_BASE_URL`, `NVIDIA_MODELS`, `QWEN_DEFAULT_MODEL`).
 * **`src/services/geminiClient.ts` / `geminiService.ts` /
   `unifiedAiService.ts`**: Must dispatch OCR grading and fallback logic to
   these exact model strings only.
@@ -286,3 +313,60 @@ The following sections define the explicit guidelines, prompt configurations, an
 ### 6.2 Status Inquiries (`/api/video/status/:id`)
 * Continues polling the `omniJobs` map to deliver responsive video generation progress updates to the frontend without blocking server execution loops.
 * Retains compatibility with the optional `replicate` video client should the user provide valid Replicate API credentials.
+
+---
+
+## 🛡️ 7. REPOSITORY GUARDRAILS — CI, SECRETS, API ABUSE (added 2 Oct 2026)
+
+These mechanisms protect the rules in §1–§6. Do not remove or bypass them without
+explicit user instructions.
+
+### 7.1 The CI gate (`npm run ci`)
+`scripts/ci.sh` runs five stages in order and must stay green before any push:
+
+1. **Secret scan** — `scripts/scan-secrets.mjs`
+2. **Type check** — `tsc --noEmit`
+3. **Unit tests** — `vitest run` (`tests/`, 7 suites)
+4. **Content template contract** — `npm run verify:template` (101 assertions)
+5. **Production build** — `npm run build`
+
+* `npm run ci -- --skip-build` is the fast loop (stages 1–4).
+* `.github/workflows/ci.yml` runs the same pipeline on every pull request. It is
+  delivered as `docs/ci.workflow.yml` because the Arena GitHub App token cannot
+  push workflow files — install it with the one-paste instructions in that file's
+  header. Do not relocate the CI logic; `scripts/ci.sh` is the single definition.
+* Never "fix" a failing test by deleting it or by loosening an assertion that
+  encodes a FROZEN rule (§1). Fix the code, or ask the user.
+
+### 7.2 Secrets
+* Never commit credentials. `.env*` is ignored; `.env.example` holds placeholders.
+* `src/lib/aiSecrets.ts` and `env-info.json` are the ONLY reviewed exceptions and
+  are listed with reasons in the scanner's `ALLOWLIST`. Adding another exception
+  requires a written justification in that list — never a blanket disable.
+* If a real credential is ever committed: rotate it first, then remove it and
+  purge it from history. Do not simply delete the line.
+
+### 7.3 Firestore rules
+* `firestore.rules` is the only authorisation layer for learner data. No rule may
+  grant access to unauthenticated callers, and every collection requires a
+  signed-in check plus a payload validator.
+* `tests/firestore-rules.test.ts` fails CI if `if true` allowances reappear, if a
+  collection loses its auth guard, or if the critical invariants (uid pinning,
+  role-escalation block, `senderId` ownership, tutor-session privacy) change.
+* Editing the rules is not enough: they must be deployed with
+  `bash scripts/deploy-firestore-rules.sh` before the change is live.
+
+### 7.4 API abuse protection
+* `src/lib/rateLimit.ts` is mounted on `/api` in `server.ts` before every route
+  handler. Do not remove, bypass or reorder it ahead of a new route.
+* Budgets are defined in `RATE_LIMIT_RULES` (AI 30/min, images 20/min,
+  video 10/min, media 40/min, general 120/min). A new expensive endpoint must be
+  added to `ruleForPath()` with its own budget.
+* `RATE_LIMIT_DISABLED=true` exists for local debugging only. Never set it in a
+  deployed environment.
+
+### 7.5 Repository hygiene
+* Historical one-off scripts live in `archive/legacy-scripts/` (see
+  `archive/README.md`). Do not import from, build, or extend that folder, and do
+  not add new scratch scripts to the repository root — put maintained tooling in
+  `scripts/` or `tests/`.
