@@ -219,7 +219,7 @@ npm start            # node dist/server.cjs
 | `npm run build:fp-pack` | Builds the self-contained, offline "portable pack" for Foundation Phase printables. |
 | `npm run render:template-demo` | Renders the canonical content-template demos into `docs/`. |
 | `npm run verify:template` | Runs the 101-assertion verification of the content template contract (see `docs/CONTENT_TEMPLATE.md`). |
-| `npm test` | Runs the unit test suite (Vitest) — AI routing/fallback, frozen model registry, content template, CAPS frameworks, Foundation Phase templates, Firestore rules, rate limiting. |
+| `npm test` | Runs the unit test suite (Vitest) — AI routing/fallback, frozen model registry (+ parity with `AGENTS.md` §1), content template, CAPS frameworks, Foundation Phase templates, Firestore rules, rate limiting. |
 | `npm run test:watch` | Vitest in watch mode. |
 | `npm run test:coverage` | Test run with V8 coverage for `src/lib` and `src/services`. |
 | `npm run scan:secrets` | Dependency-free credential scan (fails on keys outside the reviewed exceptions). |
@@ -346,7 +346,7 @@ Until the rules are deployed, affected dashboards fall back to their `localStora
 | Document | Contents |
 | :--- | :--- |
 | **[TECHNICAL_SPECIFICATION.md](TECHNICAL_SPECIFICATION.md)** | Full technical specification: architecture, API reference, AI routing, data model, security, NFRs and known gaps. |
-| [AGENTS.md](AGENTS.md) | Binding project constraints: frozen model list, protected assets, UI design freeze, prompt preservation. |
+| [AGENTS.md](AGENTS.md) | Binding project constraints: frozen model list and its registry (`src/lib/aiModels.ts`), protected assets, UI design freeze, prompt preservation, repository guardrails (§7: CI gate, secrets, Firestore rules, rate limiting). |
 | [DESIGN.md](DESIGN.md) | Design system: colour tokens, typography, glassmorphism, grade-appropriate layouts and print blueprint. |
 | [PROMPT_SYSTEM.md](PROMPT_SYSTEM.md) | The prompt-engineering framework, templates and output validator. |
 | [SA_INTEGRATION_SUMMARY.md](SA_INTEGRATION_SUMMARY.md) | CAPS/NPA/SIAS/WP6/POPIA compliance integration summary. |

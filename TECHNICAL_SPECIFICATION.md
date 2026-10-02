@@ -5,7 +5,7 @@
 | **Document version** | 1.1 |
 | **Date** | 2 October 2026 |
 | **Status** | Approved specification of the current implementation |
-| **Changelog** | **1.1** — recorded the hardening and hygiene work of 2 Oct 2026: automated test suite, CI pipeline, secret scanner, API rate limiting, Firestore rule fixes, package rename, repository archive, single-source model registry (§§6.3, 9.3, 10.4, 11.1, 12, 14, 15). **1.0** — initial specification generated from source. |
+| **Changelog** | **1.1** — recorded the hardening and hygiene work of 2 Oct 2026: automated test suite (including `AGENTS.md` §1 parity checks), CI pipeline, secret scanner, API rate limiting, Firestore rule fixes, package rename, repository archive, and the single-source model registry with the corresponding `AGENTS.md` §1 update and new §7 guardrails (§§6.3, 9.3, 10.4, 11.1, 12, 14, 15). **1.0** — initial specification generated from source. |
 | **Source revision** | `main` @ `5104ba65` (analysed on branch `arena/01a0fab6-eduai-companion`) |
 | **Audience** | Engineers, maintainers, technical reviewers and integrators |
 | **Related documents** | [`README.md`](README.md) · [`AGENTS.md`](AGENTS.md) · [`DESIGN.md`](DESIGN.md) · [`PROMPT_SYSTEM.md`](PROMPT_SYSTEM.md) · [`security_spec.md`](security_spec.md) · [`SA_INTEGRATION_SUMMARY.md`](SA_INTEGRATION_SUMMARY.md) · [`docs/CONTENT_TEMPLATE.md`](docs/CONTENT_TEMPLATE.md) |
@@ -543,7 +543,7 @@ protected by rate limiting (§6.3) but not authentication (§13.2).
 
 The rules are the deployed contract, so **these fixes take effect only after
 `bash scripts/deploy-firestore-rules.sh` is run against the Firebase project.** `tests/firestore-rules.test.ts`
-now fails the build if any allowance is granted to an unauthenticated caller.
+now fails the build if any allowance is granted to an unauthenticated caller, and the obligation is recorded in `AGENTS.md` §7.3 for future contributors.
 
 Remaining coarse-grained policies (any authenticated user can read/write) are listed in §14 item 13.
 
@@ -716,7 +716,7 @@ no credentials, no emulator.
 
 | Suite | Locks down |
 | :--- | :--- |
-| `ai-models.test.ts` | The FROZEN provider list and model slugs against `AGENTS.md` §1: Gemini primary/fallback chain order, `qwen3.8-max`, the three NVIDIA NIM Nemotron slugs, the NVIDIA-only endpoint rule, legacy-id aliasing, and the sibling-engine fallback graph. |
+| `ai-models.test.ts` | The FROZEN provider list and model slugs: Gemini primary/fallback chain order, `qwen3.8-max`, the three NVIDIA NIM Nemotron slugs, the NVIDIA-only endpoint rule, legacy-id aliasing, and the sibling-engine fallback graph. It also **parses `AGENTS.md` §1** and asserts the document and the registry agree value for value, so neither can drift. |
 | `ai-routing.test.ts` | Provider fallback behaviour in `unifiedAiService`: alternative engine → Gemini re-route, Gemini quota → Qwen drop-through, non-quota errors surfacing instead of being masked, image-aware tutor refusal to fall back, OCR.space ↔ Gemini vision fallback. |
 | `content-template.test.ts` | The ONCE / GRADIENT / FOOTER contract on arbitrary (messy) model output, idempotent wrapping, CAPS-code derivation per phase. |
 | `sa-frameworks.test.ts` | Phase detection, NPA SBA/exam weights per phase, the 7-point rating scale, Bloom's distributions summing to 100%, subject/phase validation, the SIAS levels, and the full `validateCAPSCompliance` checklist. |
@@ -798,7 +798,7 @@ The right-hand column records what was done, on which date, and what remains.
 | 6 | `package.json` name is `react-example` | ✅ | **Fixed 2 Oct 2026.** Renamed to `eduai-companion`, version set to `1.0.0`, a description added, `engines.node >= 20` declared, and both lockfiles refreshed/updated. |
 | 7 | Optional server assemblers (`docx`, `puppeteer`, `jszip`) are not dependencies | ⬜ | Server-side DOCX/PDF/ZIP still degrade to the client-side renderer. Either declare them or document the intended deployment subset. |
 | 8 | Provider costs depend on external free tiers | ⬜ | NIM / Gradio / Perchance endpoints can rate-limit or change without notice. The documented fallback graphs and the new rate limiter reduce exposure; production SLAs need paid tiers. |
-| 9 | Frozen model list required coordinated edits in four files | ✅ | **Fixed 2 Oct 2026.** `src/lib/aiModels.ts` is now the single source of truth and `tests/ai-models.test.ts` fails CI on any drift from `AGENTS.md` §1. *Note:* `AGENTS.md` itself still lists the old file set and should be updated by the owner to reference the registry. |
+| 9 | Frozen model list required coordinated edits in four files | ✅ | **Fixed 2 Oct 2026.** `src/lib/aiModels.ts` is now the single source of truth and `tests/ai-models.test.ts` fails CI on any drift from `AGENTS.md` §1. `AGENTS.md` §1 now documents the registry as the single source of truth and names `src/lib/aiModels.ts` in its file list; a new `AGENTS.md` §7 ("Repository Guardrails") records the CI gate, secret-scanning, rules-deployment and rate-limit obligations. |
 | 10 | No i18n framework | ⬜ | South African English only. Introduce a message catalogue before hard-coding more copy if multilingual rollout is required. |
 | 11 | GitHub App token cannot push workflow edits | 🟡 | **Confirmed again 2 Oct 2026** by a probe push (rejected with "refusing to allow a GitHub App to create or update workflow … without `workflows` permission"). The CI workflow is therefore delivered as a paste-in template at `docs/ci.workflow.yml`, following the existing `docs/build-android2.workflow.yml` convention. *Remaining:* grant the integration `workflows` permission, or paste both files in manually. |
 | 12 | Documentation drift | 🟡 | README and this specification were rewritten from source on 2 Oct 2026, and `MANUAL_PUSH.md` was annotated as historical. *Remaining:* `CAPS_LESSON_PLAN_GUIDE.md` still references older service names — review at the next release. |

@@ -1,10 +1,14 @@
 /**
  * Frozen AI model registry — regression guard.
  *
- * These assertions mirror the FROZEN table in `AGENTS.md` §1. If someone
- * re-maps, aliases, upgrades or downgrades a model, this suite fails CI before
- * the change can ship. Update AGENTS.md and this file together, deliberately.
+ * The last block in this file PARSES the FROZEN table in `AGENTS.md` §1 and
+ * asserts it against `src/lib/aiModels.ts` value for value, so the binding
+ * document and the code can never drift apart. If someone re-maps, aliases,
+ * upgrades or downgrades a model — in either place — this suite fails CI before
+ * the change can ship. Update AGENTS.md and the registry together, deliberately.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   AI_PROVIDERS,
@@ -152,5 +156,93 @@ describe('alternative-engine fallback graph', () => {
       expect(sibling).not.toBe(id);
       expect(sibling).not.toBe('gemini');
     }
+  });
+});
+
+/**
+ * AGENTS.md §1 is the binding document for the frozen model list; this block
+ * exists so the promise made there ("tests/ai-models.test.ts asserts every value
+ * in this section against src/lib/aiModels.ts") is enforced by CI rather than
+ * trusted.
+ */
+describe('AGENTS.md parity (the binding document)', () => {
+  const agentsMd = readFileSync(resolve(__dirname, '..', 'AGENTS.md'), 'utf8');
+
+  /** Rows of the "The ONLY allowed models" table, keyed by provider id. */
+  const frozenRows = (() => {
+    const start = agentsMd.indexOf('### The ONLY allowed models');
+    expect(start, 'AGENTS.md §1 frozen model table not found').toBeGreaterThan(-1);
+    const end = agentsMd.indexOf('### ', start + 1);
+    const section = agentsMd.slice(start, end === -1 ? undefined : end);
+
+    const rows = new Map<string, { modelCell: string; endpointCell: string }>();
+    for (const line of section.split(/\r?\n/)) {
+      const cells = line.split('|');
+      if (cells.length < 5) continue;
+      // cells[0] is empty (leading pipe); the id column is cells[1].
+      const id = cells[1].match(/`([^`]+)`/)?.[1];
+      if (!id) continue;
+      rows.set(id, { modelCell: cells[2], endpointCell: cells[3] });
+    }
+    return rows;
+  })();
+
+  it('documents exactly the five frozen providers — no more, no fewer', () => {
+    expect([...frozenRows.keys()].sort()).toEqual([...AI_PROVIDERS].sort());
+  });
+
+  it('names src/lib/aiModels.ts as the single source of truth', () => {
+    expect(agentsMd).toContain('src/lib/aiModels.ts');
+  });
+
+  it('publishes the same model slug as the registry, for every provider', () => {
+    for (const id of AI_PROVIDERS) {
+      const row = frozenRows.get(id);
+      expect(row, `no AGENTS.md row for ${id}`).toBeTruthy();
+      const documented = row!.modelCell.match(/`([^`]+)`/)?.[1];
+      expect(documented, `model cell for ${id} must contain a backticked slug`).toBeTruthy();
+      expect(documented, `AGENTS.md vs registry drift for ${id}`).toBe(resolveProviderModel(id));
+    }
+  });
+
+  it('documents the Gemini fallback chain in the exact registry order', () => {
+    const row = frozenRows.get('gemini')!;
+    let cursor = -1;
+    for (const model of GEMINI_MODEL_CHAIN) {
+      const at = row.modelCell.indexOf(model, cursor + 1);
+      expect(at, `${model} must appear after the previous chain member`).toBeGreaterThan(cursor);
+      cursor = at;
+    }
+  });
+
+  it('pins every Nemotron row to the free NVIDIA NIM endpoint', () => {
+    for (const id of NEMOTRON_PROVIDERS) {
+      const row = frozenRows.get(id)!;
+      expect(row.endpointCell).toContain(NVIDIA_BASE_URL);
+      expect(row.endpointCell).toMatch(/NVIDIA_API_KEY/);
+      expect(row.endpointCell).not.toMatch(/groq|openrouter/i);
+    }
+  });
+
+  it('pins the Qwen row to Model Studio with its workspace endpoint and key', () => {
+    const row = frozenRows.get('alibaba-qwen')!;
+    expect(row.modelCell).toContain(QWEN_DEFAULT_MODEL);
+    expect(row.endpointCell).toContain(QWEN_BASE_URL);
+    expect(row.endpointCell).toContain('ALIBABA_API_KEY');
+  });
+
+  it('keeps the banned-provider and legacy-alias rules written down', () => {
+    expect(agentsMd).toMatch(/Llama-family models are REMOVED/i);
+    expect(agentsMd).toMatch(/Groq and OpenRouter are banned/i);
+    for (const legacy of LEGACY_PROVIDER_IDS) {
+      expect(agentsMd, `AGENTS.md must document the retired id ${legacy}`).toContain(legacy);
+    }
+  });
+
+  it('documents the CI gate and the guardrails that protect these rules', () => {
+    expect(agentsMd).toMatch(/npm run ci/);
+    expect(agentsMd).toMatch(/scripts\/scan-secrets\.mjs/);
+    expect(agentsMd).toMatch(/scripts\/deploy-firestore-rules\.sh/);
+    expect(agentsMd).toMatch(/RATE_LIMIT_DISABLED/);
   });
 });
