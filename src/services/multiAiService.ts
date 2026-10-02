@@ -2,32 +2,29 @@ import axios from 'axios';
 import { checkAndReportApiError } from '../lib/apiErrorHelper';
 import { AI_SECRETS } from '../lib/aiSecrets';
 import { isNativeApp } from '../lib/platform';
+import {
+  NVIDIA_BASE_URL,
+  NVIDIA_MODELS,
+  QWEN_BASE_URL,
+  QWEN_DEFAULT_MODEL,
+  isNemotronProvider,
+  isLegacyProvider,
+  type AlternativeAiProvider,
+} from '../lib/aiModels';
 
-export type AIProvider = 'alibaba-qwen' | 'nvidia-nemotron-nano' | 'nvidia-nemotron-ultra' | 'nvidia-nemotron-lightning';
+// Provider ids, endpoints and model slugs come from the frozen registry in
+// `src/lib/aiModels.ts` (single source of truth — see AGENTS.md §1).
+export type AIProvider = AlternativeAiProvider;
 
-// ─── Qwen 3.8 via Alibaba Cloud Model Studio (OpenAI-compatible) ─────────────
-// Workspace-scoped endpoint (see Model Studio → API KEY dialog). Override with
-// VITE_ALIBABA_API_BASE / ALIBABA_API_BASE if the workspace or region changes.
-const QWEN_BASE_URL = "https://ws-8ldb9u90tetxcada.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1";
-const QWEN_DEFAULT_MODEL = "qwen3.8-max";
-
-// NVIDIA NIM Endpoints for Nemotron models
-const NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
-
-// NVIDIA Nemotron Models Configuration
-const NVIDIA_MODELS: Record<string, string> = {
-  'nvidia-nemotron-nano': 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
-  'nvidia-nemotron-ultra': 'nvidia/nemotron-ultra-550b-a55b',
-  'nvidia-nemotron-lightning': 'nvidia/nemotron-3.5-lightning-30b-a3b',
-};
-
-// Legacy provider ids that used to route to NVIDIA Nemotron / Groq — all now
-// transparently map to the Qwen 3.8 engine.
-const LEGACY_PROVIDERS = ['groq-qwen'];
+// ─── Endpoints & model slugs ────────────────────────────────────────────────
+// Qwen 3.8 Max → Alibaba Cloud Model Studio (OpenAI-compatible, workspace
+// scoped; override with VITE_ALIBABA_API_BASE / ALIBABA_API_BASE).
+// Nemotron    → NVIDIA NIM ONLY (never Groq/OpenRouter).
+// All values are imported from the frozen registry — do not inline literals.
 
 const executeClientMultiAi = async (provider: AIProvider | string, messages: any[], model?: string) => {
   // Handle NVIDIA NIM providers
-  if (provider && provider.startsWith('nvidia-nemotron')) {
+  if (provider && isNemotronProvider(provider)) {
     const nvidiaModel = NVIDIA_MODELS[provider];
     if (!nvidiaModel) {
       throw new Error(`Unknown NVIDIA Nemotron model: ${provider}`);
@@ -88,7 +85,7 @@ const executeClientMultiAi = async (provider: AIProvider | string, messages: any
   if (
     !selectedModel ||
     selectedModel === provider ||
-    LEGACY_PROVIDERS.includes(selectedModel) ||
+    isLegacyProvider(selectedModel) ||
     /nemotron|nvidia\//i.test(selectedModel)
   ) {
     selectedModel = QWEN_DEFAULT_MODEL;

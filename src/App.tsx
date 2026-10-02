@@ -223,6 +223,7 @@ const SidebarItem = ({ id, icon: Icon, label, active, onClick, collapsed, isDark
 // Inline LandingPage removed in favor of imported component from './components/LandingPage'
 
 import { useAi, AIProvider as AIProviderType } from './contexts/AiContext';
+import { AI_PROVIDERS, AI_PROVIDER_LABELS } from './lib/aiModels';
 
 export default function App() {
   const { provider, setProvider, ttsProvider, setTtsProvider, ocrProvider, setOcrProvider, imageProvider, setImageProvider } = useAi();
@@ -414,13 +415,8 @@ export default function App() {
     setOptimizationStats({});
     triggerToast("Initiating regional model speed diagnostic...", "info");
     
-    const candidates = [
-      { id: 'gemini', label: 'Gemini 3.8 Flash' },
-      { id: 'alibaba-qwen', label: 'Qwen 3.8 Max' },
-      { id: 'nvidia-nemotron-nano', label: 'Nemotron 3 Nano (30B)' },
-      { id: 'nvidia-nemotron-ultra', label: 'Nemotron 3 Ultra (550B)' },
-      { id: 'nvidia-nemotron-lightning', label: 'Nemotron 3.5 Lightning' }
-    ];
+    // Frozen provider list — ids and labels both come from src/lib/aiModels.ts.
+    const candidates = AI_PROVIDERS.map((id) => ({ id, label: AI_PROVIDER_LABELS[id] }));
 
     const results: Record<string, number | 'failed'> = {};
 

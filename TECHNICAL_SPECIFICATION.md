@@ -2,9 +2,10 @@
 
 | | |
 | :--- | :--- |
-| **Document version** | 1.0 |
+| **Document version** | 1.1 |
 | **Date** | 2 October 2026 |
 | **Status** | Approved specification of the current implementation |
+| **Changelog** | **1.1** — recorded the hardening and hygiene work of 2 Oct 2026: automated test suite, CI pipeline, secret scanner, API rate limiting, Firestore rule fixes, package rename, repository archive, single-source model registry (§§6.3, 9.3, 10.4, 11.1, 12, 14, 15). **1.0** — initial specification generated from source. |
 | **Source revision** | `main` @ `5104ba65` (analysed on branch `arena/01a0fab6-eduai-companion`) |
 | **Audience** | Engineers, maintainers, technical reviewers and integrators |
 | **Related documents** | [`README.md`](README.md) · [`AGENTS.md`](AGENTS.md) · [`DESIGN.md`](DESIGN.md) · [`PROMPT_SYSTEM.md`](PROMPT_SYSTEM.md) · [`security_spec.md`](security_spec.md) · [`SA_INTEGRATION_SUMMARY.md`](SA_INTEGRATION_SUMMARY.md) · [`docs/CONTENT_TEMPLATE.md`](docs/CONTENT_TEMPLATE.md) |
@@ -358,6 +359,13 @@ There is no authentication middleware, rate limiting, CSRF layer or CORS configu
 - **Timeouts**: video generation uses a 120-second race; serverless functions are capped at 60 seconds by `vercel.json`.
 - **Fallbacks**: provider failures never surface as raw provider errors to the learner experience where a fallback exists — the AI layer logs, classifies and re-routes to Gemini; the video layer substitutes curated educational clips.
 - **Port**: 3000, bound to `0.0.0.0` (required for container/preview environments).
+- **Abuse protection**: an in-memory fixed-window rate limiter is mounted on `/api` **before** all
+  route handlers (`src/lib/rateLimit.ts`). Budgets per client per minute: AI 30, images 20,
+  video 10, OCR/TTS/Gemini-action 40, general 120. `/api/health` and
+  `/api/notifications/vapid-public-key` are exempt. Blocked requests receive
+  `429` + `Retry-After`; every response carries `X-RateLimit-Limit` / `X-RateLimit-Remaining`.
+  Disable with `RATE_LIMIT_DISABLED=true`. Keys are derived from `req.ip` (proxy-aware via
+  `app.set('trust proxy', 1)`); see the per-process limitation in §13.2.
 
 ---
 
@@ -522,7 +530,22 @@ Authorisation is enforced in **Firestore security rules** (attribute-based acces
 - Tutor sessions are private to their owner.
 - Field allow-lists, size limits and timestamp immutability prevent state poisoning.
 
-The API server itself does not verify Firebase ID tokens; it is a stateless provider gateway. AI usage therefore relies on the client being the only intended caller (§13.2).
+The API server itself does not verify Firebase ID tokens; it is a stateless provider gateway
+protected by rate limiting (§6.3) but not authentication (§13.2).
+
+**Rules hardening (2 October 2026).** Two wide-open rules were closed after a review of
+`firestore.rules`:
+
+| Collection | Before | After | Why it mattered |
+| :--- | :--- | :--- | :--- |
+| `planner_events` | `allow read, write: if true` | `if isSignedIn()` | Any unauthenticated caller could read, alter or delete **every** teacher's diary entry. |
+| `illustrations` | `allow read: if true` | `if isSignedIn()` | The library's prompts and image URLs were world-readable. |
+
+The rules are the deployed contract, so **these fixes take effect only after
+`bash scripts/deploy-firestore-rules.sh` is run against the Firebase project.** `tests/firestore-rules.test.ts`
+now fails the build if any allowance is granted to an unauthenticated caller.
+
+Remaining coarse-grained policies (any authenticated user can read/write) are listed in §14 item 13.
 
 ### 9.4 Role capability matrix (functional)
 
@@ -572,7 +595,9 @@ Layered graceful degradation:
 
 ### 10.4 Security
 
-See §13. Highlights: ABAC rules, protected keystore, dependency scanning by GitHub, no server-side secret exposure to the client bundle except the deliberate native fallback keys.
+See §13. Highlights: ABAC rules (hardened 2 Oct 2026), per-client API rate limiting,
+a repository secret scanner wired into CI, a protected keystore, no server-side secret exposure
+to the client bundle except the deliberate native fallback keys (§13.3).
 
 ### 10.5 Accessibility and inclusivity
 
@@ -617,6 +642,7 @@ South African English, ZAR currency, DD/MM/YYYY dates, local names/context. Foun
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | optional | Server | Web Push; when absent the API reports `{ enabled: false }`. |
 | `APP_URL` | optional | Server | Self-referential links/OAuth. |
 | `NODE_ENV`, `PORT`, `VERCEL` | platform | Server | `VERCEL` disables `app.listen`; dev mode mounts Vite. |
+| `RATE_LIMIT_DISABLED` | optional | Server | Set to `true` to switch off the `/api` rate limiter (not recommended in public deployments). |
 
 `.env.example` documents the supported set. Firebase web configuration is committed in `firebase-applet-config.json` (web API keys and config are public identifiers, protected by Firebase security rules and API-key restrictions).
 
@@ -672,19 +698,51 @@ npm run build
 
 | Check | Command | Coverage |
 | :--- | :--- | :--- |
+| **Full pipeline** | `npm run ci` (`scripts/ci.sh`) | The five stages below, in order, fail-fast. `--skip-build` shortens the loop. |
+| **Secret scan** | `npm run scan:secrets` | Dependency-free scan of the working tree for credential-shaped material; fails on anything outside the reviewed allowlist (`scripts/scan-secrets.mjs`). |
 | Type checking | `npm run lint` | Entire TS/TSX codebase (`tsc --noEmit`). |
-| Production build | `npm run build` | Vite client + esbuild server compile. |
+| **Unit tests** | `npm test` (`vitest run`) | 7 suites / 118 tests — see 12.2. |
+| **Coverage** | `npm run test:coverage` | V8 coverage over `src/lib/**` and `src/services/**`. |
 | Content-template contract | `npm run verify:template` | 101 assertions on template normalisation (single compliance labels, gradient banners, exact footer). |
+| Production build | `npm run build` | Vite client + esbuild server compile. |
 | Template demos | `npm run render:template-demo` | Regenerates the byte-comparable demos in `docs/`. |
-| Firestore rules lint | `@firebase/eslint-plugin-security-rules` (dev dependency) | Rule syntax/security linting when wired into an editor/CI run. |
+| Firestore rules emulator suite | *(not yet wired)* | `@firebase/eslint-plugin-security-rules` is a dev dependency for rule linting. |
 
-### 12.2 Testing gaps
+### 12.2 Test suite (added 2 October 2026)
 
-- **No unit, integration or end-to-end test framework is configured** (no Jest/Vitest/Playwright dependency or `test` script).
+Tests live in `tests/` and run with Vitest in a Node environment (see `vitest.config.ts`,
+which deliberately does not load the PWA plugin). All tests are pure logic — no network,
+no credentials, no emulator.
+
+| Suite | Locks down |
+| :--- | :--- |
+| `ai-models.test.ts` | The FROZEN provider list and model slugs against `AGENTS.md` §1: Gemini primary/fallback chain order, `qwen3.8-max`, the three NVIDIA NIM Nemotron slugs, the NVIDIA-only endpoint rule, legacy-id aliasing, and the sibling-engine fallback graph. |
+| `ai-routing.test.ts` | Provider fallback behaviour in `unifiedAiService`: alternative engine → Gemini re-route, Gemini quota → Qwen drop-through, non-quota errors surfacing instead of being masked, image-aware tutor refusal to fall back, OCR.space ↔ Gemini vision fallback. |
+| `content-template.test.ts` | The ONCE / GRADIENT / FOOTER contract on arbitrary (messy) model output, idempotent wrapping, CAPS-code derivation per phase. |
+| `sa-frameworks.test.ts` | Phase detection, NPA SBA/exam weights per phase, the 7-point rating scale, Bloom's distributions summing to 100%, subject/phase validation, the SIAS levels, and the full `validateCAPSCompliance` checklist. |
+| `foundation-templates.test.ts` | The documented 28 templates split 6/10/6/6, unique ids, authored (non-placeholder) content, grade scoping, filtering, and error-free rendering of every template (including bilingual mode). |
+| `firestore-rules.test.ts` | Deny-by-default posture, per-collection auth guards, no unauthenticated allowance anywhere, the critical invariants (uid pinning, role-escalation block, senderId ownership, tutor-session privacy) and identifier/string size caps. |
+| `rate-limit.test.ts` | Limiter window/limit maths, per-key and per-rule isolation, retry hints, key eviction, endpoint-class budgets, client-key derivation, plus a wiring guard on the middleware in `server.ts`. |
+
+### 12.3 CI (GitHub Actions)
+
+`.github/workflows/ci.yml` runs the same five stages on every pull request and push to
+`main`, uploads the JUnit report (always) and the production bundle (on `main`).
+
+> ⚠️ The workflow file is delivered as [`docs/ci.workflow.yml`](docs/ci.workflow.yml) because the
+> Arena GitHub App token cannot push to `.github/workflows/*` (the same reason
+> `docs/build-android2.workflow.yml` exists). Install it with a single paste, as described
+> in the file header, or run the identical pipeline locally with `npm run ci`.
+
+### 12.4 Testing gaps (remaining)
+
+- **No end-to-end / browser tests** — the login → generate → export smoke path is still manual
+  (Playwright is the recommended next addition).
+- **No Firestore emulator suite** — `firestore.rules` is covered by static assertions only; the
+  authoritative behavioural check is still the manual "Dirty Dozen" catalogue in `security_spec.md`.
 - No automated accessibility, performance or visual-regression testing.
-- No dedicated CI job for `npm run lint` — the Android workflow builds, but the type gate is currently a local/manual step.
 
-### 12.3 Suggested manual regression matrix (current practice)
+### 12.5 Suggested manual regression matrix (current practice)
 
 1. Sign in as each of the four roles (email, Google, anonymous).
 2. Generate each content type and export to PDF/DOCX/ZIP (web + Android).
@@ -727,35 +785,52 @@ npm run build
 
 ## 14. Known Limitations and Technical Debt
 
-| # | Item | Impact | Notes |
+**Status key** — ✅ addressed · 🟡 partially addressed · ⬜ open.
+The right-hand column records what was done, on which date, and what remains.
+
+| # | Item | Status | Resolution / remaining work |
 | :--- | :--- | :--- | :--- |
-| 1 | No automated test suite | Regressions rely on manual QA. | Add Vitest for logic (prompt engine, formatters, routing) and Playwright for critical flows. |
-| 2 | Unauthenticated API | Quota abuse risk. | See §13.2. |
-| 3 | `server.ts` is a 2.4k-LOC monolith | Hard to review/extend; route, prompt and provider code are interleaved. | Extract routers (`/api/ai`, `/api/media`, `/api/notifications`) and a provider registry. |
-| 4 | In-memory job/subscription state | Jobs lost on restart; multi-instance push inconsistencies. | Persist to Firestore/Redis. |
-| 5 | Legacy/scratch artefacts in repo root | ~80 `fix_*.cjs`, `patch_*.cjs`, `apply*.py`, `fixes.patch`, `fetch-repo.js`, test-*.mjs files clutter the tree and confuse contributors. | Move to an `archive/` folder or delete after verifying they are superseded; keep tests that are still useful under `scripts/`. |
-| 6 | `package.json` name is `react-example` | Misleading package metadata; lockfiles carry the same name. | Rename to `eduai-companion` and regenerate/refresh lockfiles. |
-| 7 | Optional server assemblers (`docx`, `puppeteer`, `jszip`) are not dependencies | Server-side DOCX/PDF/ZIP silently degrade to client-side rendering. | Declare them explicitly or document the intended deployment subset. |
-| 8 | Provider costs and quotas depend on external free tiers | Free NIM/Gradio/Perchance endpoints can rate-limit or change. | Monitor, cache, and maintain the documented fallbacks; consider paid tiers for production SLAs. |
-| 9 | Frozen model list in `AGENTS.md` | Any model update requires explicit, coordinated changes across `server.ts`, `AiContext`, `multiAiService` and `App.tsx`. | Keep the model registry in one module and have all call sites read from it. |
-| 10 | No i18n framework | Only South African English is supported. | If multilingual rollout is required, introduce a message catalogue before hard-coding more copy. |
-| 11 | GitHub App token cannot push workflow edits | CI workflow changes must be applied manually (documented in `docs/build-android2.workflow.yml`). | Owner to update the workflow with the `workflows` permission granted, or apply manually. |
-| 12 | Documentation drift | Older docs (e.g. README pre-update, `CAPS_LESSON_PLAN_GUIDE.md` referencing older service names) may not match current code. | Treat this specification + README as the current baseline; review docs each release. |
+| 1 | No automated test suite | ✅ | **Fixed 2 Oct 2026.** Vitest 3 is configured (`vitest.config.ts`, `tests/`) with 7 suites / 118 tests covering AI model routing and fallback, the frozen provider registry, the content-template contract, CAPS/NPA/SIAS frameworks, the 28 Foundation Phase templates, Firestore rule invariants and rate limiting. `npm test` runs them; `npm run test:coverage` reports V8 coverage. *Remaining:* browser-level end-to-end tests (Playwright) for login → generate → export. |
+| 2 | Unauthenticated API | 🟡 | **Mitigated 2 Oct 2026** with a dependency-free, per-client rate limiter on `/api` (§6.3) — AI 30/min, images 20/min, video 10/min, media 40/min, general 120/min — returning `429` + `Retry-After`. *Remaining:* Firebase ID-token verification and per-user quotas. The limiter is per process, so horizontally scaled deployments see `max × instances`. |
+| 3 | `server.ts` is a 2.4k-LOC monolith | 🟡 | **Partially addressed 2 Oct 2026:** the frozen model list, endpoints, slugs, legacy aliases and fallback graph now live in one registry, `src/lib/aiModels.ts`, consumed by `server.ts`, `multiAiService.ts`, `AiContext.tsx` and `App.tsx`. *Remaining:* extract `/api/ai`, `/api/media` and `/api/notifications` into Express routers. |
+| 4 | In-memory job/subscription state | ⬜ | Video jobs (`omniJobs`) and push subscriptions remain process-local: lost on restart and not shared between serverless instances. Persisting them requires care around the protected video pipeline (`AGENTS.md` §6) — plan as a dedicated change. |
+| 5 | Legacy/scratch artefacts in repo root | ✅ | **Fixed 2 Oct 2026.** 102 one-off files (`fix_*`, `patch_*`, `update_*`, `test-*`, `fixes.patch`, env probes…) moved to `archive/legacy-scripts/` with a manifest in `archive/README.md`; `tsconfig.json` excludes the folder. |
+| 6 | `package.json` name is `react-example` | ✅ | **Fixed 2 Oct 2026.** Renamed to `eduai-companion`, version set to `1.0.0`, a description added, `engines.node >= 20` declared, and both lockfiles refreshed/updated. |
+| 7 | Optional server assemblers (`docx`, `puppeteer`, `jszip`) are not dependencies | ⬜ | Server-side DOCX/PDF/ZIP still degrade to the client-side renderer. Either declare them or document the intended deployment subset. |
+| 8 | Provider costs depend on external free tiers | ⬜ | NIM / Gradio / Perchance endpoints can rate-limit or change without notice. The documented fallback graphs and the new rate limiter reduce exposure; production SLAs need paid tiers. |
+| 9 | Frozen model list required coordinated edits in four files | ✅ | **Fixed 2 Oct 2026.** `src/lib/aiModels.ts` is now the single source of truth and `tests/ai-models.test.ts` fails CI on any drift from `AGENTS.md` §1. *Note:* `AGENTS.md` itself still lists the old file set and should be updated by the owner to reference the registry. |
+| 10 | No i18n framework | ⬜ | South African English only. Introduce a message catalogue before hard-coding more copy if multilingual rollout is required. |
+| 11 | GitHub App token cannot push workflow edits | 🟡 | **Confirmed again 2 Oct 2026** by a probe push (rejected with "refusing to allow a GitHub App to create or update workflow … without `workflows` permission"). The CI workflow is therefore delivered as a paste-in template at `docs/ci.workflow.yml`, following the existing `docs/build-android2.workflow.yml` convention. *Remaining:* grant the integration `workflows` permission, or paste both files in manually. |
+| 12 | Documentation drift | 🟡 | README and this specification were rewritten from source on 2 Oct 2026, and `MANUAL_PUSH.md` was annotated as historical. *Remaining:* `CAPS_LESSON_PLAN_GUIDE.md` still references older service names — review at the next release. |
+| 13 | Coarse-grained Firestore policies | ⬜ | Several collections use `allow read, write: if isSignedIn()` (any authenticated user): `students`, `assignments`, `submissions` (create/update), `learner_interventions`, `portfolio_items`, `student_records`, `collaborative_projects`, `collaborative_cursors`, `notifications`, `auto_grading_reports`, `published_reports`, `activity_logs`, `messages`, `messenger_messages`. A learner account can therefore read/write more than it should. Tightening requires role/ownership fields on write **and** scoped queries on read — a data-model change to schedule deliberately. |
+| 14 | Planner events are shared school-wide | ⬜ | Follow-on from the hardening above: `planner_events` now requires authentication, but the client writes no owner field and queries the whole collection, so every signed-in user still sees every event. Per-teacher scoping needs an `ownerId` on write plus a scoped query. |
+| 15 | Rules fixes must be deployed to take effect | ⬜ | The two vulnerabilities closed in `firestore.rules` (see §9.3) are only live once `bash scripts/deploy-firestore-rules.sh` is run against the Firebase project. |
+| 16 | Embedded client fallback keys | ⬜ | `src/lib/aiSecrets.ts` still ships obfuscated provider keys for native builds (§13.3). A scanner now prevents *new* leaks, but removing these requires a token-issuing proxy and key rotation — a deliberate, coordinated change. |
 
 ---
 
 ## 15. Recommended Roadmap
 
-Prioritised engineering recommendations (not commitments):
+Prioritised engineering recommendations, with the work completed on **2 October 2026** recorded
+so the remaining items stay honest. Status key: ✅ done · 🟡 partly done · ⬜ open.
 
-1. **Secure the API edge** — Firebase ID-token verification, per-user rate limits/quotas, helmet + CSP, request-size reduction, and abuse alerting.
-2. **Introduce automated tests** — unit tests for the prompt engine, template normalisation, providers/fallback classification, and Firestore rules; E2E smoke for login → generate → export.
-3. **Refactor `server.ts`** into routers and a provider registry; keep the frozen model mapping in a single module consumed by both server and client.
-4. **Durable job and push state** — Firestore-backed video jobs and push subscriptions so serverless instances agree.
-5. **Repository hygiene** — archive/remove the historical patch scripts, rename the package, and add a CI job that runs `npm run lint`, `npm run build` and `npm run verify:template` on every PR.
-6. **Secrets hardening** — remove embedded client keys in favour of a constrained token service, rotate keys, and add automated secret scanning (the repo already depends on `@firebase/eslint-plugin-security-rules`; extend to a general scanner).
-7. **Accessibility & performance audit** — formal WCAG 2.2 AA review, Lighthouse budgets, and image/font payload budgets.
-8. **POPIA operationalisation** — retention schedule, learner/parent data export and erasure workflows, and a documented incident process.
+| # | Recommendation | Status | What landed / what is left |
+| :--- | :--- | :--- | :--- |
+| 1 | **Secure the API edge** — token verification, per-user quotas, helmet + CSP, smaller request limits, abuse alerting | 🟡 | Rate limiting is live (§6.3): per-client budgets per endpoint class, `429` + `Retry-After`, `X-RateLimit-*` headers, `RATE_LIMIT_DISABLED` override. **Left:** Firebase ID-token verification (needs admin credentials), helmet + CSP, reducing the 50 MB body limit, and alerting. |
+| 2 | **Introduce automated tests** — prompt engine, template normalisation, provider fallback, Firestore rules, E2E smoke | 🟡 | Vitest suite (7 files / 118 tests) covers routing & fallback, the frozen registry, the template contract, CAPS frameworks, the Foundation Phase library, rule invariants and rate limiting; `npm test` / `npm run test:coverage`. **Left:** Playwright smoke for login → generate → export, and emulator-backed rule tests. |
+| 3 | **Refactor `server.ts`** — routers + a single model registry | 🟡 | `src/lib/aiModels.ts` is now the one place the frozen provider list, endpoints, slugs, legacy aliases and sibling-engine graph live, consumed by both server and client. **Left:** extract `/api/ai`, `/api/media`, `/api/notifications` routers. |
+| 4 | **Durable job and push state** — Firestore-backed video jobs and push subscriptions | ⬜ | Deferred deliberately: the video pipeline is protected by `AGENTS.md` §6 and push subscriptions are low-volume. Plan as a dedicated change. |
+| 5 | **Repository hygiene** — archive scripts, rename the package, run lint/build/verify in CI | ✅ | 102 scratch files archived to `archive/legacy-scripts/`; package renamed to `eduai-companion` (v1.0.0) with refreshed lockfiles; `scripts/ci.sh` runs secret scan → `tsc` → tests → template contract → build, mirrored by `docs/ci.workflow.yml`. |
+| 6 | **Secrets hardening** — remove embedded keys, rotate, add scanning | 🟡 | `scripts/scan-secrets.mjs` (dependency-free, 10 rule families, justified allowlist) runs first in CI and fails on new leaks; `src/lib/aiSecrets.ts` is a documented, reviewed exception. **Left:** remove the embedded keys via a token-issuing proxy and rotate them. |
+| 7 | **Accessibility & performance audit** — WCAG 2.2 AA, Lighthouse budgets | ⬜ | Not started. The largest JS chunk is ~5.8 MB (1.6 MB gzipped) and PWA precache is ~44 MB, so code-splitting and payload budgets are the obvious first wins. |
+| 8 | **POPIA operationalisation** — retention, export/erasure workflows, incident process | ⬜ | Not started; requires product/legal input rather than code alone. |
+
+**Recommended next three changes** (highest value per unit of risk):
+
+1. Verify Firebase ID tokens on `/api/*`, keeping the rate limiter as defence in depth.
+2. Add Playwright smoke tests for the login → generate → export path on web and Android WebView.
+3. Scope `planner_events` (and the other coarse collections in §14 item 13) to their owning teacher,
+   including the client-side owner field and query changes.
 
 ---
 

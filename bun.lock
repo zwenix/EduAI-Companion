@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "react-example",
+      "name": "eduai-companion",
       "dependencies": {
         "@anthropic-ai/sdk": "^0.91.0",
         "@google/genai": "^1.29.0",

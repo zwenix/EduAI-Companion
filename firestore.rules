@@ -240,7 +240,9 @@ service cloud.firestore {
         && (!('teacherId' in data) || data.teacherId == null || (data.teacherId is string && data.teacherId.size() <= 128));
     }
     match /illustrations/{illustrationId} {
-      allow read: if true;
+      // Signed-in only: the library is a teacher surface. (Was `if true`, which
+      // exposed every prompt/image URL to unauthenticated callers.)
+      allow read: if isSignedIn();
       allow create, update: if isSignedIn() && isValidIllustration(incoming());
       allow delete: if isSignedIn() && existing().teacherId == request.auth.uid;
     }
@@ -318,7 +320,12 @@ service cloud.firestore {
       allow read, write: if isSignedIn();
     }
     match /planner_events/{eventId} {
-      allow read, write: if true;
+      // SECURITY: this previously allowed unauthenticated read/write of every
+      // teacher's diary entry. Events are shared across the school for now
+      // (the client writes no owner field and queries the whole collection);
+      // per-teacher scoping requires an owner field on write + a scoped query
+      // — tracked in TECHNICAL_SPECIFICATION.md §14.
+      allow read, write: if isSignedIn();
     }
 
   }

@@ -104,6 +104,7 @@ Key characteristics of the product as it exists in this repository:
 | **Charts & rich content** | Recharts, KaTeX, react-markdown, marked, rehype-raw | Progress charts, LaTeX maths and generated HTML rendering. |
 | **Server** | [Node.js](https://nodejs.org/) + [Express](https://expressjs.com/) 4 (`server.ts`) | Serves the API, static assets and the SPA fallback; dev mode proxies Vite. |
 | **Server dev/build** | `tsx` (dev), [esbuild](https://esbuild.github.io/) (build) | `npm run dev` → `tsx server.ts`; `npm run build` → Vite `dist/` + bundled `dist/server.cjs`. |
+| **Testing & CI** | [Vitest](https://vitest.dev/) 3 (+ `@vitest/coverage-v8`), `scripts/ci.sh`, `scripts/scan-secrets.mjs` | `npm run ci` mirrors the GitHub Actions pipeline; tests live in `tests/`. |
 | **Database & auth** | [Firebase](https://firebase.google.com/) 12 — Authentication + Cloud Firestore | Email/password, Google and anonymous sign-in. Firestore uses a persistent local cache with multi-tab support. Attribute-based access control lives in `firestore.rules`. |
 | **Text AI** | Google Gemini (**primary**, `gemini-3.8-flash` with a fallback chain), Alibaba Cloud Model Studio `qwen3.8-max`, NVIDIA NIM Nemotron (Nano Omni 30B, Ultra 550B, 3.5 Lightning 30B) | Client-selectable in Settings; every alternative engine falls back to Gemini on failure. |
 | **Image AI** | Perchance (keyless, primary) → Qwen-Image via NVIDIA NIM → Gemini image / Imagen 3 → Pollinations | Provider fallback graph is fixed in `src/lib/imageGeneration.ts`. |
@@ -218,6 +219,37 @@ npm start            # node dist/server.cjs
 | `npm run build:fp-pack` | Builds the self-contained, offline "portable pack" for Foundation Phase printables. |
 | `npm run render:template-demo` | Renders the canonical content-template demos into `docs/`. |
 | `npm run verify:template` | Runs the 101-assertion verification of the content template contract (see `docs/CONTENT_TEMPLATE.md`). |
+| `npm test` | Runs the unit test suite (Vitest) — AI routing/fallback, frozen model registry, content template, CAPS frameworks, Foundation Phase templates, Firestore rules, rate limiting. |
+| `npm run test:watch` | Vitest in watch mode. |
+| `npm run test:coverage` | Test run with V8 coverage for `src/lib` and `src/services`. |
+| `npm run scan:secrets` | Dependency-free credential scan (fails on keys outside the reviewed exceptions). |
+| `npm run ci` | The full pipeline exactly as CI runs it: secret scan → type check → unit tests → template contract → production build. |
+
+---
+
+## ✅ Quality & CI
+
+```bash
+npm run ci               # everything CI runs, locally
+npm run ci -- --skip-build   # fast loop: scan · types · tests · template contract
+```
+
+`scripts/ci.sh` runs five stages in order and fails fast:
+
+1. **Secret scan** (`scripts/scan-secrets.mjs`) — blocks credential-shaped material
+   outside the reviewed exceptions (documented in the script's `ALLOWLIST`).
+2. **Type check** — `tsc --noEmit`.
+3. **Unit tests** — Vitest (`tests/`), covering AI provider routing and fallback,
+   the frozen model registry, the content-template contract, CAPS/NPA/SIAS
+   frameworks, the 28 Foundation Phase templates, Firestore rule invariants and
+   the API rate limiter.
+4. **Content template contract** — the 101-assertion ONCE/GRADIENT/FOOTER check.
+5. **Production build** — Vite client bundle + esbuild server bundle.
+
+The GitHub Actions workflow that runs this on every pull request is kept at
+[`docs/ci.workflow.yml`](docs/ci.workflow.yml) (see the header there for the
+one-minute manual install — the same convention used by
+`docs/build-android2.workflow.yml`).
 
 ---
 
@@ -257,6 +289,20 @@ Until the rules are deployed, affected dashboards fall back to their `localStora
 
 - **Firestore ABAC rules** (`firestore.rules`) enforce zero-trust invariants: users can only write their own profile, role self-escalation is blocked, messages must be sent by the authenticated `senderId`, and tutor sessions are private to their owner. The adversarial test catalogue ("The Dirty Dozen") is documented in [`security_spec.md`](security_spec.md).
 - **South African compliance** — CAPS alignment, NPA 7-point rating codes, SIAS support levels, WP6 differentiation and POPIA-conscious practices (fictional learner names, no unnecessary PII) are built into the generation prompts and output templates. See [`SA_INTEGRATION_SUMMARY.md`](SA_INTEGRATION_SUMMARY.md).
+- **Firestore rules hardening (2 Oct 2026)** — two wide-open rules were closed: `planner_events`
+  allowed **unauthenticated** read/write of every teacher's diary, and `illustrations` allowed
+  unauthenticated reads. Both now require an authenticated session. **Rules only take effect once
+  deployed** — run `bash scripts/deploy-firestore-rules.sh` (see above). The remaining
+  coarse-grained collections (`assignments`, `published_reports`, `auto_grading_reports`,
+  `activity_logs`, `messages`, `messenger_messages`, `planner_events` scoping) are tracked as
+  technical debt in the specification.
+- **API rate limiting** — `/api/*` is an unauthenticated provider gateway, so a dependency-free
+  in-memory limiter caps requests per client per minute by endpoint class (AI 30, images 20,
+  video 10, OCR/TTS 40, everything else 120) and returns `429` with `Retry-After`. It is per
+  process (documented limitation) and can be disabled with `RATE_LIMIT_DISABLED=true`.
+  Full protection still needs Firebase ID-token verification — see the roadmap.
+- **Secret scanning** — `npm run scan:secrets` fails the build when credential-shaped material
+  appears outside the reviewed exceptions (the script prints its allowlist and reasons).
 - **Secrets** — environment variables are the supported way to supply API keys. Note that `src/lib/aiSecrets.ts` contains obfuscated fallback keys so the standalone Android APK can call providers without a backend; this is documented as acceptable only for private/personal builds, because keys embedded in an APK or JS bundle can be extracted. **Do not ship a public production build with committed keys** — replace them with environment variables or a proxy.
 
 ---
@@ -309,6 +355,8 @@ Until the rules are deployed, affected dashboards fall back to their `localStora
 | [CAPS_LESSON_PLAN_GUIDE.md](CAPS_LESSON_PLAN_GUIDE.md) | Lesson-plan generation guide (FET Grades 10–12). |
 | [GOOGLE_SIGNIN_ANDROID_SETUP.md](GOOGLE_SIGNIN_ANDROID_SETUP.md) | Android Google Sign-In identity, keystore fingerprints and troubleshooting. |
 | [docs/CONTENT_TEMPLATE.md](docs/CONTENT_TEMPLATE.md) | The canonical content template contract (compliance banner, gradient, footer). |
+| [docs/ci.workflow.yml](docs/ci.workflow.yml) | The CI workflow (paste-in template — the GitHub App token cannot push workflow files). |
+| [archive/README.md](archive/README.md) | The archived one-off scripts from the early build, and why they are not part of the app. |
 | [docs/android-export-print.md](docs/android-export-print.md) | Root-cause analysis of Android print/export behaviour and the native export fix. |
 
 ---
@@ -320,9 +368,14 @@ The project was originally scaffolded in Google AI Studio and is maintained in t
 Recommended pre-PR checks:
 
 ```bash
-npm run lint          # tsc --noEmit
-npm run build         # Vite + esbuild production build
-npm run verify:template   # when touching content templates
+npm run ci            # scan · types · tests · template contract · build
+```
+
+Faster iteration while developing:
+
+```bash
+npm run test:watch        # unit tests only
+npm run ci -- --skip-build
 ```
 
 ---
