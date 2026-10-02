@@ -2781,10 +2781,11 @@ export default function CategoryOverview({
       <div className={`p-8 rounded-[40px] relative overflow-hidden border ${
         isDarkMode ? 'bg-indigo-950/20 border-indigo-500/25' : 'bg-[#fff5ee] border-[#ffebd6] shadow-sm'
       }`}>
-        {/* Background image (generated showcase) */}
+        {/* Background image (generated showcase). This generic header is only reached by the
+            student's "My Class" hub, so it uses the Classes plate (it used to show Settings art). */}
         {isDarkMode && (
           <div className="absolute inset-0 z-0 opacity-35 pointer-events-none">
-            <img src={bgLandingSettings} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <img src={bgLandingClasses} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             <div className="absolute inset-0 bg-slate-950/70" />
           </div>
         )}
