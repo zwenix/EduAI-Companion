@@ -95,7 +95,7 @@ Design specifications:
 
 Content: 4–6 key concepts, concise bullets (6–10 words), South African context, age-appropriate, no emojis, no smileys, no stick figures.
 
-Output: HTML fragment with Tailwind CSS inside LIGHT Template v4 cards (<article class="card">, <h1 class="lesson-title">, <div class="lesson-meta"> pills) — never your own page header/footer, the app wraps it automatically. Print-ready, ultra-detailed image prompts ending with golden rule.
+Output: HTML fragment with Tailwind CSS inside LIGHT Template v5 cards (<article class="card"> with <h2> sections and <div class="tip">/<div class="activity"> blocks). NEVER your own page header/footer, banner, title block, meta pill row, CAPS Code line or compliance stamp — the app renders the ONE document banner (title, grade, subject, term, type, date, CAPS Code, compliance labels) automatically. Print-ready, ultra-detailed image prompts ending with golden rule.
 
 Make this the most beautiful educational poster a South African teacher has ever hung.`,
 

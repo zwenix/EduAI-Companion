@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { parsePosterHtml } from '../lib/posterParser';
-import { buildTemplateComplianceBannerHTML, EDUAI_TEMPLATE_FOOTER_LINE, stripGeneratedComplianceMarkup, wrapWithTemplate } from '../lib/contentTemplate';
+import { buildTemplateComplianceBannerHTML, EDUAI_BANNER_GRADIENT, EDUAI_TEMPLATE_FOOTER_LINE, stripGeneratedComplianceMarkup, wrapWithTemplate } from '../lib/contentTemplate';
 
 interface PosterPreviewProps {
   html: string;
@@ -95,7 +95,7 @@ export function PosterPreview({ html, grade, subject, title, contentType = 'Educ
       {parsed.bannerHtml && (
         <div
           className="banner p-6 text-white"
-          style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)' }}
+          style={{ background: EDUAI_BANNER_GRADIENT }}
           dangerouslySetInnerHTML={{ __html: parsed.bannerHtml }}
         />
       )}

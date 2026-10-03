@@ -1,26 +1,28 @@
 /**
- * EduAI Companion — LIGHT Template v4 (official, single source of truth)
+ * EduAI Companion — LIGHT Template v5 (official, single source of truth)
  *
  * The branded chrome that wraps EVERY piece of generated content in the app
  * (on-screen previews, print, PDF, HTML and the SA document pipeline).
  *
  * Source artwork:
  *   docs/Decrease-the-size-of-the-header-banner-by-30-or-try-any-method-to-fit-all-text-in-the-header-into-1- (4).html
- *   ("EduAI Companion 2026 | LIGHT Template v4")
+ *   ("EduAI Companion 2026 | LIGHT Template v5")
  *
  *   ┌─────────────────────────────────────────────────────────────┐
- *   │  COMPACT HEADER (26px, sticky) — TWO-COLOUR WASH            │
- *   │   white → pale blue gradient, watermark-strength logo       │
- *   │   (logo 15px)  EDUAI COMPANION 2026 | CAPS COMPLIANT …      │
+ *   │  PAGE HEADER (26px, sticky) — VERY LIGHT BLUE, 70% CLEAR    │
+ *   │   #dbeafe → #bfdbfe at 30% opacity (70% transparent), the   │
+ *   │   brand only:   EDUAI COMPANION 2026 | OFFICIAL …           │
  *   ├─────────────────────────────────────────────────────────────┤
  *   │  WHITE PAGE (max 800px, centred) over a faded watermark     │
  *   │   ┌─ card ─────────────────────────────────────────────┐   │
- *   │   │ lesson title + meta pills (grade · subject · term) │   │
- *   │   │ ▓ DESIGNATED COMPLIANCE SECTION ▓ (two-colour      │   │
- *   │   │   navy → blue gradient) — the ONLY place the CAPS  │   │
- *   │   │   code and the 🇿🇦/CAPS/NPA/POPIA/SIAS/WP6 labels  │   │
- *   │   │   are ever written                                 │   │
- *   │   │ …dynamic generated content…                        │   │
+ *   │   │ ▓ ONE DOCUMENT BANNER ▓ vertical TWO-COLOUR        │   │
+ *   │   │   gradient (navy #1e3a5f → blue #2563eb) holding    │   │
+ *   │   │   EVERYTHING exactly once:                          │   │
+ *   │   │     lesson title                                    │   │
+ *   │   │     grade · subject · content type · term · date     │   │
+ *   │   │     school · teacher · learner (when supplied)       │   │
+ *   │   │     CAPS code + 🇿🇦/CAPS/NPA/POPIA/SIAS/WP6 labels   │   │
+ *   │   │ …dynamic generated content…                         │   │
  *   │   └────────────────────────────────────────────────────┘   │
  *   ├─────────────────────────────────────────────────────────────┤
  *   │  NAVY FOOTER BAND (#1e3a5f, centred, 8pt)                  │
@@ -30,11 +32,14 @@
  *   └─────────────────────────────────────────────────────────────┘
  *
  * Three guarantees this module owns (and the reason it exists):
- *  1. ONCE — the compliance labels are written exactly one time per document,
- *     inside the designated gradient section. Model-authored copies (badges,
- *     stamp rows, banner repeats, plain-text status lines) are stripped first.
- *  2. GRADIENT — no top banner is ever a single solid colour. The host banner
- *     and every model-authored banner/hero/header get the two-colour gradient.
+ *  1. ONCE — ONE banner per document. Title, labels, grade/subject/term/type,
+ *     date, school/teacher and the compliance data live inside that single
+ *     banner; the page header above it carries the brand only. Model-authored
+ *     copies (badges, stamp rows, banner repeats, repeated title blocks,
+ *     plain-text status lines) are stripped before the banner is rendered.
+ *  2. GRADIENT — no top banner is ever a single solid colour. The document
+ *     banner is a TWO-COLOUR VERTICAL gradient, and every model-authored
+ *     banner/hero/header gets the same treatment.
  *  3. FOOTER — one canonical footer line, word for word, on every surface.
  *
  * Portability rules (same guarantees as the previous template):
@@ -75,30 +80,55 @@ export interface ContentTemplateMeta {
     capsStatus?: string;
     /** NPA compliance line — defaults to "NPA Compliant (Gr R-12)". */
     npaStatus?: string;
-    /** Optional school name (rendered in the footer where supported). */
+    /** Optional school name — rendered as a pill in the single banner. */
     school?: string;
-    /** Optional teacher name. */
+    /** Optional teacher name — rendered as a pill in the single banner. */
     teacher?: string;
+    /** Optional learner name — rendered as a pill in the single banner. */
+    learner?: string;
+    /** Optional CAPS reference text (the SA pipeline's curriculum reference). */
+    capsReference?: string;
+    /** Optional ATP week (the SA pipeline's annual teaching plan week). */
+    atpWeek?: string;
+    /** Extra banner pills (phase, duration, marks, Bloom's …), pre-escaped. */
+    extraPills?: string[];
+    /** Extra banner footnotes (Bloom's distribution …), pre-escaped. */
+    extraNotes?: string[];
 }
 
 /**
- * Every top banner in a generated document is a TWO-COLOUR gradient — never a
- * solid block of one colour. Navy → accent blue is the official pairing; the
- * compact document header uses the same idea at watermark strength (white →
- * pale blue) so it stays quiet above the content banner.
+ * Every generated document owns exactly ONE top banner: the document banner.
+ * Its background is always a TWO-COLOUR **VERTICAL** gradient (navy → accent
+ * blue) and never a solid block of one colour:
+ *
+ *     linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%)
+ *
+ * The page header above it is chrome, not a banner: a very light blue wash
+ * (#dbeafe → #bfdbfe) at 70% transparency, so the content behind it stays
+ * faintly visible while the bar keeps the brand on screen.
  */
-export const EDUAI_BANNER_GRADIENT = 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)';
-export const EDUAI_HEADER_GRADIENT = 'linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(219,234,254,0.72) 100%)';
+export const EDUAI_BANNER_GRADIENT = 'linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%)';
 
-/** LIGHT Template v4 palette — sampled directly from the template artwork. */
+/** Very light blue (#dbeafe) at 70% transparency — the page-header tint. */
+export const EDUAI_HEADER_TINT = 'rgba(219, 234, 254, 0.30)';
+/** Second very light blue (#bfdbfe) at 70% transparency — gradient end stop. */
+export const EDUAI_HEADER_TINT_DEEP = 'rgba(191, 219, 254, 0.30)';
+/**
+ * Page-header wash: the same very light blue twice (70% transparent) so the
+ * bar is a two-colour gradient like every other band, never a flat fill.
+ */
+export const EDUAI_HEADER_GRADIENT = `linear-gradient(180deg, ${EDUAI_HEADER_TINT} 0%, ${EDUAI_HEADER_TINT_DEEP} 100%)`;
+
+/** LIGHT Template v5 palette — sampled directly from the template artwork. */
 export const EDUAI_TEMPLATE_COLOURS = {
     navy: '#1e3a5f',
     accent: '#2563eb',
     accentLight: '#3b82f6',
-    // Two-colour wash (white → pale blue): the compact header reads like a
-    // watermark but is still a gradient, matching every other top banner.
+    // Very light blue @ 70% transparency: the page header the artwork calls
+    // for, written as a two-stop vertical wash so it is never a solid bar.
     headerGradient: EDUAI_HEADER_GRADIENT,
-    headerBorder: '#cbd5e1',
+    headerTint: EDUAI_HEADER_TINT,
+    headerBorder: 'rgba(147,197,253,0.55)',
     headerText: '#1e3a5f',
     footerBg: '#1e3a5f',
     footerText: '#e2e8f0',
@@ -115,16 +145,24 @@ export const EDUAI_TEMPLATE_URL = 'EDUAI-COMPANION.VERCEL.APP';
 export const EDUAI_TEMPLATE_RIGHTS_LINE_1 = 'ALL CONTENT RIGHTS RESERVED TO';
 export const EDUAI_TEMPLATE_RIGHTS_LINE_2 = 'DEVELOPER: Z MSUTHU (C) 2026';
 
-/** Fixed LIGHT header lead — dynamic grade/term/subject/type trail behind it. */
-export const EDUAI_TEMPLATE_HEADER_BASE = 'EDUAI COMPANION 2026 | CAPS COMPLIANT EDUCATION RESOURCE';
+/**
+ * Fixed page-header strapline — BRAND ONLY. Document data (grade, term,
+ * subject, content type, date), the CAPS code and the compliance labels have
+ * exactly one home: the document banner. Repeating them in the header would
+ * duplicate the same information twice at the top of every page and eat the
+ * vertical space that belongs to real content.
+ */
+export const EDUAI_TEMPLATE_HEADER_BASE = 'EDUAI COMPANION 2026 | OFFICIAL EDUCATIONAL RESOURCE';
 /** Canonical footer text for every generated/exported educational resource. */
 export const EDUAI_TEMPLATE_FOOTER_LINE =
     '© 2026 EduAI Companion | CAPS Compliant Educational Resource | Developed for South African Educators | All Rights Reserved to Developer: Z MSUTHU © 2026 |';
 
 /**
- * One canonical compliance block is rendered by the host template. AI output
- * is cleaned of its own badges before this block is added, which prevents the
- * same labels from appearing in the document body, banner and footer.
+ * The ONE banner is rendered by the host template; it is the only place the
+ * CAPS code and these labels are written. AI output is cleaned of its own
+ * badges, stamp rows and repeated title/meta blocks before this banner is
+ * added, which prevents the same labels from appearing in the document body,
+ * header and footer.
  */
 export const EDUAI_COMPLIANCE_LABELS =
     '🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated';
@@ -133,11 +171,11 @@ const LIGHT_HEADING_FONT = `'Fredoka', 'Quicksand', system-ui, -apple-system, sa
 const LIGHT_BODY_FONT = `'Inter', system-ui, -apple-system, sans-serif`;
 
 /**
- * LIGHT Template v4 stylesheet. Chrome selectors are global (collision-free);
+ * LIGHT Template v5 stylesheet. Chrome selectors are global (collision-free);
  * every content selector is scoped under `.eduai-light-scope`.
  */
 export const EDUAI_LIGHT_CSS = `
-/* ── EduAI LIGHT Template v4 ── */
+/* ── EduAI LIGHT Template v5 ── */
 .site-header {
     display: flex;
     align-items: center;
@@ -145,10 +183,12 @@ export const EDUAI_LIGHT_CSS = `
     gap: 6px;
     padding: 0 10px;
     height: 26px;
-    /* Compact watermark-like chrome: a quiet two-colour wash (white → pale
-       blue), never a solid bar and never a single flat colour. */
+    /* VERY LIGHT BLUE at 70% transparency (#dbeafe → #bfdbfe, alpha .30).
+       Two stops, so the bar is a gradient like every other band in the
+       template — never a solid fill. */
     background: ${EDUAI_HEADER_GRADIENT};
     background-image: ${EDUAI_HEADER_GRADIENT};
+    background-color: ${EDUAI_HEADER_TINT};
     -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);
     -webkit-print-color-adjust: exact;
@@ -156,7 +196,7 @@ export const EDUAI_LIGHT_CSS = `
     position: sticky;
     top: 0;
     z-index: 20;
-    border-bottom: 1px solid rgba(148,163,184,0.36);
+    border-bottom: 1px solid ${EDUAI_TEMPLATE_COLOURS.headerBorder};
     box-shadow: none;
     width: 100%;
     box-sizing: border-box;
@@ -167,16 +207,16 @@ export const EDUAI_LIGHT_CSS = `
     width: auto;
     display: block;
     flex-shrink: 0;
-    opacity: 0.28;
+    opacity: 0.5;
 }
 .header-text {
     font-family: 'Fredoka', sans-serif;
-    /* Small, muted strapline keeps the header present without competing with
-       the full-width generated content banner. */
+    /* Brand-only strapline: the single document banner below owns the title,
+       grade, subject, term, type, date and compliance data. */
     font-size: clamp(7px, 1.05vw, 9px);
     font-weight: 600;
     color: #1e3a5f;
-    opacity: 0.56;
+    opacity: 0.78;
     white-space: nowrap;
     letter-spacing: 0.3px;
     text-transform: uppercase;
@@ -216,12 +256,16 @@ export const EDUAI_LIGHT_CSS = `
     text-transform: uppercase;
     margin-top: 4px;
 }
+/* ── THE single document banner ──
+   Title + every metadata pill + the CAPS reference and compliance labels live
+   in this ONE band, so nothing at the top of a document is ever repeated. */
 .eduai-compliance-banner {
     display: block;
     width: 100%;
-    margin: 14px 0 20px;
-    padding: 11px 14px;
+    margin: 0 0 18px;
+    padding: 14px 16px;
     border-radius: 10px;
+    /* TWO-COLOUR VERTICAL GRADIENT — never a solid fill. */
     background: ${EDUAI_BANNER_GRADIENT};
     background-image: ${EDUAI_BANNER_GRADIENT};
     color: #ffffff;
@@ -234,10 +278,53 @@ export const EDUAI_LIGHT_CSS = `
     letter-spacing: 0.1px;
     text-align: left;
     overflow-wrap: anywhere;
+    page-break-inside: avoid;
+    break-inside: avoid;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
 }
 .eduai-compliance-banner strong { font-weight: 800; }
+/* Document title inside the banner. */
+.eduai-light-scope .eduai-compliance-banner .lesson-title {
+    font-family: 'Fredoka', sans-serif;
+    font-size: clamp(19px, 3vw, 27px);
+    font-weight: 700;
+    line-height: 1.18;
+    color: #ffffff;
+    margin: 0 0 8px;
+}
+/* Metadata pills (grade · subject · type · term · date · school · teacher). */
+.eduai-light-scope .eduai-compliance-banner .lesson-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin: 0 0 10px;
+    color: #e2e8f0;
+    font-size: 11px;
+}
+.eduai-light-scope .eduai-compliance-banner .meta-pill {
+    background: rgba(255,255,255,0.16);
+    border: 1px solid rgba(255,255,255,0.34);
+    color: #ffffff;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+/* CAPS reference + 🇿🇦/CAPS/NPA/POPIA/SIAS/WP6 labels — written once, here. */
+.eduai-compliance-banner .eduai-doc-compliance {
+    display: block;
+    border-top: 1px solid rgba(255,255,255,0.28);
+    padding-top: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.5;
+    color: #ffffff;
+}
+.eduai-compliance-banner .eduai-doc-compliance .eduai-caps-code {
+    font-weight: 800;
+    letter-spacing: 0.2px;
+}
 /* The designated banner should span the available page/card width rather than
    sit inside the card's inner text padding. The negative margins stop at the
    white page edge and keep the banner visually dominant without widening the
@@ -248,6 +335,13 @@ export const EDUAI_LIGHT_CSS = `
     margin-left: -28px !important;
     margin-right: -28px !important;
     box-sizing: border-box;
+}
+/* When the banner opens a card it is the document's cover band: flush with the
+   card's top edge and rounded to match, so no white gap is wasted above it. */
+.eduai-light-scope .card > .eduai-compliance-banner:first-child {
+    margin-top: -28px !important;
+    margin-bottom: 20px !important;
+    border-radius: 15px 15px 10px 10px;
 }
 .eduai-light-scope .page > .eduai-compliance-banner {
     width: calc(100% + 40px) !important;
@@ -451,9 +545,12 @@ export const EDUAI_LIGHT_CSS = `
     .eduai-light-scope .page { padding: 20px 14px 50px; }
     .eduai-light-scope .card { padding: 20px; border-radius: 14px; }
     .eduai-light-scope .card > .eduai-compliance-banner { width: calc(100% + 40px) !important; margin-left: -20px !important; margin-right: -20px !important; }
+    .eduai-light-scope .card > .eduai-compliance-banner:first-child { margin-top: -20px !important; border-radius: 13px 13px 10px 10px; }
     .eduai-light-scope .page > .eduai-compliance-banner { width: calc(100% + 28px) !important; margin-left: -14px !important; margin-right: -14px !important; }
     .eduai-light-scope .lesson-title { font-size: 26px; }
+    .eduai-light-scope .eduai-compliance-banner .lesson-title { font-size: clamp(17px, 5.2vw, 22px); }
     .eduai-compliance-banner { font-size: 10px; padding: 10px 11px; }
+    .eduai-light-scope .eduai-compliance-banner .lesson-meta { gap: 6px; font-size: 10px; }
     .eduai-light-scope h2 { font-size: 20px; }
 }
 @media (max-width: 390px) {
@@ -463,6 +560,7 @@ export const EDUAI_LIGHT_CSS = `
     .eduai-light-scope .lesson-meta { gap: 6px; }
     .eduai-light-scope .card { padding: 18px 16px; }
     .eduai-light-scope .card > .eduai-compliance-banner { width: calc(100% + 36px) !important; margin-left: -18px !important; margin-right: -18px !important; }
+    .eduai-light-scope .card > .eduai-compliance-banner:first-child { margin-top: -18px !important; }
     .eduai-light-scope .page > .eduai-compliance-banner { width: calc(100% + 28px) !important; margin-left: -14px !important; margin-right: -14px !important; }
 }
 @media print {
@@ -479,7 +577,7 @@ export const EDUAI_LIGHT_CSS = `
 
 /** The LIGHT stylesheet as an embeddable <style> block. */
 export const buildTemplateStyleHTML = (): string =>
-    `<style data-eduai-light="v4">\n${EDUAI_LIGHT_CSS}\n</style>`;
+    `<style data-eduai-light="v5">\n${EDUAI_LIGHT_CSS}\n</style>`;
 
 const esc = (value: unknown): string =>
     String(value ?? '')
@@ -672,25 +770,23 @@ export const cleanGeneratedBodyHTML = (html: string): string => {
 };
 
 /**
- * The LIGHT compact translucent header: a 15px watermark-like logo in a
- * 26px white/translucent bar plus a single-line muted strapline. Dynamic grade
- * / term / subject / type trail behind the fixed artwork lead; the line is
- * clamped to ONE line with an ellipsis so it can never wrap or push the bar
- * taller on narrow screens. The designated content banner below carries the
- * two-colour gradient and compliance/status text.
+ * The LIGHT page header: a 15px logo in a 26px VERY LIGHT BLUE bar that is
+ * 70% transparent (#dbeafe → #bfdbfe at alpha .30), so content scrolling
+ * underneath stays faintly visible.
+ *
+ * The bar is BRAND ONLY — grade, term, subject, content type, date and every
+ * compliance label belong to the single document banner below it, and writing
+ * them here as well would duplicate the same information twice at the top of
+ * every page. Clamped to ONE line with an ellipsis so it can never wrap or
+ * push the bar taller on narrow screens.
  */
-export const buildTemplateHeaderHTML = (meta: ContentTemplateMeta = {}): string => {
-    const grade = normGrade(meta.grade);
-    const term = normTerm(meta.term || (typeof document !== 'undefined' ? currentSATerm() : ''));
-    const subject = String(meta.subject || '').trim().toUpperCase();
-    const contentType = String(meta.contentType || '').trim().toUpperCase();
-    const trail = [grade, term, subject, contentType].filter(Boolean).join(' • ');
-    const strapline = trail ? `${EDUAI_TEMPLATE_HEADER_BASE} | ${trail}` : `${EDUAI_TEMPLATE_HEADER_BASE} |`;
+export const buildTemplateHeaderHTML = (_meta: ContentTemplateMeta = {}): string => {
+    const strapline = EDUAI_TEMPLATE_HEADER_BASE;
 
     return `
-<header class="site-header" style="box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; gap: 6px; padding: 0 10px; height: 26px; background: ${EDUAI_TEMPLATE_COLOURS.headerGradient}; background-image: ${EDUAI_HEADER_GRADIENT}; -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); border-bottom: 1px solid rgba(148,163,184,0.36); box-shadow: none; width: 100%; page-break-inside: avoid; break-inside: avoid; min-width: 0;">
-  <img src="${getTemplateLogoSrc()}" alt="EduAI Logo" class="logo" style="height: 15px; width: auto; display: block; flex-shrink: 0; opacity: 0.28;" />
-  <span class="header-text" style="font-family: ${LIGHT_HEADING_FONT}; font-size: clamp(7px, 1.05vw, 9px); font-weight: 600; color: ${EDUAI_TEMPLATE_COLOURS.headerText}; opacity: 0.56; -webkit-print-color-adjust: exact; print-color-adjust: exact; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">${esc(strapline)}</span>
+<header class="site-header" style="box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; gap: 6px; padding: 0 10px; height: 26px; background: ${EDUAI_HEADER_GRADIENT}; background-image: ${EDUAI_HEADER_GRADIENT}; background-color: ${EDUAI_HEADER_TINT}; -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); border-bottom: 1px solid ${EDUAI_TEMPLATE_COLOURS.headerBorder}; box-shadow: none; width: 100%; page-break-inside: avoid; break-inside: avoid; min-width: 0;">
+  <img src="${getTemplateLogoSrc()}" alt="EduAI Logo" class="logo" style="height: 15px; width: auto; display: block; flex-shrink: 0; opacity: 0.5;" />
+  <span class="header-text" style="font-family: ${LIGHT_HEADING_FONT}; font-size: clamp(7px, 1.05vw, 9px); font-weight: 600; color: ${EDUAI_TEMPLATE_COLOURS.headerText}; opacity: 0.78; -webkit-print-color-adjust: exact; print-color-adjust: exact; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">${esc(strapline)}</span>
 </header>`.trim();
 };
 
@@ -709,32 +805,108 @@ export const buildTemplateFooterHTML = (_meta: ContentTemplateMeta = {}): string
 export const buildTemplateWatermarkHTML = (): string => `
 <img src="${getTemplateLogoSrc()}" alt="" aria-hidden="true" class="watermark" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 75%; max-width: 560px; height: auto; opacity: 0.5; pointer-events: none; z-index: 0;" />`.trim();
 
-/** Render the one designated compliance section for a generated document. */
-export const buildTemplateComplianceBannerHTML = (meta: ContentTemplateMeta = {}): string => `
-<section class="eduai-compliance-banner" aria-label="South African compliance" style="display:block; width:100%; box-sizing:border-box; background: ${EDUAI_BANNER_GRADIENT}; background-image: ${EDUAI_BANNER_GRADIENT}; color: #ffffff; border: 1px solid #93c5fd; border-radius: 10px; padding: 11px 14px; margin: 14px 0 20px; font-family: ${LIGHT_BODY_FONT}; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><strong>CAPS Code:${esc(buildCAPSCode(meta))} ${esc(EDUAI_COMPLIANCE_LABELS)}</strong></section>`.trim();
+/** Acronyms that keep their capitals when a pill is label-cased. */
+const PILL_ACRONYMS = new Set([
+    'CAPS', 'NPA', 'POPIA', 'SIAS', 'WP6', 'DBE', 'SBA', 'FET', 'FP', 'IP', 'SP',
+    'EMS', 'HL', 'FAL', 'SAL', 'LS', 'NS', 'SS', 'LO', 'ICT', 'ISP', 'ILP', 'ATP',
+]);
+
+/** "worksheet" → "Worksheet"; anything already capitalised is left alone. */
+const labelCase = (value?: string): string => {
+    const raw = String(value ?? '').replace(/\s+/g, ' ').trim();
+    if (!raw || /[A-Z]/.test(raw)) return raw;
+    return raw.replace(/\b[a-z][a-z0-9]*\b/g, (word) =>
+        PILL_ACRONYMS.has(word.toUpperCase()) ? word.toUpperCase() : word.charAt(0).toUpperCase() + word.slice(1));
+};
+
+/** Every date in the banner is South African DD/MM/YYYY, whatever came in. */
+const normaliseDate = (value?: string): string => {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '';
+    const iso = raw.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+    if (iso) return `${iso[3].padStart(2, '0')}/${iso[2].padStart(2, '0')}/${iso[1]}`;
+    const dmy = raw.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+    if (dmy) return `${dmy[1].padStart(2, '0')}/${dmy[2].padStart(2, '0')}/${dmy[3]}`;
+    return raw;
+};
 
 /**
- * The LIGHT title block (lesson-title + meta pills) injected above plain AI
- * fragments so every document opens exactly like the template artwork.
- * Returns '' when there is no metadata worth showing.
+ * Every value the single banner displays, deduplicated and ordered:
+ * grade · subject · content type · term · date · school · teacher · learner,
+ * followed by any caller-supplied extras. Nothing here is written anywhere
+ * else in the document, which is what keeps the top of the page duplicate-free.
  */
-export const buildTemplateTitleBlockHTML = (meta: ContentTemplateMeta = {}): string => {
-    const title = String(meta.title || '').trim()
-        || [meta.contentType, meta.subject].filter(Boolean).join(' • ')
-        || '';
-    const gradePill = pillGrade(meta.grade);
-    const subjectPill = String(meta.subject || '').trim();
-    const typePill = String(meta.contentType || '').trim();
-    const termPill = pillTerm(meta.term);
-    if (!title && !gradePill && !subjectPill && !typePill && !termPill) {
-        return buildTemplateComplianceBannerHTML(meta);
-    }
-    const pills = [gradePill, subjectPill, typePill, termPill].filter(Boolean);
-    return `
-  <h1 class="lesson-title">${esc(title || 'Educational Resource')}</h1>
-  ${pills.length ? `<div class="lesson-meta">${pills.map((p) => `<span class="meta-pill">${esc(p)}</span>`).join('')}</div>` : ''}
-  ${buildTemplateComplianceBannerHTML(meta)}`.trim();
+const buildBannerPills = (meta: ContentTemplateMeta): string[] => {
+    const pills: string[] = [];
+    const push = (value?: string) => {
+        const label = String(value ?? '').replace(/\s+/g, ' ').trim();
+        if (!label) return;
+        // Never show the same pill twice (e.g. a subject that equals the type).
+        if (pills.some((existing) => existing.toLowerCase() === label.toLowerCase())) return;
+        pills.push(label);
+    };
+
+    push(pillGrade(meta.grade));
+    push(labelCase(meta.subject));
+    push(labelCase(meta.contentType));
+    push(pillTerm(meta.term));
+    push(normaliseDate(meta.date) || saToday());
+    if (meta.school) push(`School: ${meta.school}`);
+    if (meta.teacher) push(`Teacher: ${meta.teacher}`);
+    if (meta.learner) push(`Learner: ${meta.learner}`);
+    (meta.extraPills || []).forEach(push);
+    return pills;
 };
+
+/** The banner's title: the document title, else the type/subject pairing. */
+const bannerTitle = (meta: ContentTemplateMeta): string =>
+    String(meta.title || '').trim()
+    || [meta.contentType, meta.subject].filter(Boolean).join(' • ')
+    || 'Educational Resource';
+
+/**
+ * THE single document banner — the only banner in a generated document.
+ *
+ * Everything a reader (or an auditor) needs sits inside this one band,
+ * exactly once: the title, the grade / subject / content-type / term / date
+ * pills, school · teacher · learner when the caller supplies them, any extra
+ * pills, and the CAPS code with the 🇿🇦/CAPS/NPA/POPIA/SIAS/WP6 labels.
+ *
+ * The background is the official TWO-COLOUR VERTICAL GRADIENT
+ * (`EDUAI_BANNER_GRADIENT`, navy → blue at 180deg) written inline so it
+ * survives iframe previews, print, html2canvas rasterisation and downloads.
+ * The class name stays `eduai-compliance-banner` because the rest of the
+ * pipeline (chrome stripping, single-copy verification, CSS safety nets)
+ * keys off it.
+ */
+export const buildTemplateComplianceBannerHTML = (meta: ContentTemplateMeta = {}): string => {
+    const title = bannerTitle(meta);
+    const pills = buildBannerPills(meta);
+    const capsCode = buildCAPSCode(meta);
+    const capsReference = String(meta.capsReference || '').trim();
+    const atpWeek = String(meta.atpWeek || '').trim();
+    const notes = (meta.extraNotes || []).map((note) => String(note || '').trim()).filter(Boolean);
+
+    const referenceTrail = [
+        capsCode ? `CAPS Code:${capsCode}` : '',
+        capsReference ? `CAPS: ${capsReference}` : '',
+        atpWeek ? `ATP: ${atpWeek}` : '',
+    ].filter(Boolean).join(' | ');
+
+    return `
+<section class="eduai-compliance-banner" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; background: ${EDUAI_BANNER_GRADIENT}; background-image: ${EDUAI_BANNER_GRADIENT}; color: #ffffff; border: 1px solid #93c5fd; border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: ${LIGHT_BODY_FONT}; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+  <h1 class="lesson-title" style="font-family: ${LIGHT_HEADING_FONT}; font-size: clamp(19px, 3vw, 27px); font-weight: 700; line-height: 1.18; color: #ffffff; margin: 0 0 8px;">${esc(title)}</h1>
+  ${pills.length ? `<div class="lesson-meta" style="display:flex; flex-wrap:wrap; gap:7px; margin:0 0 10px; color:#e2e8f0;">${pills.map((pill) => `<span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">${esc(pill)}</span>`).join('')}</div>` : ''}
+  <div class="eduai-doc-compliance" style="display:block; border-top:1px solid rgba(255,255,255,0.28); padding-top:8px; font-size:11px; font-weight:700; line-height:1.5; color:#ffffff;"><span class="eduai-caps-code" style="font-weight:800; letter-spacing:0.2px;">${esc(referenceTrail)}</span> ${esc(EDUAI_COMPLIANCE_LABELS)}${notes.length ? ` <span style="display:block; margin-top:4px; font-weight:600; color:rgba(255,255,255,0.86);">${notes.map((note) => esc(note)).join(' • ')}</span>` : ''}</div>
+</section>`.trim();
+};
+
+/**
+ * Kept for backwards compatibility: the title block no longer exists as a
+ * separate band, so it simply renders the single document banner.
+ */
+export const buildTemplateTitleBlockHTML = (meta: ContentTemplateMeta = {}): string =>
+    buildTemplateComplianceBannerHTML(meta);
 
 /**
  * Marker left where the host compliance banner was lifted out of markup that is
@@ -835,14 +1007,15 @@ const COMPLIANCE_LABEL_PATTERNS: RegExp[] = [
 
 /**
  * True when markup is already the CURRENT canonical template output: the LIGHT
- * v4 style block, exactly one compliance banner, exactly one footer band and
- * each status label exactly once. Such documents pass through untouched, so
+ * v5 style block, exactly ONE document banner (which carries the title, every
+ * metadata pill and the compliance line), exactly one footer band and each
+ * status label exactly once. Such documents pass through untouched, so
  * re-exporting the print-preview paper stays byte-stable. Anything older — or
  * model output that copied our chrome — is normalised by wrapWithTemplate.
  */
 export const isCurrentTemplateOutput = (html: string): boolean => {
     const source = String(html || '');
-    if (!/data-eduai-light="v4"/.test(source)) return false;
+    if (!/data-eduai-light="v5"/.test(source)) return false;
     if (!source.includes(EDUAI_TEMPLATE_FOOTER_LINE)) return false;
     if (countMatches(source, /<[a-z][\w:-]*\b[^>]*class\s*=\s*["'][^"']*\beduai-compliance-banner\b/i) !== 1) return false;
     if (countMatches(source, /<footer\b[^>]*class\s*=\s*["'][^"']*\bsite-footer\b/i) !== 1) return false;
@@ -866,6 +1039,16 @@ export const stripTemplateChrome = (html: string): string => {
     out = removeElementsByClass(out, 'site-header');
     out = out.replace(/<footer\b[^>]*>[\s\S]*?<\/footer\s*>/gi, '');
     out = out.replace(/<img\b[^>]*class\s*=\s*["'][^"']*\bwatermark\b[^"']*["'][^>]*\/?>/gi, '');
+    // Host-owned title blocks from ANY template revision: the title and the
+    // grade/subject/type/term pills now live inside the single document banner,
+    // so leaving a second title block behind would duplicate them (v4 and
+    // older), and the legacy SA shell's own `.doc-title-block` is unwrapped so
+    // its heading/meta row cannot survive next to the banner either. The text
+    // is harvested by harvestMetaFromChrome() BEFORE this runs.
+    out = removeElementsByClass(out, 'lesson-meta');
+    out = removeElementsByClass(out, 'doc-meta');
+    out = removeElementsByClass(out, 'lesson-title');
+    out = unwrapElementsByClass(out, 'doc-title-block');
     // Page shell: keep the content, drop the wrapper so it is never nested twice.
     out = unwrapElementsByClass(out, 'eduai-light-scope');
     out = out.replace(/<main\b[^>]*class\s*=\s*["'][^"']*\bpage\b[^"']*["'][^>]*>([\s\S]*?)<\/main\s*>/gi, '$1');
@@ -884,10 +1067,22 @@ const titleCaseWords = (value: string): string =>
         .replace(/\b[a-z]/g, (letter) => letter.toUpperCase())
         .trim();
 
+/** Strip emoji/leading marks so a pill's text can be classified. */
+const pillText = (value: string): string =>
+    decodeEntities(String(value || '').replace(/<[^>]+>/g, ' '))
+        .replace(/[\u{1F1E6}-\u{1FAFF}\u{2190}-\u{27BF}\u{FE0F}\u{2600}-\u{26FF}]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+/** Content-type words that appear as pills in generated documents. */
+const CONTENT_TYPE_HINT = /^(worksheet|lesson\s*plan|memo(?:randum)?|rubric|assessment|test|exam(?:ination)?|poster|infographic|mind\s*map|notice|letter|admin(?:istrative)?(?:\s*document)?|homework|revision|activity|report|portfolio|notes?)\b/i;
+
 /**
  * Recover metadata from chrome that is about to be discarded, so re-wrapping an
- * archived document never loses the grade/term/subject/type its header carried
- * — or the CAPS code its banner displayed. Explicit caller metadata always wins.
+ * archived document never loses the grade/term/subject/type its header (or its
+ * older title block) carried — or the CAPS code its banner displayed. Explicit
+ * caller metadata always wins; every harvested value is re-rendered inside the
+ * single document banner, never as a second band.
  */
 export const harvestMetaFromChrome = (html: string): ContentTemplateMeta => {
     const source = String(html || '');
@@ -903,8 +1098,11 @@ export const harvestMetaFromChrome = (html: string): ContentTemplateMeta => {
         if (cleanTitle) harvested.title = cleanTitle;
     }
 
+    // Legacy straplines (v4 and older) carried "… | GRADE 5 • TERM 2 • MATHS".
+    // The v5 strapline is brand-only, so it is only parsed when it actually
+    // has a "•"-separated document trail behind the brand lead.
     const strapline = source.match(/class\s*=\s*["'][^"']*\bheader-text\b[^"']*["'][^>]*>([\s\S]*?)<\/[a-z]/i)?.[1];
-    if (strapline) {
+    if (strapline && decodeEntities(strapline).includes('•')) {
         const trail = decodeEntities(strapline).split('|').pop() || '';
         const parts = trail.split('•').map((part) => part.trim()).filter(Boolean);
         const gradePart = parts.find((part) => /^GRADE\s+[R\d]{1,2}$/i.test(part));
@@ -916,17 +1114,57 @@ export const harvestMetaFromChrome = (html: string): ContentTemplateMeta => {
         if (rest[1]) harvested.contentType = titleCaseWords(rest[1]);
     }
 
+    // Title-block pills — the v4 `.lesson-meta` row, the SA `.doc-meta` row or
+    // the pills inside the v5 banner itself. Classifying them is what lets an
+    // archived document keep its grade/term/subject/type/date/school in the
+    // single banner after the old block has been stripped.
+    const pillRows = [
+        ...source.matchAll(/<([a-z][\w:-]*)\b[^>]*class\s*=\s*["'][^"']*\b(?:lesson-meta|doc-meta)\b[^"']*["'][^>]*>([\s\S]*?)<\/\1\s*>/gi),
+    ].map((match) => match[2]);
+    const pills = pillRows
+        .flatMap((row) => [...row.matchAll(/<(?:span|div|li|p|strong)\b[^>]*>([\s\S]*?)<\/(?:span|div|li|p|strong)\s*>/gi)].map((m) => pillText(m[1])))
+        .filter(Boolean);
+
+    for (const pill of pills) {
+        // Compliance stamps are never metadata — they are re-rendered by the
+        // banner from EDUAI_COMPLIANCE_LABELS.
+        if (/CAPS|NPA|POPIA|SIAS|WP6|compliant|aligned|inclusive|differentiated/i.test(pill)) continue;
+        const grade = pill.match(/^grade\s*([rR]|\d{1,2})/i);
+        if (grade && !harvested.grade) { harvested.grade = grade[1].toUpperCase(); continue; }
+        const term = pill.match(/^term\s*([1-4])/i);
+        if (term && !harvested.term) { harvested.term = `Term ${term[1]}`; continue; }
+        const date = pill.match(/\b(\d{2}\/\d{2}\/\d{4})\b/);
+        if (date && !harvested.date) { harvested.date = date[1]; continue; }
+        const school = pill.match(/^(?:school|skool)\s*:?\s*(.+)$/i);
+        if (school && !harvested.school) { harvested.school = school[1].trim(); continue; }
+        const teacher = pill.match(/^(?:teacher|educator)\s*:?\s*(.+)$/i);
+        if (teacher && !harvested.teacher) { harvested.teacher = teacher[1].trim(); continue; }
+        const learner = pill.match(/^(?:learner|student|name)\s*:?\s*(.+)$/i);
+        if (learner && !harvested.learner) { harvested.learner = learner[1].trim(); continue; }
+        if (CONTENT_TYPE_HINT.test(pill) && !harvested.contentType) {
+            harvested.contentType = titleCaseWords(pill);
+            continue;
+        }
+        if (!harvested.subject) harvested.subject = titleCaseWords(pill);
+    }
+
     return harvested;
 };
 
 /** Merge recovered chrome metadata with caller metadata (caller wins). */
 const mergeMeta = (base: ContentTemplateMeta, override: ContentTemplateMeta): ContentTemplateMeta => {
-    const merged: ContentTemplateMeta = { ...base };
+    const merged = { ...base } as Record<string, unknown>;
     (Object.keys(override) as (keyof ContentTemplateMeta)[]).forEach((key) => {
         const value = override[key];
-        if (value !== undefined && String(value).trim() !== '') merged[key] = value;
+        if (value === undefined) return;
+        // List-valued slots (extraPills / extraNotes) are copied verbatim.
+        if (Array.isArray(value)) {
+            if (value.length) merged[key] = value;
+            return;
+        }
+        if (String(value).trim() !== '') merged[key] = value;
     });
-    return merged;
+    return merged as ContentTemplateMeta;
 };
 
 /** Class/id fragments that identify a model-authored banner container. */
@@ -979,20 +1217,132 @@ export const applyBannerGradients = (html: string): string => {
 const hasLightCards = (html: string): boolean =>
     /<article[\s>]|class\s*=\s*["'][^"']*\b(card|lesson-title)\b/i.test(html || '');
 
+/** Lower-case, punctuation-free text used to compare headings with the title. */
+const normaliseForCompare = (value: string): string =>
+    decodeEntities(String(value || '').replace(/<[^>]+>/g, ' '))
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+/** Tags that never take a closing partner, so they cannot nest the scan. */
+const VOID_TAGS = /^(?:area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr|path|circle|rect|line|polyline|polygon|ellipse|use)$/i;
+
+interface LeadingElement {
+    /** Index of the opening tag. */
+    start: number;
+    /** Index just after the matching closing tag. */
+    end: number;
+    /** Index just after the opening tag. */
+    innerStart: number;
+    /** Index of the matching closing tag. */
+    innerEnd: number;
+    tag: string;
+    attrs: string;
+}
+
+/** The first element of a fragment, with its depth-counted span (null if text). */
+const firstElement = (source: string): LeadingElement | null => {
+    const lead = source.length - source.replace(/^\s+/, '').length;
+    const open = /^<([a-z][\w:-]*)\b([^>]*)>/i.exec(source.slice(lead));
+    if (!open) return null;
+    const tag = open[1];
+    const attrs = open[2];
+    const start = lead;
+    const innerStart = lead + open[0].length;
+    if (/\/>\s*$/.test(open[0]) || VOID_TAGS.test(tag)) {
+        return { start, end: innerStart, innerStart, innerEnd: innerStart, tag, attrs };
+    }
+    const scan = new RegExp(`<${tag}\\b[^>]*>|</${tag}\\s*>`, 'gi');
+    scan.lastIndex = innerStart;
+    let depth = 1;
+    let match: RegExpExecArray | null;
+    while ((match = scan.exec(source)) !== null) {
+        if (match[0].startsWith('</')) {
+            depth -= 1;
+            if (depth === 0) {
+                return { start, end: match.index + match[0].length, innerStart, innerEnd: match.index, tag, attrs };
+            }
+        } else if (!/\/>\s*$/.test(match[0]) && !VOID_TAGS.test((match[0].match(/^<([a-z][\w:-]*)/i) || [])[1] || '')) {
+            depth += 1;
+        }
+    }
+    return null;
+};
+
 /**
- * Wrap generated content in the LIGHT Template v4 chrome:
- * compact two-colour header wash → full-width two-colour content banner →
- * watermark + centred 800px page → navy footer.
+ * Remove a model-authored banner at the very start of the content when it
+ * repeats what the single document banner already says.
  *
- * Plain fragments are lifted into an opaque white card (with a title block and
- * the designated compliance section); fragments that already use LIGHT card
- * structure keep it. The call is idempotent AND self-healing:
+ * Models love to open a document with their own `<header class="banner">`
+ * carrying the title, the grade/term/subject row and (before sanitising) the
+ * compliance stamps. Leaving it in place would put TWO banners with the same
+ * information at the top of every page — exactly the duplication (and wasted
+ * vertical space) the template must prevent. The block is removed only when it
+ * is the first element AND its text repeats the banner's data: the document
+ * title, at least two of the banner's pills, or nothing at all once the stamps
+ * have been stripped. Ordinary content banners further down are untouched.
+ */
+export const stripLeadingDuplicateBanner = (html: string, meta: ContentTemplateMeta = {}): string => {
+    const source = String(html || '');
+    const element = firstElement(source);
+    if (!element) return source;
+    const classOrId = `${element.attrs.match(/class\s*=\s*["'][^"']*["']/i)?.[0] ?? ''} ${element.attrs.match(/id\s*=\s*["'][^"']*["']/i)?.[0] ?? ''}`;
+    const painted = /background(-color|-image)?\s*:/i.test(element.attrs);
+    if (!/^header$/i.test(element.tag) && !BANNER_HINT.test(classOrId) && !painted) return source;
+
+    const text = normaliseForCompare(source.slice(element.innerStart, element.innerEnd));
+    const title = normaliseForCompare(String(meta.title || ''));
+    const pills = buildBannerPills(meta).map(normaliseForCompare).filter((pill) => pill.length >= 3);
+    const pillHits = pills.filter((pill) => text.includes(pill)).length;
+
+    const repeatsTitle = title.length >= 4 && (text.includes(title) || (title.includes(text) && text.length >= 8));
+    const isStampOnly = text.length < 3;
+    // Size guard: a banner holds a title and a few labels, never paragraphs, so
+    // an ordinary opening card with an intro paragraph is left alone.
+    if (!isStampOnly && !(repeatsTitle && text.length <= 240) && !(pillHits >= 2 && text.length <= 400)) return source;
+    return (source.slice(0, element.start) + source.slice(element.end)).trim();
+};
+
+/**
+ * Drop a heading that merely repeats the banner title at the very start of the
+ * content. The single banner already states the document title (and the grade
+ * / subject / type / term pills that model headings love to append), so keeping
+ * a second copy wastes the vertical space the teacher needs for real content.
+ * Only the FIRST heading is considered, and only when its text overlaps the
+ * banner title — every other heading in the document is untouched.
+ */
+export const stripDuplicateTitleHeading = (html: string, meta: ContentTemplateMeta = {}): string => {
+    const source = String(html || '');
+    const wanted = normaliseForCompare(String(meta.title || ''));
+    if (!wanted) return source;
+    const match = source.match(/^\s*<(h1|h2)\b[^>]*>([\s\S]*?)<\/\1\s*>/i);
+    if (!match) return source;
+    const heading = normaliseForCompare(match[2]);
+    if (!heading) return source;
+    const duplicated = heading === wanted
+        || heading.startsWith(wanted)
+        || (wanted.startsWith(heading) && heading.length >= 8);
+    if (!duplicated) return source;
+    return source.slice(match[0].length).trim();
+};
+
+/**
+ * Wrap generated content in the LIGHT Template v5 chrome:
+ * very light blue translucent page header → ONE full-width two-colour vertical
+ * gradient document banner (title + every label + compliance) → watermark +
+ * centred 800px page → navy footer.
+ *
+ * Plain fragments are lifted into an opaque white card that opens with the
+ * banner; fragments that already use LIGHT card structure keep it. The call is
+ * idempotent AND self-healing:
  *
  *  - current canonical output passes through byte-for-byte (print-preview
  *    re-exports never double-wrap);
  *  - older wrapped documents and model-copied chrome are stripped back to
- *    content and re-wrapped, so stale footers, duplicate compliance labels and
- *    solid banners cannot survive into a preview, print, PDF or HTML export.
+ *    content and re-wrapped, so stale footers, duplicate title blocks,
+ *    repeated compliance labels and solid banners cannot survive into a
+ *    preview, print, PDF or HTML export.
  */
 export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {}): string => {
     const original = String(bodyHtml || '');
@@ -1000,7 +1350,11 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
     if (isCurrentTemplateOutput(original)) return original;
 
     const effectiveMeta = mergeMeta(harvestMetaFromChrome(original), meta);
-    const cleaned = cleanGeneratedBodyHTML(stripTemplateChrome(original));
+    // ONE banner: kill the model's own duplicated top banner, then any heading
+    // that repeats what the banner will show, before rendering the banner.
+    const stripped = stripTemplateChrome(original);
+    const deduped = stripLeadingDuplicateBanner(cleanGeneratedBodyHTML(stripped), effectiveMeta);
+    const cleaned = stripDuplicateTitleHeading(deduped, effectiveMeta);
     const banner = buildTemplateComplianceBannerHTML(effectiveMeta);
 
     let inner: string;
@@ -1010,7 +1364,7 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
     } else if (hasLightCards(cleaned)) {
         inner = `${banner}\n${cleaned}`;
     } else {
-        inner = `<article class="card">\n${buildTemplateTitleBlockHTML(effectiveMeta)}\n${cleaned}\n</article>`;
+        inner = `<article class="card">\n${banner}\n${cleaned}\n</article>`;
     }
 
     return `
@@ -1027,7 +1381,7 @@ ${buildTemplateFooterHTML(effectiveMeta)}`.trim();
 
 /** Map the print/export options onto the template metadata. */
 export const metaFromPrintOptions = (
-    options?: { subject?: string; grade?: string; contentType?: string; date?: string; term?: string; school?: string; teacher?: string; title?: string },
+    options?: { subject?: string; grade?: string; contentType?: string; date?: string; term?: string; school?: string; teacher?: string; learner?: string; title?: string },
     title?: string,
 ): ContentTemplateMeta => ({
     title: title || options?.title,
@@ -1038,4 +1392,5 @@ export const metaFromPrintOptions = (
     date: options?.date,
     school: options?.school,
     teacher: options?.teacher,
+    learner: options?.learner,
 });

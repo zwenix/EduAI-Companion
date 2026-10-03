@@ -29,7 +29,13 @@ import {
 } from './art';
 import { renderBlock, type Ctx, type Theme } from './blocks';
 import { SUBJECT_ALLOCATION } from './caps';
-import { buildTemplateComplianceBannerHTML, buildTemplateHeaderHTML, EDUAI_TEMPLATE_FOOTER_LINE } from '../../contentTemplate';
+import {
+    buildCAPSCode,
+    buildTemplateHeaderHTML,
+    EDUAI_BANNER_GRADIENT,
+    EDUAI_COMPLIANCE_LABELS,
+    EDUAI_TEMPLATE_FOOTER_LINE,
+} from '../../contentTemplate';
 import { pair } from './labels';
 
 export const KIND_META = {
@@ -115,7 +121,7 @@ export const FP_CSS = `
 /* ── banner ─────────────────────────────────────────── */
 /* Use the full printable page width for the designated content banner; the
    negative margins consume the page padding without widening the A4 sheet. */
-.fp-banner { position: relative; display: flex; align-items: flex-start; gap: 5mm; width: calc(100% + 24mm); margin: 0 -12mm 4mm; padding: 4mm 5mm; box-sizing: border-box; border-radius: 0 0 5mm 5mm; background: linear-gradient(135deg, var(--fp-band, ${PALETTE.navy}) 0%, var(--fp-primary, ${PALETTE.cyan}) 100%); color: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.fp-banner { position: relative; display: flex; align-items: flex-start; gap: 5mm; width: calc(100% + 24mm); margin: 0 -12mm 4mm; padding: 4mm 5mm; box-sizing: border-box; border-radius: 0 0 5mm 5mm; /* the ONE document banner: two-colour VERTICAL gradient, never a solid fill */ background: ${EDUAI_BANNER_GRADIENT}; background-image: ${EDUAI_BANNER_GRADIENT}; color: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .fp-page > .site-header { position: relative; margin-bottom: 3mm; border-radius: 2mm; }
 .fp-banner-text { flex: 1 1 auto; min-width: 0; }
 .fp-kicker { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #fff; margin: 0 0 1mm; }
@@ -129,21 +135,11 @@ export const FP_CSS = `
 .fp-pill { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8.2pt; font-weight: 600; padding: 1.2mm 3mm; border-radius: 99mm; border: .5mm solid var(--fp-primary, ${PALETTE.cyan}); color: var(--fp-band, ${PALETTE.navy}); background: var(--fp-soft, #f6fbff); white-space: nowrap; }
 .fp-pill.caps { background: ${PALETTE.navy}; color: #fff; border-color: ${PALETTE.navy}; }
 .fp-pill.bloom { background: #fff; }
-.fp-page > .eduai-compliance-banner {
-  display: block;
-  width: calc(100% + 24mm) !important;
-  margin: 0 -12mm 4mm !important;
-  padding: 2.5mm 3mm;
-  border-radius: 0 0 3mm 3mm;
-  box-sizing: border-box;
-  background: linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);
-  color: #fff;
-  border: .3mm solid #93c5fd;
-  font: 700 8pt/1.45 'Nunito',system-ui,sans-serif;
-  overflow-wrap: anywhere;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-}
+.fp-banner .fp-badge-row { margin: 2mm 0 0; }
+.fp-banner .fp-pill { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.34); color: #fff; }
+.fp-banner .fp-pill.caps { background: rgba(255,255,255,.24); border-color: rgba(255,255,255,.42); }
+.fp-banner .fp-pill.bloom { background: rgba(255,255,255,.12); }
+.fp-banner .eduai-doc-compliance { display: block; margin-top: 2.5mm; padding-top: 2mm; border-top: .3mm solid rgba(255,255,255,.28); font: 700 8pt/1.45 'Nunito', system-ui, sans-serif; overflow-wrap: anywhere; }
 
 /* ── learner header (name / date / marks) ─────────────── */
 .fp-learnerstrip { display: flex; align-items: stretch; gap: 3mm; margin: 0 0 4mm; }
@@ -550,8 +546,15 @@ const capsStrip = (tpl: FoundationTemplate, ctx: Ctx, compact = false): string =
 </div>`;
 };
 
+/**
+ * THE single document banner for a Foundation Phase sheet — the only banner on
+ * the page. It carries everything exactly once: the title (with the sheet's
+ * kicker and subtitle), the subject/grade/term/Bloom's pills, the CAPS code
+ * and the 🇿🇦/CAPS/NPA/POPIA/SIAS/WP6 labels. The old separate compliance band
+ * (and the separate pill row under the banner) are gone: they repeated what is
+ * written here and stole the vertical space the worksheet needs.
+ */
 const banner = (tpl: FoundationTemplate, ctx: Ctx): string => {
-    const t = ctx.theme;
     const kindMeta = KIND_META[tpl.kind];
     const lang = ctx.opts.labelLanguage ?? 'en';
     const bi = ctx.opts.bilingual && lang !== 'en';
@@ -564,15 +567,26 @@ const banner = (tpl: FoundationTemplate, ctx: Ctx): string => {
         `<span class="fp-pill bloom">${esc(tpl.caps.blooms.join(' → '))}</span>`,
     ];
     if (bi) pills.push(`<span class="fp-pill">${pair('haveFun', lang)}</span>`);
-    return `<header class="fp-banner">
+    const capsCode = buildCAPSCode({
+        title: tpl.title,
+        subject: tpl.learningArea,
+        grade: String(tpl.grades[0] ?? '').split(/[-–]/)[0],
+        term: tpl.caps.terms[0],
+        contentType: kindMeta.label,
+    });
+    // Keep the official gradient inline as well as in the CSS rule: the pack is
+    // embedded in iframes, printed and copied around, and the banner must never
+    // fall back to a solid colour when the stylesheet does not travel with it.
+    return `<header class="eduai-compliance-banner fp-banner" style="background: ${EDUAI_BANNER_GRADIENT}; background-image: ${EDUAI_BANNER_GRADIENT}; color: #ffffff; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
   <div class="fp-banner-text">
     <p class="fp-kicker">${esc(tpl.titleKicker ?? `${kindMeta.emoji} EduAI Companion · CAPS Foundation Phase`)}</p>
     <h1 class="fp-title">${esc(tpl.title)}</h1>
     <p class="fp-subtitle">${esc(tpl.subtitle)}</p>
+    <div class="fp-badge-row">${pills.join('')}</div>
+    <div class="eduai-doc-compliance"><span class="eduai-caps-code">CAPS Code:${esc(capsCode)}</span> ${esc(EDUAI_COMPLIANCE_LABELS)}</div>
   </div>
   ${art}
-</header>
-<div class="fp-badge-row">${pills.join('')}</div>`;
+</header>`;
 };
 
 const corners = (tpl: FoundationTemplate, ctx: Ctx): string => {
@@ -620,13 +634,6 @@ export const renderTemplatePage = (tpl: FoundationTemplate, opts: RenderOptions 
     // demoted to a compact teacher record at the foot of the page instead of
     // sitting above the learner's name.
     const capsHtml = capsStrip(tpl, ctx, isAward);
-    const complianceMeta = {
-        title: tpl.title,
-        subject: tpl.learningArea,
-        grade: tpl.grades[0],
-        term: tpl.caps.terms[0],
-        contentType: KIND_META[tpl.kind].label,
-    };
     return `<div class="${rootClass}" style="${themeVars(theme)}">
   <div class="fp-page" data-template="${esc(tpl.id)}" data-kind="${tpl.kind}">
     ${corners(tpl, ctx)}
@@ -640,7 +647,6 @@ export const renderTemplatePage = (tpl: FoundationTemplate, opts: RenderOptions 
         contentType: KIND_META[tpl.kind].label,
     })}
     ${banner(tpl, ctx)}
-    ${buildTemplateComplianceBannerHTML(complianceMeta)}
     ${fieldStrip(tpl, ctx)}
     ${isAward ? '' : capsHtml}
     ${blocks.map((b) => renderBlock(b, ctx)).join('\n')}
@@ -755,7 +761,7 @@ export const buildPackIndex = (
 *{box-sizing:border-box}
 body{margin:0;font-family:'Nunito',system-ui,sans-serif;color:#12233f;background:linear-gradient(160deg,#fff9e8,#e0f7ff 45%,#ffe6f2)}
 .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
-.index-banner{position:relative;overflow:hidden;border-radius:26px;padding:26px 26px 22px;background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);color:#fff;box-shadow:0 18px 40px rgba(30,58,95,.22);width:100%}
+.index-banner{position:relative;overflow:hidden;border-radius:26px;padding:26px 26px 22px;background:${EDUAI_BANNER_GRADIENT};color:#fff;box-shadow:0 18px 40px rgba(30,58,95,.22);width:100%}
 .index-banner:after{content:"";position:absolute;inset:auto -10% -60% -10%;height:80px;background:radial-gradient(closest-side,#fff8 0,#fff0 100%)}
 .index-banner .kick{font:600 12px/1 'Fredoka',sans-serif;letter-spacing:.22em;text-transform:uppercase;opacity:.92}
 .index-banner h1{font-family:'Fredoka',sans-serif;font-size:clamp(28px,4vw,44px);margin:8px 0 6px;line-height:1.05}

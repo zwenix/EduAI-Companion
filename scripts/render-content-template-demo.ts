@@ -1,18 +1,19 @@
 /**
  * Regenerates the two committed template demos with the REAL production markup
- * from src/lib/contentTemplate.ts:
+ * from src/lib/contentTemplate.ts (LIGHT v5):
  *
  *   docs/content-template-preview.html    — pixel-accurate sample document
  *   docs/content-normalisation-demo.html  — messy model output (labels written
- *                                           three times, solid banners, its own
- *                                           footer) next to the normalised result
+ *                                           three times, its own duplicate
+ *                                           banner, title block, footer) next
+ *                                           to the normalised result
  *
  * Run:  npm run render:template-demo   (or npx tsx scripts/render-content-template-demo.ts)
  */
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { wrapWithTemplate } from '../src/lib/contentTemplate';
+import { EDUAI_BANNER_GRADIENT, wrapWithTemplate } from '../src/lib/contentTemplate';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '..');
@@ -60,7 +61,7 @@ const page = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EduAI Companion — Official Content Template Preview</title>
+<title>EduAI Companion — Official Content Template Preview (LIGHT v5)</title>
 <style>
   body { margin:0; padding:2.5rem 1rem; background:#0f172a; font-family:'Inter',system-ui,-apple-system,sans-serif; display:flex; flex-direction:column; align-items:center; gap:1.25rem; }
   .caption { color:#94a3b8; font-size:.8rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; text-align:center; }
@@ -69,7 +70,7 @@ const page = `<!DOCTYPE html>
 </style>
 </head>
 <body>
-  <div class="caption">EduAI Companion — Official Content Template · every generated document opens and closes with these bands</div>
+  <div class="caption">EduAI Companion — Official Content Template v5 · one banner (title + every label + compliance) between the light-blue header and the footer</div>
   <div class="sheet">${templated}</div>
 </body>
 </html>`;
@@ -142,7 +143,7 @@ const demoPage = `<!DOCTYPE html>
   .pane { background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,.5); display:flex; flex-direction:column; }
   .pane > h2 { margin:0; padding:.6rem .9rem; font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; color:#fff; }
   .pane.before > h2 { background:#7f1d1d; }
-  .pane.after > h2 { background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%); }
+  .pane.after > h2 { background:${EDUAI_BANNER_GRADIENT}; }
   .pane .body { padding:0; overflow:auto; }
   .pane.before .body { padding:.9rem; color:#1e293b; font-size:.9rem; }
   table { border-collapse:collapse; margin:1.5rem auto 0; font-size:.8rem; }
@@ -155,17 +156,17 @@ const demoPage = `<!DOCTYPE html>
 </style>
 </head>
 <body>
-  <h1>Content normalisation — one compliance section, gradient banners, exact footer</h1>
-  <p class="lede">Left: what a model often emits (the labels written three times, a solid single-colour banner and its own footer).
-     Right: the same content through the production <code>wrapWithTemplate()</code> — the labels survive exactly once inside the
-     designated two-colour gradient section, every top banner is a gradient, and the footer text is exact.</p>
+  <h1>Content normalisation — ONE banner, two-colour vertical gradient, exact footer</h1>
+  <p class="lede">Left: what a model often emits (its own banner repeating the title and the labels, a second stamp row and its own footer).
+     Right: the same content through the production <code>wrapWithTemplate()</code> — the title, the grade/subject/term/type/date labels and
+     the compliance line survive exactly once inside the single two-colour vertical gradient banner, and the footer text is exact.</p>
   <div class="grid">
     <section class="pane before">
       <h2>Before — raw model output</h2>
       <div class="body">${messyModelOutput.replace(/^[\s\S]*?<body>/i, '').replace(/<\/body>[\s\S]*$/i, '')}</div>
     </section>
     <section class="pane after">
-      <h2>After — EduAI LIGHT Template v4</h2>
+      <h2>After — EduAI LIGHT Template v5</h2>
       <div class="body">${normalised}</div>
     </section>
   </div>
