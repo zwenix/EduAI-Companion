@@ -15,6 +15,20 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
   },
   plugins: {
+    // Native notifications. The Android WebView exposes neither `PushManager`
+    // nor `Notification`, so Web Push cannot work in the APK — see
+    // src/lib/notifications/androidPush.ts and ANDROID_PUSH_SETUP.md.
+    PushNotifications: {
+      // iOS only, but harmless to declare: how a foreground push is presented.
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
+    LocalNotifications: {
+      // Tint for the status-bar icon; `--color-brand-cyan` in src/index.css.
+      // `smallIcon` is left unset on purpose — it must name a real drawable in
+      // android/app/src/main/res/drawable, and a missing one makes the plugin
+      // throw. It falls back to the app icon, which always exists.
+      iconColor: '#00B3FF',
+    },
     GoogleAuth: {
       // The Web OAuth client ID is used on both web and Android to request the
       // Google ID token that Firebase exchanges for a session. It must live in

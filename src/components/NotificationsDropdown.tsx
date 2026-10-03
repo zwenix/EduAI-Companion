@@ -54,10 +54,13 @@ export default function NotificationsDropdown({
           snapshot.docChanges().forEach((change) => {
             if (change.type === "added") {
               const notif = change.doc.data();
-              NotificationManager.sendTestNotification(
+              // Raise a real system notification (Android tray via
+              // LocalNotifications, browser via the service worker). The payload
+              // keeps `type` so a tap can route to the right screen.
+              void NotificationManager.showNotification(
                 notif.title || "New Notification",
                 notif.message || notif.body || "You have a new alert",
-                notif.url || "/",
+                { url: notif.url || "/", tab: notif.tab, type: notif.type },
               );
             }
           });
