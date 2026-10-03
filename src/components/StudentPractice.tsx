@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { BookOpen, CheckCircle, FileText, Loader2, Target, BrainCircuit, Scan, History, ArrowRight, Download, Printer, Award, Trophy } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { BookOpen, CheckCircle, FileText, Loader2, Target, BrainCircuit, Scan, History, ArrowRight, Download, Printer, Award, Trophy, ChevronRight, ListChecks, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { generateEducationalContent, runOCRAndGrade } from '../services/geminiService';
 import OCRScanner from './OCRScanner';
@@ -63,6 +63,12 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
 
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrResult, setOcrResult] = useState<any>(null);
+  // Autograde dropzone: a real <button> drives a hidden file input so the
+  // learner gets the same visible upload target as the Auto-Grading Lab
+  // instead of the browser's default "Choose File  No file chosen" widget.
+  const autogradeInputRef = useRef<HTMLInputElement | null>(null);
+  const [submittedPreview, setSubmittedPreview] = useState<string | null>(null);
+  const [gradeNotice, setGradeNotice] = useState<string | null>(null);
 
   const [customQuestions, setCustomQuestions] = useState<{question: string, memo: string}[]>([]);
   const [newQuestion, setNewQuestion] = useState('');
@@ -206,10 +212,19 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
   };
   
   const handleScanAndGrade = async (imageData: string) => {
+    // `window.alert()` is a bare, unstyled dialog (and is suppressed outright
+    // in some Android WebView builds), so the learner never saw why grading was
+    // refused. Surface it as an inline banner in the panel instead.
     if (!result?.memo && customQuestions.length === 0) {
-      alert("Please generate a practice assessment first or add custom questions with memos to grade against.");
+      setSubmittedPreview(null);
+      setOcrResult(null);
+      setGradeNotice(
+        'Nothing to grade against yet. Generate a practice assessment first, or add custom questions with memos \u2014 the memo is the marking rubric.'
+      );
       return;
     }
+    setGradeNotice(null);
+    setSubmittedPreview(imageData);
     setOcrLoading(true);
     try {
       const rubricSource = result?.memo || customQuestions.map((q, i) => `Q${i+1}: ${q.question}\nMemo: ${q.memo}`).join('\n\n');
@@ -217,7 +232,7 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
       setOcrResult(graded);
     } catch (error) {
       console.error(error);
-      alert("Autograding failed.");
+      setGradeNotice('Autograding failed. Check the image is clear and well lit, then try again.');
     }
     setOcrLoading(false);
   };
@@ -231,36 +246,147 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-12 animate-in fade-in duration-700">
-      {/* Hero Section */}
-      <div className={cn(
-        "relative rounded-[36px] p-8 lg:p-12 overflow-hidden text-white flex flex-col justify-end min-h-[300px] border shadow-2xl",
-        isDarkMode ? "bg-transparent border-white/10" : "bg-transparent border-slate-800"
-      )}>
-        <div className="absolute top-0 right-0 p-8 opacity-20 pointer-events-none">
-           <Target size={200} />
-        </div>
-        
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none mix-blend-overlay" />
-        
-        <div className="relative z-10 max-w-3xl">
-           <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-transparent backdrop-blur-md px-4 py-1.5 text-sm font-bold text-emerald-300 mb-6 shadow-sm">
-             <Trophy size={16} className="text-emerald-400" /> Practice Zone
-           </motion.div>
-           <h1 className="text-4xl lg:text-6xl font-hand tracking-wide leading-tight mb-4 drop-shadow-md art-title">
-             Practice & <span className="text-brand-cyan">Exercises</span>
-           </h1>
-           <p className="text-slate-200 font-medium text-sm lg:text-base leading-relaxed max-w-lg art-body">
-             Generate CAPS-aligned mock assessments, practice your skills, and get instant, detailed feedback on your handwritten answers.
-           </p>
+    <div className="max-w-6xl mx-auto space-y-6 lg:space-y-8 pb-12 animate-in fade-in duration-700">
+      {/* ── Practice Zone Landing Hero ────────────────────────────────────────
+          The old hero was `bg-transparent` with a `from-slate-900 → transparent`
+          veil and a remote `transparenttextures.com` overlay, so it rendered as
+          an empty see-through box (and the texture silently 404'd offline / in
+          the Android WebView). A 200px `Target` icon sat in the corner and the
+          three tab pills below were `bg-transparent border-white/10` — nearly
+          invisible against the navy shell.
+
+          It now uses the same hero plate the rest of the app ships (see the
+          Auto-Grading Lab banner and the hub showcase cards): a solid navy
+          gradient card, ambient glow blobs, a badge chip, art-title/art-body
+          copy on that solid plate, and a filled segmented tab bar with icons.
+          The remote texture image is gone (it was an extra third-party request
+          that 404'd offline). The accent
+          is amber/orange to match the "Quiz Wizard / Practice Zone" showcase
+          card in CategoryOverview, keeping the hub → page colour story intact.
+      */}
+      <div className="relative overflow-hidden rounded-[32px] border-2 border-amber-500/25 bg-gradient-to-br from-[#1b1024] via-[#0a0b1e] to-[#2a1508] p-6 sm:p-8 lg:p-9 shadow-[0_0_40px_rgba(249,115,22,0.16)]">
+        <div className="absolute -top-24 -right-16 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-28 -left-16 w-80 h-80 bg-fuchsia-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col gap-7 xl:flex-row xl:items-center xl:justify-between">
+          {/* Copy */}
+          <div className="min-w-0 max-w-2xl">
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-amber-300 art-chip"
+            >
+              <Trophy size={14} className="shrink-0 text-amber-400" />
+              <span>Practice Zone · CAPS Aligned</span>
+            </motion.div>
+
+            <h1 className="mt-4 font-hand text-4xl sm:text-5xl lg:text-6xl leading-[1.05] tracking-wide text-white art-title">
+              Practice &amp; <span className="text-amber-300">Exercises</span>
+            </h1>
+
+            <p className="mt-3 max-w-lg text-xs sm:text-sm lg:text-base font-medium leading-relaxed text-slate-300 art-body">
+              Generate CAPS-aligned mock assessments, drill your skills with custom questions, and
+              get instant, detailed feedback on your handwritten answers.
+            </p>
+
+            {/* Quick-start CTA — gives the landing page one obvious action */}
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setActiveTab('create')}
+                className="group inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 px-5 py-3.5 text-xs sm:text-sm font-black uppercase tracking-wider text-slate-950 shadow-[0_0_26px_rgba(249,115,22,0.4)] transition-all hover:from-amber-300 hover:to-orange-400 hover:shadow-[0_0_36px_rgba(249,115,22,0.55)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300 active:scale-[0.97]"
+              >
+                <BrainCircuit size={17} className="shrink-0" />
+                <span className="whitespace-nowrap">Start Practising</span>
+                <ChevronRight size={15} className="shrink-0 transition-transform group-hover:translate-x-1" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('autograde')}
+                className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.06] px-5 py-3.5 text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-200 transition-all hover:border-amber-400/60 hover:bg-amber-500/10 hover:text-amber-200 active:scale-[0.97]"
+              >
+                <Scan size={16} className="shrink-0 text-amber-400" />
+                <span className="whitespace-nowrap">Autograde My Answers</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Three-step panel — replaces the oversized decorative Target icon */}
+          <div className="w-full shrink-0 xl:w-72">
+            <div className="rounded-2xl border border-white/10 bg-[#070914]/70 p-4 backdrop-blur-sm">
+              <p className="mb-3 font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                How the zone works
+              </p>
+              <ol className="space-y-2.5">
+                {[
+                  { icon: BrainCircuit, label: 'Generate', note: 'AI builds a CAPS paper + memo', tone: 'text-amber-300 border-amber-500/30 bg-amber-500/10' },
+                  { icon: ListChecks, label: 'Practise', note: 'Add your own questions & answers', tone: 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10' },
+                  { icon: Scan, label: 'Autograde', note: 'Snap your script for instant marks', tone: 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10' },
+                ].map((step, i) => (
+                  <li key={step.label} className="flex items-start gap-3">
+                    <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${step.tone}`}>
+                      <step.icon size={15} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-xs font-black uppercase tracking-wider text-white">
+                        {i + 1}. {step.label}
+                      </span>
+                      <span className="block text-[11px] leading-snug text-slate-300">{step.note}</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 mb-6">
-        <button onClick={() => setActiveTab('create')} className={cn("px-6 py-3 rounded-full font-bold transition-all border cursor-pointer", activeTab === 'create' ? 'bg-brand-cyan text-slate-950 border-brand-cyan/20 shadow-lg shadow-cyan-500/20' : isDarkMode ? 'bg-transparent text-slate-300 border-white/10 hover:bg-transparent' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50')}>Generate Practice</button>
-        <button onClick={() => setActiveTab('custom')} className={cn("px-6 py-3 rounded-full font-bold transition-all border cursor-pointer", activeTab === 'custom' ? 'bg-brand-cyan text-slate-950 border-brand-cyan/20 shadow-lg shadow-cyan-500/20' : isDarkMode ? 'bg-transparent text-slate-300 border-white/10 hover:bg-transparent' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50')}>Custom Questions</button>
-        <button onClick={() => setActiveTab('autograde')} className={cn("px-6 py-3 rounded-full font-bold transition-all border cursor-pointer", activeTab === 'autograde' ? 'bg-brand-cyan text-slate-950 border-brand-cyan/20 shadow-lg shadow-cyan-500/20' : isDarkMode ? 'bg-transparent text-slate-300 border-white/10 hover:bg-transparent' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50')}>Autograde Answers</button>
+      {/* ── Segmented tab bar ─────────────────────────────────────────────────
+          Mirrors the Auto-Grading Lab navigation: one contained rail with a
+          filled active pill (icon + label) instead of three floating
+          transparent pills, so the current section is unmistakable and the
+          inactive ones are still clearly tappable. */}
+      <div className={cn(
+        "flex flex-wrap gap-2 rounded-2xl border p-1.5 shadow-lg",
+        isDarkMode ? "border-amber-500/20 bg-[#0c1024]/90" : "border-slate-200 bg-white"
+      )}>
+        {[
+          { id: 'create' as const, label: 'Generate Practice', icon: BrainCircuit, badge: 0 },
+          // Only a real count is badged — a "1" on Autograde would read as a
+          // queue length. A graded result is confirmed in its own panel below.
+          { id: 'custom' as const, label: 'Custom Questions', icon: ListChecks, badge: customQuestions.length },
+          { id: 'autograde' as const, label: 'Autograde Answers', icon: Scan, badge: 0 },
+        ].map(tab => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              aria-pressed={isActive}
+              className={cn(
+                "flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-3 text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all min-w-[150px] sm:min-w-[180px] active:scale-[0.98]",
+                isActive
+                  ? "bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 shadow-[0_0_20px_rgba(249,115,22,0.35)]"
+                  : isDarkMode
+                    ? "text-slate-400 hover:bg-white/5 hover:text-white"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+              )}
+            >
+              <tab.icon size={16} className={cn("shrink-0", isActive ? "text-slate-950" : "text-amber-500")} />
+              <span className="truncate">{tab.label}</span>
+              {tab.badge ? (
+                <span className={cn(
+                  "ml-0.5 shrink-0 rounded-full px-1.5 py-0.5 font-mono text-[9px] font-bold leading-none",
+                  isActive ? "bg-slate-950/20 text-slate-950" : isDarkMode ? "bg-white/10 text-slate-300" : "bg-slate-200 text-slate-600"
+                )}>
+                  {tab.badge}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
       </div>
 
       {activeTab === 'create' && (
@@ -429,34 +555,125 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
       )}
 
       {activeTab === 'autograde' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-6 rounded-[24px] shadow-sm space-y-4`}>
-            <h3 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-700'}`}><Scan size={20}/> Submit Your Work</h3>
-            <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Take a photo of your handwritten answers or upload a screenshot to get instant AI grading against the memo.</p>
-            <div className="mt-4">
-              <input 
-                type="file" 
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                      if (typeof e.target?.result === 'string') {
-                        handleScanAndGrade(e.target.result);
-                      }
-                    };
-                    reader.readAsDataURL(file);
-                  }
-                }}
-                disabled={ocrLoading}
-                className={`w-full p-4 border-2 border-dashed rounded-[20px] text-center cursor-pointer transition-all ${isDarkMode ? 'border-slate-700 hover:border-brand-cyan text-slate-300' : 'border-slate-300 hover:border-brand-cyan text-slate-600'}`}
-              />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className={`font-bold flex items-center gap-2.5 ${isDarkMode ? 'text-white' : 'text-slate-700'}`}>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-500">
+                  <Scan size={17} />
+                </span>
+                Submit Your Work
+              </h3>
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${isDarkMode ? 'border-white/10 bg-white/5 text-slate-400' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                Step 1 · Upload script
+              </span>
             </div>
+
+            <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+              Take a photo of your handwritten answers or upload a screenshot to get instant AI
+              grading against the memo.
+            </p>
+
+            {gradeNotice && (
+              <div className={`flex items-start gap-3 rounded-2xl border p-4 text-xs font-medium leading-relaxed ${isDarkMode ? 'border-amber-500/40 bg-amber-500/10 text-amber-200' : 'border-amber-300 bg-amber-50 text-amber-800'}`}>
+                <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                <span>{gradeNotice}</span>
+              </div>
+            )}
+
+            {/* Dropzone button (was a bare <input type="file">) */}
+            <button
+              type="button"
+              onClick={() => autogradeInputRef.current?.click()}
+              disabled={ocrLoading}
+              className={cn(
+                "group flex w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-[20px] border-2 border-dashed p-8 text-center transition-all active:scale-[0.99] disabled:cursor-wait disabled:opacity-70",
+                isDarkMode
+                  ? "border-amber-500/35 bg-slate-900/60 hover:border-amber-400 hover:bg-amber-500/[0.07]"
+                  : "border-amber-400/60 bg-amber-50/40 hover:border-amber-500 hover:bg-amber-50"
+              )}
+            >
+              {ocrLoading ? (
+                <Loader2 size={30} className="animate-spin text-amber-500" />
+              ) : (
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-500 shadow-md transition-transform group-hover:scale-110">
+                  <Target size={26} />
+                </span>
+              )}
+              <span className={`block font-display text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                {ocrLoading ? 'Reading your answers…' : 'Snap or upload your answers'}
+              </span>
+              <span className={`block max-w-xs text-xs leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                {ocrLoading
+                  ? 'Matching each answer against the memorandum and rubric.'
+                  : 'Keep the page flat, well lit and in focus for the best marks.'}
+              </span>
+              {!ocrLoading && (
+                <span className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
+                  {['Camera', 'JPG / PNG', 'Instant marks'].map((fmt) => (
+                    <span
+                      key={fmt}
+                      className={cn(
+                        "rounded-md border px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wider",
+                        isDarkMode ? "border-white/10 bg-white/5 text-slate-400" : "border-slate-200 bg-white text-slate-500"
+                      )}
+                    >
+                      {fmt}
+                    </span>
+                  ))}
+                </span>
+              )}
+            </button>
+
+            <input
+              ref={autogradeInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onload = (evt) => {
+                    if (typeof evt.target?.result === 'string') {
+                      handleScanAndGrade(evt.target.result);
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                }
+                // Reset so re-submitting the same file still fires onChange.
+                e.target.value = '';
+              }}
+            />
+
+            {submittedPreview && (
+              <div className="space-y-2">
+                <p className={`text-[10px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Submitted script
+                </p>
+                <img
+                  src={submittedPreview}
+                  alt="Your submitted answer script"
+                  className="max-h-52 w-full rounded-2xl border border-black/10 object-contain"
+                />
+              </div>
+            )}
           </div>
           
           <div className={`${isDarkMode ? 'glass' : 'bg-white border border-slate-200'} p-6 rounded-[24px] shadow-sm space-y-4`}>
-            <h3 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-slate-700'}`}><CheckCircle size={20}/> Detailed Feedback</h3>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className={`font-bold flex items-center gap-2.5 ${isDarkMode ? 'text-white' : 'text-slate-700'}`}>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-500">
+                  <CheckCircle size={17} />
+                </span>
+                Detailed Feedback
+              </h3>
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${isDarkMode ? 'border-white/10 bg-white/5 text-slate-400' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+                Step 2 · Your marks
+              </span>
+            </div>
             {ocrLoading ? (
               <div className="flex flex-col items-center justify-center py-20">
                  <Loader2 size={40} className="animate-spin text-brand-cyan mb-4" />

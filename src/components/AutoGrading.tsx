@@ -30,6 +30,34 @@ const parseScoreToPercentage = (scoreStr: string) => {
   return 0;
 };
 
+/**
+ * `auto_grading_reports.createdAt` is written with `serverTimestamp()`, so it
+ * arrives as a Firestore Timestamp (`.seconds`) — but older rows and the
+ * offline store use ISO strings. Normalise both to epoch ms so sorting and
+ * display never produce "Invalid Date" on the Lab landing page.
+ */
+const reportDateMs = (value: any): number => {
+  if (!value) return 0;
+  if (typeof value.seconds === 'number') return value.seconds * 1000;
+  if (value instanceof Date) return value.getTime();
+  const parsed = new Date(value).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+const formatReportDate = (value: any): string => {
+  const ms = reportDateMs(value);
+  if (!ms) return '—';
+  try {
+    return new Date(ms).toLocaleDateString('en-ZA', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return '—';
+  }
+};
+
 const LANGUAGES = [
   { value: 'English',   label: 'English' },
   { value: 'Afrikaans', label: 'Afrikaans' },
@@ -282,7 +310,10 @@ export default function AutoGrading() {
       unsub = onSnapshot(q, (snapshot) => {
         if (!active) return;
         const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-        list.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        // Newest first. `createdAt` is a Firestore Timestamp (see reportDateMs),
+        // which `new Date(...)` cannot parse — that silently produced NaN and
+        // left the ledger in arbitrary order.
+        list.sort((a, b) => reportDateMs(b.createdAt) - reportDateMs(a.createdAt));
         setLabReports(list);
       }, (err) => {
         console.warn("Error loading auto_grading_reports (handled):", err);
@@ -1153,55 +1184,153 @@ export default function AutoGrading() {
 
       {viewMode === 'dashboard' ? (
         <div className="space-y-6 text-white font-sans">
-          {/* Top Title */}
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl sm:text-3xl font-display font-black tracking-tight text-white">
-              Auto-Grading Lab
-            </h1>
-            <button
-              type="button"
-              onClick={() => setViewMode('studio')}
-              className="bg-transparent hover:bg-transparent text-slate-200 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg hover:border-cyan-500/50"
-            >
-              <Sparkles size={14} className="text-cyan-400" />
-              <span>Advanced Grading Studio</span>
-            </button>
+          {/* ── Lab Landing Hero ──────────────────────────────────────────────
+              This replaces the old bare "Top Title" row. That row was
+              `flex items-center justify-between` holding an H1 and a
+              `bg-transparent border-white/10` pill labelled "Advanced Grading
+              Studio" — on the navy app shell the pill was effectively
+              invisible, and because the row had no wrap/gap the label collided
+              with (and clipped against) the title on phone widths.
+
+              The banner now mirrors the Advanced Grading Studio header below
+              exactly: same navy gradient plate, rounded-[32px] shell, ambient
+              glow blobs, badge chip and gradient title — so the landing page
+              and the studio read as one product and match the rest of the app
+              (see the studio banner and the hub showcase cards). The entry
+              point is a filled cyan→blue primary CTA that stays legible at
+              every width and stacks under the copy on small screens.
+          */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-[#0c1033] via-[#080b22] to-[#111640] border-2 border-cyan-500/25 rounded-[32px] p-5 sm:p-7 lg:p-8 shadow-[0_0_40px_rgba(6,182,212,0.18)]">
+            <div className="absolute -top-24 -right-16 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-28 -left-16 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+              {/* Copy */}
+              <div className="min-w-0 max-w-2xl space-y-3">
+                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-1 text-[10px] sm:text-xs font-mono font-bold uppercase tracking-widest text-cyan-300 art-chip">
+                  <Sparkles size={14} className="shrink-0 text-cyan-400 animate-pulse" />
+                  <span>AI Vision &amp; Auto-Grading Laboratory</span>
+                </div>
+
+                <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-white to-cyan-300">
+                  Auto-Grading Lab
+                </h1>
+
+                <p className="text-xs sm:text-sm leading-relaxed font-medium text-slate-300 art-body">
+                  Scan handwritten or printed answer sheets, grade them against a CAPS rubric or an
+                  AI-crafted memorandum, and log every result to the learner's academic record.
+                </p>
+
+                {/* Capability chips — what the lab actually does, at a glance */}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {[
+                    { icon: Scan,        label: 'OCR Handwriting' },
+                    { icon: Layers,      label: 'Bulk Scripts' },
+                    { icon: ClipboardList, label: 'Rubric & Memo' },
+                    { icon: FileCheck,   label: 'History Ledger' },
+                  ].map(({ icon: Icon, label }) => (
+                    <span
+                      key={label}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-300 art-chip"
+                    >
+                      <Icon size={13} className="shrink-0 text-cyan-400" />
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Primary entry point — the option that used to be invisible */}
+              <div className="flex w-full shrink-0 flex-col items-stretch gap-3 sm:w-auto sm:items-end xl:pl-6">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('studio')}
+                  className="group inline-flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-600 px-6 py-4 text-xs sm:text-sm font-black uppercase tracking-wider text-slate-950 shadow-[0_0_28px_rgba(6,182,212,0.45)] transition-all hover:from-cyan-300 hover:to-blue-500 hover:shadow-[0_0_40px_rgba(6,182,212,0.6)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 active:scale-[0.97] sm:w-auto"
+                >
+                  <Sparkles size={18} className="shrink-0" />
+                  <span className="whitespace-nowrap">Advanced Grading Studio</span>
+                  <ChevronRight size={16} className="shrink-0 transition-transform group-hover:translate-x-1" />
+                </button>
+
+                <p className="text-center text-[10px] font-bold uppercase tracking-widest text-slate-300/80 sm:text-right">
+                  Full controls · bulk queue · ILP workflow
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Top Grid: Scan Files and Document Preview */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Left Box: Scan Files (~60% / 7 cols) */}
-            <div className="lg:col-span-7 bg-[#0c1024] border border-white/10 rounded-[28px] p-6 flex flex-col justify-center items-center min-h-[360px] shadow-2xl relative group">
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full h-full border-2 border-dashed border-cyan-500/40 rounded-2xl bg-slate-900/80 p-12 text-center flex flex-col items-center justify-center cursor-pointer group-hover:bg-slate-900/90 group-hover:border-cyan-400 transition-all duration-300 my-auto"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-5 group-hover:scale-110 transition-transform shadow-lg">
-                  <Upload size={32} />
-                </div>
-                <h3 className="text-2xl font-display font-bold text-white mb-2">
+            <div className="lg:col-span-7 bg-[#0c1024] border border-white/10 rounded-[28px] p-5 sm:p-6 flex flex-col min-h-[360px] shadow-2xl relative group">
+              {/* Card header — same pattern as the ledger card below so the
+                  landing page reads as one system. */}
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <h3 className="flex items-center gap-2.5 text-left font-display text-base sm:text-lg font-bold text-white">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400">
+                    <Upload size={17} />
+                  </span>
                   Scan Files
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-400 max-w-sm leading-relaxed">
-                  Drag and drop answer sheets here or click to browse files for auto-grading.
-                </p>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileUpload} 
-                  className="hidden" 
-                  accept="image/*,application/pdf,.pdf,.docx,.doc" 
-                  multiple
-                />
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
+                  Step 1 · Upload scripts
+                </span>
               </div>
+
+              {/* Real <button> (was a click-only <div>) so the dropzone is
+                  keyboard reachable and picks up the app-shell focus glow. */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="my-auto flex w-full grow cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-cyan-500/40 bg-slate-900/80 p-8 sm:p-12 text-center transition-all duration-300 group-hover:border-cyan-400 group-hover:bg-slate-900/90"
+              >
+                <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 shadow-lg transition-transform group-hover:scale-110">
+                  <Upload size={32} />
+                </div>
+                <span className="mb-2 block font-display text-xl sm:text-2xl font-bold text-white">
+                  Drop answer sheets to grade
+                </span>
+                <span className="mb-4 block max-w-sm text-xs sm:text-sm leading-relaxed text-slate-400">
+                  Drag and drop learner scripts here, or click to browse. Single or bulk — the lab
+                  grades them against your rubric or memorandum.
+                </span>
+                <span className="flex flex-wrap items-center justify-center gap-1.5">
+                  {['JPG / PNG', 'PDF', 'DOCX', 'Camera'].map((fmt) => (
+                    <span
+                      key={fmt}
+                      className="rounded-md border border-white/10 bg-white/[0.05] px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-slate-400"
+                    >
+                      {fmt}
+                    </span>
+                  ))}
+                </span>
+              </button>
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="hidden"
+                accept="image/*,application/pdf,.pdf,.docx,.doc"
+                multiple
+              />
             </div>
 
             {/* Right Box: Document Preview (~40% / 5 cols) */}
-            <div className="lg:col-span-5 bg-[#0c1024] border border-white/10 rounded-[28px] p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden">
-              <h3 className="text-base sm:text-lg font-display font-bold text-white mb-4 text-left">
-                Document Preview
-              </h3>
-              
+            <div className="lg:col-span-5 bg-[#0c1024] border border-white/10 rounded-[28px] p-5 sm:p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <h3 className="flex items-center gap-2.5 text-left font-display text-base sm:text-lg font-bold text-white">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400">
+                    <Eye size={17} />
+                  </span>
+                  Document Preview
+                </h3>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400" />
+                  Step 2 · Review marks
+                </span>
+              </div>
               <div className="relative rounded-2xl bg-[#070914] border border-white/10 overflow-hidden p-4 flex items-center justify-center min-h-[280px] grow">
                 {/* Paper Mockup */}
                 <div className="w-48 sm:w-56 bg-white rounded-lg p-3 text-slate-900 font-serif text-[8px] shadow-2xl rotate-[-2deg] border border-slate-200 relative">
@@ -1256,48 +1385,96 @@ export default function AutoGrading() {
             </div>
           </div>
 
-          {/* Bottom Box: Recent Graded Assessments */}
-          <div className="bg-[#0c1024] border border-white/10 rounded-[28px] p-6 shadow-2xl">
-            <h3 className="text-base sm:text-lg font-display font-bold text-white mb-4 text-left">
-              Recent Graded Assessments
-            </h3>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[600px]">
-                <thead>
-                  <tr className="border-b border-white/10 text-slate-400 text-xs font-bold uppercase tracking-wider">
-                    <th className="py-3 px-4">Assessment Name</th>
-                    <th className="py-3 px-4">Class</th>
-                    <th className="py-3 px-4">Date</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Score</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5 text-xs sm:text-sm">
-                  <tr onClick={() => setViewMode('studio')} className="hover:bg-white/[0.04] transition-colors cursor-pointer group">
-                    <td className="py-4 px-4 font-bold text-white group-hover:text-cyan-400 transition-colors">Grade 5 Math - Fractions Quiz</td>
-                    <td className="py-4 px-4 text-slate-300 font-medium">Class 5A</td>
-                    <td className="py-4 px-4 text-slate-400">Oct 26, 2023</td>
-                    <td className="py-4 px-4 font-medium text-emerald-400">Completed (Auto-Graded)</td>
-                    <td className="py-4 px-4 text-right font-bold text-white font-mono">93%</td>
-                  </tr>
-                  <tr onClick={() => setViewMode('studio')} className="hover:bg-white/[0.04] transition-colors cursor-pointer group">
-                    <td className="py-4 px-4 font-bold text-white group-hover:text-cyan-400 transition-colors">Grade 6 Science - Ecosystems</td>
-                    <td className="py-4 px-4 text-slate-300 font-medium">Class 6B</td>
-                    <td className="py-4 px-4 text-slate-400">Oct 25, 2023</td>
-                    <td className="py-4 px-4 font-medium text-amber-400">Grading...</td>
-                    <td className="py-4 px-4 text-right font-medium text-amber-400">Pending</td>
-                  </tr>
-                  <tr onClick={() => setViewMode('studio')} className="hover:bg-white/[0.04] transition-colors cursor-pointer group">
-                    <td className="py-4 px-4 font-bold text-white group-hover:text-cyan-400 transition-colors">Grade 4 English - Grammar</td>
-                    <td className="py-4 px-4 text-slate-300 font-medium">Class 4C</td>
-                    <td className="py-4 px-4 text-slate-400">Oct 24, 2023</td>
-                    <td className="py-4 px-4 font-medium text-emerald-400">Completed (Auto-Graded)</td>
-                    <td className="py-4 px-4 text-right font-bold text-white font-mono">88%</td>
-                  </tr>
-                </tbody>
-              </table>
+          {/* Bottom Box: Recent Graded Assessments
+              Now bound to the real `auto_grading_reports` ledger (`labReports`)
+              instead of three hardcoded 2023 demo rows, so the landing page
+              reflects the teacher's actual grading history. A row opens the
+              Report Insight Inspector in the studio's History tab. */}
+          <div className="bg-[#0c1024] border border-white/10 rounded-[28px] p-5 sm:p-6 shadow-2xl">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h3 className="flex items-center gap-2.5 text-left font-display text-base sm:text-lg font-bold text-white">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400">
+                  <FileCheck size={17} />
+                </span>
+                Recent Graded Assessments
+              </h3>
+              <button
+                type="button"
+                onClick={() => { setLabActiveTab('history'); setViewMode('studio'); }}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-300 transition-all hover:border-cyan-500/50 hover:text-cyan-300"
+              >
+                <span>View full ledger</span>
+                <ChevronRight size={13} />
+              </button>
             </div>
+
+            {labReports.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[620px] border-collapse text-left">
+                  <thead>
+                    <tr className="border-b border-white/10 text-xs font-bold uppercase tracking-wider text-slate-400">
+                      <th className="px-4 py-3">Assessment Name</th>
+                      <th className="px-4 py-3">Learner</th>
+                      <th className="px-4 py-3">Date</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3 text-right">Score</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 text-xs sm:text-sm">
+                    {labReports.slice(0, 6).map((report: any) => {
+                      const pct = parseScoreToPercentage(report.totalScore);
+                      const graded = Boolean(report.totalScore);
+                      return (
+                        <tr
+                          key={report.id}
+                          onClick={() => {
+                            setLabActiveTab('history');
+                            setSelectedReportDetail(report);
+                            setViewMode('studio');
+                          }}
+                          className="group cursor-pointer transition-colors hover:bg-white/[0.04]"
+                        >
+                          <td className="px-4 py-4 font-bold text-white transition-colors group-hover:text-cyan-400">
+                            {report.assignmentTitle || 'Untitled Assessment'}
+                          </td>
+                          <td className="px-4 py-4 font-medium text-slate-300">
+                            {report.studentName || 'Unassigned'}
+                          </td>
+                          <td className="px-4 py-4 text-slate-400">
+                            {formatReportDate(report.createdAt)}
+                          </td>
+                          <td className={`px-4 py-4 font-medium ${graded ? 'text-emerald-400' : 'text-amber-400'}`}>
+                            {graded ? 'Completed (Auto-Graded)' : 'Awaiting Score'}
+                          </td>
+                          <td className={`px-4 py-4 text-right font-mono font-bold ${graded ? (pct >= 50 ? 'text-white' : 'text-rose-400') : 'text-amber-400'}`}>
+                            {graded ? report.totalScore : 'Pending'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-white/10 bg-[#070914] px-6 py-12 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-500/25 bg-cyan-500/10 text-cyan-400">
+                  <ClipboardList size={22} />
+                </div>
+                <p className="text-sm font-bold text-white">No graded assessments yet</p>
+                <p className="max-w-sm text-xs leading-relaxed text-slate-400">
+                  Scan an answer sheet below or open the Advanced Grading Studio. Every completed
+                  report is logged here automatically.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('studio')}
+                  className="mt-1 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-600 px-5 py-2.5 text-[11px] font-black uppercase tracking-wider text-slate-950 shadow-[0_0_22px_rgba(6,182,212,0.35)] transition-all hover:from-cyan-300 hover:to-blue-500 active:scale-95"
+                >
+                  <Sparkles size={14} />
+                  <span>Open Grading Studio</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : null}

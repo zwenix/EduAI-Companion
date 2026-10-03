@@ -1,4 +1,4 @@
-import { NotificationManager } from '../lib/notifications/NotificationManager';
+import { NotificationManager, type NotificationSupport } from '../lib/notifications/NotificationManager';
 import React, { useState, useEffect } from 'react';
 import { 
   Bell, Shield, Key, Moon, Sun, 
@@ -46,6 +46,56 @@ export default function Settings({
   const [notifications, setNotifications] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [viewMode, setViewMode] = useState<'dashboard' | 'advanced'>('dashboard');
+
+  // ── Device notifications ─────────────────────────────────────────────────
+  // Real status for the platform we are on: FCM + LocalNotifications inside the
+  // Android APK, service-worker Web Push in the browser / installed PWA. The
+  // `notifications` flag above is a local preference; this is what the OS will
+  // actually let us do.
+  const [notifSupport, setNotifSupport] = useState<NotificationSupport | null>(null);
+  const [notifBusy, setNotifBusy] = useState(false);
+  const [notifMessage, setNotifMessage] = useState<string | null>(null);
+
+  const refreshNotifSupport = () => setNotifSupport(NotificationManager.getSupport());
+
+  useEffect(() => {
+    refreshNotifSupport();
+    // Re-read after a tab regain focus: the user may have granted permission in
+    // Android's system settings while the app was backgrounded.
+    const onFocus = () => refreshNotifSupport();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
+
+  const handleEnableNotifications = async () => {
+    setNotifBusy(true);
+    setNotifMessage(null);
+    const granted = await NotificationManager.requestPermissionExplicitly(auth.currentUser?.uid);
+    refreshNotifSupport();
+    setNotifBusy(false);
+    setNotifMessage(
+      granted
+        ? 'Notifications are enabled on this device.'
+        : 'Permission was not granted. Open Android Settings → Apps → EduAI Companion → Notifications, allow them, then tap Enable again.'
+    );
+  };
+
+  const handleTestNotification = async () => {
+    setNotifBusy(true);
+    setNotifMessage(null);
+    const shown = await NotificationManager.showNotification(
+      'EduAI Companion',
+      'Notifications are working on this device. 🎉',
+      { url: '/', tab: 'settings', type: 'test' }
+    );
+    refreshNotifSupport();
+    setNotifBusy(false);
+    setNotifMessage(
+      shown
+        ? 'Test notification sent — check your notification shade.'
+        : 'Could not display the test notification. Grant permission first.'
+    );
+  };
   
   const [fullName, setFullName] = useState(() => localStorage.getItem('eduai_user_name') || 'Dr. Sarah Mkize');
   const [school, setSchool] = useState(() => localStorage.getItem('eduai_user_school') || 'Houghton Academy');
@@ -266,7 +316,7 @@ export default function Settings({
     { id: 'accessibility', label: 'Accessibility', icon: Palette },
     { id: 'security', label: 'Password & Security', icon: Lock },
     { id: 'ai', label: 'AI Configuration', icon: Activity },
-    { id: 'pwa', label: 'App Install (PWA)', icon: Smartphone },
+    { id: 'pwa', label: 'Install & Notifications', icon: Bell },
     { id: 'billing', label: 'Plan & Billing', icon: CreditCard },
     { id: 'codebase', label: 'Codebase Spec', icon: Database },
   ];
@@ -459,6 +509,132 @@ export default function Settings({
                          <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
                             <strong className="text-cyan-400">Qwen-Image (NVIDIA NIM)</strong> uses <code className="font-mono text-cyan-300">qwen/qwen-image</code> on NVIDIA's hosted inference endpoint and produces premium SA-context enhanced educational illustrations with better text rendering and cultural accuracy.
                          </p>
+                      </div>
+                   </div>
+                </div>
+             )}
+
+             {activeSubTab === 'pwa' && (
+                <div id="section-notifications" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                   <h2 className="text-3xl font-black text-white">Install &amp; Device Notifications</h2>
+
+                   {/* Notification status */}
+                   <div className="glass p-6 rounded-[32px] border border-white/5 space-y-5">
+                      <div className="flex items-start justify-between gap-4">
+                         <div className="min-w-0">
+                            <h4 className="font-bold text-white flex items-center gap-2">
+                               <Bell size={16} className="text-brand-cyan" />
+                               Push notifications
+                            </h4>
+                            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                               {notifSupport?.platform === 'native'
+                                  ? 'Android app — delivered through Firebase Cloud Messaging and shown in the system notification shade.'
+                                  : 'Browser / installed PWA — delivered through a service worker subscription.'}
+                            </p>
+                         </div>
+                         <span className={cn(
+                            "shrink-0 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest border",
+                            notifSupport?.canNotify
+                               ? "bg-brand-green/15 border-brand-green/40 text-brand-green"
+                               : "bg-amber-500/10 border-amber-500/40 text-amber-400"
+                         )}>
+                            {notifSupport?.canNotify ? 'Enabled' : (notifSupport?.permission || 'Unknown')}
+                         </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                         <div className="p-3 bg-white/5 rounded-xl border border-white/5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            Platform: <span className="text-white normal-case tracking-normal">{notifSupport?.platform === 'native' ? `Native (${NotificationManager.getPlatform()})` : 'Web'}</span>
+                         </div>
+                         <div className="p-3 bg-white/5 rounded-xl border border-white/5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            {notifSupport?.platform === 'native' ? 'FCM token' : 'Push API'}:{' '}
+                            <span className="text-white normal-case tracking-normal">
+                               {notifSupport?.platform === 'native'
+                                  ? (notifSupport?.fcmRegistered ? 'Registered' : 'Not registered')
+                                  : (notifSupport?.pushSupported ? 'Supported' : 'Unavailable')}
+                            </span>
+                         </div>
+                         <div className="p-3 bg-white/5 rounded-xl border border-white/5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            Server delivery:{' '}
+                            <span className="text-white normal-case tracking-normal">
+                               {notifSupport?.platform === 'native' || notifSupport?.serverPushEnabled === null
+                                  ? 'See ANDROID_PUSH_SETUP.md'
+                                  : (notifSupport?.serverPushEnabled ? 'Configured' : 'VAPID keys missing')}
+                            </span>
+                         </div>
+                      </div>
+
+                      {notifSupport?.detail && (
+                         <p className="text-xs text-slate-400 leading-relaxed border-l-2 border-brand-cyan/40 pl-3">
+                            {notifSupport.detail}
+                         </p>
+                      )}
+
+                      {notifMessage && (
+                         <div className="flex items-start gap-2 rounded-xl border border-brand-cyan/30 bg-brand-cyan/10 p-3 text-xs font-medium text-slate-200">
+                            <AlertCircle size={14} className="mt-0.5 shrink-0 text-brand-cyan" />
+                            <span>{notifMessage}</span>
+                         </div>
+                      )}
+
+                      <div className="flex flex-wrap gap-3 pt-1">
+                         <button
+                            type="button"
+                            onClick={handleEnableNotifications}
+                            disabled={notifBusy}
+                            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-brand-cyan hover:bg-brand-cyan/80 text-slate-950 text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer"
+                         >
+                            <Bell size={14} />
+                            {notifBusy ? 'Working…' : 'Enable notifications'}
+                         </button>
+                         <button
+                            type="button"
+                            onClick={handleTestNotification}
+                            disabled={notifBusy}
+                            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer"
+                         >
+                            <Activity size={14} className="text-brand-cyan" />
+                            Send test notification
+                         </button>
+                         <button
+                            type="button"
+                            onClick={refreshNotifSupport}
+                            disabled={notifBusy}
+                            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer"
+                         >
+                            Refresh status
+                         </button>
+                      </div>
+                   </div>
+
+                   {/* PWA install */}
+                   <div className="glass p-6 rounded-[32px] border border-white/5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                         <div className="min-w-0">
+                            <h4 className="font-bold text-white flex items-center gap-2">
+                               <Smartphone size={16} className="text-brand-cyan" />
+                               Install as an app
+                            </h4>
+                            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                               Add EduAI Companion to your home screen for full-screen access and offline worksheets.
+                               On Android the dedicated APK already ships with native push support.
+                            </p>
+                         </div>
+                         {isAlreadyInstalled ? (
+                            <span className="shrink-0 rounded-full border border-brand-green/40 bg-brand-green/15 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-brand-green">
+                               Installed
+                            </span>
+                         ) : (
+                            <button
+                               type="button"
+                               onClick={() => installPWAApp?.()}
+                               disabled={!isAppInstallable}
+                               className="shrink-0 flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase tracking-wider transition-all disabled:opacity-40 cursor-pointer"
+                            >
+                               <Download size={14} className="text-brand-cyan" />
+                               Install app
+                            </button>
+                         )}
                       </div>
                    </div>
                 </div>

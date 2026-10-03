@@ -144,6 +144,42 @@ service cloud.firestore {
       allow read, write: if isSignedIn();
     }
 
+    // FCM device tokens registered by the native Android/iOS app
+    // (src/lib/notifications/androidPush.ts). Web Push cannot reach a Capacitor
+    // WebView — `PushManager` and `Notification` do not exist there — so the APK
+    // registers a Firebase Cloud Messaging token instead and this collection is
+    // the registry the backend reads to deliver push messages to installed apps.
+    //
+    // The document id IS the token. Clients only ever write their own document;
+    // bulk reads happen server-side with service-account credentials (which
+    // bypass security rules), so `list` stays closed and one device can never
+    // enumerate another user's delivery tokens (POPIA).
+    function isValidPushToken(data) {
+      return data.keys().size() >= 3 && data.keys().size() <= 7
+        && data.token is string && data.token.size() <= 512
+        && data.userId is string && data.userId.size() <= 128
+        && data.platform is string && data.platform.size() <= 20
+        && data.updatedAt is timestamp
+        && (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+    match /push_tokens/{tokenId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow list: if false;
+      // `create` must not reference `resource` — it does not exist yet, and
+      // reading it makes the whole rule evaluate to false.
+      allow create: if isSignedIn()
+        && tokenId == request.resource.data.token
+        && isValidPushToken(request.resource.data)
+        && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn()
+        && tokenId == request.resource.data.token
+        && isValidPushToken(request.resource.data)
+        && request.resource.data.userId == request.auth.uid
+        // Never let one account re-point somebody else's device token.
+        && resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
     function isValidMessage(data) {
       return data.keys().size() >= 4 && data.keys().size() <= 7
         && data.senderId is string && data.senderId == request.auth.uid

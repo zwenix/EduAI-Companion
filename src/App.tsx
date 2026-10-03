@@ -111,6 +111,8 @@ import LoginPage from './components/LoginPage';
 import LandingPage from './components/LandingPage';
 import Logo from './components/Logo';
 import NotificationsDropdown from './components/NotificationsDropdown';
+import { NotificationManager } from './lib/notifications/NotificationManager';
+import { NOTIFICATION_TAP_EVENT } from './lib/notifications/androidPush';
 import StudentPractice from './components/StudentPractice';
 import StudentNotes from './components/StudentNotes';
 import StudentTasksNotifications from './components/StudentTasksNotifications';
@@ -1194,6 +1196,33 @@ export default function App() {
     setCategoryOverviewActive(null);
   };
 
+  // Tapping a system notification (raised by the native bridge on Android, or
+  // by the service worker on web) routes the app to the screen it refers to.
+  // Payloads carry an explicit `tab`; otherwise fall back to the notification
+  // `type` written by the Auto-Grading Lab, Messenger, etc.
+  useEffect(() => {
+    const TAB_FOR_TYPE: Record<string, string> = {
+      grading_complete: 'ocr',
+      grading: 'ocr',
+      assignment: 'student-tasks',
+      task: 'student-tasks',
+      message: 'messenger',
+      intervention: 'learner-intervention',
+      report: 'reports',
+    };
+
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent).detail || {};
+      const tab = detail.tab || TAB_FOR_TYPE[detail.data?.type] || TAB_FOR_TYPE[detail.data?.tab];
+      if (tab) changeTab(tab);
+    };
+
+    window.addEventListener(NOTIFICATION_TAP_EVENT, handler);
+    return () => window.removeEventListener(NOTIFICATION_TAP_EVENT, handler);
+    // Re-subscribes only when the current tab changes so `changeTab` (which
+    // pushes the previous tab onto the back stack) is never stale.
+  }, [activeTab]);
+
   const goBack = () => {
     setActiveCreatorTab(null);
     setCategoryOverviewActive(null);
@@ -1675,6 +1704,12 @@ export default function App() {
     // Check if user has an active authenticated session
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
+        // Re-run with the uid so the FCM device token (Android APK) and the Web
+        // Push subscription can be attributed to this account. Safe to call
+        // repeatedly: the native bridge is idempotent and the web path reuses
+        // any existing PushManager subscription. Fire-and-forget — a device that
+        // refuses notifications must never block sign-in.
+        void NotificationManager.init(user.uid);
         try {
           const docRef = doc(db, 'users', user.uid);
           const docSnap = await getDoc(docRef);

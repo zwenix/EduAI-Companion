@@ -88,3 +88,8 @@ Thumbs.db
 *.dll
 *.so
 *.a
+
+# Capacitor native projects are generated in CI (`npx cap add android`).
+# They are build artifacts, not source — see .github/workflows/build-android2.yml
+android/
+ios/

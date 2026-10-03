@@ -15,6 +15,7 @@ import {
 import express from "express";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import dotenv from "dotenv";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
@@ -718,22 +719,342 @@ Ultra-detailed digital illustration, professional educational graphic design, vi
   });
 
   app.post("/api/notifications/test-send", async (req, res) => {
-    if (!vapidPublicKey || !vapidPrivateKey) {
-      return res.status(503).json({ error: "Web push is not configured on this deployment (missing VAPID keys)." });
-    }
-    const webpush = await getWebPush();
-    if (!webpush) {
-      return res.status(503).json({ error: "The web-push package is not installed on this deployment." });
+    const { title = "EduAI Companion", body = "You have a new notification!", url = "/", userId } = req.body || {};
+    const payload = { title, body, url };
+
+    // Web Push (browser / installed PWA).
+    let webSent = 0;
+    let webTotal = 0;
+    let webError: string | null = null;
+    if (vapidPublicKey && vapidPrivateKey) {
+      const webpush = await getWebPush();
+      if (!webpush) {
+        webError = "The web-push package is not installed on this deployment.";
+      } else {
+        const targets = [...pushSubscriptions.values()].filter((entry) => !userId || entry.userId === userId);
+        webTotal = targets.length;
+        const results = await Promise.allSettled(
+          targets.map((entry) => sendPushToEntry(webpush, entry, payload))
+        );
+        webSent = results.filter((r) => r.status === "fulfilled").length;
+      }
+    } else {
+      webError = "Web push is not configured on this deployment (missing VAPID keys).";
     }
 
-    const { title = "EduAI Companion", body = "You have a new notification!", url = "/", userId } = req.body || {};
-    const targets = [...pushSubscriptions.values()].filter((entry) => !userId || entry.userId === userId);
+    // FCM (the Capacitor Android APK cannot use Web Push at all).
+    const fcm = await sendToFcmDevices({ ...payload, userId });
+
+    const sent = webSent + fcm.sent;
+    const total = webTotal + fcm.total;
+    if (sent === 0 && total === 0) {
+      return res.status(503).json({
+        ok: false,
+        error: webError || fcm.error || "No notification targets are registered for this deployment.",
+        web: { sent: webSent, total: webTotal, error: webError },
+        fcm,
+      });
+    }
+    return res.json({ ok: true, sent, total, web: { sent: webSent, total: webTotal, error: webError }, fcm });
+  });
+
+  // --- Firebase Cloud Messaging (native Android / iOS app) -----------------
+  // The Capacitor Android WebView exposes neither `PushManager` nor
+  // `Notification`, so Web Push above can never reach the APK. The native app
+  // registers an FCM device token instead (src/lib/notifications/androidPush.ts)
+  // and these endpoints deliver to it over the FCM HTTP v1 API.
+  //
+  // Configure ONE of these to enable delivery:
+  //   FIREBASE_SERVICE_ACCOUNT_JSON  — the whole service-account JSON (preferred)
+  //   GOOGLE_APPLICATION_CREDENTIALS — a path to that JSON file
+  // The account needs the "Firebase Cloud Messaging" role. Without either, the
+  // endpoints answer with { enabled: false } so clients stay silent — the same
+  // contract as the VAPID block above. See ANDROID_PUSH_SETUP.md.
+  interface ServiceAccount {
+    projectId: string;
+    clientEmail: string;
+    privateKey: string;
+  }
+
+  const readServiceAccount = (): ServiceAccount | null => {
+    let raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON || "";
+    if (!raw && process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      try {
+        raw = fs.readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS, "utf8");
+      } catch (err) {
+        console.warn("[FCM] Could not read GOOGLE_APPLICATION_CREDENTIALS:", (err as any)?.message);
+      }
+    }
+    if (!raw.trim()) return null;
+    try {
+      const json = JSON.parse(raw);
+      const projectId = json.project_id;
+      const clientEmail = json.client_email;
+      // Keys exported from the console carry literal \n escapes.
+      const privateKey = String(json.private_key || "").replace(/\\n/g, "\n");
+      if (!projectId || !clientEmail || !privateKey.includes("BEGIN")) return null;
+      return { projectId, clientEmail, privateKey };
+    } catch (err) {
+      console.warn("[FCM] FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON.");
+      return null;
+    }
+  };
+  const serviceAccount = readServiceAccount();
+
+  // This project runs on a NAMED Firestore database (see
+  // firebase-applet-config.json → firestoreDatabaseId), not `(default)`, so the
+  // REST lookup below has to target that database explicitly.
+  const readFirestoreTarget = () => {
+    const fallbackProject = serviceAccount?.projectId || "";
+    try {
+      const cfgPath = path.join(process.cwd(), "firebase-applet-config.json");
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
+      return {
+        projectId: cfg.projectId || fallbackProject,
+        databaseId: cfg.firestoreDatabaseId || "(default)",
+      };
+    } catch {
+      return { projectId: fallbackProject, databaseId: "(default)" };
+    }
+  };
+  const firestoreTarget = readFirestoreTarget();
+
+  interface FcmTokenEntry {
+    token: string;
+    userId?: string | null;
+    platform?: string;
+    createdAt: string;
+  }
+  const fcmTokens = new Map<string, FcmTokenEntry>();
+
+  const b64url = (input: string | Buffer) => Buffer.from(input).toString("base64url");
+
+  // Google OAuth access tokens live for an hour; cache and refresh proactively.
+  let cachedFcmAuth: { value: string; expiresAt: number } | null = null;
+  const getFcmAccessToken = async (): Promise<string | null> => {
+    if (!serviceAccount) return null;
+    if (cachedFcmAuth && cachedFcmAuth.expiresAt > Date.now() + 60_000) return cachedFcmAuth.value;
+
+    const now = Math.floor(Date.now() / 1000);
+    const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+    const claimSet = b64url(
+      JSON.stringify({
+        iss: serviceAccount.clientEmail,
+        // `datastore` lets the same token read the Firestore push-token registry.
+        scope:
+          "https://www.googleapis.com/auth/firebase.messaging https://www.googleapis.com/auth/datastore",
+        aud: "https://oauth2.googleapis.com/token",
+        iat: now,
+        exp: now + 3600,
+      })
+    );
+
+    const signature = crypto
+      .createSign("RSA-SHA256")
+      .update(`${header}.${claimSet}`)
+      .end()
+      .sign(serviceAccount.privateKey);
+    const assertion = `${header}.${claimSet}.${signature.toString("base64url")}`;
+
+    const resp = await axios.post(
+      "https://oauth2.googleapis.com/token",
+      new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion,
+      }).toString(),
+      { headers: { "Content-Type": "application/x-www-form-urlencoded" }, timeout: 15000 }
+    );
+
+    const value: string | undefined = resp.data?.access_token;
+    if (!value) return null;
+    const ttl = Number(resp.data?.expires_in || 3600);
+    cachedFcmAuth = { value, expiresAt: Date.now() + ttl * 1000 };
+    return value;
+  };
+
+  /**
+   * The APK reaches Firestore but usually not this Express API (the WebView
+   * serves the bundled assets, so a relative `/api/...` has no server behind
+   * it). The native client therefore writes its token to the `push_tokens`
+   * collection, which we read back over the Firestore REST API.
+   */
+  const fetchFcmTokensFromFirestore = async (userId?: string): Promise<FcmTokenEntry[]> => {
+    if (!serviceAccount || !firestoreTarget.projectId) return [];
+    const accessToken = await getFcmAccessToken().catch(() => null);
+    if (!accessToken) return [];
+
+    const url =
+      `https://firestore.googleapis.com/v1/projects/${firestoreTarget.projectId}` +
+      `/databases/${encodeURIComponent(firestoreTarget.databaseId)}/documents:runQuery`;
+    const structuredQuery: any = { from: [{ collectionId: "push_tokens" }] };
+    if (userId) {
+      structuredQuery.where = {
+        fieldFilter: {
+          field: { fieldPath: "userId" },
+          op: "EQUAL",
+          value: { stringValue: userId },
+        },
+      };
+    }
+
+    try {
+      const resp = await axios.post(url, { structuredQuery }, {
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        timeout: 15000,
+      });
+      const rows: any[] = Array.isArray(resp.data) ? resp.data : [];
+      return rows
+        .map((row) => row?.document?.fields)
+        .filter(Boolean)
+        .map((fields: any) => ({
+          token: fields.token?.stringValue,
+          userId: fields.userId?.stringValue ?? null,
+          platform: fields.platform?.stringValue || "android",
+          createdAt: fields.updatedAt?.timestampValue || new Date().toISOString(),
+        }))
+        .filter((entry: FcmTokenEntry) => Boolean(entry.token));
+    } catch (err: any) {
+      console.warn("[FCM] Firestore token lookup failed:", err?.response?.status || err?.message);
+      return [];
+    }
+  };
+
+  const collectFcmTargets = async (userId?: string): Promise<FcmTokenEntry[]> => {
+    const [fromMemory, fromFirestore] = await Promise.all([
+      Promise.resolve([...fcmTokens.values()]),
+      fetchFcmTokensFromFirestore(userId).catch(() => [] as FcmTokenEntry[]),
+    ]);
+    const merged = new Map<string, FcmTokenEntry>();
+    for (const entry of [...fromMemory, ...fromFirestore]) {
+      if (!entry?.token) continue;
+      if (userId && entry.userId && entry.userId !== userId && entry.userId !== "anonymous") continue;
+      merged.set(entry.token, entry);
+    }
+    return [...merged.values()];
+  };
+
+  const sendFcmMessage = async (token: string, payload: any) => {
+    const accessToken = await getFcmAccessToken();
+    if (!accessToken || !serviceAccount) throw new Error("FCM is not configured.");
+
+    // FCM v1 requires every `data` value to be a string.
+    const data: Record<string, string> = {};
+    for (const [key, value] of Object.entries(payload.data || {})) {
+      if (value === undefined || value === null) continue;
+      data[key] = String(value);
+    }
+
+    const message = {
+      token,
+      notification: { title: payload.title, body: payload.body },
+      data,
+      android: {
+        priority: "high",
+        ttl: "3600s",
+        notification: {
+          // Matches PUSH_CHANNEL_ID in src/lib/notifications/androidPush.ts so
+          // the alert lands on the high-importance channel the app created.
+          channel_id: "eduai-alerts",
+          color: "#00B3FF",
+          click_action: "OPEN_ACTIVITY",
+        },
+      },
+      apns: {
+        headers: { "apns-priority": "10" },
+        payload: { aps: { sound: "default", badge: 1 } },
+      },
+    };
+
+    const resp = await axios.post(
+      `https://fcm.googleapis.com/v1/projects/${serviceAccount.projectId}/messages:send`,
+      message,
+      { headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" }, timeout: 15000 }
+    );
+    return resp.data;
+  };
+
+  const sendToFcmDevices = async (input: {
+    title: string;
+    body: string;
+    url?: string;
+    tab?: string;
+    userId?: string;
+  }) => {
+    if (!serviceAccount) {
+      return {
+        enabled: false,
+        sent: 0,
+        total: 0,
+        error: "FCM is not configured on this deployment (missing Firebase service account).",
+      };
+    }
+
+    const targets = await collectFcmTargets(input.userId);
     const results = await Promise.allSettled(
-      targets.map((entry) => sendPushToEntry(webpush, entry, { title, body, url }))
+      targets.map((entry) =>
+        sendFcmMessage(entry.token, {
+          title: input.title,
+          body: input.body,
+          data: { url: input.url || "/", tab: input.tab || "" },
+        }).catch((err: any) => {
+          const status = err?.response?.status;
+          const code = err?.response?.data?.error?.details?.[0]?.errorCode
+            || err?.response?.data?.error?.status;
+          // UNREGISTERED / INVALID_ARGUMENT on a stale token → prune it.
+          if (status === 404 || code === "UNREGISTERED") {
+            fcmTokens.delete(entry.token);
+          }
+          throw err;
+        })
+      )
     );
     const sent = results.filter((r) => r.status === "fulfilled").length;
-    return res.json({ ok: true, sent, total: targets.length });
+    return { enabled: true, sent, total: targets.length, error: null as string | null };
+  };
+
+  app.get("/api/notifications/fcm/status", async (_req, res) => {
+    const targets = serviceAccount ? await collectFcmTargets().catch(() => []) : [];
+    return res.json({
+      enabled: Boolean(serviceAccount),
+      projectId: serviceAccount?.projectId || firestoreTarget.projectId || null,
+      firestoreDatabaseId: firestoreTarget.databaseId,
+      registeredDevices: targets.length,
+    });
   });
+
+  app.post("/api/notifications/fcm/register", (req, res) => {
+    const { token, userId, platform } = req.body || {};
+    if (!token || typeof token !== "string") {
+      return res.status(400).json({ error: "An FCM registration token is required." });
+    }
+    fcmTokens.set(token, {
+      token,
+      userId: userId || null,
+      platform: platform || "android",
+      createdAt: new Date().toISOString(),
+    });
+    return res.status(201).json({ ok: true, stored: true, deliveryEnabled: Boolean(serviceAccount) });
+  });
+
+  app.post("/api/notifications/fcm/unregister", (req, res) => {
+    const { token } = req.body || {};
+    if (typeof token === "string") fcmTokens.delete(token);
+    return res.json({ ok: true });
+  });
+
+  app.post("/api/notifications/fcm/send", async (req, res) => {
+    const {
+      title = "EduAI Companion",
+      body = "You have a new notification!",
+      url = "/",
+      tab,
+      userId,
+    } = req.body || {};
+    const result = await sendToFcmDevices({ title, body, url, tab, userId });
+    if (!result.enabled) return res.status(503).json({ ok: false, ...result });
+    return res.json({ ok: true, ...result });
+  });
+
 
   // Generic content generation proxy for OpenAI-compatible APIs
   app.post("/api/ai/:provider", async (req, res) => {
