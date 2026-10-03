@@ -45,12 +45,18 @@ installExportSafetyNet();
 
 import { NotificationManager } from './lib/notifications/NotificationManager';
 
-// Register Service Worker for PWA
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    NotificationManager.init();
-  });
-}
+// Boot the notification layer.
+//
+// This used to be gated on `'serviceWorker' in navigator`, which silently
+// skipped the whole thing inside the Capacitor Android APK — the WebView has no
+// Push API, so the native (FCM) path never got a chance to register and the
+// app could not receive notifications at all. `NotificationManager.init()` now
+// branches on the platform itself: FCM + LocalNotifications on native, service
+// worker + Web Push on web. It is safe to call unconditionally and again once
+// the Firebase uid is known (see src/App.tsx).
+window.addEventListener('load', () => {
+  void NotificationManager.init();
+});
 
 
 createRoot(document.getElementById('root')!).render(
