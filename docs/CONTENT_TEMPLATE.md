@@ -28,7 +28,7 @@ still holds with `npm run verify:template` (110 assertions — see
 
 | # | Guarantee | Where it is enforced |
 | --- | --- | --- |
-| 1 | **ONE BANNER** — the document title, every metadata pill (grade, subject, content type, term, date, school, teacher, learner) and the CAPS code + compliance labels live in **one** band at the top of the document, exactly once | `buildTemplateComplianceBannerHTML()` renders the only copy; `stripLeadingDuplicateBanner()` + `stripDuplicateTitleHeading()` delete every model-authored banner/title that repeats it first |
+| 1 | **ONE BANNER** — the document title, every metadata pill (grade, subject, content type, term, date, school, teacher, learner) and the CAPS code + compliance labels live in **one** band at the top of the document, exactly once | `buildTemplateComplianceBannerHTML()` renders the only copy; `collapseLeadingChrome()` absorbs **every** band at the top of the document (school header, CAPS reference bar, formal assessment header, meta strip, duplicate banner, logo strip) into that banner, then `stripLeadingDuplicateBanner()` + `stripDuplicateTitleHeading()` delete anything banner-shaped that is left |
 | 2 | **GRADIENT** — no top banner is ever one solid colour | `EDUAI_BANNER_GRADIENT` (`linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%)`) on the banner, `EDUAI_HEADER_GRADIENT` (very light blue @ 70% transparency) on the compact header, `applyBannerGradients()` rewrites model banners inline |
 | 3 | **FOOTER** — one canonical footer line, word for word | `EDUAI_TEMPLATE_FOOTER_LINE`, rendered by `buildTemplateFooterHTML()` after every model footer is removed |
 
@@ -52,10 +52,18 @@ One `<section class="eduai-compliance-banner">` per document, two-colour
 survives iframe previews, print, html2canvas rasterisation and downloads.
 
 - **Nothing banner-ish may precede it.** The only thing above the one banner is
-  the brand header (`<header class="site-header">`). `stripLeadingDuplicateBanner()`
-  removes any leading `<header>` / banner / hero / title-block the model emitted,
-  and `stripDuplicateTitleHeading()` removes a second `<h1…lesson-title…>` that
-  repeats the title.
+  the brand header (`<header class="site-header">`) and, in the SA pipeline, the
+  decorative flag stripe. `collapseLeadingChrome()` walks the leading run of
+  elements and absorbs every band the model opened the document with — a school
+  header / letterhead, a CAPS reference bar, a "formal assessment header", a
+  subject-grade-term-date-marks strip, a logo strip, a hero band or a second
+  banner (even one nested inside a `.poster-container` wrapper) — harvesting the
+  values they displayed (grade, subject, term, type, date, marks, duration,
+  school, teacher, learner, CAPS code/reference, ATP week) into the banner's
+  metadata before deleting the bands. `stripLeadingDuplicateBanner()` and
+  `stripDuplicateTitleHeading()` then remove anything banner-shaped that is left
+  and any second `<h1…lesson-title…>` repeating the title. Long paragraphs, real
+  lists/tables, content illustrations and section headings are never touched.
 - **Pills are deduplicated and ordered**: grade → subject → content type → term
   → date → school → teacher → learner → caller extras
   (`buildBannerPills()`). Values are title-cased only when fully lowercase
@@ -196,7 +204,7 @@ bands and the current footer instead of keeping stale ones.
 
 | Surface | File | How |
 | --- | --- | --- |
-| **Single source of truth** | `src/lib/contentTemplate.ts` | `EDUAI_LIGHT_CSS`, `EDUAI_BANNER_GRADIENT`, `EDUAI_HEADER_GRADIENT`, `EDUAI_HEADER_TINT`, `EDUAI_COMPLIANCE_LABELS`, `EDUAI_TEMPLATE_FOOTER_LINE`, `buildTemplate{Style,Header,Footer,Watermark,Banner,ComplianceBanner,TitleBlock}HTML`, `stripTemplateChrome`, `stripGeneratedComplianceMarkup`, `stripLeadingDuplicateBanner`, `stripDuplicateTitleHeading`, `applyBannerGradients`, `harvestMetaFromChrome`, `isCurrentTemplateOutput`, `wrapWithTemplate`, `metaFromPrintOptions` |
+| **Single source of truth** | `src/lib/contentTemplate.ts` | `EDUAI_LIGHT_CSS`, `EDUAI_BANNER_GRADIENT`, `EDUAI_HEADER_GRADIENT`, `EDUAI_HEADER_TINT`, `EDUAI_COMPLIANCE_LABELS`, `EDUAI_TEMPLATE_FOOTER_LINE`, `buildTemplate{Style,Header,Footer,Watermark,Banner,ComplianceBanner,TitleBlock}HTML`, `stripTemplateChrome`, `stripGeneratedComplianceMarkup`, `collapseLeadingChrome`, `mergeMeta`, `stripLeadingDuplicateBanner`, `stripDuplicateTitleHeading`, `applyBannerGradients`, `harvestMetaFromChrome`, `isCurrentTemplateOutput`, `wrapWithTemplate`, `metaFromPrintOptions` |
 | **On-screen generation preview** (iframe) | `src/components/ContentCreator.tsx` (`HtmlPreviewFrame`) | full LIGHT document shell; content always wrapped — even when no metadata was supplied — so the light-blue header, the one banner and the footer are never missing |
 | **Print / PDF / HTML exports** | `src/lib/printUtils.ts` | `wrapWithBrandedTemplate` used by `printContent`, `downloadAsPDF`, `downloadAsHTML`; neutral shells (LIGHT owns all spacing) + `@page 15mm` |
 | **Print preview modal (paper view)** | `src/components/PrintPreviewModal.tsx` | renders the exact `wrapWithTemplate()` output — WYSIWYG with exports |

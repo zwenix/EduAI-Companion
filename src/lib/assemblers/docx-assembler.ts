@@ -5,7 +5,7 @@
 // ============================================================
 
 import { buildFullHTML, DocumentData, RenderedImage, SA_COLOURS } from "../templates/sa-html-templates";
-import { buildCAPSCode, EDUAI_COMPLIANCE_LABELS, EDUAI_TEMPLATE_FOOTER_LINE, stripGeneratedComplianceMarkup } from "../contentTemplate";
+import { buildCAPSCode, EDUAI_COMPLIANCE_LABELS, EDUAI_TEMPLATE_FOOTER_LINE, EDUAI_TEMPLATE_HEADER_BASE, stripGeneratedComplianceMarkup } from "../contentTemplate";
 
 export interface DOCXOptions {
   filename?: string;
@@ -48,55 +48,13 @@ export async function generateDOCXServer(
 
     const children: any[] = [];
 
-    // School Header
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: (data.metadata.schoolBranding?.name || "Department of Basic Education").toUpperCase(),
-            bold: true, size: 28, color: SA_COLOURS.green.replace("#", ""), font: "Arial"
-          })
-        ],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 100 }
-      })
-    );
-
-    // Title
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: data.metadata.title,
-            bold: true, size: 32, color: SA_COLOURS.green.replace("#", ""), font: "Arial"
-          })
-        ],
-        heading: HeadingLevel.HEADING_1,
-        spacing: { after: 120 }
-      })
-    );
-
-    // Metadata
-    const metaText = [
-      `Subject: ${data.metadata.subject}`,
-      `Grade: ${data.metadata.grade} (${data.metadata.phase})`,
-      `Term: ${data.metadata.term}`,
-      data.metadata.duration ? `Duration: ${data.metadata.duration}` : null,
-      data.metadata.totalMarks ? `Total: ${data.metadata.totalMarks} marks` : null,
-      `Date: ${today}`,
-      `CAPS: ${data.metadata.capsReference || `${data.metadata.subject} — ${data.metadata.grade} — Term ${data.metadata.term}`}`
-    ].filter(Boolean).join(" | ");
-
-    children.push(
-      new Paragraph({
-        children: [new TextRun({ text: metaText, size: 20, color: "444444" })],
-        spacing: { after: 100 }
-      })
-    );
-
-    // One designated compliance banner. The HTML/PDF template uses the same
-    // canonical text; DOCX keeps it as one designated table banner so labels
-    // are never repeated in separate stamp rows.
+    // ── THE single document banner (Word edition) ────────────────────────────
+    // The HTML/PDF template opens every document with ONE two-colour banner
+    // carrying the title, every label and the compliance data. Word cannot draw
+    // a CSS gradient, so the same banner is built from two shaded rows — navy
+    // over blue, i.e. a two-colour VERTICAL band — and nothing else is written
+    // above it: no separate school header, no second title, no meta line and no
+    // second stamp table repeating the same values.
     const capsCode = buildCAPSCode({
       capsCode: data.metadata.capsCode,
       title: data.metadata.title,
@@ -105,37 +63,62 @@ export async function generateDOCXServer(
       term: `Term ${data.metadata.term}`,
       contentType: data.metadata.contentType
     });
-    const complianceText = `CAPS Code:${capsCode} ${EDUAI_COMPLIANCE_LABELS}`;
-    const complianceSplit = complianceText.indexOf('POPIA Compliant');
+    const bannerPills = [
+      data.metadata.grade ? `Grade ${data.metadata.grade}` : '',
+      data.metadata.subject,
+      data.metadata.contentType,
+      data.metadata.term ? `Term ${data.metadata.term}` : '',
+      `Date: ${today}`,
+      data.metadata.duration ? `Duration: ${data.metadata.duration}` : '',
+      data.metadata.totalMarks ? `Total: ${data.metadata.totalMarks} marks` : '',
+      data.metadata.schoolBranding?.name ? `School: ${data.metadata.schoolBranding.name}` : '',
+      data.metadata.capsReference ? `CAPS: ${data.metadata.capsReference}` : '',
+      data.metadata.atpWeek ? `ATP: Week ${String(data.metadata.atpWeek).replace(/^week\s*/i, '')}` : '',
+    ].filter(Boolean).join('  ·  ');
     children.push(
-      // Word does not support CSS gradients. Two adjacent shaded cells provide
-      // the same two-colour banner treatment without emitting another stamp row.
       new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
-        rows: [new TableRow({
-          children: [
-            new TableCell({
-              width: { size: 58, type: WidthType.PERCENTAGE },
-              shading: { type: ShadingType.SOLID, color: "1E3A5F" },
-              children: [new Paragraph({
-                children: [new TextRun({
-                  text: complianceSplit > 0 ? complianceText.slice(0, complianceSplit) : complianceText,
-                  size: 16, color: "FFFFFF", bold: true
-                })]
-              })]
-            }),
-            new TableCell({
-              width: { size: 42, type: WidthType.PERCENTAGE },
-              shading: { type: ShadingType.SOLID, color: "2563EB" },
-              children: [new Paragraph({
-                children: [new TextRun({
-                  text: complianceSplit > 0 ? complianceText.slice(complianceSplit) : '',
-                  size: 16, color: "FFFFFF", bold: true
-                })]
-              })]
-            })
-          ]
-        })]
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                shading: { type: ShadingType.SOLID, color: '1E3A5F' },
+                children: [
+                  new Paragraph({
+                    children: [new TextRun({
+                      text: data.metadata.title,
+                      bold: true, size: 32, color: 'FFFFFF', font: 'Arial'
+                    })],
+                    alignment: AlignmentType.CENTER,
+                    spacing: { before: 60, after: 40 }
+                  })
+                ]
+              })
+            ]
+          }),
+          new TableRow({
+            children: [
+              new TableCell({
+                shading: { type: ShadingType.SOLID, color: '2563EB' },
+                children: [
+                  new Paragraph({
+                    children: [new TextRun({ text: bannerPills, size: 18, color: 'FFFFFF', bold: true })],
+                    alignment: AlignmentType.CENTER,
+                    spacing: { before: 20, after: 20 }
+                  }),
+                  new Paragraph({
+                    children: [new TextRun({
+                      text: `CAPS Code:${capsCode} ${EDUAI_COMPLIANCE_LABELS}`,
+                      size: 16, color: 'FFFFFF', bold: true
+                    })],
+                    alignment: AlignmentType.CENTER,
+                    spacing: { after: 60 }
+                  })
+                ]
+              })
+            ]
+          })
+        ]
       })
     );
 
@@ -239,7 +222,7 @@ export async function generateDOCXServer(
       children.push(
         new Paragraph({
           children: [new TextRun({
-            text: "🤝 SIAS — Inclusive Education Support",
+            text: "🤝 Inclusive teaching support (SIAS)",
             bold: true, size: 24, color: "333333"
           })],
           shading: { type: ShadingType.SOLID, color: SA_COLOURS.gold.replace("#", "") },
@@ -295,11 +278,15 @@ export async function generateDOCXServer(
         headers: {
           default: new Header({
             children: [
+              // Brand-only page header on the light-blue wash — the single
+              // banner below owns the subject / grade / term / date.
               new Paragraph({
+                shading: { type: ShadingType.SOLID, color: 'DBEAFE' },
                 children: [
-                  new TextRun({ text: `${data.metadata.subject} | ${data.metadata.grade} | Term ${data.metadata.term} | ${today}`, size: 14, color: "AAAAAA" })
+                  new TextRun({ text: EDUAI_TEMPLATE_HEADER_BASE, size: 14, color: '1E3A5F', bold: true })
                 ],
-                alignment: AlignmentType.RIGHT
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 20, after: 20 }
               })
             ]
           })

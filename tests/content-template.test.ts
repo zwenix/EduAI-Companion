@@ -203,3 +203,125 @@ describe('buildCAPSCode', () => {
     expect(code).toMatch(/^EDU-GEN-GX-T1-[A-Z]{2,3}01$/);
   });
 });
+
+/**
+ * The bands models actually open a document with: a school letterhead, a CAPS
+ * reference bar, a "formal assessment header" and a metadata strip — all
+ * repeating what the ONE banner shows. Every one of them is absorbed into the
+ * banner (data preserved once) and deleted from the page (space preserved).
+ */
+const multiBandModelOutput = `
+<header class="school-header">
+  <h1>Sunrise Primary School</h1>
+  <p>EMIS: 123456 | Gauteng Province | District: Ekurhuleni</p>
+</header>
+<div class="caps-bar" style="background:#002395;color:#fff">CAPS Reference: Mathematics Grade 5 Term 2 — Data Handling | ATP Week 4</div>
+<div class="meta" style="background:#007749;color:#fff">Subject: Mathematics | Grade: 5 | Term: 2 | Date: 04/10/2026 | Total Marks: 20 | Duration: 45 minutes</div>
+<header class="banner" style="background:#de3831"><h1>Data Handling — Grade 5 Mathematics</h1></header>
+<article class="card">
+  <h2>Activity 1</h2>
+  <p>Count the tally marks and complete the table. Then draw a bar graph of the results and answer the questions that follow.</p>
+</article>
+`;
+
+describe('collapseLeadingChrome — every top band folds into the ONE banner', () => {
+  const wrapped = wrapWithTemplate(multiBandModelOutput, {
+    title: 'Data Handling',
+    subject: 'Mathematics',
+    grade: '5',
+    term: 'Term 2',
+    contentType: 'Worksheet',
+    date: '04/10/2026',
+  });
+
+  it('leaves exactly one banner and one copy of every label', () => {
+    expect((wrapped.match(/class="[^"]*\beduai-compliance-banner\b/gi) || []).length).toBe(1);
+    expect((wrapped.match(/CAPS\s*Code/gi) || []).length).toBe(1);
+    expect((wrapped.match(/POPIA Compliant/gi) || []).length).toBe(1);
+    expect((wrapped.match(/CAPS Aligned/gi) || []).length).toBe(1);
+  });
+
+  it('removes the model school header, CAPS bar, meta strip and duplicate banner', () => {
+    expect(wrapped).not.toContain('school-header');
+    expect(wrapped).not.toContain('caps-bar');
+    expect(wrapped).not.toContain('class="meta"');
+    expect(wrapped).not.toContain('Data Handling — Grade 5 Mathematics');
+  });
+
+  it('moves the harvested values into the one banner instead of losing them', () => {
+    const banner = wrapped.slice(wrapped.indexOf('class="eduai-compliance-banner'), wrapped.indexOf('</section>'));
+    expect(banner).toContain('School: Sunrise Primary School');
+    expect(banner).toContain('Total: 20 marks');
+    expect(banner).toContain('45 minutes');
+    expect(banner).toContain('ATP: Week 4');
+    expect(banner).toContain('Mathematics Grade 5 Term 2 — Data Handling');
+  });
+
+  it('keeps the real content untouched', () => {
+    expect(wrapped).toContain('Count the tally marks and complete the table');
+  });
+
+  it('never eats a hero illustration or a genuine section heading', () => {
+    const poster = wrapWithTemplate(
+      `<div class="poster-container"><div class="hero-section"><p>Big illustration here</p></div><div class="content-card"><h3>Save water</h3></div></div>`,
+      { title: 'Water Wise Poster', subject: 'Natural Sciences', grade: '4', contentType: 'Poster' },
+    );
+    expect(poster).toContain('Big illustration here');
+    expect(poster).toContain('Save water');
+
+    const heroBand = wrapWithTemplate(
+      `<div class="hero" style="background:#002395;color:#fff"><h1>Water Wise Poster</h1><p>Grade 4 · Natural Sciences</p></div><p>Turn off the tap while brushing.</p>`,
+      { title: 'Water Wise Poster', subject: 'Natural Sciences', grade: '4', contentType: 'Poster' },
+    );
+    expect(heroBand).not.toContain('class="hero"');
+    expect(heroBand).toContain('Turn off the tap while brushing.');
+  });
+
+  it('collapses a band nested in a whole-document wrapper', () => {
+    const nested = wrapWithTemplate(
+      `<div class="poster-container"><div class="banner" style="background:#2563eb"><h1>Water Wise Poster</h1><p>Grade 4 Natural Sciences · Term 3</p></div><div class="content-card"><h3>Save water</h3></div></div>`,
+      { title: 'Water Wise Poster', subject: 'Natural Sciences', grade: '4', contentType: 'Poster' },
+    );
+    expect(nested).not.toContain('class="banner"');
+    expect(nested).toContain('Save water');
+  });
+});
+
+describe('SA pipeline — the same ONE-banner contract for structured documents', () => {
+  it('absorbs model-authored bands in an HTML payload (buildFullHTML)', async () => {
+    const { buildFullHTML } = await import('../src/lib/templates/sa-html-templates');
+    const data = {
+      metadata: {
+        title: 'Data Handling',
+        subject: 'Mathematics',
+        grade: '5',
+        phase: 'Intermediate Phase',
+        term: 2,
+        contentType: 'worksheet',
+        generatedDate: '04/10/2026',
+      },
+      sections: [{ sectionId: 1, heading: 'Activity 1', content: '<p>Count the tallies.</p>', bloomsLevel: null, marks: null }],
+      content: `<header class="school-header"><h1>Sunrise Primary School</h1><p>EMIS: 123456</p></header>
+        <div class="caps-bar" style="background:#002395;color:#fff">CAPS Aligned | NPA Compliant | POPIA Compliant (2026) | SIAS Level 1 Inclusive | WP6 Differentiated</div>
+        <div class="section"><div class="section-heading">Activity 1</div><div class="section-body"><p>Count the tallies.</p></div></div>`,
+    } as any;
+
+    const html = buildFullHTML(data, []);
+    expect((html.match(/class="[^"]*\beduai-compliance-banner\b/gi) || []).length).toBe(1);
+    expect((html.match(/CAPS Aligned/g) || []).length).toBe(1);
+    expect((html.match(/POPIA Compliant/g) || []).length).toBe(1);
+    expect(html).not.toContain('school-header');
+    expect(html).not.toContain('caps-bar');
+    expect(html).toContain('Count the tallies.');
+  });
+
+  it('renders every generated band on a two-colour VERTICAL gradient (never a solid fill)', async () => {
+    const { SA_BASE_CSS } = await import('../src/lib/templates/sa-html-templates');
+    const bands = ['\\.section-heading', '\\.diff-core \\.diff-header', '\\.diff-extended \\.diff-header', '\\.diff-simplified \\.diff-header', '\\.npa-table th', '\\.marks-table th'];
+    for (const band of bands) {
+      const rule = new RegExp(`${band}\\s*\\{[^}]*\\}`, 'i').exec(SA_BASE_CSS)?.[0] ?? '';
+      expect(rule, `${band} should exist`).not.toBe('');
+      expect(rule, `${band} must use a 180deg gradient`).toMatch(/linear-gradient\(180deg/i);
+    }
+  });
+});

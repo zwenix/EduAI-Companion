@@ -1152,7 +1152,7 @@ export const harvestMetaFromChrome = (html: string): ContentTemplateMeta => {
 };
 
 /** Merge recovered chrome metadata with caller metadata (caller wins). */
-const mergeMeta = (base: ContentTemplateMeta, override: ContentTemplateMeta): ContentTemplateMeta => {
+export const mergeMeta = (base: ContentTemplateMeta, override: ContentTemplateMeta): ContentTemplateMeta => {
     const merged = { ...base } as Record<string, unknown>;
     (Object.keys(override) as (keyof ContentTemplateMeta)[]).forEach((key) => {
         const value = override[key];
@@ -1167,8 +1167,12 @@ const mergeMeta = (base: ContentTemplateMeta, override: ContentTemplateMeta): Co
     return merged as ContentTemplateMeta;
 };
 
-/** Class/id fragments that identify a model-authored banner container. */
-const BANNER_HINT = /banner|hero|masthead|title-block|doc-title|page-title|cover-head|top-bar/i;
+/**
+ * Class/id fragments that identify a model-authored banner container. Kept to
+ * genuine band names so ordinary card headers (`.activity-header`) and section
+ * headings are never re-painted as banners.
+ */
+const BANNER_HINT = /\b(?:banner|hero|masthead|jumbotron|title-?block|doc-?title|page-?title|cover(?:-head)?|top-?bar|title-?bar|letterhead|school-?header|doc-?header|caps-?bar|reference-?bar)\b/i;
 
 /**
  * Inline declarations that force the official two-colour gradient. Inline +
@@ -1304,6 +1308,238 @@ export const stripLeadingDuplicateBanner = (html: string, meta: ContentTemplateM
     return (source.slice(0, element.start) + source.slice(element.end)).trim();
 };
 
+/* ────────────────────────────────────────────────────────────────────────────
+ * ONE BANNER — absorb EVERY band the model opens a document with.
+ *
+ * Models are told that the host banner owns the title, the labels and the
+ * compliance data, but real output still opens with a school header, a CAPS
+ * reference bar, a formal examination header, a meta pill row, a logo strip or
+ * a second banner. Each of those bands repeats information the single host
+ * banner already shows — and steals the vertical space the teacher needs for
+ * actual work — so the host absorbs them: their values are harvested into the
+ * banner metadata and the bands themselves never reach the page.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Class/id tokens that name a band (rather than content) on their own, so a
+ * leading element carrying one is treated as template chrome.
+ */
+const CHROME_TOKENS = new Set([
+    'banner', 'hero', 'masthead', 'jumbotron', 'cover', 'coverhead', 'titleblock',
+    'doctitle', 'pagetitle', 'topbar', 'titlebar', 'letterhead', 'schoolheader',
+    'schoolname', 'school', 'skool', 'crest', 'emblem', 'brand', 'branding',
+    'watermark', 'flagstripe', 'flags', 'dbe', 'emis', 'compliance', 'stamp',
+    'stamps', 'badges', 'docmeta', 'lessonmeta', 'metadata', 'meta', 'docinfo',
+    'infobar', 'kicker', 'subtitle', 'tagline', 'byline', 'capsbar', 'capsref',
+    'assessmentheader', 'examheader', 'testheader', 'paperheader', 'title',
+]);
+
+/** Tokens that only ever name branding artwork — never a content illustration. */
+const BRAND_ART_TOKENS = new Set([
+    'logo', 'watermark', 'crest', 'emblem', 'brand', 'branding', 'coat', 'arms',
+    'flagstripe', 'flags',
+]);
+
+/**
+ * Tokens that may also name real content (a hero *illustration*, a cover
+ * *image*, a section *title*). They only count as chrome when the element's own
+ * text proves it is a band: it repeats the document title or is metadata.
+ */
+const CHROME_EVIDENCE_TOKENS = new Set([
+    'hero', 'cover', 'coverhead', 'jumbotron', 'title', 'kicker', 'subtitle',
+    'tagline', 'byline',
+]);
+
+/** Labels that mark a short band as document metadata rather than content. */
+const META_LABEL_PATTERN = /\b(?:grade|graad|term|kwartaal|subject|vak|topic|onderwerp|date|datum|marks?|punte|duration|tyd|school|skool|teacher|onderwyser|educator|learner|leerder|class|klas|emis|district|distrik|province|provinsie|caps|atp|npa|sias|wp6|popia|total|score|name|naam)\b/gi;
+
+/** Whitespace, comments and head-only tags that may precede the first band. */
+const LEADING_SKIP_RE = /^(?:\s|<!--[\s\S]*?-->|<style\b[\s\S]*?<\/style\s*>|<script\b[\s\S]*?<\/script\s*>|<link\b[^>]*>|<meta\b[^>]*>)*/i;
+
+/** "school-header" / "docTitle" → ["school", "header"] / ["doc", "title"]. */
+const tokeniseClassNames = (value: string): string[] =>
+    String(value || '')
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .split(/[\s\-_:/.,]+/)
+        .map((token) => token.toLowerCase())
+        .filter(Boolean);
+
+/** Visible text of a band, one line per block element. */
+const bandText = (markup: string): string =>
+    decodeEntities(
+        String(markup || '')
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/(?:p|div|li|h[1-6]|tr|section|header|footer|article|td|th|span|strong|em)>/gi, '\n')
+            .replace(/<[^>]+>/g, ' ')
+    )
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n{2,}/g, '\n')
+        .trim();
+
+/** True when a short band is dominated by document labels (Grade, Term, …). */
+const isMetadataBandText = (text: string, minLabels = 2, maxLength = 320): boolean => {
+    if (!text || text.length > maxLength) return false;
+    const hits = new Set((text.match(META_LABEL_PATTERN) || []).map((hit) => hit.toLowerCase()));
+    return hits.size >= minLabels;
+};
+
+/**
+ * A class-less metadata strip: at least four distinct document labels inside a
+ * short, separator-driven line ("Subject: … · Term: 2 · Marks: 20"). Prose is
+ * excluded — a sentence terminator followed by a space marks real writing.
+ */
+const isMetadataStrip = (text: string): boolean => {
+    if (!text || text.length > 200) return false;
+    if (/\.[ \n]/.test(text)) return false;
+    return isMetadataBandText(text, 4, 200);
+};
+
+/**
+ * Decide whether a leading element is template chrome (a band that repeats the
+ * banner) rather than real content. Conservative by design: anything long, any
+ * table/list structure, any paragraph with a full sentence, and any content
+ * illustration is left exactly where the model put it.
+ */
+const isChromeBand = (markup: string, element: LeadingElement, meta: ContentTemplateMeta): boolean => {
+    // Never touch the host's own chrome or the designated banner.
+    if (/site-header|header-text|eduai-compliance-banner/i.test(element.attrs)) return false;
+
+    const text = bandText(markup);
+    if (text.length > 320) return false;
+    if (/<(?:p|li|td|dd)\b[^>]*>[^<]{200,}/i.test(markup)) return false;
+    if (/<(?:table|ol)\b/i.test(markup)) return false;
+    if ((markup.match(/<li\b/gi) || []).length >= 4) return false;
+
+    const tokens = tokeniseClassNames(
+        `${element.attrs.match(/class\s*=\s*["']([^"']*)["']/i)?.[1] ?? ''} ${element.attrs.match(/id\s*=\s*["']([^"']*)["']/i)?.[1] ?? ''}`,
+    );
+    const strong = tokens.some((token) => CHROME_TOKENS.has(token));
+    const headerTag = /^header$/i.test(element.tag);
+    const headingTag = /^h[1-2]$/i.test(element.tag);
+
+    // A pure logo / crest / flag image is branding; a hero illustration is not.
+    if (!text && /<img\b/i.test(markup)) return tokens.some((token) => BRAND_ART_TOKENS.has(token));
+
+    const title = normaliseForCompare(String(meta.title || ''));
+    const repeatsTitle = title.length >= 4 && normaliseForCompare(text).includes(title);
+    const metadataBand = isMetadataBandText(text);
+    const metadataStrip = isMetadataStrip(text);
+    // A hero/cover/title element is only chrome when its text proves it: a hero
+    // illustration or a genuine section heading stays where the model put it.
+    const ambiguousToken = tokens.some((token) => CHROME_EVIDENCE_TOKENS.has(token));
+    const evidenced = repeatsTitle || metadataBand || metadataStrip;
+    if (ambiguousToken && !evidenced) return false;
+    if (!strong && !headerTag && !headingTag && !metadataStrip) return false;
+
+    const score =
+        (strong ? 2 : 0)
+        + (headerTag ? 1 : 0)
+        + (headingTag ? 1 : 0)
+        + (repeatsTitle ? 2 : 0)
+        + (metadataBand ? 2 : 0)
+        + (metadataStrip ? 1 : 0)
+        + (text.length === 0 ? 1 : 0)
+        + (text.length <= 60 ? 1 : 0);
+    return score >= 3;
+};
+
+/**
+ * Recover the values a band was displaying so the single banner can render them
+ * once (the band itself is deleted). Only gaps are filled: anything the caller
+ * supplied, or an earlier (higher) band already produced, always wins.
+ */
+const harvestMetaFromBand = (markup: string, meta: ContentTemplateMeta): void => {
+    const text = bandText(markup);
+    if (!text) return;
+    const grab = (pattern: RegExp): string => (text.match(pattern)?.[1] || '').replace(/\s+/g, ' ').trim();
+    const set = (key: 'grade' | 'term' | 'subject' | 'contentType' | 'date' | 'capsCode' | 'capsReference' | 'atpWeek' | 'school' | 'teacher' | 'learner', value: string): void => {
+        if (!value) return;
+        if (String((meta as Record<string, unknown>)[key] ?? '').trim()) return;
+        (meta as Record<string, unknown>)[key] = value;
+    };
+
+    set('grade', grab(/\bgrade\s*([rR]|\d{1,2})\b/i));
+    const term = grab(/\bterm\s*([1-4])\b/i);
+    set('term', term ? `Term ${term}` : '');
+    set('subject', grab(/\b(?:subject|learning\s+area|vak)\s*[:\-–]\s*([^|•·\n]{2,60})/i));
+    set(
+        'contentType',
+        grab(/\b(?:content\s*type|document\s*type|resource\s*type|assessment\s*type|type)\s*[:\-–]\s*([^|•·\n]{2,60})/i)
+        || (text.match(CONTENT_TYPE_HINT)?.[1] ?? ''),
+    );
+    set('date', grab(/\b(\d{2}\/\d{2}\/\d{4})\b/));
+    set('capsCode', (text.match(/\b([A-Z]{2,4}-[A-Z]{2,6}-G[R\d]{1,2}-T\d-[A-Z]{2,4}\d{2})\b/)?.[1] || '').toUpperCase());
+    set('capsReference', grab(/\bCAPS\s+(?:reference|ref|curriculum\s+reference)\s*[:\-–]\s*([^|•·\n]{3,120})/i));
+    const atp = grab(/\bATP\s*(?:week|placement)?\s*[:\-–]?\s*(\d{1,2})\b/i);
+    set('atpWeek', atp ? `Week ${atp}` : '');
+    set('school', grab(/\b(?:school|skool|school\s+name)\s*[:\-–]\s*([^|•·\n]{2,80})/i));
+    set('teacher', grab(/\b(?:teacher|educator|onderwyser|class\s+teacher)\s*[:\-–]\s*([^|•·\n]{2,60})/i));
+    set('learner', grab(/\b(?:learner|student|leerder)\s*(?:name)?\s*[:\-–]\s*([^|•·\n]{2,60})/i));
+
+    // A letterhead band usually puts the school name in its own heading line.
+    if (!meta.school) {
+        const schoolLine = text
+            .split('\n')
+            .map((line) => line.trim())
+            .find((line) => line.length <= 80 && /(?:primary|high|secondary|academy|college|school|skool)\b/i.test(line) && !/[:|•·]/.test(line));
+        if (schoolLine) meta.school = schoolLine.replace(/^(?:welcome\s+to\s+)/i, '');
+    }
+
+    const extras = [...(meta.extraPills || [])];
+    const marks = grab(/\b(?:total|marks?|punte)\s*[:\-–]?\s*(\d{1,3})\b/i);
+    const duration = grab(/\bduration\s*[:\-–]\s*([^|•·\n]{1,30})/i);
+    if (marks && !extras.some((pill) => /\bmarks?\b/i.test(pill))) extras.push(`📝 Total: ${marks} marks`);
+    if (duration && !extras.some((pill) => /⏱/.test(pill))) extras.push(`⏱ ${duration}`);
+    if (extras.length) meta.extraPills = extras;
+};
+
+/**
+ * Strip EVERY model-authored band at the top of a document and fold the values
+ * they displayed into the metadata the single host banner renders.
+ *
+ * The walk is limited to the leading run of elements (bands live at the top of
+ * a document — real content stops it), is depth-aware, and descends into a
+ * whole-document wrapper (`.poster-container`, a card, a page shell) so a
+ * banner nested one level down is still absorbed. Returns the cleaned markup
+ * plus the harvested metadata; nothing else about the document is touched.
+ */
+export const collapseLeadingChrome = (
+    html: string,
+    meta: ContentTemplateMeta = {},
+): { html: string; meta: ContentTemplateMeta } => {
+    const harvested: ContentTemplateMeta = {};
+    let source = String(html || '');
+
+    for (let guard = 0; guard < 12; guard += 1) {
+        const lead = source.match(LEADING_SKIP_RE)?.[0] ?? '';
+        const rest = source.slice(lead.length);
+        if (!rest.trim()) break;
+        const element = firstElement(rest);
+        if (!element) break; // Real text starts here: the content has begun.
+        const markup = rest.slice(element.start, element.end);
+
+        if (isChromeBand(markup, element, meta)) {
+            harvestMetaFromBand(markup, harvested);
+            source = `${lead}${rest.slice(element.end)}`;
+            continue;
+        }
+
+        // A single wrapper around the whole fragment (poster container, card,
+        // page shell): collapse the bands nested directly inside it.
+        if (!rest.slice(element.end).trim() && !/^(?:script|style|img|svg)$/i.test(element.tag)) {
+            const inner = rest.slice(element.innerStart, element.innerEnd);
+            const collapsed = collapseLeadingChrome(inner, mergeMeta(harvested, meta));
+            if (collapsed.html !== inner) {
+                source = `${lead}${rest.slice(0, element.innerStart)}${collapsed.html}${rest.slice(element.innerEnd)}`;
+                Object.assign(harvested, mergeMeta(collapsed.meta, harvested));
+            }
+        }
+        break;
+    }
+
+    return { html: source, meta: harvested };
+};
+
 /**
  * Drop a heading that merely repeats the banner title at the very start of the
  * content. The single banner already states the document title (and the grade
@@ -1349,11 +1585,25 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
     if (!original.trim()) return original;
     if (isCurrentTemplateOutput(original)) return original;
 
-    const effectiveMeta = mergeMeta(harvestMetaFromChrome(original), meta);
-    // ONE banner: kill the model's own duplicated top banner, then any heading
-    // that repeats what the banner will show, before rendering the banner.
+    // Values are harvested from the ORIGINAL body as well: legacy host title
+    // blocks (`.lesson-meta`, `.doc-meta`, `.lesson-title`) are deleted by
+    // stripTemplateChrome, and anything they displayed (marks, duration, CAPS
+    // reference, school …) must survive inside the ONE banner.
+    const beforeStrip = collapseLeadingChrome(cleanGeneratedBodyHTML(original));
     const stripped = stripTemplateChrome(original);
-    const deduped = stripLeadingDuplicateBanner(cleanGeneratedBodyHTML(stripped), effectiveMeta);
+    // ONE banner: absorb EVERY band the model opened the document with — its own
+    // banner, school header, CAPS reference bar, formal assessment header, meta
+    // pill row, logo strip — into the banner's metadata, then delete the bands
+    // themselves. This is what guarantees the labels, the compliance data and
+    // the document details appear exactly once at the top of the page.
+    const collapsed = collapseLeadingChrome(cleanGeneratedBodyHTML(stripped));
+    const effectiveMeta = mergeMeta(
+        mergeMeta(mergeMeta(harvestMetaFromChrome(original), beforeStrip.meta), collapsed.meta),
+        meta,
+    );
+    // Then kill anything banner-shaped that repeats the banner and any heading
+    // that repeats what the banner will show, before rendering the banner.
+    const deduped = stripLeadingDuplicateBanner(collapsed.html, effectiveMeta);
     const cleaned = stripDuplicateTitleHeading(deduped, effectiveMeta);
     const banner = buildTemplateComplianceBannerHTML(effectiveMeta);
 

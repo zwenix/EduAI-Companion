@@ -2952,9 +2952,10 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                               <p className={cn("truncate text-xs font-bold leading-tight", isDarkMode ? "text-white" : "text-slate-800")}>
                                 {currentTopic || 'Untitled document'}
                               </p>
-                              <p className={cn("truncate text-[10px] font-semibold uppercase tracking-wider leading-tight mt-0.5", isDarkMode ? "text-slate-400" : "text-slate-500")}>
-                                {currentType} • Grade {currentGrade} • {currentSubject}
-                              </p>
+                              {/* No grade / subject / type line here: the ONE
+                                  document banner inside the frame already shows
+                                  every label, and repeating them above it is
+                                  the duplication this layout must avoid. */}
                             </div>
                             <span className={cn(
                               "shrink-0 hidden sm:inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider",

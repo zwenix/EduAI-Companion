@@ -14,6 +14,7 @@ import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { EDUAI_BANNER_GRADIENT, wrapWithTemplate } from '../src/lib/contentTemplate';
+import { buildFullHTML } from '../src/lib/templates/sa-html-templates';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '..');
@@ -83,6 +84,16 @@ console.log(`Wrote ${outPath} (${(page.length / 1024).toFixed(0)} KB)`);
 const messyModelOutput = `<!DOCTYPE html>
 <html><head><style>.banner{background:#007749}.stamp{background:#eff6ff;color:#2563eb;padding:4px 10px;border-radius:999px}</style></head>
 <body>
+<header class="school-header" style="padding:14px 4px;">
+  <h1 style="margin:0;font-size:20px;color:#007749;">Springfield Primary School</h1>
+  <p style="margin:4px 0 0;font-size:12px;color:#475569;">EMIS: 123456 | Western Cape Province | District: Metro East</p>
+</header>
+<div class="caps-bar" style="background:#002395;color:#fff;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;margin-bottom:10px;">
+  CAPS Reference: Mathematics Grade 2 Term 3 — Data Handling | ATP Week 6
+</div>
+<div class="doc-meta" style="background:#007749;color:#fff;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;margin-bottom:10px;">
+  Subject: Mathematics | Grade: 2 | Term: 3 | Date: 18/09/2026 | Total Marks: 20 | Duration: 45 minutes
+</div>
 <header class="banner" style="background:#002395;color:#fff;padding:20px;border-radius:12px;">
   <h1 style="margin:0 0 6px;font-size:24px;">Data Handling — Grade 2 Mathematics</h1>
   <p style="margin:0;">CAPS Code: FP-MATH-G2-T3-DH01</p>
@@ -104,6 +115,17 @@ const messyModelOutput = `<!DOCTYPE html>
 </footer>
 </body></html>`;
 
+/**
+ * Model-authored bands sitting above the content: a school header, a CAPS
+ * reference bar, a metadata strip or a duplicate banner. The designated
+ * `eduai-compliance-banner` is not counted — it is the ONE banner.
+ */
+const topBands = (source: string): number =>
+    [...String(source).matchAll(/class="([^"]*)"/gi)]
+        .map((match) => match[1])
+        .filter((classes) => /\b(?:school-header|caps-bar|doc-meta|banner)\b/i.test(classes))
+        .filter((classes) => !/\beduai-compliance-banner\b/i.test(classes)).length;
+
 const counts = (source: string): Record<string, number> => ({
     'CAPS Aligned': (source.match(/CAPS\s+Aligned/gi) || []).length,
     'NPA Compliant': (source.match(/NPA\s+Compliant/gi) || []).length,
@@ -111,6 +133,7 @@ const counts = (source: string): Record<string, number> => ({
     'SIAS Inclusive': (source.match(/SIAS[^<\n]{0,14}Inclusive/gi) || []).length,
     'WP6 Differentiated': (source.match(/WP6\s+Differentiated/gi) || []).length,
     'CAPS Code': (source.match(/CAPS\s*Code/gi) || []).length,
+    'top bands above the content (school / CAPS / meta / duplicate banner)': topBands(source),
     'footer bands': (source.match(/<footer\b/gi) || []).length,
 });
 
@@ -181,3 +204,74 @@ const demoPage = `<!DOCTYPE html>
 const demoPath = resolve(repoRoot, 'docs/content-normalisation-demo.html');
 writeFileSync(demoPath, demoPage);
 console.log(`Wrote ${demoPath} (${(demoPage.length / 1024).toFixed(0)} KB)`);
+
+// ── SA pipeline demo: the same layout contract for structured documents ─────
+const saDocument = buildFullHTML(
+    {
+        metadata: {
+            title: 'Data Handling',
+            subject: 'Mathematics',
+            grade: '5',
+            phase: 'Intermediate Phase',
+            term: 2,
+            contentType: 'worksheet',
+            capsReference: 'Mathematics CAPS — Grade 5 — Term 2 — Data Handling',
+            atpWeek: '4',
+            totalMarks: 20,
+            duration: '45 minutes',
+            generatedDate: '04/10/2026',
+            schoolBranding: { name: 'Springfield Primary School', district: 'Metro East', province: 'Western Cape', emis: '123456' },
+            npaCompliance: { assessmentType: 'informal', isFormal: false },
+            siasCompliance: { supportLevel: 'level_1', accommodationsIncluded: true, differentiationIncluded: true },
+        },
+        sections: [
+            {
+                sectionId: 1,
+                heading: 'Section A — Reading the tally table',
+                content: '<p>Study the tally table below and answer the questions.</p>',
+                bloomsLevel: "Remembering",
+                marks: 6,
+                differentiatedContent: {
+                    core: '<p>All learners complete questions 1–3.</p>',
+                    extended: '<p>Advanced learners also explain why the totals differ.</p>',
+                    simplified: '<p>Support learners use counters to re-count each row.</p>',
+                },
+                siasNotes: 'Extra time, larger print, peer buddy.',
+            },
+        ],
+        siasSupport: {
+            supportLevel: 'Level 1',
+            teacherNotes: 'Classroom-level adjustments only.',
+            accommodations: ['Extra time', 'Larger print', 'Peer buddy'],
+            referralGuidance: null,
+        },
+        npaRatingTable: [
+            { code: 7, description: 'Outstanding achievement', percentage: '80–100%' },
+            { code: 4, description: 'Adequate achievement', percentage: '50–59%' },
+        ],
+        answerKey: {
+            questions: [{ questionNumber: 1, answer: '8 learners chose apples.', bloomsLevel: 'Remembering', marks: 2, cognitiveLevel: 'Lower order' }],
+            totalMarks: 20,
+        },
+    } as any,
+    [],
+).replace(/src="\/eduai-logo\.png"/g, `src="${logoDataUri}"`);
+
+const saPage = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduAI Companion — SA pipeline content layout (Light Template v5)</title>
+</head>
+<body style="margin:0;background:#eef2f7;">
+  <div style="padding:10px 14px;font:700 12px/1.5 Inter,system-ui,sans-serif;color:#475569;background:#fff;border-bottom:1px solid #dbe3ee;">
+    SA content pipeline — very light blue 70%-transparent page header, ONE two-colour vertical gradient banner (title, every label, CAPS/ATP reference, compliance data), every section band on a 180° gradient, one canonical footer.
+  </div>
+  ${saDocument}
+</body>
+</html>`;
+
+const saPath = resolve(repoRoot, 'docs/sa-content-layout-preview.html');
+writeFileSync(saPath, saPage);
+console.log(`Wrote ${saPath} (${(saPage.length / 1024).toFixed(0)} KB)`);

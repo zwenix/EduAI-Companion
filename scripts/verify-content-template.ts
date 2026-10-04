@@ -153,6 +153,25 @@ ok('every <header> in the body is a gradient', count(greedy, /<header\b(?![^>]*s
 ok('the model footer band was removed', !/GENERATED: 09\/09\/2026/i.test(greedy));
 ok('re-wrapping the cleaned document is stable', wrapWithTemplate(greedy, meta) === greedy);
 
+// ── 3b. Model output that opens with SEVERAL bands — a school header, a CAPS
+//        reference bar, a metadata strip and its own banner. Every band is
+//        absorbed into the ONE banner: the data survives once, the bands (and
+//        the vertical space they stole) do not.
+const bandSpam = `<header class="school-header"><h1>Springfield Primary School</h1><p>EMIS: 123456 | Western Cape Province</p></header>
+<div class="caps-bar" style="background:#002395;color:#fff">CAPS Reference: Mathematics Grade 5 Term 2 — Data Handling | ATP Week 4</div>
+<div class="doc-meta" style="background:#007749;color:#fff">Subject: Mathematics | Grade: 5 | Term: 2 | Date: 04/10/2026 | Total Marks: 20 | Duration: 45 minutes</div>
+<header class="banner" style="background:#de3831"><h1>Data Handling — Grade 5 Mathematics</h1></header>
+<article class="card"><h2>Activity 1</h2><p>Count the tallies and complete the table.</p></article>`;
+console.log('\n▸ model output with four stacked bands at the top of the page');
+const banded = wrapWithTemplate(bandSpam, meta);
+assertDocument('school header + CAPS bar + meta strip + duplicate banner', banded);
+ok('the model bands themselves are gone',
+    !/school-header|caps-bar|doc-meta/.test(banded) && !banded.includes('Data Handling — Grade 5 Mathematics'));
+const bandedBanner = banded.slice(banded.indexOf('class="eduai-compliance-banner'), banded.indexOf('</section>'));
+['School: Springfield Primary School', 'Total: 20 marks', '45 minutes', 'ATP: Week 4']
+    .forEach((needle) => ok(`the ONE banner carries "${needle}"`, bandedBanner.includes(needle)));
+ok('the real content is untouched', banded.includes('Count the tallies and complete the table.'));
+
 // ── 4. Document wrapped by an OLDER template (archived content) ─────────────
 const legacyWrapped = `<style data-eduai-light="v3">.site-header{background:#1e3a5f}</style>
 <header class="site-header" style="background:#1e3a5f"><img src="/eduai-logo.png" class="logo" /><span class="header-text">EDUAI COMPANION 2026 | CAPS COMPLIANT EDUCATION RESOURCE | GRADE 5 • TERM 2 • MATHEMATICS • WORKSHEET</span></header>
@@ -205,6 +224,7 @@ ok('chrome stripping removes every host band',
 console.log('\n▸ committed artefacts');
 const artefacts: { path: string; docs: number }[] = [
     { path: 'docs/content-template-preview.html', docs: 1 },
+    { path: 'docs/sa-content-layout-preview.html', docs: 1 },
     { path: 'docs/Decrease-the-size-of-the-header-banner-by-30-or-try-any-method-to-fit-all-text-in-the-header-into-1- (4).html', docs: 1 },
 ];
 const fpDir = join(repoRoot, 'public/templates/foundation-phase');

@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { parsePosterHtml } from '../lib/posterParser';
-import { buildTemplateComplianceBannerHTML, EDUAI_BANNER_GRADIENT, EDUAI_TEMPLATE_FOOTER_LINE, stripGeneratedComplianceMarkup, wrapWithTemplate } from '../lib/contentTemplate';
+import { buildTemplateComplianceBannerHTML, EDUAI_TEMPLATE_FOOTER_LINE, stripGeneratedComplianceMarkup, wrapWithTemplate } from '../lib/contentTemplate';
 
 interface PosterPreviewProps {
   html: string;
@@ -12,8 +12,26 @@ interface PosterPreviewProps {
 }
 
 export function PosterPreview({ html, grade, subject, title, contentType = 'Educational Poster' }: PosterPreviewProps) {
-  const meta = { title: title || 'Educational Poster', subject, grade, contentType };
+  // The poster's own banner text is folded into the ONE host banner as a
+  // subtitle instead of being rendered as a second band at the top of the
+  // page: the host banner already names the title, subject, grade and type,
+  // and repeating them above the artwork is exactly the duplication (and
+  // wasted vertical space) the template contract forbids.
   const parsed = React.useMemo(() => parsePosterHtml(stripGeneratedComplianceMarkup(html)), [html]);
+  const posterTagline = React.useMemo(() => {
+    const text = String(parsed.bannerHtml || '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return text && text.length <= 180 ? text : '';
+  }, [parsed.bannerHtml]);
+  const meta = {
+    title: title || 'Educational Poster',
+    subject,
+    grade,
+    contentType,
+    extraNotes: posterTagline ? [posterTagline] : undefined,
+  };
 
   const isFoundation = React.useMemo(() => {
     if (!grade) return false;
@@ -87,18 +105,11 @@ export function PosterPreview({ html, grade, subject, title, contentType = 'Educ
         lineHeight: '1.6'
       } : undefined}
     >
-      {/* One host-owned compliance section; model-authored status rows are
-          removed before parsing so posters cannot repeat the labels. */}
+      {/* THE single banner: the title, every label, the poster tagline and the
+          compliance data. Model-authored status rows and the poster's own
+          banner are removed before parsing, so nothing at the top of the page
+          is duplicated. */}
       <div dangerouslySetInnerHTML={{ __html: buildTemplateComplianceBannerHTML(meta) }} />
-
-      {/* Banner Section */}
-      {parsed.bannerHtml && (
-        <div
-          className="banner p-6 text-white"
-          style={{ background: EDUAI_BANNER_GRADIENT }}
-          dangerouslySetInnerHTML={{ __html: parsed.bannerHtml }}
-        />
-      )}
 
       {/* Hero Illustration Section */}
       {parsed.heroHtml && (
