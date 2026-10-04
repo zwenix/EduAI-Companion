@@ -10,6 +10,7 @@ import {
   buildTemplateStyleHTML,
   buildTemplateComplianceBannerHTML,
   cleanGeneratedBodyHTML,
+  EDUAI_BANNER_GRADIENT,
   ContentTemplateMeta
 } from "../contentTemplate";
 
@@ -200,15 +201,6 @@ export const SA_BASE_CSS = `
     border-radius: 3px;
   }
 
-  /* The compliance banner owns the full title-block width, not its inner
-     padding, so the status line reads as a true document banner. */
-  .doc-title-block > .eduai-compliance-banner {
-    width: calc(100% + 44px) !important;
-    margin-left: -22px !important;
-    margin-right: -22px !important;
-    border-radius: 0 0 10px 10px;
-  }
-
   /* Generated top banners always use the same two-colour gradient as the
      host-owned banner, even when an AI fragment uses a generic header class. */
   .ai-generated-content header:not(.site-header),
@@ -217,8 +209,8 @@ export const SA_BASE_CSS = `
   .ai-generated-content .header-banner,
   .ai-generated-content .banner,
   .ai-generated-content [class*="banner"] {
-    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%) !important;
-    background-image: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%) !important;
+    background: ${EDUAI_BANNER_GRADIENT} !important;
+    background-image: ${EDUAI_BANNER_GRADIENT} !important;
     color: #ffffff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -242,153 +234,11 @@ export const SA_BASE_CSS = `
     box-sizing: border-box;
   }
 
-  /* ── SCHOOL HEADER ── */
-  .school-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 3px solid ${SA_COLOURS.green};
-    padding-bottom: 12px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .school-header .school-info {
-    flex: 1;
-    min-width: 200px;
-  }
-
-  .school-header .school-name {
-    font-size: 18pt;
-    font-weight: 800;
-    color: ${SA_COLOURS.green};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    line-height: 1.2;
-  }
-
-  .school-header .school-details {
-    font-size: 8pt;
-    color: #666;
-    margin-top: 4px;
-    line-height: 1.4;
-  }
-
-  .school-header .dbe-badge {
-    text-align: right;
-    font-size: 8pt;
-    color: #666;
-    border-left: 2px solid ${SA_COLOURS.gold};
-    padding-left: 12px;
-    margin-left: 12px;
-    min-width: 150px;
-  }
-
-  .school-header .dbe-badge .dbe-title {
-    font-weight: 700;
-    color: ${SA_COLOURS.green};
-    font-size: 9pt;
-  }
-
-  /* ── DOCUMENT TITLE BLOCK ── */
-  .doc-title-block {
-    background: linear-gradient(135deg, ${SA_COLOURS.green} 0%, ${SA_COLOURS.darkGreen} 100%);
-    color: white;
-    padding: 18px 22px;
-    border-radius: 10px;
-    margin-bottom: 16px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,119,73,0.15);
-  }
-
-  .doc-title-block::after {
-    content: '';
-    position: absolute;
-    right: -20px;
-    top: -20px;
-    width: 120px;
-    height: 120px;
-    background: rgba(255,184,28,0.15);
-    border-radius: 50%;
-  }
-
-  .doc-title-block::before {
-    content: '';
-    position: absolute;
-    left: -30px;
-    bottom: -30px;
-    width: 80px;
-    height: 80px;
-    background: rgba(255,255,255,0.08);
-    border-radius: 50%;
-  }
-
-  .doc-title-block h1 {
-    font-size: 17pt;
-    font-weight: 800;
-    margin-bottom: 6px;
-    position: relative;
-    z-index: 1;
-    line-height: 1.3;
-  }
-
-  .doc-title-block .doc-meta {
-    font-size: 9pt;
-    opacity: 0.95;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    position: relative;
-    z-index: 1;
-  }
-
-  .doc-title-block .doc-meta span {
-    background: rgba(255,255,255,0.18);
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-weight: 500;
-    backdrop-filter: blur(4px);
-  }
-
-  /* ── CAPS REFERENCE BAR ── */
-  .caps-ref-bar {
-    background: ${SA_COLOURS.lightGreen};
-    border: 1px solid ${SA_COLOURS.green};
-    border-left: 4px solid ${SA_COLOURS.green};
-    padding: 10px 14px;
-    font-size: 9pt;
-    margin-bottom: 16px;
-    border-radius: 0 6px 6px 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .caps-ref-bar .caps-label {
-    font-weight: 700;
-    color: ${SA_COLOURS.green};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .caps-ref-bar .blooms-mini {
-    display: flex;
-    gap: 6px;
-    font-size: 7pt;
-    flex-wrap: wrap;
-  }
-
-  .caps-ref-bar .blooms-mini span {
-    background: ${SA_COLOURS.green};
-    color: white;
-    padding: 2px 6px;
-    border-radius: 10px;
-    font-weight: 600;
-  }
+  /* ── SINGLE DOCUMENT BANNER (see contentTemplate.ts) ──
+     Title, every label, the school letterhead, the CAPS reference/ATP week and
+     the compliance data all live inside ONE banner now, so the old school
+     header, document title block and CAPS reference bar are gone: they each
+     repeated information the banner already carries. */
 
   /* ── CONTENT SECTIONS ── */
   .section {
@@ -670,27 +520,70 @@ export const SA_BASE_CSS = `
     .page { width: 100%; padding: 10mm 15mm; min-height: auto; margin: 0; box-shadow: none; }
     .section { page-break-inside: avoid; box-shadow: none; }
     .no-print { display: none; }
-    .doc-title-block { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .section-heading { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    /* The single document banner keeps its two-colour gradient on paper. */
+    .eduai-compliance-banner { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 
   /* ── RESPONSIVE ── */
   @media (max-width: 768px) {
     .page { width: 100%; padding: 10mm; }
-    .school-header { flex-direction: column; align-items: flex-start; }
-    .school-header .dbe-badge { border-left: none; border-top: 2px solid ${SA_COLOURS.gold}; padding-left: 0; padding-top: 8px; margin-left: 0; text-align: left; }
-    .doc-title-block h1 { font-size: 14pt; }
   }
 `;
 
 // ── HTML DOCUMENT BUILDER ──
 
 /**
- * Map SA pipeline document metadata onto the official EduAI LIGHT Template v4
- * (translucent header bar + navy footer) so structured CAPS documents carry
- * the same branding as every other generated resource.
+ * Map SA pipeline document metadata onto the official EduAI LIGHT Template v5
+ * so structured CAPS documents carry the same branding as every other
+ * generated resource — and so EVERYTHING a reader or auditor needs (title,
+ * grade/subject/type/term/duration/marks/date, the school letterhead, the CAPS
+ * reference and the compliance labels) ends up inside the ONE document banner
+ * instead of being spread across several bands at the top of the page.
  */
-function templateMetaFromData(data: DocumentData, today: string): ContentTemplateMeta {
+function templateMetaFromData(
+  data: DocumentData,
+  today: string,
+  school?: { name?: string; address?: string; tel?: string; email?: string; emis?: string; province?: string; district?: string },
+): ContentTemplateMeta {
+  const blooms = data.metadata.bloomsDistribution
+    ? Object.entries(data.metadata.bloomsDistribution)
+        .map(([level, share]) => `${level.charAt(0).toUpperCase() + level.slice(1)}: ${share}%`)
+        .join(" · ")
+    : "";
+
+  // The school letterhead travels inside the banner, so no second school band
+  // repeats the same names, province, district and EMIS number above it. Each
+  // part is written once: a value already present is never repeated.
+  const withSuffix = (value: string | undefined, suffix: string): string => {
+    const raw = String(value ?? "").trim();
+    if (!raw) return "";
+    return new RegExp(`${suffix}\\s*$`, "i").test(raw) ? raw : `${raw} ${suffix}`;
+  };
+  const seen: string[] = [];
+  const unique = (value: string): string => {
+    const raw = String(value ?? "").trim();
+    if (!raw) return "";
+    const key = raw.toLowerCase();
+    if (seen.some((existing) => existing.includes(key))) return "";
+    seen.push(key);
+    return raw;
+  };
+  const letterhead = school
+    ? [
+        unique(school.name),
+        unique(school.address),
+        unique(school.tel ? `Tel: ${school.tel}` : ""),
+        unique(school.email ? `Email: ${school.email}` : ""),
+        unique(school.emis ? `EMIS: ${school.emis}` : ""),
+        unique(withSuffix(school.province, "Province")),
+        unique(withSuffix(school.district, "District")),
+        /basic education/i.test(String(school.name ?? "")) ? "" : "Department of Basic Education",
+      ]
+        .filter(Boolean)
+        .join(" • ")
+    : "";
+
   return {
     title: data.metadata.title,
     subject: data.metadata.subject,
@@ -699,6 +592,14 @@ function templateMetaFromData(data: DocumentData, today: string): ContentTemplat
     contentType: data.metadata.contentType || "CAPS Educational Resource",
     capsCode: data.metadata.capsCode,
     date: today,
+    capsReference: cleanGeneratedText(data.metadata.capsReference),
+    atpWeek: data.metadata.atpWeek ? `Week ${String(data.metadata.atpWeek).replace(/^week\s*/i, "")}` : undefined,
+    extraPills: [
+      data.metadata.phase ? withSuffix(data.metadata.phase, "Phase") : "",
+      data.metadata.duration ? `⏱ ${data.metadata.duration}` : "",
+      data.metadata.totalMarks ? `📝 Total: ${data.metadata.totalMarks} marks` : "",
+    ].filter(Boolean),
+    extraNotes: [letterhead, blooms ? `Bloom's — ${blooms}` : ""].filter(Boolean),
   };
 }
 
@@ -858,13 +759,6 @@ export function buildFullHTML(
     </div>`;
   }
 
-  // ── Blooms mini bar for CAPS reference ──
-  const bloomsMini = data.metadata.bloomsDistribution
-    ? Object.entries(data.metadata.bloomsDistribution)
-        .map(([k, v]) => `<span>${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}%</span>`)
-        .join("")
-    : "";
-
   // ── FULL HTML ──
   return `<!DOCTYPE html>
 <html lang="en">
@@ -881,54 +775,15 @@ export function buildFullHTML(
 <body>
   <div class="page">
 
-    <!-- EduAI LIGHT Template v4 — translucent header bar (logo + single-line strapline) -->
-    ${buildTemplateHeaderHTML(templateMetaFromData(data, today))}
+    <!-- EduAI LIGHT Template v5 — very light blue translucent header bar (brand only) -->
+    ${buildTemplateHeaderHTML(templateMetaFromData(data, today, school))}
 
     <!-- SA Flag Stripe -->
     <div class="sa-flag-stripe"></div>
 
-    <!-- School Header -->
-    <div class="school-header">
-      <div class="school-info">
-        <div class="school-name">${escapeHtml(school.name)}</div>
-        <div class="school-details">
-          ${school.address ? escapeHtml(school.address) + "<br>" : ""}
-          ${school.tel ? "Tel: " + escapeHtml(school.tel) + " | " : ""}
-          ${school.email ? "Email: " + escapeHtml(school.email) : ""}
-          ${school.emis ? " | EMIS: " + escapeHtml(school.emis) : ""}
-        </div>
-      </div>
-      <div class="dbe-badge">
-        <div class="dbe-title">Department of Basic Education</div>
-        <div>${escapeHtml(school.province)} Province</div>
-        <div>${escapeHtml(school.district)} District</div>
-        <div>Republic of South Africa</div>
-      </div>
-    </div>
-
-    <!-- Document Title -->
-    <div class="doc-title-block">
-      <h1>${escapeHtml(data.metadata.title)}</h1>
-      <div class="doc-meta">
-        <span>📚 ${escapeHtml(data.metadata.subject)}</span>
-        <span>🎓 ${escapeHtml(data.metadata.grade)} (${escapeHtml(data.metadata.phase)})</span>
-        <span>📅 Term ${data.metadata.term}</span>
-        ${data.metadata.duration ? `<span>⏱️ ${escapeHtml(data.metadata.duration)}</span>` : ""}
-        ${data.metadata.totalMarks ? `<span>📝 Total: ${data.metadata.totalMarks} marks</span>` : ""}
-        <span>📆 ${escapeHtml(today)}</span>
-      </div>
-      ${buildTemplateComplianceBannerHTML(templateMetaFromData(data, today))}
-    </div>
-
-    <!-- CAPS Reference Bar -->
-    <div class="caps-ref-bar">
-      <div>
-        <span class="caps-label">CAPS:</span>
-        ${escapeHtml(cleanGeneratedText(data.metadata.capsReference || `${data.metadata.subject} — ${data.metadata.grade} — Term ${data.metadata.term}`))}
-        ${data.metadata.atpWeek ? ` | ATP: ${escapeHtml(data.metadata.atpWeek)}` : ""}
-      </div>
-      ${bloomsMini ? `<div class="blooms-mini">${bloomsMini}</div>` : ""}
-    </div>
+    <!-- THE single document banner: title, every label, the school letterhead,
+         the CAPS reference / ATP week and the compliance data — written once. -->
+    ${buildTemplateComplianceBannerHTML(templateMetaFromData(data, today, school))}
 
     <!-- Content Sections -->
     ${sectionsHTML || `<div class="section"><div class="section-body"><p>No structured sections — see content below.</p></div></div>`}
@@ -951,12 +806,6 @@ export function buildFullHTML(
 }
 
 function wrapContentWithSABranding(data: DocumentData, content: string, school: any, today: string): string {
-  const bloomsMini = data.metadata.bloomsDistribution
-    ? Object.entries(data.metadata.bloomsDistribution)
-        .map(([k, v]) => `<span>${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}%</span>`)
-        .join("")
-    : "";
-
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -971,56 +820,20 @@ function wrapContentWithSABranding(data: DocumentData, content: string, school: 
 </head>
 <body>
   <div class="page">
-    <!-- EduAI LIGHT Template v4 — translucent header bar (logo + single-line strapline) -->
-    ${buildTemplateHeaderHTML(templateMetaFromData(data, today))}
+    <!-- EduAI LIGHT Template v5 — very light blue translucent header bar (brand only) -->
+    ${buildTemplateHeaderHTML(templateMetaFromData(data, today, school))}
 
     <div class="sa-flag-stripe"></div>
 
-    <div class="school-header">
-      <div class="school-info">
-        <div class="school-name">${escapeHtml(school.name)}</div>
-        <div class="school-details">
-          ${school.address ? escapeHtml(school.address) + "<br>" : ""}
-          ${school.tel ? "Tel: " + escapeHtml(school.tel) + " | " : ""}
-          ${school.email ? "Email: " + escapeHtml(school.email) : ""}
-          ${school.emis ? " | EMIS: " + escapeHtml(school.emis) : ""}
-        </div>
-      </div>
-      <div class="dbe-badge">
-        <div class="dbe-title">Department of Basic Education</div>
-        <div>${escapeHtml(school.province)} Province</div>
-        <div>${escapeHtml(school.district)} District</div>
-        <div>Republic of South Africa</div>
-      </div>
-    </div>
-
-    <div class="doc-title-block">
-      <h1>${escapeHtml(data.metadata.title)}</h1>
-      <div class="doc-meta">
-        <span>📚 ${escapeHtml(data.metadata.subject)}</span>
-        <span>🎓 ${escapeHtml(data.metadata.grade)} (${escapeHtml(data.metadata.phase)})</span>
-        <span>📅 Term ${data.metadata.term}</span>
-        ${data.metadata.duration ? `<span>⏱️ ${escapeHtml(data.metadata.duration)}</span>` : ""}
-        ${data.metadata.totalMarks ? `<span>📝 Total: ${data.metadata.totalMarks} marks</span>` : ""}
-        <span>📆 ${escapeHtml(today)}</span>
-      </div>
-      ${buildTemplateComplianceBannerHTML(templateMetaFromData(data, today))}
-    </div>
-
-    <div class="caps-ref-bar">
-      <div>
-        <span class="caps-label">CAPS:</span>
-        ${escapeHtml(cleanGeneratedText(data.metadata.capsReference || `${data.metadata.subject} — ${data.metadata.grade} — Term ${data.metadata.term}`))}
-        ${data.metadata.atpWeek ? ` | ATP: ${escapeHtml(data.metadata.atpWeek)}` : ""}
-      </div>
-      ${bloomsMini ? `<div class="blooms-mini">${bloomsMini}</div>` : ""}
-    </div>
+    <!-- THE single document banner: title, every label, the school letterhead,
+         the CAPS reference / ATP week and the compliance data — written once. -->
+    ${buildTemplateComplianceBannerHTML(templateMetaFromData(data, today, school))}
 
     <div class="ai-generated-content">
       ${content}
     </div>
 
-    ${buildTemplateFooterHTML(templateMetaFromData(data, today))}
+    ${buildTemplateFooterHTML(templateMetaFromData(data, today, school))}
   </div>
 </body>
 </html>`;

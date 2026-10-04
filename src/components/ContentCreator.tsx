@@ -322,7 +322,7 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Comic+Neue:wght@300;400;700&family=Kalam:wght@300;400;700&family=Lexend:wght@300;400;500;600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
   <style>
-    /* EduAI LIGHT Template v4 — the single source of truth lives in
+    /* EduAI LIGHT Template v5 — the single source of truth lives in
        src/lib/contentTemplate.ts (EDUAI_LIGHT_CSS); wrapWithTemplate also
        embeds it, so preview, print, PDF and HTML exports always match.
 
@@ -1329,6 +1329,7 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
       : activeTab === 'visual' ? (v_topic || v_type || 'Visual Aid') : (a_topic || 'EduAI Content');
     const activeSubject = activeTab === 'teaching' ? t_subject : activeTab === 'grade1' ? f_language : activeTab === 'visual' ? v_subject : a_subject;
     const activeGrade = activeTab === 'teaching' ? t_grade : activeTab === 'grade1' ? f_grade : activeTab === 'visual' ? v_grade : a_grade;
+    const activeTerm = activeTab === 'teaching' || activeTab === 'grade1' ? t_term : getCurrentTerm();
     const rawHtml = getActiveSectionHTML();
 
     if (!rawHtml) {
@@ -1347,6 +1348,7 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
       // which offers Print) instead of a popup the WebView cannot handle.
       await printContent(bodyOnly || rawHtml, docTitle, {
         subject: activeSubject, grade: activeGrade, title: docTitle,
+        term: activeTerm, teacher: userName,
         contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : undefined
       });
     } catch (error) {
@@ -1367,6 +1369,7 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
     const filename = `${safeSlug}_${Date.now()}.pdf`;
     const activeSubject = activeTab === 'teaching' ? t_subject : activeTab === 'grade1' ? f_language : activeTab === 'visual' ? v_subject : a_subject;
     const activeGrade = activeTab === 'teaching' ? t_grade : activeTab === 'grade1' ? f_grade : activeTab === 'visual' ? v_grade : a_grade;
+    const activeTerm = activeTab === 'teaching' || activeTab === 'grade1' ? t_term : getCurrentTerm();
     const rawHtml = getActiveSectionHTML();
 
     if (!rawHtml) {
@@ -1382,6 +1385,7 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
     try {
       await downloadAsPDF(bodyOnly || rawHtml, filename, {
         subject: activeSubject, grade: activeGrade, title: docTitle,
+        term: activeTerm, teacher: userName,
         contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : undefined
       });
     } catch (error) {
@@ -2967,10 +2971,10 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                               fontStyle={fontStyle}
                               minHeight="520px"
                               meta={activeTab === 'teaching'
-                                ? { subject: t_subject, grade: t_grade, term: t_term, contentType: t_type, title: t_topic }
+                                ? { subject: t_subject, grade: t_grade, term: t_term, contentType: t_type, title: t_topic, teacher: userName }
                                 : activeTab === 'visual'
-                                  ? { subject: v_subject, grade: v_grade, contentType: v_type, title: v_topic }
-                                  : { subject: 'Administration', contentType: 'Notice', title: 'Administrative Document' }}
+                                  ? { subject: v_subject, grade: v_grade, term: t_term, contentType: v_type, title: v_topic, teacher: userName }
+                                  : { subject: 'Administration', grade: a_grade, contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school, teacher: userName }}
                             />
                           </div>
                         </div>
@@ -3130,10 +3134,10 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                     minHeight="100%"
                     className="w-full h-full max-w-5xl"
                     meta={activeTab === 'teaching'
-                      ? { subject: t_subject, grade: t_grade, term: t_term, contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : t_type, title: t_topic }
+                      ? { subject: t_subject, grade: t_grade, term: t_term, contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : t_type, title: t_topic, teacher: userName }
                       : activeTab === 'visual'
-                        ? { subject: v_subject, grade: v_grade, contentType: v_type, title: v_topic }
-                        : { subject: 'Administration', contentType: 'Notice', title: 'Administrative Document' }}
+                        ? { subject: v_subject, grade: v_grade, contentType: v_type, title: v_topic, teacher: userName }
+                        : { subject: 'Administration', grade: a_grade, contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school, teacher: userName }}
                   />
                 </div>
               </motion.div>

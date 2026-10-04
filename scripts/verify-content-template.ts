@@ -1,21 +1,24 @@
 /**
- * Verifies the three guarantees every piece of generated content must keep:
+ * Verifies the guarantees every piece of generated content must keep:
  *
- *   1. ONCE      — the compliance labels (CAPS Code + 🇿🇦 / CAPS Aligned /
- *                  NPA / POPIA / SIAS / WP6) are written exactly one time per
- *                  document, inside the designated gradient section.
- *   2. GRADIENT  — no top banner is a single solid colour: the host banner and
- *                  every model-authored banner/hero/header carry the official
- *                  two-colour gradient.
- *   3. FOOTER    — one canonical footer line, word for word:
- *                  "© 2026 EduAI Companion | CAPS Compliant Educational
- *                   Resource | Developed for South African Educators | All
- *                   Rights Reserved to Developer: Z MSUTHU © 2026 |"
+ *   1. ONE BANNER — a document opens with the page header (brand only) and
+ *                   exactly ONE document banner; the title, grade, subject,
+ *                   content type, term, date, school/teacher, the CAPS
+ *                   reference and the 🇿🇦 / CAPS Aligned / NPA / POPIA / SIAS /
+ *                   WP6 labels are written once — inside that banner.
+ *   2. GRADIENT   — the banner is a two-colour VERTICAL gradient (never a
+ *                   solid fill), model-authored banners/heroes get the same
+ *                   gradient, and the page header is a very light blue bar at
+ *                   70% transparency.
+ *   3. FOOTER     — one canonical footer line, word for word:
+ *                   "© 2026 EduAI Companion | CAPS Compliant Educational
+ *                    Resource | Developed for South African Educators | All
+ *                    Rights Reserved to Developer: Z MSUTHU © 2026 |"
  *
  * It exercises the production wrapper with the awkward inputs models actually
- * produce (own header/footer chrome, duplicate stamp rows, solid inline
- * banners, Tailwind colour utilities, documents wrapped by an older template)
- * and then re-checks the committed artefacts on disk.
+ * produce (own header/footer chrome, duplicate stamp rows, duplicate title
+ * blocks, solid inline banners, Tailwind colour utilities, documents wrapped
+ * by an older template) and then re-checks the committed artefacts on disk.
  *
  * Run:  npm run verify:template
  *       npx tsx scripts/verify-content-template.ts
@@ -28,6 +31,7 @@ import {
     EDUAI_BANNER_GRADIENT,
     EDUAI_COMPLIANCE_LABELS,
     EDUAI_HEADER_GRADIENT,
+    EDUAI_HEADER_TINT,
     EDUAI_TEMPLATE_FOOTER_LINE,
     applyBannerGradients,
     buildTemplateComplianceBannerHTML,
@@ -78,9 +82,17 @@ const assertDocument = (label: string, html: string, expectedDocs = 1): void => 
     ok(`${expectedDocs} footer band(s)`, footers === expectedDocs, `found ${footers}`);
     ok('exact canonical footer text', canonicalFooters === expectedDocs, `found ${canonicalFooters}`);
     ok('no stale rights/generated sub-lines', !/ALL CONTENT RIGHTS RESERVED TO|GENERATED:\s*\d{2}\/\d{2}\/\d{4}/i.test(html));
-    ok('compliance section uses the two-colour gradient',
+    ok('the ONE banner uses the two-colour VERTICAL gradient',
         count(html, new RegExp(EDUAI_BANNER_GRADIENT.replace(/[()]/g, '\\$&'), 'g')) >= expectedDocs);
-    ok('header uses the two-colour wash', html.includes(EDUAI_HEADER_GRADIENT) || !html.includes('site-header'));
+    // ONE banner at the top of the page: nothing banner-ish may precede it.
+    const leading = html.slice(0, html.indexOf('class="eduai-compliance-banner'));
+    const leadingBands = (leading.match(/<(?:header|section|div|article|aside)\b[^>]*>/gi) || [])
+        .filter((tag) => !/site-header/.test(tag))
+        .filter((tag) => /<header\b/i.test(tag)
+            || /(?:class|id)\s*=\s*["'][^"']*(?:banner|hero|masthead|title-block|doc-title|page-title|cover-head|top-bar)/i.test(tag));
+    ok('only the brand header precedes the ONE banner', leadingBands.length === 0, leadingBands.join(' '));
+    ok('page header is the very light blue 70%-transparent wash',
+        !html.includes('site-header') || (html.includes(EDUAI_HEADER_GRADIENT) && html.includes(EDUAI_HEADER_TINT)));
 };
 
 const meta = {
@@ -133,8 +145,10 @@ const greedyModelOutput = `<!DOCTYPE html>
 const greedy = wrapWithTemplate(greedyModelOutput, meta);
 assertDocument('model output with its own header, 3 label copies, solid banners + footer', greedy);
 console.log('  ▸ solid banners converted');
+ok('the model header repeating the banner data was removed', !/Data Handling — Grade 2</i.test(greedy) && count(greedy, /<h1\b/gi) === 1);
 ok('inline solid #002395 banner became the gradient', !/style="[^"]*background:\s*#002395/i.test(greedy));
-ok('Tailwind bg-emerald-700 hero overridden inline', /class="hero[^"]*"[^>]*background-image:\s*linear-gradient\(135deg, #1e3a5f 0%, #2563eb 100%\)/i.test(greedy));
+ok('Tailwind bg-emerald-700 hero overridden inline',
+    greedy.includes(`class="hero`) && new RegExp(`class="hero[^"]*"[^>]*background-image:${EDUAI_BANNER_GRADIENT.replace(/[()]/g, '\\$&')}`, 'i').test(greedy));
 ok('every <header> in the body is a gradient', count(greedy, /<header\b(?![^>]*site-header)[^>]*background-image:\s*linear-gradient/gi) === count(greedy, /<header\b(?![^>]*site-header)/gi));
 ok('the model footer band was removed', !/GENERATED: 09\/09\/2026/i.test(greedy));
 ok('re-wrapping the cleaned document is stable', wrapWithTemplate(greedy, meta) === greedy);
@@ -152,10 +166,15 @@ console.log('\n▸ legacy document upgrade (archived content, no metadata passed
 ok('legacy markup is NOT treated as current', !isCurrentTemplateOutput(legacyWrapped));
 const upgraded = wrapWithTemplate(legacyWrapped, {});
 assertDocument('legacy document re-wrapped', upgraded);
-ok('header strapline metadata survived the upgrade', /GRADE 5 • TERM 2 • MATHEMATICS • WORKSHEET/i.test(upgraded));
+ok('strapline + pill metadata survived the upgrade inside the banner',
+    ['>Grade 5<', '>Mathematics<', '>Worksheet<', '>Term 2<'].every((needle) => upgraded.includes(needle)));
+const upgradedBannerEnd = upgraded.indexOf('</section>', upgraded.indexOf('class="eduai-compliance-banner'));
+ok('the old title block did not survive next to the banner',
+    upgradedBannerEnd > 0 && !/<h1\b/i.test(upgraded.slice(upgradedBannerEnd)));
+ok('exactly one title heading remains', count(upgraded, /<h1\b/gi) === 1);
 ok('title survived the upgrade', upgraded.includes('Fractions: Halves and Quarters'));
 ok('body copy survived the upgrade', upgraded.includes('Body copy'));
-ok('old style block replaced by v4', count(upgraded, /<style\b[^>]*data-eduai-light/gi) === 1 && /data-eduai-light="v4"/.test(upgraded));
+ok('old style block replaced by v5', count(upgraded, /<style\b[^>]*data-eduai-light/gi) === 1 && /data-eduai-light="v5"/.test(upgraded));
 ok('page shell is not nested twice', count(upgraded, /<main\b/gi) === 1 && count(upgraded, /class="eduai-light-scope"/gi) === 1);
 ok('one watermark only', count(upgraded, /class="watermark"/gi) === 1);
 

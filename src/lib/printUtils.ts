@@ -32,8 +32,10 @@ export interface PrintOptions {
     term?: string;
     /** Optional school name for the template footer. */
     school?: string;
-    /** Optional teacher name for the template footer. */
+    /** Optional teacher name — rendered as a pill in the single banner. */
     teacher?: string;
+    /** Optional learner name — rendered as a pill in the single banner. */
+    learner?: string;
 }
 
 /**
@@ -65,10 +67,11 @@ function extractIframeHTML(iframe: HTMLIFrameElement | null | undefined): string
 }
 
 /**
- * Wrap generated content in the official EduAI Companion LIGHT Template v4 —
- * the compact translucent white header, full-width two-colour content banner,
- * watermark body with centred 800px page, and navy footer — used identically by
- * print, PDF and HTML exports so every
+ * Wrap generated content in the official EduAI Companion LIGHT Template v5 —
+ * the very light blue translucent page header (70% transparent), the ONE
+ * full-width two-colour vertical gradient document banner (title + every
+ * label + compliance), the watermark body with a centred 800px page and the
+ * navy footer — used identically by print, PDF and HTML exports so every
  * exported document carries the same branding.
  */
 const wrapWithBrandedTemplate = (html: string, options?: PrintOptions, title?: string): string => {
@@ -208,8 +211,9 @@ export const printContent = (
                         body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                         .print\\:hidden { display: none !important; }
                     }
-                    /* LIGHT Template v4 owns all inner spacing (full-bleed
-                       header, centred 800px page) — the shell stays neutral. */
+                    /* LIGHT Template v5 owns all inner spacing (full-bleed
+                       header/banner, centred 800px page) — the shell stays
+                       neutral. */
                     body {
                         font-family: 'Inter', system-ui, -apple-system, sans-serif;
                         padding: 0;
@@ -324,8 +328,9 @@ export const downloadAsHTML = (
                 <title>${filename}</title>
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono&display=swap');
-                    /* LIGHT Template v4 owns all inner spacing (full-bleed
-                       header, centred 800px page) — the shell stays neutral. */
+                    /* LIGHT Template v5 owns all inner spacing (full-bleed
+                       header/banner, centred 800px page) — the shell stays
+                       neutral. */
                     body {
                         font-family: 'Inter', system-ui, -apple-system, sans-serif;
                         padding: 0;
@@ -482,7 +487,7 @@ export const downloadAsPDF = async (
         // half-shifted PDF. An absolute element scrolls with the document,
         // so the crop always lines up.
         container = document.createElement('div');
-        // LIGHT Template v4 owns all inner spacing/typography — no padding or
+        // LIGHT Template v5 owns all inner spacing/typography — no padding or
         // prose classes on the shell, or the header/footer would inset.
         container.className = 'bg-white text-slate-900';
         container.style.width = '800px';

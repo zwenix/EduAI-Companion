@@ -123,7 +123,7 @@ export default function PrintPreviewModal({
     return removeLegacyHeader(replaceImagePlaceholders(rawHTML));
   }, [selectedSection, memo, rubric, content]);
 
-  // Official EduAI LIGHT Template v4 metadata — mirrors exactly what the
+  // Official EduAI LIGHT Template v5 metadata — mirrors exactly what the
   // print/PDF/HTML exports will wrap around this document.
   const templateMeta = metaFromPrintOptions({
     ...options,
@@ -315,7 +315,7 @@ export default function PrintPreviewModal({
                 <div className="space-y-2 text-[11px] font-bold text-slate-400 dark:text-emerald-200/80 leading-relaxed font-sans">
                   <div className="flex gap-2 items-start">
                     <span className="text-emerald-400">✔</span>
-                    <span><strong>LIGHT Template v4 canvas</strong> — translucent header, centred 800px page and navy footer, with 15mm print margins applied at print time.</span>
+                    <span><strong>LIGHT Template v5 canvas</strong> — one gradient banner (title + every label), light-blue translucent header and navy footer, with 15mm print margins applied at print time.</span>
                   </div>
                   <div className="flex gap-2 items-start mt-2">
                     <span className="text-emerald-400">✔</span>
@@ -400,10 +400,10 @@ export default function PrintPreviewModal({
             {/* Visual Margin Indicators overlay */}
             <div className="absolute top-2 left-6 right-6 hidden xl:flex justify-between text-[10px] font-mono font-bold text-slate-500 select-none pointer-events-none">
               <span>🡐 A4 Page</span>
-              <span>LIGHT Template v4 • 15mm Print Margins 🡒</span>
+              <span>LIGHT Template v5 • 15mm Print Margins 🡒</span>
             </div>
 
-            {/* Simulated Printed Page Sheet — LIGHT Template v4 owns all inner
+            {/* Simulated Printed Page Sheet — LIGHT Template v5 owns all inner
                 spacing (full-bleed header, centred 800px page, navy footer),
                 so the paper shell carries no padding of its own. */}
             <div 
