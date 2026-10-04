@@ -17,9 +17,11 @@ Two static demos are rendered byte-for-byte by the production
 | --- | --- |
 | [`docs/content-template-preview.html`](./content-template-preview.html) | a finished sample document |
 | [`docs/content-normalisation-demo.html`](./content-normalisation-demo.html) | messy model output (its own banner + labels ×3, solid bands, its own footer) next to the normalised result |
+| [`docs/sa-content-layout-preview.html`](./sa-content-layout-preview.html) | the SA structured pipeline document (school letterhead, CAPS/ATP reference, marks, differentiation) |
+| [`docs/banner-palettes-preview.html`](./banner-palettes-preview.html) | the ONE banner in **every content-type palette**, with contrast figures and the full content-type → palette table |
 
-Regenerate both with `npm run render:template-demo`, then prove the contract
-still holds with `npm run verify:template` (110 assertions — see
+Regenerate all four with `npm run render:template-demo`, then prove the contract
+still holds with `npm run verify:template` (171 assertions — see
 [Verification](#verification)).
 
 ---
