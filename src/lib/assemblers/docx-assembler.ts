@@ -6,6 +6,7 @@
 
 import { buildFullHTML, DocumentData, RenderedImage, SA_COLOURS } from "../templates/sa-html-templates";
 import { buildCAPSCode, EDUAI_COMPLIANCE_LABELS, EDUAI_TEMPLATE_FOOTER_LINE, EDUAI_TEMPLATE_HEADER_BASE, stripGeneratedComplianceMarkup } from "../contentTemplate";
+import { bannerPaletteFor } from "../bannerPalettes";
 
 export interface DOCXOptions {
   filename?: string;
@@ -51,10 +52,14 @@ export async function generateDOCXServer(
     // ── THE single document banner (Word edition) ────────────────────────────
     // The HTML/PDF template opens every document with ONE two-colour banner
     // carrying the title, every label and the compliance data. Word cannot draw
-    // a CSS gradient, so the same banner is built from two shaded rows — navy
-    // over blue, i.e. a two-colour VERTICAL band — and nothing else is written
-    // above it: no separate school header, no second title, no meta line and no
-    // second stamp table repeating the same values.
+    // a CSS gradient, so the same banner is built from two shaded rows — the
+    // top and bottom stops of the palette the content type owns (worksheet =
+    // orange → magenta, memo = green → teal, certificate = violet → gold …) —
+    // and nothing else is written above it: no separate school header, no second
+    // title, no meta line and no second stamp table repeating the same values.
+    const bannerPalette = bannerPaletteFor(data.metadata.contentType, (data.metadata as { palette?: string }).palette);
+    const bannerTopShade = bannerPalette.from.replace('#', '').toUpperCase();
+    const bannerBottomShade = bannerPalette.to.replace('#', '').toUpperCase();
     const capsCode = buildCAPSCode({
       capsCode: data.metadata.capsCode,
       title: data.metadata.title,
@@ -82,7 +87,7 @@ export async function generateDOCXServer(
           new TableRow({
             children: [
               new TableCell({
-                shading: { type: ShadingType.SOLID, color: '1E3A5F' },
+                shading: { type: ShadingType.SOLID, color: bannerTopShade },
                 children: [
                   new Paragraph({
                     children: [new TextRun({
@@ -99,7 +104,7 @@ export async function generateDOCXServer(
           new TableRow({
             children: [
               new TableCell({
-                shading: { type: ShadingType.SOLID, color: '2563EB' },
+                shading: { type: ShadingType.SOLID, color: bannerBottomShade },
                 children: [
                   new Paragraph({
                     children: [new TextRun({ text: bannerPills, size: 18, color: 'FFFFFF', bold: true })],

@@ -7,9 +7,12 @@
  *                   reference and the 🇿🇦 / CAPS Aligned / NPA / POPIA / SIAS /
  *                   WP6 labels are written once — inside that banner.
  *   2. GRADIENT   — the banner is a two-colour VERTICAL gradient (never a
- *                   solid fill), model-authored banners/heroes get the same
- *                   gradient, and the page header is a very light blue bar at
- *                   70% transparency.
+ *                   solid fill) whose colours are chosen for the content type
+ *                   (worksheet = orange → magenta, memo = green → teal,
+ *                   certificate = violet → gold …), model-authored
+ *                   banners/heroes are repainted in the SAME document palette,
+ *                   and the page header is a very light blue bar at 70%
+ *                   transparency.
  *   3. FOOTER     — one canonical footer line, word for word:
  *                   "© 2026 EduAI Companion | CAPS Compliant Educational
  *                    Resource | Developed for South African Educators | All
@@ -28,18 +31,26 @@ import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+    BANNER_PALETTES,
+    BANNER_PALETTE_IDS,
     EDUAI_BANNER_GRADIENT,
     EDUAI_COMPLIANCE_LABELS,
     EDUAI_HEADER_GRADIENT,
     EDUAI_HEADER_TINT,
     EDUAI_TEMPLATE_FOOTER_LINE,
     applyBannerGradients,
+    bannerGradientFor,
+    bannerPaletteFor,
     buildTemplateComplianceBannerHTML,
+    contrastWithWhite,
     harvestMetaFromChrome,
+    isBannerGradient,
     isCurrentTemplateOutput,
+    isKnownBannerGradient,
     stripTemplateChrome,
     wrapWithTemplate,
 } from '../src/lib/contentTemplate';
+import { ADMIN_TYPES, TEACHING_CATEGORIES, VISUAL_TYPES } from '../src/lib/contentTypes';
 import { buildFullHTML, buildMinimalSADocument } from '../src/lib/templates/sa-html-templates';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -82,8 +93,16 @@ const assertDocument = (label: string, html: string, expectedDocs = 1): void => 
     ok(`${expectedDocs} footer band(s)`, footers === expectedDocs, `found ${footers}`);
     ok('exact canonical footer text', canonicalFooters === expectedDocs, `found ${canonicalFooters}`);
     ok('no stale rights/generated sub-lines', !/ALL CONTENT RIGHTS RESERVED TO|GENERATED:\s*\d{2}\/\d{2}\/\d{4}/i.test(html));
-    ok('the ONE banner uses the two-colour VERTICAL gradient',
-        count(html, new RegExp(EDUAI_BANNER_GRADIENT.replace(/[()]/g, '\\$&'), 'g')) >= expectedDocs);
+    const bannerTag = html.match(/<section[^>]*class\s*=\s*["'][^"']*\beduai-compliance-banner\b[^>]*>/i)?.[0] ?? '';
+    const bannerGradient = bannerTag.match(/background:\s*(linear-gradient\([^;]+\))/i)?.[1] ?? '';
+    ok('the ONE banner uses a two-colour VERTICAL gradient', isBannerGradient(bannerGradient), bannerGradient);
+    ok('the banner gradient comes from the content-type palette',
+        isKnownBannerGradient(bannerGradient),
+        `${bannerGradient} — palette=${bannerPaletteFor((bannerTag.match(/data-eduai-palette="([^"]+)"/) ?? [])[1]).id}`);
+    ok('the banner publishes its palette as a scoped custom property',
+        bannerTag.includes(`--eduai-banner-gradient: ${bannerGradient}`));
+    ok('no banner falls back to the plain navy → blue brand pair',
+        !bannerGradient.includes('#1e3a5f') || bannerGradient === BANNER_PALETTES.brand.gradient);
     // ONE banner at the top of the page: nothing banner-ish may precede it.
     const leading = html.slice(0, html.indexOf('class="eduai-compliance-banner'));
     const leadingBands = (leading.match(/<(?:header|section|div|article|aside)\b[^>]*>/gi) || [])
@@ -148,7 +167,7 @@ console.log('  ▸ solid banners converted');
 ok('the model header repeating the banner data was removed', !/Data Handling — Grade 2</i.test(greedy) && count(greedy, /<h1\b/gi) === 1);
 ok('inline solid #002395 banner became the gradient', !/style="[^"]*background:\s*#002395/i.test(greedy));
 ok('Tailwind bg-emerald-700 hero overridden inline',
-    greedy.includes(`class="hero`) && new RegExp(`class="hero[^"]*"[^>]*background-image:${EDUAI_BANNER_GRADIENT.replace(/[()]/g, '\\$&')}`, 'i').test(greedy));
+    greedy.includes(`class="hero`) && new RegExp(`class="hero[^"]*"[^>]*background-image:${bannerGradientFor('Worksheet').replace(/[()]/g, '\\$&')}`, 'i').test(greedy));
 ok('every <header> in the body is a gradient', count(greedy, /<header\b(?![^>]*site-header)[^>]*background-image:\s*linear-gradient/gi) === count(greedy, /<header\b(?![^>]*site-header)/gi));
 ok('the model footer band was removed', !/GENERATED: 09\/09\/2026/i.test(greedy));
 ok('re-wrapping the cleaned document is stable', wrapWithTemplate(greedy, meta) === greedy);
@@ -171,6 +190,68 @@ const bandedBanner = banded.slice(banded.indexOf('class="eduai-compliance-banner
 ['School: Springfield Primary School', 'Total: 20 marks', '45 minutes', 'ATP: Week 4']
     .forEach((needle) => ok(`the ONE banner carries "${needle}"`, bandedBanner.includes(needle)));
 ok('the real content is untouched', banded.includes('Count the tallies and complete the table.'));
+
+// ── 3c. Per-content-type palettes — bright two-colour gradients, one per
+//        content family, all legible with white text, all distinct.
+console.log('\n▸ content-type banner palettes');
+ok('at least eight palettes ship', BANNER_PALETTE_IDS.length >= 8, `${BANNER_PALETTE_IDS.length} palettes`);
+ok('every palette is a two-stop 180deg gradient',
+    BANNER_PALETTE_IDS.every((id) => isBannerGradient(BANNER_PALETTES[id].gradient)
+        && BANNER_PALETTES[id].from !== BANNER_PALETTES[id].to));
+ok('every palette keeps white text legible (contrast ≥ 4.5)',
+    BANNER_PALETTE_IDS.every((id) => contrastWithWhite(BANNER_PALETTES[id].from) >= 4.5
+        && contrastWithWhite(BANNER_PALETTES[id].to) >= 4.5),
+    `min ${Math.min(...BANNER_PALETTE_IDS.map((id) => Math.min(
+        contrastWithWhite(BANNER_PALETTES[id].from), contrastWithWhite(BANNER_PALETTES[id].to)))).toFixed(2)}`);
+ok('the palette gradients are all different',
+    new Set(BANNER_PALETTE_IDS.map((id) => BANNER_PALETTES[id].gradient)).size === BANNER_PALETTE_IDS.length);
+
+const offeredTypes = [
+    ...Object.values(TEACHING_CATEGORIES),
+    ...Object.values(VISUAL_TYPES),
+    ...Object.values(ADMIN_TYPES),
+].flat();
+const unmappedTypes = offeredTypes.filter((type) => bannerPaletteFor(type).id === 'brand');
+ok(`all ${offeredTypes.length} Content Creator types resolve to a named palette`,
+    unmappedTypes.length === 0, unmappedTypes.join(', '));
+
+const paletteSample: Array<[string, string]> = [
+    ['Lesson Plan', 'lesson'],
+    ['Worksheet', 'worksheet'],
+    ['Controlled Test', 'assessment'],
+    ['Marking Memo', 'memo'],
+    ['Educational Poster', 'poster'],
+    ['Flashcards (Term + Definition)', 'cards'],
+    ['Letter to Parents', 'admin'],
+    ['Participation Certificate', 'certificate'],
+    ['SIAS Individualized Learning Plan', 'intervention'],
+    ['Interactive Foundation Learning Pack', 'foundation'],
+];
+paletteSample.forEach(([contentType, paletteId]) => {
+    const palette = bannerPaletteFor(contentType);
+    ok(`${contentType} → ${palette.label}`, palette.id === paletteId, palette.id);
+});
+const sampleGradients = paletteSample.map(([type]) => bannerGradientFor(type));
+ok('ten different content families → ten different banner gradients',
+    new Set(sampleGradients).size === sampleGradients.length);
+ok('none of the ten families still uses the navy → blue brand pair',
+    sampleGradients.every((gradient) => gradient !== BANNER_PALETTES.brand.gradient));
+
+// The same body wrapped as different content types must come out with
+// different banners — the whole point of the palette set.
+const bodyForPalette = '<h2>Activity 1</h2><p>Count the tallies.</p>';
+const palettedBanners = paletteSample.map(([contentType]) => {
+    const doc = wrapWithTemplate(bodyForPalette, { title: 'Data Handling', grade: '5', subject: 'Mathematics', contentType });
+    const tag = doc.match(/<section[^>]*class\s*=\s*["'][^"']*\beduai-compliance-banner\b[^>]*>/i)?.[0] ?? '';
+    return { contentType, tag, gradient: tag.match(/background:\s*(linear-gradient\([^;]+\))/i)?.[1] ?? '' };
+});
+ok('each wrapped document carries its own palette on the banner',
+    palettedBanners.every(({ contentType, gradient }) => gradient === bannerGradientFor(contentType)),
+    palettedBanners.map(({ contentType, gradient }) => `${contentType}=${gradient}`).join(' | '));
+ok('no wrapped document reuses another family\'s banner colours',
+    new Set(palettedBanners.map(({ gradient }) => gradient)).size === palettedBanners.length);
+ok('the wrapper publishes the palette for its stylesheet safety nets',
+    palettedBanners.every(({ tag }) => tag.includes('--eduai-banner-gradient:')));
 
 // ── 4. Document wrapped by an OLDER template (archived content) ─────────────
 const legacyWrapped = `<style data-eduai-light="v3">.site-header{background:#1e3a5f}</style>
@@ -238,9 +319,11 @@ if (existsSync(fpDir)) {
         });
 }
 
-/** Whitespace-insensitive gradient count (the FP pack writes it un-spaced). */
-const countGradients = (html: string): number =>
-    count(html.replace(/\s+/g, ''), new RegExp(EDUAI_BANNER_GRADIENT.replace(/\s+/g, '').replace(/[()]/g, '\\$&'), 'g'));
+/** Every two-colour vertical banner gradient in a file (whitespace-insensitive). */
+const collectGradients = (html: string): string[] =>
+    html.replace(/\s+/g, ' ').match(/linear-gradient\(180deg, ?#[0-9a-f]{6} 0%, ?#[0-9a-f]{6} 100%\)/gi) || [];
+
+const countGradients = (html: string): number => collectGradients(html).length;
 
 for (const artefact of artefacts) {
     const full = resolve(repoRoot, artefact.path);
@@ -268,6 +351,28 @@ for (const artefact of artefacts) {
     ok(`${artefact.path.replace(/^.*\//, '')} — labels ×${docs}, canonical footer, gradient banners`,
         labelsOnce && canonical === docs && gradients >= docs && footers >= docs,
         `labels=${LABELS.map(({ pattern }) => count(html, pattern)).join('/')} banners=${banners} footers=${footers} canonical=${canonical} gradients=${gradients}`);
+}
+
+// ── 10. Palette gallery artefact — one banner per palette, all legible ──────
+console.log('\n▸ committed palette gallery');
+const galleryPath = resolve(repoRoot, 'docs/banner-palettes-preview.html');
+if (!existsSync(galleryPath)) {
+    ok('docs/banner-palettes-preview.html exists', false, 'missing — run npm run render:template-demo');
+} else {
+    const gallery = readFileSync(galleryPath, 'utf-8');
+    const galleryGradients = collectGradients(gallery);
+    const uniqueGradients = new Set(galleryGradients.map((gradient) => gradient.replace(/\s+/g, ' ')));
+    ok('gallery renders one banner per palette',
+        count(gallery, /data-eduai-palette="/gi) === BANNER_PALETTE_IDS.length,
+        `banners=${count(gallery, /data-eduai-palette="/gi)} palettes=${BANNER_PALETTE_IDS.length}`);
+    ok('gallery shows every palette gradient exactly once',
+        uniqueGradients.size === BANNER_PALETTE_IDS.length,
+        `${uniqueGradients.size} distinct gradients`);
+    ok('every gallery gradient is a known, two-stop, legible palette gradient',
+        [...uniqueGradients].every((gradient) => isKnownBannerGradient(gradient) && isBannerGradient(gradient)));
+    ok('gallery lists the content type → palette mapping for the whole taxonomy',
+        count(gallery, /<tr><td>[^<]+<\/td><td><span class="chip"/g) >= 60,
+        `${count(gallery, /<tr><td>[^<]+<\/td><td><span class="chip"/g)} rows`);
 }
 
 // ── Result ─────────────────────────────────────────────────────────────────

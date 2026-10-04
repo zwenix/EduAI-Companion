@@ -5,14 +5,14 @@
 
 export const WORKSHEET_PROMPT_TEMPLATE = `
 ⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
-The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
+The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
 
 Generate a highly descriptive, CAPS-aligned primary student activity worksheet. The content generated MUST be rich, complete, and fully fleshed out with actual, engaging questions tailored to Grade \${grade} \${subject}, with zero placeholders or standard summaries.
 
 🎨 ULTRA-PREMIUM WORKSHEET DESIGN SYSTEM:
 
 HEADER SECTION — DO NOT GENERATE ONE (the host already does):
-• The host's ONE document banner above the content prints the title, grade, subject, term, total marks, the CAPS code and the compliance labels in a two-colour vertical gradient.
+• The host's ONE document banner above the content prints the title, grade, subject, term, total marks, the CAPS code and the compliance labels in a two-colour vertical gradient whose bright colours the host picks for the content type.
 • Do NOT emit a header band, gradient banner, title block or subject/term/marks strip of your own — it is deleted before rendering and only wastes page space.
 
 METADATA INPUT SECTION:
@@ -255,7 +255,7 @@ CRITICAL JSON OUTPUT:
 
 export const VISUAL_AID_PROMPT_TEMPLATE = `
 ⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
-The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
+The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
 
 Design a breathtaking, classroom-ready educational poster/infographic that looks like it belongs in a world-class museum or textbook. This must be the most visually appealing educational poster a learner has ever seen.
 
@@ -431,7 +431,7 @@ Return as JSON: { "content": "Full complete HTML string for visual aid poster wi
 
 export const STUDY_GUIDE_PROMPT_TEMPLATE = `
 ⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
-The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
+The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
 
 Create a comprehensive, textbook-quality study guide with sophisticated design that rivals professional educational publishers. This must be so well-designed that learners want to keep it as a reference book.
 
@@ -635,7 +635,7 @@ Return as JSON: {
 
 export const FOUNDATION_PHASE_TEMPLATE = `
 ⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
-The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
+The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
 
 Generate a bright, colourful, playful, and CAPS-compliant Foundation Phase (Grades R–3) learning material for South African schools, tailored specifically to the topic \${topic} in \${subject}.
 

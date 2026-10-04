@@ -13,6 +13,7 @@ import {
   collapseLeadingChrome,
   mergeMeta,
   EDUAI_BANNER_GRADIENT,
+  bannerGradientFor,
   ContentTemplateMeta
 } from "../contentTemplate";
 
@@ -203,16 +204,17 @@ export const SA_BASE_CSS = `
     border-radius: 3px;
   }
 
-  /* Generated top banners always use the same two-colour gradient as the
-     host-owned banner, even when an AI fragment uses a generic header class. */
+  /* Generated top banners always use the SAME two-colour palette gradient as
+     the host-owned banner — published as --eduai-banner-gradient on <body> —
+     even when an AI fragment uses a generic header class. */
   .ai-generated-content header:not(.site-header),
   .ai-generated-content .content-banner,
   .ai-generated-content .top-banner,
   .ai-generated-content .header-banner,
   .ai-generated-content .banner,
   .ai-generated-content [class*="banner"] {
-    background: ${EDUAI_BANNER_GRADIENT} !important;
-    background-image: ${EDUAI_BANNER_GRADIENT} !important;
+    background: var(--eduai-banner-gradient, ${EDUAI_BANNER_GRADIENT}) !important;
+    background-image: var(--eduai-banner-gradient, ${EDUAI_BANNER_GRADIENT}) !important;
     color: #ffffff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -782,6 +784,10 @@ export function buildFullHTML(
   }
 
   // ── FULL HTML ──
+  // ONE metadata object and ONE banner palette for the whole document: the
+  // header, the banner, the repainted generated bands and the footer all read
+  // from the same content-type palette (bright two-colour vertical gradient).
+  const templateMeta = templateMetaFromData(data, today, school);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -794,18 +800,18 @@ export function buildFullHTML(
   <style>${SA_BASE_CSS}</style>
   ${buildTemplateStyleHTML()}
 </head>
-<body>
+<body style="--eduai-banner-gradient: ${bannerGradientFor(templateMeta.contentType, templateMeta.palette)};">
   <div class="page">
 
     <!-- EduAI LIGHT Template v5 — very light blue translucent header bar (brand only) -->
-    ${buildTemplateHeaderHTML(templateMetaFromData(data, today, school))}
+    ${buildTemplateHeaderHTML(templateMeta)}
 
     <!-- SA Flag Stripe -->
     <div class="sa-flag-stripe"></div>
 
     <!-- THE single document banner: title, every label, the school letterhead,
          the CAPS reference / ATP week and the compliance data — written once. -->
-    ${buildTemplateComplianceBannerHTML(templateMetaFromData(data, today, school))}
+    ${buildTemplateComplianceBannerHTML(templateMeta)}
 
     <!-- Content Sections -->
     ${sectionsHTML || `<div class="section"><div class="section-body"><p>No structured sections — see content below.</p></div></div>`}
@@ -820,7 +826,7 @@ export function buildFullHTML(
     ${answerKeyHTML}
 
     <!-- Footer -->
-    ${buildTemplateFooterHTML(templateMetaFromData(data, today))}
+    ${buildTemplateFooterHTML(templateMeta)}
 
   </div>
 </body>
@@ -846,7 +852,7 @@ function wrapContentWithSABranding(data: DocumentData, content: string, school: 
   <style>${SA_BASE_CSS}</style>
   ${buildTemplateStyleHTML()}
 </head>
-<body>
+<body style="--eduai-banner-gradient: ${bannerGradientFor(templateMeta.contentType, templateMeta.palette)};">
   <div class="page">
     <!-- EduAI LIGHT Template v5 — very light blue translucent header bar (brand only) -->
     ${buildTemplateHeaderHTML(templateMeta)}

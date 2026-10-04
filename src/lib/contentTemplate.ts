@@ -38,8 +38,9 @@
  *     copies (badges, stamp rows, banner repeats, repeated title blocks,
  *     plain-text status lines) are stripped before the banner is rendered.
  *  2. GRADIENT — no top banner is ever a single solid colour. The document
- *     banner is a TWO-COLOUR VERTICAL gradient, and every model-authored
- *     banner/hero/header gets the same treatment.
+ *     banner is a TWO-COLOUR VERTICAL gradient whose colours are chosen for
+ *     the content type (see `bannerPalettes.ts`), and every model-authored
+ *     banner/hero/header is repainted with the same document gradient.
  *  3. FOOTER — one canonical footer line, word for word, on every surface.
  *
  * Portability rules (same guarantees as the previous template):
@@ -60,6 +61,30 @@
  *    that copied our chrome — are stripped back to content and re-wrapped so
  *    stale footers, duplicate labels and solid banners cannot survive.
  */
+
+import {
+    BANNER_PALETTES,
+    type BannerPalette,
+    type BannerPaletteId,
+    bannerGradientFor,
+    bannerPaletteFor,
+    isBannerGradient,
+} from './bannerPalettes';
+
+export {
+    BANNER_PALETTES,
+    BANNER_PALETTE_IDS,
+    BANNER_GRADIENT_PATTERN,
+    DEFAULT_BANNER_PALETTE_ID,
+    bannerGradientFor,
+    bannerPaletteFor,
+    buildBannerGradient,
+    contrastWithWhite,
+    isBannerGradient,
+    isBannerPaletteId,
+    isKnownBannerGradient,
+} from './bannerPalettes';
+export type { BannerPalette, BannerPaletteId } from './bannerPalettes';
 
 export interface ContentTemplateMeta {
     /** Document title (lesson-title + HTML <title> where supported). */
@@ -94,20 +119,35 @@ export interface ContentTemplateMeta {
     extraPills?: string[];
     /** Extra banner footnotes (Bloom's distribution …), pre-escaped. */
     extraNotes?: string[];
+    /**
+     * Explicit banner palette id (`worksheet`, `assessment`, `certificate`, …).
+     * Normally omitted — the palette is derived from `contentType` — but it
+     * lets a caller pin the colours for a document whose type is ambiguous.
+     */
+    palette?: BannerPaletteId | string;
 }
 
 /**
  * Every generated document owns exactly ONE top banner: the document banner.
- * Its background is always a TWO-COLOUR **VERTICAL** gradient (navy → accent
- * blue) and never a solid block of one colour:
+ * Its background is always a TWO-COLOUR **VERTICAL** gradient and never a
+ * solid block of one colour — and the two colours are chosen for the kind of
+ * content being generated (bright, dynamic pairings: worksheets get burnt
+ * orange → magenta, marking memos green → teal, certificates violet → gold,
+ * posters fuchsia → burnt orange, Foundation Phase packs pink → azure …).
+ * See `bannerPalettes.ts` for the full table and `bannerGradientFor()` for the
+ * resolver.
+ *
+ * This constant is the **brand fallback** — the navy → azure gradient used for
+ * content whose type cannot be recognised (and by callers that genuinely want
+ * brand colours):
  *
  *     linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%)
  *
- * The page header above it is chrome, not a banner: a very light blue wash
- * (#dbeafe → #bfdbfe) at 70% transparency, so the content behind it stays
+ * The page header above the banner is chrome, not a banner: a very light blue
+ * wash (#dbeafe → #bfdbfe) at 70% transparency, so the content behind it stays
  * faintly visible while the bar keeps the brand on screen.
  */
-export const EDUAI_BANNER_GRADIENT = 'linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%)';
+export const EDUAI_BANNER_GRADIENT = BANNER_PALETTES.brand.gradient;
 
 /** Very light blue (#dbeafe) at 70% transparency — the page-header tint. */
 export const EDUAI_HEADER_TINT = 'rgba(219, 234, 254, 0.30)';
@@ -265,12 +305,14 @@ export const EDUAI_LIGHT_CSS = `
     margin: 0 0 18px;
     padding: 14px 16px;
     border-radius: 10px;
-    /* TWO-COLOUR VERTICAL GRADIENT — never a solid fill. */
-    background: ${EDUAI_BANNER_GRADIENT};
-    background-image: ${EDUAI_BANNER_GRADIENT};
+    /* TWO-COLOUR VERTICAL GRADIENT — never a solid fill. The colours come
+       from the document's content-type palette, published as a scoped custom
+       property by wrapWithTemplate(); the brand pair is the fallback. */
+    background: var(--eduai-banner-gradient, ${EDUAI_BANNER_GRADIENT});
+    background-image: var(--eduai-banner-gradient, ${EDUAI_BANNER_GRADIENT});
     color: #ffffff;
-    border: 1px solid #93c5fd;
-    box-shadow: 0 3px 10px rgba(30,58,95,0.16);
+    border: 1px solid rgba(255,255,255,0.45);
+    box-shadow: 0 3px 12px rgba(15,23,42,0.22);
     font-family: 'Inter', system-ui, sans-serif;
     font-size: 11px;
     font-weight: 700;
@@ -376,8 +418,8 @@ export const EDUAI_LIGHT_CSS = `
     box-sizing: border-box;
 }
 /* AI-authored documents use a variety of banner class names. Give all of
-   their top/header banners the same two-colour treatment without touching
-   ordinary cards and body sections. */
+   their top/header banners the document's own two-colour palette without
+   touching ordinary cards and body sections. */
 .eduai-light-scope > .page > article > header:not(.site-header),
 .eduai-light-scope header:not(.site-header),
 .eduai-light-scope .content-banner,
@@ -385,8 +427,8 @@ export const EDUAI_LIGHT_CSS = `
 .eduai-light-scope .header-banner,
 .eduai-light-scope .banner,
 .eduai-light-scope [class*="banner"] {
-    background: ${EDUAI_BANNER_GRADIENT} !important;
-    background-image: ${EDUAI_BANNER_GRADIENT} !important;
+    background: var(--eduai-banner-gradient, ${EDUAI_BANNER_GRADIENT}) !important;
+    background-image: var(--eduai-banner-gradient, ${EDUAI_BANNER_GRADIENT}) !important;
     color: #ffffff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -872,15 +914,25 @@ const bannerTitle = (meta: ContentTemplateMeta): string =>
  * pills, school · teacher · learner when the caller supplies them, any extra
  * pills, and the CAPS code with the 🇿🇦/CAPS/NPA/POPIA/SIAS/WP6 labels.
  *
- * The background is the official TWO-COLOUR VERTICAL GRADIENT
- * (`EDUAI_BANNER_GRADIENT`, navy → blue at 180deg) written inline so it
- * survives iframe previews, print, html2canvas rasterisation and downloads.
+ * The background is a TWO-COLOUR VERTICAL GRADIENT at 180deg, picked from
+ * `bannerPalettes.ts` for the document's content type — bright, dynamic
+ * pairings (orange → magenta for worksheets, green → teal for memos, violet →
+ * gold for certificates …) with the brand navy → azure pair as the fallback
+ * for unrecognised types. It is written inline, together with the
+ * `--eduai-banner-gradient` custom property, so the exact colours survive
+ * iframe previews, print, html2canvas rasterisation and downloads, and so the
+ * stylesheet safety nets repaint any stray model banner in the same palette.
+ *
  * The class name stays `eduai-compliance-banner` because the rest of the
  * pipeline (chrome stripping, single-copy verification, CSS safety nets)
  * keys off it.
  */
 export const buildTemplateComplianceBannerHTML = (meta: ContentTemplateMeta = {}): string => {
     const title = bannerTitle(meta);
+    // One palette per document, chosen from the content type (or pinned by an
+    // explicit `meta.palette`). Never a solid fill, never the same colours for
+    // every kind of content.
+    const palette: BannerPalette = bannerPaletteFor(meta.contentType, meta.palette);
     const pills = buildBannerPills(meta);
     const capsCode = buildCAPSCode(meta);
     const capsReference = String(meta.capsReference || '').trim();
@@ -894,7 +946,7 @@ export const buildTemplateComplianceBannerHTML = (meta: ContentTemplateMeta = {}
     ].filter(Boolean).join(' | ');
 
     return `
-<section class="eduai-compliance-banner" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; background: ${EDUAI_BANNER_GRADIENT}; background-image: ${EDUAI_BANNER_GRADIENT}; color: #ffffff; border: 1px solid #93c5fd; border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: ${LIGHT_BODY_FONT}; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+<section class="eduai-compliance-banner" data-eduai-palette="${palette.id}" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; --eduai-banner-gradient: ${palette.gradient}; background: ${palette.gradient}; background-image: ${palette.gradient}; color: #ffffff; border: 1px solid rgba(255,255,255,0.45); border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: ${LIGHT_BODY_FONT}; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
   <h1 class="lesson-title" style="font-family: ${LIGHT_HEADING_FONT}; font-size: clamp(19px, 3vw, 27px); font-weight: 700; line-height: 1.18; color: #ffffff; margin: 0 0 8px;">${esc(title)}</h1>
   ${pills.length ? `<div class="lesson-meta" style="display:flex; flex-wrap:wrap; gap:7px; margin:0 0 10px; color:#e2e8f0;">${pills.map((pill) => `<span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">${esc(pill)}</span>`).join('')}</div>` : ''}
   <div class="eduai-doc-compliance" style="display:block; border-top:1px solid rgba(255,255,255,0.28); padding-top:8px; font-size:11px; font-weight:700; line-height:1.5; color:#ffffff;"><span class="eduai-caps-code" style="font-weight:800; letter-spacing:0.2px;">${esc(referenceTrail)}</span> ${esc(EDUAI_COMPLIANCE_LABELS)}${notes.length ? ` <span style="display:block; margin-top:4px; font-weight:600; color:rgba(255,255,255,0.86);">${notes.map((note) => esc(note)).join(' • ')}</span>` : ''}</div>
@@ -1175,14 +1227,16 @@ export const mergeMeta = (base: ContentTemplateMeta, override: ContentTemplateMe
 const BANNER_HINT = /\b(?:banner|hero|masthead|jumbotron|title-?block|doc-?title|page-?title|cover(?:-head)?|top-?bar|title-?bar|letterhead|school-?header|doc-?header|caps-?bar|reference-?bar)\b/i;
 
 /**
- * Inline declarations that force the official two-colour gradient. Inline +
- * !important beats Tailwind utilities and model CSS everywhere the document is
- * rendered: browser, iframe preview, html2canvas rasterisation and Chromium PDF.
+ * Inline declarations that force the document's two-colour palette gradient.
+ * Inline + !important beats Tailwind utilities and model CSS everywhere the
+ * document is rendered: browser, iframe preview, html2canvas rasterisation and
+ * Chromium PDF.
  */
-const BANNER_GRADIENT_DECLARATIONS =
-    `background:${EDUAI_BANNER_GRADIENT} !important;background-image:${EDUAI_BANNER_GRADIENT} !important;color:#ffffff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;`;
+const bannerGradientDeclarations = (gradient: string): string =>
+    `background:${gradient} !important;background-image:${gradient} !important;color:#ffffff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;`;
 
-const withGradientStyle = (attrs: string): string => {
+const withGradientStyle = (attrs: string, gradient: string): string => {
+    const BANNER_GRADIENT_DECLARATIONS = bannerGradientDeclarations(gradient);
     const styleMatch = attrs.match(/style\s*=\s*(["'])([\s\S]*?)\1/i);
     if (!styleMatch) return `${attrs} style="${BANNER_GRADIENT_DECLARATIONS}"`;
     const quote = styleMatch[1];
@@ -1198,22 +1252,26 @@ const withGradientStyle = (attrs: string): string => {
 };
 
 /**
- * Convert every solid top banner in generated content to the official
+ * Convert every solid top banner in generated content to the document's
  * two-colour gradient. Model output uses dozens of banner spellings
  * (`<header>`, `.banner`, `.hero`, `.doc-title`, inline `background:#007749`,
  * Tailwind `bg-emerald-700`), so the gradient is written inline on each of them
  * instead of relying on a class name surviving. The host's own compliance
  * banner and the compact document header are left exactly as built.
+ *
+ * @param gradient The document's palette gradient — defaults to the brand
+ *                 navy → azure pair for callers that have no content type.
  */
-export const applyBannerGradients = (html: string): string => {
+export const applyBannerGradients = (html: string, gradient: string = EDUAI_BANNER_GRADIENT): string => {
     const source = String(html || '');
+    const bannerGradient = isBannerGradient(gradient) ? gradient : EDUAI_BANNER_GRADIENT;
     return source.replace(/<(?!\/)([a-z][\w:-]*)\b([^>]*)>/gi, (match, tag: string, attrs: string) => {
         if (/^(style|script|svg|path|circle|rect|line|polygon|polyline|ellipse|g|defs|use|text|tspan)$/i.test(tag)) return match;
         if (/site-header|header-text|eduai-compliance-banner/i.test(attrs)) return match;
         const isHeaderTag = /^header$/i.test(tag);
         const classOrId = `${attrs.match(/class\s*=\s*["'][^"']*["']/i)?.[0] ?? ''} ${attrs.match(/id\s*=\s*["'][^"']*["']/i)?.[0] ?? ''}`;
         if (!isHeaderTag && !BANNER_HINT.test(classOrId)) return match;
-        return `<${tag}${withGradientStyle(attrs)}>`;
+        return `<${tag}${withGradientStyle(attrs, bannerGradient)}>`;
     });
 };
 
@@ -1606,6 +1664,10 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
     const deduped = stripLeadingDuplicateBanner(collapsed.html, effectiveMeta);
     const cleaned = stripDuplicateTitleHeading(deduped, effectiveMeta);
     const banner = buildTemplateComplianceBannerHTML(effectiveMeta);
+    // ONE palette per document, chosen for the content type: the banner, every
+    // repainted model band and the stylesheet safety nets all use the same two
+    // colours — published below as the scoped `--eduai-banner-gradient`.
+    const gradient = bannerGradientFor(effectiveMeta.contentType, effectiveMeta.palette);
 
     let inner: string;
     if (cleaned.includes(COMPLIANCE_SLOT)) {
@@ -1620,10 +1682,10 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
     return `
 ${buildTemplateStyleHTML()}
 ${buildTemplateHeaderHTML(effectiveMeta)}
-<div class="eduai-light-scope" style="position: relative; background: ${EDUAI_TEMPLATE_COLOURS.paper}; overflow: hidden;">
+<div class="eduai-light-scope" style="--eduai-banner-gradient: ${gradient}; position: relative; background: ${EDUAI_TEMPLATE_COLOURS.paper}; overflow: hidden;">
   ${buildTemplateWatermarkHTML()}
   <main class="page" style="position: relative; z-index: 1; max-width: 800px; margin: 0 auto; padding: 28px 20px 60px; font-family: ${LIGHT_BODY_FONT}; color: #1e293b; line-height: 1.65; box-sizing: border-box;">
-${applyBannerGradients(inner)}
+${applyBannerGradients(inner, gradient)}
   </main>
 </div>
 ${buildTemplateFooterHTML(effectiveMeta)}`.trim();

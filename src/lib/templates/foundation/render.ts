@@ -36,6 +36,7 @@ import {
     EDUAI_COMPLIANCE_LABELS,
     EDUAI_TEMPLATE_FOOTER_LINE,
 } from '../../contentTemplate';
+import { bannerPaletteFor, type BannerPaletteId } from '../../bannerPalettes';
 import { pair } from './labels';
 
 export const KIND_META = {
@@ -64,6 +65,19 @@ export const KIND_META = {
         color: '#2ed573',
     },
 } as const;
+
+/**
+ * Which bright two-colour banner palette each Foundation Phase pack kind uses.
+ * The pack palette is identical everywhere (page banner, index card, printed
+ * bundle) and always differs by kind: awards go violet → gold, worksheets warm,
+ * classroom cards teal/blue and homework pink/azure.
+ */
+const KIND_BANNER_PALETTE: Record<keyof typeof KIND_META, BannerPaletteId> = {
+    award: 'certificate',
+    worksheet: 'worksheet',
+    classroom: 'cards',
+    homework: 'foundation',
+};
 
 const THEMES: Record<TemplateTheme, Theme> = {
     sunny: { primary: '#ffb703', secondary: '#ffd166', soft: '#fff6d8', band: '#ff8a3d', accent: '#2563eb' },
@@ -121,7 +135,7 @@ export const FP_CSS = `
 /* ── banner ─────────────────────────────────────────── */
 /* Use the full printable page width for the designated content banner; the
    negative margins consume the page padding without widening the A4 sheet. */
-.fp-banner { position: relative; display: flex; align-items: flex-start; gap: 5mm; width: calc(100% + 24mm); margin: 0 -12mm 4mm; padding: 4mm 5mm; box-sizing: border-box; border-radius: 0 0 5mm 5mm; /* the ONE document banner: two-colour VERTICAL gradient, never a solid fill */ background: ${EDUAI_BANNER_GRADIENT}; background-image: ${EDUAI_BANNER_GRADIENT}; color: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.fp-banner { position: relative; display: flex; align-items: flex-start; gap: 5mm; width: calc(100% + 24mm); margin: 0 -12mm 4mm; padding: 4mm 5mm; box-sizing: border-box; border-radius: 0 0 5mm 5mm; /* the ONE document banner: two-colour VERTICAL gradient in the content-type palette, never a solid fill */ background: var(--eduai-banner-gradient, ${EDUAI_BANNER_GRADIENT}); background-image: var(--eduai-banner-gradient, ${EDUAI_BANNER_GRADIENT}); color: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .fp-page > .site-header { position: relative; margin-bottom: 3mm; border-radius: 2mm; }
 .fp-banner-text { flex: 1 1 auto; min-width: 0; }
 .fp-kicker { font-family: 'Fredoka', 'Comic Neue', 'Trebuchet MS', ui-rounded, sans-serif; font-size: 8pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #fff; margin: 0 0 1mm; }
@@ -574,10 +588,12 @@ const banner = (tpl: FoundationTemplate, ctx: Ctx): string => {
         term: tpl.caps.terms[0],
         contentType: kindMeta.label,
     });
-    // Keep the official gradient inline as well as in the CSS rule: the pack is
+    // Keep the palette gradient inline as well as in the CSS rule: the pack is
     // embedded in iframes, printed and copied around, and the banner must never
     // fall back to a solid colour when the stylesheet does not travel with it.
-    return `<header class="eduai-compliance-banner fp-banner" style="background: ${EDUAI_BANNER_GRADIENT}; background-image: ${EDUAI_BANNER_GRADIENT}; color: #ffffff; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+    // The colours follow the pack kind (award / worksheet / classroom / homework).
+    const palette = bannerPaletteFor(undefined, KIND_BANNER_PALETTE[tpl.kind]);
+    return `<header class="eduai-compliance-banner fp-banner" data-eduai-palette="${palette.id}" style="--eduai-banner-gradient: ${palette.gradient}; background: ${palette.gradient}; background-image: ${palette.gradient}; color: #ffffff; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
   <div class="fp-banner-text">
     <p class="fp-kicker">${esc(tpl.titleKicker ?? `${kindMeta.emoji} EduAI Companion · CAPS Foundation Phase`)}</p>
     <h1 class="fp-title">${esc(tpl.title)}</h1>

@@ -1,19 +1,32 @@
 /**
- * Regenerates the two committed template demos with the REAL production markup
- * from src/lib/contentTemplate.ts (LIGHT v5):
+ * Regenerates the committed template demos with the REAL production markup from
+ * src/lib/contentTemplate.ts (LIGHT v5):
  *
  *   docs/content-template-preview.html    — pixel-accurate sample document
  *   docs/content-normalisation-demo.html  — messy model output (labels written
  *                                           three times, its own duplicate
  *                                           banner, title block, footer) next
  *                                           to the normalised result
+ *   docs/sa-content-layout-preview.html   — the SA structured pipeline document
+ *   docs/banner-palettes-preview.html     — the ONE banner in every content-type
+ *                                           palette (bright two-colour vertical
+ *                                           gradients), with contrast figures
  *
  * Run:  npm run render:template-demo   (or npx tsx scripts/render-content-template-demo.ts)
  */
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { EDUAI_BANNER_GRADIENT, wrapWithTemplate } from '../src/lib/contentTemplate';
+import {
+    BANNER_PALETTES,
+    BANNER_PALETTE_IDS,
+    EDUAI_BANNER_GRADIENT,
+    bannerPaletteFor,
+    buildTemplateComplianceBannerHTML,
+    contrastWithWhite,
+    wrapWithTemplate,
+} from '../src/lib/contentTemplate';
+import { ADMIN_TYPES, TEACHING_CATEGORIES, VISUAL_TYPES } from '../src/lib/contentTypes';
 import { buildFullHTML } from '../src/lib/templates/sa-html-templates';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -275,3 +288,128 @@ const saPage = `<!DOCTYPE html>
 const saPath = resolve(repoRoot, 'docs/sa-content-layout-preview.html');
 writeFileSync(saPath, saPage);
 console.log(`Wrote ${saPath} (${(saPage.length / 1024).toFixed(0)} KB)`);
+
+
+// ── Palette gallery: the ONE banner in every content-type palette ───────────
+/**
+ * One sample per palette, rendered with the production banner builder, so the
+ * colours a teacher will actually see for each kind of content can be reviewed
+ * at a glance (and contrasted against the old navy → blue default).
+ */
+const paletteSamples = [
+    { palette: 'worksheet', contentType: 'Worksheet', title: 'Data Handling — Tallies', subject: 'Mathematics', grade: '5', term: 'Term 2' },
+    { palette: 'lesson', contentType: 'Weekly Lesson Plan', title: 'The Water Cycle', subject: 'Natural Sciences', grade: '4', term: 'Term 3' },
+    { palette: 'assessment', contentType: 'Controlled Test', title: 'Fractions and Decimals', subject: 'Mathematics', grade: '6', term: 'Term 1' },
+    { palette: 'memo', contentType: 'Marking Memo', title: 'Fractions and Decimals — Memo', subject: 'Mathematics', grade: '6', term: 'Term 1' },
+    { palette: 'poster', contentType: 'Educational Poster', title: 'Save Water — Poster', subject: 'Life Skills', grade: '3', term: 'Term 2' },
+    { palette: 'cards', contentType: 'Flashcards (Term + Definition)', title: 'Sight Words — Flashcards', subject: 'English HL', grade: '2', term: 'Term 1' },
+    { palette: 'admin', contentType: 'Letter to Parents', title: 'Parent Evening — Invitation', subject: 'Administration', grade: 'All', term: 'Term 3' },
+    { palette: 'certificate', contentType: 'Participation Certificate', title: 'Star of the Term', subject: 'Life Skills', grade: '3', term: 'Term 3' },
+    { palette: 'intervention', contentType: 'SIAS Individualized Learning Plan', title: 'SIAS Support Plan — Thabo', subject: 'Mathematics', grade: '4', term: 'Term 2' },
+    { palette: 'foundation', contentType: 'Interactive Foundation Learning Pack', title: 'Grade R — Numbers 1–10', subject: 'Mathematics', grade: 'R', term: 'Term 1' },
+    { palette: 'brand', contentType: 'Untitled Generation', title: 'Educational Resource', subject: 'General', grade: 'All', term: 'Term 1' },
+] as const;
+
+const paletteCards = paletteSamples.map((sample) => {
+    const palette = BANNER_PALETTES[sample.palette];
+    const banner = buildTemplateComplianceBannerHTML({
+        title: sample.title,
+        subject: sample.subject,
+        grade: sample.grade,
+        term: sample.term,
+        contentType: sample.contentType,
+        date: '04/10/2026',
+        school: 'Springfield Primary School',
+    });
+    const topContrast = contrastWithWhite(palette.from).toFixed(2);
+    const bottomContrast = contrastWithWhite(palette.to).toFixed(2);
+    return `
+  <section class="card">
+    <header class="card-head">
+      <div>
+        <p class="kicker">${palette.id.toUpperCase()}${sample.palette === 'brand' ? ' (fallback)' : ''}</p>
+        <h3>${palette.label}</h3>
+        <p class="blurb">${palette.blurb}</p>
+      </div>
+      <dl class="swatches">
+        <div><dt>Top stop</dt><dd><span class="chip" style="background:${palette.from}"></span>${palette.from} · ${topContrast}:1</dd></div>
+        <div><dt>Bottom stop</dt><dd><span class="chip" style="background:${palette.to}"></span>${palette.to} · ${bottomContrast}:1</dd></div>
+      </dl>
+    </header>
+    <p class="types"><strong>Content types:</strong> ${palette.types.join(' · ')}</p>
+    <div class="banner-frame" style="--eduai-banner-gradient: ${palette.gradient};">
+      ${banner}
+    </div>
+    <code class="css">${palette.gradient}</code>
+  </section>`;
+}).join('\n');
+
+const offered = [
+    ...Object.values(TEACHING_CATEGORIES),
+    ...Object.values(VISUAL_TYPES),
+    ...Object.values(ADMIN_TYPES),
+].flat();
+const offeredRows = offered.map((type) => {
+    const palette = bannerPaletteFor(type);
+    return `<tr><td>${type}</td><td><span class="chip" style="background:${palette.from}"></span>${palette.id}</td><td>${palette.label}</td></tr>`;
+}).join('\n');
+
+const palettePage = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduAI Companion — banner palettes per content type (Light Template v5)</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #eef2f7; font-family: 'Inter', system-ui, sans-serif; color: #0f172a; }
+  .page-head { background: linear-gradient(180deg, rgba(219,234,254,.30) 0%, rgba(191,219,254,.30) 100%); border-bottom: 1px solid rgba(147,197,253,.55); padding: 18px 22px; }
+  .page-head h1 { font-family: 'Fredoka', sans-serif; margin: 0 0 6px; font-size: 22px; color: #1e3a5f; }
+  .page-head p { margin: 0; font-size: 12.5px; color: #334155; max-width: 900px; line-height: 1.6; }
+  main { max-width: 940px; margin: 0 auto; padding: 22px 18px 60px; display: grid; gap: 18px; }
+  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px rgba(15,23,42,.06); }
+  .card-head { display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; align-items: flex-start; }
+  .kicker { margin: 0 0 2px; font-size: 10px; letter-spacing: 1.4px; font-weight: 800; color: #2563eb; }
+  .card h3 { font-family: 'Fredoka', sans-serif; margin: 0 0 4px; font-size: 17px; color: #1e293b; }
+  .blurb { margin: 0; font-size: 12px; color: #475569; max-width: 520px; }
+  .swatches { margin: 0; display: grid; gap: 4px; font-size: 11.5px; }
+  .swatches div { display: flex; gap: 8px; align-items: center; }
+  .swatches dt { font-weight: 700; color: #64748b; min-width: 68px; }
+  .swatches dd { margin: 0; color: #334155; display: flex; align-items: center; gap: 6px; }
+  .chip { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(15,23,42,.15); vertical-align: middle; }
+  .types { margin: 10px 0 12px; font-size: 11.5px; color: #475569; }
+  .banner-frame { border: 1px dashed #cbd5e1; border-radius: 12px; padding: 10px; background: #f8fafc; }
+  .css { display: block; margin-top: 10px; font-size: 11px; color: #1e3a5f; background: #eff6ff; border-radius: 8px; padding: 6px 8px; word-break: break-all; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #e2e8f0; }
+  th { background: #eff6ff; color: #1e3a5f; font-size: 10.5px; letter-spacing: .6px; text-transform: uppercase; }
+  h2 { font-family: 'Fredoka', sans-serif; font-size: 16px; margin: 6px 0 0; color: #1e3a5f; }
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>ONE banner, a bright two-colour vertical gradient per content type</h1>
+    <p>Every generated document opens with the very light blue 70%-transparent page header and exactly ONE document banner.
+    That banner is always a two-colour <strong>vertical</strong> gradient (180deg, never a solid fill) whose colours are chosen for
+    the kind of content: worksheets orange → magenta, lesson plans indigo → violet, assessments crimson → purple,
+    memos green → teal, posters fuchsia → burnt orange, cards teal → royal blue, admin royal blue → sky,
+    certificates violet → gold, SIAS support deep violet → emerald, Foundation Phase packs pink → azure.
+    The navy → azure pair remains only as the fallback for unrecognised types.</p>
+  </div>
+  <main>
+    <h2>Palettes (${paletteSamples.length})</h2>
+    ${paletteCards}
+    <section class="card">
+      <h2>Every Content Creator content type → palette (${offered.length} types)</h2>
+      <table>
+        <thead><tr><th>Content type</th><th>Palette</th><th>Colours</th></tr></thead>
+        <tbody>${offeredRows}</tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>`;
+
+const palettePath = resolve(repoRoot, 'docs/banner-palettes-preview.html');
+writeFileSync(palettePath, palettePage);
+console.log(`Wrote ${palettePath} (${(palettePage.length / 1024).toFixed(0)} KB)`);

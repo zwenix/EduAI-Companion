@@ -61,16 +61,17 @@
     border-radius: 3px;
   }
 
-  /* Generated top banners always use the same two-colour gradient as the
-     host-owned banner, even when an AI fragment uses a generic header class. */
+  /* Generated top banners always use the SAME two-colour palette gradient as
+     the host-owned banner — published as --eduai-banner-gradient on <body> —
+     even when an AI fragment uses a generic header class. */
   .ai-generated-content header:not(.site-header),
   .ai-generated-content .content-banner,
   .ai-generated-content .top-banner,
   .ai-generated-content .header-banner,
   .ai-generated-content .banner,
   .ai-generated-content [class*="banner"] {
-    background: linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%) !important;
-    background-image: linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%) !important;
+    background: var(--eduai-banner-gradient, linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%)) !important;
+    background-image: var(--eduai-banner-gradient, linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%)) !important;
     color: #ffffff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -498,12 +499,14 @@
     margin: 0 0 18px;
     padding: 14px 16px;
     border-radius: 10px;
-    /* TWO-COLOUR VERTICAL GRADIENT — never a solid fill. */
-    background: linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%);
-    background-image: linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%);
+    /* TWO-COLOUR VERTICAL GRADIENT — never a solid fill. The colours come
+       from the document's content-type palette, published as a scoped custom
+       property by wrapWithTemplate(); the brand pair is the fallback. */
+    background: var(--eduai-banner-gradient, linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%));
+    background-image: var(--eduai-banner-gradient, linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%));
     color: #ffffff;
-    border: 1px solid #93c5fd;
-    box-shadow: 0 3px 10px rgba(30,58,95,0.16);
+    border: 1px solid rgba(255,255,255,0.45);
+    box-shadow: 0 3px 12px rgba(15,23,42,0.22);
     font-family: 'Inter', system-ui, sans-serif;
     font-size: 11px;
     font-weight: 700;
@@ -609,8 +612,8 @@
     box-sizing: border-box;
 }
 /* AI-authored documents use a variety of banner class names. Give all of
-   their top/header banners the same two-colour treatment without touching
-   ordinary cards and body sections. */
+   their top/header banners the document's own two-colour palette without
+   touching ordinary cards and body sections. */
 .eduai-light-scope > .page > article > header:not(.site-header),
 .eduai-light-scope header:not(.site-header),
 .eduai-light-scope .content-banner,
@@ -618,8 +621,8 @@
 .eduai-light-scope .header-banner,
 .eduai-light-scope .banner,
 .eduai-light-scope [class*="banner"] {
-    background: linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%) !important;
-    background-image: linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%) !important;
+    background: var(--eduai-banner-gradient, linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%)) !important;
+    background-image: var(--eduai-banner-gradient, linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%)) !important;
     color: #ffffff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -808,7 +811,7 @@
 }
 </style>
 </head>
-<body>
+<body style="--eduai-banner-gradient: linear-gradient(180deg, #c2410c 0%, #be185d 100%);">
   <div class="page">
 
     <!-- EduAI LIGHT Template v5 — very light blue translucent header bar (brand only) -->
@@ -822,7 +825,7 @@
 
     <!-- THE single document banner: title, every label, the school letterhead,
          the CAPS reference / ATP week and the compliance data — written once. -->
-    <section class="eduai-compliance-banner" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; background: linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%); background-image: linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%); color: #ffffff; border: 1px solid #93c5fd; border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+    <section class="eduai-compliance-banner" data-eduai-palette="worksheet" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; --eduai-banner-gradient: linear-gradient(180deg, #c2410c 0%, #be185d 100%); background: linear-gradient(180deg, #c2410c 0%, #be185d 100%); background-image: linear-gradient(180deg, #c2410c 0%, #be185d 100%); color: #ffffff; border: 1px solid rgba(255,255,255,0.45); border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
   <h1 class="lesson-title" style="font-family: 'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif; font-size: clamp(19px, 3vw, 27px); font-weight: 700; line-height: 1.18; color: #ffffff; margin: 0 0 8px;">Data Handling</h1>
   <div class="lesson-meta" style="display:flex; flex-wrap:wrap; gap:7px; margin:0 0 10px; color:#e2e8f0;"><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Grade 5</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Mathematics</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Worksheet</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Term 2</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">04/10/2026</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Intermediate Phase</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">⏱ 45 minutes</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">📝 Total: 20 marks</span></div>
   <div class="eduai-doc-compliance" style="display:block; border-top:1px solid rgba(255,255,255,0.28); padding-top:8px; font-size:11px; font-weight:700; line-height:1.5; color:#ffffff;"><span class="eduai-caps-code" style="font-weight:800; letter-spacing:0.2px;">CAPS Code:IP-MATH-G5-T2-DH01 | CAPS: Mathematics CAPS — Grade 5 — Term 2 — Data Handling | ATP: Week 4</span> 🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated <span style="display:block; margin-top:4px; font-weight:600; color:rgba(255,255,255,0.86);">Springfield Primary School • Republic of South Africa • EMIS: 123456 • Western Cape Province • Metro East District • Department of Basic Education</span></div>
