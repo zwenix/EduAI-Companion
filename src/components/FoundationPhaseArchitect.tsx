@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { wrapWithTemplate } from '../lib/contentTemplate';
+import { wrapWithTemplate, type ContentTemplateMeta } from '../lib/contentTemplate';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   BookOpen, 
@@ -58,6 +58,8 @@ interface FoundationPhaseArchitectProps {
   onLanguageChange?: (l: string) => void;
   onBack?: () => void;
   onClose?: () => void;
+  /** Banner metadata (teacher/school/class/learner) for the document chrome. */
+  bannerMeta?: ContentTemplateMeta;
 }
 
 export default function FoundationPhaseArchitect({ 
@@ -70,7 +72,8 @@ export default function FoundationPhaseArchitect({
   language = "English",
   onLanguageChange,
   onBack,
-  onClose
+  onClose,
+  bannerMeta
 }: FoundationPhaseArchitectProps) {
   const [difficulty, setDifficulty] = useState<'linear' | 'adaptive' | 'stepped'>('adaptive');
   const [goals, setGoals] = useState<string[]>(['Phonetic Blending', 'Sight Words', 'CVC Patterns']);
@@ -186,13 +189,46 @@ export default function FoundationPhaseArchitect({
   };
 
   const hasGeneratedContent = !!teachingResult?.content && !showSandboxAlways;
+  // Determine the real SA school term (never hardcode Term 1 — fixes the
+  // incorrect hallucinated date/term issue on the Foundation Phase page).
+  const getCurrentSATerm = (): string => {
+    const m = new Date().getMonth() + 1;
+    if (m >= 1 && m <= 3) return 'Term 1';
+    if (m >= 4 && m <= 6) return 'Term 2';
+    if (m >= 7 && m <= 9) return 'Term 3';
+    return 'Term 4';
+  };
+  const activeTerm = bannerMeta?.term || getCurrentSATerm();
+
+  // Defensive post-processing: if the model hallucinated a pre-filled learner
+  // Name / hardcoded Date on the worksheet body, strip them back to blanks.
+  const sanitizeFoundationBody = (html: string): string => {
+    let out = html;
+    // "Name: Thabo" / "Name: Lerato" / "Name: John Doe" -> "Name: __________"
+    out = out.replace(/(Name\s*:\s*)([A-Za-z][A-Za-z\-\.\' ]{1,60})(?=<|\n|$)/gi, '$1__________');
+    // "Date: 15/03/2024" or "Date: 15 March 2025" etc. -> "Date: __________"
+    out = out.replace(/(Date\s*:\s*)(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|[A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}\s+[A-Za-z]+\s+\d{4})(?=<|\n|$)/gi, '$1__________');
+    return out;
+  };
+
   const generatedMarkup = teachingResult?.content
-    ? wrapWithTemplate(teachingResult.content, {
+    ? wrapWithTemplate(sanitizeFoundationBody(teachingResult.content), {
         title: 'Foundation Phase Learning Pack',
         subject: language,
         grade,
-        term: 'Term 1',
-        contentType: 'Interactive Foundation Learning Pack'
+        term: activeTerm,
+        contentType: 'Interactive Foundation Learning Pack',
+        // Teacher / school / class are threaded in from the Content Creator's
+        // Document Banner Identity panel when the teacher opted in.
+        teacher: bannerMeta?.teacher,
+        school: bannerMeta?.school,
+        extraPills: bannerMeta?.extraPills,
+        // Foundation Phase worksheets are learner-facing: render blank Name
+        // and Date fill-in lines in the banner; never pre-fill a learner name
+        // or hallucinate a hardcoded date. If the teacher explicitly supplied
+        // a learner name via the banner settings, use it instead of the blank.
+        learner: bannerMeta?.learner,
+        leaveDateBlank: true,
       })
     : '';
 

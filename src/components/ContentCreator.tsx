@@ -608,6 +608,14 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
   const [f_language, setF_Language] = useState('English');
   const [f_topic, setF_Topic] = useState('');
   const [f_skillFocus, setF_SkillFocus] = useState('Phonics');
+
+  // ─── Banner / Document Identity State ──────────────────────────────────
+  // Teacher profile pre-fills (read from localStorage saved in Settings).
+  const [bannerTeacherName, setBannerTeacherName] = useState<string>(() => localStorage.getItem('eduai_user_name') || userName || '');
+  const [bannerSchoolName, setBannerSchoolName] = useState<string>(() => localStorage.getItem('eduai_user_school') || '');
+  const [bannerClassName, setBannerClassName] = useState<string>(() => localStorage.getItem('eduai_user_class') || '');
+  const [includeTeacherInfo, setIncludeTeacherInfo] = useState<boolean>(() => localStorage.getItem('eduai_include_teacher_banner') !== 'false');
+  const [learnerName, setLearnerName] = useState<string>('');
   
   // Firebase & Data State
   const [dbClasses, setDbClasses] = useState<any[]>([]);
@@ -694,6 +702,37 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
       setT_Topics([]);
     }
   }, [t_grade, t_subject]);
+
+  /**
+   * Build the banner metadata (passed to wrapWithTemplate, printContent,
+   * downloadAsPDF, etc.) honouring the teacher-info toggle and learner name
+   * field. When includeTeacherInfo is OFF the teacher/school/class are not
+   * stamped into the banner; when a learner name has been typed it is always
+   * rendered in the banner (per requirement).
+   */
+  const buildBannerMeta = (overrides: {
+    subject?: string;
+    grade?: string;
+    term?: string;
+    contentType?: string;
+    title?: string;
+    school?: string;
+  } = {}) => {
+    const meta: ContentTemplateMeta = { ...overrides };
+    if (includeTeacherInfo) {
+      const tName = bannerTeacherName || userName;
+      if (tName) meta.teacher = tName;
+      if (bannerSchoolName) meta.school = bannerSchoolName;
+      if (bannerClassName) {
+        meta.extraPills = [`Class: ${bannerClassName}`];
+      }
+    } else if (overrides.school) {
+      // Admin tab always passes its own school.
+      meta.school = overrides.school;
+    }
+    if (learnerName.trim()) meta.learner = learnerName.trim();
+    return meta;
+  };
 
   const startProgress = () => {
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
@@ -1097,6 +1136,9 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
     const activeGradeStr = f_grade || 'Grade 2';
     const activeLangStr = f_language || 'English';
 
+    const activeTermStr = getCurrentTerm();
+    const todayStr = new Date().toLocaleDateString('en-ZA', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
     try {
       const promptInstructions = `Foundation Phase Interactive Game & Reading Activity.
 Learning Goals: ${activeGoals}
@@ -1104,12 +1146,26 @@ Difficulty Curve: ${activeDifficulty}
 Interaction Mode: ${activeInteractionMode}
 Target Grade: ${activeGradeStr}
 Target Language: ${activeLangStr}
+School Term: ${activeTermStr}
+
+CRITICAL RULES (read carefully — you MUST obey every one):
+1. DO NOT invent, write, or pre-fill ANY learner name. The only acceptable "Name:" line on the activity/worksheet must be a BLANK fill-in line for the learner to write on — use an underline or a dashed border, e.g.
+   <p><strong>Name:</strong> <span class="inline-block border-b-2 border-dashed border-slate-400 min-w-[200px] pb-0.5">&nbsp;</span></p>
+   NEVER write a real or fictional name (e.g. "Thabo", "Amina", "Sipho", "Lerato") next to "Name:" or in a learner-name field — that field MUST be empty.
+2. DO NOT invent or hard-code a specific calendar date (e.g. "12 March 2024", "15/03/2024", "10 October 2025"). If a date line is needed, leave it as a BLANK fill-in field just like the name:
+   <p><strong>Date:</strong> <span class="inline-block border-b-2 border-dashed border-slate-400 min-w-[140px] pb-0.5">&nbsp;</span></p>
+   Do not substitute today's date either — the learner/teacher fills it in.
+3. Do NOT add your own banner, header strip, school letterhead, title block, or "Name/Class/Date" meta block at the top of the page. You MAY include a single "Name: ___  Date: ___" fill-in row inside the body content for the learner to complete, but both blanks must be EMPTY.
+4. Today's real-world date is ${todayStr} and the current SA school term is ${activeTermStr} — use these ONLY inside CAPS-reference text (e.g. "CAPS Foundation Phase — ${activeTermStr}"), never as a pre-filled "Date:" answer.
+5. Fictional names (Thabo, Amina, Sipho, etc.) may ONLY appear inside example sentences, reading passages, or story scenarios — NEVER next to a "Name:" label or in a metadata/learner-info block.
+
 Instructions: Create a complete, engaging CAPS Foundation Phase educational pack and interactive game logic. Include:
 1. Warm-up & Phonemic Awareness / Letter Sound recognition
 2. Core Gameplay Activity (Interactive matching / CVC spelling / word completion)
 3. Step-by-step game mechanics with clear instructions and rewards
 4. Differentiated challenges (Lower Order to Higher Order progression)
-5. Printable activity sheet & Teacher's Observation Checklist.
+5. Printable activity sheet with EMPTY "Name: ___" and "Date: ___" fill-in lines (NO pre-filled names/dates)
+6. Teacher's Observation Checklist.
 Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast, colorful badges, playful emojis, and clear large typography).`;
 
       const result = await generateCAPSContent({
@@ -1119,7 +1175,7 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
         contentType: 'Interactive Foundation Learning Pack',
         language: activeLangStr,
         difficulty: activeDifficulty === 'linear' ? 'Easy (Lower Order Thinking)' : activeDifficulty === 'stepped' ? 'Challenging (Higher Order)' : 'Medium (Mixed)',
-        term: 'Term 1',
+        term: activeTermStr,
         duration: '30 minutes',
         learners: `Foundation Phase Learners (${activeGradeStr})`,
         capsAlignment: 'DBE CAPS Foundation Phase Curriculum Standard',
@@ -1284,14 +1340,27 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
     }
     // Strip outer <html>/<body> wrappers so printContent can inject its own header.
     const bodyOnly = rawHtml.replace(/^[\s\S]*<body[^>]*>/i, '').replace(/<\/body>[\s\S]*$/i, '').replace(/<\/html>[\s\S]*$/i, '');
+    const contentTypeOverride = activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : (activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : a_type);
+    // Honour banner toggles in print/PDF: same data the on-screen preview uses.
+    const printTeacher = includeTeacherInfo ? (bannerTeacherName || userName) : undefined;
+    const printSchool = includeTeacherInfo ? (bannerSchoolName || a_school) : a_school;
+    const printClass = includeTeacherInfo ? bannerClassName : undefined;
+    const printLearner = learnerName.trim() || undefined;
+
     setIsExporting(true);
     try {
       // On Android this produces a real PDF file (device storage + share sheet,
       // which offers Print) instead of a popup the WebView cannot handle.
       await printContent(bodyOnly || rawHtml, docTitle, {
-        subject: activeSubject, grade: activeGrade, title: docTitle,
-        term: activeTerm, teacher: userName,
-        contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : undefined
+        subject: activeSubject === 'Other' ? (activeTab === 'teaching' ? t_customSubject : v_customSubject || a_customSubject) : activeSubject,
+        grade: activeGrade,
+        title: docTitle,
+        term: activeTerm,
+        teacher: printTeacher,
+        school: printSchool,
+        className: printClass,
+        learner: printLearner,
+        contentType: contentTypeOverride
       });
     } catch (error) {
       console.error('Print/export failed:', error);
@@ -1323,12 +1392,22 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
       return;
     }
     const bodyOnly = rawHtml.replace(/^[\s\S]*<body[^>]*>/i, '').replace(/<\/body>[\s\S]*$/i, '').replace(/<\/html>[\s\S]*$/i, '');
+    const pdfContentType = activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : (activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : a_type);
+    const pdfTeacher = includeTeacherInfo ? (bannerTeacherName || userName) : undefined;
+    const pdfSchool = includeTeacherInfo ? (bannerSchoolName || a_school) : a_school;
+    const pdfClass = includeTeacherInfo ? bannerClassName : undefined;
+    const pdfLearner = learnerName.trim() || undefined;
+
     setIsExporting(true);
     try {
       await downloadAsPDF(bodyOnly || rawHtml, filename, {
-        subject: activeSubject, grade: activeGrade, title: docTitle,
-        term: activeTerm, teacher: userName,
-        contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : undefined
+        subject: activeSubject === 'Other' ? (activeTab === 'teaching' ? t_customSubject : v_customSubject || a_customSubject) : activeSubject,
+        grade: activeGrade, title: docTitle,
+        term: activeTerm, teacher: pdfTeacher,
+        school: pdfSchool,
+        className: pdfClass,
+        learner: pdfLearner,
+        contentType: pdfContentType
       });
     } catch (error) {
       console.error('PDF export failed:', error);
@@ -1799,7 +1878,7 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
             </div>
           ) : activeTab === 'grade1' ? (
             <div className="max-w-6xl mx-auto">
-              <FoundationPhaseArchitect 
+              <FoundationPhaseArchitect
                 isDarkMode={isDarkMode}
                 teachingResult={teachingResult}
                 isLoading={isGenerating}
@@ -1810,6 +1889,10 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                 onLanguageChange={setF_Language}
                 onBack={() => setActiveTab('teaching')}
                 onClose={onClose}
+                bannerMeta={buildBannerMeta({
+                  subject: f_language,
+                  grade: f_grade,
+                })}
               />
             </div>
           ) : (
@@ -2205,6 +2288,110 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                     </div>
                   )}
 
+                  {/* ─── Document Banner Identity ──────────────────────────
+                       Teacher name, class, school and learner name are
+                       placed INTO the document banner (the gradient band at
+                       the top of every generated page) when toggled on. */}
+                  <div className={cn("pt-4 pb-2 border-t space-y-3", isDarkMode ? "border-cyan-500/20" : "border-slate-200")}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <UserCircle size={15} className="text-indigo-400" />
+                        <label className="text-[11px] font-black uppercase tracking-wider text-indigo-300">
+                          Document Banner Identity
+                        </label>
+                      </div>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                        Appears in the top banner
+                      </span>
+                    </div>
+
+                    {/* Toggle for including teacher info */}
+                    <label className="flex items-center justify-between gap-3 p-3 rounded-xl border cursor-pointer transition-colors
+                      bg-indigo-500/10 border-indigo-500/30 hover:bg-indigo-500/15">
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-white flex items-center gap-2">
+                          <GraduationCap size={13} className="text-indigo-300" />
+                          Include Teacher Info in Banner
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5 leading-snug">
+                          Shows your name, class and school inside the document banner.
+                        </p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={includeTeacherInfo}
+                        onChange={(e) => {
+                          setIncludeTeacherInfo(e.target.checked);
+                          localStorage.setItem('eduai_include_teacher_banner', String(e.target.checked));
+                        }}
+                        className="w-5 h-5 accent-indigo-400 shrink-0"
+                      />
+                    </label>
+
+                    {includeTeacherInfo && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pl-1">
+                        <div>
+                          <Label>Teacher Name</Label>
+                          <Input
+                            isDarkMode={isDarkMode}
+                            type="text"
+                            value={bannerTeacherName}
+                            onChange={(e: any) => {
+                              setBannerTeacherName(e.target.value);
+                              localStorage.setItem('eduai_user_name', e.target.value);
+                            }}
+                            placeholder="e.g. Mrs. Dlamini"
+                          />
+                        </div>
+                        <div>
+                          <Label>Class</Label>
+                          <Input
+                            isDarkMode={isDarkMode}
+                            type="text"
+                            value={bannerClassName}
+                            onChange={(e: any) => {
+                              setBannerClassName(e.target.value);
+                              localStorage.setItem('eduai_user_class', e.target.value);
+                            }}
+                            placeholder="e.g. Grade 5B"
+                          />
+                        </div>
+                        <div>
+                          <Label>School Name</Label>
+                          <Input
+                            isDarkMode={isDarkMode}
+                            type="text"
+                            value={bannerSchoolName}
+                            onChange={(e: any) => {
+                              setBannerSchoolName(e.target.value);
+                              localStorage.setItem('eduai_user_school', e.target.value);
+                            }}
+                            placeholder="e.g. Houghton Primary"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Learner name field — always shown, always included in banner when filled */}
+                    <div className="pl-1">
+                      <Label>Learner Name</Label>
+                      <div className="relative">
+                        <Input
+                          isDarkMode={isDarkMode}
+                          type="text"
+                          value={learnerName}
+                          onChange={(e: any) => setLearnerName(e.target.value)}
+                          placeholder="Learner's name (filled in by learner — appears on banner)"
+                          className="pl-10"
+                        />
+                        <Users size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-400" />
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1 ml-1">
+                        Learners fill this in when they receive/print the document. It is placed inside the banner next to teacher/school info.
+                      </p>
+                    </div>
+                  </div>
+
                   {/* Instructor brief — intentionally surfaced as the primary
                       creative input instead of a low-priority optional note. */}
                   <div className="pt-2 space-y-1.5">
@@ -2580,11 +2767,13 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                                 )}
                                 dangerouslySetInnerHTML={{ __html: wrapWithTemplate(
                                   replaceImagePlaceholders(currentLiveContent, activeTab === 'teaching' ? t_generateImage : activeTab === 'visual' ? v_generateImage : a_generateImage),
-                                  activeTab === 'teaching'
-                                    ? { subject: t_subject, grade: t_grade, term: t_term, contentType: t_type, title: t_topic }
-                                    : activeTab === 'visual'
-                                      ? { subject: v_subject, grade: v_grade, contentType: v_type, title: v_topic }
-                                      : { subject: 'Administration', contentType: a_type || 'Notice', title: a_topic || 'Administrative Document' }
+                                  buildBannerMeta(
+                                    activeTab === 'teaching'
+                                      ? { subject: t_subject === 'Other' ? t_customSubject : t_subject, grade: t_grade, term: t_term, contentType: t_type, title: t_topic }
+                                      : activeTab === 'visual'
+                                        ? { subject: v_subject === 'Other' ? v_customSubject : v_subject, grade: v_grade, contentType: v_type, title: v_topic }
+                                        : { subject: 'Administration', contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school }
+                                  )
                                 ) }}
                               />
                               <div className="mt-4 flex items-center gap-2 text-cyan-400 text-xs font-mono animate-pulse">
@@ -2913,11 +3102,13 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                               html={replaceImagePlaceholders(activeHtml, activeTab === 'teaching' ? t_generateImage : activeTab === 'visual' ? v_generateImage : a_generateImage)}
                               fontStyle={fontStyle}
                               minHeight="520px"
-                              meta={activeTab === 'teaching'
-                                ? { subject: t_subject, grade: t_grade, term: t_term, contentType: t_type, title: t_topic, teacher: userName }
-                                : activeTab === 'visual'
-                                  ? { subject: v_subject, grade: v_grade, term: t_term, contentType: v_type, title: v_topic, teacher: userName }
-                                  : { subject: 'Administration', grade: a_grade, contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school, teacher: userName }}
+                              meta={buildBannerMeta(
+                                activeTab === 'teaching'
+                                  ? { subject: t_subject === 'Other' ? t_customSubject : t_subject, grade: t_grade, term: t_term, contentType: t_type, title: t_topic }
+                                  : activeTab === 'visual'
+                                    ? { subject: v_subject === 'Other' ? v_customSubject : v_subject, grade: v_grade, term: t_term, contentType: v_type, title: v_topic }
+                                    : { subject: 'Administration', grade: a_grade, contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school }
+                              )}
                             />
                           </div>
                         </div>
@@ -3076,11 +3267,13 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                     fontStyle={fontStyle}
                     minHeight="100%"
                     className="w-full h-full max-w-5xl"
-                    meta={activeTab === 'teaching'
-                      ? { subject: t_subject, grade: t_grade, term: t_term, contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : t_type, title: t_topic, teacher: userName }
-                      : activeTab === 'visual'
-                        ? { subject: v_subject, grade: v_grade, contentType: v_type, title: v_topic, teacher: userName }
-                        : { subject: 'Administration', grade: a_grade, contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school, teacher: userName }}
+                    meta={buildBannerMeta(
+                      activeTab === 'teaching'
+                        ? { subject: t_subject === 'Other' ? t_customSubject : t_subject, grade: t_grade, term: t_term, contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : t_type, title: t_topic }
+                        : activeTab === 'visual'
+                          ? { subject: v_subject === 'Other' ? v_customSubject : v_subject, grade: v_grade, contentType: v_type, title: v_topic }
+                          : { subject: 'Administration', grade: a_grade, contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school }
+                    )}
                   />
                 </div>
               </motion.div>
@@ -3489,13 +3682,24 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
         }
         memo={(activeTab === 'teaching' || activeTab === 'grade1') ? teachingResult?.memo : undefined}
         rubric={(activeTab === 'teaching' || activeTab === 'grade1') ? teachingResult?.rubric : undefined}
-        options={{
-          subject: (activeTab === 'teaching' ? t_subject : activeTab === 'grade1' ? f_language : activeTab === 'visual' ? v_subject : 'Administration') || 'General',
-          grade: (activeTab === 'teaching' ? t_grade : activeTab === 'grade1' ? f_grade : activeTab === 'visual' ? v_grade : 'All') || 'N/A',
-          contentType: (activeTab === 'teaching' ? t_type : activeTab === 'grade1' ? 'Foundation Phase Activity' : activeTab === 'visual' ? v_type : 'Notice') || 'Document',
-          title: (activeTab === 'teaching' ? t_topic || t_type : activeTab === 'grade1' ? (f_topic || 'Foundation Phase Activity') : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation',
-          term: (activeTab === 'teaching' ? t_term : getCurrentTerm())
-        }}
+        options={(() => {
+          const previewSubject = activeTab === 'teaching'
+            ? (t_subject === 'Other' ? t_customSubject : t_subject)
+            : activeTab === 'grade1' ? f_language
+            : activeTab === 'visual' ? (v_subject === 'Other' ? v_customSubject : v_subject)
+            : 'Administration';
+          return {
+            subject: previewSubject || 'General',
+            grade: (activeTab === 'teaching' ? t_grade : activeTab === 'grade1' ? f_grade : activeTab === 'visual' ? v_grade : 'All') || 'N/A',
+            contentType: (activeTab === 'teaching' ? t_type : activeTab === 'grade1' ? 'Foundation Phase Activity' : activeTab === 'visual' ? v_type : 'Notice') || 'Document',
+            title: (activeTab === 'teaching' ? t_topic || t_type : activeTab === 'grade1' ? (f_topic || 'Foundation Phase Activity') : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation',
+            term: (activeTab === 'teaching' || activeTab === 'grade1' ? t_term : getCurrentTerm()),
+            teacher: includeTeacherInfo ? (bannerTeacherName || userName) : undefined,
+            school: includeTeacherInfo ? (bannerSchoolName || a_school) : a_school,
+            className: includeTeacherInfo ? bannerClassName : undefined,
+            learner: learnerName.trim() || undefined,
+          };
+        })()}
         isDarkMode={isDarkMode}
         fontStyle={fontStyle}
       />
