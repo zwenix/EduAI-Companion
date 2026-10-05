@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduAI Companion — banner palettes per content type (Light Template v5)</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #eef2f7; font-family: 'Inter', system-ui, sans-serif; color: #0f172a; }
+  .page-head { background: linear-gradient(180deg, rgba(219,234,254,.30) 0%, rgba(191,219,254,.30) 100%); border-bottom: 1px solid rgba(147,197,253,.55); padding: 18px 22px; }
+  .page-head h1 { font-family: 'Fredoka', sans-serif; margin: 0 0 6px; font-size: 22px; color: #1e3a5f; }
+  .page-head p { margin: 0; font-size: 12.5px; color: #334155; max-width: 900px; line-height: 1.6; }
+  main { max-width: 940px; margin: 0 auto; padding: 22px 18px 60px; display: grid; gap: 18px; }
+  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px rgba(15,23,42,.06); }
+  .card-head { display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; align-items: flex-start; }
+  .kicker { margin: 0 0 2px; font-size: 10px; letter-spacing: 1.4px; font-weight: 800; color: #2563eb; }
+  .card h3 { font-family: 'Fredoka', sans-serif; margin: 0 0 4px; font-size: 17px; color: #1e293b; }
+  .blurb { margin: 0; font-size: 12px; color: #475569; max-width: 520px; }
+  .swatches { margin: 0; display: grid; gap: 4px; font-size: 11.5px; }
+  .swatches div { display: flex; gap: 8px; align-items: center; }
+  .swatches dt { font-weight: 700; color: #64748b; min-width: 68px; }
+  .swatches dd { margin: 0; color: #334155; display: flex; align-items: center; gap: 6px; }
+  .chip { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(15,23,42,.15); vertical-align: middle; }
+  .types { margin: 10px 0 12px; font-size: 11.5px; color: #475569; }
+  .banner-frame { border: 1px dashed #cbd5e1; border-radius: 12px; padding: 10px; background: #f8fafc; }
+  .css { display: block; margin-top: 10px; font-size: 11px; color: #1e3a5f; background: #eff6ff; border-radius: 8px; padding: 6px 8px; word-break: break-all; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #e2e8f0; }
+  th { background: #eff6ff; color: #1e3a5f; font-size: 10.5px; letter-spacing: .6px; text-transform: uppercase; }
+  h2 { font-family: 'Fredoka', sans-serif; font-size: 16px; margin: 6px 0 0; color: #1e3a5f; }
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>ONE banner, a bright two-colour vertical gradient per content type</h1>
+    <p>Every generated document opens with the very light blue 70%-transparent page header and exactly ONE document banner.
+    That banner is always a two-colour <strong>vertical</strong> gradient (180deg, never a solid fill) whose colours are chosen for
+    the kind of content: worksheets orange → magenta, lesson plans indigo → violet, assessments crimson → purple,
+    memos green → teal, posters fuchsia → burnt orange, cards teal → royal blue, admin royal blue → sky,
+    certificates violet → gold, SIAS support deep violet → emerald, Foundation Phase packs pink → azure.
+    The navy → azure pair remains only as the fallback for unrecognised types.</p>
+  </div>
+  <main>
+    <h2>Palettes (11)</h2>
+    
+  <section class="card">
+    <header class="card-head">
+      <div>
+        <p class="kicker">WORKSHEET</p>
+        <h3>Burnt orange → magenta</h3>
+        <p class="blurb">Worksheets, homework, class exercises, written tasks.</p>
+      </div>
+      <dl class="swatches">
+        <div><dt>Top stop</dt><dd><span class="chip" style="background:#c2410c"></span>#c2410c · 5.18:1</dd></div>
+        <div><dt>Bottom stop</dt><dd><span class="chip" style="background:#be185d"></span>#be185d · 6.04:1</dd></div>
+      </dl>
+    </header>
+    <p class="types"><strong>Content types:</strong> Worksheet · Homework Task · Classroom Exercise · Group Activity · Reading Comprehension · Writing Task · Research Task · Learning Activity</p>
+    <div class="banner-frame" style="--eduai-banner-gradient: linear-gradient(180deg, #c2410c 0%, #be185d 100%);">
+      <section class="eduai-compliance-banner" data-eduai-palette="worksheet" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; --eduai-banner-gradient: linear-gradient(180deg, #c2410c 0%, #be185d 100%); background: linear-gradient(180deg, #c2410c 0%, #be185d 100%); background-image: linear-gradient(180deg, #c2410c 0%, #be185d 100%); color: #ffffff; border: 1px solid rgba(255,255,255,0.45); border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+  <h1 class="lesson-title" style="font-family: 'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif; font-size: clamp(19px, 3vw, 27px); font-weight: 700; line-height: 1.18; color: #ffffff; margin: 0 0 8px;">Data Handling — Tallies</h1>
+  <div class="lesson-meta" style="display:flex; flex-wrap:wrap; gap:7px; margin:0 0 10px; color:#e2e8f0;"><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Grade 5</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Mathematics</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Worksheet</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Term 2</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">04/10/2026</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">School: Springfield Primary School</span></div>
+  <div class="eduai-doc-compliance" style="display:block; border-top:1px solid rgba(255,255,255,0.28); padding-top:8px; font-size:11px; font-weight:700; line-height:1.5; color:#ffffff;"><span class="eduai-caps-code" style="font-weight:800; letter-spacing:0.2px;">CAPS Code:IP-MATH-G5-T2-DH01</span> 🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated</div>
+</section>
+    </div>
+    <code class="css">linear-gradient(180deg, #c2410c 0%, #be185d 100%)</code>
+  </section>
+
+  <section class="card">
+    <header class="card-head">
+      <div>
+        <p class="kicker">LESSON</p>
+        <h3>Indigo → violet</h3>
+        <p class="blurb">Lesson plans, daily/weekly notes, study guides, packs.</p>
+      </div>
+      <dl class="swatches">
+        <div><dt>Top stop</dt><dd><span class="chip" style="background:#4338ca"></span>#4338ca · 7.90:1</dd></div>
+        <div><dt>Bottom stop</dt><dd><span class="chip" style="background:#7c3aed"></span>#7c3aed · 5.70:1</dd></div>
+      </dl>
+    </header>
+    <p class="types"><strong>Content types:</strong> Lesson Plan · Daily Lesson Notes · Weekly Lesson Plan · Unit Plan · Study Guide / Learning Notes · Revision Pack</p>
+    <div class="banner-frame" style="--eduai-banner-gradient: linear-gradient(180deg, #4338ca 0%, #7c3aed 100%);">
+      <section class="eduai-compliance-banner" data-eduai-palette="lesson" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; --eduai-banner-gradient: linear-gradient(180deg, #4338ca 0%, #7c3aed 100%); background: linear-gradient(180deg, #4338ca 0%, #7c3aed 100%); background-image: linear-gradient(180deg, #4338ca 0%, #7c3aed 100%); color: #ffffff; border: 1px solid rgba(255,255,255,0.45); border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+  <h1 class="lesson-title" style="font-family: 'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif; font-size: clamp(19px, 3vw, 27px); font-weight: 700; line-height: 1.18; color: #ffffff; margin: 0 0 8px;">The Water Cycle</h1>
+  <div class="lesson-meta" style="display:flex; flex-wrap:wrap; gap:7px; margin:0 0 10px; color:#e2e8f0;"><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Grade 4</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Natural Sciences</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Weekly Lesson Plan</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Term 3</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">04/10/2026</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">School: Springfield Primary School</span></div>
+  <div class="eduai-doc-compliance" style="display:block; border-top:1px solid rgba(255,255,255,0.28); padding-top:8px; font-size:11px; font-weight:700; line-height:1.5; color:#ffffff;"><span class="eduai-caps-code" style="font-weight:800; letter-spacing:0.2px;">CAPS Code:IP-SCI-G4-T3-TWC01</span> 🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated</div>
+</section>
+    </div>
+    <code class="css">linear-gradient(180deg, #4338ca 0%, #7c3aed 100%)</code>
+  </section>
+
+  <section class="card">
+    <header class="card-head">
+      <div>
+        <p class="kicker">ASSESSMENT</p>
+        <h3>Crimson → purple</h3>
+        <p class="blurb">Tests, examinations, FATs, investigations, projects, marking runs.</p>
+      </div>
+      <dl class="swatches">
+        <div><dt>Top stop</dt><dd><span class="chip" style="background:#be123c"></span>#be123c · 6.29:1</dd></div>
+        <div><dt>Bottom stop</dt><dd><span class="chip" style="background:#9333ea"></span>#9333ea · 5.38:1</dd></div>
+      </dl>
+    </header>
+    <p class="types"><strong>Content types:</strong> Controlled Test · Examination · Formal Assessment Task (FAT) · Investigation · Project Brief · Case Study · Oral/Speech Task · Practical Task / Experiment · Portfolio Task · Diagnostic Assessment · Grading · OCR Scan</p>
+    <div class="banner-frame" style="--eduai-banner-gradient: linear-gradient(180deg, #be123c 0%, #9333ea 100%);">
+      <section class="eduai-compliance-banner" data-eduai-palette="assessment" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; --eduai-banner-gradient: linear-gradient(180deg, #be123c 0%, #9333ea 100%); background: linear-gradient(180deg, #be123c 0%, #9333ea 100%); background-image: linear-gradient(180deg, #be123c 0%, #9333ea 100%); color: #ffffff; border: 1px solid rgba(255,255,255,0.45); border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+  <h1 class="lesson-title" style="font-family: 'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif; font-size: clamp(19px, 3vw, 27px); font-weight: 700; line-height: 1.18; color: #ffffff; margin: 0 0 8px;">Fractions and Decimals</h1>
+  <div class="lesson-meta" style="display:flex; flex-wrap:wrap; gap:7px; margin:0 0 10px; color:#e2e8f0;"><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Grade 6</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Mathematics</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Controlled Test</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Term 1</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">04/10/2026</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">School: Springfield Primary School</span></div>
+  <div class="eduai-doc-compliance" style="display:block; border-top:1px solid rgba(255,255,255,0.28); padding-top:8px; font-size:11px; font-weight:700; line-height:1.5; color:#ffffff;"><span class="eduai-caps-code" style="font-weight:800; letter-spacing:0.2px;">CAPS Code:IP-MATH-G6-T1-FR01</span> 🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated</div>
+</section>
+    </div>
+    <code class="css">linear-gradient(180deg, #be123c 0%, #9333ea 100%)</code>
+  </section>
+
+  <section class="card">
+    <header class="card-head">
+      <div>
+        <p class="kicker">MEMO</p>
+        <h3>Forest green → teal</h3>
+        <p class="blurb">Memos, rubrics, checklists, model answers — the marking pack.</p>
+      </div>
+      <dl class="swatches">
+        <div><dt>Top stop</dt><dd><span class="chip" style="background:#15803d"></span>#15803d · 5.02:1</dd></div>
+        <div><dt>Bottom stop</dt><dd><span class="chip" style="background:#0e7490"></span>#0e7490 · 5.36:1</dd></div>
+      </dl>
+    </header>
+    <p class="types"><strong>Content types:</strong> Marking Memo · Assessment Rubric · Analytical Rubric · Holistic Rubric · Checklist / Self-Assessment · Memorandum Key</p>
+    <div class="banner-frame" style="--eduai-banner-gradient: linear-gradient(180deg, #15803d 0%, #0e7490 100%);">
+      <section class="eduai-compliance-banner" data-eduai-palette="memo" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; --eduai-banner-gradient: linear-gradient(180deg, #15803d 0%, #0e7490 100%); background: linear-gradient(180deg, #15803d 0%, #0e7490 100%); background-image: linear-gradient(180deg, #15803d 0%, #0e7490 100%); color: #ffffff; border: 1px solid rgba(255,255,255,0.45); border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+  <h1 class="lesson-title" style="font-family: 'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif; font-size: clamp(19px, 3vw, 27px); font-weight: 700; line-height: 1.18; color: #ffffff; margin: 0 0 8px;">Fractions and Decimals — Memo</h1>
+  <div class="lesson-meta" style="display:flex; flex-wrap:wrap; gap:7px; margin:0 0 10px; color:#e2e8f0;"><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Grade 6</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Mathematics</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Marking Memo</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Term 1</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">04/10/2026</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">School: Springfield Primary School</span></div>
+  <div class="eduai-doc-compliance" style="display:block; border-top:1px solid rgba(255,255,255,0.28); padding-top:8px; font-size:11px; font-weight:700; line-height:1.5; color:#ffffff;"><span class="eduai-caps-code" style="font-weight:800; letter-spacing:0.2px;">CAPS Code:IP-MATH-G6-T1-FR01</span> 🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated</div>
+</section>
+    </div>
+    <code class="css">linear-gradient(180deg, #15803d 0%, #0e7490 100%)</code>
+  </section>
+
+  <section class="card">
+    <header class="card-head">
+      <div>
+        <p class="kicker">POSTER</p>
+        <h3>Fuchsia → burnt orange</h3>
+        <p class="blurb">Posters, charts, word walls, diagrams, displays, labels.</p>
+      </div>
+      <dl class="swatches">
+        <div><dt>Top stop</dt><dd><span class="chip" style="background:#c026d3"></span>#c026d3 · 4.71:1</dd></div>
+        <div><dt>Bottom stop</dt><dd><span class="chip" style="background:#c2410c"></span>#c2410c · 5.18:1</dd></div>
+      </dl>
+    </header>
+    <p class="types"><strong>Content types:</strong> Educational Poster · Word Wall · Vocabulary Display · Alphabet Chart · Number Chart / Number Line · Times Tables Chart · Classroom Rules Poster · Topic Anchor Chart · Mind Map / Concept Map · Educational Diagram · Infographic · Process Flow Diagram · Comparison Chart · Classroom Labels / Signs · Book Labels · Book Cover Design · Visual Aid</p>
+    <div class="banner-frame" style="--eduai-banner-gradient: linear-gradient(180deg, #c026d3 0%, #c2410c 100%);">
+      <section class="eduai-compliance-banner" data-eduai-palette="poster" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; --eduai-banner-gradient: linear-gradient(180deg, #c026d3 0%, #c2410c 100%); background: linear-gradient(180deg, #c026d3 0%, #c2410c 100%); background-image: linear-gradient(180deg, #c026d3 0%, #c2410c 100%); color: #ffffff; border: 1px solid rgba(255,255,255,0.45); border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+  <h1 class="lesson-title" style="font-family: 'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif; font-size: clamp(19px, 3vw, 27px); font-weight: 700; line-height: 1.18; color: #ffffff; margin: 0 0 8px;">Save Water — Poster</h1>
+  <div class="lesson-meta" style="display:flex; flex-wrap:wrap; gap:7px; margin:0 0 10px; color:#e2e8f0;"><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Grade 3</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Life Skills</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Educational Poster</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Term 2</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">04/10/2026</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">School: Springfield Primary School</span></div>
+  <div class="eduai-doc-compliance" style="display:block; border-top:1px solid rgba(255,255,255,0.28); padding-top:8px; font-size:11px; font-weight:700; line-height:1.5; color:#ffffff;"><span class="eduai-caps-code" style="font-weight:800; letter-spacing:0.2px;">CAPS Code:FP-LS-G3-T2-SWP01</span> 🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated</div>
+</section>
+    </div>
+    <code class="css">linear-gradient(180deg, #c026d3 0%, #c2410c 100%)</code>
+  </section>
+
+  <section class="card">
+    <header class="card-head">
+      <div>
+        <p class="kicker">CARDS</p>
+        <h3>Teal → royal blue</h3>
+        <p class="blurb">Flashcards, vocabulary cards, formula cards, cut-outs, matching sets.</p>
+      </div>
+      <dl class="swatches">
+        <div><dt>Top stop</dt><dd><span class="chip" style="background:#0f766e"></span>#0f766e · 5.47:1</dd></div>
+        <div><dt>Bottom stop</dt><dd><span class="chip" style="background:#1d4ed8"></span>#1d4ed8 · 6.70:1</dd></div>
+      </dl>
+    </header>
+    <p class="types"><strong>Content types:</strong> Flashcards (Term + Definition) · Vocabulary Cards · Formula Reference Cards · Timeline Cards · Matching Cards · Cut-out Activity Cards</p>
+    <div class="banner-frame" style="--eduai-banner-gradient: linear-gradient(180deg, #0f766e 0%, #1d4ed8 100%);">
+      <section class="eduai-compliance-banner" data-eduai-palette="cards" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; --eduai-banner-gradient: linear-gradient(180deg, #0f766e 0%, #1d4ed8 100%); background: linear-gradient(180deg, #0f766e 0%, #1d4ed8 100%); background-image: linear-gradient(180deg, #0f766e 0%, #1d4ed8 100%); color: #ffffff; border: 1px solid rgba(255,255,255,0.45); border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+  <h1 class="lesson-title" style="font-family: 'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif; font-size: clamp(19px, 3vw, 27px); font-weight: 700; line-height: 1.18; color: #ffffff; margin: 0 0 8px;">Sight Words — Flashcards</h1>
+  <div class="lesson-meta" style="display:flex; flex-wrap:wrap; gap:7px; margin:0 0 10px; color:#e2e8f0;"><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Grade 2</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">English HL</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Flashcards (Term + Definition)</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Term 1</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">04/10/2026</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">School: Springfield Primary School</span></div>
+  <div class="eduai-doc-compliance" style="display:block; border-top:1px solid rgba(255,255,255,0.28); padding-top:8px; font-size:11px; font-weight:700; line-height:1.5; color:#ffffff;"><span class="eduai-caps-code" style="font-weight:800; letter-spacing:0.2px;">CAPS Code:FP-LANG-G2-T1-SWF01</span> 🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated</div>
+</section>
+    </div>
+    <code class="css">linear-gradient(180deg, #0f766e 0%, #1d4ed8 100%)</code>
+  </section>
+
+  <section class="card">
+    <header class="card-head">
+      <div>
+        <p class="kicker">ADMIN</p>
+        <h3>Royal blue → sky</h3>
+        <p class="blurb">Notices, letters, permission slips, registers — school administration.</p>
+      </div>
+      <dl class="swatches">
+        <div><dt>Top stop</dt><dd><span class="chip" style="background:#1d4ed8"></span>#1d4ed8 · 6.70:1</dd></div>
+        <div><dt>Bottom stop</dt><dd><span class="chip" style="background:#0369a1"></span>#0369a1 · 5.93:1</dd></div>
+      </dl>
+    </header>
+    <p class="types"><strong>Content types:</strong> Letter to Parents · General Notice to Parents · Permission Slip · Meeting Invitation · Progress Update Letter · Report Comment Template · General School Notice · Timetable Template · Attendance Register · Subject Improvement Plan · School Calendar Event Notice · Official School Letterhead · Disciplinary Notice · Classroom Rules · Homework Policy Letter · Detention Notice · Notice</p>
+    <div class="banner-frame" style="--eduai-banner-gradient: linear-gradient(180deg, #1d4ed8 0%, #0369a1 100%);">
+      <section class="eduai-compliance-banner" data-eduai-palette="admin" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; --eduai-banner-gradient: linear-gradient(180deg, #1d4ed8 0%, #0369a1 100%); background: linear-gradient(180deg, #1d4ed8 0%, #0369a1 100%); background-image: linear-gradient(180deg, #1d4ed8 0%, #0369a1 100%); color: #ffffff; border: 1px solid rgba(255,255,255,0.45); border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+  <h1 class="lesson-title" style="font-family: 'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif; font-size: clamp(19px, 3vw, 27px); font-weight: 700; line-height: 1.18; color: #ffffff; margin: 0 0 8px;">Parent Evening — Invitation</h1>
+  <div class="lesson-meta" style="display:flex; flex-wrap:wrap; gap:7px; margin:0 0 10px; color:#e2e8f0;"><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Administration</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Letter to Parents</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Term 3</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">04/10/2026</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">School: Springfield Primary School</span></div>
+  <div class="eduai-doc-compliance" style="display:block; border-top:1px solid rgba(255,255,255,0.28); padding-top:8px; font-size:11px; font-weight:700; line-height:1.5; color:#ffffff;"><span class="eduai-caps-code" style="font-weight:800; letter-spacing:0.2px;">CAPS Code:EDU-ADMINI-GX-T3-PEI01</span> 🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated</div>
+</section>
+    </div>
+    <code class="css">linear-gradient(180deg, #1d4ed8 0%, #0369a1 100%)</code>
+  </section>
+
+  <section class="card">
+    <header class="card-head">
+      <div>
+        <p class="kicker">CERTIFICATE</p>
+        <h3>Violet → gold</h3>
+        <p class="blurb">Certificates, awards, stickers, seals and emblems.</p>
+      </div>
+      <dl class="swatches">
+        <div><dt>Top stop</dt><dd><span class="chip" style="background:#6d28d9"></span>#6d28d9 · 7.10:1</dd></div>
+        <div><dt>Bottom stop</dt><dd><span class="chip" style="background:#b45309"></span>#b45309 · 5.02:1</dd></div>
+      </dl>
+    </header>
+    <p class="types"><strong>Content types:</strong> Certificate Template · Award / Sticker Template · Academic Achievement Certificate · Participation Certificate · Custom Seal / Emblem · Achievement Certificate</p>
+    <div class="banner-frame" style="--eduai-banner-gradient: linear-gradient(180deg, #6d28d9 0%, #b45309 100%);">
+      <section class="eduai-compliance-banner" data-eduai-palette="certificate" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; --eduai-banner-gradient: linear-gradient(180deg, #6d28d9 0%, #b45309 100%); background: linear-gradient(180deg, #6d28d9 0%, #b45309 100%); background-image: linear-gradient(180deg, #6d28d9 0%, #b45309 100%); color: #ffffff; border: 1px solid rgba(255,255,255,0.45); border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+  <h1 class="lesson-title" style="font-family: 'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif; font-size: clamp(19px, 3vw, 27px); font-weight: 700; line-height: 1.18; color: #ffffff; margin: 0 0 8px;">Star of the Term</h1>
+  <div class="lesson-meta" style="display:flex; flex-wrap:wrap; gap:7px; margin:0 0 10px; color:#e2e8f0;"><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Grade 3</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Life Skills</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Participation Certificate</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Term 3</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">04/10/2026</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">School: Springfield Primary School</span></div>
+  <div class="eduai-doc-compliance" style="display:block; border-top:1px solid rgba(255,255,255,0.28); padding-top:8px; font-size:11px; font-weight:700; line-height:1.5; color:#ffffff;"><span class="eduai-caps-code" style="font-weight:800; letter-spacing:0.2px;">CAPS Code:FP-LS-G3-T3-SOT01</span> 🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated</div>
+</section>
+    </div>
+    <code class="css">linear-gradient(180deg, #6d28d9 0%, #b45309 100%)</code>
+  </section>
+
+  <section class="card">
+    <header class="card-head">
+      <div>
+        <p class="kicker">INTERVENTION</p>
+        <h3>Deep violet → emerald</h3>
+        <p class="blurb">SIAS support, individualised learning plans, intervention packs.</p>
+      </div>
+      <dl class="swatches">
+        <div><dt>Top stop</dt><dd><span class="chip" style="background:#5b21b6"></span>#5b21b6 · 8.98:1</dd></div>
+        <div><dt>Bottom stop</dt><dd><span class="chip" style="background:#047857"></span>#047857 · 5.48:1</dd></div>
+      </dl>
+    </header>
+    <p class="types"><strong>Content types:</strong> SIAS Individualized Learning Plan · Individual Development Plan · Intervention Pack · Remedial Support</p>
+    <div class="banner-frame" style="--eduai-banner-gradient: linear-gradient(180deg, #5b21b6 0%, #047857 100%);">
+      <section class="eduai-compliance-banner" data-eduai-palette="intervention" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; --eduai-banner-gradient: linear-gradient(180deg, #5b21b6 0%, #047857 100%); background: linear-gradient(180deg, #5b21b6 0%, #047857 100%); background-image: linear-gradient(180deg, #5b21b6 0%, #047857 100%); color: #ffffff; border: 1px solid rgba(255,255,255,0.45); border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+  <h1 class="lesson-title" style="font-family: 'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif; font-size: clamp(19px, 3vw, 27px); font-weight: 700; line-height: 1.18; color: #ffffff; margin: 0 0 8px;">SIAS Support Plan — Thabo</h1>
+  <div class="lesson-meta" style="display:flex; flex-wrap:wrap; gap:7px; margin:0 0 10px; color:#e2e8f0;"><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Grade 4</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Mathematics</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">SIAS Individualized Learning Plan</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Term 2</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">04/10/2026</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">School: Springfield Primary School</span></div>
+  <div class="eduai-doc-compliance" style="display:block; border-top:1px solid rgba(255,255,255,0.28); padding-top:8px; font-size:11px; font-weight:700; line-height:1.5; color:#ffffff;"><span class="eduai-caps-code" style="font-weight:800; letter-spacing:0.2px;">CAPS Code:IP-MATH-G4-T2-SSP01</span> 🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated</div>
+</section>
+    </div>
+    <code class="css">linear-gradient(180deg, #5b21b6 0%, #047857 100%)</code>
+  </section>
+
+  <section class="card">
+    <header class="card-head">
+      <div>
+        <p class="kicker">FOUNDATION</p>
+        <h3>Pink → azure</h3>
+        <p class="blurb">Foundation Phase learning packs and playful Grade R–3 activities.</p>
+      </div>
+      <dl class="swatches">
+        <div><dt>Top stop</dt><dd><span class="chip" style="background:#db2777"></span>#db2777 · 4.60:1</dd></div>
+        <div><dt>Bottom stop</dt><dd><span class="chip" style="background:#2563eb"></span>#2563eb · 5.17:1</dd></div>
+      </dl>
+    </header>
+    <p class="types"><strong>Content types:</strong> Interactive Foundation Learning Pack · Foundation Phase Activity</p>
+    <div class="banner-frame" style="--eduai-banner-gradient: linear-gradient(180deg, #db2777 0%, #2563eb 100%);">
+      <section class="eduai-compliance-banner" data-eduai-palette="foundation" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; --eduai-banner-gradient: linear-gradient(180deg, #db2777 0%, #2563eb 100%); background: linear-gradient(180deg, #db2777 0%, #2563eb 100%); background-image: linear-gradient(180deg, #db2777 0%, #2563eb 100%); color: #ffffff; border: 1px solid rgba(255,255,255,0.45); border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+  <h1 class="lesson-title" style="font-family: 'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif; font-size: clamp(19px, 3vw, 27px); font-weight: 700; line-height: 1.18; color: #ffffff; margin: 0 0 8px;">Grade R — Numbers 1–10</h1>
+  <div class="lesson-meta" style="display:flex; flex-wrap:wrap; gap:7px; margin:0 0 10px; color:#e2e8f0;"><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Grade R</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Mathematics</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Interactive Foundation Learning Pack</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Term 1</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">04/10/2026</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">School: Springfield Primary School</span></div>
+  <div class="eduai-doc-compliance" style="display:block; border-top:1px solid rgba(255,255,255,0.28); padding-top:8px; font-size:11px; font-weight:700; line-height:1.5; color:#ffffff;"><span class="eduai-caps-code" style="font-weight:800; letter-spacing:0.2px;">CAPS Code:FP-MATH-GR-T1-NUM01</span> 🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated</div>
+</section>
+    </div>
+    <code class="css">linear-gradient(180deg, #db2777 0%, #2563eb 100%)</code>
+  </section>
+
+  <section class="card">
+    <header class="card-head">
+      <div>
+        <p class="kicker">BRAND (fallback)</p>
+        <h3>Brand navy → azure</h3>
+        <p class="blurb">Neutral fallback when the content type is unknown.</p>
+      </div>
+      <dl class="swatches">
+        <div><dt>Top stop</dt><dd><span class="chip" style="background:#1e3a5f"></span>#1e3a5f · 11.50:1</dd></div>
+        <div><dt>Bottom stop</dt><dd><span class="chip" style="background:#2563eb"></span>#2563eb · 5.17:1</dd></div>
+      </dl>
+    </header>
+    <p class="types"><strong>Content types:</strong> Educational Resource · Untitled Generation</p>
+    <div class="banner-frame" style="--eduai-banner-gradient: linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%);">
+      <section class="eduai-compliance-banner" data-eduai-palette="brand" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; --eduai-banner-gradient: linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%); background: linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%); background-image: linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%); color: #ffffff; border: 1px solid rgba(255,255,255,0.45); border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+  <h1 class="lesson-title" style="font-family: 'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif; font-size: clamp(19px, 3vw, 27px); font-weight: 700; line-height: 1.18; color: #ffffff; margin: 0 0 8px;">Educational Resource</h1>
+  <div class="lesson-meta" style="display:flex; flex-wrap:wrap; gap:7px; margin:0 0 10px; color:#e2e8f0;"><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">General</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Untitled Generation</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">Term 1</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">04/10/2026</span><span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">School: Springfield Primary School</span></div>
+  <div class="eduai-doc-compliance" style="display:block; border-top:1px solid rgba(255,255,255,0.28); padding-top:8px; font-size:11px; font-weight:700; line-height:1.5; color:#ffffff;"><span class="eduai-caps-code" style="font-weight:800; letter-spacing:0.2px;">CAPS Code:EDU-GENERA-GX-T1-ER01</span> 🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated</div>
+</section>
+    </div>
+    <code class="css">linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%)</code>
+  </section>
+    <section class="card">
+      <h2>Every Content Creator content type → palette (73 types)</h2>
+      <table>
+        <thead><tr><th>Content type</th><th>Palette</th><th>Colours</th></tr></thead>
+        <tbody><tr><td>Lesson Plan</td><td><span class="chip" style="background:#4338ca"></span>lesson</td><td>Indigo → violet</td></tr>
+<tr><td>Daily Lesson Notes</td><td><span class="chip" style="background:#4338ca"></span>lesson</td><td>Indigo → violet</td></tr>
+<tr><td>Weekly Lesson Plan</td><td><span class="chip" style="background:#4338ca"></span>lesson</td><td>Indigo → violet</td></tr>
+<tr><td>Unit Plan</td><td><span class="chip" style="background:#4338ca"></span>lesson</td><td>Indigo → violet</td></tr>
+<tr><td>Learning Activity</td><td><span class="chip" style="background:#c2410c"></span>worksheet</td><td>Burnt orange → magenta</td></tr>
+<tr><td>Study Guide / Learning Notes</td><td><span class="chip" style="background:#4338ca"></span>lesson</td><td>Indigo → violet</td></tr>
+<tr><td>Revision Pack</td><td><span class="chip" style="background:#4338ca"></span>lesson</td><td>Indigo → violet</td></tr>
+<tr><td>Worksheet</td><td><span class="chip" style="background:#c2410c"></span>worksheet</td><td>Burnt orange → magenta</td></tr>
+<tr><td>Homework Task</td><td><span class="chip" style="background:#c2410c"></span>worksheet</td><td>Burnt orange → magenta</td></tr>
+<tr><td>Classroom Exercise</td><td><span class="chip" style="background:#c2410c"></span>worksheet</td><td>Burnt orange → magenta</td></tr>
+<tr><td>Group Activity</td><td><span class="chip" style="background:#c2410c"></span>worksheet</td><td>Burnt orange → magenta</td></tr>
+<tr><td>Reading Comprehension</td><td><span class="chip" style="background:#c2410c"></span>worksheet</td><td>Burnt orange → magenta</td></tr>
+<tr><td>Writing Task</td><td><span class="chip" style="background:#c2410c"></span>worksheet</td><td>Burnt orange → magenta</td></tr>
+<tr><td>Research Task</td><td><span class="chip" style="background:#c2410c"></span>worksheet</td><td>Burnt orange → magenta</td></tr>
+<tr><td>Controlled Test</td><td><span class="chip" style="background:#be123c"></span>assessment</td><td>Crimson → purple</td></tr>
+<tr><td>Examination</td><td><span class="chip" style="background:#be123c"></span>assessment</td><td>Crimson → purple</td></tr>
+<tr><td>Formal Assessment Task (FAT)</td><td><span class="chip" style="background:#be123c"></span>assessment</td><td>Crimson → purple</td></tr>
+<tr><td>Investigation</td><td><span class="chip" style="background:#be123c"></span>assessment</td><td>Crimson → purple</td></tr>
+<tr><td>Project Brief</td><td><span class="chip" style="background:#be123c"></span>assessment</td><td>Crimson → purple</td></tr>
+<tr><td>Case Study</td><td><span class="chip" style="background:#be123c"></span>assessment</td><td>Crimson → purple</td></tr>
+<tr><td>Oral/Speech Task</td><td><span class="chip" style="background:#be123c"></span>assessment</td><td>Crimson → purple</td></tr>
+<tr><td>Practical Task / Experiment</td><td><span class="chip" style="background:#be123c"></span>assessment</td><td>Crimson → purple</td></tr>
+<tr><td>Portfolio Task</td><td><span class="chip" style="background:#be123c"></span>assessment</td><td>Crimson → purple</td></tr>
+<tr><td>Diagnostic Assessment</td><td><span class="chip" style="background:#be123c"></span>assessment</td><td>Crimson → purple</td></tr>
+<tr><td>Marking Memo</td><td><span class="chip" style="background:#15803d"></span>memo</td><td>Forest green → teal</td></tr>
+<tr><td>Assessment Rubric</td><td><span class="chip" style="background:#15803d"></span>memo</td><td>Forest green → teal</td></tr>
+<tr><td>Analytical Rubric</td><td><span class="chip" style="background:#15803d"></span>memo</td><td>Forest green → teal</td></tr>
+<tr><td>Holistic Rubric</td><td><span class="chip" style="background:#15803d"></span>memo</td><td>Forest green → teal</td></tr>
+<tr><td>Checklist / Self-Assessment</td><td><span class="chip" style="background:#15803d"></span>memo</td><td>Forest green → teal</td></tr>
+<tr><td>Educational Poster</td><td><span class="chip" style="background:#c026d3"></span>poster</td><td>Fuchsia → burnt orange</td></tr>
+<tr><td>Word Wall</td><td><span class="chip" style="background:#c026d3"></span>poster</td><td>Fuchsia → burnt orange</td></tr>
+<tr><td>Vocabulary Display</td><td><span class="chip" style="background:#c026d3"></span>poster</td><td>Fuchsia → burnt orange</td></tr>
+<tr><td>Alphabet Chart</td><td><span class="chip" style="background:#c026d3"></span>poster</td><td>Fuchsia → burnt orange</td></tr>
+<tr><td>Number Chart / Number Line</td><td><span class="chip" style="background:#c026d3"></span>poster</td><td>Fuchsia → burnt orange</td></tr>
+<tr><td>Times Tables Chart</td><td><span class="chip" style="background:#c026d3"></span>poster</td><td>Fuchsia → burnt orange</td></tr>
+<tr><td>Classroom Rules Poster</td><td><span class="chip" style="background:#c026d3"></span>poster</td><td>Fuchsia → burnt orange</td></tr>
+<tr><td>Topic Anchor Chart</td><td><span class="chip" style="background:#c026d3"></span>poster</td><td>Fuchsia → burnt orange</td></tr>
+<tr><td>Flashcards (Term + Definition)</td><td><span class="chip" style="background:#0f766e"></span>cards</td><td>Teal → royal blue</td></tr>
+<tr><td>Vocabulary Cards</td><td><span class="chip" style="background:#0f766e"></span>cards</td><td>Teal → royal blue</td></tr>
+<tr><td>Formula Reference Cards</td><td><span class="chip" style="background:#0f766e"></span>cards</td><td>Teal → royal blue</td></tr>
+<tr><td>Timeline Cards</td><td><span class="chip" style="background:#0f766e"></span>cards</td><td>Teal → royal blue</td></tr>
+<tr><td>Matching Cards</td><td><span class="chip" style="background:#0f766e"></span>cards</td><td>Teal → royal blue</td></tr>
+<tr><td>Cut-out Activity Cards</td><td><span class="chip" style="background:#0f766e"></span>cards</td><td>Teal → royal blue</td></tr>
+<tr><td>Mind Map / Concept Map</td><td><span class="chip" style="background:#c026d3"></span>poster</td><td>Fuchsia → burnt orange</td></tr>
+<tr><td>Educational Diagram</td><td><span class="chip" style="background:#c026d3"></span>poster</td><td>Fuchsia → burnt orange</td></tr>
+<tr><td>Infographic</td><td><span class="chip" style="background:#c026d3"></span>poster</td><td>Fuchsia → burnt orange</td></tr>
+<tr><td>Process Flow Diagram</td><td><span class="chip" style="background:#c026d3"></span>poster</td><td>Fuchsia → burnt orange</td></tr>
+<tr><td>Comparison Chart</td><td><span class="chip" style="background:#c026d3"></span>poster</td><td>Fuchsia → burnt orange</td></tr>
+<tr><td>Classroom Labels / Signs</td><td><span class="chip" style="background:#c026d3"></span>poster</td><td>Fuchsia → burnt orange</td></tr>
+<tr><td>Book Labels</td><td><span class="chip" style="background:#c026d3"></span>poster</td><td>Fuchsia → burnt orange</td></tr>
+<tr><td>Book Cover Design</td><td><span class="chip" style="background:#c026d3"></span>poster</td><td>Fuchsia → burnt orange</td></tr>
+<tr><td>Certificate Template</td><td><span class="chip" style="background:#6d28d9"></span>certificate</td><td>Violet → gold</td></tr>
+<tr><td>Award / Sticker Template</td><td><span class="chip" style="background:#6d28d9"></span>certificate</td><td>Violet → gold</td></tr>
+<tr><td>Letter to Parents</td><td><span class="chip" style="background:#1d4ed8"></span>admin</td><td>Royal blue → sky</td></tr>
+<tr><td>General Notice to Parents</td><td><span class="chip" style="background:#1d4ed8"></span>admin</td><td>Royal blue → sky</td></tr>
+<tr><td>Permission Slip</td><td><span class="chip" style="background:#1d4ed8"></span>admin</td><td>Royal blue → sky</td></tr>
+<tr><td>Meeting Invitation</td><td><span class="chip" style="background:#1d4ed8"></span>admin</td><td>Royal blue → sky</td></tr>
+<tr><td>Progress Update Letter</td><td><span class="chip" style="background:#1d4ed8"></span>admin</td><td>Royal blue → sky</td></tr>
+<tr><td>Report Comment Template</td><td><span class="chip" style="background:#1d4ed8"></span>admin</td><td>Royal blue → sky</td></tr>
+<tr><td>General School Notice</td><td><span class="chip" style="background:#1d4ed8"></span>admin</td><td>Royal blue → sky</td></tr>
+<tr><td>Timetable Template</td><td><span class="chip" style="background:#1d4ed8"></span>admin</td><td>Royal blue → sky</td></tr>
+<tr><td>Attendance Register</td><td><span class="chip" style="background:#1d4ed8"></span>admin</td><td>Royal blue → sky</td></tr>
+<tr><td>Subject Improvement Plan</td><td><span class="chip" style="background:#1d4ed8"></span>admin</td><td>Royal blue → sky</td></tr>
+<tr><td>School Calendar Event Notice</td><td><span class="chip" style="background:#1d4ed8"></span>admin</td><td>Royal blue → sky</td></tr>
+<tr><td>Academic Achievement Certificate</td><td><span class="chip" style="background:#6d28d9"></span>certificate</td><td>Violet → gold</td></tr>
+<tr><td>Participation Certificate</td><td><span class="chip" style="background:#6d28d9"></span>certificate</td><td>Violet → gold</td></tr>
+<tr><td>Custom Seal / Emblem</td><td><span class="chip" style="background:#6d28d9"></span>certificate</td><td>Violet → gold</td></tr>
+<tr><td>Official School Letterhead</td><td><span class="chip" style="background:#1d4ed8"></span>admin</td><td>Royal blue → sky</td></tr>
+<tr><td>Disciplinary Notice</td><td><span class="chip" style="background:#1d4ed8"></span>admin</td><td>Royal blue → sky</td></tr>
+<tr><td>Classroom Rules</td><td><span class="chip" style="background:#1d4ed8"></span>admin</td><td>Royal blue → sky</td></tr>
+<tr><td>Homework Policy Letter</td><td><span class="chip" style="background:#1d4ed8"></span>admin</td><td>Royal blue → sky</td></tr>
+<tr><td>Detention Notice</td><td><span class="chip" style="background:#1d4ed8"></span>admin</td><td>Royal blue → sky</td></tr>
+<tr><td>Achievement Certificate</td><td><span class="chip" style="background:#6d28d9"></span>certificate</td><td>Violet → gold</td></tr></tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

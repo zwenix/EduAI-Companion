@@ -12,7 +12,7 @@ import jsPDF from 'jspdf';
 import html2pdf from 'html2pdf.js';
 import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
 import { cleanupExportArtifacts } from '../lib/printUtils';
-import { buildCAPSCode, EDUAI_BANNER_GRADIENT, EDUAI_COMPLIANCE_LABELS, EDUAI_TEMPLATE_FOOTER_LINE, wrapWithTemplate } from '../lib/contentTemplate';
+import { bannerGradientFor, buildCAPSCode, EDUAI_COMPLIANCE_LABELS, EDUAI_TEMPLATE_FOOTER_LINE, wrapWithTemplate } from '../lib/contentTemplate';
 import {
   PortfolioRecord,
   PortfolioItemType,
@@ -620,7 +620,7 @@ export default function StudentPortfolio({
 
       const journeyBody = `
         <div style="border: 2px solid rgba(6, 182, 212, 0.15); border-radius: 24px; padding: 35px; background-color: #0b1329; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);">
-          <div class="content-banner" style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid rgba(255,255,255,0.08); padding: 24px; margin-bottom: 28px; background: ${EDUAI_BANNER_GRADIENT}; border-radius: 16px;">
+          <div class="content-banner" style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid rgba(255,255,255,0.08); padding: 24px; margin-bottom: 28px; background: ${bannerGradientFor('Portfolio Task')}; border-radius: 16px;">
             <div>
               <p style="font-size: 10px; color: #22d3ee; text-transform: uppercase; letter-spacing: 2.5px; font-weight: 800; margin: 0 0 6px 0;">Learner Continuous CAPS Assessment Portfolio</p>
               <h1 style="font-size: 28px; font-weight: 900; letter-spacing: -0.5px; color: #ffffff; margin: 0 0 6px 0;">LEARNING JOURNEY DOSSIER</h1>

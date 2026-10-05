@@ -273,7 +273,7 @@ You MUST ALSO generate:
 3. FULL TEACHING MATERIALS: If generating a lesson plan, include all 5 detailed teaching phases, scripts, and accommodations. If generating a worksheet, test, or memo, write out every single question and every single answer without short-cutting.
 4. METADATA & CONTEXT: Add explicit CAPS-aligned metadata such as learning objectives, duration, and cognitive levels. Incorporate South African contexts, such as sorting local animals, indigenous fruits, or typical school items to align with cultural relevance requirements.
 5. OPTIMIZED FOR SPEED: Keep the HTML clean, well-structured, and concise without excessive repetitive boilerplate text so that generation completes rapidly and within token boundaries.
-6. SA COMPLIANCE VISUALS: Include an SA flag stripe (6px gradient: black, gold, green, white, red, blue) where relevant, school header with DBE branding, differentiation boxes (Core/Extended/Simplified), SIAS support boxes, NPA 7-point table and Bloom's tags. Do not emit compliance labels or a footer; the host adds one compliance banner and the exact 2026 footer.
+6. SA COMPLIANCE VISUALS: Start straight into content cards. Include differentiation boxes (Core/Extended/Simplified), SIAS support boxes, an NPA 7-point table and Bloom's tags. Do NOT emit a school/DBE header band, a CAPS reference bar, a formal assessment header, a meta/name-date row, an SA flag-stripe header or any other band at the top of the document — the host's ONE two-colour vertical gradient banner already carries the school context, the grade/subject/term/type/date labels and the CAPS reference. Do not emit compliance labels or a footer either; the host adds one compliance banner and the exact 2026 footer.
 7. QWEN IMAGE INTEGRATION: All [Illustration: ...] placeholders will be replaced by Qwen-Image (NVIDIA NIM qwen/qwen-image) with SA context enhancement — ensure prompts are ultra-detailed, SA-specific, no text overlays, 300 DPI, Disney 3D style.
 `;
 
@@ -311,7 +311,7 @@ SA Requirements:
 - SIAS: \${siasSupportLevel} accommodations
 - POPIA: Placeholder names only; the host owns the compliance banner and exact footer
 - SA Context: Rand, SA places, SA names, IKS, 2026 year
-- Visuals: ${EDUCATIONAL_IMAGE_STYLE}, SA flag stripe, the host compliance banner (do not duplicate it)
+- Visuals: ${EDUCATIONAL_IMAGE_STYLE} placed inside the content — never a top-of-page header band (the host banner owns the document header and labels)
 
 Content must be complete, print-ready, Tailwind CSS, high contrast.
 `;
@@ -340,12 +340,12 @@ For EACH week (1-10):
 - Week number | CAPS topic | Content/concepts | Activities | Resources | Assessment (informal/formal)
 - Formal tasks: specify SBA number, type, topic, marks
 Include: Formal Assessment Programme, SIAS notes, cross-curricular links, IKS.
-Generate 1 image for ATP header — DBE branded.
+Generate 1 image for a small DBE-branded emblem used INSIDE the body (the host banner owns the document header).
 `;
       case 'admin_document':
         return base + `
 ADMIN DOCUMENT STRUCTURE (SA Official):
-- Official header with SA flag stripe, school info, EMIS, district, province (image prompt)
+- Start with the REF number: the official header (flag stripe, school info, EMIS, district, province) is drawn by the host's ONE banner, so never repeat it
 - REF number, Date DD Month YYYY (2026)
 - Recipient, Subject, Salutation
 - Body with headings, action items, contact placeholders
@@ -353,7 +353,7 @@ ADMIN DOCUMENT STRUCTURE (SA Official):
 - Signatures: Class Teacher, Principal, SGB placeholders
 - Distribution list
 - Privacy-safe placeholders; do not generate a footer because the host inserts the exact canonical 2026 footer
-Generate 1 image for official header — seal, coat of arms style.
+Generate 1 image for a small official seal used INSIDE the body (the host banner owns the document header).
 `;
       default:
         return base;
@@ -364,9 +364,9 @@ Generate 1 image for official header — seal, coat of arms style.
     const gradeRange = this.getGradeRange(phase);
     return `You are EduAI Pro, the world's most sophisticated educational content designer for South African schools (${gradeRange}, ${phase}). Generate high-quality CAPS-aligned lesson plans/worksheets in raw HTML/Tailwind inside JSON values. No markdown.
 Visual Hierarchy:
-- HERO: 25-30% top space for illustration placeholder.
-- BANNER: Gradient banner with subject color coding (Math: #2563eb->#60a5fa blue, Languages: #7c3aed->#a78bfa purple, Life Skills: #f97316->#fbbf24 orange, Science: #059669->#34d399 green) + SA flag stripe (6px black/gold/green/white/red/blue).
-- METADATA/BADGE: Circular Grade badge. Underlined Name, Date, and Score cards. Host compliance banner: do not emit CAPS/NPA/POPIA/SIAS/WP6 stamps or labels.
+- HERO: 25-30% top space for illustration placeholder (inside the content — never wrapped in a band or header).
+- NO BANNER OR HEADER BAND: the host's ONE two-colour vertical gradient banner already carries the title, the labels and the compliance data. Do not build your own banner, school header, CAPS bar, flag-stripe header or meta row.
+- METADATA/BADGE: Underlined Name, Date and Score cards inside the content. Host compliance banner: do not emit CAPS/NPA/POPIA/SIAS/WP6 stamps or labels.
 - QUESTIONS: Bold questions, numbered circle headers, Bloom's tags (Remembering, Understanding, Applying, Analyzing, Evaluating, Creating), marks visible. Pill-shaped answer containers matching subject color.
 - DIFFERENTIATION: Core (green #007749), Extended (blue #002395), Simplified (gold #FFB81C) boxes with WP6 strategies.
 - SIAS: Yellow #FFB81C boxes with teacher notes, accommodations, referral guidance.

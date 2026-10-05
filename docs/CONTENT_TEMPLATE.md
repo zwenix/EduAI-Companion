@@ -17,9 +17,11 @@ Two static demos are rendered byte-for-byte by the production
 | --- | --- |
 | [`docs/content-template-preview.html`](./content-template-preview.html) | a finished sample document |
 | [`docs/content-normalisation-demo.html`](./content-normalisation-demo.html) | messy model output (its own banner + labels ×3, solid bands, its own footer) next to the normalised result |
+| [`docs/sa-content-layout-preview.html`](./sa-content-layout-preview.html) | the SA structured pipeline document (school letterhead, CAPS/ATP reference, marks, differentiation) |
+| [`docs/banner-palettes-preview.html`](./banner-palettes-preview.html) | the ONE banner in **every content-type palette**, with contrast figures and the full content-type → palette table |
 
-Regenerate both with `npm run render:template-demo`, then prove the contract
-still holds with `npm run verify:template` (110 assertions — see
+Regenerate all four with `npm run render:template-demo`, then prove the contract
+still holds with `npm run verify:template` (171 assertions — see
 [Verification](#verification)).
 
 ---
@@ -28,8 +30,8 @@ still holds with `npm run verify:template` (110 assertions — see
 
 | # | Guarantee | Where it is enforced |
 | --- | --- | --- |
-| 1 | **ONE BANNER** — the document title, every metadata pill (grade, subject, content type, term, date, school, teacher, learner) and the CAPS code + compliance labels live in **one** band at the top of the document, exactly once | `buildTemplateComplianceBannerHTML()` renders the only copy; `stripLeadingDuplicateBanner()` + `stripDuplicateTitleHeading()` delete every model-authored banner/title that repeats it first |
-| 2 | **GRADIENT** — no top banner is ever one solid colour | `EDUAI_BANNER_GRADIENT` (`linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%)`) on the banner, `EDUAI_HEADER_GRADIENT` (very light blue @ 70% transparency) on the compact header, `applyBannerGradients()` rewrites model banners inline |
+| 1 | **ONE BANNER** — the document title, every metadata pill (grade, subject, content type, term, date, school, teacher, learner) and the CAPS code + compliance labels live in **one** band at the top of the document, exactly once | `buildTemplateComplianceBannerHTML()` renders the only copy; `collapseLeadingChrome()` absorbs **every** band at the top of the document (school header, CAPS reference bar, formal assessment header, meta strip, duplicate banner, logo strip) into that banner, then `stripLeadingDuplicateBanner()` + `stripDuplicateTitleHeading()` delete anything banner-shaped that is left |
+| 2 | **GRADIENT** — no top banner is ever one solid colour | the banner is a **two-colour vertical gradient chosen for the content type** (`bannerPalettes.ts`: worksheet = orange → magenta, lesson plan = indigo → violet, assessment = crimson → purple, memo = green → teal, poster = fuchsia → burnt orange, cards = teal → royal blue, admin = royal blue → sky, certificate = violet → gold, SIAS = deep violet → emerald, Foundation Phase = pink → azure; navy → azure only as the unknown-type fallback), `EDUAI_HEADER_GRADIENT` (very light blue @ 70% transparency) on the compact header, `applyBannerGradients()` repaints model banners in the document palette |
 | 3 | **FOOTER** — one canonical footer line, word for word | `EDUAI_TEMPLATE_FOOTER_LINE`, rendered by `buildTemplateFooterHTML()` after every model footer is removed |
 
 ### 1 · The single document banner (everything, once)
@@ -52,10 +54,18 @@ One `<section class="eduai-compliance-banner">` per document, two-colour
 survives iframe previews, print, html2canvas rasterisation and downloads.
 
 - **Nothing banner-ish may precede it.** The only thing above the one banner is
-  the brand header (`<header class="site-header">`). `stripLeadingDuplicateBanner()`
-  removes any leading `<header>` / banner / hero / title-block the model emitted,
-  and `stripDuplicateTitleHeading()` removes a second `<h1…lesson-title…>` that
-  repeats the title.
+  the brand header (`<header class="site-header">`) and, in the SA pipeline, the
+  decorative flag stripe. `collapseLeadingChrome()` walks the leading run of
+  elements and absorbs every band the model opened the document with — a school
+  header / letterhead, a CAPS reference bar, a "formal assessment header", a
+  subject-grade-term-date-marks strip, a logo strip, a hero band or a second
+  banner (even one nested inside a `.poster-container` wrapper) — harvesting the
+  values they displayed (grade, subject, term, type, date, marks, duration,
+  school, teacher, learner, CAPS code/reference, ATP week) into the banner's
+  metadata before deleting the bands. `stripLeadingDuplicateBanner()` and
+  `stripDuplicateTitleHeading()` then remove anything banner-shaped that is left
+  and any second `<h1…lesson-title…>` repeating the title. Long paragraphs, real
+  lists/tables, content illustrations and section headings are never touched.
 - **Pills are deduplicated and ordered**: grade → subject → content type → term
   → date → school → teacher → learner → caller extras
   (`buildBannerPills()`). Values are title-cased only when fully lowercase
@@ -85,19 +95,50 @@ Duplicates cannot survive, whatever the model emits:
 | Band | Treatment |
 | --- | --- |
 | Page header (chrome) | `EDUAI_HEADER_GRADIENT` — **very light blue at 70% transparency**: `rgba(219,234,254,0.30)` → `rgba(191,219,254,0.30)`, downward |
-| Document banner | `EDUAI_BANNER_GRADIENT` — `linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%)` |
-| Any model-authored top banner | the same gradient, written **inline with `!important`** by `applyBannerGradients()` |
+| Document banner | the **content-type palette** from `src/lib/bannerPalettes.ts` — always `linear-gradient(180deg, <from> 0%, <to> 100%)`, never a solid fill |
+| Any model-authored top banner | the document's own palette gradient, written **inline with `!important`** by `applyBannerGradients(html, gradient)` |
 
-`applyBannerGradients()` targets `<header>` plus anything classed/id'd
-`banner`, `hero`, `masthead`, `title-block`, `doc-title`, `page-title`,
-`cover-head` or `top-bar`; it drops the model's `background`,
-`background-color`/`-image` and `color` declarations and substitutes the
-gradient plus white text and `print-color-adjust: exact`. Inline + `!important`
-beats Tailwind utilities (`bg-emerald-700`) and model CSS in the browser, in
-iframe previews, in html2canvas rasterisation and in Chromium PDF.
-`EDUAI_LIGHT_CSS`, the SA pipeline's `SA_BASE_CSS` and the Foundation Phase
-pack's CSS carry the same gradient as a safety net, and both host pipelines
-also write it **inline** on their banner.
+#### Banner palettes (bright, dynamic, one per content family)
+
+| Palette | Colours (top → bottom) | Used for |
+| --- | --- | --- |
+| `worksheet` | `#c2410c` → `#be185d` burnt orange → magenta | worksheets, homework, class exercises, written tasks |
+| `lesson` | `#4338ca` → `#7c3aed` indigo → violet | lesson plans, daily/weekly notes, study guides, packs |
+| `assessment` | `#be123c` → `#9333ea` crimson → purple | tests, examinations, FATs, investigations, projects |
+| `memo` | `#15803d` → `#0e7490` green → teal | marking memos, rubrics, checklists, model answers |
+| `poster` | `#c026d3` → `#c2410c` fuchsia → burnt orange | posters, charts, word walls, diagrams, displays, labels |
+| `cards` | `#0f766e` → `#1d4ed8` teal → royal blue | flashcards, vocabulary/formula/matching/cut-out cards |
+| `admin` | `#1d4ed8` → `#0369a1` royal blue → sky | notices, letters, permission slips, registers, policies |
+| `certificate` | `#6d28d9` → `#b45309` violet → gold | certificates, awards, stickers, seals, emblems |
+| `intervention` | `#5b21b6` → `#047857` deep violet → emerald | SIAS support, individualised learning plans, remediation |
+| `foundation` | `#db2777` → `#2563eb` pink → azure | Foundation Phase packs and playful Grade R–3 activities |
+| `brand` (fallback) | `#1e3a5f` → `#2563eb` navy → azure | only when the content type cannot be recognised |
+
+`bannerPaletteFor(contentType, explicitId?)` resolves the palette from the
+content type with first-match-wins rules (certificates before admin letters,
+memos/rubrics before assessments, posters before admin, Foundation Phase packs
+before generic worksheets); an explicit `meta.palette` id wins over the rules.
+Every one of the 70+ content types in the Content Creator taxonomy
+(`src/lib/contentTypes.ts`) resolves to a named palette — asserted in
+`tests/content-template.test.ts` and `scripts/verify-content-template.ts`.
+Both gradient stops are checked to keep white banner text legible
+(WCAG contrast ≥ 4.5:1 — `contrastWithWhite()`).
+
+`applyBannerGradients(html, gradient)` targets `<header>` plus anything
+classed/id'd `banner`, `hero`, `masthead`, `title-block`, `doc-title`,
+`page-title`, `cover-head`, `top-bar`, `letterhead`, `school-header`,
+`caps-bar`, …; it drops the model's `background`, `background-color`/`-image`
+and `color` declarations and substitutes the **document's palette gradient**
+plus white text and `print-color-adjust: exact`. Inline + `!important` beats
+Tailwind utilities (`bg-emerald-700`) and model CSS in the browser, in iframe
+previews, in html2canvas rasterisation and in Chromium PDF. The wrapper
+publishes the palette as the scoped custom property
+`--eduai-banner-gradient` (on `.eduai-light-scope` in the LIGHT template, on
+`<body>` in the SA pipeline), so `EDUAI_LIGHT_CSS`, `SA_BASE_CSS` and the
+Foundation Phase pack's CSS repaint any stray model band in the same colours as
+a safety net; the host banners also write the gradient **inline**.
+DOCX has no CSS gradients, so Word's single banner table is shaded with the
+palette's two stops (top row `from`, bottom row `to`).
 
 ### 3 · The canonical footer
 
@@ -123,7 +164,7 @@ retyping it.
 ├──────────────────────────────────────────────────────────────────┤
 │  WHITE PAGE (max 800px, centred) over a faded watermark          │
 │   ┌─ card (white, 16px radius, soft navy shadow) ─────────────┐  │
-│   │  ▓ THE ONE BANNER ▓  ← navy → blue, 180deg, never flat    │  │
+│   │  ▓ THE ONE BANNER ▓  ← palette per content type, 180deg  │  │
 │   │     Lesson title (Fredoka, white)                         │  │
 │   │     (Grade 5) (Mathematics) (Worksheet) (Term 2) (date)   │  │
 │   │     (School: …) (Teacher: …) (Learner: …)                 │  │
@@ -196,16 +237,18 @@ bands and the current footer instead of keeping stale ones.
 
 | Surface | File | How |
 | --- | --- | --- |
-| **Single source of truth** | `src/lib/contentTemplate.ts` | `EDUAI_LIGHT_CSS`, `EDUAI_BANNER_GRADIENT`, `EDUAI_HEADER_GRADIENT`, `EDUAI_HEADER_TINT`, `EDUAI_COMPLIANCE_LABELS`, `EDUAI_TEMPLATE_FOOTER_LINE`, `buildTemplate{Style,Header,Footer,Watermark,Banner,ComplianceBanner,TitleBlock}HTML`, `stripTemplateChrome`, `stripGeneratedComplianceMarkup`, `stripLeadingDuplicateBanner`, `stripDuplicateTitleHeading`, `applyBannerGradients`, `harvestMetaFromChrome`, `isCurrentTemplateOutput`, `wrapWithTemplate`, `metaFromPrintOptions` |
+| **Single source of truth** | `src/lib/contentTemplate.ts` | `EDUAI_LIGHT_CSS`, `EDUAI_BANNER_GRADIENT` (brand fallback), `EDUAI_HEADER_GRADIENT`, `EDUAI_HEADER_TINT`, `EDUAI_COMPLIANCE_LABELS`, `EDUAI_TEMPLATE_FOOTER_LINE`, `buildTemplate{Style,Header,Footer,Watermark,Banner,ComplianceBanner,TitleBlock}HTML`, `stripTemplateChrome`, `stripGeneratedComplianceMarkup`, `collapseLeadingChrome`, `mergeMeta`, `stripLeadingDuplicateBanner`, `stripDuplicateTitleHeading`, `applyBannerGradients`, `harvestMetaFromChrome`, `isCurrentTemplateOutput`, `wrapWithTemplate`, `metaFromPrintOptions` |
+| **Banner palettes** | `src/lib/bannerPalettes.ts` | `BANNER_PALETTES`, `BANNER_PALETTE_IDS`, `bannerPaletteFor`, `bannerGradientFor`, `buildBannerGradient`, `isBannerGradient`, `isKnownBannerGradient`, `contrastWithWhite` |
+| **Content-type taxonomy** | `src/lib/contentTypes.ts` | `TEACHING_CATEGORIES`, `VISUAL_TYPES`, `ADMIN_TYPES` — every type resolves to a named palette |
 | **On-screen generation preview** (iframe) | `src/components/ContentCreator.tsx` (`HtmlPreviewFrame`) | full LIGHT document shell; content always wrapped — even when no metadata was supplied — so the light-blue header, the one banner and the footer are never missing |
 | **Print / PDF / HTML exports** | `src/lib/printUtils.ts` | `wrapWithBrandedTemplate` used by `printContent`, `downloadAsPDF`, `downloadAsHTML`; neutral shells (LIGHT owns all spacing) + `@page 15mm` |
 | **Print preview modal (paper view)** | `src/components/PrintPreviewModal.tsx` | renders the exact `wrapWithTemplate()` output — WYSIWYG with exports |
-| **Posters** | `src/components/PosterPreview.tsx` | one host banner painted with `EDUAI_BANNER_GRADIENT`, exact footer line |
-| **SA structured document pipeline** | `src/lib/templates/sa-html-templates.ts` | `buildFullHTML` opens with the LIGHT header and the one banner (school letterhead, phase/duration/marks and CAPS/ATP folded into its pills/reference line) and closes with the LIGHT footer; `SA_BASE_CSS` forces the gradient `!important` on generated banners |
-| **Foundation Phase printable pack** | `src/lib/templates/foundation/render.ts` → `public/templates/foundation-phase/*.html` | `.fp-banner` is the single banner, painted with the gradient both in CSS **and inline**; rebuild with `npm run build:fp-templates` |
+| **Posters** | `src/components/PosterPreview.tsx` | one host banner painted with the `poster` palette gradient, exact footer line |
+| **SA structured document pipeline** | `src/lib/templates/sa-html-templates.ts` | `buildFullHTML` opens with the LIGHT header and the one banner (school letterhead, phase/duration/marks and CAPS/ATP folded into its pills/reference line) and closes with the LIGHT footer; `SA_BASE_CSS` repaints generated banners with `var(--eduai-banner-gradient, …)` `!important` (the palette is published on `<body>`) |
+| **Foundation Phase printable pack** | `src/lib/templates/foundation/render.ts` → `public/templates/foundation-phase/*.html` | `.fp-banner` is the single banner, painted (CSS **and inline**) with the pack kind's palette — award = `certificate`, worksheet = `worksheet`, classroom = `cards`, homework = `foundation`; rebuild with `npm run build:fp-templates` |
 | **DOCX exports** | `src/lib/assemblers/docx-assembler.ts` | running header/footer carry the compliance line and `EDUAI_TEMPLATE_FOOTER_LINE` in LIGHT navy |
 | **Server-side PDF exports** | `src/lib/assemblers/pdf-assembler.ts` | Chromium's own header/footer layer is disabled — `buildFullHTML` already contains the single canonical footer |
-| **Portfolio PDFs** | `src/components/StudentPortfolio.tsx` | jsPDF banner paints `EDUAI_BANNER_GRADIENT` plus the compliance line and the exact footer on every page |
+| **Portfolio PDFs** | `src/components/StudentPortfolio.tsx` | the banner paints `bannerGradientFor('Portfolio Task')` (assessment palette) plus the compliance line and the exact footer on every page |
 | **ZIP packages** | `src/lib/assemblers/zip-packager.ts` | readme + compliance report import `EDUAI_TEMPLATE_FOOTER_LINE` |
 
 The template logo is served from `public/eduai-logo.png` and resolved to an
@@ -264,7 +307,11 @@ the two-colour vertical gradient, **nothing banner-ish before the one banner**,
 the very light blue header tint, byte-stable re-wrapping, surviving content and
 metadata. It finishes by re-checking the committed artefacts (both demos, the
 artwork and all 30 Foundation Phase files — including that every one of the 28
-pack documents carries the gradient inline).
+pack documents carries the gradient inline). The palette contract adds 4 more
+checks over the committed `docs/banner-palettes-preview.html` gallery: one
+banner per palette, every palette gradient present exactly once, every gradient
+a known two-stop 180deg palette gradient, and the whole taxonomy mapped in the
+table.
 
 ## Palette (sampled from the artwork)
 
@@ -272,7 +319,7 @@ pack documents carries the gradient inline).
 | --- | --- |
 | Navy / header text / footer band | `#1e3a5f` |
 | Accent / gradient end | `#2563eb` (light `#3b82f6`) |
-| Banner gradient | `linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%)` |
+| Banner gradient | **content-type palette** (`bannerPalettes.ts`) — e.g. worksheet `linear-gradient(180deg, #c2410c 0%, #be185d 100%)`, certificate `linear-gradient(180deg, #6d28d9 0%, #b45309 100%)`; `EDUAI_BANNER_GRADIENT` (`linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%)`) is the unknown-type fallback |
 | Header wash (very light blue @ 70% transparent) | `rgba(219,234,254,0.30)` → `rgba(191,219,254,0.30)` + 5px blur |
 | Header border | `rgba(147,197,253,0.55)` |
 | Banner pills | bg `rgba(255,255,255,0.16)`, border `rgba(255,255,255,0.34)`, text `#ffffff` |

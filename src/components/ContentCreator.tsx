@@ -29,6 +29,7 @@ import { PosterPreview } from './PosterPreview';
 import VideoLabConsole from './VideoLabConsole';
 import FoundationPhaseArchitect from './FoundationPhaseArchitect';
 import FoundationPhaseTemplateStudio from './FoundationPhaseTemplateStudio';
+import { ADMIN_TYPES, TEACHING_CATEGORIES, VISUAL_TYPES } from '../lib/contentTypes';
 import { GRADE_2_DATA_HANDLING_WORKSHEET } from '../data/grade2DataHandlingWorksheet';
 import { db, auth } from '../lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -61,65 +62,6 @@ const getPhaseForGrade = (gradeStr: string): string => {
 };
 
 // ─── Constants (Matched to User Requirements) ────────────────────────────────
-
-const TEACHING_CATEGORIES: Record<string, string[]> = {
-  'Lesson Plans & Notes': [
-    'Lesson Plan', 'Daily Lesson Notes', 'Weekly Lesson Plan', 'Unit Plan',
-    'Learning Activity', 'Study Guide / Learning Notes', 'Revision Pack',
-  ],
-  'Classroom Tasks & Exercises': [
-    'Worksheet', 'Homework Task', 'Classroom Exercise', 'Group Activity',
-    'Reading Comprehension', 'Writing Task', 'Research Task',
-  ],
-  'Assessments': [
-    'Controlled Test', 'Examination', 'Formal Assessment Task (FAT)',
-    'Investigation', 'Project Brief', 'Case Study', 'Oral/Speech Task',
-    'Practical Task / Experiment', 'Portfolio Task', 'Diagnostic Assessment',
-  ],
-  'Memos & Rubrics': [
-    'Marking Memo', 'Assessment Rubric', 'Analytical Rubric',
-    'Holistic Rubric', 'Checklist / Self-Assessment',
-  ],
-};
-
-const VISUAL_TYPES: Record<string, string[]> = {
-  'Classroom Displays': [
-    'Educational Poster', 'Word Wall', 'Vocabulary Display',
-    'Alphabet Chart', 'Number Chart / Number Line', 'Times Tables Chart',
-    'Classroom Rules Poster', 'Topic Anchor Chart',
-  ],
-  'Learning Cards': [
-    'Flashcards (Term + Definition)', 'Vocabulary Cards', 'Formula Reference Cards',
-    'Timeline Cards', 'Matching Cards', 'Cut-out Activity Cards',
-  ],
-  'Diagrams & Maps': [
-    'Mind Map / Concept Map', 'Educational Diagram', 'Infographic',
-    'Process Flow Diagram', 'Comparison Chart',
-  ],
-  'Labels & Organizers': [
-    'Classroom Labels / Signs', 'Book Labels', 'Book Cover Design',
-    'Certificate Template', 'Award / Sticker Template',
-  ],
-};
-
-const ADMIN_TYPES: Record<string, string[]> = {
-  'Parent Communication': [
-    'Letter to Parents', 'General Notice to Parents', 'Permission Slip',
-    'Meeting Invitation', 'Progress Update Letter', 'Report Comment Template',
-  ],
-  'School Administration': [
-    'General School Notice', 'Timetable Template', 'Attendance Register',
-    'Subject Improvement Plan', 'School Calendar Event Notice',
-  ],
-  'Certificates & Stationery': [
-    'Academic Achievement Certificate', 'Participation Certificate',
-    'Custom Seal / Emblem', 'Official School Letterhead',
-  ],
-  'Learner-Facing': [
-    'Disciplinary Notice', 'Classroom Rules', 'Homework Policy Letter',
-    'Detention Notice', 'Achievement Certificate',
-  ],
-};
 
 const LANGUAGES = ['English', 'Afrikaans', 'isiZulu', 'isiXhosa', 'Sesotho', 'Sepedi', 'Setswana'];
 const DIFFICULTIES = ['Easy (Lower Order Thinking)', 'Medium (Mixed)', 'Challenging (Higher Order)', 'Mixed (Bloom\'s Progression)'];
@@ -2952,9 +2894,10 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                               <p className={cn("truncate text-xs font-bold leading-tight", isDarkMode ? "text-white" : "text-slate-800")}>
                                 {currentTopic || 'Untitled document'}
                               </p>
-                              <p className={cn("truncate text-[10px] font-semibold uppercase tracking-wider leading-tight mt-0.5", isDarkMode ? "text-slate-400" : "text-slate-500")}>
-                                {currentType} • Grade {currentGrade} • {currentSubject}
-                              </p>
+                              {/* No grade / subject / type line here: the ONE
+                                  document banner inside the frame already shows
+                                  every label, and repeating them above it is
+                                  the duplication this layout must avoid. */}
                             </div>
                             <span className={cn(
                               "shrink-0 hidden sm:inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider",

@@ -38,8 +38,9 @@
  *     copies (badges, stamp rows, banner repeats, repeated title blocks,
  *     plain-text status lines) are stripped before the banner is rendered.
  *  2. GRADIENT — no top banner is ever a single solid colour. The document
- *     banner is a TWO-COLOUR VERTICAL gradient, and every model-authored
- *     banner/hero/header gets the same treatment.
+ *     banner is a TWO-COLOUR VERTICAL gradient whose colours are chosen for
+ *     the content type (see `bannerPalettes.ts`), and every model-authored
+ *     banner/hero/header is repainted with the same document gradient.
  *  3. FOOTER — one canonical footer line, word for word, on every surface.
  *
  * Portability rules (same guarantees as the previous template):
@@ -60,6 +61,30 @@
  *    that copied our chrome — are stripped back to content and re-wrapped so
  *    stale footers, duplicate labels and solid banners cannot survive.
  */
+
+import {
+    BANNER_PALETTES,
+    type BannerPalette,
+    type BannerPaletteId,
+    bannerGradientFor,
+    bannerPaletteFor,
+    isBannerGradient,
+} from './bannerPalettes';
+
+export {
+    BANNER_PALETTES,
+    BANNER_PALETTE_IDS,
+    BANNER_GRADIENT_PATTERN,
+    DEFAULT_BANNER_PALETTE_ID,
+    bannerGradientFor,
+    bannerPaletteFor,
+    buildBannerGradient,
+    contrastWithWhite,
+    isBannerGradient,
+    isBannerPaletteId,
+    isKnownBannerGradient,
+} from './bannerPalettes';
+export type { BannerPalette, BannerPaletteId } from './bannerPalettes';
 
 export interface ContentTemplateMeta {
     /** Document title (lesson-title + HTML <title> where supported). */
@@ -94,20 +119,35 @@ export interface ContentTemplateMeta {
     extraPills?: string[];
     /** Extra banner footnotes (Bloom's distribution …), pre-escaped. */
     extraNotes?: string[];
+    /**
+     * Explicit banner palette id (`worksheet`, `assessment`, `certificate`, …).
+     * Normally omitted — the palette is derived from `contentType` — but it
+     * lets a caller pin the colours for a document whose type is ambiguous.
+     */
+    palette?: BannerPaletteId | string;
 }
 
 /**
  * Every generated document owns exactly ONE top banner: the document banner.
- * Its background is always a TWO-COLOUR **VERTICAL** gradient (navy → accent
- * blue) and never a solid block of one colour:
+ * Its background is always a TWO-COLOUR **VERTICAL** gradient and never a
+ * solid block of one colour — and the two colours are chosen for the kind of
+ * content being generated (bright, dynamic pairings: worksheets get burnt
+ * orange → magenta, marking memos green → teal, certificates violet → gold,
+ * posters fuchsia → burnt orange, Foundation Phase packs pink → azure …).
+ * See `bannerPalettes.ts` for the full table and `bannerGradientFor()` for the
+ * resolver.
+ *
+ * This constant is the **brand fallback** — the navy → azure gradient used for
+ * content whose type cannot be recognised (and by callers that genuinely want
+ * brand colours):
  *
  *     linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%)
  *
- * The page header above it is chrome, not a banner: a very light blue wash
- * (#dbeafe → #bfdbfe) at 70% transparency, so the content behind it stays
+ * The page header above the banner is chrome, not a banner: a very light blue
+ * wash (#dbeafe → #bfdbfe) at 70% transparency, so the content behind it stays
  * faintly visible while the bar keeps the brand on screen.
  */
-export const EDUAI_BANNER_GRADIENT = 'linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%)';
+export const EDUAI_BANNER_GRADIENT = BANNER_PALETTES.brand.gradient;
 
 /** Very light blue (#dbeafe) at 70% transparency — the page-header tint. */
 export const EDUAI_HEADER_TINT = 'rgba(219, 234, 254, 0.30)';
@@ -265,12 +305,14 @@ export const EDUAI_LIGHT_CSS = `
     margin: 0 0 18px;
     padding: 14px 16px;
     border-radius: 10px;
-    /* TWO-COLOUR VERTICAL GRADIENT — never a solid fill. */
-    background: ${EDUAI_BANNER_GRADIENT};
-    background-image: ${EDUAI_BANNER_GRADIENT};
+    /* TWO-COLOUR VERTICAL GRADIENT — never a solid fill. The colours come
+       from the document's content-type palette, published as a scoped custom
+       property by wrapWithTemplate(); the brand pair is the fallback. */
+    background: var(--eduai-banner-gradient, ${EDUAI_BANNER_GRADIENT});
+    background-image: var(--eduai-banner-gradient, ${EDUAI_BANNER_GRADIENT});
     color: #ffffff;
-    border: 1px solid #93c5fd;
-    box-shadow: 0 3px 10px rgba(30,58,95,0.16);
+    border: 1px solid rgba(255,255,255,0.45);
+    box-shadow: 0 3px 12px rgba(15,23,42,0.22);
     font-family: 'Inter', system-ui, sans-serif;
     font-size: 11px;
     font-weight: 700;
@@ -376,8 +418,8 @@ export const EDUAI_LIGHT_CSS = `
     box-sizing: border-box;
 }
 /* AI-authored documents use a variety of banner class names. Give all of
-   their top/header banners the same two-colour treatment without touching
-   ordinary cards and body sections. */
+   their top/header banners the document's own two-colour palette without
+   touching ordinary cards and body sections. */
 .eduai-light-scope > .page > article > header:not(.site-header),
 .eduai-light-scope header:not(.site-header),
 .eduai-light-scope .content-banner,
@@ -385,8 +427,8 @@ export const EDUAI_LIGHT_CSS = `
 .eduai-light-scope .header-banner,
 .eduai-light-scope .banner,
 .eduai-light-scope [class*="banner"] {
-    background: ${EDUAI_BANNER_GRADIENT} !important;
-    background-image: ${EDUAI_BANNER_GRADIENT} !important;
+    background: var(--eduai-banner-gradient, ${EDUAI_BANNER_GRADIENT}) !important;
+    background-image: var(--eduai-banner-gradient, ${EDUAI_BANNER_GRADIENT}) !important;
     color: #ffffff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -872,15 +914,25 @@ const bannerTitle = (meta: ContentTemplateMeta): string =>
  * pills, school · teacher · learner when the caller supplies them, any extra
  * pills, and the CAPS code with the 🇿🇦/CAPS/NPA/POPIA/SIAS/WP6 labels.
  *
- * The background is the official TWO-COLOUR VERTICAL GRADIENT
- * (`EDUAI_BANNER_GRADIENT`, navy → blue at 180deg) written inline so it
- * survives iframe previews, print, html2canvas rasterisation and downloads.
+ * The background is a TWO-COLOUR VERTICAL GRADIENT at 180deg, picked from
+ * `bannerPalettes.ts` for the document's content type — bright, dynamic
+ * pairings (orange → magenta for worksheets, green → teal for memos, violet →
+ * gold for certificates …) with the brand navy → azure pair as the fallback
+ * for unrecognised types. It is written inline, together with the
+ * `--eduai-banner-gradient` custom property, so the exact colours survive
+ * iframe previews, print, html2canvas rasterisation and downloads, and so the
+ * stylesheet safety nets repaint any stray model banner in the same palette.
+ *
  * The class name stays `eduai-compliance-banner` because the rest of the
  * pipeline (chrome stripping, single-copy verification, CSS safety nets)
  * keys off it.
  */
 export const buildTemplateComplianceBannerHTML = (meta: ContentTemplateMeta = {}): string => {
     const title = bannerTitle(meta);
+    // One palette per document, chosen from the content type (or pinned by an
+    // explicit `meta.palette`). Never a solid fill, never the same colours for
+    // every kind of content.
+    const palette: BannerPalette = bannerPaletteFor(meta.contentType, meta.palette);
     const pills = buildBannerPills(meta);
     const capsCode = buildCAPSCode(meta);
     const capsReference = String(meta.capsReference || '').trim();
@@ -894,7 +946,7 @@ export const buildTemplateComplianceBannerHTML = (meta: ContentTemplateMeta = {}
     ].filter(Boolean).join(' | ');
 
     return `
-<section class="eduai-compliance-banner" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; background: ${EDUAI_BANNER_GRADIENT}; background-image: ${EDUAI_BANNER_GRADIENT}; color: #ffffff; border: 1px solid #93c5fd; border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: ${LIGHT_BODY_FONT}; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+<section class="eduai-compliance-banner" data-eduai-palette="${palette.id}" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; --eduai-banner-gradient: ${palette.gradient}; background: ${palette.gradient}; background-image: ${palette.gradient}; color: #ffffff; border: 1px solid rgba(255,255,255,0.45); border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: ${LIGHT_BODY_FONT}; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
   <h1 class="lesson-title" style="font-family: ${LIGHT_HEADING_FONT}; font-size: clamp(19px, 3vw, 27px); font-weight: 700; line-height: 1.18; color: #ffffff; margin: 0 0 8px;">${esc(title)}</h1>
   ${pills.length ? `<div class="lesson-meta" style="display:flex; flex-wrap:wrap; gap:7px; margin:0 0 10px; color:#e2e8f0;">${pills.map((pill) => `<span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">${esc(pill)}</span>`).join('')}</div>` : ''}
   <div class="eduai-doc-compliance" style="display:block; border-top:1px solid rgba(255,255,255,0.28); padding-top:8px; font-size:11px; font-weight:700; line-height:1.5; color:#ffffff;"><span class="eduai-caps-code" style="font-weight:800; letter-spacing:0.2px;">${esc(referenceTrail)}</span> ${esc(EDUAI_COMPLIANCE_LABELS)}${notes.length ? ` <span style="display:block; margin-top:4px; font-weight:600; color:rgba(255,255,255,0.86);">${notes.map((note) => esc(note)).join(' • ')}</span>` : ''}</div>
@@ -1152,7 +1204,7 @@ export const harvestMetaFromChrome = (html: string): ContentTemplateMeta => {
 };
 
 /** Merge recovered chrome metadata with caller metadata (caller wins). */
-const mergeMeta = (base: ContentTemplateMeta, override: ContentTemplateMeta): ContentTemplateMeta => {
+export const mergeMeta = (base: ContentTemplateMeta, override: ContentTemplateMeta): ContentTemplateMeta => {
     const merged = { ...base } as Record<string, unknown>;
     (Object.keys(override) as (keyof ContentTemplateMeta)[]).forEach((key) => {
         const value = override[key];
@@ -1167,18 +1219,24 @@ const mergeMeta = (base: ContentTemplateMeta, override: ContentTemplateMeta): Co
     return merged as ContentTemplateMeta;
 };
 
-/** Class/id fragments that identify a model-authored banner container. */
-const BANNER_HINT = /banner|hero|masthead|title-block|doc-title|page-title|cover-head|top-bar/i;
+/**
+ * Class/id fragments that identify a model-authored banner container. Kept to
+ * genuine band names so ordinary card headers (`.activity-header`) and section
+ * headings are never re-painted as banners.
+ */
+const BANNER_HINT = /\b(?:banner|hero|masthead|jumbotron|title-?block|doc-?title|page-?title|cover(?:-head)?|top-?bar|title-?bar|letterhead|school-?header|doc-?header|caps-?bar|reference-?bar)\b/i;
 
 /**
- * Inline declarations that force the official two-colour gradient. Inline +
- * !important beats Tailwind utilities and model CSS everywhere the document is
- * rendered: browser, iframe preview, html2canvas rasterisation and Chromium PDF.
+ * Inline declarations that force the document's two-colour palette gradient.
+ * Inline + !important beats Tailwind utilities and model CSS everywhere the
+ * document is rendered: browser, iframe preview, html2canvas rasterisation and
+ * Chromium PDF.
  */
-const BANNER_GRADIENT_DECLARATIONS =
-    `background:${EDUAI_BANNER_GRADIENT} !important;background-image:${EDUAI_BANNER_GRADIENT} !important;color:#ffffff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;`;
+const bannerGradientDeclarations = (gradient: string): string =>
+    `background:${gradient} !important;background-image:${gradient} !important;color:#ffffff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;`;
 
-const withGradientStyle = (attrs: string): string => {
+const withGradientStyle = (attrs: string, gradient: string): string => {
+    const BANNER_GRADIENT_DECLARATIONS = bannerGradientDeclarations(gradient);
     const styleMatch = attrs.match(/style\s*=\s*(["'])([\s\S]*?)\1/i);
     if (!styleMatch) return `${attrs} style="${BANNER_GRADIENT_DECLARATIONS}"`;
     const quote = styleMatch[1];
@@ -1194,22 +1252,26 @@ const withGradientStyle = (attrs: string): string => {
 };
 
 /**
- * Convert every solid top banner in generated content to the official
+ * Convert every solid top banner in generated content to the document's
  * two-colour gradient. Model output uses dozens of banner spellings
  * (`<header>`, `.banner`, `.hero`, `.doc-title`, inline `background:#007749`,
  * Tailwind `bg-emerald-700`), so the gradient is written inline on each of them
  * instead of relying on a class name surviving. The host's own compliance
  * banner and the compact document header are left exactly as built.
+ *
+ * @param gradient The document's palette gradient — defaults to the brand
+ *                 navy → azure pair for callers that have no content type.
  */
-export const applyBannerGradients = (html: string): string => {
+export const applyBannerGradients = (html: string, gradient: string = EDUAI_BANNER_GRADIENT): string => {
     const source = String(html || '');
+    const bannerGradient = isBannerGradient(gradient) ? gradient : EDUAI_BANNER_GRADIENT;
     return source.replace(/<(?!\/)([a-z][\w:-]*)\b([^>]*)>/gi, (match, tag: string, attrs: string) => {
         if (/^(style|script|svg|path|circle|rect|line|polygon|polyline|ellipse|g|defs|use|text|tspan)$/i.test(tag)) return match;
         if (/site-header|header-text|eduai-compliance-banner/i.test(attrs)) return match;
         const isHeaderTag = /^header$/i.test(tag);
         const classOrId = `${attrs.match(/class\s*=\s*["'][^"']*["']/i)?.[0] ?? ''} ${attrs.match(/id\s*=\s*["'][^"']*["']/i)?.[0] ?? ''}`;
         if (!isHeaderTag && !BANNER_HINT.test(classOrId)) return match;
-        return `<${tag}${withGradientStyle(attrs)}>`;
+        return `<${tag}${withGradientStyle(attrs, bannerGradient)}>`;
     });
 };
 
@@ -1304,6 +1366,238 @@ export const stripLeadingDuplicateBanner = (html: string, meta: ContentTemplateM
     return (source.slice(0, element.start) + source.slice(element.end)).trim();
 };
 
+/* ────────────────────────────────────────────────────────────────────────────
+ * ONE BANNER — absorb EVERY band the model opens a document with.
+ *
+ * Models are told that the host banner owns the title, the labels and the
+ * compliance data, but real output still opens with a school header, a CAPS
+ * reference bar, a formal examination header, a meta pill row, a logo strip or
+ * a second banner. Each of those bands repeats information the single host
+ * banner already shows — and steals the vertical space the teacher needs for
+ * actual work — so the host absorbs them: their values are harvested into the
+ * banner metadata and the bands themselves never reach the page.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Class/id tokens that name a band (rather than content) on their own, so a
+ * leading element carrying one is treated as template chrome.
+ */
+const CHROME_TOKENS = new Set([
+    'banner', 'hero', 'masthead', 'jumbotron', 'cover', 'coverhead', 'titleblock',
+    'doctitle', 'pagetitle', 'topbar', 'titlebar', 'letterhead', 'schoolheader',
+    'schoolname', 'school', 'skool', 'crest', 'emblem', 'brand', 'branding',
+    'watermark', 'flagstripe', 'flags', 'dbe', 'emis', 'compliance', 'stamp',
+    'stamps', 'badges', 'docmeta', 'lessonmeta', 'metadata', 'meta', 'docinfo',
+    'infobar', 'kicker', 'subtitle', 'tagline', 'byline', 'capsbar', 'capsref',
+    'assessmentheader', 'examheader', 'testheader', 'paperheader', 'title',
+]);
+
+/** Tokens that only ever name branding artwork — never a content illustration. */
+const BRAND_ART_TOKENS = new Set([
+    'logo', 'watermark', 'crest', 'emblem', 'brand', 'branding', 'coat', 'arms',
+    'flagstripe', 'flags',
+]);
+
+/**
+ * Tokens that may also name real content (a hero *illustration*, a cover
+ * *image*, a section *title*). They only count as chrome when the element's own
+ * text proves it is a band: it repeats the document title or is metadata.
+ */
+const CHROME_EVIDENCE_TOKENS = new Set([
+    'hero', 'cover', 'coverhead', 'jumbotron', 'title', 'kicker', 'subtitle',
+    'tagline', 'byline',
+]);
+
+/** Labels that mark a short band as document metadata rather than content. */
+const META_LABEL_PATTERN = /\b(?:grade|graad|term|kwartaal|subject|vak|topic|onderwerp|date|datum|marks?|punte|duration|tyd|school|skool|teacher|onderwyser|educator|learner|leerder|class|klas|emis|district|distrik|province|provinsie|caps|atp|npa|sias|wp6|popia|total|score|name|naam)\b/gi;
+
+/** Whitespace, comments and head-only tags that may precede the first band. */
+const LEADING_SKIP_RE = /^(?:\s|<!--[\s\S]*?-->|<style\b[\s\S]*?<\/style\s*>|<script\b[\s\S]*?<\/script\s*>|<link\b[^>]*>|<meta\b[^>]*>)*/i;
+
+/** "school-header" / "docTitle" → ["school", "header"] / ["doc", "title"]. */
+const tokeniseClassNames = (value: string): string[] =>
+    String(value || '')
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .split(/[\s\-_:/.,]+/)
+        .map((token) => token.toLowerCase())
+        .filter(Boolean);
+
+/** Visible text of a band, one line per block element. */
+const bandText = (markup: string): string =>
+    decodeEntities(
+        String(markup || '')
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/(?:p|div|li|h[1-6]|tr|section|header|footer|article|td|th|span|strong|em)>/gi, '\n')
+            .replace(/<[^>]+>/g, ' ')
+    )
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n{2,}/g, '\n')
+        .trim();
+
+/** True when a short band is dominated by document labels (Grade, Term, …). */
+const isMetadataBandText = (text: string, minLabels = 2, maxLength = 320): boolean => {
+    if (!text || text.length > maxLength) return false;
+    const hits = new Set((text.match(META_LABEL_PATTERN) || []).map((hit) => hit.toLowerCase()));
+    return hits.size >= minLabels;
+};
+
+/**
+ * A class-less metadata strip: at least four distinct document labels inside a
+ * short, separator-driven line ("Subject: … · Term: 2 · Marks: 20"). Prose is
+ * excluded — a sentence terminator followed by a space marks real writing.
+ */
+const isMetadataStrip = (text: string): boolean => {
+    if (!text || text.length > 200) return false;
+    if (/\.[ \n]/.test(text)) return false;
+    return isMetadataBandText(text, 4, 200);
+};
+
+/**
+ * Decide whether a leading element is template chrome (a band that repeats the
+ * banner) rather than real content. Conservative by design: anything long, any
+ * table/list structure, any paragraph with a full sentence, and any content
+ * illustration is left exactly where the model put it.
+ */
+const isChromeBand = (markup: string, element: LeadingElement, meta: ContentTemplateMeta): boolean => {
+    // Never touch the host's own chrome or the designated banner.
+    if (/site-header|header-text|eduai-compliance-banner/i.test(element.attrs)) return false;
+
+    const text = bandText(markup);
+    if (text.length > 320) return false;
+    if (/<(?:p|li|td|dd)\b[^>]*>[^<]{200,}/i.test(markup)) return false;
+    if (/<(?:table|ol)\b/i.test(markup)) return false;
+    if ((markup.match(/<li\b/gi) || []).length >= 4) return false;
+
+    const tokens = tokeniseClassNames(
+        `${element.attrs.match(/class\s*=\s*["']([^"']*)["']/i)?.[1] ?? ''} ${element.attrs.match(/id\s*=\s*["']([^"']*)["']/i)?.[1] ?? ''}`,
+    );
+    const strong = tokens.some((token) => CHROME_TOKENS.has(token));
+    const headerTag = /^header$/i.test(element.tag);
+    const headingTag = /^h[1-2]$/i.test(element.tag);
+
+    // A pure logo / crest / flag image is branding; a hero illustration is not.
+    if (!text && /<img\b/i.test(markup)) return tokens.some((token) => BRAND_ART_TOKENS.has(token));
+
+    const title = normaliseForCompare(String(meta.title || ''));
+    const repeatsTitle = title.length >= 4 && normaliseForCompare(text).includes(title);
+    const metadataBand = isMetadataBandText(text);
+    const metadataStrip = isMetadataStrip(text);
+    // A hero/cover/title element is only chrome when its text proves it: a hero
+    // illustration or a genuine section heading stays where the model put it.
+    const ambiguousToken = tokens.some((token) => CHROME_EVIDENCE_TOKENS.has(token));
+    const evidenced = repeatsTitle || metadataBand || metadataStrip;
+    if (ambiguousToken && !evidenced) return false;
+    if (!strong && !headerTag && !headingTag && !metadataStrip) return false;
+
+    const score =
+        (strong ? 2 : 0)
+        + (headerTag ? 1 : 0)
+        + (headingTag ? 1 : 0)
+        + (repeatsTitle ? 2 : 0)
+        + (metadataBand ? 2 : 0)
+        + (metadataStrip ? 1 : 0)
+        + (text.length === 0 ? 1 : 0)
+        + (text.length <= 60 ? 1 : 0);
+    return score >= 3;
+};
+
+/**
+ * Recover the values a band was displaying so the single banner can render them
+ * once (the band itself is deleted). Only gaps are filled: anything the caller
+ * supplied, or an earlier (higher) band already produced, always wins.
+ */
+const harvestMetaFromBand = (markup: string, meta: ContentTemplateMeta): void => {
+    const text = bandText(markup);
+    if (!text) return;
+    const grab = (pattern: RegExp): string => (text.match(pattern)?.[1] || '').replace(/\s+/g, ' ').trim();
+    const set = (key: 'grade' | 'term' | 'subject' | 'contentType' | 'date' | 'capsCode' | 'capsReference' | 'atpWeek' | 'school' | 'teacher' | 'learner', value: string): void => {
+        if (!value) return;
+        if (String((meta as Record<string, unknown>)[key] ?? '').trim()) return;
+        (meta as Record<string, unknown>)[key] = value;
+    };
+
+    set('grade', grab(/\bgrade\s*([rR]|\d{1,2})\b/i));
+    const term = grab(/\bterm\s*([1-4])\b/i);
+    set('term', term ? `Term ${term}` : '');
+    set('subject', grab(/\b(?:subject|learning\s+area|vak)\s*[:\-–]\s*([^|•·\n]{2,60})/i));
+    set(
+        'contentType',
+        grab(/\b(?:content\s*type|document\s*type|resource\s*type|assessment\s*type|type)\s*[:\-–]\s*([^|•·\n]{2,60})/i)
+        || (text.match(CONTENT_TYPE_HINT)?.[1] ?? ''),
+    );
+    set('date', grab(/\b(\d{2}\/\d{2}\/\d{4})\b/));
+    set('capsCode', (text.match(/\b([A-Z]{2,4}-[A-Z]{2,6}-G[R\d]{1,2}-T\d-[A-Z]{2,4}\d{2})\b/)?.[1] || '').toUpperCase());
+    set('capsReference', grab(/\bCAPS\s+(?:reference|ref|curriculum\s+reference)\s*[:\-–]\s*([^|•·\n]{3,120})/i));
+    const atp = grab(/\bATP\s*(?:week|placement)?\s*[:\-–]?\s*(\d{1,2})\b/i);
+    set('atpWeek', atp ? `Week ${atp}` : '');
+    set('school', grab(/\b(?:school|skool|school\s+name)\s*[:\-–]\s*([^|•·\n]{2,80})/i));
+    set('teacher', grab(/\b(?:teacher|educator|onderwyser|class\s+teacher)\s*[:\-–]\s*([^|•·\n]{2,60})/i));
+    set('learner', grab(/\b(?:learner|student|leerder)\s*(?:name)?\s*[:\-–]\s*([^|•·\n]{2,60})/i));
+
+    // A letterhead band usually puts the school name in its own heading line.
+    if (!meta.school) {
+        const schoolLine = text
+            .split('\n')
+            .map((line) => line.trim())
+            .find((line) => line.length <= 80 && /(?:primary|high|secondary|academy|college|school|skool)\b/i.test(line) && !/[:|•·]/.test(line));
+        if (schoolLine) meta.school = schoolLine.replace(/^(?:welcome\s+to\s+)/i, '');
+    }
+
+    const extras = [...(meta.extraPills || [])];
+    const marks = grab(/\b(?:total|marks?|punte)\s*[:\-–]?\s*(\d{1,3})\b/i);
+    const duration = grab(/\bduration\s*[:\-–]\s*([^|•·\n]{1,30})/i);
+    if (marks && !extras.some((pill) => /\bmarks?\b/i.test(pill))) extras.push(`📝 Total: ${marks} marks`);
+    if (duration && !extras.some((pill) => /⏱/.test(pill))) extras.push(`⏱ ${duration}`);
+    if (extras.length) meta.extraPills = extras;
+};
+
+/**
+ * Strip EVERY model-authored band at the top of a document and fold the values
+ * they displayed into the metadata the single host banner renders.
+ *
+ * The walk is limited to the leading run of elements (bands live at the top of
+ * a document — real content stops it), is depth-aware, and descends into a
+ * whole-document wrapper (`.poster-container`, a card, a page shell) so a
+ * banner nested one level down is still absorbed. Returns the cleaned markup
+ * plus the harvested metadata; nothing else about the document is touched.
+ */
+export const collapseLeadingChrome = (
+    html: string,
+    meta: ContentTemplateMeta = {},
+): { html: string; meta: ContentTemplateMeta } => {
+    const harvested: ContentTemplateMeta = {};
+    let source = String(html || '');
+
+    for (let guard = 0; guard < 12; guard += 1) {
+        const lead = source.match(LEADING_SKIP_RE)?.[0] ?? '';
+        const rest = source.slice(lead.length);
+        if (!rest.trim()) break;
+        const element = firstElement(rest);
+        if (!element) break; // Real text starts here: the content has begun.
+        const markup = rest.slice(element.start, element.end);
+
+        if (isChromeBand(markup, element, meta)) {
+            harvestMetaFromBand(markup, harvested);
+            source = `${lead}${rest.slice(element.end)}`;
+            continue;
+        }
+
+        // A single wrapper around the whole fragment (poster container, card,
+        // page shell): collapse the bands nested directly inside it.
+        if (!rest.slice(element.end).trim() && !/^(?:script|style|img|svg)$/i.test(element.tag)) {
+            const inner = rest.slice(element.innerStart, element.innerEnd);
+            const collapsed = collapseLeadingChrome(inner, mergeMeta(harvested, meta));
+            if (collapsed.html !== inner) {
+                source = `${lead}${rest.slice(0, element.innerStart)}${collapsed.html}${rest.slice(element.innerEnd)}`;
+                Object.assign(harvested, mergeMeta(collapsed.meta, harvested));
+            }
+        }
+        break;
+    }
+
+    return { html: source, meta: harvested };
+};
+
 /**
  * Drop a heading that merely repeats the banner title at the very start of the
  * content. The single banner already states the document title (and the grade
@@ -1349,13 +1643,31 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
     if (!original.trim()) return original;
     if (isCurrentTemplateOutput(original)) return original;
 
-    const effectiveMeta = mergeMeta(harvestMetaFromChrome(original), meta);
-    // ONE banner: kill the model's own duplicated top banner, then any heading
-    // that repeats what the banner will show, before rendering the banner.
+    // Values are harvested from the ORIGINAL body as well: legacy host title
+    // blocks (`.lesson-meta`, `.doc-meta`, `.lesson-title`) are deleted by
+    // stripTemplateChrome, and anything they displayed (marks, duration, CAPS
+    // reference, school …) must survive inside the ONE banner.
+    const beforeStrip = collapseLeadingChrome(cleanGeneratedBodyHTML(original));
     const stripped = stripTemplateChrome(original);
-    const deduped = stripLeadingDuplicateBanner(cleanGeneratedBodyHTML(stripped), effectiveMeta);
+    // ONE banner: absorb EVERY band the model opened the document with — its own
+    // banner, school header, CAPS reference bar, formal assessment header, meta
+    // pill row, logo strip — into the banner's metadata, then delete the bands
+    // themselves. This is what guarantees the labels, the compliance data and
+    // the document details appear exactly once at the top of the page.
+    const collapsed = collapseLeadingChrome(cleanGeneratedBodyHTML(stripped));
+    const effectiveMeta = mergeMeta(
+        mergeMeta(mergeMeta(harvestMetaFromChrome(original), beforeStrip.meta), collapsed.meta),
+        meta,
+    );
+    // Then kill anything banner-shaped that repeats the banner and any heading
+    // that repeats what the banner will show, before rendering the banner.
+    const deduped = stripLeadingDuplicateBanner(collapsed.html, effectiveMeta);
     const cleaned = stripDuplicateTitleHeading(deduped, effectiveMeta);
     const banner = buildTemplateComplianceBannerHTML(effectiveMeta);
+    // ONE palette per document, chosen for the content type: the banner, every
+    // repainted model band and the stylesheet safety nets all use the same two
+    // colours — published below as the scoped `--eduai-banner-gradient`.
+    const gradient = bannerGradientFor(effectiveMeta.contentType, effectiveMeta.palette);
 
     let inner: string;
     if (cleaned.includes(COMPLIANCE_SLOT)) {
@@ -1370,10 +1682,10 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
     return `
 ${buildTemplateStyleHTML()}
 ${buildTemplateHeaderHTML(effectiveMeta)}
-<div class="eduai-light-scope" style="position: relative; background: ${EDUAI_TEMPLATE_COLOURS.paper}; overflow: hidden;">
+<div class="eduai-light-scope" style="--eduai-banner-gradient: ${gradient}; position: relative; background: ${EDUAI_TEMPLATE_COLOURS.paper}; overflow: hidden;">
   ${buildTemplateWatermarkHTML()}
   <main class="page" style="position: relative; z-index: 1; max-width: 800px; margin: 0 auto; padding: 28px 20px 60px; font-family: ${LIGHT_BODY_FONT}; color: #1e293b; line-height: 1.65; box-sizing: border-box;">
-${applyBannerGradients(inner)}
+${applyBannerGradients(inner, gradient)}
   </main>
 </div>
 ${buildTemplateFooterHTML(effectiveMeta)}`.trim();

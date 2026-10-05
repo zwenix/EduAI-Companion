@@ -10,7 +10,10 @@ import {
   buildTemplateStyleHTML,
   buildTemplateComplianceBannerHTML,
   cleanGeneratedBodyHTML,
+  collapseLeadingChrome,
+  mergeMeta,
   EDUAI_BANNER_GRADIENT,
+  bannerGradientFor,
   ContentTemplateMeta
 } from "../contentTemplate";
 
@@ -201,16 +204,17 @@ export const SA_BASE_CSS = `
     border-radius: 3px;
   }
 
-  /* Generated top banners always use the same two-colour gradient as the
-     host-owned banner, even when an AI fragment uses a generic header class. */
+  /* Generated top banners always use the SAME two-colour palette gradient as
+     the host-owned banner — published as --eduai-banner-gradient on <body> —
+     even when an AI fragment uses a generic header class. */
   .ai-generated-content header:not(.site-header),
   .ai-generated-content .content-banner,
   .ai-generated-content .top-banner,
   .ai-generated-content .header-banner,
   .ai-generated-content .banner,
   .ai-generated-content [class*="banner"] {
-    background: ${EDUAI_BANNER_GRADIENT} !important;
-    background-image: ${EDUAI_BANNER_GRADIENT} !important;
+    background: var(--eduai-banner-gradient, ${EDUAI_BANNER_GRADIENT}) !important;
+    background-image: var(--eduai-banner-gradient, ${EDUAI_BANNER_GRADIENT}) !important;
     color: #ffffff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -250,7 +254,10 @@ export const SA_BASE_CSS = `
   }
 
   .section-heading {
-    background: linear-gradient(135deg, ${SA_COLOURS.green} 0%, ${SA_COLOURS.darkGreen} 100%);
+    /* Two-colour VERTICAL gradient — no band in generated content is ever a
+       solid fill (the ONE document banner works the same way). */
+    background: linear-gradient(180deg, ${SA_COLOURS.green} 0%, ${SA_COLOURS.darkGreen} 100%);
+    background-image: linear-gradient(180deg, ${SA_COLOURS.green} 0%, ${SA_COLOURS.darkGreen} 100%);
     color: white;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -326,9 +333,20 @@ export const SA_BASE_CSS = `
     gap: 6px;
   }
 
-  .diff-core .diff-header { background: ${SA_COLOURS.green}; }
-  .diff-extended .diff-header { background: ${SA_COLOURS.blue}; }
-  .diff-simplified .diff-header { background: ${SA_COLOURS.gold}; color: #333; }
+  /* Differentiation bands: the same two-colour VERTICAL gradient treatment. */
+  .diff-core .diff-header {
+    background: linear-gradient(180deg, ${SA_COLOURS.green} 0%, ${SA_COLOURS.darkGreen} 100%);
+    background-image: linear-gradient(180deg, ${SA_COLOURS.green} 0%, ${SA_COLOURS.darkGreen} 100%);
+  }
+  .diff-extended .diff-header {
+    background: linear-gradient(180deg, ${SA_COLOURS.blue} 0%, #001a6e 100%);
+    background-image: linear-gradient(180deg, ${SA_COLOURS.blue} 0%, #001a6e 100%);
+  }
+  .diff-simplified .diff-header {
+    background: linear-gradient(180deg, ${SA_COLOURS.gold} 0%, #e0a200 100%);
+    background-image: linear-gradient(180deg, ${SA_COLOURS.gold} 0%, #e0a200 100%);
+    color: #333;
+  }
 
   .diff-content {
     padding: 10px 14px;
@@ -371,7 +389,9 @@ export const SA_BASE_CSS = `
   }
 
   .npa-table th {
-    background: ${SA_COLOURS.green};
+    /* Two-colour vertical gradient, never a flat colour block. */
+    background: linear-gradient(180deg, ${SA_COLOURS.green} 0%, ${SA_COLOURS.darkGreen} 100%);
+    background-image: linear-gradient(180deg, ${SA_COLOURS.green} 0%, ${SA_COLOURS.darkGreen} 100%);
     color: white;
     padding: 8px 12px;
     text-align: left;
@@ -406,7 +426,8 @@ export const SA_BASE_CSS = `
   }
 
   .marks-table th {
-    background: ${SA_COLOURS.blue};
+    background: linear-gradient(180deg, ${SA_COLOURS.blue} 0%, #001a6e 100%);
+    background-image: linear-gradient(180deg, ${SA_COLOURS.blue} 0%, #001a6e 100%);
     color: white;
     padding: 8px 12px;
     text-align: center;
@@ -609,7 +630,10 @@ const cleanGeneratedText = (value: unknown): string => cleanGeneratedBodyHTML(St
   .replace(/<[^>]*>/g, "")
   .trim();
 
-const cleanGeneratedFragment = (value: unknown): string => cleanGeneratedBodyHTML(String(value ?? ""));
+const cleanGeneratedFragment = (value: unknown): string =>
+  // Differentiation/memo fragments also lose any band they open with, so a
+  // school header or CAPS bar repeated inside a section cannot survive either.
+  collapseLeadingChrome(cleanGeneratedBodyHTML(String(value ?? ""))).html;
 
 export function buildFullHTML(
   data: DocumentData,
@@ -637,7 +661,7 @@ export function buildFullHTML(
     const imgSpec = data.imagePrompts?.find(ip => ip.sectionId === section.sectionId);
     const imgSrc = img?.base64Data ? (img.base64Data.startsWith("http") || img.base64Data.startsWith("data:") ? img.base64Data : `data:image/png;base64,${img.base64Data}`) : img?.url || "";
 
-    const sectionContent = cleanGeneratedBodyHTML(section.content || '').replace(/\n/g, '<br>');
+    const sectionContent = collapseLeadingChrome(cleanGeneratedBodyHTML(section.content || '')).html.replace(/\n/g, '<br>');
     sectionsHTML += `
     <div class="section">
       <div class="section-heading">
@@ -690,8 +714,8 @@ export function buildFullHTML(
   if (data.siasSupport) {
     siasHTML = `
     <div class="section">
-      <div class="section-heading" style="background: linear-gradient(135deg, ${SA_COLOURS.gold} 0%, #f59e0b 100%); color: #333;">
-        <span>🤝 SIAS — Inclusive Education Support</span>
+      <div class="section-heading" style="background: linear-gradient(180deg, ${SA_COLOURS.gold} 0%, #e0a200 100%); background-image: linear-gradient(180deg, ${SA_COLOURS.gold} 0%, #e0a200 100%); color: #333;">
+        <span>🤝 Inclusive teaching support (SIAS)</span>
         <span class="blooms-tag" style="background:#333;color:white;">${escapeHtml(data.siasSupport.supportLevel)}</span>
       </div>
       <div class="section-body">
@@ -712,7 +736,7 @@ export function buildFullHTML(
   if (data.answerKey?.questions?.length) {
     answerKeyHTML = `
     <div class="section" style="page-break-before: always;">
-      <div class="section-heading" style="background: linear-gradient(135deg, ${SA_COLOURS.blue} 0%, #1e3a8a 100%);">
+      <div class="section-heading" style="background: linear-gradient(180deg, ${SA_COLOURS.blue} 0%, #001a6e 100%); background-image: linear-gradient(180deg, ${SA_COLOURS.blue} 0%, #001a6e 100%);">
         <span>📝 Memorandum / Answer Key</span>
         <span class="blooms-tag">Total: ${data.answerKey.totalMarks} marks</span>
       </div>
@@ -760,6 +784,10 @@ export function buildFullHTML(
   }
 
   // ── FULL HTML ──
+  // ONE metadata object and ONE banner palette for the whole document: the
+  // header, the banner, the repainted generated bands and the footer all read
+  // from the same content-type palette (bright two-colour vertical gradient).
+  const templateMeta = templateMetaFromData(data, today, school);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -772,18 +800,18 @@ export function buildFullHTML(
   <style>${SA_BASE_CSS}</style>
   ${buildTemplateStyleHTML()}
 </head>
-<body>
+<body style="--eduai-banner-gradient: ${bannerGradientFor(templateMeta.contentType, templateMeta.palette)};">
   <div class="page">
 
     <!-- EduAI LIGHT Template v5 — very light blue translucent header bar (brand only) -->
-    ${buildTemplateHeaderHTML(templateMetaFromData(data, today, school))}
+    ${buildTemplateHeaderHTML(templateMeta)}
 
     <!-- SA Flag Stripe -->
     <div class="sa-flag-stripe"></div>
 
     <!-- THE single document banner: title, every label, the school letterhead,
          the CAPS reference / ATP week and the compliance data — written once. -->
-    ${buildTemplateComplianceBannerHTML(templateMetaFromData(data, today, school))}
+    ${buildTemplateComplianceBannerHTML(templateMeta)}
 
     <!-- Content Sections -->
     ${sectionsHTML || `<div class="section"><div class="section-body"><p>No structured sections — see content below.</p></div></div>`}
@@ -798,7 +826,7 @@ export function buildFullHTML(
     ${answerKeyHTML}
 
     <!-- Footer -->
-    ${buildTemplateFooterHTML(templateMetaFromData(data, today))}
+    ${buildTemplateFooterHTML(templateMeta)}
 
   </div>
 </body>
@@ -806,6 +834,12 @@ export function buildFullHTML(
 }
 
 function wrapContentWithSABranding(data: DocumentData, content: string, school: any, today: string): string {
+  // The AI fragment is reduced to body content first, then every band it opens
+  // with (school header, CAPS reference bar, formal header, meta row, a second
+  // banner) is absorbed into the ONE document banner below. The band's values
+  // are harvested, never rendered twice.
+  const collapsed = collapseLeadingChrome(cleanGeneratedBodyHTML(content));
+  const templateMeta = mergeMeta(collapsed.meta, templateMetaFromData(data, today, school));
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -818,22 +852,22 @@ function wrapContentWithSABranding(data: DocumentData, content: string, school: 
   <style>${SA_BASE_CSS}</style>
   ${buildTemplateStyleHTML()}
 </head>
-<body>
+<body style="--eduai-banner-gradient: ${bannerGradientFor(templateMeta.contentType, templateMeta.palette)};">
   <div class="page">
     <!-- EduAI LIGHT Template v5 — very light blue translucent header bar (brand only) -->
-    ${buildTemplateHeaderHTML(templateMetaFromData(data, today, school))}
+    ${buildTemplateHeaderHTML(templateMeta)}
 
     <div class="sa-flag-stripe"></div>
 
     <!-- THE single document banner: title, every label, the school letterhead,
          the CAPS reference / ATP week and the compliance data — written once. -->
-    ${buildTemplateComplianceBannerHTML(templateMetaFromData(data, today, school))}
+    ${buildTemplateComplianceBannerHTML(templateMeta)}
 
     <div class="ai-generated-content">
-      ${content}
+      ${collapsed.html}
     </div>
 
-    ${buildTemplateFooterHTML(templateMetaFromData(data, today, school))}
+    ${buildTemplateFooterHTML(templateMeta)}
   </div>
 </body>
 </html>`;

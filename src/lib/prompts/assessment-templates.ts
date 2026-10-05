@@ -4,6 +4,9 @@
  */
 
 export const RUBRIC_TEMPLATE = `
+⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
+The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
+
 Generate a comprehensive assessment rubric with this professional structure:
 
 📊 ASSESSMENT RUBRIC TEMPLATE:
@@ -138,6 +141,9 @@ Return as JSON: { "content": "Full complete HTML string for rubric matrix withou
 `;
 
 export const TEST_GENERATOR_TEMPLATE = `
+⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
+The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
+
 Generate a CAPS-aligned test/memorandum with this exam-standard structure:
 
 📝 TEST PAPER TEMPLATE:
@@ -297,6 +303,9 @@ Return as JSON: {
 `;
 
 export const PROGRESS_TRACKER_TEMPLATE = `
+⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
+The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
+
 Generate a learner progress tracking tool with this comprehensive structure:
 
 📈 PROGRESS TRACKER TEMPLATE:

@@ -155,9 +155,8 @@ When JSON is requested, return STRICT JSON with this schema:
 }
 
 When HTML is requested (default for EduAI Companion classroom use):
-- Output complete standalone HTML5 with Tailwind CSS via CDN
-- Include SA flag stripe header (green/gold/black/red/blue)
-- School header with DBE branding
+- Output an HTML body FRAGMENT (content only) with Tailwind CSS classes
+- Do NOT include a flag-stripe header, a school/DBE/EMIS header band, a CAPS reference bar, a formal assessment header, a meta/name-date row or any other band at the top of the document. The host's ONE two-colour vertical gradient banner already carries the school/DBE context, grade, subject, term, content type, date, marks and the CAPS reference — writing them again would duplicate the same data and waste the space that belongs to the learner's work.
 - Do not output compliance stamps or a branded footer; the EduAI host adds one canonical compliance banner and the exact official footer after generation.
 - Differentiation boxes (Core/Extended/Simplified) with WP6 colours
 - SIAS support boxes with teacher notes
@@ -204,7 +203,7 @@ ${request.homeLanguage ? `Home Language: ${request.homeLanguage}` : ""} | LOLT: 
 CAPS Ref: ${request.capsReference || generateCAPSReference(request.subject, request.grade, request.term, request.topic)}
 
 MANDATORY SECTIONS (DBE Lesson Plan Template):
-1. CAPS Reference & ATP Alignment (image prompt for header banner with SA school crest style, flag colours)
+1. CAPS Reference & ATP Alignment (text inside the first content card — the host banner already prints the CAPS reference and the school context; no header band, banner image or crest)
 2. Learning Objectives — 3-5 SMART objectives using Bloom's verbs (tagged with Bloom's level)
 3. Prior Knowledge & Baseline Assessment
 4. Resources / LTSM (Learner Teacher Support Material)
@@ -249,7 +248,7 @@ Applying ~${config.bloomsDistribution.applying}% | Analyzing ~${config.bloomsDis
 Evaluating ~${config.bloomsDistribution.evaluating}% | Creating ~${config.bloomsDistribution.creating}%
 
 STRUCTURE (SA School Branded):
-1. Header — school info placeholder, subject, grade, date (DD/MM/YYYY 2026), marks, time, SA flag stripe (image prompt)
+1. Start straight into the instructions — the school info placeholder, subject, grade, date (DD/MM/YYYY 2026), marks, time and flag stripe are already in the host's ONE banner, so there is no second header band
 2. Instructions — clear, age-appropriate, in ${request.lolt || "English"}${request.homeLanguage ? ` with ${request.homeLanguage} glossary` : ""}
 3. Section A: Short Questions / Knowledge (lower order: Remembering, Understanding) — e.g., MCQ, true/false, matching
 4. Section B: Application (middle order: Applying) — word problems with SA context (Rands, local places)
@@ -287,7 +286,7 @@ Content Type: ${request.contentType}
 LOLT: ${request.lolt || "English"}${request.homeLanguage ? ` | Home Language glossary: ${request.homeLanguage}` : ""}
 
 SECTIONS (SA Branded, Visual-Rich):
-1. Title & CAPS Reference — SA flag stripe, DBE branding (image prompt for SA-themed banner, school crest style)
+1. Title & CAPS Reference — begin with content; the host banner already carries the title, the DBE context and the CAPS reference (no separate banner band, flag stripe header or crest image)
 2. Learning Objectives — SMART, Bloom's tagged
 3. Key Terminology ${request.homeLanguage && request.homeLanguage !== "English" ? `(include ${request.homeLanguage} translations and pronunciation)` : ""} — with illustrations
 4. Core Concepts — chunked, visual hierarchy, image prompt for concept map with ALL labels, SA examples
@@ -347,7 +346,7 @@ MANDATORY ISP SECTIONS (SIAS Policy 2014 — DBE Official Template):
 
 ${commonSAContext}
 Include SA context, culturally sensitive, inclusive language, ubuntu values.
-Generate 1 image prompt for ISP header — professional, inclusive, SA school.
+Generate 1 image prompt for a small inclusive SA-school emblem used INSIDE the content body (the host banner owns the document header, so no top-of-page band).
 
 ${instructorPriority}
 `;
@@ -383,7 +382,7 @@ ${request.includeInclusiveSupport ? `SIAS Level: ${request.siasSupportLevel || "
 ${request.differentiationRequired ? "WP6: Include differentiation strategies per topic." : ""}
 
 ${commonSAContext}
-Generate 1 image for ATP header — SA DBE branded, professional, 2026.
+Generate 1 image for a small SA DBE-branded emblem used INSIDE the content body (the host banner owns the document header, so no top-of-page band).
 Ensure ATP pacing matches current DBE-issued Annual Teaching Plans for ${request.grade} ${request.subject}.
 
 ${instructorPriority}
@@ -399,7 +398,7 @@ Subject: ${request.subject} | Date: DD/MM/YYYY 2026
 School: Placeholder — use SA school branding
 
 STRUCTURE (Official SA School Document):
-1. Official Header — school name, address, contact, EMIS number, district, province, logo placeholder, SA flag stripe (image prompt)
+1. Official header data (school name, address, contact, EMIS number, district, province, logo) is drawn by the host banner — do not repeat it here; start with REF and Date 2026
 2. Reference Number — e.g., REF: ${request.grade}/ADMIN/2026/${request.term}
 3. Date — DD Month YYYY (e.g., 15 June 2026) — Year MUST be 2026
 4. Recipient — To: (e.g., Parents/Guardians of Grade ${request.grade} learners)
@@ -422,7 +421,7 @@ Visual: Professional, clean, print-ready, SA school branding colours (green #007
 Include: Official language, no jargon, accessible to all parents
 
 ${commonSAContext}
-Generate 1 image for official document header — professional seal, SA coat of arms style, school crest.
+Generate 1 image for a small official seal (SA coat of arms style) placed INSIDE the content body — the host banner owns the document header, so do not create a top-of-page image band.
 
 ${instructorPriority}
 `;

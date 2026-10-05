@@ -135,7 +135,7 @@ Output: HTML with Tailwind, diagram container (rounded-2xl, border, shadow), pri
 Create a formal, CAPS-compliant assessment that is visually sophisticated and print-ready.
 
 ASSESSMENT STRUCTURE:
-1. Header: School name placeholder, Subject, Grade, Term, Assessment type, Total marks and duration, Examiner/moderator lines — in a full-width gradient banner (dark text on light vibrant, white text only on deep backgrounds)
+1. NO header band: the host's ONE two-colour vertical gradient banner already prints the school name placeholder, subject, grade, term, assessment type, total marks, duration and the CAPS reference. Keep only the learner fill-in row (Name / Date / Class) and the examiner/moderator signature lines inside the content.
 2. Instructions to Learners: Numbered, time advice, allowed resources, answer presentation
 3. Question Sections:
    Section A: Knowledge/Remembering (20–25%) — definitions, recall, 2–5 marks

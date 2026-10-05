@@ -4,6 +4,9 @@
  */
 
 export const LESSON_PLAN_TEMPLATE = `
+⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
+The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
+
 Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extremely detailed and easy to implement for anyone (even a layman or substitute teacher) with zero preparation.
 
 📋 COGNITIVE LEVEL & EXPLAINABILITY GUIDELINES:
@@ -206,6 +209,9 @@ Return as JSON matching:
 `;
 
 export const REPORT_COMMENT_TEMPLATE = `
+⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
+The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
+
 Generate personalized, strengths-based report card comments with this structure:
 
 📝 REPORT COMMENT TEMPLATE:
@@ -294,6 +300,9 @@ Return as JSON: { "content": "Full complete HTML string for report comments with
 `;
 
 export const CURRICULUM_MAP_TEMPLATE = `
+⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
+The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
+
 Generate a term-long curriculum map with this comprehensive structure:
 
 📅 CURRICULUM MAP TEMPLATE:

@@ -241,7 +241,7 @@ SPECIFIC REQUIREMENTS:
 
 Please generate a complete lesson plan following the exact CAPS structure provided in the system prompt, including:
 
-1. Complete header information
+1. NO header band — the host's ONE two-colour vertical gradient banner (bright colours picked for the content type) already carries the title, school, grade, subject, term, date and CAPS reference; start with the learning objectives
 2. 3-5 specific, measurable learning objectives
 3. Prior knowledge activation strategies
 4. Comprehensive list of resources (teacher and learner)
