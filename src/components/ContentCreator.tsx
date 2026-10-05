@@ -1136,6 +1136,9 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
     const activeGradeStr = f_grade || 'Grade 2';
     const activeLangStr = f_language || 'English';
 
+    const activeTermStr = getCurrentTerm();
+    const todayStr = new Date().toLocaleDateString('en-ZA', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
     try {
       const promptInstructions = `Foundation Phase Interactive Game & Reading Activity.
 Learning Goals: ${activeGoals}
@@ -1143,12 +1146,26 @@ Difficulty Curve: ${activeDifficulty}
 Interaction Mode: ${activeInteractionMode}
 Target Grade: ${activeGradeStr}
 Target Language: ${activeLangStr}
+School Term: ${activeTermStr}
+
+CRITICAL RULES (read carefully — you MUST obey every one):
+1. DO NOT invent, write, or pre-fill ANY learner name. The only acceptable "Name:" line on the activity/worksheet must be a BLANK fill-in line for the learner to write on — use an underline or a dashed border, e.g.
+   <p><strong>Name:</strong> <span class="inline-block border-b-2 border-dashed border-slate-400 min-w-[200px] pb-0.5">&nbsp;</span></p>
+   NEVER write a real or fictional name (e.g. "Thabo", "Amina", "Sipho", "Lerato") next to "Name:" or in a learner-name field — that field MUST be empty.
+2. DO NOT invent or hard-code a specific calendar date (e.g. "12 March 2024", "15/03/2024", "10 October 2025"). If a date line is needed, leave it as a BLANK fill-in field just like the name:
+   <p><strong>Date:</strong> <span class="inline-block border-b-2 border-dashed border-slate-400 min-w-[140px] pb-0.5">&nbsp;</span></p>
+   Do not substitute today's date either — the learner/teacher fills it in.
+3. Do NOT add your own banner, header strip, school letterhead, title block, or "Name/Class/Date" meta block at the top of the page. You MAY include a single "Name: ___  Date: ___" fill-in row inside the body content for the learner to complete, but both blanks must be EMPTY.
+4. Today's real-world date is ${todayStr} and the current SA school term is ${activeTermStr} — use these ONLY inside CAPS-reference text (e.g. "CAPS Foundation Phase — ${activeTermStr}"), never as a pre-filled "Date:" answer.
+5. Fictional names (Thabo, Amina, Sipho, etc.) may ONLY appear inside example sentences, reading passages, or story scenarios — NEVER next to a "Name:" label or in a metadata/learner-info block.
+
 Instructions: Create a complete, engaging CAPS Foundation Phase educational pack and interactive game logic. Include:
 1. Warm-up & Phonemic Awareness / Letter Sound recognition
 2. Core Gameplay Activity (Interactive matching / CVC spelling / word completion)
 3. Step-by-step game mechanics with clear instructions and rewards
 4. Differentiated challenges (Lower Order to Higher Order progression)
-5. Printable activity sheet & Teacher's Observation Checklist.
+5. Printable activity sheet with EMPTY "Name: ___" and "Date: ___" fill-in lines (NO pre-filled names/dates)
+6. Teacher's Observation Checklist.
 Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast, colorful badges, playful emojis, and clear large typography).`;
 
       const result = await generateCAPSContent({
@@ -1158,7 +1175,7 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
         contentType: 'Interactive Foundation Learning Pack',
         language: activeLangStr,
         difficulty: activeDifficulty === 'linear' ? 'Easy (Lower Order Thinking)' : activeDifficulty === 'stepped' ? 'Challenging (Higher Order)' : 'Medium (Mixed)',
-        term: 'Term 1',
+        term: activeTermStr,
         duration: '30 minutes',
         learners: `Foundation Phase Learners (${activeGradeStr})`,
         capsAlignment: 'DBE CAPS Foundation Phase Curriculum Standard',
@@ -1861,7 +1878,7 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
             </div>
           ) : activeTab === 'grade1' ? (
             <div className="max-w-6xl mx-auto">
-              <FoundationPhaseArchitect 
+              <FoundationPhaseArchitect
                 isDarkMode={isDarkMode}
                 teachingResult={teachingResult}
                 isLoading={isGenerating}
@@ -1872,6 +1889,10 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                 onLanguageChange={setF_Language}
                 onBack={() => setActiveTab('teaching')}
                 onClose={onClose}
+                bannerMeta={buildBannerMeta({
+                  subject: f_language,
+                  grade: f_grade,
+                })}
               />
             </div>
           ) : (

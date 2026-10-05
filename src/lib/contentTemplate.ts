@@ -120,6 +120,12 @@ export interface ContentTemplateMeta {
     /** Extra banner footnotes (Bloom's distribution …), pre-escaped. */
     extraNotes?: string[];
     /**
+     * When true, the date pill in the banner is rendered as an empty fill-in
+     * line (_____) instead of today's/current date. Used for learner
+     * worksheets/activity sheets where the learner must write the date in.
+     */
+    leaveDateBlank?: boolean;
+    /**
      * Explicit banner palette id (`worksheet`, `assessment`, `certificate`, …).
      * Normally omitted — the palette is derived from `contentType` — but it
      * lets a caller pin the colours for a document whose type is ambiguous.
@@ -892,10 +898,20 @@ const buildBannerPills = (meta: ContentTemplateMeta): string[] => {
     push(labelCase(meta.subject));
     push(labelCase(meta.contentType));
     push(pillTerm(meta.term));
-    push(normaliseDate(meta.date) || saToday());
+    if (meta.leaveDateBlank) {
+        push('Date: ______');
+    } else {
+        push(normaliseDate(meta.date) || saToday());
+    }
     if (meta.school) push(`School: ${meta.school}`);
     if (meta.teacher) push(`Teacher: ${meta.teacher}`);
-    if (meta.learner) push(`Learner: ${meta.learner}`);
+    if (meta.learner) {
+        push(`Learner: ${meta.learner}`);
+    } else if (meta.leaveDateBlank) {
+        // Learner worksheet: include a blank "Name: ______" pill in the banner
+        // so learners fill it in (never a pre-filled/hallucinated name).
+        push('Name: ______');
+    }
     (meta.extraPills || []).forEach(push);
     return pills;
 };
