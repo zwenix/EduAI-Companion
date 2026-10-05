@@ -479,6 +479,7 @@ export default function Settings({
 
   const [fullName, setFullName] = useState(() => localStorage.getItem('eduai_user_name') || 'Dr. Sarah Mkize');
   const [school, setSchool] = useState(() => localStorage.getItem('eduai_user_school') || 'Houghton Academy');
+  const [className, setClassName] = useState(() => localStorage.getItem('eduai_user_class') || '');
   const [phone, setPhone] = useState(() => localStorage.getItem('eduai_user_phone') || '+27 72 000 0000');
   const [jobTitle, setJobTitle] = useState(() => localStorage.getItem('eduai_user_job') || 'Professional Educator');
   const [photoUrl, setPhotoUrl] = useState(() => localStorage.getItem('eduai_user_photo') || '');
@@ -530,6 +531,7 @@ export default function Settings({
             const data = docSnap.data();
             if (data.name) currentName = data.name;
             if (data.school) setSchool(data.school);
+            if (data.className) setClassName(data.className);
             if (data.phone) setPhone(data.phone);
             if (data.jobTitle) setJobTitle(data.jobTitle);
             if (data.photoUrl) currentPhoto = data.photoUrl;
@@ -583,6 +585,7 @@ export default function Settings({
     // Optimistic UI updates
     localStorage.setItem('eduai_user_name', fullName);
     localStorage.setItem('eduai_user_school', school);
+    localStorage.setItem('eduai_user_class', className);
     localStorage.setItem('eduai_user_phone', phone);
     localStorage.setItem('eduai_user_job', jobTitle);
     localStorage.setItem('eduai_user_photo', photoUrl);
@@ -594,6 +597,7 @@ export default function Settings({
         name: fullName,
         email: profileEmail || auth.currentUser.email || '',
         school: school,
+        className: className,
         jobTitle: jobTitle,
         phone: phone,
         photoUrl: photoUrl,
@@ -842,13 +846,27 @@ export default function Settings({
 
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Full Identity</label>
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Full Name</label>
                          <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold focus:border-brand-cyan transition-all" />
+                      </div>
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">School Name</label>
+                         <input type="text" value={school} onChange={(e) => setSchool(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold focus:border-brand-cyan transition-all" placeholder="e.g. Houghton Primary School" />
+                      </div>
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Class / Grade Taught</label>
+                         <input type="text" value={className} onChange={(e) => setClassName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold focus:border-brand-cyan transition-all" placeholder="e.g. Grade 5B" />
                       </div>
                       <div className="space-y-2">
                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Communication Link</label>
                          <input type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold focus:border-brand-cyan transition-all" />
                       </div>
+                   </div>
+
+                   <div className="flex justify-end pt-4">
+                      <button onClick={handleSavePersonal} className="px-8 py-3 rounded-2xl bg-brand-cyan text-navy-dark font-black text-xs uppercase tracking-widest shadow-lg shadow-cyan-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2">
+                         <Save size={14} /> Save Teacher Profile
+                      </button>
                    </div>
                 </div>
              )}

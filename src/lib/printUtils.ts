@@ -36,6 +36,10 @@ export interface PrintOptions {
     teacher?: string;
     /** Optional learner name — rendered as a pill in the single banner. */
     learner?: string;
+    /** Optional class name — rendered as a "Class: …" pill in the banner. */
+    className?: string;
+    /** Optional extra banner pills. */
+    extraPills?: string[];
 }
 
 /**

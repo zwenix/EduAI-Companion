@@ -1693,16 +1693,22 @@ ${buildTemplateFooterHTML(effectiveMeta)}`.trim();
 
 /** Map the print/export options onto the template metadata. */
 export const metaFromPrintOptions = (
-    options?: { subject?: string; grade?: string; contentType?: string; date?: string; term?: string; school?: string; teacher?: string; learner?: string; title?: string },
+    options?: { subject?: string; grade?: string; contentType?: string; date?: string; term?: string; school?: string; teacher?: string; learner?: string; title?: string; className?: string; extraPills?: string[] },
     title?: string,
-): ContentTemplateMeta => ({
-    title: title || options?.title,
-    subject: options?.subject,
-    grade: options?.grade,
-    term: options?.term,
-    contentType: options?.contentType,
-    date: options?.date,
-    school: options?.school,
-    teacher: options?.teacher,
-    learner: options?.learner,
-});
+): ContentTemplateMeta => {
+    const pills: string[] = [];
+    if (options?.className) pills.push(`Class: ${options.className}`);
+    if (options?.extraPills) pills.push(...options.extraPills);
+    return {
+        title: title || options?.title,
+        subject: options?.subject,
+        grade: options?.grade,
+        term: options?.term,
+        contentType: options?.contentType,
+        date: options?.date,
+        school: options?.school,
+        teacher: options?.teacher,
+        learner: options?.learner,
+        extraPills: pills.length ? pills : undefined,
+    };
+};

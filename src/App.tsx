@@ -515,7 +515,9 @@ export default function App() {
   const [showDashboard, setShowDashboard] = useState(false);
   const [needsRoleSetup, setNeedsRoleSetup] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string>('Leo');
+  const [userName, setUserName] = useState<string>(() => localStorage.getItem('eduai_user_name') || 'Leo');
+  const [teacherSchool, setTeacherSchool] = useState<string>(() => localStorage.getItem('eduai_user_school') || '');
+  const [teacherClass, setTeacherClass] = useState<string>(() => localStorage.getItem('eduai_user_class') || '');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [previousTabs, setPreviousTabs] = useState<string[]>([]);
   // Which Settings subtab to open (used by the profile menu's Password & Security shortcut)
