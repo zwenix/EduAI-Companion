@@ -742,15 +742,18 @@ export default function StudentPortfolio({
   const displayName = studentProfile?.name || studentNameProp || 'Learner';
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div
+      className={cn('space-y-8 animate-in fade-in duration-700', compact && 'teacher-portfolio-vault-content')}
+      data-theme={isDarkMode ? 'dark' : 'light'}
+    >
 
       {/* Hero Section */}
       <div className={cn(
         'relative rounded-[36px] overflow-hidden text-white flex flex-col justify-end border shadow-2xl',
         compact ? 'p-6 lg:p-8 min-h-[190px]' : 'p-8 lg:p-12 min-h-[300px]',
-        // Light/peach themes: keep a solid dark plate so the white display type
-        // never lands on the pale page background (it used to be unreadable).
-        isDarkMode ? 'bg-transparent border-white/10' : 'bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border-slate-700'
+        // Keep the vault hero opaque in every theme; transparent backing let
+        // dashboard artwork and overlays bleed through the portfolio controls.
+        isDarkMode ? 'bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border-cyan-500/30' : 'bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border-slate-700'
       )}>
         <div className="absolute top-0 right-0 p-8 opacity-20 pointer-events-none">
           <Award size={compact ? 120 : 200} />
@@ -760,7 +763,7 @@ export default function StudentPortfolio({
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none mix-blend-overlay" />
 
         <div className="relative z-10 max-w-3xl">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-slate-950/55 backdrop-blur-md px-4 py-1.5 text-sm font-bold text-emerald-300 mb-6 shadow-sm">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-950 px-4 py-1.5 text-sm font-bold text-emerald-300 mb-6 shadow-sm">
             <Trophy size={16} className="text-emerald-400" />
             {canEdit ? 'Academic Portfolio (Teacher Edit)' : 'Academic Portfolio (Read Only)'}
           </motion.div>
@@ -801,7 +804,7 @@ export default function StudentPortfolio({
           </div>
 
           {!canEdit && (
-            <p className="mt-4 inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-amber-200 bg-slate-950/60 border border-amber-400/30 rounded-full px-4 py-2">
+            <p className="mt-4 inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-amber-100 bg-slate-950 border border-amber-400/40 rounded-full px-4 py-2">
               <Lock size={12} /> Read-only — academic portfolios are edited by teachers only
             </p>
           )}
@@ -820,7 +823,7 @@ export default function StudentPortfolio({
             key={stat.label}
             className={cn(
               'p-4 rounded-2xl border flex items-center gap-3',
-              isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'
+              isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200 shadow-sm'
             )}
           >
             <div className={cn('w-10 h-10 rounded-xl border flex items-center justify-center shrink-0', stat.tint)}>
@@ -854,7 +857,7 @@ export default function StudentPortfolio({
                   transition={{ delay: i * 0.06 }}
                   className={cn(
                     'rounded-[32px] p-6 lg:p-8 relative overflow-hidden shadow-xl border hover:scale-[1.02] transition-all group flex flex-col',
-                    isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'
+                    isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'
                   )}
                 >
                   <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${meta.color} opacity-20 rounded-bl-[100px] z-0 transition-transform group-hover:scale-110`} />
@@ -937,7 +940,7 @@ export default function StudentPortfolio({
             aria-label="Filter portfolio items by subject"
             className={cn(
               'flex flex-wrap gap-2 w-full sm:w-auto max-w-full p-2 rounded-2xl border',
-              isDarkMode ? 'bg-slate-950/75 border-cyan-400/20' : 'bg-slate-50 border-slate-300'
+              isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-300'
             )}
           >
             {subjects.map(subj => (
@@ -961,7 +964,7 @@ export default function StudentPortfolio({
           </div>
         </div>
 
-        <div className={cn('rounded-[32px] p-2 overflow-hidden shadow-sm border', isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200')}>
+        <div className={cn('rounded-[32px] p-2 overflow-hidden shadow-sm border', isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200')}>
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-left border-collapse min-w-[640px]">
               <thead>
@@ -1028,8 +1031,8 @@ export default function StudentPortfolio({
                                 className={cn(
                                   'p-2 rounded-lg border-2 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400',
                                   item.featured
-                                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                                    : isDarkMode ? 'bg-white/5 border-white/10 text-slate-400 hover:text-amber-300' : 'bg-slate-100 border-slate-200 text-slate-500 hover:text-amber-600'
+                                    ? 'bg-amber-950 border-amber-700 text-amber-200'
+                                    : isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300 hover:border-amber-400/70 hover:text-amber-200' : 'bg-slate-100 border-slate-200 text-slate-500 hover:text-amber-600'
                                 )}
                               >
                                 <Star size={14} fill={item.featured ? 'currentColor' : 'none'} />
@@ -1087,7 +1090,7 @@ export default function StudentPortfolio({
             <Compass size={22} className="text-purple-400" /> Individual Development Plan (IDP)
           </h2>
           <div className="flex items-center gap-2">
-            <span className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border', isDarkMode ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600')}>
+            <span className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border', isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-600')}>
               <Lock size={11} /> Read-only for learners & parents
             </span>
             {canEdit && onNavigateTab && (
@@ -1102,7 +1105,7 @@ export default function StudentPortfolio({
         </div>
 
         {!idp ? (
-          <div className={cn('p-10 rounded-[28px] border-2 border-dashed text-center space-y-3', isDarkMode ? 'border-white/15 bg-white/[0.03]' : 'border-slate-300 bg-slate-50')}>
+          <div className={cn('p-10 rounded-[28px] border-2 border-dashed text-center space-y-3', isDarkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-300 bg-slate-50')}>
             <GraduationCap size={38} className={cn('mx-auto', isDarkMode ? 'text-slate-500' : 'text-slate-400')} />
             <p className={cn('text-sm font-bold', isDarkMode ? 'text-slate-300' : 'text-slate-700')}>
               No Individual Development Plan has been created for {displayName} yet.
@@ -1116,7 +1119,7 @@ export default function StudentPortfolio({
         ) : (
           <div className="space-y-4">
             {actionPlan.length > 0 && (
-              <div className={cn('p-5 rounded-[28px] border space-y-3', isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm')}>
+              <div className={cn('p-5 rounded-[28px] border space-y-3', isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200 shadow-sm')}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className={cn('text-xs font-black uppercase tracking-widest', isDarkMode ? 'text-slate-300' : 'text-slate-600')}>
                     Action plan progress — {completedMissions} of {actionPlan.length} milestones
@@ -1133,8 +1136,8 @@ export default function StudentPortfolio({
                       className={cn(
                         'p-3 rounded-xl border flex items-start gap-2.5',
                         task.status === 'Completed'
-                          ? isDarkMode ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-emerald-50 border-emerald-200'
-                          : isDarkMode ? 'bg-slate-900/60 border-white/10' : 'bg-slate-50 border-slate-200'
+                          ? isDarkMode ? 'bg-emerald-950 border-emerald-800' : 'bg-emerald-50 border-emerald-200'
+                          : isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'
                       )}
                     >
                       <CheckCircle2 size={16} className={cn('mt-0.5 shrink-0', task.status === 'Completed' ? 'text-emerald-400' : task.status === 'In Progress' ? 'text-sky-400' : 'text-amber-400')} />
@@ -1156,7 +1159,7 @@ export default function StudentPortfolio({
                 { title: 'Focus Areas', icon: Target, tint: 'text-amber-400', list: idp.weaknesses || [], empty: 'No focus areas recorded yet.' },
                 { title: 'Recommendations', icon: Lightbulb, tint: 'text-purple-400', list: idp.recommendations || [], empty: 'No recommendations recorded yet.' }
               ].map(card => (
-                <div key={card.title} className={cn('p-5 rounded-[28px] border space-y-3', isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm')}>
+                <div key={card.title} className={cn('p-5 rounded-[28px] border space-y-3', isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200 shadow-sm')}>
                   <div className="flex items-center gap-2">
                     <card.icon size={17} className={card.tint} />
                     <h3 className={cn('text-sm font-black uppercase tracking-widest', isDarkMode ? 'text-white' : 'text-slate-800')}>{card.title}</h3>
@@ -1178,7 +1181,7 @@ export default function StudentPortfolio({
             </div>
 
             {idp.parentNote && (
-              <div className={cn('p-5 rounded-[28px] border flex items-start gap-3', isDarkMode ? 'bg-pink-500/10 border-pink-500/25' : 'bg-pink-50 border-pink-200')}>
+              <div className={cn('p-5 rounded-[28px] border flex items-start gap-3', isDarkMode ? 'bg-pink-950 border-pink-800' : 'bg-pink-50 border-pink-200')}>
                 <MessageSquareHeart size={20} className="text-pink-400 shrink-0 mt-0.5" />
                 <div>
                   <p className={cn('text-[10px] font-black uppercase tracking-widest mb-1', isDarkMode ? 'text-pink-300' : 'text-pink-700')}>Note from home</p>
@@ -1209,7 +1212,7 @@ export default function StudentPortfolio({
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-2xl bg-[#0b1224] border border-white/15 rounded-[28px] shadow-2xl overflow-hidden"
             >
-              <div className="p-5 border-b border-white/10 flex items-center justify-between bg-slate-900/80">
+              <div className="p-5 border-b border-slate-700 flex items-center justify-between bg-slate-900">
                 <div>
                   <h3 className="text-lg font-black font-display text-white flex items-center gap-2">
                     {editingId ? <Pencil size={17} className="text-cyan-400" /> : <Plus size={17} className="text-cyan-400" />}
@@ -1217,7 +1220,7 @@ export default function StudentPortfolio({
                   </h3>
                   <p className="text-[11px] text-slate-400 mt-0.5">For {displayName} • saved to the learner's academic portfolio</p>
                 </div>
-                <button onClick={() => setEditorOpen(false)} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-all cursor-pointer">
+                <button onClick={() => setEditorOpen(false)} className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-all cursor-pointer border border-slate-600">
                   <X size={16} />
                 </button>
               </div>
@@ -1240,10 +1243,19 @@ export default function StudentPortfolio({
                       aria-label="Portfolio item type"
                       value={form.type}
                       onChange={(e) => setForm({ ...form, type: e.target.value as PortfolioItemType })}
-                      style={{ colorScheme: 'dark' }}
-                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border-2 border-slate-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer"
+                      style={{ colorScheme: 'dark', backgroundColor: '#0b1224', color: '#f8fafc', opacity: 1 }}
+                      className="w-full px-4 py-3 rounded-xl bg-[#0b1224] border-2 border-slate-600 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer"
                     >
-                      {TYPE_OPTIONS.map(t => <option key={t} value={t} className="bg-slate-900 text-white">{TYPE_META[t].label}</option>)}
+                      {TYPE_OPTIONS.map(t => (
+                        <option
+                          key={t}
+                          value={t}
+                          style={{ backgroundColor: '#0b1224', color: '#f8fafc', opacity: 1 }}
+                          className="bg-[#0b1224] text-white"
+                        >
+                          {TYPE_META[t].label}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -1301,8 +1313,8 @@ export default function StudentPortfolio({
                   className={cn(
                     'w-full p-3.5 rounded-xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer',
                     form.featured
-                      ? 'bg-amber-500/20 border-amber-400/50 text-amber-200'
-                      : 'bg-slate-900 border-white/15 text-slate-300 hover:bg-white/10'
+                      ? 'bg-amber-950 border-amber-700 text-amber-100'
+                      : 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800 hover:border-cyan-500/60'
                   )}
                 >
                   <span className="flex items-center gap-2">
@@ -1312,8 +1324,8 @@ export default function StudentPortfolio({
                 </button>
               </div>
 
-              <div className="p-5 border-t border-white/10 flex items-center justify-end gap-3 bg-slate-900/60">
-                <button onClick={() => setEditorOpen(false)} className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-black uppercase tracking-wider transition-all cursor-pointer">
+              <div className="p-5 border-t border-slate-700 flex items-center justify-end gap-3 bg-slate-900">
+                <button onClick={() => setEditorOpen(false)} className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-black uppercase tracking-wider transition-all cursor-pointer border border-slate-600">
                   Cancel
                 </button>
                 <button
@@ -1352,7 +1364,7 @@ export default function StudentPortfolio({
                 "<span className="font-bold text-white">{confirmDelete.title}</span>" will be removed from {displayName}'s academic portfolio for learners and parents too.
               </p>
               <div className="flex justify-end gap-3 pt-1">
-                <button onClick={() => setConfirmDelete(null)} className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-black uppercase tracking-wider cursor-pointer">Keep</button>
+                <button onClick={() => setConfirmDelete(null)} className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-black uppercase tracking-wider cursor-pointer border border-slate-600">Keep</button>
                 <button onClick={() => handleDeleteItem(confirmDelete)} className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black uppercase tracking-wider cursor-pointer">Remove</button>
               </div>
             </motion.div>
