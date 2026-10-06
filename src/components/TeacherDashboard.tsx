@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../lib/firebase';
-import { collection, addDoc, serverTimestamp, query, onSnapshot, where } from 'firebase/firestore';
+import { collection, addDoc, doc, serverTimestamp, query, onSnapshot, updateDoc, where } from 'firebase/firestore';
 import { 
   ShieldAlert, 
   Bell, 
@@ -281,6 +281,35 @@ interface StudentNode {
   recentAlert: string;
 }
 
+interface TeacherAlert {
+  id: string;
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: any;
+}
+
+function alertTimestampMillis(value: any): number {
+  if (!value) return 0;
+  if (typeof value.toDate === 'function') return value.toDate().getTime() || 0;
+  if (typeof value.seconds === 'number') return value.seconds * 1000;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function alertAgeLabel(value: any): string {
+  const timestamp = alertTimestampMillis(value);
+  if (!timestamp) return 'Just now';
+  const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60_000));
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(timestamp).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' });
+}
+
 const studentsData: StudentNode[] = [
   { 
     name: 'Gerneath', 
@@ -439,6 +468,9 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
   const [liveStudents, setLiveStudents] = useState<any[]>([]);
   const [liveInterventions, setLiveInterventions] = useState<any[]>([]);
+  const [liveAlerts, setLiveAlerts] = useState<TeacherAlert[]>([]);
+  const [alertFeedStatus, setAlertFeedStatus] = useState<'loading' | 'live' | 'offline' | 'idle'>('loading');
+  const [alertFeedView, setAlertFeedView] = useState<'latest' | 'unread'>('latest');
 
   // Submissions state for Grading Overview
   const [submissions, setSubmissions] = useState<any[]>([]);
@@ -453,13 +485,17 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
     let unsubSt: (() => void) | null = null;
     let unsubSub: (() => void) | null = null;
     let unsubInt: (() => void) | null = null;
+    let unsubAlerts: (() => void) | null = null;
 
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
       if (unsubSt) { unsubSt(); unsubSt = null; }
       if (unsubSub) { unsubSub(); unsubSub = null; }
       if (unsubInt) { unsubInt(); unsubInt = null; }
+      if (unsubAlerts) { unsubAlerts(); unsubAlerts = null; }
 
       if (user) {
+        setLiveAlerts([]);
+        setAlertFeedStatus('loading');
         const qSt = query(collection(db, 'students'), where('teacherId', '==', user.uid));
         unsubSt = onSnapshot(qSt, (snap) => {
           if (!snap.empty) {
@@ -498,6 +534,32 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             console.warn("Interventions local mirror unavailable:", localErr);
           }
         });
+
+        // Notifications use the same per-user feed as the global alert center.
+        // Sort client-side so the dashboard does not require an extra Firestore index.
+        const qAlerts = query(collection(db, 'notifications'), where('userId', '==', user.uid));
+        unsubAlerts = onSnapshot(qAlerts, (snap) => {
+          const alerts = snap.docs
+            .map(d => {
+              const data = d.data() as any;
+              return {
+                id: d.id,
+                title: data.title || 'School alert',
+                message: data.message || data.body || '',
+                read: data.read === true,
+                createdAt: data.createdAt || data.timestamp || null,
+              } as TeacherAlert;
+            })
+            .sort((a, b) => alertTimestampMillis(b.createdAt) - alertTimestampMillis(a.createdAt));
+          setLiveAlerts(alerts);
+          setAlertFeedStatus('live');
+        }, (err) => {
+          console.warn('Teacher dashboard alerts sync err:', err);
+          setAlertFeedStatus('offline');
+        });
+      } else {
+        setLiveAlerts([]);
+        setAlertFeedStatus('idle');
       }
     });
 
@@ -506,8 +568,27 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
       if (unsubSt) unsubSt();
       if (unsubSub) unsubSub();
       if (unsubInt) unsubInt();
+      if (unsubAlerts) unsubAlerts();
     };
   }, []);
+
+  const unreadAlertCount = React.useMemo(
+    () => liveAlerts.filter(alert => !alert.read).length,
+    [liveAlerts]
+  );
+  const visibleAlerts = React.useMemo(() => {
+    const source = alertFeedView === 'unread' ? liveAlerts.filter(alert => !alert.read) : liveAlerts;
+    return source.slice(0, 3);
+  }, [alertFeedView, liveAlerts]);
+
+  const markDashboardAlertAsRead = async (alertId: string) => {
+    try {
+      await updateDoc(doc(db, 'notifications', alertId), { read: true });
+    } catch (error) {
+      console.warn('Unable to mark dashboard alert as read:', error);
+      triggerToast('Could not update this alert. Please try again.', 'error');
+    }
+  };
 
   const allSubmissionsList = React.useMemo(() => {
     return submissions;
@@ -701,7 +782,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         </div>
 
         {/* Quick Functions Deck (Icon-based & Interactive) */}
-        <div className="pt-6 border-t border-white/5 space-y-4">
+        <div className="relative z-10 p-4 md:p-5 rounded-[24px] border border-cyan-300/25 bg-slate-950/80 shadow-[0_12px_28px_rgba(2,6,23,0.45),0_0_20px_rgba(6,182,212,0.12)] space-y-4">
           <div className="flex items-center gap-2">
             <Zap size={16} className="text-amber-400 animate-pulse" />
             <h4 className="text-xs font-black tracking-widest text-slate-300 uppercase">
@@ -709,14 +790,14 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
             </h4>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-7 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
             
             {/* Action 1: Create Lesson */}
             <motion.button 
               whileHover={{ y: -4, scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => onNavigate('teaching', 'lesson-planning')}
-              className="p-3.5 rounded-[20px] bg-slate-900/95 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+              className="p-3.5 rounded-[20px] bg-slate-950/90 border-cyan-400/45 shadow-[0_0_16px_rgba(6,182,212,0.20),inset_0_0_12px_rgba(6,182,212,0.06)] hover:bg-cyan-950/80 hover:border-cyan-300/85 hover:shadow-[0_0_24px_rgba(6,182,212,0.42)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 border flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
             >
               <div className="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-400/25 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(6,182,212,0.15)]">
                 <Plus size={18} />
@@ -731,7 +812,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               whileHover={{ y: -4, scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => onNavigate('ocr', 'intelligence-ai')}
-              className="p-3.5 rounded-[20px] bg-slate-900/95 hover:bg-purple-500/10 border border-white/5 hover:border-purple-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+              className="p-3.5 rounded-[20px] bg-slate-950/90 border-purple-400/45 shadow-[0_0_16px_rgba(168,85,247,0.20),inset_0_0_12px_rgba(168,85,247,0.06)] hover:bg-purple-950/80 hover:border-purple-300/85 hover:shadow-[0_0_24px_rgba(168,85,247,0.42)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-300/70 border flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
             >
               <div className="w-10 h-10 rounded-full bg-purple-500/10 border border-purple-400/25 text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(168,85,247,0.15)]">
                 <Scan size={18} />
@@ -746,7 +827,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               whileHover={{ y: -4, scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => setIsBroadcastModalOpen(true)}
-              className="p-3.5 rounded-[20px] bg-slate-900/95 hover:bg-pink-500/10 border border-white/5 hover:border-pink-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+              className="p-3.5 rounded-[20px] bg-slate-950/90 border-pink-400/45 shadow-[0_0_16px_rgba(236,72,153,0.20),inset_0_0_12px_rgba(236,72,153,0.06)] hover:bg-pink-950/80 hover:border-pink-300/85 hover:shadow-[0_0_24px_rgba(236,72,153,0.42)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-300/70 border flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
             >
               <div className="w-10 h-10 rounded-full bg-pink-500/10 border border-pink-400/25 text-pink-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(236,72,153,0.15)]">
                 <Bell size={18} />
@@ -761,7 +842,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               whileHover={{ y: -4, scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => onNavigate('class-management', 'class-management')}
-              className="p-3.5 rounded-[20px] bg-slate-900/95 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+              className="p-3.5 rounded-[20px] bg-slate-950/90 border-emerald-400/45 shadow-[0_0_16px_rgba(16,185,129,0.20),inset_0_0_12px_rgba(16,185,129,0.06)] hover:bg-emerald-950/80 hover:border-emerald-300/85 hover:shadow-[0_0_24px_rgba(16,185,129,0.42)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70 border flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
             >
               <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-400/25 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(16,185,129,0.15)]">
                 <UserCheck size={18} />
@@ -776,7 +857,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               whileHover={{ y: -4, scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => onNavigate('learner-intervention', 'class-management')}
-              className="p-3.5 rounded-[20px] bg-slate-900/95 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+              className="p-3.5 rounded-[20px] bg-slate-950/90 border-cyan-400/45 shadow-[0_0_16px_rgba(6,182,212,0.20),inset_0_0_12px_rgba(6,182,212,0.06)] hover:bg-cyan-950/80 hover:border-cyan-300/85 hover:shadow-[0_0_24px_rgba(6,182,212,0.42)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 border flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
             >
               <div className="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-400/25 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(6,182,212,0.15)]">
                 <HeartHandshake size={18} />
@@ -791,7 +872,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               whileHover={{ y: -4, scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => onNavigate('reports', 'class-analytics')}
-              className="p-3.5 rounded-[20px] bg-slate-900/95 hover:bg-amber-500/10 border border-white/5 hover:border-amber-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+              className="p-3.5 rounded-[20px] bg-slate-950/90 border-amber-400/45 shadow-[0_0_16px_rgba(245,158,11,0.20),inset_0_0_12px_rgba(245,158,11,0.06)] hover:bg-amber-950/80 hover:border-amber-300/85 hover:shadow-[0_0_24px_rgba(245,158,11,0.42)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70 border flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
             >
               <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-400/25 text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(245,158,11,0.15)]">
                 <TrendingUp size={18} />
@@ -806,7 +887,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               whileHover={{ y: -4, scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => onNavigate('archive', 'lesson-planning')}
-              className="p-3.5 rounded-[20px] bg-slate-900/95 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+              className="p-3.5 rounded-[20px] bg-slate-950/90 border-cyan-400/45 shadow-[0_0_16px_rgba(6,182,212,0.20),inset_0_0_12px_rgba(6,182,212,0.06)] hover:bg-cyan-950/80 hover:border-cyan-300/85 hover:shadow-[0_0_24px_rgba(6,182,212,0.42)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 border flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
             >
               <div className="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-400/25 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(6,182,212,0.15)]">
                 <BookOpen size={18} />
@@ -821,7 +902,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               whileHover={{ y: -4, scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => onNavigate('weekly-planner', 'lesson-planning')}
-              className="p-3.5 rounded-[20px] bg-slate-900/95 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-400/30 flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
+              className="p-3.5 rounded-[20px] bg-slate-950/90 border-emerald-400/45 shadow-[0_0_16px_rgba(16,185,129,0.20),inset_0_0_12px_rgba(16,185,129,0.06)] hover:bg-emerald-950/80 hover:border-emerald-300/85 hover:shadow-[0_0_24px_rgba(16,185,129,0.42)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70 border flex flex-col items-center gap-2.5 transition-all text-center group cursor-pointer"
             >
               <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-400/25 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(16,185,129,0.15)]">
                 <Calendar size={18} />
@@ -834,6 +915,109 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
           </div>
         </div>
       </motion.div>
+
+      {/* Live teacher alert feed */}
+      <motion.section variants={itemVariants} aria-labelledby="teacher-live-alerts-title" className="relative z-10">
+        <div className="rounded-[28px] border border-cyan-400/25 bg-slate-950/90 p-4 md:p-5 shadow-[0_14px_34px_rgba(2,6,23,0.42),0_0_24px_rgba(6,182,212,0.08)]">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="w-11 h-11 rounded-2xl shrink-0 flex items-center justify-center border border-cyan-300/30 bg-cyan-500/15 text-cyan-300 shadow-[0_0_18px_rgba(6,182,212,0.18)]">
+                <Bell size={19} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 id="teacher-live-alerts-title" className="text-lg font-display font-black text-white tracking-wide">Latest & unread alerts</h2>
+                  <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 border border-cyan-400/25 bg-cyan-500/10 text-[9px] font-black uppercase tracking-widest text-cyan-200">
+                    <span className={cn('w-1.5 h-1.5 rounded-full', alertFeedStatus === 'live' ? 'bg-emerald-400 animate-pulse' : alertFeedStatus === 'offline' ? 'bg-amber-400' : 'bg-slate-500')} />
+                    {alertFeedStatus === 'live' ? 'Live feed' : alertFeedStatus === 'offline' ? 'Sync paused' : alertFeedStatus === 'loading' ? 'Connecting' : 'Account offline'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">New notifications appear here as they arrive. Unread items stay highlighted until cleared.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-pink-400/25 bg-pink-500/10 text-pink-200 text-[10px] font-black uppercase tracking-widest">
+                <ShieldAlert size={13} /> {unreadAlertCount} unread
+              </span>
+              <div role="group" aria-label="Choose alerts to show" className="inline-flex items-center gap-1 p-1 rounded-xl border border-white/10 bg-slate-900/80">
+                <button
+                  type="button"
+                  aria-pressed={alertFeedView === 'latest'}
+                  onClick={() => setAlertFeedView('latest')}
+                  className={cn('px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70', alertFeedView === 'latest' ? 'bg-cyan-400 text-slate-950 shadow-[0_0_14px_rgba(6,182,212,0.3)]' : 'text-slate-300 hover:text-white hover:bg-white/5')}
+                >
+                  Latest
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={alertFeedView === 'unread'}
+                  onClick={() => setAlertFeedView('unread')}
+                  className={cn('px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70', alertFeedView === 'unread' ? 'bg-pink-400 text-slate-950 shadow-[0_0_14px_rgba(236,72,153,0.28)]' : 'text-slate-300 hover:text-white hover:bg-white/5')}
+                >
+                  Unread
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigate('alerts')}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-cyan-400/35 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-100 text-[10px] font-black uppercase tracking-wider transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70"
+              >
+                Alert center <ArrowRight size={13} />
+              </button>
+            </div>
+          </div>
+
+          <div aria-live="polite" className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-3">
+            {visibleAlerts.length > 0 ? visibleAlerts.map(alert => (
+              <div
+                key={alert.id}
+                className={cn(
+                  'min-w-0 flex items-start gap-3 rounded-2xl p-3.5 border transition-colors',
+                  alert.read
+                    ? 'bg-slate-900/75 border-white/10'
+                    : 'bg-cyan-950/50 border-cyan-300/35 shadow-[0_0_18px_rgba(6,182,212,0.10)]'
+                )}
+              >
+                <div className={cn('w-8 h-8 rounded-xl shrink-0 flex items-center justify-center border', alert.read ? 'bg-slate-800 border-white/10 text-slate-400' : 'bg-cyan-500/15 border-cyan-300/25 text-cyan-200')}>
+                  {alert.read ? <CheckCircle2 size={15} /> : <ShieldAlert size={15} />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-xs font-black leading-snug text-white line-clamp-2">{alert.title}</p>
+                    <span className={cn('shrink-0 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border', alert.read ? 'bg-slate-800 border-white/10 text-slate-400' : 'bg-pink-500/15 border-pink-400/25 text-pink-200')}>
+                      {alert.read ? 'Read' : 'Unread'}
+                    </span>
+                  </div>
+                  {alert.message && <p className="mt-1.5 text-[10px] leading-relaxed text-slate-300 line-clamp-2">{alert.message}</p>}
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-slate-500">
+                      <Clock size={10} /> {alertAgeLabel(alert.createdAt)}
+                    </span>
+                    {!alert.read && (
+                      <button
+                        type="button"
+                        onClick={() => markDashboardAlertAsRead(alert.id)}
+                        aria-label={`Mark ${alert.title} as read`}
+                        className="px-2 py-1 rounded-lg border border-cyan-400/25 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-200 text-[9px] font-black uppercase tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70"
+                      >
+                        Mark read
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div className="lg:col-span-3 rounded-2xl border border-dashed border-white/15 bg-slate-900/55 px-4 py-6 text-center">
+                <CheckCircle2 size={22} className="mx-auto mb-2 text-emerald-400" />
+                <p className="text-xs font-bold text-slate-200">
+                  {alertFeedStatus === 'loading' ? 'Connecting to your alert feed…' : alertFeedStatus === 'offline' ? 'Alerts could not sync right now.' : alertFeedView === 'unread' ? 'You are all caught up — no unread alerts.' : alertFeedStatus === 'idle' ? 'Sign in to load your latest alerts.' : 'No alerts in your feed yet.'}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.section>
 
       {/* 2.5. Academic Command Center & Insights (Moved to position below TEACHING command center) */}
       <motion.div variants={itemVariants} className="space-y-6">
@@ -1625,7 +1809,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
               initial={{ opacity: 0, scale: 0.85, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.85, y: 15 }}
-              className="flex flex-col gap-3.5 items-end mb-1"
+              className="relative z-40 flex flex-col gap-3 items-end p-3.5 mb-1 rounded-[28px] border border-cyan-300/30 bg-slate-950/95 shadow-[0_0_26px_rgba(6,182,212,0.16)] backdrop-blur-xl"
             >
               {/* Action 1: Generate Lesson */}
               <motion.button
@@ -1636,7 +1820,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
                   triggerToast('Opening CAPS Content Factory...', 'info');
                   setIsQuickActionsOpen(false);
                 }}
-                className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-transparent border-2 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.3)] text-white text-xs font-black tracking-wide uppercase group cursor-pointer"
+                className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-slate-900/95 hover:bg-cyan-950/85 border-2 border-cyan-400/65 hover:border-cyan-200 shadow-[0_0_18px_rgba(6,182,212,0.32)] hover:shadow-[0_0_28px_rgba(6,182,212,0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 text-white text-xs font-black tracking-wide uppercase group cursor-pointer transition-all"
               >
                 <div className="p-1.5 rounded-xl bg-cyan-500/15 text-cyan-400 group-hover:rotate-12 transition-transform">
                   <Sparkles size={14} />
@@ -1653,7 +1837,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
                   triggerToast('Launching Teacher\'s Auto-Grading Lab...', 'info');
                   setIsQuickActionsOpen(false);
                 }}
-                className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-transparent border-2 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.3)] text-white text-xs font-black tracking-wide uppercase group cursor-pointer"
+                className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-slate-900/95 hover:bg-emerald-950/85 border-2 border-emerald-400/65 hover:border-emerald-200 shadow-[0_0_18px_rgba(16,185,129,0.32)] hover:shadow-[0_0_28px_rgba(16,185,129,0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 text-white text-xs font-black tracking-wide uppercase group cursor-pointer transition-all"
               >
                 <div className="p-1.5 rounded-xl bg-emerald-500/15 text-emerald-400 group-hover:scale-110 transition-transform">
                   <Scan size={14} />
@@ -1670,7 +1854,7 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
                   triggerToast('Opening Classrooms Manager to assign homework...', 'info');
                   setIsQuickActionsOpen(false);
                 }}
-                className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-transparent border-2 border-pink-500/50 shadow-[0_0_15px_rgba(236,72,153,0.3)] text-white text-xs font-black tracking-wide uppercase group cursor-pointer"
+                className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-slate-900/95 hover:bg-pink-950/85 border-2 border-pink-400/65 hover:border-pink-200 shadow-[0_0_18px_rgba(236,72,153,0.32)] hover:shadow-[0_0_28px_rgba(236,72,153,0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-200 text-white text-xs font-black tracking-wide uppercase group cursor-pointer transition-all"
               >
                 <div className="p-1.5 rounded-xl bg-pink-500/15 text-pink-400 group-hover:-rotate-12 transition-transform">
                   <ClipboardCheck size={14} />
@@ -1686,6 +1870,9 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
         <motion.button
           whileHover={{ scale: 1.1, rotate: isQuickActionsOpen ? 90 : 0 }}
           whileTap={{ scale: 0.9 }}
+          type="button"
+          aria-label={isQuickActionsOpen ? 'Close quick actions' : 'Open quick actions'}
+          aria-expanded={isQuickActionsOpen}
           onClick={() => setIsQuickActionsOpen(!isQuickActionsOpen)}
           className={cn(
             "w-14 h-14 rounded-full flex items-center justify-center border-2 shadow-2xl cursor-pointer relative z-50 text-white transition-colors duration-300",

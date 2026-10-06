@@ -8,13 +8,12 @@ import {
   runTextGrade as geminiTextGrade,
   chatWithTutor as geminiChat,
   MASTER_SYSTEM_PROMPT,
-  IMAGE_PROMPT_GOLDEN_RULE,
   safeJsonParse
 } from './geminiService';
 
 import { callMultiAi, performOCR, AIProvider } from './multiAiService';
 import { EduAIPromptEngine } from '../lib/prompt-engine';
-import { buildInstructorPriority, EDUCATIONAL_IMAGE_STYLE } from '../lib/prompt-priority';
+import { buildAdminLabPrompts, buildVisualLabPrompts } from '../lib/prompts/lab-prompts';
 
 const isProviderFailure = (error: any): boolean => {
   const status = error.response?.status || error.status;
@@ -171,121 +170,22 @@ export const generateVisualAid = async (input: any, provider: string = 'gemini',
       }
     }
   }
-  
-  const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nThe 'content' field in your JSON response MUST be stunningly designed HTML with Tailwind CSS. DO NOT use generic Markdown.`;
-  const isPoster = input.visualType?.toLowerCase().includes('poster');
-  const isInfographic = input.visualType?.toLowerCase().includes('infographic') || input.visualType?.toLowerCase().includes('mind map');
-  const isLessonDisplay = input.visualType?.toLowerCase().includes('display') || input.visualType?.toLowerCase().includes('chart') || input.visualType?.toLowerCase().includes('wall') || input.visualType?.toLowerCase().includes('lesson display');
-  const isDiagram = input.visualType?.toLowerCase().includes('diagram');
-  const isFlashcard = input.visualType?.toLowerCase().includes('flashcard') || input.visualType?.toLowerCase().includes('learning card');
 
-  let visualPrompt = "";
-  if (isPoster) {
-    visualPrompt = `
-      Create an exceptionally polished, high-resolution educational poster layout on the CAPS topic: "${input.topic}" for South African Grade ${input.grade} ${input.subject} classrooms.
-      
-      CRITICAL RULE: DO NOT generate quiz questions, exam exercises, worksheets, homework, fill-in-the-blanks, or assessment tasks. This is exclusively a visual teaching aid.
-      
-      AESTHETICS & STRUCTURE SPECIFICATION:
-      1. Clean Visual Hierarchy: Establish a clear flow from the top down. Use a generous, modern header banner, well-spaced bento-grid sections, and an impressive footer.
-      2. Minimalist Vector Style: Keep illustrations, icons, and layout clean, elegant, and modern. Avoid chaotic overlays, noisy gradients, or over-rendered elements.
-      3. Color Palette: Use a cohesive, premium palette of 3-4 professional colors (e.g., deep slate blue, warm terracotta accent, clean cream background). Avoid neon rainbow noise.
-      4. Central Visual Component: A spectacular, high-resolution hero section featuring a minimalist vector style illustration portraying "${input.topic}" in a clean, professional manner (e.g., [Illustration: ${input.topic} depicted in an elegant, clean South African context]).
-      5. Content Blocks: Present key concepts inside elegantly spaced card containers (rounded-2xl, subtle border, shadow) with large beautifully tracking headers, concise bullet points (4-8 words), and relevant emojis.
-      
-      Ensure every element is crisp, accessible, and ready for immediate high-resolution classroom display printing.
-    `;
-  } else if (isInfographic) {
-    visualPrompt = `
-      Design an incredibly structured, premium academic infographic on the CAPS topic: "${input.topic}" for South African Grade ${input.grade} ${input.subject} classrooms.
-      
-      CRITICAL RULE: DO NOT generate homework, questions, assessment exercises, or study guides with dense text. Focus on graphics, statistics, and high-impact visual layouts.
-      
-      AESTHETICS & STRUCTURE SPECIFICATION:
-      1. High-Resolution Educational Poster Layout: Organize complex theories into a dual-column matrix or an asymmetrical bento grid structure.
-      2. Minimalist Vector Style: Icons, graphics, charts, and mascots must be styled as modern flat minimalist vector graphics with clean outlines and balanced negative space.
-      3. Clean Visual Hierarchy: Guide the eye with clean numbered points, bold colored accents, distinct callout panels (rounded-xl), and elegant divider ribbons.
-      4. Concept breakdown: Each section must feature a descriptive visual mockup placeholder (e.g., [Illustration: Clean vector infographic icon of key concept]) alongside hyper-concise capsule bullet facts.
-      5. Visual Anchors: Include a striking comparison matrix or a centered concentric diagram showing relationships cleanly.
-      
-      The final product must be highly instructive, visually mesmerizing, and optimized for classroom display.
-    `;
-  } else if (isLessonDisplay) {
-    visualPrompt = `
-      Design a stunning, high-resolution visual Lesson Display / Anchor Chart on the CAPS topic: "${input.topic}" for South African Grade ${input.grade} ${input.subject} classrooms.
-      
-      CRITICAL RULE: This is a permanent reference display, not a quiz or activity workbook. Ensure zero assessment activities or worksheet blocks.
-      
-      AESTHETICS & STRUCTURE SPECIFICATION:
-      1. High-Resolution Educational Poster Layout: Style this as a full-screen, landscape or portrait anchor chart. Frame it with a bold, professional border and a large chalkboard-style or modern minimalist header.
-      2. Clean Visual Hierarchy: Create high-contrast floating keyword cards, word-wall cards, or step-by-step process paths. Use beautiful, generous negative space so keywords stand out clearly at a distance of 5 meters.
-      3. Minimalist Vector Style: All diagram lines, connecting arrows, indicators, and background grids must use a sleek, modern minimalist vector style.
-      4. Primary Focal Point: Frame a central diagram representing the core mechanism of "${input.topic}" (using clean labeled lines, e.g., pointing out labels like "ROOT", "PHOTOSYNTHESIS", "REACTIONS" in stark white backgrounds with crisp shadows).
-      5. Vocabulary Anchors: Highlight 4-6 key term definition cards, beautifully styled with dashed colored borders, a neat custom emoji, and single-sentence explanations.
-      
-      Make it visually inspiring, clean, and perfectly suited for prominent display on classroom bulletin boards or digital visual screens.
-    `;
-  } else if (isFlashcard) {
-    visualPrompt = `
-      Design a set of professional, double-sided visual educational flashcards for South African Grade ${input.grade} ${input.subject} on "${input.topic}".
-      
-      DESIGN REQUIREMENTS:
-      - Grid Layout: Show multiple cards in a beautifully aligned grid (2 or 3 per row).
-      - Each card must have:
-        - Front side: Large bold title, a delightful custom icon or emoji, and a quick catchy hint or question.
-        - Back side: Clear conceptual explanation, a South African contextual/CAPS example, and a small fun "Did you know?" fact box.
-      - Aesthetics: Rounded-3xl corners (at least 24px), thick colored outlines (3px solid border that changes color per card), and micro shadow depth.
-      - Use rich, vibrant background gradients or clean high-contrast card themes. Text must be large and instantly legible.
-    `;
-  } else if (isDiagram) {
-    visualPrompt = `
-      Create a crystal-clear, beautifully illustrated scientific diagram of "${input.topic}" specifically adapted for South African Grade ${input.grade} ${input.subject} learners.
-      
-      CRITICAL: This is a teaching demonstration visual aid. DO NOT write worksheet questions, exercises, or tests.
-      
-      DIAGRAM ARCHITECTURE:
-      - Flow & Layout: Set against a highly realistic, vibrant South African biome / context (e.g. water cycles over the Drakensberg mountains, food webs of the Kruger savanna, or plant cell structure featuring indigenous fynbos/Proteas).
-      - Connections: Draw bright, stylized, high-contrast flowing directional arrows pointing out movement, cycle flow, or ecosystem energy transfers.
-      - Diagram Labels: Place 5-6 crisp, floating educational pointing cards (labels like 'KAROO', 'ALOE ROOT', 'ENERGY FLOW') connected to their targets. Styling: stark white background, rounded border, sharp shadows, and bold scientific monospace/sans-serif fonts.
-      - Key/Legend: Include a small, highly tidy legend card at the bottom right with colorful indicator boxes explaining key parts.
-      - Ensure the diagram looks detailed, professional, and is highly instructive for display.
-    `;
-  } else {
-    visualPrompt = `Create a highly visual display, not a worksheet, for Grade ${input.grade} ${input.subject} on topic ${input.topic}. Ensure it is styled beautifully.`;
-  }
-
-  const instructorPriority = buildInstructorPriority(input.additionalInstructions);
-  const selectedVisualStyle = input.style || EDUCATIONAL_IMAGE_STYLE;
-  const prompt = `
-    ${instructorPriority}
-    ${visualPrompt}
-    Language: ${input.language || 'English'}
-    Selected visual style (supporting default only): ${selectedVisualStyle}
-    Colour scheme (supporting default only): ${input.colorScheme || 'Bright Primary Colors'}
-    Content details (supporting default only): ${input.specificContent || 'Use the instructor brief and topic.'}
-    Quantity (supporting default only): ${input.quantity || 'A complete classroom-ready visual aid'}
-    Image style requirement: ${IMAGE_PROMPT_GOLDEN_RULE}
-    ${input.generateImage ? `Use ${EDUCATIONAL_IMAGE_STYLE} for every illustration placeholder and imagePrompt.` : 'Do not include image placeholders.'}
-    ${instructorPriority}
-
-    Return as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.
-    {
-      "content": "<HTML STRING WITH TAILWIND DESIGN HERE>",
-      "description": "string",
-      "printInstructions": "string",
-      "imagePrompt": "Detailed prompt..."
-    }
-  `;
-
+  const { system, user } = buildVisualLabPrompts(input);
   const messages = [
-    { role: 'system', content: systemInstruction },
-    { role: 'user', content: prompt }
+    { role: 'system', content: system },
+    { role: 'user', content: user }
   ];
   try {
     const response = await callMultiAi(provider as AIProvider, messages);
     const parsed = safeJsonParse(response);
     if (Object.keys(parsed).length === 0) {
-      return { content: response, description: "Visual aid generated", imagePrompt: "Abstract educational graphic" };
+      return {
+        content: response,
+        description: 'Visual aid generated',
+        printInstructions: input.dimensions || 'A4 Portrait',
+        imagePrompt: ''
+      };
     }
     return parsed;
   } catch (error: any) {
@@ -310,43 +210,22 @@ export const generateAdminDoc = async (input: any, provider: string = 'gemini', 
       }
     }
   }
-  
-  const systemInstruction = `${MASTER_SYSTEM_PROMPT}
 
-You are an expert school administrative document and certificate architect.
-Generate a formal ${input.documentType} for ${input.schoolName || 'the school'}.
-The tone should be ${input.tone || 'Formal'}.
-IMPORTANT: The 'content' field MUST be formatted as visually pleasing HTML string styled with Tailwind CSS classes. DO NOT use generic Markdown.
-
-STRICT COMPLIANCE & ZERO-HALLUCINATION MANDATES:
-1. ABSOLUTE METADATA ADHERENCE: You MUST explicitly carry through and display the provided metadata fields: School Name ("${input.schoolName || 'Not specified'}"), Date & Time ("${input.timeDate || 'Not specified'}"), Recipient ("${input.recipient || 'Not specified'}"), Venue ("${input.venue || 'Not specified'}"), Class Teacher ("${input.classTeacher || 'Not specified'}"), and School Principal ("${input.schoolPrincipal || 'Not specified'}"). You are STRICTLY FORBIDDEN from dreaming up, inventing, or hallucinating different dates, times, school names, venues, or people's names.
-2. ZERO QUERIES OR PLACEHOLDERS: Do NOT generate query tags (e.g., "[Query: ...]", "[Insert Date]", "[Date Here]", "[Name Here]") or dummy variables. Every parameter value MUST be permanently rendered into the visible text or signature blocks of the HTML document.
-3. CERTIFICATE MANDATE: When generating certificates (e.g. Academic Achievement, Participation), the Date & Time field ("${input.timeDate || 'Not specified'}") MUST be visibly printed on the certificate body as the date of award or issuance. Do not omit or alter it!`;
-
-  const actionPrompt = (input.additionalInstructions || input.keyPoints || "").trim();
-  let promptParts = [];
-
-  if (actionPrompt.length > 0) {
-    promptParts.push(`### 🚀 ACTION PROMPT SCRIPT (ABSOLUTE HIGHEST PRIORITY DIRECTIVE)\n${actionPrompt}\n\n--------------------------------------------------------------------------------\nThe above Action Prompt Script takes priority over everything else. You must execute this action prompt script first as your primary architectural blueprint and core instruction set.`);
-    
-    promptParts.push(`### 📋 SECONDARY PARAMETERS (TO BE ADDED BELOW AND INTEGRATED FULLY)\nIn terms of importance, the following parameters come after the Action Prompt Script above. However, every single specified parameter below MUST be adhered to and permanently woven into the document/certificate without exception:\nType: ${input.documentType}\nPurpose / Subject: ${input.purpose || 'Not specified'}\nSchool Name: ${input.schoolName || 'Not specified'}\nDate & Time: ${input.timeDate || 'Not specified'}\nRecipient: ${input.recipient || 'Not specified'}\nVenue: ${input.venue || 'Not specified'}\nClass Teacher: ${input.classTeacher || 'Not specified'}\nSchool Principal: ${input.schoolPrincipal || 'Not specified'}\nInclude Reply Slip: ${input.includeReplySlip ? 'Yes' : 'No'}\nLanguage: ${input.language || 'English'}`);
-  } else {
-    promptParts.push(`### 📋 DOCUMENT PARAMETERS & REQUIREMENTS (ALL TOGETHER)\nSince no Action Prompt Script was provided, use all of the following parameters together as the primary instruction set to generate the complete document:\nType: ${input.documentType}\nPurpose / Subject: ${input.purpose || 'Not specified'}\nSchool Name: ${input.schoolName || 'Not specified'}\nDate & Time: ${input.timeDate || 'Not specified'}\nRecipient: ${input.recipient || 'Not specified'}\nVenue: ${input.venue || 'Not specified'}\nClass Teacher: ${input.classTeacher || 'Not specified'}\nSchool Principal: ${input.schoolPrincipal || 'Not specified'}\nInclude Reply Slip: ${input.includeReplySlip ? 'Yes' : 'No'}\nLanguage: ${input.language || 'English'}`);
-  }
-
-  promptParts.push(`### 🛑 STRICT RENDERING COMPLIANCE:\n- Carry through the exact Date & Time ("${input.timeDate || 'Not specified'}") and all parameters into the document body or certificate.\n- Never output query prompts or bracketed placeholders.\n- Adhere strictly to all parameter values.\n\nReturn as a pure JSON object containing ONLY the following keys. DO NOT use backticks (\`) for string values. Always use standard double quotes (") for string values and properly escape any internal double quotes. Do not add any text before or after the JSON.\n{\n  "content": "<HTML STRING WITH TAILWIND DESIGN HERE>",\n  "notes": "string",\n  "documentType": "${input.documentType}",\n  "imagePrompt": "prompt for custom seal or emblem if applicable"\n}`);
-
-  const prompt = promptParts.join("\n\n");
-
+  const { system, user } = buildAdminLabPrompts(input);
   const messages = [
-    { role: 'system', content: systemInstruction },
-    { role: 'user', content: prompt }
+    { role: 'system', content: system },
+    { role: 'user', content: user }
   ];
   try {
     const response = await callMultiAi(provider as AIProvider, messages);
     const parsed = safeJsonParse(response);
     if (Object.keys(parsed).length === 0) {
-      return { content: response, notes: "Please review before sending.", documentType: input.documentType };
+      return {
+        content: response,
+        notes: 'Please review before sending.',
+        documentType: input.documentType || 'School Document',
+        imagePrompt: ''
+      };
     }
     return parsed;
   } catch (error: any) {

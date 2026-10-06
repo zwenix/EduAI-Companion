@@ -16,7 +16,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  ArrowLeft, Award, BookOpen, CheckCircle2, Compass, FileText, FolderOpen,
+  ArrowLeft, Award, BookOpen, CheckCircle2, ChevronDown, Compass, FileText, Filter, FolderOpen,
   GraduationCap, Layers, Lock, Mail, Phone, Search, SortAsc, Trophy,
   Users, HeartHandshake, ClipboardList, Sparkles, BarChart3, Eye
 } from 'lucide-react';
@@ -375,7 +375,7 @@ export default function LearnerPortfolioHub({
   /* Roster                                                            */
   /* ---------------------------------------------------------------- */
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="learner-portfolio-vault space-y-6 animate-in fade-in duration-500" data-theme={isDarkMode ? 'dark' : 'light'}>
 
       {/* HERO */}
       <div className={cn(
@@ -424,7 +424,7 @@ export default function LearnerPortfolioHub({
               { label: 'Portfolio Records', value: Object.values(portfolioCounts).reduce((a, b) => a + (b.items || 0), 0), icon: BookOpen, tint: 'text-emerald-300 bg-emerald-500/10 border-emerald-400/25' },
               { label: 'IDPs Published', value: learnersWithIdp, icon: Compass, tint: 'text-amber-300 bg-amber-500/10 border-amber-400/25' }
             ].map(s => (
-              <div key={s.label} className={cn('p-3.5 rounded-2xl border flex items-center gap-3 bg-slate-950/45', s.tint)}>
+              <div key={s.label} className={cn('p-3.5 rounded-2xl border flex items-center gap-3 bg-slate-950', s.tint)}>
                 <s.icon size={18} />
                 <div>
                   <p className="text-xl font-black leading-none text-white">{s.value}</p>
@@ -438,36 +438,58 @@ export default function LearnerPortfolioHub({
 
       {/* CONTROLS */}
       <div className={cn(
-        'p-4 rounded-[24px] border flex flex-col lg:flex-row lg:items-center gap-4',
-        isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'
+        'portfolio-vault-menu-surface relative z-20 p-4 md:p-5 rounded-[24px] border shadow-lg flex flex-col xl:flex-row xl:items-center gap-4',
+        isDarkMode ? 'bg-[#0b1224] border-cyan-400/35' : 'bg-white border-slate-300 shadow-sm'
       )}>
-        <div className="relative w-full lg:w-80">
-          <Search className={cn('absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4', isDarkMode ? 'text-slate-500' : 'text-slate-400')} />
+        <div className="relative w-full xl:w-80 xl:shrink-0">
+          <Search className={cn('absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4', isDarkMode ? 'text-cyan-300' : 'text-slate-500')} />
           <input
             type="text"
+            aria-label="Search learners by name, class, grade or email"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search learner, class or email…"
             className={cn(
-              'w-full pl-10 pr-4 py-2.5 rounded-xl text-xs font-semibold border focus:outline-none focus:ring-2 focus:ring-cyan-500',
-              isDarkMode ? 'bg-slate-900 border-white/15 text-white placeholder:text-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400'
+              'w-full pl-10 pr-4 py-3 rounded-xl text-xs font-semibold border-2 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all',
+              isDarkMode ? 'bg-slate-900 border-slate-700 text-white placeholder:text-slate-400' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-500'
             )}
           />
         </div>
 
-        <select
-          value={classFilter}
-          onChange={(e) => setClassFilter(e.target.value)}
-          className={cn(
-            'w-full lg:w-56 px-4 py-2.5 rounded-xl text-xs font-semibold border focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer',
-            isDarkMode ? 'bg-slate-900 border-white/15 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
-          )}
-        >
-          {classOptions.map(c => <option key={c} value={c}>{c === 'All' ? 'All classes' : c}</option>)}
-        </select>
+        <div className="relative w-full xl:w-56 xl:shrink-0">
+          <Filter className={cn('absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none', isDarkMode ? 'text-cyan-300' : 'text-slate-500')} />
+          <label htmlFor="learner-portfolio-class-filter" className="sr-only">Filter learners by class</label>
+          <select
+            id="learner-portfolio-class-filter"
+            value={classFilter}
+            onChange={(e) => setClassFilter(e.target.value)}
+            style={{
+              colorScheme: isDarkMode ? 'dark' : 'light',
+              backgroundColor: isDarkMode ? '#0b1224' : '#ffffff',
+              color: isDarkMode ? '#f8fafc' : '#0f172a',
+              opacity: 1
+            }}
+            className={cn(
+              'appearance-none w-full pl-10 pr-10 py-3 rounded-xl text-xs font-bold border-2 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 cursor-pointer transition-all',
+              isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+            )}
+          >
+            {classOptions.map(c => (
+              <option
+                key={c}
+                value={c}
+                style={{ backgroundColor: isDarkMode ? '#0b1224' : '#ffffff', color: isDarkMode ? '#f8fafc' : '#0f172a', opacity: 1 }}
+                className={isDarkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'}
+              >
+                {c === 'All' ? 'All classes' : c}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className={cn('absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none', isDarkMode ? 'text-slate-300' : 'text-slate-500')} />
+        </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={cn('text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5', isDarkMode ? 'text-slate-400' : 'text-slate-500')}>
+        <div role="group" aria-label="Group learner portfolios by" className="flex items-center gap-2 flex-wrap min-w-0">
+          <span className={cn('text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5', isDarkMode ? 'text-slate-300' : 'text-slate-600')}>
             <SortAsc size={13} /> Group by
           </span>
           {([
@@ -477,14 +499,16 @@ export default function LearnerPortfolioHub({
           ]).map(mode => (
             <button
               key={mode.id}
+              type="button"
+              aria-pressed={groupMode === mode.id}
               onClick={() => setGroupMode(mode.id)}
               className={cn(
-                'px-3.5 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider border transition-all cursor-pointer',
+                'px-3.5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border-2 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400',
                 groupMode === mode.id
-                  ? 'bg-cyan-500 text-slate-950 border-cyan-300 shadow-md'
+                  ? 'bg-cyan-400 text-slate-950 border-cyan-200 shadow-[0_0_18px_rgba(6,182,212,0.28)]'
                   : isDarkMode
-                    ? 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
-                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 hover:text-slate-900'
+                    ? 'bg-slate-900 text-slate-200 border-slate-700 hover:border-cyan-400/60 hover:text-white'
+                    : 'bg-slate-50 text-slate-700 border-slate-300 hover:border-cyan-500 hover:text-slate-950'
               )}
             >
               {mode.label}
@@ -492,7 +516,7 @@ export default function LearnerPortfolioHub({
           ))}
         </div>
 
-        <div className="lg:ml-auto">
+        <div className="xl:ml-auto shrink-0">
           <span className={cn('text-[11px] font-bold', isDarkMode ? 'text-slate-400' : 'text-slate-500')}>
             Showing <span className={cn('font-black', isDarkMode ? 'text-white' : 'text-slate-900')}>{filtered.length}</span> of {learners.length} learners
             {totalFeatured > 0 && <> • <span className="text-amber-400 font-black">{totalFeatured}</span> featured</>}
@@ -502,7 +526,7 @@ export default function LearnerPortfolioHub({
 
       {/* GROUPED ROSTER */}
       {filtered.length === 0 ? (
-        <div className={cn('p-14 rounded-[28px] border-2 border-dashed text-center space-y-3', isDarkMode ? 'border-white/15 bg-white/[0.03]' : 'border-slate-300 bg-slate-50')}>
+        <div className={cn('portfolio-vault-menu-surface p-14 rounded-[28px] border-2 border-dashed text-center space-y-3', isDarkMode ? 'border-slate-700 bg-[#0b1224]' : 'border-slate-300 bg-slate-50')}>
           <Users size={40} className={cn('mx-auto', isDarkMode ? 'text-slate-500' : 'text-slate-400')} />
           <h3 className={cn('text-base font-black', isDarkMode ? 'text-white' : 'text-slate-800')}>
             {learners.length === 0 ? 'No learners on your register yet' : 'No learners match that search'}
@@ -531,8 +555,8 @@ export default function LearnerPortfolioHub({
               <section key={group.key} className="space-y-3">
                 {/* Group header */}
                 <div className={cn(
-                  'flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-2xl border',
-                  isDarkMode ? 'bg-slate-900/70 border-white/10' : 'bg-slate-100 border-slate-200'
+                  'portfolio-vault-menu-surface flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-2xl border',
+                  isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'
                 )}>
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center shrink-0', isDarkMode ? 'bg-cyan-500/15 border-cyan-400/30 text-cyan-300' : 'bg-cyan-100 border-cyan-300 text-cyan-700')}>
@@ -567,10 +591,10 @@ export default function LearnerPortfolioHub({
                         whileHover={{ y: -3 }}
                         onClick={() => { setSelectedLearner(learner); setDossierTab('portfolio'); }}
                         className={cn(
-                          'text-left p-5 rounded-[24px] border transition-all cursor-pointer space-y-3.5 group',
+                          'portfolio-vault-menu-surface text-left p-5 rounded-[24px] border-2 transition-all cursor-pointer space-y-3.5 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400',
                           isDarkMode
-                            ? 'bg-white/[0.04] border-white/10 hover:border-cyan-400/50 hover:bg-white/[0.07] shadow-lg'
-                            : 'bg-white border-slate-200 hover:border-cyan-400 shadow-sm hover:shadow-md'
+                            ? 'bg-slate-900 border-slate-700 hover:border-cyan-400/70 hover:bg-slate-800 shadow-lg hover:shadow-[0_12px_30px_rgba(6,182,212,0.14)]'
+                            : 'bg-white border-slate-300 hover:border-cyan-500 shadow-sm hover:shadow-md'
                         )}
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -590,7 +614,7 @@ export default function LearnerPortfolioHub({
                               <Compass size={10} /> IDP
                             </span>
                           ) : (
-                            <span className={cn('shrink-0 px-2 py-1 rounded-lg border text-[9px] font-black uppercase tracking-wider', isDarkMode ? 'bg-white/5 border-white/10 text-slate-500' : 'bg-slate-100 border-slate-200 text-slate-400')}>
+                            <span className={cn('shrink-0 px-2 py-1 rounded-lg border text-[9px] font-black uppercase tracking-wider', isDarkMode ? 'bg-slate-800 border-slate-600 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-500')}>
                               No IDP
                             </span>
                           )}
@@ -602,7 +626,7 @@ export default function LearnerPortfolioHub({
                             { label: 'Average', value: counts?.average || learner.average ? `${counts?.average || learner.average}%` : '—' },
                             { label: 'Featured', value: counts?.featured ?? 0 }
                           ].map(stat => (
-                            <div key={stat.label} className={cn('p-2 rounded-xl border text-center', isDarkMode ? 'bg-slate-950/45 border-white/10' : 'bg-slate-50 border-slate-200')}>
+                            <div key={stat.label} className={cn('p-2 rounded-xl border text-center', isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200')}>
                               <p className={cn('text-sm font-black leading-none', isDarkMode ? 'text-white' : 'text-slate-900')}>{stat.value}</p>
                               <p className={cn('text-[8px] font-black uppercase tracking-widest mt-1', isDarkMode ? 'text-slate-500' : 'text-slate-500')}>{stat.label}</p>
                             </div>
@@ -723,7 +747,7 @@ function LearnerDossier({ learner, isDarkMode, canEdit, tab, setTab, onBack, onN
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="learner-portfolio-vault space-y-6 animate-in fade-in duration-500" data-theme={isDarkMode ? 'dark' : 'light'}>
       {/* Dossier header */}
       <div className={cn(
         'relative overflow-hidden rounded-[28px] p-5 lg:p-6 border shadow-2xl',
@@ -735,7 +759,8 @@ function LearnerDossier({ learner, isDarkMode, canEdit, tab, setTab, onBack, onN
           <div className="flex items-center gap-4 min-w-0">
             <button
               onClick={onBack}
-              className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer shrink-0 border border-white/15"
+              type="button"
+              className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white transition-all cursor-pointer shrink-0 border-2 border-slate-700 hover:border-cyan-400/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
               title="Back to all learners"
             >
               <ArrowLeft size={17} />
@@ -766,13 +791,15 @@ function LearnerDossier({ learner, isDarkMode, canEdit, tab, setTab, onBack, onN
               <>
                 <button
                   onClick={() => onNavigateTab('learner-intervention')}
-                  className="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer inline-flex items-center gap-1.5"
+                  type="button"
+                  className="px-4 py-2 rounded-xl bg-amber-950 hover:bg-amber-900 border-2 border-amber-500/60 text-amber-100 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
                 >
                   <HeartHandshake size={12} /> Intervention Hub
                 </button>
                 <button
                   onClick={() => onNavigateTab('reports')}
-                  className="px-4 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/40 text-purple-200 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer inline-flex items-center gap-1.5"
+                  type="button"
+                  className="px-4 py-2 rounded-xl bg-purple-950 hover:bg-purple-900 border-2 border-purple-500/60 text-purple-100 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
                 >
                   <Compass size={12} /> IDP Lab
                 </button>
@@ -789,12 +816,14 @@ function LearnerDossier({ learner, isDarkMode, canEdit, tab, setTab, onBack, onN
           ]).map(t => (
             <button
               key={t.id}
+              type="button"
+              aria-pressed={tab === t.id}
               onClick={() => setTab(t.id)}
               className={cn(
-                'px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider border transition-all cursor-pointer inline-flex items-center gap-2',
+                'px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider border-2 transition-all cursor-pointer inline-flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400',
                 tab === t.id
-                  ? 'bg-cyan-500 text-slate-950 border-cyan-300 shadow-md'
-                  : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
+                  ? 'bg-cyan-400 text-slate-950 border-cyan-200 shadow-[0_0_18px_rgba(6,182,212,0.3)]'
+                  : 'bg-slate-900 text-slate-200 border-slate-700 hover:bg-slate-800 hover:border-cyan-400/60 hover:text-white'
               )}
             >
               <t.icon size={14} /> {t.label}
@@ -947,11 +976,11 @@ function RecordSection({
   };
 
   return (
-    <div className={cn('rounded-[24px] border overflow-hidden', isDarkMode ? 'bg-white/[0.04] border-white/10' : 'bg-white border-slate-200 shadow-sm')}>
-      <div className={cn('px-5 py-3.5 border-b flex items-center gap-2.5', isDarkMode ? 'border-white/10 bg-slate-900/50' : 'border-slate-200 bg-slate-50')}>
+    <div className={cn('portfolio-vault-menu-surface rounded-[24px] border-2 overflow-hidden', isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200 shadow-sm')}>
+      <div className={cn('px-5 py-3.5 border-b flex items-center gap-2.5', isDarkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-200 bg-slate-50')}>
         <Icon size={16} className={isDarkMode ? 'text-cyan-300' : 'text-cyan-600'} />
         <h3 className={cn('text-xs font-black uppercase tracking-widest', isDarkMode ? 'text-white' : 'text-slate-800')}>{title}</h3>
-        <span className={cn('ml-auto text-[10px] font-black px-2 py-0.5 rounded-md border', isDarkMode ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-white border-slate-200 text-slate-600')}>
+        <span className={cn('ml-auto text-[10px] font-black px-2 py-0.5 rounded-md border', isDarkMode ? 'bg-slate-800 border-slate-600 text-slate-200' : 'bg-white border-slate-200 text-slate-600')}>
           {items.length}
         </span>
       </div>
