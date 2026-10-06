@@ -16,7 +16,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  ArrowLeft, Award, BookOpen, CheckCircle2, Compass, FileText, FolderOpen,
+  ArrowLeft, Award, BookOpen, CheckCircle2, ChevronDown, Compass, FileText, Filter, FolderOpen,
   GraduationCap, Layers, Lock, Mail, Phone, Search, SortAsc, Trophy,
   Users, HeartHandshake, ClipboardList, Sparkles, BarChart3, Eye
 } from 'lucide-react';
@@ -438,36 +438,48 @@ export default function LearnerPortfolioHub({
 
       {/* CONTROLS */}
       <div className={cn(
-        'p-4 rounded-[24px] border flex flex-col lg:flex-row lg:items-center gap-4',
-        isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'
+        'relative z-20 p-4 md:p-5 rounded-[24px] border shadow-lg flex flex-col xl:flex-row xl:items-center gap-4',
+        isDarkMode ? 'bg-slate-950/90 border-cyan-400/25' : 'bg-white border-slate-300 shadow-sm'
       )}>
-        <div className="relative w-full lg:w-80">
-          <Search className={cn('absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4', isDarkMode ? 'text-slate-500' : 'text-slate-400')} />
+        <div className="relative w-full xl:w-80 xl:shrink-0">
+          <Search className={cn('absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4', isDarkMode ? 'text-cyan-300' : 'text-slate-500')} />
           <input
             type="text"
+            aria-label="Search learners by name, class, grade or email"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search learner, class or email…"
             className={cn(
-              'w-full pl-10 pr-4 py-2.5 rounded-xl text-xs font-semibold border focus:outline-none focus:ring-2 focus:ring-cyan-500',
-              isDarkMode ? 'bg-slate-900 border-white/15 text-white placeholder:text-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400'
+              'w-full pl-10 pr-4 py-3 rounded-xl text-xs font-semibold border-2 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all',
+              isDarkMode ? 'bg-slate-900 border-slate-700 text-white placeholder:text-slate-400' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-500'
             )}
           />
         </div>
 
-        <select
-          value={classFilter}
-          onChange={(e) => setClassFilter(e.target.value)}
-          className={cn(
-            'w-full lg:w-56 px-4 py-2.5 rounded-xl text-xs font-semibold border focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer',
-            isDarkMode ? 'bg-slate-900 border-white/15 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
-          )}
-        >
-          {classOptions.map(c => <option key={c} value={c}>{c === 'All' ? 'All classes' : c}</option>)}
-        </select>
+        <div className="relative w-full xl:w-56 xl:shrink-0">
+          <Filter className={cn('absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none', isDarkMode ? 'text-cyan-300' : 'text-slate-500')} />
+          <label htmlFor="learner-portfolio-class-filter" className="sr-only">Filter learners by class</label>
+          <select
+            id="learner-portfolio-class-filter"
+            value={classFilter}
+            onChange={(e) => setClassFilter(e.target.value)}
+            style={{ colorScheme: isDarkMode ? 'dark' : 'light' }}
+            className={cn(
+              'appearance-none w-full pl-10 pr-10 py-3 rounded-xl text-xs font-bold border-2 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 cursor-pointer transition-all',
+              isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+            )}
+          >
+            {classOptions.map(c => (
+              <option key={c} value={c} className={isDarkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'}>
+                {c === 'All' ? 'All classes' : c}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className={cn('absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none', isDarkMode ? 'text-slate-300' : 'text-slate-500')} />
+        </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={cn('text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5', isDarkMode ? 'text-slate-400' : 'text-slate-500')}>
+        <div role="group" aria-label="Group learner portfolios by" className="flex items-center gap-2 flex-wrap min-w-0">
+          <span className={cn('text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5', isDarkMode ? 'text-slate-300' : 'text-slate-600')}>
             <SortAsc size={13} /> Group by
           </span>
           {([
@@ -477,14 +489,16 @@ export default function LearnerPortfolioHub({
           ]).map(mode => (
             <button
               key={mode.id}
+              type="button"
+              aria-pressed={groupMode === mode.id}
               onClick={() => setGroupMode(mode.id)}
               className={cn(
-                'px-3.5 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider border transition-all cursor-pointer',
+                'px-3.5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border-2 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400',
                 groupMode === mode.id
-                  ? 'bg-cyan-500 text-slate-950 border-cyan-300 shadow-md'
+                  ? 'bg-cyan-400 text-slate-950 border-cyan-200 shadow-[0_0_18px_rgba(6,182,212,0.28)]'
                   : isDarkMode
-                    ? 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
-                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 hover:text-slate-900'
+                    ? 'bg-slate-900 text-slate-200 border-slate-700 hover:border-cyan-400/60 hover:text-white'
+                    : 'bg-slate-50 text-slate-700 border-slate-300 hover:border-cyan-500 hover:text-slate-950'
               )}
             >
               {mode.label}
@@ -492,7 +506,7 @@ export default function LearnerPortfolioHub({
           ))}
         </div>
 
-        <div className="lg:ml-auto">
+        <div className="xl:ml-auto shrink-0">
           <span className={cn('text-[11px] font-bold', isDarkMode ? 'text-slate-400' : 'text-slate-500')}>
             Showing <span className={cn('font-black', isDarkMode ? 'text-white' : 'text-slate-900')}>{filtered.length}</span> of {learners.length} learners
             {totalFeatured > 0 && <> • <span className="text-amber-400 font-black">{totalFeatured}</span> featured</>}

@@ -867,17 +867,21 @@ export default function StudentPortfolio({
                       {canEdit && (
                         <div className="flex items-center gap-1.5">
                           <button
+                            type="button"
                             onClick={() => openEdit(item)}
-                            title="Edit item"
-                            className={cn('p-2 rounded-lg border transition-all cursor-pointer', isDarkMode ? 'bg-white/5 border-white/10 text-slate-300 hover:text-white' : 'bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-900')}
+                            title={`Edit ${item.title}`}
+                            aria-label={`Edit portfolio item: ${item.title}`}
+                            className={cn('p-2 rounded-lg border-2 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400', isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200 hover:border-cyan-400 hover:text-white' : 'bg-white border-slate-300 text-slate-700 hover:border-cyan-500 hover:text-slate-950')}
                           >
                             <Pencil size={14} />
                           </button>
                           {item.source !== 'autograded' && (
                             <button
+                              type="button"
                               onClick={() => setConfirmDelete(item)}
-                              title="Delete item"
-                              className={cn('p-2 rounded-lg border transition-all cursor-pointer', isDarkMode ? 'bg-white/5 border-white/10 text-slate-300 hover:text-rose-400' : 'bg-slate-100 border-slate-200 text-slate-600 hover:text-rose-500')}
+                              title={`Delete ${item.title}`}
+                              aria-label={`Delete portfolio item: ${item.title}`}
+                              className={cn('p-2 rounded-lg border-2 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400', isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200 hover:border-rose-400 hover:text-rose-300' : 'bg-white border-slate-300 text-slate-700 hover:border-rose-500 hover:text-rose-600')}
                             >
                               <Trash2 size={14} />
                             </button>
@@ -928,18 +932,27 @@ export default function StudentPortfolio({
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className={cn('text-2xl font-hand px-2', isDarkMode ? 'text-white' : 'text-slate-800')}>Complete Portfolio</h2>
 
-          <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-2 custom-scrollbar">
+          <div
+            role="group"
+            aria-label="Filter portfolio items by subject"
+            className={cn(
+              'flex flex-wrap gap-2 w-full sm:w-auto max-w-full p-2 rounded-2xl border',
+              isDarkMode ? 'bg-slate-950/75 border-cyan-400/20' : 'bg-slate-50 border-slate-300'
+            )}
+          >
             {subjects.map(subj => (
               <button
                 key={subj}
+                type="button"
+                aria-pressed={filter === subj}
                 onClick={() => setFilter(subj)}
                 className={cn(
-                  'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border cursor-pointer',
+                  'px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400',
                   filter === subj
-                    ? 'bg-brand-cyan text-navy-dark shadow-lg shadow-cyan-500/20 border-cyan-300/50'
+                    ? 'bg-cyan-400 text-slate-950 shadow-[0_0_18px_rgba(6,182,212,0.3)] border-cyan-200'
                     : isDarkMode
-                      ? 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
-                      : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 hover:text-slate-900'
+                      ? 'bg-slate-900 text-slate-200 border-slate-700 hover:border-cyan-400/65 hover:text-white'
+                      : 'bg-white text-slate-700 border-slate-300 hover:border-cyan-500 hover:text-slate-950'
                 )}
               >
                 {subj}
@@ -1008,10 +1021,12 @@ export default function StudentPortfolio({
                           <td className="p-4">
                             <div className="flex items-center justify-end gap-1.5">
                               <button
+                                type="button"
                                 onClick={() => handleToggleFeatured(item)}
                                 title={item.featured ? 'Remove from featured' : 'Feature this item'}
+                                aria-label={item.featured ? `Remove ${item.title} from featured` : `Feature ${item.title}`}
                                 className={cn(
-                                  'p-2 rounded-lg border transition-all cursor-pointer',
+                                  'p-2 rounded-lg border-2 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400',
                                   item.featured
                                     ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
                                     : isDarkMode ? 'bg-white/5 border-white/10 text-slate-400 hover:text-amber-300' : 'bg-slate-100 border-slate-200 text-slate-500 hover:text-amber-600'
@@ -1020,17 +1035,21 @@ export default function StudentPortfolio({
                                 <Star size={14} fill={item.featured ? 'currentColor' : 'none'} />
                               </button>
                               <button
+                                type="button"
                                 onClick={() => openEdit(item)}
-                                title="Edit item"
-                                className={cn('p-2 rounded-lg border transition-all cursor-pointer', isDarkMode ? 'bg-white/5 border-white/10 text-slate-300 hover:text-white' : 'bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-900')}
+                                title={`Edit ${item.title}`}
+                                aria-label={`Edit portfolio item: ${item.title}`}
+                                className={cn('p-2 rounded-lg border-2 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400', isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200 hover:border-cyan-400 hover:text-white' : 'bg-white border-slate-300 text-slate-700 hover:border-cyan-500 hover:text-slate-950')}
                               >
                                 <Pencil size={14} />
                               </button>
                               {item.source !== 'autograded' && (
                                 <button
+                                  type="button"
                                   onClick={() => setConfirmDelete(item)}
-                                  title="Delete item"
-                                  className={cn('p-2 rounded-lg border transition-all cursor-pointer', isDarkMode ? 'bg-white/5 border-white/10 text-slate-300 hover:text-rose-400' : 'bg-slate-100 border-slate-200 text-slate-600 hover:text-rose-500')}
+                                  title={`Delete ${item.title}`}
+                                  aria-label={`Delete portfolio item: ${item.title}`}
+                                  className={cn('p-2 rounded-lg border-2 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400', isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200 hover:border-rose-400 hover:text-rose-300' : 'bg-white border-slate-300 text-slate-700 hover:border-rose-500 hover:text-rose-600')}
                                 >
                                   <Trash2 size={14} />
                                 </button>
@@ -1218,11 +1237,13 @@ export default function StudentPortfolio({
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Type</label>
                     <select
+                      aria-label="Portfolio item type"
                       value={form.type}
                       onChange={(e) => setForm({ ...form, type: e.target.value as PortfolioItemType })}
-                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/15 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer"
+                      style={{ colorScheme: 'dark' }}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border-2 border-slate-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer"
                     >
-                      {TYPE_OPTIONS.map(t => <option key={t} value={t}>{TYPE_META[t].label}</option>)}
+                      {TYPE_OPTIONS.map(t => <option key={t} value={t} className="bg-slate-900 text-white">{TYPE_META[t].label}</option>)}
                     </select>
                   </div>
                   <div>
