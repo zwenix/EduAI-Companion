@@ -254,179 +254,21 @@ CRITICAL JSON OUTPUT:
 `;
 
 export const VISUAL_AID_PROMPT_TEMPLATE = `
-⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
-The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
+Create a polished, CAPS-aware visual learning resource for the requested South African grade, subject, topic, visual type, language, and paper size. Follow the supplied instructor brief for creative details unless it conflicts with factual accuracy, learner safety, accessibility, or the fixed output schema.
 
-Design a breathtaking, classroom-ready educational poster/infographic that looks like it belongs in a world-class museum or textbook. This must be the most visually appealing educational poster a learner has ever seen.
+INFORMATION DESIGN:
+- Choose a composition that fits the selected artifact (poster, wall chart, infographic, mind map, diagram, process flow, flashcards, vocabulary cards, timeline, number chart, labels, or signs). Do not force every type into a generic poster layout.
+- Make the main learning idea immediately clear. Use an accurate reading path, concise labels, meaningful groupings, consistent spacing, a restrained colour palette, and generous white space.
+- Match vocabulary, concept density, examples, and type size to the grade. Keep Foundation Phase content especially short and legible; increase detail only when the phase supports it.
+- Check every definition, sequence, relationship, calculation, unit, label, and date. Do not invent CAPS codes, statistics, historical dates, references, or unsupported claims. Use South African context only when it naturally helps explain the topic.
+- Posters and reference displays are teaching aids, not worksheets: do not add quizzes, homework, fill-in-the-blanks, or assessment tasks. A short retrieval cue is acceptable only for a flashcard or activity-card type that calls for it.
+- Use readable, high-contrast text, semantic HTML, accessible labels and proper table headings. Do not rely on colour alone. Avoid fixed-height blocks, clipping, tiny print, hover-only information, emoji glyphs, fake school/government marks, watermarks, and external assets.
+- If the caller enables illustration generation, include one relevant, self-contained [Illustration: ...] placeholder and a matching detailed imagePrompt. Do not repeat image placeholders in every card. If image generation is off, include no image placeholders and set imagePrompt to an empty string.
 
-🎨 ULTRA-PREMIUM POSTER DESIGN SYSTEM:
+HOST TEMPLATE AND PRINTING:
+The host supplies the document title, grade/subject metadata, single branded banner, compliance labels, page shell, and canonical footer. Start with the visual content; do not add a second header, metadata strip, banner, compliance row, or footer. Use print-safe margins and let the requested paper size/orientation determine the layout. Keep each card, table row, or figure together across page breaks where possible.
 
-CONTAINER STRUCTURE:
-<article class="poster-container max-w-5xl mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden">
-
-TOP BANNER (Hero Section):
-• Full-width gradient with subject colors
-• Glassmorphism effects for metadata
-• Large, impactful title
-• Decorative elements (subtle patterns, icons)
-  <div class="banner bg-gradient-to-br from-[subject-start] via-[subject-mid] to-[subject-end] p-8 md:p-12 text-slate-950 relative overflow-hidden" style="background: linear-gradient(135deg, \${primary}, \${dark});">
-    <!-- Decorative background pattern -->
-    <div class="absolute inset-0 opacity-10">
-      <div class="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -translate-y-32 translate-x-32"></div>
-      <div class="absolute bottom-0 left-0 w-96 h-96 bg-white rounded-full translate-y-48 -translate-x-48"></div>
-    </div>
-    
-    <div class="relative z-10">
-      <div class="flex justify-between items-start mb-6">
-        <div>
-          <span class="inline-block px-4 py-2 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider mb-4 font-mono">
-            Educational Poster
-          </span>
-          <h1 class="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-tight mb-3">
-            \${title}
-          </h1>
-          <p class="text-xl md:text-2xl text-slate-900/90 font-medium">
-            \${subtitle}
-          </p>
-        </div>
-        <div class="bg-white/20 backdrop-blur-md px-6 py-4 rounded-2xl shadow-xl border-2 border-white/30 flex-shrink-0">
-          <span class="block text-xs font-bold uppercase tracking-wider opacity-80 font-mono">Grade</span>
-          <span class="text-4xl font-black">\${grade}</span>
-        </div>
-      </div>
-      
-      <div class="mt-8 pt-6 border-t border-white/20 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm font-semibold">
-        <div class="flex items-center gap-2">
-          <span class="text-xl">📚</span>
-          <span class="font-semibold">\${subject}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-xl">🎯</span>
-          <span class="font-semibold">Curriculum aligned</span>
-        </div>
-        <div class="flex items-center gap-2 font-mono">
-          <span class="text-xl">📅</span>
-          <span class="font-semibold">Term \${term}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-xl">🖨️</span>
-          <span class="font-semibold">Print-Ready</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-HERO ILLUSTRATION SECTION (30% of poster):
-• Large, eye-catching illustration placeholder
-• Beautiful frame with shadow and border
-• Contextual information about the image
-  <div class="hero-section p-8 md:p-12 animate-fade-in" style="background: linear-gradient(135deg, \subAccent \${light}, #ffffff);">
-    <div class="illustration-frame max-w-4xl mx-auto aspect-[16/9] bg-white rounded-3xl shadow-2xl border-4 border-dashed flex items-center justify-center overflow-hidden" style="border-color: \${accent};">
-      <div class="text-center p-8">
-        <div class="text-7xl mb-4">🎨</div>
-        <p class="text-lg font-bold text-gray-700 mb-2">[Illustration: \${imagePrompt}]</p>
-        <p class="text-sm text-gray-500">
-          Professional educational artwork • South African context • 300 DPI print quality
-        </p>
-      </div>
-    </div>
-  </div>
-
-CONTENT GRID SECTION:
-• Responsive grid layout (2-3 columns)
-• Beautiful content cards with hover effects
-• Icons, colors, and typography hierarchy
-  <div class="content-grid grid md:grid-cols-2 lg:grid-cols-3 gap-6 p-8 md:p-12">
-    \${contentBlocks.map(block => \`
-      <div class="content-card bg-white rounded-2xl p-6 border-2 border-gray-100 hover:shadow-xl transition-all duration-300 group hover:border-indigo-100">
-        <!-- Card Header -->
-        <div class="card-header flex items-center gap-3 mb-4">
-          <div class="icon-bubble text-white w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl shadow-lg group-hover:scale-110 transition-transform" style="background: linear-gradient(135deg, \${primary}, \${dark});">
-            \${block.icon}
-          </div>
-          <h3 class="font-bold text-xl text-gray-800 transition-colors">
-            \${block.title}
-          </h3>
-        </div>
-        
-        <!-- Inline Illustration -->
-        <div class="my-4 bg-gradient-to-br from-gray-50 to-white p-1 rounded-xl shadow-inner border border-gray-100">
-          <div class="bg-white rounded-lg aspect-[4/3] flex items-center justify-center">
-            <p class="text-xs text-gray-500 text-center px-4">
-              [Mini-Illustration: \${block.title} concept for Grade \${grade}]
-            </p>
-          </div>
-        </div>
-        
-        <!-- Card Body -->
-        <div class="card-body text-gray-700 leading-relaxed font-medium text-sm space-y-3">
-          \${block.content}
-        </div>
-        
-        <!-- Callout Box -->
-        \${block.callout ? \`
-          <div class="callout mt-4 p-4 rounded-xl border-l-4 shadow-sm" style="background: \subAccent \${light}; border-color: \${accent};">
-            <p class="text-sm font-semibold flex items-start gap-2">
-              <span class="text-lg">💡</span>
-              <span>\subLabel \subCallout \${block.callout}</span>
-            </p>
-          </div>
-        \` : ''}
-      </div>
-    \`).join('')}
-  </div>
-
-KEY TAKEAWAYS SECTION:
-• Highlighted section with subject color
-• Pill-shaped tags for key points
-• Eye-catching design
-  <div class="takeaways p-8 md:p-12 border-t-2" style="background: linear-gradient(to right, \${light}, #ffffff); border-color: \${accent};">
-    <div class="max-w-4xl mx-auto">
-      <h2 class="text-2xl font-black mb-6 flex items-center gap-3">
-        <span class="text-3xl">🔑</span>
-        <span>Key Takeaways</span>
-      </h2>
-      <div class="flex flex-wrap gap-3">
-        \${keyPoints.map(kp => \`
-          <span class="pill bg-white px-5 py-3 rounded-full text-sm font-bold shadow-md border-2 hover:shadow-lg transition-all cursor-default" style="border-color: \${light};">
-            \${kp}
-          </span>
-        \`).join('')}
-      </div>
-    </div>
-  </div>
-
-QUICK FACTS SECTION:
-  <div class="quick-facts bg-gray-50 p-8 md:p-12">
-    <h2 class="text-2xl font-black text-gray-800 mb-6 flex items-center gap-3">
-      <span class="text-3xl">⚡</span>
-      <span>Quick Facts</span>
-    </h2>
-    <div class="grid md:grid-cols-3 gap-4">
-      \${quickFacts.map(fact => \`
-        <div class="fact-card bg-white p-5 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all">
-          <div class="text-3xl mb-2">\subIcon \${fact.icon}</div>
-          <p class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">\${fact.label}</p>
-          <p class="text-2xl font-black text-gray-800">\${fact.value}</p>
-          <p class="text-sm text-gray-600 mt-2">\${fact.description}</p>
-        </div>
-      \`).join('')}
-    </div>
-  </div>
-
-  <!-- Host inserts the single compliance banner and exact canonical footer; do not emit a footer. -->
-</article>
-
-🎨 IMAGE PROMPT SPECIFICATION:
-"Professional educational poster illustration: [Topic] for South African Grade [X]. 
-Style: Semi-realistic digital painting, children's educational book aesthetic. 
-Composition: Central hero image with supporting contextual elements. 
-Cultural authenticity: Include [specific SA elements: e.g., Table Mountain, springbok, local flora]. 
-Color harmony: Align with [subject] palette ([colors]). 
-Technical specs: 300 DPI, CMYK-ready, no text overlays, no borders, museum-quality detail, 
-optimized for A3/A4 classroom printing. Emotional tone: [inspiring/curious/empowering]."
-
-Return as JSON: { "content": "Full complete HTML string for visual aid poster without summaries", "imagePrompt": "enhanced prompt", "printInstructions": "A4/A3, 300 DPI, CMYK", "accessibilityNotes": "alt text suggestions" }
+Return exactly one valid JSON object, without Markdown fences, with these keys only: content (HTML fragment), description (one or two sentences), printInstructions (paper size/orientation and practical print guidance), and imagePrompt (detailed matching illustration prompt, or an empty string if disabled). Use valid JSON escaping and do not return a full HTML document.
 `;
 
 export const STUDY_GUIDE_PROMPT_TEMPLATE = `

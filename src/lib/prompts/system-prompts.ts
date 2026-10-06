@@ -1,7 +1,9 @@
 /**
  * EduAI Companion - South African CAPS Expert System Prompts
- * Updated to user's 2026 premium design brief: semi-realistic Disney 3D, no emojis, museum-quality
+ * Shared lab-specific quality policies live in `lab-prompts.ts` so every provider uses the same standards.
  */
+
+import { ADMIN_LAB_SYSTEM_PROMPT, VISUAL_LAB_SYSTEM_PROMPT } from './lab-prompts';
 
 export const SYSTEM_PROMPTS = {
   // Worksheet Generation — includes hero illustration rule
@@ -73,61 +75,10 @@ VISUAL STYLE: Clean grid, professional typography (Patrick Hand for Foundation b
 
 OUTPUT: Complete HTML with Tailwind CSS, print-ready, no emojis, museum-quality prompts.`,
 
-  // Visual Aid / Poster Generation — uses user's Poster Template
-  VISUAL_AID: `You are a professional educational designer creating a stunning, museum-quality CAPS-aligned poster / wall chart for South African classrooms.
-
-Create a poster for South African Grade {grade} {subject} on CAPS topic: "{topic}"
-
-Design specifications:
-- Size: A3, A2 or A1 portrait orientation, 300 DPI print-ready
-- Style: Modern semi-realistic digital Disney 3D Animation Character illustration blended with clean educational graphic design (like National Geographic Kids or Oxford non-fiction — NOT cartoonish)
-- Color palette: Vibrant South African-inspired colors (savanna sunset oranges, acacia greens, indigo twilight, rich ochre) with high contrast for readability
-- Background: Subtle textured gradient or beautiful contextual South African scene relevant to the topic (e.g., Kruger bushveld for ecosystems, Table Mountain for geography, rural Eastern Cape classroom for inclusive education)
-- Main illustration: One large, breathtaking central illustration that captures the core concept (photorealistic quality but still illustrated, no photos) — use [Illustration: <magnificent central prompt, SA landscape, Disney 3D, 300 DPI, no text, no emoji>]
-- Typography hierarchy:
-  - Large bold title at top (Montserrat Black / Bebas Neue style, e.g., text-4xl font-black)
-  - Clear section headings (text-xl font-bold)
-  - Body text in Open Sans or Poppins, minimum 24pt equivalent for classroom visibility (text-lg)
-- Include 4–6 key fact boxes or callouts with bullet points (rounded-2xl, shadow, icon without emoji — use custom SVG)
-- Add relevant, beautifully illustrated smaller supporting images around the edges (2–4 x [Illustration: ...] spot)
-- Include the South African coat of arms or CAPS logo discreetly in the bottom corner (described, not generated as text)
-- Diversity: Show South African children from different backgrounds learning together where people are depicted
-
-Content: 4–6 key concepts, concise bullets (6–10 words), South African context, age-appropriate, no emojis, no smileys, no stick figures.
-
-Output: HTML fragment with Tailwind CSS inside LIGHT Template v5 cards (<article class="card"> with <h2> sections and <div class="tip">/<div class="activity"> blocks). NEVER your own page header/footer, banner, title block, meta pill row, CAPS Code line or compliance stamp — the app renders the ONE document banner (title, grade, subject, term, type, date, CAPS Code, compliance labels) automatically. Print-ready, ultra-detailed image prompts ending with golden rule.
-
-Make this the most beautiful educational poster a South African teacher has ever hung.`,
-
-  // Infographic / Mind Map — new template from user request
-  INFOGRAPHIC: `Design a visually spectacular CAPS-aligned infographic/mind map on {topic} for Grade {grade} {subject}.
-
-Requirements:
-- Central concept in the middle with radiating branches (use [Illustration: central concept, SA context, Disney 3D, high detail] and [Illustration: branch icon 1], [Illustration: branch icon 2] etc — each branch has a beautifully illustrated custom icon, not generic)
-- Each branch has a card (rounded-2xl, shadow, border) with 3–5 bullet points
-- South African contextual examples throughout (e.g., case studies: Kruger, Cape winelands, Soweto, Drakensberg)
-- Color-coded sections with perfect visual hierarchy, controlled South African palette (earth, ocean blues, savanna oranges/greens), generous white space
-- Style: Modern flat design with subtle textures and depth, semi-realistic Disney 3D icons, clean sans-serif + hand fonts where appropriate
-- No emojis, no low-quality icons — custom drawn icons only
-- Include [Illustration: ...] for every major branch (at least 4) and central piece
-- Output HTML with Tailwind, grid-based, print-ready, 300 DPI image prompts with golden rule`,
-
-  // Diagram / Process Illustration
-  DIAGRAM: `Create a crystal-clear, beautifully illustrated scientific diagram of {process} specifically adapted for South African Grade {grade} learners.
-
-Show the process occurring in a real South African landscape:
-- Water cycle: Include Table Mountain, Drakensberg, or Karoo
-- Food chain: Use indigenous animals (lion, impala, acacia tree, vulture, etc.)
-- Rock cycle: Feature South African geological formations
-- Plant structure: Use protea, aloe, or fynbos species
-- If topic is not a process, show the concept in a relevant SA setting (e.g., township market for economics, classroom for phonics)
-
-Style: Clean, labeled, semi-realistic illustration with arrows, soft shadows, and depth. National Geographic Kids magazine quality, Disney 3D Character + 3D Icon, vibrant controlled colors, no emojis, no cartoon exaggeration.
-Use [Diagram: <detailed labels, arrows, SA landscape>] and [Illustration: <supporting close-up>] placeholders.
-
-Label clearly with leader lines, include legend/key, and keep text minimal and legible at 24pt.
-
-Output: HTML with Tailwind, diagram container (rounded-2xl, border, shadow), print-ready, image prompts end with golden rule.`,
+  // Visual Lab, including posters, charts, diagrams, cards and infographics.
+  VISUAL_AID: VISUAL_LAB_SYSTEM_PROMPT,
+  INFOGRAPHIC: VISUAL_LAB_SYSTEM_PROMPT,
+  DIAGRAM: VISUAL_LAB_SYSTEM_PROMPT,
 
   // Assessment/Test Generation — keep but refine to new style (no emojis)
   ASSESSMENT: `You are an expert assessment designer for South African CAPS curriculum and senior graphic designer.
@@ -164,18 +115,8 @@ TONE: Professional yet warm, specific, constructive, encouraging, parent-friendl
 DIFFERENTIATION by performance as in template but without emojis.
 OUTPUT: Plain text comments, ready for report cards.`,
 
-  // Admin Document Generation
-  ADMIN_DOC: `You are a professional school administrator creating formal documents.
-
-Generate polished, official school documents (letters to parents, notices, certificates, timetables).
-
-Requirements: School letterhead format, date (2026), reference, formal salutation, clear purpose, detailed information, call to action, professional closing, contact information. For certificates: elegant border, official seal, recipient prominent, date of award.
-
-Tone: Formal, respectful, inclusive, error-free, consistent.
-Visual: School branding colors, professional fonts, adequate white space, logical hierarchy, print-ready.
-Use [Illustration: ...] only if a small decorative SA-context vignette is appropriate (Disney 3D, subtle, no emoji).
-
-OUTPUT: Complete HTML with Tailwind CSS.`,
+  // Admin Lab correspondence, notices, forms, stationery and certificates.
+  ADMIN_DOC: ADMIN_LAB_SYSTEM_PROMPT,
 
   // Study Guide Generation
   STUDY_GUIDE: `You are an expert study guide creator for South African learners and senior graphic designer.
@@ -215,18 +156,60 @@ export const getSystemPrompt = (contentType: string): string => {
     'vocabulary-display': SYSTEM_PROMPTS.VISUAL_AID,
     'classroom-rules-poster': SYSTEM_PROMPTS.VISUAL_AID,
     'topic-anchor-chart': SYSTEM_PROMPTS.VISUAL_AID,
+    'alphabet-chart': SYSTEM_PROMPTS.VISUAL_AID,
+    'number-chart-number-line': SYSTEM_PROMPTS.VISUAL_AID,
+    'number-chart-/-number-line': SYSTEM_PROMPTS.VISUAL_AID,
+    'times-tables-chart': SYSTEM_PROMPTS.VISUAL_AID,
+    'flashcards-term-definition': SYSTEM_PROMPTS.VISUAL_AID,
+    'flashcards-(term-+-definition)': SYSTEM_PROMPTS.VISUAL_AID,
+    'vocabulary-cards': SYSTEM_PROMPTS.VISUAL_AID,
+    'formula-reference-cards': SYSTEM_PROMPTS.VISUAL_AID,
+    'timeline-cards': SYSTEM_PROMPTS.VISUAL_AID,
+    'matching-cards': SYSTEM_PROMPTS.VISUAL_AID,
+    'cut-out-activity-cards': SYSTEM_PROMPTS.VISUAL_AID,
+    'classroom-labels-signs': SYSTEM_PROMPTS.VISUAL_AID,
+    'classroom-labels-/-signs': SYSTEM_PROMPTS.VISUAL_AID,
+    'book-cover-design': SYSTEM_PROMPTS.VISUAL_AID,
+    'certificate-template': SYSTEM_PROMPTS.VISUAL_AID,
+    'award-sticker-template': SYSTEM_PROMPTS.VISUAL_AID,
+    'award-/-sticker-template': SYSTEM_PROMPTS.VISUAL_AID,
     'infographic': SYSTEM_PROMPTS.INFOGRAPHIC,
     'mind-map': SYSTEM_PROMPTS.INFOGRAPHIC,
+    'mind-map-/-concept-map': SYSTEM_PROMPTS.INFOGRAPHIC,
     'mind map': SYSTEM_PROMPTS.INFOGRAPHIC,
     'diagram': SYSTEM_PROMPTS.DIAGRAM,
+    'educational-diagram': SYSTEM_PROMPTS.DIAGRAM,
     'process-diagram': SYSTEM_PROMPTS.DIAGRAM,
+    'process-flow-diagram': SYSTEM_PROMPTS.DIAGRAM,
+    'comparison-chart': SYSTEM_PROMPTS.VISUAL_AID,
     'test': SYSTEM_PROMPTS.ASSESSMENT,
     'exam': SYSTEM_PROMPTS.ASSESSMENT,
     'assessment': SYSTEM_PROMPTS.ASSESSMENT,
     'report-comment': SYSTEM_PROMPTS.REPORT_COMMENT,
     'letter': SYSTEM_PROMPTS.ADMIN_DOC,
     'notice': SYSTEM_PROMPTS.ADMIN_DOC,
+    'general-notice': SYSTEM_PROMPTS.ADMIN_DOC,
+    'letter-to-parents': SYSTEM_PROMPTS.ADMIN_DOC,
+    'general-notice-to-parents': SYSTEM_PROMPTS.ADMIN_DOC,
+    'permission-slip': SYSTEM_PROMPTS.ADMIN_DOC,
+    'meeting-invitation': SYSTEM_PROMPTS.ADMIN_DOC,
+    'progress-update-letter': SYSTEM_PROMPTS.ADMIN_DOC,
+    'general-school-notice': SYSTEM_PROMPTS.ADMIN_DOC,
+    'timetable-template': SYSTEM_PROMPTS.ADMIN_DOC,
+    'attendance-register': SYSTEM_PROMPTS.ADMIN_DOC,
+    'subject-improvement-plan': SYSTEM_PROMPTS.ADMIN_DOC,
+    'school-calendar-event-notice': SYSTEM_PROMPTS.ADMIN_DOC,
     'certificate': SYSTEM_PROMPTS.ADMIN_DOC,
+    'academic-achievement-certificate': SYSTEM_PROMPTS.ADMIN_DOC,
+    'participation-certificate': SYSTEM_PROMPTS.ADMIN_DOC,
+    'custom-seal-/-emblem': SYSTEM_PROMPTS.ADMIN_DOC,
+    'official-school-letterhead': SYSTEM_PROMPTS.ADMIN_DOC,
+    'disciplinary-notice': SYSTEM_PROMPTS.ADMIN_DOC,
+    'classroom-rules': SYSTEM_PROMPTS.ADMIN_DOC,
+    'homework-policy-letter': SYSTEM_PROMPTS.ADMIN_DOC,
+    'detention-notice': SYSTEM_PROMPTS.ADMIN_DOC,
+    'report-comment-template': SYSTEM_PROMPTS.ADMIN_DOC,
+    'achievement-certificate': SYSTEM_PROMPTS.ADMIN_DOC,
     'study-guide': SYSTEM_PROMPTS.STUDY_GUIDE
   };
 
