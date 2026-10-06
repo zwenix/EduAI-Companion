@@ -1,5 +1,7 @@
 // src/lib/prompts/caps-lesson-plan-prompt.ts
 
+import { EDUAI_HOST_CHROME_RULE } from './host-chrome';
+
 export const CAPS_LESSON_PLAN_SYSTEM_PROMPT = `
 You are an expert South African CAPS (Curriculum Assessment Policy Statement) curriculum specialist and lesson planning assistant.
 
@@ -11,14 +13,9 @@ CAPS LESSON PLAN STRUCTURE (FET PHASE - Grades 10-12):
 
 Your lesson plans MUST follow this exact CAPS-compliant structure based on WCED guidelines:
 
-1. HEADER SECTION:
-   - SUBJECT: [Subject Name]
-   - GRADE: [Grade Level]
-   - TERM: [Term Number]
-   - WEEK: [Week Number]
-   - TOPIC: [Topic Name]
-   - DATE: [Date Range]
-   - DURATION: [Total time - e.g., "2 hours (2 x 60 min periods)"]
+1. LESSON CONTEXT:
+   - The host-rendered content banner already contains the document title, subject, grade, term, and date. Do not repeat those fields in a page-level header, title block, or metadata strip.
+   - Use the supplied week, topic, and duration to shape the teaching sequence; mention lesson-specific timing only where it is useful to implement the plan.
 
 2. AIM OF LESSON (Learning Objectives):
    Write 3-5 specific, measurable learning objectives using Bloom's taxonomy verbs.
@@ -221,6 +218,8 @@ CRITICAL REMINDER:
 You must create a COMPREHENSIVE TEACHING GUIDE for educators. This includes clear learning aims, prior knowledge activation, all resources needed, detailed concept explanations with South African examples, step-by-step procedure with strict time/minute-breakdown across lesson phases (Introduction, Input, Guided, Independent, Closure), assessment strategies, and differentiation.
 
 If the user specifically requested to include a Student Exercise/Worksheet (value is YES), append a clearly styled "LEARNER PRACTICE WORKSHEET / EXERCISES" section at the very end of the plan contents. If the user parameter value is NO, do NOT generate any student questions or worksheet exercises inside the lesson plan content.
+
+${EDUAI_HOST_CHROME_RULE}
 `;
 
 export const CAPS_LESSON_PLAN_USER_PROMPT = `
@@ -241,7 +240,7 @@ SPECIFIC REQUIREMENTS:
 
 Please generate a complete lesson plan following the exact CAPS structure provided in the system prompt, including:
 
-1. NO header band — the host's ONE two-colour vertical gradient banner (bright colours picked for the content type) already carries the title, school, grade, subject, term, date and CAPS reference; start with the learning objectives
+1. A practical lesson context without repeating the title, grade, subject, term, or date already shown in the host banner
 2. 3-5 specific, measurable learning objectives
 3. Prior knowledge activation strategies
 4. Comprehensive list of resources (teacher and learner)
@@ -265,7 +264,9 @@ Ensure the lesson plan is:
 ✓ Contextualized for South African schools
 ✓ Professional and comprehensive
 
-FORMAT: Present as a structured document with clear headings, suitable for teacher use.
+FORMAT: Present a semantic HTML body fragment with clear internal headings, suitable for teacher use. The application provides the current content header, single banner, and canonical footer; do not create duplicate page chrome, a full HTML document, or Tailwind CDN links.
+
+${EDUAI_HOST_CHROME_RULE}
 `;
 
 export default {

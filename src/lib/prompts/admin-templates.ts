@@ -4,9 +4,6 @@
  */
 
 export const LESSON_PLAN_TEMPLATE = `
-⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
-The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
-
 Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extremely detailed and easy to implement for anyone (even a layman or substitute teacher) with zero preparation.
 
 📋 COGNITIVE LEVEL & EXPLAINABILITY GUIDELINES:
@@ -17,10 +14,10 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
 
 🎨 VISUAL STYLE & REVERSE-ENGINEERED COMPONENT DESIGN:
 - No fixed heights - use 'h-auto', dynamic padding ('py-6', 'px-6'), and relaxed flexbox/grid block layouts.
-- Header Block: Stunning full-width card with a two-colour gradient (Teal, Purple, Orange etc., based on subject), with clean rounded top, containing round indicator badges like "CURRICULUM FOCUS", "LIFE SKILLS: GRADE \${grade}", and "TERM \${term} • WEEK \${week}".
+- The current host banner supplies the document title and metadata. Do not create a second document header/banner; keep lesson-specific details in the teaching content only when they add value.
 - Symmetric Side-by-Side Cards: Use a two-column grid ("grid grid-cols-1 md:grid-cols-2 gap-6") for "🎯 Aim of the Lesson" and "🎒 Resources Needed" using matching custom colors, thick rounded corners, and clear checkmarks.
 - Prior Knowledge & Preparations: A beautifully highlighted full-width box with custom borders and a highlighted inner yellow container representing "CAPS Connection".
-- Core Content & Key Rules: Clearly outlined, card-style rows enclosing major concepts or emergency golden rules. 
+- Core Content & Key Rules: Clearly outlined, card-style rows enclosing major concepts or emergency golden rules.
 - Procedure Timeline: Beautiful vertical timeline or phase flow using solid circles with big numbers, dividing:
   - Phase 1: Introduction & Hook (Exactly what the teacher says, the prompt, icebreakers, 15 Minutes)
   - Phase 2: Direct Instruction & Demonstration (Rich explanation of core concepts, exact physical aids to show representatively, word-for-word explanations, 30 Minutes)
@@ -29,28 +26,12 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
   - Phase 5: Closure & Summary (Short interactive games, exact questions and answers to end on, school exit review, 15 Minutes)
 - Inclusive Education & Differentiation layouts: Side-by-side cards ("For Struggling Learners" and "For Advanced Learners") using clear colored backgrounds.
 
-📋 LESSON PLAN HTML TEMPLATE structure:
+📋 LESSON PLAN BODY STRUCTURE (the host supplies the document header, banner, and footer):
 <article class="lesson-plan max-w-5xl mx-auto bg-slate-50 shadow-xl rounded-3xl overflow-hidden print:shadow-none font-sans">
-  
-  <!-- HEADER CARD -->
-  <header class="bg-[#EA580C] text-white p-8 rounded-b-3xl relative overflow-hidden shadow-lg" style="background-color: \${primary};">
-    <div class="flex flex-wrap gap-2 mb-4">
-      <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">CURRICULUM FOCUS</span>
-      <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">\${subject} : GRADE \${grade}</span>
-      <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">TERM \${term} • WEEK \${week}</span>
-    </div>
-    <h1 class="text-4xl font-extrabold tracking-tight leading-tight mb-2">\${topic}</h1>
-    <p class="text-lg text-white/90 font-medium">CAPS Content & Diagnostic Mastery System</p>
-    
-    <div class="mt-6 pt-6 border-t border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm font-medium">
-      <div class="flex items-center gap-2">⏱️ <span class="font-bold">Duration:</span> \${duration}</div>
-      <div class="flex items-center gap-2">🏫 <span class="font-bold">Class Size:</span> 35-40 Learners</div>
-      <div class="flex items-center gap-2">🧬 <span class="font-bold">Curriculum reference:</span> \${capsCode}</div>
-    </div>
-  </header>
+  <!-- The host renders the current document header and single content banner. -->
 
   <div class="p-6 md:p-8 space-y-8">
-    
+
     <!-- AIM AND RESOURCES -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="bg-white rounded-3xl p-6 shadow-md border-2" style="border-color: \${light};">
@@ -67,7 +48,7 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
           </ul>
         </div>
       </div>
-      
+
       <div class="bg-white rounded-3xl p-6 shadow-md border-2" style="border-color: \${light};">
         <h2 class="text-xl font-extrabold flex items-center gap-2 mb-4" style="color: \${dark};">🎒 Resources Needed</h2>
         <div class="space-y-4">
@@ -91,7 +72,7 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
     <div class="bg-white rounded-3xl p-6 shadow-md border border-slate-100">
       <h2 class="text-xl font-extrabold flex items-center gap-2 mb-3 text-slate-800">🧠 Prior Knowledge & Preparation</h2>
       <p class="text-slate-650 font-medium text-sm leading-relaxed mb-4">\${priorKnowledge}</p>
-      
+
       <div class="rounded-2xl p-4 flex gap-3 border" style="background-color: \${light}; border-color: \${accent};">
         <div class="text-2xl mt-0.5">💡</div>
         <div>
@@ -124,12 +105,12 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
             <div class="absolute -left-[18px] top-0 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-md" style="background-color: \${primary};">
               \${idx + 1}
             </div>
-            
+
             <div class="mb-2">
               <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold leading-none mb-2">\${phase.tag}</span>
               <h3 class="text-lg font-extrabold text-slate-800 leading-tight">\${phase.name} <span class="text-slate-400 font-medium text-xs ml-2">(\${phase.duration})</span></h3>
             </div>
-            
+
             <div class="text-sm font-medium text-slate-700 space-y-4 pt-1 leading-relaxed">
               <div>
                 <p class="font-bold mb-1" style="color: \${dark};">👩‍🏫 Teacher Actions & Explanations:</p>
@@ -155,35 +136,15 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
       </div>
     </div>
 
-    <!-- TEACHER NOTES & ASSESSMENT STRATEGY SECTION -->
-    <div class="bg-amber-50/90 rounded-3xl p-6 shadow-md border-l-4 border-amber-500">
-      <h3 class="font-extrabold text-amber-900 mb-3 flex items-center gap-2 text-lg">📌 Teacher Notes & Assessment Strategy</h3>
-      <p class="text-xs text-amber-800 font-semibold mb-2">⏱️ Total Lesson Time Allocation: \${duration} (Intro & Hook: 15 min | Concept Input: 30 min | Guided Practice: 25 min | Independent Work: 35 min | Closure & Exit Check: 15 min)</p>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 text-xs text-amber-950 font-medium">
-        <div class="bg-white/80 p-4 rounded-2xl border border-amber-200">
-          <strong class="font-bold text-amber-900 block mb-1">📋 Formal Assessment Guidelines:</strong>
-          <p>CAPS ATP alignment for \${subject} Grade \${grade}. Marks allocated per task with memorandum and rubric. Weighting aligned to Term \${term}.</p>
-        </div>
-        <div class="bg-white/80 p-4 rounded-2xl border border-amber-200">
-          <strong class="font-bold text-amber-900 block mb-1">🔍 Informal & Formative Assessment:</strong>
-          <p>Diagnostic observation checklists, peer-review feedback, oral questioning during guided practice, and quick exit ticket check-ins.</p>
-        </div>
+    <!-- DIFFERENTIATION -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white rounded-3xl p-6 shadow-md border border-slate-100">
+      <div class="rounded-2xl p-5 border border-purple-100 bg-purple-50/50">
+        <h3 class="font-extrabold text-purple-900 mb-2 flex items-center gap-1.5">🧩 For Struggling Learners</h3>
+        <p class="text-purple-800 text-sm font-semibold leading-relaxed">\${strugglingStrategies}</p>
       </div>
-    </div>
-
-    <!-- DIFFERENTIATION & INCLUSION STRATEGIES -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white rounded-3xl p-6 shadow-md border border-slate-100">
-      <div class="rounded-2xl p-5 border border-purple-200 bg-purple-50/60">
-        <h3 class="font-extrabold text-purple-900 mb-2 flex items-center gap-1.5">🗣️ EAL / FAL Learner Support</h3>
-        <p class="text-purple-900 text-xs font-semibold leading-relaxed">Bilingual terminology glossaries, visual word-bank sentence starters, key concept translation hints, and paired peer buddies.</p>
-      </div>
-      <div class="rounded-2xl p-5 border border-amber-200 bg-amber-50/60">
-        <h3 class="font-extrabold text-amber-900 mb-2 flex items-center gap-1.5">🧩 For Struggling Learners</h3>
-        <p class="text-amber-900 text-xs font-semibold leading-relaxed">\${strugglingStrategies}</p>
-      </div>
-      <div class="rounded-2xl p-5 border border-indigo-200 bg-indigo-50/60">
+      <div class="rounded-2xl p-5 border border-indigo-100 bg-indigo-50/50">
         <h3 class="font-extrabold text-indigo-900 mb-2 flex items-center gap-1.5">🚀 For Advanced Learners</h3>
-        <p class="text-indigo-900 text-xs font-semibold leading-relaxed">\${advancedStrategies}</p>
+        <p class="text-indigo-800 text-sm font-semibold leading-relaxed">\${advancedStrategies}</p>
       </div>
     </div>
 
@@ -193,15 +154,14 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
       <div class="h-16 bg-slate-50/50 border border-slate-200 rounded-xl mb-2 flex items-center justify-center text-xs text-slate-400 italic font-medium">Use this space after the lesson to denote what parts worked-well vs. what requires adjustment...</div>
     </div>
   </div>
-
-  <!-- Host inserts the single compliance banner and exact canonical footer; do not emit a footer. -->
+  <!-- The host renders the canonical footer once. -->
 </article>
 
 Return as JSON matching:
 {
-  "content": "Full complete HTML string for the lesson plan without any summaries or placeholders",
-  "memo": "Full complete HTML string for answer memorandum key without any summaries or placeholders",
-  "rubric": "Full complete HTML string for analytical marking rubric matrix without any summaries or placeholders",
+  "content": "<HTML CODE FOR THE MAIN DOCUMENT (enclosing the complete styled lesson plan) HERE>",
+  "memo": "<HTML CODE FOR ANSWER MEMORANDUM KEY OF INTEGRATED WORK_SHEET (if applicable) HERE>",
+  "rubric": "<HTML CODE FOR ANALYTICAL MARKING RUBRIC MATRIX OF WORKSHEET TABLE HERE>",
   "assessmentCriteria": "Detailed CAPS criteria tags...",
   "successIndicators": ["string", "string"],
   "imagePrompt": "Detailed classroom lesson visual aid image prompt..."
@@ -209,29 +169,20 @@ Return as JSON matching:
 `;
 
 export const REPORT_COMMENT_TEMPLATE = `
-⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
-The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
-
 Generate personalized, strengths-based report card comments with this structure:
 
 📝 REPORT COMMENT TEMPLATE:
 <div class="report-comments max-w-4xl mx-auto bg-white shadow-lg rounded-2xl p-8">
-  
-  <!-- STUDENT HEADER -->
-  <header class="border-b-2 border-gray-200 pb-6 mb-6">
-    <div class="flex justify-between items-start">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">\${studentName}</h1>
-        <p class="text-gray-600">Grade \${grade} • \${subject} • Term \${term} \${year}</p>
-      </div>
-      <div class="text-right">
-        <div class="bg-gradient-to-br from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-xl shadow-lg">
-          <p class="text-sm opacity-90">Achievement Level</p>
-          <p class="text-3xl font-extrabold">\${achievementLevel}</p>
-        </div>
+
+  <!-- ACHIEVEMENT SUMMARY; document identity and learner metadata are in the host banner. -->
+  <section class="report-overview mb-6">
+    <div class="flex justify-end">
+      <div class="bg-gradient-to-br from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-xl shadow-lg text-center">
+        <p class="text-sm opacity-90">Achievement Level</p>
+        <p class="text-3xl font-extrabold">\${achievementLevel}</p>
       </div>
     </div>
-  </header>
+  </section>
 
   <!-- STRENGTHS SECTION -->
   <section class="strengths bg-green-50 p-6 rounded-xl mb-6 border-l-4 border-green-500">
@@ -285,35 +236,25 @@ Generate personalized, strengths-based report card comments with this structure:
       <div>
         <p class="text-gray-600 mb-8">Teacher's Signature: _______________________</p>
         <p class="font-medium text-gray-900">\${teacherName}</p>
-        <p class="text-sm text-gray-600">\${subject} Teacher</p>
+        <p class="text-sm text-gray-600">Teacher</p>
       </div>
       <div class="text-right">
         <p class="text-gray-600">Date: _______________</p>
-        <p class="text-sm text-gray-500 mt-4">EduAI Companion • Curriculum aligned</p>
       </div>
     </div>
   </div>
 
 </div>
 
-Return as JSON: { "content": "Full complete HTML string for report comments without summaries", "parentMeetingNotes": "suggested discussion points", "resourcesForHome": "home support suggestions" }
+Return as JSON: { content: "[HTML above]", parentMeetingNotes: "[suggested discussion points]", resourcesForHome: "[home support suggestions]" }
 `;
 
 export const CURRICULUM_MAP_TEMPLATE = `
-⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
-The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
-
 Generate a term-long curriculum map with this comprehensive structure:
 
-📅 CURRICULUM MAP TEMPLATE:
+📅 CURRICULUM MAP BODY TEMPLATE (the host supplies the document header, banner, and footer):
 <article class="curriculum-map max-w-6xl mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden">
-  
-  <!-- HEADER -->
-  <header class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-8">
-    <h1 class="text-4xl font-extrabold mb-2">📅 Curriculum Map</h1>
-    <p class="text-xl opacity-95">\${subject} • Grade \${grade} • Term \${term} \${year}</p>
-    <p class="mt-2 text-white/90">CAPS Alignment: \${capsReference}</p>
-  </header>
+  <!-- The host renders the current document header and single content banner. -->
 
   <!-- TERM OVERVIEW -->
   <section class="overview bg-gray-50 p-6 border-b border-gray-200">
@@ -337,7 +278,7 @@ Generate a term-long curriculum map with this comprehensive structure:
   <!-- WEEKLY BREAKDOWN -->
   <section class="weekly-breakdown p-8">
     <h2 class="text-3xl font-bold text-gray-900 mb-6">Weekly Breakdown</h2>
-    
+
     <div class="space-y-4">
       \${weeks.map(week => \`
       <div class="week-card bg-white rounded-xl border-2 border-gray-200 overflow-hidden hover:border-emerald-400 transition">
@@ -359,7 +300,7 @@ Generate a term-long curriculum map with this comprehensive structure:
             \`).join('')}
           </div>
         </div>
-        
+
         <div class="week-content p-6 grid md:grid-cols-2 gap-6">
           <div>
             <p class="font-bold text-gray-800 mb-2">Learning Objectives:</p>
@@ -374,7 +315,7 @@ Generate a term-long curriculum map with this comprehensive structure:
             </ul>
           </div>
         </div>
-        
+
         \${week.assessment ? \`
         <div class="week-assessment bg-yellow-50 px-6 py-3 border-t border-yellow-200">
           <p class="text-sm font-medium text-yellow-900">📊 Assessment: \${week.assessment}</p>
@@ -412,10 +353,10 @@ Generate a term-long curriculum map with this comprehensive structure:
   </section>
 
   <!-- FOOTER -->
-  <!-- Host inserts the single compliance banner and exact canonical footer; do not emit a footer. -->
+  <!-- The host renders the canonical footer once. -->
 </article>
 
-Return as JSON: { "content": "Full complete HTML string for curriculum map without summaries", "resourcesList": "required resources", "crossCurricularLinks": "links to other subjects" }
+Return as JSON: { content: "[HTML above]", resourcesList: "[required resources]", crossCurricularLinks: "[links to other subjects]" }
 `;
 
 export default {

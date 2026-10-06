@@ -4,511 +4,319 @@
  */
 
 export const WORKSHEET_PROMPT_TEMPLATE = `
-⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
-The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
-
 Generate a highly descriptive, CAPS-aligned primary student activity worksheet. The content generated MUST be rich, complete, and fully fleshed out with actual, engaging questions tailored to Grade \${grade} \${subject}, with zero placeholders or standard summaries.
 
-🎨 ULTRA-PREMIUM WORKSHEET DESIGN SYSTEM:
+🎨 WORK_SHEET DESIGN & REVERSE-ENGINEERED LAYOUT DIRECTIONS:
+- No fixed heights - use 'h-auto', dynamic padding ('py-6', 'px-6'), and relaxed block layouts.
+- Primary colors: Mathematics = blue grid accents; Languages = violet/indigo highlights; Life Skills = orange/amber warm details; Natural Sciences/EMS = emerald/green organic tones. REPLACE all general brackets like '[subject-color]' or '[accent-color]' with real, vivid hex/Tailwind classes (e.g. 'bg-emerald-600', 'text-indigo-800').
+- The host banner displays document title and metadata. Do not create a second title banner, grade badge, or top metadata strip. Keep only learner response fields in the body when useful:
+  - "Learner name: _______________________________"
+  - "Date: _________________________"
+  - "Overall Score: ______ / 15 Marks" (Use a beautifully-styled, layered score border card, no absolute positions to avoid overlap).
+- Section headers: Full width, rounded-xl colored banner pills representing different task sections (e.g., SECTION A [5 Marks]).
+- Choice options & Pills: Always use 'rounded-xl' or 'rounded-2xl' instead of 'rounded-full' to prevent text bounding errors if words wrap. Add thick colored borders ('border-2 border-emerald-100') that turn solid on hover.
+- Hand-drawn or Draw illustrations boxes: Explicitly styled boxes with a nice border-2 border-dashed gray border, minimum height ('min-h-[140px]') with soft neutral background and beautiful instruction guidelines.
 
-HEADER SECTION — DO NOT GENERATE ONE (the host already does):
-• The host's ONE document banner above the content prints the title, grade, subject, term, total marks, the CAPS code and the compliance labels in a two-colour vertical gradient whose bright colours the host picks for the content type.
-• Do NOT emit a header band, gradient banner, title block or subject/term/marks strip of your own — it is deleted before rendering and only wastes page space.
+📝 WORK_SHEET BODY STRUCTURE (the host supplies the document header, banner, and footer):
+<article class="worksheet-container max-w-5xl mx-auto bg-white p-6 md:p-8 rounded-3xl shadow-xl font-sans">
+  <!-- The current EduAI content banner is host-rendered; start the worksheet body here. -->
 
-METADATA INPUT SECTION:
-• Beautiful card design with subtle shadow
-• Input fields with dotted underlines and hover effects
-• Score box: Elevated design with gradient border
-  <div class="bg-gradient-to-br from-slate-50 to-slate-100 border-2 border-slate-200 rounded-2xl p-4 shadow-lg">
-    <div class="flex items-center justify-between">
-      <div>
-        <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Learner Name</p>
-        <div class="border-b-2 border-dashed border-slate-300 pb-1 min-w-[200px]"></div>
-      </div>
-      <div class="text-right">
-        <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Date</p>
-        <div class="border-b-2 border-dashed border-slate-300 pb-1 min-w-[120px]"></div>
-      </div>
+  <!-- METADATA STRIP -->
+  <div class="metadata-strip grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8 pb-4 border-b-2 border-dashed border-slate-200">
+    <div>
+      <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Learner's Full Name</label>
+      <div class="border-b-2 border-slate-350 py-1 text-slate-400 italic text-xs font-medium">_______________________________</div>
     </div>
-    <div class="mt-4 pt-4 border-t border-slate-200">
-      <div class="flex items-center justify-between bg-white rounded-xl p-3 shadow-inner">
-        <span class="text-sm font-bold text-slate-600">TOTAL SCORE:</span>
-        <div class="flex items-center gap-2">
-          <div class="w-12 h-12 border-2 border-dashed border-slate-300 rounded-lg"></div>
-          <span class="text-2xl font-black text-slate-400">/</span>
-          <span class="text-2xl font-black text-slate-800">\${totalMarks}</span>
-        </div>
-      </div>
+    <div>
+      <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Date of Assessment</label>
+      <div class="border-b-2 border-slate-350 py-1 text-slate-400 italic text-xs font-medium">_________________</div>
     </div>
-  </div>
-
-INSTRUCTIONS BOX:
-• Eye-catching design with icon and colored border
-• Background: bg-gradient-to-r from-amber-50 to-orange-50
-• Border: border-l-4 border-amber-500
-• Icon: Large emoji or custom SVG
-• Typography: Clear, readable, encouraging tone
-  <div class="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 rounded-r-2xl p-6 shadow-md mb-8">
-    <div class="flex items-start gap-3">
-      <span class="text-3xl">📋</span>
-      <div>
-        <h3 class="text-sm font-black uppercase tracking-wider text-amber-900 mb-2">Instructions & Guidelines</h3>
-        <p class="text-amber-800 font-medium leading-relaxed">\${instructions}</p>
+    <div class="sm:col-span-2 md:col-span-1 flex items-center justify-start md:justify-end">
+      <div class="bg-slate-50 border-2 rounded-2xl px-5 py-2 text-center w-40 flex items-center justify-between shadow-inner" style="border-color: \${light};">
+        <span class="text-[10px] font-heavy text-slate-500 uppercase tracking-wider mr-2">TOTAL SCORE:</span>
+        <span class="text-lg font-black text-slate-800">/ \${totalMarks}</span>
       </div>
     </div>
   </div>
 
-QUESTION DESIGN SYSTEM:
-
-Question Container:
-• Card design with hover effect
-• Background: bg-white with shadow-md
-• Border: border border-slate-200
-• Hover: hover:shadow-lg hover:-translate-y-1 transition-all duration-300
-• Padding: p-6 to p-8
-
-Question Number Badge:
-• Circular design with gradient background
-• Size: w-12 h-12
-• Typography: font-black text-white text-lg
-• Shadow: shadow-lg
-  <div class="bg-gradient-to-br from-blue-500 to-indigo-600 text-white w-12 h-12 rounded-full flex items-center justify-center font-black text-lg shadow-lg flex-shrink-0" style="background: \${primary};">
-    \${i+1}
+  <!-- INSTRUCTIONS BOX -->
+  <div class="bg-amber-50/70 border-l-4 border-amber-500 p-5 rounded-r-2xl mb-8 shadow-sm">
+    <h3 class="text-xs font-extrabold text-amber-900 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">📋 Directions & Guidelines</h3>
+    <p class="text-amber-805 text-sm leading-relaxed font-semibold">\${instructions}</p>
   </div>
 
-Question Header:
-• Title: text-lg font-bold text-slate-800
-• Marks badge: Inline pill with subject color
-  <span class="inline-block ml-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
-    [\${q.marks} Marks]
-  </span>
-
-Question Types (Each with Unique Design):
-
-1. MULTIPLE CHOICE:
-   • Grid layout: grid-cols-1 md:grid-cols-2 gap-4
-   • Option cards with hover effects
-   • Radio buttons with custom styling
-   • Selected state: border-2 border-blue-500 bg-blue-50
-   • Hover state: border-2 border-blue-300 bg-blue-50/50
-   <label class="flex items-center gap-3 p-4 bg-white border-2 border-slate-200 rounded-xl hover:border-blue-500 hover:bg-blue-50/50 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md">
-     <input type="radio" name="q\${i}" class="w-5 h-5 text-blue-600 focus:ring-blue-500">
-     <span class="text-sm font-semibold text-slate-700">\${String.fromCharCode(65 + idx)}. \${opt}</span>
-   </label>
-
-2. TRUE/FALSE:
-   • Pill-shaped buttons with color coding
-   • True: bg-green-100 text-green-800 border-green-300
-   • False: bg-red-100 text-red-800 border-red-300
-   • Hover effects with scale transform
-   <div class="flex gap-3">
-     <button class="flex-1 px-6 py-3 bg-green-100 text-green-800 border-2 border-green-300 rounded-xl font-bold hover:bg-green-200 hover:scale-105 transition-all">
-       ✓ True
-     </button>
-     <button class="flex-1 px-6 py-3 bg-red-100 text-red-800 border-2 border-red-300 rounded-xl font-bold hover:bg-red-200 hover:scale-105 transition-all">
-       ✗ False
-     </button>
-   </div>
-
-3. MATCHING/COLUMN A & B:
-   • Side-by-side layout with connecting lines
-   • Column A: bg-white border-2 border-slate-200
-   • Column B: bg-slate-50 border-2 border-dashed border-slate-300
-   • Connecting arrows or lines between items
-   <div class="grid grid-cols-12 gap-4 items-center">
-     <div class="col-span-5 p-4 bg-white border-2 border-slate-200 rounded-xl font-semibold text-slate-700 shadow-sm">
-       \${pair.colA}
-     </div>
-     <div class="col-span-2 flex items-center justify-center">
-       <span class="text-2xl text-slate-400">→</span>
-     </div>
-     <div class="col-span-5 p-4 bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl text-center">
-       <span class="text-xs font-bold text-slate-500 uppercase">Write letter:</span>
-       <div class="mt-2 w-12 h-12 mx-auto border-2 border-slate-300 rounded-lg"></div>
-     </div>
-   </div>
-
-4. FILL-IN-THE-BLANKS:
-   • Inline blanks with dotted underlines
-   • Word bank in elevated card
-   • Hover effects on word bank items
-   <p class="text-slate-700 leading-relaxed">
-     The capital of South Africa is <span class="inline-block w-32 border-b-2 border-dashed border-slate-400 mx-1"></span>, and the country has <span class="inline-block w-20 border-b-2 border-dashed border-slate-400 mx-1"></span> official languages.
-   </p>
-   <div class="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
-     <p class="text-xs font-bold text-blue-900 uppercase tracking-wider mb-2">Word Bank:</p>
-     <div class="flex flex-wrap gap-2">
-       <span class="px-3 py-1 bg-white border border-blue-300 rounded-lg text-sm font-semibold text-blue-700 cursor-pointer hover:bg-blue-100 transition">Pretoria</span>
-       <span class="px-3 py-1 bg-white border border-blue-300 rounded-lg text-sm font-semibold text-blue-700 cursor-pointer hover:bg-blue-100 transition">11</span>
-     </div>
-   </div>
-
-5. SHORT ANSWER:
-   • Lined writing area with proper spacing
-   • Character count or line indicators
-   • Guidance text in light color
-   <div class="space-y-3">
-     <p class="text-xs text-slate-500 italic">Write your answer on the lines below:</p>
-     <div class="border-b border-dashed border-slate-300 h-8"></div>
-     <div class="border-b border-dashed border-slate-300 h-8"></div>
-     <div class="border-b border-dashed border-slate-300 h-8"></div>
-   </div>
-
-6. DRAWING/ILLUSTRATION:
-   • Large drawing area with dashed border
-   • Light background color
-   • Instruction text centered
-   • Pencil icon or art supplies emoji
-   <div class="border-2 border-dashed border-slate-300 rounded-2xl min-h-[200px] bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col items-center justify-center p-6 text-center">
-     <span class="text-5xl mb-3">🎨</span>
-     <p class="text-sm font-bold text-slate-600 uppercase tracking-wider mb-2">\subWorkedExample \${q.drawingInstructions}</p>
-     <p class="text-xs text-slate-400">Use this space to draw your answer</p>
-   </div>
-
-7. TABLE/CHART COMPLETION:
-   • Clean table design with alternating row colors
-   • Header row with subject color
-   • Empty cells with dotted borders
-   • Hover effects on rows
-   <table class="w-full border-collapse">
-     <thead>
-       <tr class="text-white" style="background: \${primary};">
-         <th class="border-2 border-white p-3 text-left font-bold">Column 1</th>
-         <th class="border-2 border-white p-3 text-left font-bold">Column 2</th>
-       </tr>
-     </thead>
-     <tbody>
-       <tr class="bg-white hover:bg-blue-50 transition">
-         <td class="border-2 border-slate-200 p-3">Given data</td>
-         <td class="border-2 border-slate-200 p-3 bg-slate-50"></td>
-       </tr>
-     </tbody>
-   </table>
-
-SUCCESS INDICATORS SECTION:
-• Green-themed card with checklist
-• Checkmark icons for each item
-• Encouraging, positive language
-  <div class="bg-gradient-to-r from-emerald-50 to-green-50 border-l-4 border-emerald-500 rounded-r-2xl p-6 my-8 shadow-md">
-    <h3 class="text-sm font-black uppercase tracking-wider text-emerald-900 mb-3 flex items-center gap-2">
-      <span class="text-xl">🌟</span> Checklist for Success
-    </h3>
-    <ul class="space-y-2">
-      \${successIndicators.map(si => \`
-        <li class="flex items-start gap-2.5">
-          <span class="text-emerald-500 text-lg flex-shrink-0 mt-0.5">✓</span>
-          <span class="text-emerald-800 font-medium">\${si}</span>
-        </li>
-      \`).join('')}
-    </ul>
-  </div>
-
-TEACHER NOTES & ASSESSMENT STRATEGY SECTION (MANDATORY):
-• Amber-themed card with explicit formal/informal assessment guidelines and time allocations:
-  <div class="bg-amber-50/90 border-l-4 border-amber-500 rounded-r-2xl p-6 my-8 shadow-md print:break-inside-avoid">
-    <h3 class="text-sm font-black uppercase tracking-wider text-amber-900 mb-2 flex items-center gap-2">
-      <span class="text-xl">📌</span> Teacher Notes & Assessment Strategy
-    </h3>
-    <p class="text-xs text-amber-800 font-semibold mb-2">⏱️ Recommended Time Allocation: Total 45-60 min (Intro & Setup: 10 min | Core Activity: 30 min | Formative Check & Review: 15 min)</p>
-    <div class="text-xs text-amber-900 space-y-1">
-      <p><strong>Formal Assessment:</strong> CAPS ATP aligned scoring (\${totalMarks} Marks total). Use attached Memorandum for mark allocation.</p>
-      <p><strong>Informal Assessment:</strong> Monitor learner progress via observation checklist, peer-checking during activity, and exit ticket summary.</p>
-    </div>
-  </div>
-
-BUILT-IN DIFFERENTIATION STRATEGIES SECTION (MANDATORY):
-• Indigo-themed card detailing multi-tier learning accommodations:
-  <div class="bg-indigo-50/90 border-l-4 border-indigo-500 rounded-r-2xl p-6 my-8 shadow-md print:break-inside-avoid">
-    <h3 class="text-sm font-black uppercase tracking-wider text-indigo-900 mb-2 flex items-center gap-2">
-      <span class="text-xl">💡</span> Differentiation & Inclusion Strategies
-    </h3>
-    <ul class="text-xs text-indigo-950 space-y-1.5 list-disc pl-4">
-      <li><strong>English Additional Language (EAL/FAL) Support:</strong> Provide bilingual terminology word banks, visual sentence starters, and peer buddy discussion before writing.</li>
-      <li><strong>Scaffolding & Extra Time:</strong> Allow extra 10-15 minutes, chunk multi-step questions, and provide visual manipulative models.</li>
-      <li><strong>Extension & Challenge:</strong> Encourage advanced learners to complete higher-order synthesis questions or create their own sample problem.</li>
-    </ul>
-  </div>
-
-ILLUSTRATION PLACEHOLDERS & PRINTABLE DESCRIPTIONS:
-• Include at least 2-3 inline illustration placeholders using the exact format: [Illustration: <vivid visual prompt in South African context>]. Ensure the prompt inside is detailed as it acts as both the AI image generator prompt and a printable text description for offline print-only usage.
-• Any caption or label rendered under a generated image / placeholder MUST use class "eduai-illustration-label" (7px, dark navy #0a0f21 at 30% opacity). Never use green text for these labels.
-• Follow this HTML body template exactly. Do NOT generate an application chrome / product header — the host app already provides the header. Start from the document article body (keep only the compact subject banner).
-
-FOOTER:
-• Subtle design with branding
-• Print instructions
-• Contact/website info
-  <!-- Host inserts the single compliance banner and exact canonical footer; do not emit a footer. -->
-
-🎨 IMAGE PROMPT SPECIFICATION:
-"Professional educational illustration for South African Grade [X] [Subject]: [Topic]. Style: Semi-realistic digital painting, children's non-fiction book aesthetic."
-
-CRITICAL JSON OUTPUT:
-{
-  "content": "Full complete HTML string for worksheet following all design rules without summaries or placeholders",
-  "memo": "Full complete HTML string for answer memorandum with detailed marking guidelines without summaries or placeholders",
-  "rubric": "Full complete HTML string for analytical marking rubric with criteria and performance levels without summaries or placeholders",
-  "successIndicators": ["string", "string"],
-  "imagePrompt": "Ultra-detailed image prompt following the Master Prompt system"
-}
-`;
-
-export const VISUAL_AID_PROMPT_TEMPLATE = `
-Create a polished, CAPS-aware visual learning resource for the requested South African grade, subject, topic, visual type, language, and paper size. Follow the supplied instructor brief for creative details unless it conflicts with factual accuracy, learner safety, accessibility, or the fixed output schema.
-
-INFORMATION DESIGN:
-- Choose a composition that fits the selected artifact (poster, wall chart, infographic, mind map, diagram, process flow, flashcards, vocabulary cards, timeline, number chart, labels, or signs). Do not force every type into a generic poster layout.
-- Make the main learning idea immediately clear. Use an accurate reading path, concise labels, meaningful groupings, consistent spacing, a restrained colour palette, and generous white space.
-- Match vocabulary, concept density, examples, and type size to the grade. Keep Foundation Phase content especially short and legible; increase detail only when the phase supports it.
-- Check every definition, sequence, relationship, calculation, unit, label, and date. Do not invent CAPS codes, statistics, historical dates, references, or unsupported claims. Use South African context only when it naturally helps explain the topic.
-- Posters and reference displays are teaching aids, not worksheets: do not add quizzes, homework, fill-in-the-blanks, or assessment tasks. A short retrieval cue is acceptable only for a flashcard or activity-card type that calls for it.
-- Use readable, high-contrast text, semantic HTML, accessible labels and proper table headings. Do not rely on colour alone. Avoid fixed-height blocks, clipping, tiny print, hover-only information, emoji glyphs, fake school/government marks, watermarks, and external assets.
-- If the caller enables illustration generation, include one relevant, self-contained [Illustration: ...] placeholder and a matching detailed imagePrompt. Do not repeat image placeholders in every card. If image generation is off, include no image placeholders and set imagePrompt to an empty string.
-
-HOST TEMPLATE AND PRINTING:
-The host supplies the document title, grade/subject metadata, single branded banner, compliance labels, page shell, and canonical footer. Start with the visual content; do not add a second header, metadata strip, banner, compliance row, or footer. Use print-safe margins and let the requested paper size/orientation determine the layout. Keep each card, table row, or figure together across page breaks where possible.
-
-Return exactly one valid JSON object, without Markdown fences, with these keys only: content (HTML fragment), description (one or two sentences), printInstructions (paper size/orientation and practical print guidance), and imagePrompt (detailed matching illustration prompt, or an empty string if disabled). Use valid JSON escaping and do not return a full HTML document.
-`;
-
-export const STUDY_GUIDE_PROMPT_TEMPLATE = `
-⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
-The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
-
-Create a comprehensive, textbook-quality study guide with sophisticated design that rivals professional educational publishers. This must be so well-designed that learners want to keep it as a reference book.
-
-📖 ULTRA-PREMIUM STUDY GUIDE DESIGN SYSTEM:
-
-<article class="study-guide max-w-6xl mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden font-sans">
-
-COVER SECTION:
-• Stunning gradient cover with depth
-• Large title with professional typography
-• Subject icon and badges
-• Professional layout
-  <header class="cover text-slate-950 p-12 md:p-16 text-center relative overflow-hidden" style="background: linear-gradient(135deg, \${primary}, \${dark});">
-    <!-- Decorative elements -->
-    <div class="absolute inset-0 opacity-10">
-      <div class="absolute top-10 left-10 w-32 h-32 border-4 border-white rounded-full"></div>
-      <div class="absolute bottom-10 right-10 w-48 h-48 border-4 border-white rounded-full"></div>
-    </div>
-    
-    <div class="relative z-10">
-      <div class="subject-icon text-7xl mb-6">📚</div>
-      <h1 class="text-5xl md:text-6xl lg:text-7xl font-black mb-4 tracking-tight leading-tight">
-        \subTitle \${title}
-      </h1>
-      <p class="text-2xl md:text-3xl opacity-95 mb-3 font-medium">
-        \${subject} • Grade \subGrade \${grade}
-      </p>
-      <p class="text-lg opacity-90 mb-8 font-mono">
-        \${capsCode}
-      </p>
-      
-      <div class="mt-8 flex flex-wrap justify-center gap-4">
-        <span class="badge bg-white/20 backdrop-blur-md px-6 py-3 rounded-full text-sm font-bold border border-white/30">
-          ✓ Curriculum aligned
-        </span>
-        <span class="badge bg-white/20 backdrop-blur-md px-6 py-3 rounded-full text-sm font-bold border border-white/30 font-mono">
-          📅 Term \subTerm \${term}
-        </span>
-      </div>
-    </div>
-  </header>
-
-HERO ILLUSTRATION:
-• Large, professional illustration
-• Beautiful frame with shadow
-• Contextual information
-  <div class="hero-illustration p-12" style="background: linear-gradient(135deg, \${light}, #ffffff);">
-    <div class="illustration-container max-w-4xl mx-auto aspect-video bg-white rounded-3xl shadow-2xl border-4 border-dashed flex items-center justify-center" style="border-color: \${accent};">
-      <div class="text-center p-8">
-        <p class="text-6xl mb-4">🖼️</p>
-        <p class="text-xl font-bold text-gray-800 mb-2">[Concept Illustration: \${imagePrompt}]</p>
-        <p class="text-sm text-gray-500">
-          Professional educational artwork • South African context • Print-ready 300 DPI
-        </p>
-      </div>
-    </div>
-  </div>
-
-TABLE OF CONTENTS:
-• Clean, professional design
-• Clickable links (if digital)
-• Page estimates
-• Visual hierarchy
-  <nav class="toc bg-gradient-to-br from-gray-50 to-white border-y-2 border-gray-200 p-8 md:p-12">
-    <h2 class="text-2xl font-black text-gray-800 mb-6 flex items-center gap-3">
-      <span class="text-3xl">📑</span>
-      <span>Table of Contents</span>
-    </h2>
-    <ol class="space-y-3">
-      \${sections.map((s, i) => \`
-        <li class="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all">
-          <div class="flex items-center gap-4">
-            <span class="text-white w-10 h-10 rounded-full flex items-center justify-center font-bold" style="background: \${primary};">
-              \${i+1}
-            </span>
-            <span class="text-lg font-semibold text-gray-800">
-              \${s.title}
-            </span>
+  <!-- QUESTIONS BLOCK -->
+  <main class="space-y-8">
+    \${questions.map((q, i) => \`
+      <section class="question-row bg-slate-50 border border-slate-200 p-6 rounded-2xl relative shadow-sm">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="bg-indigo-600 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shadow-sm" style="background: \${primary};">
+            \${i+1}
           </div>
-          <span class="text-sm text-gray-500 font-medium">
-            • \${s.pageEstimate} min read
-          </span>
-        </li>
-      \`).join('')}
-    </ol>
-  </nav>
-
-MAIN CONTENT SECTIONS:
-• Professional textbook-style layout
-• Rich typography and spacing
-• Visual aids and diagrams
-• Interactive elements
-  <main class="content p-8 md:p-12 space-y-16">
-    \${sections.map((section, idx) => \`
-      <section id="section-\${idx+1}" class="section scroll-mt-24">
-        <!-- Section Header -->
-        <div class="section-header flex items-center gap-4 mb-8 pb-4 border-b-4" style="border-color: \subAccent \${light};">
-          <span class="section-number text-white w-14 h-14 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg" style="background: linear-gradient(135deg, \${primary}, \${dark});">
-            \${idx+1}
-          </span>
-          <h2 class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
-            \subTitle \${section.title}
-          </h2>
-        </div>
-        
-        <!-- Key Concept Box -->
-        \${section.keyConcept ? \`
-          <div class="key-concept border-l-4 p-6 rounded-r-2xl mb-8 shadow-md" style="background: linear-gradient(to right, \${light}, #ffffff); border-color: \${primary};">
-            <p class="font-black flex items-center gap-2 text-lg mb-3">
-              <span class="text-2xl">💡</span>
-              <span>Key Concept</span>
-            </p>
-            <p class="leading-relaxed font-medium text-lg text-slate-800">
-              \${section.keyConcept}
-            </p>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-850 tracking-tight leading-tight">\${q.text}</h3>
+            <span class="inline-block text-slate-400 font-bold text-xs">[\${q.marks} Marks]</span>
           </div>
-        \` : ''}
-        
-        <!-- Core Explanation -->
-        <div class="explanation prose prose-lg max-w-none text-gray-700 leading-relaxed space-y-4 mb-8">
-          \${section.content}
         </div>
-        
-        <!-- Visual Aid / Diagram -->
-        \${section.diagram ? \`
-          <div class="diagram-frame my-8 p-8 bg-gradient-to-br from-gray-50 to-white rounded-2xl border-2 border-dashed border-gray-300 shadow-inner">
-            <div class="text-center">
-              <p class="text-5xl mb-4">📊</p>
-              <p class="text-lg font-bold text-gray-700 mb-2">[Diagram: \subDiagramDescription \${section.diagramDescription}]</p>
-              <p class="text-sm text-gray-500">
-                Labelled educational diagram • High contrast for projection
-              </p>
+
+        <div class="question-body pl-0 md:pl-14">
+          \${q.type === 'multiple-choice' ? \`
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              \${q.options.map((opt, idx) => \`
+                <label class="flex items-center gap-3 p-4 bg-white border-2 border-slate-200 rounded-2xl hover:border-indigo-500 cursor-pointer transition shadow-sm hover:shadow active:scale-95">
+                  <input type="radio" name="q\${i}" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
+                  <span class="text-sm font-semibold text-slate-705 leading-snug">\${String.fromCharCode(65 + idx)}. \${opt}</span>
+                </label>
+              \`).join('')}
             </div>
-          </div>
-        \` : ''}
-        
-        <!-- Worked Example -->
-        \subWorkedExample \${section.example ? \`
-          <div class="example border-l-4 p-6 rounded-r-2xl my-8 shadow-md" style="background: linear-gradient(to right, #f0fdf4, #ffffff); border-color: #22c55e;">
-            <p class="font-black text-green-900 mb-4 flex items-center gap-2 text-lg">
-              <span class="text-2xl">✨</span>
-              <span>Worked Example</span>
-            </p>
-            <div class="example-content bg-white p-6 rounded-xl shadow-sm border border-green-200">
-              \subWorkedExample \${section.example}
+          \` : q.type === 'short-answer' ? \`
+            <div class="space-y-2">
+              <p class="text-xs text-slate-400 italic">Write your explanation neatly on the lines below:</p>
+              <div class="border-b border-dashed border-slate-350 h-8"></div>
+              <div class="border-b border-dashed border-slate-350 h-8"></div>
             </div>
-          </div>
-        \` : ''}
-        
-        <!-- Check Your Understanding -->
-        <div class="check-understanding mt-8 p-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border-2 border-purple-200 shadow-md">
-          <p class="font-black text-purple-900 mb-4 flex items-center gap-2 text-lg">
-            <span class="text-2xl">🤔</span>
-            <span>Check Your Understanding</span>
-          </p>
-          <ul class="space-y-3">
-            \${section.checkQuestions.map((q, i) => \`
-              <li class="flex gap-3 p-3 bg-white rounded-xl border border-purple-100">
-                <span class="bullet bg-purple-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
-                  \${i+1}
-                </span>
-                <span class="question text-purple-800 font-medium leading-relaxed">\${q}</span>
-              </li>
-            \`).join('')}
-          </ul>
+          \` : q.type === 'matching' ? \`
+            <div class="grid grid-cols-1 gap-2">
+              \${q.matchingPairs.map(pair => \`
+                <div class="grid grid-cols-12 gap-2 items-center">
+                  <div class="col-span-5 p-3 bg-white border border-slate-200 rounded-xl font-bold text-sm text-slate-700 shadow-sm">\${pair.colA}</div>
+                  <div class="col-span-2 text-center text-slate-400">✏️ connects to</div>
+                  <div class="col-span-5 p-3 bg-white border border-slate-200 rounded-xl font-semibold text-xs text-slate-400 italic border-dashed text-center">Write matching letter here: [ _____ ]</div>
+                </div>
+              \`).join('')}
+            </div>
+          \` : q.type === 'drawing' ? \`
+            <div class="border-2 border-dashed border-slate-300 rounded-3xl min-h-[160px] bg-white flex flex-col items-center justify-center p-6 text-center shadow-inner">
+              <span class="text-4xl mb-2">🎨</span>
+              <p class="text-xs font-bold text-slate-500 tracking-wide uppercase mb-1">\${q.drawingInstructions}</p>
+              <p class="text-[10px] text-slate-400">Sketch your visual response in this dedicated block</p>
+            </div>
+          \` : ''}
         </div>
       </section>
     \`).join('')}
   </main>
 
-QUICK REFERENCE SECTION:
-  <aside class="quick-ref p-8 md:p-12 border-t-2" style="background: linear-gradient(to right, \${light}, #ffffff); border-color: \${accent};">
-    <h3 class="text-2xl font-black mb-4 flex items-center gap-2">
+  <!-- SUCCESS INDICATORS -->
+  <div class="bg-emerald-50 border-l-4 border-emerald-500 p-5 rounded-r-2xl my-8 shadow-sm">
+    <h3 class="text-xs font-extrabold text-emerald-900 uppercase tracking-widest flex items-center gap-1.5 mb-2">🌟 Checklist for Success</h3>
+    <ul class="space-y-1.5 pl-2">
+      \${successIndicators.map(si => \`
+        <li class="flex items-start gap-2.5 text-sm font-semibold text-emerald-800">
+          <span class="text-emerald-500">✔</span>
+          <span>\${si}</span>
+        </li>
+      \`).join('')}
+    </ul>
+  </div>
+  <!-- The host renders the canonical footer once. -->
+</article>
+
+CRITICAL: Return as JSON matching:
+{
+  "content": "<HTML CODE FOR STUDENT ACTIVITY WORKSHEET (using HTML above) HERE>",
+  "memo": "<HTML CODE FOR ANSWER MEMORANDUM KEY OF WORKSHEET HERE>",
+  "rubric": "<HTML CODE FOR ANALYTICAL MARKING RUBRIC MATRIX OF WORKSHEET TABLE HERE>",
+  "successIndicators": ["string", "string"],
+  "imagePrompt": "Detailed printable class assessment illustration..."
+}
+`;
+
+export const VISUAL_AID_PROMPT_TEMPLATE = `
+Design a classroom-ready educational poster/infographic body. The host supplies the current document header, one content banner, and footer; do not generate duplicate page chrome:
+
+🎨 LAYOUT GRID (Tailwind CSS):
+<div class="poster-container max-w-4xl mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden">
+
+  <!-- The host supplies the current content header and single banner. -->
+  <!-- HERO ILLUSTRATION (30% of poster) -->
+  <div class="hero-section bg-[light-accent] p-8">
+    <div class="illustration-frame aspect-[4/3] bg-white rounded-2xl shadow-inner flex items-center justify-center border-4 border-dashed border-[subject-color]/30">
+      <div class="text-center p-6">
+        <div class="text-6xl mb-4">🎨</div>
+        <p class="font-medium text-gray-700">[Illustration: \${imagePrompt}]</p>
+        <p class="text-sm text-gray-500 mt-2">Semi-realistic digital painting • South African context • 300 DPI print quality</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENT GRID (2-3 columns based on complexity) -->
+  <div class="content-grid grid md:grid-cols-2 gap-6 p-8">
+    \${contentBlocks.map(block => \`
+    <div class="content-card bg-gray-50 rounded-2xl p-5 border border-gray-200 hover:shadow-md transition">
+      <div class="card-header flex items-center gap-3 mb-3">
+        <div class="icon-bubble bg-[subject-color] text-white w-10 h-10 rounded-xl flex items-center justify-center font-bold">
+          \${block.icon}
+        </div>
+        <h3 class="font-bold text-lg text-gray-800">\${block.title}</h3>
+      </div>
+
+      <!-- INLINE BREAK ILLUSTRATION: Breaking any text-heavy block with a mini-illustration -->
+      <div class="my-4 bg-white p-1 rounded-xl shadow-inner border border-gray-100">
+        [Illustration: A beautiful, context-relevant mini-illustration depicting \${block.title} specifically for South African Grade \${grade} learners]
+      </div>
+
+      <div class="card-body text-gray-750 leading-relaxed font-medium text-sm space-y-2">
+        \${block.content}
+      </div>
+      \${block.callout ? \`
+      <div class="callout mt-4 p-3 bg-[accent-light] rounded-lg border-l-4 border-[accent-color]">
+        <p class="text-sm font-semibold text-[accent-dark]">💡 \${block.callout}</p>
+      </div>\` : ''}
+    </div>
+    \`).join('')}
+  </div>
+
+  <!-- KEY TAKEAWAYS STRIP -->
+  <div class="takeaways bg-[subject-light] p-6">
+    <p class="font-bold text-[subject-dark] mb-3">🔑 Remember:</p>
+    <div class="flex flex-wrap gap-3">
+      \${keyPoints.map(kp => \`
+        <span class="pill bg-white px-4 py-2 rounded-full text-sm font-medium shadow-sm border border-gray-200">
+          \${kp}
+        </span>
+      \`).join('')}
+    </div>
+  </div>
+  <!-- The host renders the canonical footer once. -->
+</div>
+
+🎨 IMAGE PROMPT SPECIFICATION:
+"Professional educational poster illustration: [Topic] for South African Grade [X].
+Style: Semi-realistic digital painting, children's educational book aesthetic.
+Composition: Central hero image with supporting contextual elements.
+Cultural authenticity: Include [specific SA elements: e.g., Table Mountain, springbok, local flora].
+Color harmony: Align with [subject] palette ([colors]).
+Technical specs: 300 DPI, CMYK-ready, no text overlays, no borders, museum-quality detail,
+optimized for A3/A4 classroom printing. Emotional tone: [inspiring/curious/empowering]."
+
+Return as JSON: { content: "[HTML above]", imagePrompt: "[enhanced prompt]", printInstructions: "A4/A3, 300 DPI, CMYK", accessibilityNotes: "[alt text suggestions]" }
+`;
+
+export const STUDY_GUIDE_PROMPT_TEMPLATE = `
+Create a comprehensive, textbook-quality study guide with this sophisticated layout:
+
+📖 STRUCTURE & TYPOGRAPHY (the host supplies the document header, banner, and footer):
+<article class="study-guide max-w-5xl mx-auto bg-white shadow-xl rounded-3xl overflow-hidden">
+  <!-- The current EduAI content banner is host-rendered; begin study-guide content here. -->
+
+  <!-- HERO ILLUSTRATION -->
+  <div class="hero-illustration bg-[light-bg] p-8">
+    <div class="illustration-container max-w-3xl mx-auto aspect-video bg-white rounded-2xl shadow-lg border-4 border-dashed border-[subject-color]/20 flex items-center justify-center">
+      <div class="text-center p-6">
+        <p class="text-5xl mb-4">🖼️</p>
+        <p class="font-semibold text-gray-800">[Concept Illustration: \${imagePrompt}]</p>
+        <p class="text-sm text-gray-500 mt-2">Semi-realistic educational art • South African context • Print-ready 300 DPI</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE OF CONTENTS -->
+  <nav class="toc bg-gray-50 border-y border-gray-200 p-6">
+    <h2 class="font-bold text-lg text-gray-800 mb-3">📑 In This Guide</h2>
+    <ol class="list-decimal list-inside space-y-2 text-gray-700">
+      \${sections.map((s, i) => \`
+        <li><a href="#section-\${i+1}" class="hover:text-[subject-color] transition font-medium">\${s.title}</a>
+          <span class="text-gray-400 text-sm">• \${s.pageEstimate} min read</span></li>
+      \`).join('')}
+    </ol>
+  </nav>
+
+  <!-- MAIN CONTENT SECTIONS -->
+  <main class="content p-8 space-y-10">
+    \${sections.map((section, idx) => \`
+    <section id="section-\${idx+1}" class="section scroll-mt-24">
+      <div class="section-header flex items-center gap-4 mb-6 pb-4 border-b-2 border-[subject-light]">
+        <span class="section-number bg-[subject-color] text-white w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xl shadow">
+          \${idx+1}
+        </span>
+        <h2 class="text-3xl font-bold text-gray-900">\${section.title}</h2>
+      </div>
+
+      <!-- Key Concept Box -->
+      \${section.keyConcept ? \`
+      <div class="key-concept bg-blue-50 border-l-4 border-blue-500 p-5 rounded-r-xl mb-6">
+        <p class="font-bold text-blue-900 flex items-center gap-2">
+          <span>💡</span> Key Concept:
+        </p>
+        <p class="text-blue-800 mt-2 leading-relaxed">\${section.keyConcept}</p>
+      </div>\` : ''}
+
+      <!-- Core Explanation (textbook-style paragraphs) -->
+      <div class="explanation prose prose-lg max-w-none text-gray-700 leading-relaxed">
+        \${section.content}
+      </div>
+
+      <!-- Visual Aid / Diagram Placeholder -->
+      \${section.diagram ? \`
+      <div class="diagram-frame my-8 p-6 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
+        <p class="text-center text-gray-600 font-medium">[Diagram: \${section.diagramDescription}]</p>
+        <p class="text-center text-xs text-gray-400 mt-2">Labelled educational diagram • High contrast for projection</p>
+      </div>\` : ''}
+
+      <!-- Worked Example -->
+      \${section.example ? \`
+      <div class="example bg-green-50 border-l-4 border-green-500 p-5 rounded-r-xl my-6">
+        <p class="font-bold text-green-900 mb-3">✨ Worked Example:</p>
+        <div class="example-content bg-white p-4 rounded-lg shadow-sm">
+          \${section.example}
+        </div>
+      </div>\` : ''}
+
+      <!-- Check Your Understanding -->
+      <div class="check-understanding mt-8 p-5 bg-purple-50 rounded-xl border border-purple-200">
+        <p class="font-bold text-purple-900 mb-3">🤔 Check Your Understanding:</p>
+        <ul class="space-y-3">
+          \${section.checkQuestions.map((q, i) => \`
+            <li class="flex gap-3">
+              <span class="bullet bg-purple-200 text-purple-800 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">\${i+1}</span>
+              <span class="question text-purple-800">\${q}</span>
+            </li>
+          \`).join('')}
+        </ul>
+      </div>
+    </section>
+    \`).join('')}
+  </main>
+
+  <!-- QUICK REFERENCE BOX -->
+  <aside class="quick-ref bg-[subject-light] p-8">
+    <h3 class="font-bold text-[subject-dark] text-xl mb-4 flex items-center gap-2">
       <span>🔖</span> Quick Reference
     </h3>
     <div class="grid md:grid-cols-2 gap-4">
-      \subQuickFacts \${quickFacts.map(fact => \`
-        <div class="ref-card bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all">
-          <p class="font-bold text-gray-800 mb-2">\${fact.label}:</p>
-          <p class="text-gray-700 font-medium">\${fact.value}</p>
+      \${quickFacts.map(fact => \`
+        <div class="ref-card bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+          <p class="font-semibold text-gray-800">\${fact.label}:</p>
+          <p class="text-gray-700">\${fact.value}</p>
         </div>
       \`).join('')}
     </div>
   </aside>
-
-  <!-- Host inserts the single compliance banner and exact canonical footer; do not emit a footer. -->
+  <!-- The host renders the canonical footer once. -->
 </article>
 
 🎨 HERO IMAGE PROMPT:
-"Educational textbook-style illustration: [Core concept of study guide] for South African Grade [X] [Subject]. Style: Semi-realistic digital painting."
-
-Return as JSON: { 
-  "content": "Full complete HTML string for study guide without summaries or placeholders", 
-  "imagePrompt": "enhanced prompt", 
-  "printInstructions": "A4, 300 DPI, CMYK, bleed 3mm", 
-  "accessibilityNotes": "alt text for hero + diagrams", 
-  "estimatedReadTime": "X minutes",
-  "capsAlignment": "specific CAPS codes covered"
-}
-`;
-
-export const FOUNDATION_PHASE_TEMPLATE = `
-⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
-The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
-
-Generate a bright, colourful, playful, and CAPS-compliant Foundation Phase (Grades R–3) learning material for South African schools, tailored specifically to the topic \${topic} in \${subject}.
-
-🎨 FOUNDATION PHASE VISUAL & DESIGN SYSTEM:
-1. TYPOGRAPHY & FONT: MANDATORY use of large, child-friendly handwritten or rounded sans-serif fonts (font-hand class, 'font-family: "Patrick Hand", "Comic Neue", cursive, sans-serif'). Minimum text size: text-xl (18pt equivalent) for body instructions and text-3xl for headings. Zero text-xs or text-sm.
-2. HEADER & METADATA:
-   - Clear, large-print header with playful subject-colored gradient banner (Math: Blue/Cyan, Languages: Purple/Pink, Life Skills: Orange/Yellow).
-   - Prominent learner metadata box with dashed underlines for Name, Date, and Grade:
-     <div class="bg-sky-50 border-4 border-dashed border-sky-300 rounded-3xl p-5 mb-6 shadow-sm flex flex-wrap items-center justify-between gap-4">
-       <div><span class="font-bold text-slate-700 text-lg">Name:</span> <span class="inline-block border-b-2 border-dashed border-slate-400 min-w-[200px] pb-1"></span></div>
-       <div><span class="font-bold text-slate-700 text-lg">Date:</span> <span class="inline-block border-b-2 border-dashed border-slate-400 min-w-[120px] pb-1"></span></div>
-       <div><span class="font-bold text-slate-700 text-lg">Grade:</span> <span class="inline-block border-b-2 border-dashed border-slate-400 min-w-[60px] pb-1">\${grade}</span></div>
-     </div>
-3. TEMPLATE-SPECIFIC VARIATIONS BASED ON TASK TYPE:
-   - DAILY WORKSHEET: Playful cartoon border style, dashed midline spaces for handwriting practice (\`border-b-2 border-dashed border-sky-300 h-10 mb-4\`), clean white background, counting / phonics / number bond grids.
-   - CLASSROOM EXERCISE: Cheerful "Let's Practice!" header with a friendly owl mascot badge (🦉), visual instruction icons (✏️ write, 👁️ look, 🗣️ say, ✂️ cut), colorful activity stations.
-   - HOMEWORK TASK: Fun "My Homework" header with cartoon backpack, smiling moon, and stars (🎒🌙⭐), dedicated sections for "Today's Task", "Parent/Guardian Signature ✍️", and "Teacher's Comment 🍎".
-4. VISUAL INSTRUCTION ICONS: Always pair instructions with emojis/icons (e.g., ✏️ Trace & Copy, 🎨 Colour, 🔢 Count & Match).
-5. POSITIVE REINFORCEMENT: Bottom of the page MUST include a bright yellow "⭐ Star Achiever / Well Done!" reward badge with smiling star and smiley face.
-6. INLINE ILLUSTRATION PLACEHOLDERS: Include 2-3 inline illustration placeholders using exact format: \`[Illustration: Cute cartoon South African animals or learning objects representing \${topic}]\`.
+"Educational textbook-style illustration: [Core concept of study guide] for South African Grade [X] [Subject].
+Style: Semi-realistic digital painting, children's educational non-fiction book aesthetic.
+Composition: Central conceptual diagram with contextual South African elements ([examples]).
+Color strategy: Harmonious palette aligned with [subject] ([colors]), high contrast for readability.
+Technical: 300 DPI, CMYK-ready, no text overlays, no borders, museum-quality detail,
+optimized for both digital viewing and A4 printing. Emotional resonance: [inspiring clarity / confident mastery].
+Include subtle visual metaphors for [key concept]."
 
 Return as JSON: {
-  "content": "Full complete HTML string for Foundation Phase material following all guidelines",
-  "imagePrompt": "enhanced prompt",
-  "printInstructions": "A4 portrait, 300 DPI, full color"
+  content: "[HTML above]",
+  imagePrompt: "[enhanced prompt]",
+  printInstructions: "A4, 300 DPI, CMYK, bleed 3mm",
+  accessibilityNotes: "[alt text for hero + diagrams]",
+  estimatedReadTime: "[X] minutes",
+  capsAlignment: "[specific CAPS codes covered]"
 }
 `;
 
 export default {
   WORKSHEET_PROMPT_TEMPLATE,
   VISUAL_AID_PROMPT_TEMPLATE,
-  STUDY_GUIDE_PROMPT_TEMPLATE,
-  FOUNDATION_PHASE_TEMPLATE
+  STUDY_GUIDE_PROMPT_TEMPLATE
 };

@@ -4,6 +4,7 @@
  */
 
 import { ADMIN_LAB_SYSTEM_PROMPT, VISUAL_LAB_SYSTEM_PROMPT } from './lab-prompts';
+import { EDUAI_HOST_CHROME_RULE } from './host-chrome';
 
 export const SYSTEM_PROMPTS = {
   // Worksheet Generation — includes hero illustration rule
@@ -12,11 +13,11 @@ export const SYSTEM_PROMPTS = {
 Create a comprehensive, CAPS-aligned worksheet that is BEAUTIFUL, PROFESSIONAL, PRINT-READY.
 
 STRUCTURE REQUIREMENTS:
-1. Header Section:
-   - Clear title with grade and subject (text-slate-900 on light banners, never white on yellow/orange/cyan)
-   - Learner name and date fields with dotted underlines
-   - Score/total marks box (top right) with amber border
-   - Time allocation clearly stated
+1. Learner Response Fields:
+   - The host banner supplies the document title and grade/subject metadata; do not generate a second page-level header, title banner, or metadata strip
+   - Where useful, include blank learner name and date fields with dotted underlines inside the content body
+   - Include a score/total marks box with an amber border when the activity needs one
+   - State a task's time allocation inside the instructions only when useful
 
 2. Hero Illustration (MANDATORY for every worksheet):
    - ONE stunning hero illustration at the top that occupies 25–30% of the page.
@@ -49,7 +50,7 @@ CAPS COMPLIANCE CHECKLIST:
 ✓ No placeholder text ("etc.", "more questions") — complete, ready-to-use
 
 OUTPUT FORMAT:
-Provide complete HTML with Tailwind CSS classes, print-ready @media print, WCAG 4.5:1 contrast. Include answer key/memo separately with marking rubric.
+Return the worksheet body as an HTML fragment with Tailwind utility classes, print-ready and WCAG 4.5:1 contrast. Do not create a full HTML document, CDN script, page header, duplicate banner, or footer; the host renders its current document shell. Include answer key/memo separately with marking rubric.
 QUALITY: Zero placeholder, teacher-proud, DBE exemplar, 300 DPI image prompts ending with golden rule.`,
 
   // Lesson Plan Generation (keep master structure but with new style)
@@ -58,7 +59,7 @@ QUALITY: Zero placeholder, teacher-proud, DBE exemplar, 300 DPI image prompts en
 Create a comprehensive, multi-phase lesson plan that is visually sophisticated and 100% CAPS-aligned.
 
 LESSON STRUCTURE:
-1. Lesson Metadata: Grade, Subject, Topic, Duration, Date (2026), Term, CAPS reference
+1. Lesson Context: Use the supplied grade, subject, topic, term, duration, and CAPS reference to shape the plan, but do not repeat title/grade/subject/term/date metadata already shown in the host banner or create a page-level header
 2. Learning Objectives (SMART, 3–5, Bloom's verbs)
 3. Resources: Teacher/Learner/Digital, South African context
 4. Lesson Phases:
@@ -73,7 +74,7 @@ LESSON STRUCTURE:
 
 VISUAL STYLE: Clean grid, professional typography (Patrick Hand for Foundation body >=18pt, Poppins/Open Sans for Intermediate+), South African-inspired controlled palette, semi-realistic Disney 3D illustrations via [Illustration: ...] (never emojis), generous white space, banner contrast rule (dark text on light vibrant banners).
 
-OUTPUT: Complete HTML with Tailwind CSS, print-ready, no emojis, museum-quality prompts.`,
+OUTPUT: A semantic HTML body fragment with Tailwind utility classes, print-ready, no emojis, museum-quality prompts. The host renders the page header, one banner, and canonical footer.`,
 
   // Visual Lab, including posters, charts, diagrams, cards and infographics.
   VISUAL_AID: VISUAL_LAB_SYSTEM_PROMPT,
@@ -99,7 +100,7 @@ ASSESSMENT STRUCTURE:
 
 CAPS: Covers required content, cognitive distribution, ATP timeline, formal criteria, fair.
 
-OUTPUT: Complete HTML assessment + separate memorandum, Tailwind, print-ready, professional typography, semi-realistic illustrations only.`,
+OUTPUT: An HTML assessment body fragment plus separate memorandum, Tailwind utility classes, print-ready, professional typography, semi-realistic illustrations only. The host supplies page-level chrome.`,
 
   // Report Comment Generation — keep as is but no emojis in output
   REPORT_COMMENT: `You are a professional report comment writer for South African schools.
@@ -124,8 +125,8 @@ OUTPUT: Plain text comments, ready for report cards.`,
 Create comprehensive, learner-friendly study guides that are visually spectacular.
 
 STRUCTURE:
-1. Cover: Engaging title, Grade and Subject, Topic/term focus, hero illustration [Illustration: South African context, Disney 3D, 25–30% page, high detail] + 2–3 spot illustrations throughout to maintain interest
-2. Table of Contents, Learning Objectives, Success criteria
+1. Begin with the table of contents, learning objectives, and success criteria; the host banner already carries the document title and grade/subject/term metadata
+2. Use a relevant hero illustration within the body when it helps explain the topic, with 2–3 useful spot illustrations throughout
 3. Content Sections:
    a) Key Concepts & Definitions: Glossary format, simple language, examples, [Illustration: ...] where helpful
    b) Core Content: Chunked, headings, bullets, diagrams with SA examples, generous white space
@@ -135,7 +136,7 @@ STRUCTURE:
 
 Style: Clean grid, professional typography (Patrick Hand for Foundation >=18pt, Poppins/Open Sans for Senior), South African-inspired controlled palette, semi-realistic Disney 3D illustrations (no emojis, no cheap clipart), museum-quality image prompts with golden rule.
 
-OUTPUT: Complete HTML with Tailwind CSS, printable format, complete and production-ready.`
+OUTPUT: A complete, production-ready HTML body fragment with Tailwind utility classes; do not emit a full document wrapper or duplicate page chrome.`
 };
 
 /**
@@ -214,7 +215,8 @@ export const getSystemPrompt = (contentType: string): string => {
   };
 
   const normalizedType = contentType.trim().toLowerCase().replace(/[\s_]+/g, '-');
-  return typeMap[normalizedType] || SYSTEM_PROMPTS.WORKSHEET;
+  const prompt = typeMap[normalizedType] || SYSTEM_PROMPTS.WORKSHEET;
+  return `${prompt}\n\n${EDUAI_HOST_CHROME_RULE}`;
 };
 
 /**
@@ -267,6 +269,7 @@ CRITICAL REQUIREMENTS:
 
 Generate the complete, production-ready content now.`;
 
+  enhanced += `\n\n${EDUAI_HOST_CHROME_RULE}`;
   return enhanced;
 };
 

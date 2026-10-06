@@ -71,7 +71,7 @@ export const generateEducationalContent = async (type: string, details: string, 
     },
     { 
       role: 'user', 
-      content: `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design).` 
+      content: `Generate a ${type} based on the following details: ${details}. Return an HTML body fragment with Tailwind utility classes. Follow the EduAI design style through clear internal sections, restrained colour accents, and readable cards; the host renders the page header, single content banner, and footer. Do not add duplicate page chrome.`
     }
   ];
   try {
