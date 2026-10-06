@@ -4,32 +4,13 @@
  */
 
 export const RUBRIC_TEMPLATE = `
-⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
-The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
+Generate a comprehensive assessment rubric body with this professional structure. The host supplies the document header, one banner, and footer; do not create duplicate page chrome:
 
-Generate a comprehensive assessment rubric with this professional structure:
-
-📊 ASSESSMENT RUBRIC TEMPLATE:
+📊 ASSESSMENT RUBRIC BODY TEMPLATE:
 <article class="rubric max-w-6xl mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden print:shadow-none">
-  
+
   <!-- HEADER -->
-  <header class="bg-gradient-to-r from-rose-600 to-pink-600 text-white p-8">
-    <div class="flex justify-between items-start">
-      <div>
-        <h1 class="text-4xl font-extrabold mb-2">📊 Assessment Rubric</h1>
-        <p class="text-xl opacity-95">\${assessmentTitle}</p>
-      </div>
-      <div class="text-right">
-        <div class="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg mb-2">
-          <p class="font-bold">Grade \${grade}</p>
-        </div>
-        <div class="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg">
-          <p class="font-bold">\${subject}</p>
-        </div>
-      </div>
-    </div>
-    <p class="mt-4 text-white/90">Total Marks: \${totalMarks} • CAPS: \${capsCode}</p>
-  </header>
+  <!-- The current host banner supplies page-level title and metadata. -->
 
   <!-- RUBRIC TABLE -->
   <section class="rubric-table p-8">
@@ -87,7 +68,7 @@ Generate a comprehensive assessment rubric with this professional structure:
           </li>
         </ul>
       </div>
-      
+
       <div class="bg-white p-5 rounded-xl border border-blue-200">
         <p class="font-bold text-blue-800 mb-3">Achievement Levels:</p>
         <ul class="space-y-2">
@@ -128,63 +109,26 @@ Generate a comprehensive assessment rubric with this professional structure:
         <p class="text-gray-600 mb-8">Teacher's Signature: _______________________</p>
         <p class="font-medium text-gray-900">Date: _______________</p>
       </div>
-      <div class="text-right">
-        <p class="text-sm text-gray-500">EduAI Companion • Curriculum aligned</p>
-        <p class="text-xs text-gray-400 mt-1">Host template branding is added after generation.</p>
-      </div>
     </div>
   </div>
 
 </article>
 
-Return as JSON: { "content": "Full complete HTML string for rubric matrix without summaries", "studentCopy": "simplified student version", "moderationNotes": "moderation checklist" }
+Return as JSON: { content: "[HTML above]", studentCopy: "[simplified student version]", moderationNotes: "[moderation checklist]" }
 `;
 
 export const TEST_GENERATOR_TEMPLATE = `
-⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
-The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
+Generate a CAPS-aligned test/memorandum body with this exam-standard structure. The host supplies the document header, one banner, and footer; do not create duplicate page chrome:
 
-Generate a CAPS-aligned test/memorandum with this exam-standard structure:
+📝 TEST PAPER BODY TEMPLATE:
 
-📝 TEST PAPER TEMPLATE:
-<!DOCTYPE html>
-<html lang="en-ZA">
-<head>
-  <meta charset="UTF-8">
-  <title>Grade \${grade} \${subject} Test: \${topic}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    @media print {
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .page-break { page-break-before: always; }
-    }
-    @page { size: A4; margin: 2cm; }
-  </style>
-</head>
-<body class="bg-white p-8 max-w-4xl mx-auto">
 
-  <!-- TEST HEADER -->
-  <header class="border-b-4 border-gray-800 pb-6 mb-8">
-    <div class="flex justify-between items-start">
-      <div>
-        <h1 class="text-3xl font-extrabold text-gray-900 mb-2">\${topic}</h1>
-        <p class="text-lg text-gray-700">\${subject} • Grade \${grade}</p>
-      </div>
-      <div class="text-right">
-        <p class="text-2xl font-bold text-gray-900">\${totalMarks} Marks</p>
-        <p class="text-gray-600">\${duration} Minutes</p>
-      </div>
-    </div>
-    
-    <div class="mt-6 grid grid-cols-2 gap-4">
-      <div>
-        <p class="font-semibold text-gray-800">Name: _______________________________</p>
-      </div>
-      <div>
-        <p class="font-semibold text-gray-800">Date: _________________</p>
-      </div>
-    </div>
-  </header>
+  <!-- Learner response fields; the host banner supplies page-level title and metadata. -->
+
+  <div class="learner-response-fields mb-6 grid grid-cols-2 gap-4">
+    <p class="font-semibold text-gray-800">Name: _______________________________</p>
+    <p class="font-semibold text-gray-800">Date: _________________</p>
+  </div>
 
   <!-- INSTRUCTIONS -->
   <div class="instructions bg-gray-100 p-4 rounded-lg mb-8 border-l-4 border-gray-800">
@@ -202,7 +146,7 @@ Generate a CAPS-aligned test/memorandum with this exam-standard structure:
         SECTION \${String.fromCharCode(65 + sIdx)}: \${section.title}
         <span class="text-sm font-normal text-gray-600 ml-2">[\${section.marks} Marks]</span>
       </h2>
-      
+
       <div class="space-y-6">
         \${section.questions.map((q, qIdx) => \`
         <div class="question">
@@ -211,7 +155,7 @@ Generate a CAPS-aligned test/memorandum with this exam-standard structure:
             <span class="text-sm font-normal text-gray-600 ml-2">[\${q.marks} marks]</span>
           </p>
           <p class="text-gray-800 mb-3">\${q.text}</p>
-          
+
           \${q.type === 'multiple-choice' ? \`
             <div class="space-y-2">
               \${q.options.map((opt, oIdx) => \`
@@ -247,35 +191,21 @@ Generate a CAPS-aligned test/memorandum with this exam-standard structure:
   \` : ''}
 
   <!-- FOOTER -->
-  <!-- Host inserts the single compliance banner and exact canonical footer; do not emit a footer. -->
+  <!-- The host renders the canonical footer once. -->
 
-</body>
-</html>
+
 
 ---
 
-📝 MEMORANDUM TEMPLATE:
-<!DOCTYPE html>
-<html lang="en-ZA">
-<head>
-  <meta charset="UTF-8">
-  <title>MEMORANDUM: Grade \${grade} \${subject} Test</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>@page { size: A4; margin: 2cm; }</style>
-</head>
-<body class="bg-white p-8 max-w-4xl mx-auto">
-
-  <header class="border-b-4 border-rose-600 pb-6 mb-8">
-    <h1 class="text-3xl font-extrabold text-rose-600 mb-2">📋 MEMORANDUM</h1>
-    <p class="text-lg text-gray-700">\${topic} • Grade \${grade} \${subject}</p>
-    <p class="text-gray-600">Total: \${totalMarks} Marks</p>
-  </header>
+📝 MEMORANDUM BODY TEMPLATE:
+  <!-- The current host banner supplies page-level title and metadata. -->
+  <h1 class="text-2xl font-bold text-rose-700 mb-6">Memorandum</h1>
 
   <main class="space-y-6">
     \${sections.map((section, sIdx) => \`
     <section class="bg-gray-50 p-6 rounded-lg border border-gray-200">
       <h2 class="text-xl font-bold text-gray-900 mb-4">SECTION \${String.fromCharCode(65 + sIdx)}</h2>
-      
+
       \${section.questions.map((q, qIdx) => \`
       <div class="mb-6 p-4 bg-white rounded border border-gray-300">
         <p class="font-semibold text-gray-900 mb-2">Question \${sIdx + 1}.\${qIdx + 1} [\${q.marks} marks]</p>
@@ -287,36 +217,27 @@ Generate a CAPS-aligned test/memorandum with this exam-standard structure:
     </section>
     \`).join('')}
   </main>
+  <!-- The host renders the canonical footer once. -->
 
-  <!-- Host inserts the single compliance banner and exact canonical footer; do not emit a footer. -->
 
-</body>
-</html>
 
-Return as JSON: { 
-  "testPaper": "Full complete HTML string for test paper without summaries or placeholders", 
-  "memorandum": "Full complete HTML string for memorandum without summaries or placeholders", 
-  "imagePrompt": "test illustration prompt", 
-  "markingGuidelines": "detailed marking notes",
-  "bloomTaxonomy": "cognitive level breakdown"
+Return as JSON: {
+  testPaper: "[HTML above]",
+  memorandum: "[memo HTML]",
+  imagePrompt: "[test illustration]",
+  markingGuidelines: "[detailed marking notes]",
+  bloomTaxonomy: "[cognitive level breakdown]"
 }
 `;
 
 export const PROGRESS_TRACKER_TEMPLATE = `
-⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
-The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
-
 Generate a learner progress tracking tool with this comprehensive structure:
 
-📈 PROGRESS TRACKER TEMPLATE:
+📈 PROGRESS TRACKER BODY TEMPLATE (the host supplies the document header, banner, and footer):
 <article class="progress-tracker max-w-6xl mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden">
-  
+
   <!-- HEADER -->
-  <header class="bg-gradient-to-r from-violet-600 to-purple-600 text-white p-8">
-    <h1 class="text-4xl font-extrabold mb-2">📈 Progress Tracker</h1>
-    <p class="text-xl opacity-95">\${studentName} • Grade \${grade} • \${subject}</p>
-    <p class="mt-2 text-white/90">Term \${term} \${year} • Teacher: \${teacherName}</p>
-  </header>
+  <!-- The current host banner supplies page-level title and metadata. -->
 
   <!-- OVERVIEW CARDS -->
   <section class="overview bg-gray-50 p-6 border-b border-gray-200">
@@ -344,7 +265,7 @@ Generate a learner progress tracking tool with this comprehensive structure:
   <!-- ASSESSMENT HISTORY -->
   <section class="assessment-history p-8">
     <h2 class="text-2xl font-bold text-gray-900 mb-6">Assessment History</h2>
-    
+
     <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
       <table class="w-full">
         <thead class="bg-violet-100">
@@ -380,7 +301,7 @@ Generate a learner progress tracking tool with this comprehensive structure:
   <!-- SKILLS BREAKDOWN -->
   <section class="skills bg-blue-50 p-8 border-t border-blue-200">
     <h2 class="text-2xl font-bold text-blue-900 mb-6">Skills Breakdown</h2>
-    
+
     <div class="grid md:grid-cols-2 gap-6">
       \${skills.map(skill => \`
         <div class="bg-white p-5 rounded-xl border border-blue-200">
@@ -400,7 +321,7 @@ Generate a learner progress tracking tool with this comprehensive structure:
   <!-- GOALS & ACTION PLAN -->
   <section class="goals bg-green-50 p-8 border-t border-green-200">
     <h2 class="text-2xl font-bold text-green-900 mb-6">Goals & Action Plan</h2>
-    
+
     <div class="space-y-4">
       \${goals.map((goal, i) => \`
         <div class="bg-white p-5 rounded-xl border border-green-200">
@@ -413,7 +334,7 @@ Generate a learner progress tracking tool with this comprehensive structure:
               <p class="text-sm text-gray-600 mb-3"><span class="font-semibold">Action Steps:</span> \${goal.actions}</p>
               <div class="flex gap-4 text-sm">
                 <span class="text-gray-600"><span class="font-semibold">Target Date:</span> \${goal.targetDate}</span>
-                <span class="text-gray-600"><span class="font-semibold">Status:</span> 
+                <span class="text-gray-600"><span class="font-semibold">Status:</span>
                   <span class="px-2 py-1 rounded \${goal.status === 'On Track' ? 'bg-green-100 text-green-800' : goal.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}">
                     \${goal.status}
                   </span>
@@ -427,11 +348,11 @@ Generate a learner progress tracking tool with this comprehensive structure:
   </section>
 
   <!-- FOOTER -->
-  <!-- Host inserts the single compliance banner and exact canonical footer; do not emit a footer. -->
+  <!-- The host renders the canonical footer once. -->
 
 </article>
 
-Return as JSON: { "content": "Full complete HTML string for progress tracker without summaries", "parentConferenceNotes": "talking points", "interventionStrategies": "support recommendations" }
+Return as JSON: { content: "[HTML above]", parentConferenceNotes: "[talking points]", interventionStrategies: "[support recommendations]" }
 `;
 
 export default {

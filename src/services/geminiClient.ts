@@ -75,7 +75,7 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
       const { type, details } = input;
       const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN. NEVER INJECT <script src="https://cdn.tailwindcss.com"></script>. The app already has Tailwind.`;
       const response = await generateWithFallback({
-        contents: `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design). Do NOT add Tailwind CDN scripts.`,
+        contents: `Generate a ${type} based on the following details: ${details}. Return an HTML body fragment with Tailwind utility classes. Follow the EduAI design style through clear internal sections, restrained colour accents, and readable cards; the host renders the page header, single content banner, and footer. Do not add duplicate page chrome or Tailwind CDN scripts.`,
         config: { systemInstruction, temperature: 0.7 },
       });
       return { text: response.text || '' };
