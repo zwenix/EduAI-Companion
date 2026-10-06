@@ -40,6 +40,16 @@ export interface PrintOptions {
     className?: string;
     /** Optional extra banner pills. */
     extraPills?: string[];
+    /** Topic / focus line — merged into the ONE banner's subtitle slot. */
+    subtitle?: string;
+    /** CAPS phase label — printed as a banner pill. */
+    phase?: string;
+    /** Total marks — printed as the marks pill AND the "Total: ___ / N" record field. */
+    totalMarks?: number | string;
+    /** Duration — printed as a "⏱ …" banner pill. */
+    duration?: string;
+    /** Sign-off line override (defaults per content family). */
+    signOff?: string;
 }
 
 /**

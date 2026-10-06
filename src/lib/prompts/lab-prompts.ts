@@ -6,6 +6,8 @@
  * and quality constraints.
  */
 
+import { describeContentTypeBlueprint } from './content-type-prompts';
+
 export interface LabPromptPair {
   system: string;
   user: string;
@@ -254,6 +256,9 @@ ${toPromptData(requestData)}
 ARTIFACT-SPECIFIC BLUEPRINT:
 ${visualBlueprint(kind)}
 
+REVERSE-ENGINEERED TEMPLATE BLUEPRINT (measured from the reference templates in assets/templates — follow it):
+${describeContentTypeBlueprint(type)}
+
 BUILD AND QUALITY CHECKS:
 - Use the exact topic, grade, subject, requested visual type, language, and content details provided. Do not replace the topic with a broader or more fashionable one. Honor the selected visual style and colour scheme while maintaining readability and print contrast; meet any feasible requested quantity without padding with invented facts.
 - Let the chosen paper size/orientation determine the composition. A4/A3 portrait or landscape should fit the page cleanly; a standard card should produce individual, consistently sized cut-out cards. Use print-safe margins, avoid fixed heights and clipping, and keep each card/figure together across page breaks.
@@ -318,6 +323,9 @@ ${toPromptData(requestData)}
 
 DOCUMENT-SPECIFIC BLUEPRINT:
 ${adminBlueprint(kind)}
+
+REVERSE-ENGINEERED TEMPLATE BLUEPRINT (measured from the reference templates in assets/templates — follow it):
+${describeContentTypeBlueprint(type)}
 
 RENDERING AND DECISION RULES:
 - Carry every supplied, material metadata value into the appropriate part of the document: school name, recipient, date/time, venue, grade, subject, class teacher, and principal. Preserve each value exactly; place responsible/signer names in a suitable role or signature block when appropriate. Follow the selected tone where suitable. Do not omit supplied event details or repeat information solely to fill space or duplicate the host banner. Exact form data outranks a conflicting instruction in the instructor brief. The brief may add purpose, structure, examples, and wording preferences only where they do not conflict with supplied facts or the rules in the system message.

@@ -615,11 +615,12 @@ function templateMetaFromData(
     date: today,
     capsReference: cleanGeneratedText(data.metadata.capsReference),
     atpWeek: data.metadata.atpWeek ? `Week ${String(data.metadata.atpWeek).replace(/^week\s*/i, "")}` : undefined,
-    extraPills: [
-      data.metadata.phase ? withSuffix(data.metadata.phase, "Phase") : "",
-      data.metadata.duration ? `⏱ ${data.metadata.duration}` : "",
-      data.metadata.totalMarks ? `📝 Total: ${data.metadata.totalMarks} marks` : "",
-    ].filter(Boolean),
+    // The merged banner owns phase / duration / total marks as first-class
+    // slots now (marks pill + the "Total: ___ / N" record field), so they are
+    // no longer smuggled in as extra pills that could duplicate them.
+    phase: data.metadata.phase ? withSuffix(data.metadata.phase, "Phase") : undefined,
+    duration: data.metadata.duration || undefined,
+    totalMarks: data.metadata.totalMarks ?? undefined,
     extraNotes: [letterhead, blooms ? `Bloom's — ${blooms}` : ""].filter(Boolean),
   };
 }

@@ -1,9 +1,22 @@
 /**
  * EduAI Companion - South African CAPS Expert System Prompts
- * Shared lab-specific quality policies live in `lab-prompts.ts` so every provider uses the same standards.
+ *
+ * NOTE (template reverse-engineering pass): the per-content-type built-in
+ * prompts now live in `content-type-prompts.ts`, reverse-engineered from the
+ * reference print templates in `assets/templates/`. `getSystemPrompt()` below
+ * resolves through that registry, so EVERY type the Content Creator offers has
+ * its own prompt. The `SYSTEM_PROMPTS` record in this file remains as the
+ * family-level craft bodies (worksheet / lesson plan / assessment / study
+ * guide / admin / visual / report) that the registry composes from; they all
+ * keep the ONE-banner rule: the host owns the banner, the header, the record
+ * row, the compliance labels and the footer.
+ *
+ * Shared lab-specific quality policies live in `lab-prompts.ts` so every
+ * provider uses the same standards.
  */
 
 import { ADMIN_LAB_SYSTEM_PROMPT, VISUAL_LAB_SYSTEM_PROMPT } from './lab-prompts';
+import { CONTENT_TYPE_PROMPT_NAMES, getContentTypePrompt, buildContentTypeUserPrompt } from './content-type-prompts';
 
 export const SYSTEM_PROMPTS = {
   // Worksheet Generation — includes hero illustration rule
@@ -12,11 +25,10 @@ export const SYSTEM_PROMPTS = {
 Create a comprehensive, CAPS-aligned worksheet that is BEAUTIFUL, PROFESSIONAL, PRINT-READY.
 
 STRUCTURE REQUIREMENTS:
-1. Header Section:
-   - Clear title with grade and subject (text-slate-900 on light banners, never white on yellow/orange/cyan)
-   - Learner name and date fields with dotted underlines
-   - Score/total marks box (top right) with amber border
-   - Time allocation clearly stated
+1. NO HEADER SECTION OF YOUR OWN — the host app owns the ONE document banner:
+   - The banner already prints the title, grade, subject, content type, term, date, total marks and the CAPS code
+   - It also prints the learner record strip (Name / Date / Term or Total ___ / N) and the teacher/comment sign-off line
+   - Do NOT emit a header band, title block, name/date row, score box or metadata strip — start with the instructions box
 
 2. Hero Illustration (MANDATORY for every worksheet):
    - ONE stunning hero illustration at the top that occupies 25–30% of the page.
@@ -141,88 +153,37 @@ OUTPUT: Complete HTML with Tailwind CSS, printable format, complete and producti
 /**
  * Get system prompt for specific content type
  */
-export const getSystemPrompt = (contentType: string): string => {
-  const typeMap: Record<string, string> = {
-    'worksheet': SYSTEM_PROMPTS.WORKSHEET,
-    'homework-task': SYSTEM_PROMPTS.WORKSHEET,
-    'classroom-exercise': SYSTEM_PROMPTS.WORKSHEET,
-    'group-activity': SYSTEM_PROMPTS.WORKSHEET,
-    'flashcards': SYSTEM_PROMPTS.WORKSHEET,
-    'lesson-plan': SYSTEM_PROMPTS.LESSON_PLAN,
-    'poster': SYSTEM_PROMPTS.VISUAL_AID,
-    'wall-chart': SYSTEM_PROMPTS.VISUAL_AID,
-    'educational-poster': SYSTEM_PROMPTS.VISUAL_AID,
-    'word-wall': SYSTEM_PROMPTS.VISUAL_AID,
-    'vocabulary-display': SYSTEM_PROMPTS.VISUAL_AID,
-    'classroom-rules-poster': SYSTEM_PROMPTS.VISUAL_AID,
-    'topic-anchor-chart': SYSTEM_PROMPTS.VISUAL_AID,
-    'alphabet-chart': SYSTEM_PROMPTS.VISUAL_AID,
-    'number-chart-number-line': SYSTEM_PROMPTS.VISUAL_AID,
-    'number-chart-/-number-line': SYSTEM_PROMPTS.VISUAL_AID,
-    'times-tables-chart': SYSTEM_PROMPTS.VISUAL_AID,
-    'flashcards-term-definition': SYSTEM_PROMPTS.VISUAL_AID,
-    'flashcards-(term-+-definition)': SYSTEM_PROMPTS.VISUAL_AID,
-    'vocabulary-cards': SYSTEM_PROMPTS.VISUAL_AID,
-    'formula-reference-cards': SYSTEM_PROMPTS.VISUAL_AID,
-    'timeline-cards': SYSTEM_PROMPTS.VISUAL_AID,
-    'matching-cards': SYSTEM_PROMPTS.VISUAL_AID,
-    'cut-out-activity-cards': SYSTEM_PROMPTS.VISUAL_AID,
-    'classroom-labels-signs': SYSTEM_PROMPTS.VISUAL_AID,
-    'classroom-labels-/-signs': SYSTEM_PROMPTS.VISUAL_AID,
-    'book-cover-design': SYSTEM_PROMPTS.VISUAL_AID,
-    'certificate-template': SYSTEM_PROMPTS.VISUAL_AID,
-    'award-sticker-template': SYSTEM_PROMPTS.VISUAL_AID,
-    'award-/-sticker-template': SYSTEM_PROMPTS.VISUAL_AID,
-    'infographic': SYSTEM_PROMPTS.INFOGRAPHIC,
-    'mind-map': SYSTEM_PROMPTS.INFOGRAPHIC,
-    'mind-map-/-concept-map': SYSTEM_PROMPTS.INFOGRAPHIC,
-    'mind map': SYSTEM_PROMPTS.INFOGRAPHIC,
-    'diagram': SYSTEM_PROMPTS.DIAGRAM,
-    'educational-diagram': SYSTEM_PROMPTS.DIAGRAM,
-    'process-diagram': SYSTEM_PROMPTS.DIAGRAM,
-    'process-flow-diagram': SYSTEM_PROMPTS.DIAGRAM,
-    'comparison-chart': SYSTEM_PROMPTS.VISUAL_AID,
-    'test': SYSTEM_PROMPTS.ASSESSMENT,
-    'exam': SYSTEM_PROMPTS.ASSESSMENT,
-    'assessment': SYSTEM_PROMPTS.ASSESSMENT,
-    'report-comment': SYSTEM_PROMPTS.REPORT_COMMENT,
-    'letter': SYSTEM_PROMPTS.ADMIN_DOC,
-    'notice': SYSTEM_PROMPTS.ADMIN_DOC,
-    'general-notice': SYSTEM_PROMPTS.ADMIN_DOC,
-    'letter-to-parents': SYSTEM_PROMPTS.ADMIN_DOC,
-    'general-notice-to-parents': SYSTEM_PROMPTS.ADMIN_DOC,
-    'permission-slip': SYSTEM_PROMPTS.ADMIN_DOC,
-    'meeting-invitation': SYSTEM_PROMPTS.ADMIN_DOC,
-    'progress-update-letter': SYSTEM_PROMPTS.ADMIN_DOC,
-    'general-school-notice': SYSTEM_PROMPTS.ADMIN_DOC,
-    'timetable-template': SYSTEM_PROMPTS.ADMIN_DOC,
-    'attendance-register': SYSTEM_PROMPTS.ADMIN_DOC,
-    'subject-improvement-plan': SYSTEM_PROMPTS.ADMIN_DOC,
-    'school-calendar-event-notice': SYSTEM_PROMPTS.ADMIN_DOC,
-    'certificate': SYSTEM_PROMPTS.ADMIN_DOC,
-    'academic-achievement-certificate': SYSTEM_PROMPTS.ADMIN_DOC,
-    'participation-certificate': SYSTEM_PROMPTS.ADMIN_DOC,
-    'custom-seal-/-emblem': SYSTEM_PROMPTS.ADMIN_DOC,
-    'official-school-letterhead': SYSTEM_PROMPTS.ADMIN_DOC,
-    'disciplinary-notice': SYSTEM_PROMPTS.ADMIN_DOC,
-    'classroom-rules': SYSTEM_PROMPTS.ADMIN_DOC,
-    'homework-policy-letter': SYSTEM_PROMPTS.ADMIN_DOC,
-    'detention-notice': SYSTEM_PROMPTS.ADMIN_DOC,
-    'report-comment-template': SYSTEM_PROMPTS.ADMIN_DOC,
-    'achievement-certificate': SYSTEM_PROMPTS.ADMIN_DOC,
-    'study-guide': SYSTEM_PROMPTS.STUDY_GUIDE
-  };
+/**
+ * Get the built-in SYSTEM prompt for a content type.
+ *
+ * Since the template reverse-engineering pass every type in the Content Creator
+ * taxonomy has its own composed prompt (see `content-type-prompts.ts`): the
+ * merged-banner contract + the family craft rules measured from
+ * `assets/templates/` + that type's own blueprint (sections, marks, memo).
+ * Legacy slugs ("worksheet", "poster", "notice", "certificate", …) resolve
+ * through the alias table, so old callers keep working unchanged.
+ */
+export const getSystemPrompt = (contentType: string): string =>
+  getContentTypePrompt(contentType).systemPrompt;
 
-  const normalizedType = contentType.trim().toLowerCase().replace(/[\s_]+/g, '-');
-  return typeMap[normalizedType] || SYSTEM_PROMPTS.WORKSHEET;
-};
+/** The resolved built-in prompt entry (type, family, palette, blueprint). */
+export const getSystemPromptSpec = (contentType: string) => getContentTypePrompt(contentType);
+
+/** Every content type with a built-in prompt. */
+export const listSystemPromptContentTypes = (): string[] => CONTENT_TYPE_PROMPT_NAMES;
 
 /**
- * Enhance user prompt with context
+ * Enhance user prompt with context.
+ *
+ * When a content type is supplied the CONTEXT block is produced by the
+ * reverse-engineered registry (`buildContentTypeUserPrompt`), which also
+ * restates which banner data the host already prints so the model cannot
+ * duplicate it. Without a content type the legacy block is returned unchanged.
  */
 export const enhanceUserPrompt = (
   basePrompt: string,
   context: {
+    contentType?: string;
     grade: string;
     subject: string;
     topic: string;
@@ -232,7 +193,19 @@ export const enhanceUserPrompt = (
     additionalInstructions?: string;
   }
 ): string => {
-  const { grade, subject, topic, language = 'English', term, duration, additionalInstructions } = context;
+  const { grade, subject, topic, language = 'English', term, duration, additionalInstructions, contentType } = context;
+
+  if (contentType) {
+    return buildContentTypeUserPrompt(contentType, {
+      grade,
+      subject,
+      topic,
+      language,
+      term,
+      duration,
+      additionalInstructions,
+    });
+  }
 
   let enhanced = `${basePrompt}
 
@@ -273,5 +246,7 @@ Generate the complete, production-ready content now.`;
 export default {
   SYSTEM_PROMPTS,
   getSystemPrompt,
+  getSystemPromptSpec,
+  listSystemPromptContentTypes,
   enhanceUserPrompt
 };

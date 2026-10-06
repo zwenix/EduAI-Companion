@@ -107,6 +107,10 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
   else if (isStudyGuide) contentTypeEng = 'study-guide';
 
   const { system, user } = EduAIPromptEngine.assemblePrompt({
+    // The Content Creator's own content type drives the built-in per-type
+    // prompt (reverse-engineered from assets/templates) instead of the four
+    // generic engine templates.
+    rawContentType: input.contentType,
     contentType: contentTypeEng,
     grade: input.grade || "4",
     subject: input.subject || "Mathematics",

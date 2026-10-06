@@ -34,6 +34,8 @@ import {
     BANNER_PALETTES,
     BANNER_PALETTE_IDS,
     EDUAI_BANNER_GRADIENT,
+    EDUAI_BANNER_BRAND_LINE,
+    EDUAI_TEMPLATE_URL,
     EDUAI_COMPLIANCE_LABELS,
     EDUAI_HEADER_GRADIENT,
     EDUAI_HEADER_TINT,
@@ -42,6 +44,9 @@ import {
     bannerGradientFor,
     bannerPaletteFor,
     buildTemplateComplianceBannerHTML,
+    bannerRecordFieldsFor,
+    bannerSignOffFor,
+    buildBannerRecordFieldsHTML,
     contrastWithWhite,
     harvestMetaFromChrome,
     isBannerGradient,
@@ -352,6 +357,46 @@ for (const artefact of artefacts) {
         labelsOnce && canonical === docs && gradients >= docs && footers >= docs,
         `labels=${LABELS.map(({ pattern }) => count(html, pattern)).join('/')} banners=${banners} footers=${footers} canonical=${canonical} gradients=${gradients}`);
 }
+
+// ── 9b. The MERGED banner — every field the reference templates printed ─────
+// The templates in `assets/templates/` put the brand line, grade badge, title,
+// topic subtitle, the EduAI Companion/CAPS/URL line, grade/country, the
+// Name · Date · Term · Total ___ / N record row and the teacher/moderator
+// sign-off in their top band and page foot. All of it now lives inside the ONE
+// host banner (specifications: src/lib/templates/template-specs.ts).
+console.log('\n▸ merged banner data (reference templates → ONE banner)');
+const mergedMeta = {
+    title: 'Place Value and Fractions',
+    subtitle: 'Place Value and Fractions',
+    subject: 'Mathematics',
+    grade: '3',
+    term: 'Term 2',
+    contentType: 'Worksheet',
+    date: '06/10/2026',
+    totalMarks: 30,
+    duration: '45 minutes',
+    teacher: 'Mrs Ndlovu',
+    school: 'Springfield Primary',
+};
+const mergedBanner = buildTemplateComplianceBannerHTML(mergedMeta);
+const mergedWrapped = wrapWithTemplate('<h2>Activity 1</h2><p>Write 357 in expanded notation.</p>', mergedMeta);
+const mergedBannerMarkup = mergedWrapped.slice(
+    mergedWrapped.indexOf('class="eduai-compliance-banner'),
+    mergedWrapped.indexOf('</section>'),
+);
+ok('banner carries the page-header brand lockup', mergedBannerMarkup.includes(EDUAI_BANNER_BRAND_LINE), EDUAI_BANNER_BRAND_LINE);
+ok('banner carries the resource URL + country', mergedBannerMarkup.includes(EDUAI_TEMPLATE_URL) && mergedBannerMarkup.includes('🇿🇦'), EDUAI_TEMPLATE_URL);
+ok('banner carries the topic subtitle', mergedBannerMarkup.includes('eduai-doc-subtitle'));
+ok('banner carries the learner record strip', mergedBannerMarkup.includes('eduai-record-strip') && bannerRecordFieldsFor(mergedMeta).join(',') === 'name,date,term');
+ok('banner carries the total marks + duration', mergedBannerMarkup.includes('Total: 30 marks') && mergedBannerMarkup.includes('⏱ 45 minutes'));
+ok('assessment banners carry Total ___ / N and the moderator line',
+    buildTemplateComplianceBannerHTML({ ...mergedMeta, contentType: 'Controlled Test', totalMarks: 50 }).includes('___ / 50') &&
+    bannerSignOffFor({ contentType: 'Controlled Test' }).includes('Moderator:'));
+ok('display types (poster/cards) print no record row',
+    bannerRecordFieldsFor({ contentType: 'Educational Poster' }).length === 0 &&
+    bannerRecordFieldsFor({ contentType: 'Flashcards (Term + Definition)' }).length === 0);
+ok('record strip can be disabled explicitly', buildBannerRecordFieldsHTML({ ...mergedMeta, recordFields: [], signOff: '' }) === '');
+assertDocument('merged-banner worksheet (full wrap)', mergedWrapped);
 
 // ── 10. Palette gallery artefact — one banner per palette, all legible ──────
 console.log('\n▸ committed palette gallery');

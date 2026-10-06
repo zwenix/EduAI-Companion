@@ -9,7 +9,7 @@
 #   1. secret scan      — dependency-free, must never find credentials
 #   2. type check       — tsc --noEmit (the repo's lint gate)
 #   3. unit tests       — vitest (AI routing, models, templates, rules)
-#   4. content template — 101-assertion ONCE/GRADIENT/FOOTER contract
+#   4. content template — 191-check ONCE/GRADIENT/FOOTER + merged-banner contract
 #   5. build            — vite client bundle + esbuild server bundle
 #
 # Usage:

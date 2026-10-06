@@ -67,6 +67,10 @@
 .fp-banner .fp-pill.caps { background: rgba(255,255,255,.24); border-color: rgba(255,255,255,.42); }
 .fp-banner .fp-pill.bloom { background: rgba(255,255,255,.12); }
 .fp-banner .eduai-doc-compliance { display: block; margin-top: 2.5mm; padding-top: 2mm; border-top: .3mm solid rgba(255,255,255,.28); font: 700 8pt/1.45 'Nunito', system-ui, sans-serif; overflow-wrap: anywhere; }
+.fp-banner .fp-brand { display: flex; align-items: center; gap: 2.4mm; flex-wrap: wrap; margin: 0 0 2.2mm; padding-bottom: 1.6mm; border-bottom: .3mm solid rgba(255,255,255,.28); font: 700 7.6pt/1.4 'Nunito', system-ui, sans-serif; letter-spacing: .05em; text-transform: uppercase; color: #fff; overflow-wrap: anywhere; }
+.fp-banner .fp-brand img { height: 4.6mm; width: auto; display: block; flex: 0 0 auto; opacity: .96; }
+.fp-banner .fp-brand .fp-brand-right { margin-left: auto; white-space: nowrap; opacity: .94; }
+.fp-banner .fp-signoff { display: block; margin-top: 2mm; padding-top: 1.8mm; border-top: .3mm solid rgba(255,255,255,.28); font: 700 8pt/1.6 'Nunito', system-ui, sans-serif; }
 
 /* ── learner header (name / date / marks) ─────────────── */
 .fp-learnerstrip { display: flex; align-items: stretch; gap: 3mm; margin: 0 0 4mm; }
@@ -361,11 +365,17 @@
 </header>
     <header class="eduai-compliance-banner fp-banner" data-eduai-palette="certificate" style="--eduai-banner-gradient: linear-gradient(180deg, #6d28d9 0%, #b45309 100%); background: linear-gradient(180deg, #6d28d9 0%, #b45309 100%); background-image: linear-gradient(180deg, #6d28d9 0%, #b45309 100%); color: #ffffff; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
   <div class="fp-banner-text">
-    <p class="fp-kicker">🏆 EduAI Companion · CAPS Foundation Phase</p>
+    <p class="fp-brand">
+      <img src="../../eduai-logo.png" alt="EduAI Companion logo" />
+      <span>EDUAI COMPANION 2026 | OFFICIAL EDUCATIONAL RESOURCE</span>
+      <span class="fp-brand-right">🇿🇦 South Africa · EDUAI-COMPANION.VERCEL.APP</span>
+    </p>
+    <p class="fp-kicker">🏆 CAPS Foundation Phase</p>
     <h1 class="fp-title">Certificate of Academic Excellence</h1>
     <p class="fp-subtitle">For outstanding achievement across the CAPS learning areas · Grades 1–3</p>
-    <div class="fp-badge-row"><span class="fp-pill caps">🏆 Awards Certificates</span><span class="fp-pill">Grade 1</span><span class="fp-pill">Grade 2</span><span class="fp-pill">Grade 3</span><span class="fp-pill">General</span><span class="fp-pill">Term 1 · Week 10</span><span class="fp-pill bloom">Evaluate</span><span class="fp-pill">Have fun! · Zonwabele!</span></div>
+    <div class="fp-badge-row"><span class="fp-pill caps">🏆 Awards Certificates</span><span class="fp-pill">Grade 1</span><span class="fp-pill">Grade 2</span><span class="fp-pill">Grade 3</span><span class="fp-pill">General</span><span class="fp-pill">Foundation Phase</span><span class="fp-pill">Term 1 · Week 10</span><span class="fp-pill bloom">Evaluate</span><span class="fp-pill">Have fun! · Zonwabele!</span></div>
     <div class="eduai-doc-compliance"><span class="eduai-caps-code">CAPS Code:FP-GENERA-G1-T1-COA01</span> 🇿🇦 ✅ CAPS Aligned✅ NPA Compliant✅ POPIA Compliant (2026)✅ SIAS Level 1 Inclusive✅ WP6 Differentiated</div>
+    <p class="fp-signoff">Teacher: ______________  ·  Principal: ______________  ·  Date: ____________</p>
   </div>
   <span class="fp-art  fp-float-right" style="width:54mm;background:#fff3c4;border-radius:22mm;padding:3mm;">
   <img src="../../illustrations/foundation/elly-trophy.png" alt="Elly the elephant mascot holding a big gold star medal with confetti" style="width:100%;display:block;border-radius:18mm;" />

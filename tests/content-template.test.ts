@@ -28,6 +28,15 @@ import {
   isCurrentTemplateOutput,
   isKnownBannerGradient,
   wrapWithTemplate,
+  // merged banner data — the reference templates' top band, migrated in full
+  EDUAI_TEMPLATE_URL,
+  EDUAI_TEMPLATE_COUNTRY,
+  EDUAI_BANNER_BRAND_LINE,
+  bannerRecordFieldsFor,
+  bannerSignOffFor,
+  buildBannerBrandHTML,
+  buildBannerRecordFieldsHTML,
+  buildBannerRecordFieldsHTML as buildBannerRecordHTML,
 } from '../src/lib/contentTemplate';
 import { ADMIN_TYPES, TEACHING_CATEGORIES, VISUAL_TYPES } from '../src/lib/contentTypes';
 
@@ -439,5 +448,121 @@ describe('banner palettes — a bright two-colour gradient per content type', ()
     );
     expect(doc).toContain(`--eduai-banner-gradient: ${BANNER_PALETTES.cards.gradient}`);
     expect(doc).not.toMatch(/background(-image)?:\s*linear-gradient\(180deg, #1e3a5f/);
+  });
+});
+
+/**
+ * The MERGED banner — everything the reference print templates in
+ * `assets/templates/` printed in their top band (brand line, grade badge,
+ * title, topic subtitle, the EduAI Companion/CAPS/URL line, grade/country,
+ * Name · Date · Term · Total ___ / N record row, teacher/moderator/comment
+ * sign-off) plus the brand lockup from the app page header now lives inside the
+ * ONE host banner, and nowhere else.
+ */
+describe('merged banner — every template field, once', () => {
+  const mergeMeta = {
+    title: 'Place Value, Multiplication and Fractions',
+    subtitle: 'Place Value, Multiplication and Fractions',
+    subject: 'Mathematics',
+    grade: '3',
+    term: 'Term 2',
+    phase: 'Foundation Phase',
+    contentType: 'Worksheet',
+    date: '06/10/2026',
+    totalMarks: 30,
+    duration: '45 minutes',
+    school: 'Springfield Primary',
+    teacher: 'Mrs Ndlovu',
+  };
+
+  it('carries the page-header brand lockup, the URL and the country', () => {
+    const banner = buildTemplateComplianceBannerHTML(mergeMeta);
+    expect(banner).toContain(EDUAI_BANNER_BRAND_LINE);
+    expect(banner).toContain(EDUAI_TEMPLATE_URL);
+    expect(banner).toContain(`🇿🇦 ${EDUAI_TEMPLATE_COUNTRY}`);
+    expect(banner).toMatch(/<img[^>]+eduai-logo\.png|eduai-logo\.png/);
+    // …and the brand row is inside the banner element, not a second band.
+    const brandIndex = banner.indexOf('eduai-doc-brand');
+    const bannerIndex = banner.indexOf('eduai-compliance-banner');
+    expect(brandIndex).toBeGreaterThan(bannerIndex);
+    expect((banner.match(/<section\b/g) || []).length).toBe(1);
+  });
+
+  it('prints the topic subtitle, phase, total marks and duration', () => {
+    const banner = buildTemplateComplianceBannerHTML(mergeMeta);
+    expect(banner).toContain('eduai-doc-subtitle');
+    expect(banner).toContain('Place Value, Multiplication and Fractions');
+    expect(banner).toContain('Foundation Phase');
+    expect(banner).toContain('Total: 30 marks');
+    expect(banner).toContain('⏱ 45 minutes');
+  });
+
+  it('prints the worksheet record strip (Name · Date · Term) and sign-off', () => {
+    const banner = buildTemplateComplianceBannerHTML(mergeMeta);
+    expect(bannerRecordFieldsFor(mergeMeta)).toEqual(['name', 'date', 'term']);
+    expect(banner).toContain('eduai-record-strip');
+    expect(banner).toContain('Name:');
+    expect(banner).toContain('Date:');
+    expect(banner).toContain('Term:');
+    expect(banner).toContain('Term 2');
+    expect(banner).toContain('eduai-doc-signoff');
+    expect(banner).toContain(bannerSignOffFor(mergeMeta));
+    expect(banner).toContain('Comment:');
+  });
+
+  it('prints the assessment record strip (Name · Date · Total ___ / N) with a moderator line', () => {
+    const assessment = buildTemplateComplianceBannerHTML({ ...mergeMeta, contentType: 'Controlled Test', totalMarks: 50 });
+    expect(bannerRecordFieldsFor({ contentType: 'Controlled Test' })).toEqual(['name', 'date', 'marks']);
+    expect(assessment).toContain('Total:');
+    expect(assessment).toContain('___ / 50');
+    expect(assessment).toContain('Moderator:');
+    expect(assessment).toMatch(/data-eduai-palette="assessment"/);
+  });
+
+  it('keeps display types free of a record strip', () => {
+    expect(bannerRecordFieldsFor({ contentType: 'Educational Poster' })).toEqual([]);
+    expect(bannerRecordFieldsFor({ contentType: 'Flashcards (Term + Definition)' })).toEqual([]);
+    const poster = buildTemplateComplianceBannerHTML({ ...mergeMeta, contentType: 'Educational Poster' });
+    expect(poster).not.toContain('eduai-record-strip');
+    expect(bannerSignOffFor({ contentType: 'Educational Poster' })).toBe('');
+  });
+
+  it('honours explicit recordFields and an empty strip', () => {
+    const custom = buildTemplateComplianceBannerHTML({ ...mergeMeta, recordFields: ['name', 'marks'] });
+    expect(custom).not.toContain('Term:');
+    expect(custom).toContain('Total:');
+    const none = buildTemplateComplianceBannerHTML({ ...mergeMeta, recordFields: [], signOff: '' });
+    expect(none).not.toContain('eduai-record-strip');
+    expect(none).not.toContain('eduai-doc-signoff');
+  });
+
+  it('never duplicates the blank Name/Date pills when leaveDateBlank is set', () => {
+    const blank = buildTemplateComplianceBannerHTML({ ...mergeMeta, leaveDateBlank: true, recordFields: undefined });
+    // The blank pills are the ONLY Name/Date fields the banner prints in this mode.
+    expect((blank.match(/Name: ______/g) || []).length).toBe(1);
+    expect((blank.match(/Date: ______/g) || []).length).toBe(1);
+    expect(bannerRecordFieldsFor({ contentType: 'Worksheet', leaveDateBlank: true })).toEqual(['term']);
+  });
+
+  it('renders the merged data inside the ONE banner after a full wrap', () => {
+    const wrapped = wrapWithTemplate('<h2>Activity 1</h2><p>Write 357 in expanded notation.</p>', mergeMeta);
+    const banner = wrapped.slice(wrapped.indexOf('class="eduai-compliance-banner'));
+    const bannerMarkup = banner.slice(0, banner.indexOf('</section>'));
+    expect(wrapped.split(EDUAI_COMPLIANCE_LABELS).length - 1).toBe(1);
+    expect((wrapped.match(/class="[^"]*\beduai-compliance-banner\b/gi) || []).length).toBe(1);
+    for (const fragment of [EDUAI_BANNER_BRAND_LINE, EDUAI_TEMPLATE_URL, 'eduai-record-strip', 'eduai-doc-signoff', 'Term 2', 'Total: 30 marks', 'Grade 3', 'Mathematics', 'Worksheet']) {
+      expect(bannerMarkup).toContain(fragment);
+    }
+    // None of it leaked above the banner.
+    const beforeBanner = wrapped.slice(0, wrapped.indexOf('class="eduai-compliance-banner'));
+    expect(beforeBanner).not.toContain(EDUAI_TEMPLATE_URL);
+    expect(beforeBanner).not.toContain('Total: 30 marks');
+  });
+
+  it('is idempotent with the merged banner data', () => {
+    const wrapped = wrapWithTemplate('<h2>Activity</h2><p>Do it.</p>', mergeMeta);
+    expect(wrapWithTemplate(wrapped, mergeMeta)).toBe(wrapped);
+    expect(buildBannerRecordHTML(mergeMeta)).toBe(buildBannerRecordFieldsHTML(mergeMeta));
+    expect(buildBannerBrandHTML(mergeMeta)).toContain('eduai-doc-brand');
   });
 });

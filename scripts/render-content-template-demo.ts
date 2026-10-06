@@ -44,9 +44,15 @@ const meta = {
     subject: 'Mathematics',
     grade: '7',
     term: 'Term 3',
+    phase: 'Senior Phase',
     contentType: 'Worksheet',
     date: '09/09/2026',
     title: 'Integers in Everyday Life',
+    subtitle: 'Integers in Everyday Life • Number sentences and temperatures',
+    totalMarks: 20,
+    duration: '45 minutes',
+    school: 'Springfield Primary School',
+    teacher: 'Mrs Ndlovu',
 };
 
 const sampleContent = `
@@ -152,11 +158,15 @@ const counts = (source: string): Record<string, number> => ({
 
 const normalised = wrapWithTemplate(messyModelOutput, {
     title: 'Data Handling',
+    subtitle: 'Tallies, tables and bar graphs',
     subject: 'Mathematics',
     grade: '2',
     term: 'Term 3',
+    phase: 'Foundation Phase',
     contentType: 'Worksheet',
     date: '18/09/2026',
+    totalMarks: 20,
+    duration: '30 minutes',
 }).replace(/src="\/eduai-logo\.png"/g, 'src="../public/eduai-logo.png"');
 
 const before = counts(messyModelOutput);
@@ -314,12 +324,16 @@ const paletteCards = paletteSamples.map((sample) => {
     const palette = BANNER_PALETTES[sample.palette];
     const banner = buildTemplateComplianceBannerHTML({
         title: sample.title,
+        subtitle: `${sample.title} • ${sample.subject}`,
         subject: sample.subject,
         grade: sample.grade,
         term: sample.term,
         contentType: sample.contentType,
         date: '04/10/2026',
+        totalMarks: sample.palette === 'worksheet' || sample.palette === 'assessment' ? 30 : undefined,
+        duration: '45 minutes',
         school: 'Springfield Primary School',
+        teacher: 'Mrs Ndlovu',
     });
     const topContrast = contrastWithWhite(palette.from).toFixed(2);
     const bottomContrast = contrastWithWhite(palette.to).toFixed(2);

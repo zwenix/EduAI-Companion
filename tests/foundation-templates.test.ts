@@ -112,3 +112,48 @@ describe('rendering', () => {
     expect(bilingual.standalone.length).toBeGreaterThan(200);
   });
 });
+
+/**
+ * The merged banner contract, Foundation Phase edition: the ONE `.fp-banner`
+ * carries the same brand lockup, phase pill and sign-off line as the main
+ * document banner (see docs/TEMPLATE_PROMPTS.md §2), so a printed FP sheet is
+ * self-describing even when the page header is cropped away.
+ */
+describe('merged banner (Foundation Phase)', () => {
+  const worksheet = FOUNDATION_TEMPLATES.find((t) => t.kind === 'worksheet')!;
+  const award = FOUNDATION_TEMPLATES.find((t) => t.kind === 'award')!;
+  const classroom = FOUNDATION_TEMPLATES.find((t) => t.kind === 'classroom')!;
+
+  it('prints the brand lockup, country and resource URL inside the banner', () => {
+    const { standalone } = renderFoundationTemplate(worksheet, { fields: { teacher: 'Mrs Dlamini' } });
+    const bannerStart = standalone.indexOf('class="eduai-compliance-banner');
+    const banner = standalone.slice(bannerStart, standalone.indexOf('</header>', bannerStart));
+    expect(banner).toContain('EDUAI COMPANION 2026 | OFFICIAL EDUCATIONAL RESOURCE');
+    expect(banner).toContain('eduai-logo.png');
+    expect(banner).toContain('South Africa');
+    expect(banner).toContain('EDUAI-COMPANION.VERCEL.APP');
+    expect(banner).toContain('Foundation Phase');
+    expect(banner).toMatch(/CAPS Code:/);
+    expect(banner).toContain('CAPS Aligned');
+  });
+
+  it('carries a sign-off line on scoring sheets and none on display sheets', () => {
+    expect(renderFoundationTemplate(worksheet).fragment).toMatch(/fp-signoff[^>]*>Teacher: _+\s*·\s*Comment: _+/);
+    expect(renderFoundationTemplate(award).fragment).toMatch(/fp-signoff[^>]*>Teacher: _+\s*·\s*Principal: _+\s*·\s*Date: _+/);
+    expect(renderFoundationTemplate(classroom).fragment).not.toContain('fp-signoff');
+  });
+
+  it('only prints the banner once per page', () => {
+    for (const tpl of FOUNDATION_TEMPLATES) {
+      const { fragment } = renderFoundationTemplate(tpl);
+      expect((fragment.match(/class="[^"]*eduai-compliance-banner/gi) || []).length, tpl.id).toBe(1);
+      expect((fragment.match(/class="[^"]*eduai-doc-compliance/gi) || []).length, tpl.id).toBe(1);
+    }
+  });
+
+  it('prints teacher and school once, in the banner pill row', () => {
+    const { fragment } = renderFoundationTemplate(worksheet, { fields: { teacher: 'Mrs Dlamini', school: 'Rosebank Primary' } });
+    expect((fragment.match(/Teacher: Mrs Dlamini/g) || []).length).toBe(1);
+    expect((fragment.match(/School: Rosebank Primary/g) || []).length).toBe(1);
+  });
+});
