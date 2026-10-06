@@ -20,8 +20,16 @@ Two static demos are rendered byte-for-byte by the production
 | [`docs/sa-content-layout-preview.html`](./sa-content-layout-preview.html) | the SA structured pipeline document (school letterhead, CAPS/ATP reference, marks, differentiation) |
 | [`docs/banner-palettes-preview.html`](./banner-palettes-preview.html) | the ONE banner in **every content-type palette**, with contrast figures and the full content-type → palette table |
 
+The banner's field list is the **merged** data of the reference print templates
+in `assets/templates/` plus the app's page-header brand lockup — see
+[`docs/TEMPLATE_PROMPTS.md`](./TEMPLATE_PROMPTS.md) for the measurement report
+and `src/lib/templates/template-specs.ts` for the machine-readable specs. The
+reverse-engineering pass also produced one **built-in system prompt per content
+type** (`src/lib/prompts/content-type-prompts.ts`), wired into
+`prompt-engine.ts`, `system-prompts.ts` and both lab prompt builders.
+
 Regenerate all four with `npm run render:template-demo`, then prove the contract
-still holds with `npm run verify:template` (171 assertions — see
+still holds with `npm run verify:template` (191 assertions — see
 [Verification](#verification)).
 
 ---
@@ -30,7 +38,7 @@ still holds with `npm run verify:template` (171 assertions — see
 
 | # | Guarantee | Where it is enforced |
 | --- | --- | --- |
-| 1 | **ONE BANNER** — the document title, every metadata pill (grade, subject, content type, term, date, school, teacher, learner) and the CAPS code + compliance labels live in **one** band at the top of the document, exactly once | `buildTemplateComplianceBannerHTML()` renders the only copy; `collapseLeadingChrome()` absorbs **every** band at the top of the document (school header, CAPS reference bar, formal assessment header, meta strip, duplicate banner, logo strip) into that banner, then `stripLeadingDuplicateBanner()` + `stripDuplicateTitleHeading()` delete anything banner-shaped that is left |
+| 1 | **ONE BANNER** — the brand lockup (logo + strapline + country + resource URL), the document title, the topic subtitle, every metadata pill (grade, subject, content type, phase, term, date, school, teacher, learner, total marks, duration), the learner record strip (Name / Date / Term or `Total: ___ / N`), the teacher/moderator/comment sign-off and the CAPS code + compliance labels live in **one** band at the top of the document, exactly once | `buildTemplateComplianceBannerHTML()` renders the only copy; `collapseLeadingChrome()` absorbs **every** band at the top of the document (school header, CAPS reference bar, formal assessment header, meta strip, duplicate banner, logo strip) into that banner, then `stripLeadingDuplicateBanner()` + `stripDuplicateTitleHeading()` delete anything banner-shaped that is left |
 | 2 | **GRADIENT** — no top banner is ever one solid colour | the banner is a **two-colour vertical gradient chosen for the content type** (`bannerPalettes.ts`: worksheet = orange → magenta, lesson plan = indigo → violet, assessment = crimson → purple, memo = green → teal, poster = fuchsia → burnt orange, cards = teal → royal blue, admin = royal blue → sky, certificate = violet → gold, SIAS = deep violet → emerald, Foundation Phase = pink → azure; navy → azure only as the unknown-type fallback), `EDUAI_HEADER_GRADIENT` (very light blue @ 70% transparency) on the compact header, `applyBannerGradients()` repaints model banners in the document palette |
 | 3 | **FOOTER** — one canonical footer line, word for word | `EDUAI_TEMPLATE_FOOTER_LINE`, rendered by `buildTemplateFooterHTML()` after every model footer is removed |
 
@@ -38,16 +46,39 @@ still holds with `npm run verify:template` (171 assertions — see
 
 ```
 ┌─ section.eduai-compliance-banner ────────────────────────────────┐
+│  .eduai-doc-brand       [logo] EDUAI COMPANION 2026 | OFFICIAL    │
+│                         EDUCATIONAL RESOURCE   🇿🇦 South Africa · │
+│                         EDUAI-COMPANION.VERCEL.APP                │
 │  h1.lesson-title        Fractions: Halves and Quarters           │
+│  .eduai-doc-subtitle    Fractions · CAPS Term 2                  │
 │  .lesson-meta pills     Grade 5 · Mathematics · Worksheet ·      │
 │                         Term 2 · 18/09/2026 · School: … ·        │
-│                         Teacher: … · Learner: …                  │
+│                         Teacher: … · Learner: … · 📝 Total: 30    │
+│                         marks · ⏱ 45 minutes                     │
+│  .eduai-record-strip    Name: ______  Date: ______  Term: Term 2 │
+│  .eduai-doc-signoff     Teacher: ____  Comment: ____             │
 │  .eduai-doc-compliance  CAPS Code:… | CAPS: … | ATP: …           │
 │                         🇿🇦 ✅ CAPS Aligned ✅ NPA Compliant      │
 │                         ✅ POPIA Compliant (2026) ✅ SIAS Level 1 │
 │                         Inclusive ✅ WP6 Differentiated           │
 └──────────────────────────────────────────────────────────────────┘
 ```
+
+The Foundation Phase renderer (`src/lib/templates/foundation/render.ts`) renders
+the same merged data in its own `.fp-banner`: the `.fp-brand` lockup (logo,
+strapline, `🇿🇦 South Africa`, resource URL), the phase pill, teacher/school
+pills and an `.fp-signoff` line. `npm run build:fp-templates` regenerates the
+committed printable pack so the pack and the Studio preview stay identical.
+
+The banner **merges the reference templates' top band and the page-header brand
+lockup**: the logo + strapline, the resource URL and country, the title, the
+topic subtitle, every metadata pill (grade · subject · content type · phase ·
+term · date · school · teacher · learner · total marks · duration), the learner
+record strip (Name / Date / Term or `Total: ___ / N`, per content family) and the
+teacher / moderator / comment / signature sign-off line, followed by the CAPS
+code and the compliance labels. See
+[`docs/TEMPLATE_PROMPTS.md`](./TEMPLATE_PROMPTS.md) for the measurements behind
+each slot and `src/lib/templates/template-specs.ts` for the specifications.
 
 One `<section class="eduai-compliance-banner">` per document, two-colour
 **vertical** gradient, white bold text, written with an inline `style` so it
@@ -180,11 +211,11 @@ retyping it.
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-### Header (brand only — never duplicates the banner)
+### Header (brand only — now also merged into the banner)
 
 | Slot | Data |
 | --- | --- |
-| Fixed strapline | `EDUAI COMPANION 2026 \| OFFICIAL EDUCATIONAL RESOURCE` |
+| Fixed strapline | `EDUAI COMPANION 2026 \| OFFICIAL EDUCATIONAL RESOURCE` (also printed inside the ONE banner's brand lockup, so exports that crop the header still identify the resource) |
 
 Fredoka 600, `clamp(7px,1.05vw,9px)` fluid, uppercase, `#1e3a5f` at 0.78
 opacity, clamped to **one line** with `white-space:nowrap` +
@@ -291,7 +322,7 @@ const html = wrapWithTemplate(generatedBodyHtml, {
 ## Verification
 
 ```bash
-npm run verify:template      # 110 assertions, exits non-zero on any regression
+npm run verify:template      # 191 checks, exits non-zero on any regression
 npm run render:template-demo # regenerate the two committed demos
 npm run build:fp-templates   # regenerate the Foundation Phase pack
 ```

@@ -32,10 +32,18 @@ import { SUBJECT_ALLOCATION } from './caps';
 import {
     buildCAPSCode,
     buildTemplateHeaderHTML,
+    EDUAI_BANNER_BRAND_LINE,
     EDUAI_BANNER_GRADIENT,
     EDUAI_COMPLIANCE_LABELS,
+    EDUAI_TEMPLATE_COUNTRY,
     EDUAI_TEMPLATE_FOOTER_LINE,
+    EDUAI_TEMPLATE_URL,
+    getTemplateLogoSrc,
 } from '../../contentTemplate';
+
+/** Logo path that also works inside the standalone printable pack folder. */
+const brandLogoSrc = (mode: 'app' | 'standalone' = 'app'): string =>
+    mode === 'standalone' ? '../../eduai-logo.png' : getTemplateLogoSrc();
 import { bannerPaletteFor, type BannerPaletteId } from '../../bannerPalettes';
 import { pair } from './labels';
 
@@ -154,6 +162,10 @@ export const FP_CSS = `
 .fp-banner .fp-pill.caps { background: rgba(255,255,255,.24); border-color: rgba(255,255,255,.42); }
 .fp-banner .fp-pill.bloom { background: rgba(255,255,255,.12); }
 .fp-banner .eduai-doc-compliance { display: block; margin-top: 2.5mm; padding-top: 2mm; border-top: .3mm solid rgba(255,255,255,.28); font: 700 8pt/1.45 'Nunito', system-ui, sans-serif; overflow-wrap: anywhere; }
+.fp-banner .fp-brand { display: flex; align-items: center; gap: 2.4mm; flex-wrap: wrap; margin: 0 0 2.2mm; padding-bottom: 1.6mm; border-bottom: .3mm solid rgba(255,255,255,.28); font: 700 7.6pt/1.4 'Nunito', system-ui, sans-serif; letter-spacing: .05em; text-transform: uppercase; color: #fff; overflow-wrap: anywhere; }
+.fp-banner .fp-brand img { height: 4.6mm; width: auto; display: block; flex: 0 0 auto; opacity: .96; }
+.fp-banner .fp-brand .fp-brand-right { margin-left: auto; white-space: nowrap; opacity: .94; }
+.fp-banner .fp-signoff { display: block; margin-top: 2mm; padding-top: 1.8mm; border-top: .3mm solid rgba(255,255,255,.28); font: 700 8pt/1.6 'Nunito', system-ui, sans-serif; }
 
 /* ── learner header (name / date / marks) ─────────────── */
 .fp-learnerstrip { display: flex; align-items: stretch; gap: 3mm; margin: 0 0 4mm; }
@@ -568,18 +580,37 @@ const capsStrip = (tpl: FoundationTemplate, ctx: Ctx, compact = false): string =
  * (and the separate pill row under the banner) are gone: they repeated what is
  * written here and stole the vertical space the worksheet needs.
  */
+/**
+ * Signature / comment line printed at the foot of the ONE FP banner — the same
+ * field the main document banner's `.eduai-doc-signoff` carries. Classroom
+ * display sheets (labels, posters, charts) have nothing to sign, so they get
+ * none; worksheets and homework ask for the teacher's comment, awards for the
+ * teacher's and principal's signature.
+ */
+const signOffFor = (kind: FoundationTemplate['kind']): string => {
+    if (kind === 'award') return 'Teacher: ______________  ·  Principal: ______________  ·  Date: ____________';
+    if (kind === 'classroom') return '';
+    return 'Teacher: ______________  ·  Comment: ________________________________';
+};
+
 const banner = (tpl: FoundationTemplate, ctx: Ctx): string => {
     const kindMeta = KIND_META[tpl.kind];
     const lang = ctx.opts.labelLanguage ?? 'en';
     const bi = ctx.opts.bilingual && lang !== 'en';
     const art = tpl.art ? artImg(tpl.art, ctx.opts.assetMode ?? 'app', { size: tpl.kind === 'award' ? 54 : 46 }) : '';
+    const fields = ctx.opts.fields ?? {};
     const pills: string[] = [
         `<span class="fp-pill caps">${kindMeta.emoji} ${esc(kindMeta.label.replace(/ & |s$/, ' '))}</span>`,
         ...tpl.grades.map((g) => `<span class="fp-pill">Grade ${esc(g)}</span>`),
         `<span class="fp-pill">${esc(tpl.learningArea)}</span>`,
+        `<span class="fp-pill">Foundation Phase</span>`,
         `<span class="fp-pill">Term ${esc(tpl.caps.terms[0]?.replace(/^Term\s*/, '') || '1–4')}</span>`,
         `<span class="fp-pill bloom">${esc(tpl.caps.blooms.join(' → '))}</span>`,
     ];
+    // Merged-banner data: the teacher/school the teacher typed in the Studio are
+    // printed once, here, exactly like the main document banner does.
+    if (fields.teacher) pills.push(`<span class="fp-pill">Teacher: ${esc(fields.teacher)}</span>`);
+    if (fields.school) pills.push(`<span class="fp-pill">School: ${esc(fields.school)}</span>`);
     if (bi) pills.push(`<span class="fp-pill">${pair('haveFun', lang)}</span>`);
     const capsCode = buildCAPSCode({
         title: tpl.title,
@@ -593,13 +624,20 @@ const banner = (tpl: FoundationTemplate, ctx: Ctx): string => {
     // fall back to a solid colour when the stylesheet does not travel with it.
     // The colours follow the pack kind (award / worksheet / classroom / homework).
     const palette = bannerPaletteFor(undefined, KIND_BANNER_PALETTE[tpl.kind]);
+    const signOff = signOffFor(tpl.kind);
     return `<header class="eduai-compliance-banner fp-banner" data-eduai-palette="${palette.id}" style="--eduai-banner-gradient: ${palette.gradient}; background: ${palette.gradient}; background-image: ${palette.gradient}; color: #ffffff; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
   <div class="fp-banner-text">
-    <p class="fp-kicker">${esc(tpl.titleKicker ?? `${kindMeta.emoji} EduAI Companion · CAPS Foundation Phase`)}</p>
+    <p class="fp-brand">
+      <img src="${brandLogoSrc(ctx.opts.assetMode ?? 'app')}" alt="EduAI Companion logo" />
+      <span>${esc(EDUAI_BANNER_BRAND_LINE)}</span>
+      <span class="fp-brand-right">🇿🇦 ${esc(EDUAI_TEMPLATE_COUNTRY)} · ${esc(EDUAI_TEMPLATE_URL)}</span>
+    </p>
+    <p class="fp-kicker">${esc(tpl.titleKicker ?? `${kindMeta.emoji} CAPS Foundation Phase`)}</p>
     <h1 class="fp-title">${esc(tpl.title)}</h1>
     <p class="fp-subtitle">${esc(tpl.subtitle)}</p>
     <div class="fp-badge-row">${pills.join('')}</div>
     <div class="eduai-doc-compliance"><span class="eduai-caps-code">CAPS Code:${esc(capsCode)}</span> ${esc(EDUAI_COMPLIANCE_LABELS)}</div>
+    ${signOff ? `<p class="fp-signoff">${signOff}</p>` : ''}
   </div>
   ${art}
 </header>`;

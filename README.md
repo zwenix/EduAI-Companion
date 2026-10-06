@@ -218,7 +218,7 @@ npm start            # node dist/server.cjs
 | `npm run build:fp-templates` | Builds the Foundation Phase template pack. |
 | `npm run build:fp-pack` | Builds the self-contained, offline "portable pack" for Foundation Phase printables. |
 | `npm run render:template-demo` | Renders the canonical content-template demos into `docs/`. |
-| `npm run verify:template` | Runs the 101-assertion verification of the content template contract (see `docs/CONTENT_TEMPLATE.md`). |
+| `npm run verify:template` | Runs the 191-check verification of the content template contract — ONE banner, two-colour gradient, merged banner data, exact footer (see `docs/CONTENT_TEMPLATE.md`). |
 | `npm test` | Runs the unit test suite (Vitest) — AI routing/fallback, frozen model registry (+ parity with `AGENTS.md` §1), content template, CAPS frameworks, Foundation Phase templates, Firestore rules, rate limiting. |
 | `npm run test:watch` | Vitest in watch mode. |
 | `npm run test:coverage` | Test run with V8 coverage for `src/lib` and `src/services`. |
@@ -243,7 +243,7 @@ npm run ci -- --skip-build   # fast loop: scan · types · tests · template con
    the frozen model registry, the content-template contract, CAPS/NPA/SIAS
    frameworks, the 28 Foundation Phase templates, Firestore rule invariants and
    the API rate limiter.
-4. **Content template contract** — the 101-assertion ONCE/GRADIENT/FOOTER check.
+4. **Content template contract** — the 191-check ONCE/GRADIENT/FOOTER + merged-banner-data check.
 5. **Production build** — Vite client bundle + esbuild server bundle.
 
 The GitHub Actions workflow that runs this on every pull request is kept at
@@ -354,7 +354,8 @@ Until the rules are deployed, affected dashboards fall back to their `localStora
 | [FOUNDATION_PHASE_TEMPLATES.md](FOUNDATION_PHASE_TEMPLATES.md) | The 28 Grade R–3 printable templates, how to print them and how to add a template. |
 | [CAPS_LESSON_PLAN_GUIDE.md](CAPS_LESSON_PLAN_GUIDE.md) | Lesson-plan generation guide (FET Grades 10–12). |
 | [GOOGLE_SIGNIN_ANDROID_SETUP.md](GOOGLE_SIGNIN_ANDROID_SETUP.md) | Android Google Sign-In identity, keystore fingerprints and troubleshooting. |
-| [docs/CONTENT_TEMPLATE.md](docs/CONTENT_TEMPLATE.md) | The canonical content template contract (compliance banner, gradient, footer). |
+| [docs/CONTENT_TEMPLATE.md](docs/CONTENT_TEMPLATE.md) | The canonical content template contract (merged banner, gradient, footer). |
+| [docs/TEMPLATE_PROMPTS.md](docs/TEMPLATE_PROMPTS.md) | Reverse-engineering report for the `assets/templates/` print templates and the built-in per-content-type generation prompts derived from them. |
 | [docs/ci.workflow.yml](docs/ci.workflow.yml) | The CI workflow (paste-in template — the GitHub App token cannot push workflow files). |
 | [archive/README.md](archive/README.md) | The archived one-off scripts from the early build, and why they are not part of the app. |
 | [docs/android-export-print.md](docs/android-export-print.md) | Root-cause analysis of Android print/export behaviour and the native export fix. |

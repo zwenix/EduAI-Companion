@@ -15,6 +15,7 @@ import { generateCAPSContent, generateVisualAid, generateAdminDoc } from '../ser
 import { useAi } from '../contexts/AiContext';
 import { checkContentQuality, QualityRatingDisplay, type QualityRating } from '../lib/qualityChecker';
 import { getSystemPrompt, enhanceUserPrompt } from '../lib/prompts/system-prompts';
+import { phaseForGrade } from '../lib/prompts/content-type-prompts';
 import AiImage from './AiImage';
 import EduVideoPlayer from './EduVideoPlayer';
 import VideoGenerationHistory from './VideoGenerationHistory';
@@ -717,8 +718,21 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
     contentType?: string;
     title?: string;
     school?: string;
+    /** Topic/focus line — merged into the ONE banner (template subtitle slot). */
+    subtitle?: string;
+    /** CAPS phase label — printed as a banner pill. */
+    phase?: string;
+    /** Total marks — printed as the marks pill AND the "Total: ___ / N" record field. */
+    totalMarks?: number | string;
+    /** Duration — printed as a "⏱ …" banner pill. */
+    duration?: string;
   } = {}) => {
-    const meta: ContentTemplateMeta = { ...overrides };
+    const { subtitle, phase, totalMarks, duration, ...base } = overrides;
+    const meta: ContentTemplateMeta = { ...base };
+    if (subtitle) meta.subtitle = subtitle;
+    if (phase) meta.phase = phase;
+    if (totalMarks !== undefined && totalMarks !== '') meta.totalMarks = totalMarks;
+    if (duration) meta.duration = duration;
     if (includeTeacherInfo) {
       const tName = bannerTeacherName || userName;
       if (tName) meta.teacher = tName;
@@ -1360,7 +1374,13 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
         school: printSchool,
         className: printClass,
         learner: printLearner,
-        contentType: contentTypeOverride
+        contentType: contentTypeOverride,
+        // Merged-banner slots — the printed/exported banner must carry exactly
+        // the data the on-screen preview shows (topic, phase, marks, duration).
+        subtitle: activeTab === 'teaching' ? (t_topic || undefined) : activeTab === 'grade1' ? (f_topic || undefined) : activeTab === 'visual' ? (v_topic || undefined) : (a_topic || undefined),
+        phase: phaseForGrade(activeGrade),
+        totalMarks: activeTab === 'teaching' ? teachingResult?.marks : undefined,
+        duration: activeTab === 'teaching' ? t_duration : undefined,
       });
     } catch (error) {
       console.error('Print/export failed:', error);
@@ -1407,7 +1427,12 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
         school: pdfSchool,
         className: pdfClass,
         learner: pdfLearner,
-        contentType: pdfContentType
+        contentType: pdfContentType,
+        // Merged-banner slots — identical to the on-screen preview.
+        subtitle: activeTab === 'teaching' ? (t_topic || undefined) : activeTab === 'grade1' ? (f_topic || undefined) : activeTab === 'visual' ? (v_topic || undefined) : (a_topic || undefined),
+        phase: phaseForGrade(activeGrade),
+        totalMarks: activeTab === 'teaching' ? teachingResult?.marks : undefined,
+        duration: activeTab === 'teaching' ? t_duration : undefined,
       });
     } catch (error) {
       console.error('PDF export failed:', error);
@@ -2769,10 +2794,10 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                                   replaceImagePlaceholders(currentLiveContent, activeTab === 'teaching' ? t_generateImage : activeTab === 'visual' ? v_generateImage : a_generateImage),
                                   buildBannerMeta(
                                     activeTab === 'teaching'
-                                      ? { subject: t_subject === 'Other' ? t_customSubject : t_subject, grade: t_grade, term: t_term, contentType: t_type, title: t_topic }
+                                      ? { subject: t_subject === 'Other' ? t_customSubject : t_subject, grade: t_grade, term: t_term, contentType: t_type, title: t_topic, subtitle: t_topic, phase: phaseForGrade(t_grade), totalMarks: teachingResult?.marks, duration: t_duration }
                                       : activeTab === 'visual'
-                                        ? { subject: v_subject === 'Other' ? v_customSubject : v_subject, grade: v_grade, contentType: v_type, title: v_topic }
-                                        : { subject: 'Administration', contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school }
+                                        ? { subject: v_subject === 'Other' ? v_customSubject : v_subject, grade: v_grade, contentType: v_type, title: v_topic, subtitle: v_topic, phase: phaseForGrade(v_grade) }
+                                        : { subject: 'Administration', contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school, subtitle: a_topic, phase: phaseForGrade(a_grade) }
                                   )
                                 ) }}
                               />
@@ -3104,10 +3129,10 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                               minHeight="520px"
                               meta={buildBannerMeta(
                                 activeTab === 'teaching'
-                                  ? { subject: t_subject === 'Other' ? t_customSubject : t_subject, grade: t_grade, term: t_term, contentType: t_type, title: t_topic }
+                                  ? { subject: t_subject === 'Other' ? t_customSubject : t_subject, grade: t_grade, term: t_term, contentType: t_type, title: t_topic, subtitle: t_topic, phase: phaseForGrade(t_grade), totalMarks: teachingResult?.marks, duration: t_duration }
                                   : activeTab === 'visual'
-                                    ? { subject: v_subject === 'Other' ? v_customSubject : v_subject, grade: v_grade, term: t_term, contentType: v_type, title: v_topic }
-                                    : { subject: 'Administration', grade: a_grade, contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school }
+                                    ? { subject: v_subject === 'Other' ? v_customSubject : v_subject, grade: v_grade, term: t_term, contentType: v_type, title: v_topic, subtitle: v_topic, phase: phaseForGrade(v_grade) }
+                                    : { subject: 'Administration', grade: a_grade, contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school, subtitle: a_topic, phase: phaseForGrade(a_grade) }
                               )}
                             />
                           </div>
@@ -3269,10 +3294,10 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                     className="w-full h-full max-w-5xl"
                     meta={buildBannerMeta(
                       activeTab === 'teaching'
-                        ? { subject: t_subject === 'Other' ? t_customSubject : t_subject, grade: t_grade, term: t_term, contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : t_type, title: t_topic }
+                        ? { subject: t_subject === 'Other' ? t_customSubject : t_subject, grade: t_grade, term: t_term, contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : t_type, title: t_topic, subtitle: t_topic, phase: phaseForGrade(t_grade), totalMarks: teachingResult?.marks, duration: t_duration }
                         : activeTab === 'visual'
-                          ? { subject: v_subject === 'Other' ? v_customSubject : v_subject, grade: v_grade, contentType: v_type, title: v_topic }
-                          : { subject: 'Administration', grade: a_grade, contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school }
+                          ? { subject: v_subject === 'Other' ? v_customSubject : v_subject, grade: v_grade, contentType: v_type, title: v_topic, subtitle: v_topic, phase: phaseForGrade(v_grade) }
+                          : { subject: 'Administration', grade: a_grade, contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school, subtitle: a_topic, phase: phaseForGrade(a_grade) }
                     )}
                   />
                 </div>
@@ -3694,6 +3719,10 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
             contentType: (activeTab === 'teaching' ? t_type : activeTab === 'grade1' ? 'Foundation Phase Activity' : activeTab === 'visual' ? v_type : 'Notice') || 'Document',
             title: (activeTab === 'teaching' ? t_topic || t_type : activeTab === 'grade1' ? (f_topic || 'Foundation Phase Activity') : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation',
             term: (activeTab === 'teaching' || activeTab === 'grade1' ? t_term : getCurrentTerm()),
+            subtitle: (activeTab === 'teaching' ? t_topic : activeTab === 'grade1' ? f_topic : activeTab === 'visual' ? v_topic : a_topic) || undefined,
+            phase: phaseForGrade(activeTab === 'teaching' ? t_grade : activeTab === 'grade1' ? f_grade : activeTab === 'visual' ? v_grade : a_grade),
+            totalMarks: activeTab === 'teaching' ? teachingResult?.marks : undefined,
+            duration: activeTab === 'teaching' ? t_duration : undefined,
             teacher: includeTeacherInfo ? (bannerTeacherName || userName) : undefined,
             school: includeTeacherInfo ? (bannerSchoolName || a_school) : a_school,
             className: includeTeacherInfo ? bannerClassName : undefined,

@@ -86,6 +86,24 @@ export {
 } from './bannerPalettes';
 export type { BannerPalette, BannerPaletteId } from './bannerPalettes';
 
+/**
+ * Learner record fields the ONE banner can print as a write-on strip. These are
+ * exactly the fields the reference print templates in `assets/templates/` put in
+ * the top band under the title — "Name: ____  Date: ______  Term: ___" on a
+ * worksheet, "Name: ____  Date: ______  Total: ___ / 30" on an assessment, and
+ * the teacher/moderator/comment blanks that follow the last question.
+ */
+export type BannerRecordField =
+    | 'name'
+    | 'date'
+    | 'term'
+    | 'marks'
+    | 'class'
+    | 'teacher'
+    | 'moderator'
+    | 'comment'
+    | 'signature';
+
 export interface ContentTemplateMeta {
     /** Document title (lesson-title + HTML <title> where supported). */
     title?: string;
@@ -119,6 +137,49 @@ export interface ContentTemplateMeta {
     extraPills?: string[];
     /** Extra banner footnotes (Bloom's distribution …), pre-escaped. */
     extraNotes?: string[];
+    /**
+     * Topic / focus line printed under the banner title. This is the reference
+     * templates' subtitle slot ("Place Value, Multiplication & Fractions",
+     * "Grade R | Term 1 | Handwriting Practice") migrated into the ONE banner.
+     */
+    subtitle?: string;
+    /** CAPS phase label (Foundation Phase, Intermediate Phase, Senior, FET). */
+    phase?: string;
+    /**
+     * Total marks for the task. Rendered as the marks pill AND as the
+     * "Total: ___ / N" field in the banner's record strip — the reference
+     * templates printed it in the top band's learner row.
+     */
+    totalMarks?: number | string;
+    /** Duration, printed as a "⏱ …" pill when supplied. */
+    duration?: string;
+    /**
+     * Country line — the reference templates print "South Africa" beside the
+     * grade in the page footer; the merged banner carries it instead.
+     */
+    country?: string;
+    /**
+     * Brand lockup line merged from the page header. Defaults to
+     * `EDUAI_TEMPLATE_HEADER_BASE` — the very text the compact page header
+     * shows — so the banner is self-describing even when the header is cropped
+     * (print, PDF, html2canvas, a copied fragment).
+     */
+    brandLine?: string;
+    /** Resource URL merged from the page header / template footer. */
+    sourceUrl?: string;
+    /**
+     * The learner record fields the banner's fill-in strip prints. Defaults are
+     * chosen per content family (worksheets: Name · Date · Term; assessments:
+     * Name · Date · Total). Pass `[]` to hide the strip entirely.
+     */
+    recordFields?: BannerRecordField[];
+    /**
+     * Sign-off line printed under the record strip (handwriting blanks).
+     * Defaults per content family; pass `''` to hide it.
+     */
+    signOff?: string;
+    /** Print the logo in the banner's brand lockup (default: true). */
+    showBrandLogo?: boolean;
     /**
      * When true, the date pill in the banner is rendered as an empty fill-in
      * line (_____) instead of today's/current date. Used for learner
@@ -878,11 +939,191 @@ const normaliseDate = (value?: string): string => {
     return raw;
 };
 
+/* ────────────────────────────────────────────────────────────────────────────
+ * MERGED BANNER DATA — the reference templates' top band, migrated in full
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * `assets/templates/*` print their banner data in two places: the coloured top
+ * band (grade badge, title, topic subtitle, the “EduAI Companion | CAPS Aligned
+ * | URL” line and the grade/country cell) and the learner record row directly
+ * under it (Name / Date / Term, or Name / Date / Total ___ / N), followed at the
+ * foot of the page by the teacher / moderator / comment signature line. The ONE
+ * host banner absorbs ALL of it, together with the page header's brand lockup,
+ * so a printed or exported page carries the complete record in one band — and
+ * the document body never has to repeat any of it.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** Country cell of the merged banner (template footer's right-hand cell). */
+export const EDUAI_TEMPLATE_COUNTRY = 'South Africa';
+
+/** Brand lockup printed inside the merged banner (the page-header strapline). */
+export const EDUAI_BANNER_BRAND_LINE = EDUAI_TEMPLATE_HEADER_BASE;
+
+/** Default record strip per content family (palette ⇄ family are 1:1). */
+const DEFAULT_BANNER_RECORD_FIELDS: Record<BannerPaletteId, BannerRecordField[]> = {
+    brand: ['name', 'date'],
+    lesson: ['date', 'term'],
+    worksheet: ['name', 'date', 'term'],
+    assessment: ['name', 'date', 'marks'],
+    memo: ['marks'],
+    poster: [],
+    cards: [],
+    admin: ['date', 'signature'],
+    certificate: ['name', 'date'],
+    intervention: ['name', 'date'],
+    foundation: ['name', 'date'],
+};
+
+/** Default sign-off line per content family — transcribed from the templates. */
+const DEFAULT_BANNER_SIGN_OFF: Record<BannerPaletteId, string> = {
+    brand: 'Teacher: _____________________  Comment: _______________________________',
+    lesson: 'Teacher: _____________________  Date: ______________',
+    worksheet: 'Teacher: _____________________  Comment: _______________________________',
+    assessment: 'Teacher: _____________________  Moderator: ___________________  Date: ________',
+    memo: 'Marker: _____________________  Moderator: ___________________  Date: ________',
+    poster: '',
+    cards: '',
+    admin: 'Signed: _____________________  Date: ______________  School stamp: ____________',
+    certificate: 'Teacher: ______________  Principal: ______________  Date: ____________',
+    intervention: 'Teacher: ____________  SBST: ____________  Parent/Caregiver: ____________  Date: ______',
+    foundation: 'Teacher: _____________________  Comment: _______________________________',
+};
+
+/** The record fields the merged banner prints for a document. */
+export const bannerRecordFieldsFor = (meta: ContentTemplateMeta = {}): BannerRecordField[] => {
+    if (Array.isArray(meta.recordFields)) return meta.recordFields;
+    const palette = bannerPaletteFor(meta.contentType, meta.palette).id;
+    const fields = DEFAULT_BANNER_RECORD_FIELDS[palette] || DEFAULT_BANNER_RECORD_FIELDS.worksheet;
+    // `leaveDateBlank` already prints blank Name/Date pills (learner worksheets
+    // that the teacher hands out empty) — never print those twice.
+    return meta.leaveDateBlank ? fields.filter((field) => field !== 'name' && field !== 'date') : fields;
+};
+
+/** The sign-off line the merged banner prints for a document. */
+export const bannerSignOffFor = (meta: ContentTemplateMeta = {}): string => {
+    if (typeof meta.signOff === 'string') return meta.signOff.trim();
+    const palette = bannerPaletteFor(meta.contentType, meta.palette).id;
+    return (DEFAULT_BANNER_SIGN_OFF[palette] || '').trim();
+};
+
+/** "30" → "___ / 30"; unset → "" (the field is then skipped). */
+const bannerTotalMarksText = (meta: ContentTemplateMeta): string => {
+    const raw = String(meta.totalMarks ?? '').trim();
+    if (!raw) return '';
+    const digits = raw.match(/\d{1,4}/)?.[0];
+    return digits ? `___ / ${digits}` : '';
+};
+
+/** The write-on value shown after a record field's label ("" = dotted blank). */
+const bannerRecordValue = (field: BannerRecordField, meta: ContentTemplateMeta): string => {
+    switch (field) {
+        case 'date':
+            return meta.leaveDateBlank ? '' : normaliseDate(meta.date) || saToday();
+        case 'term':
+            return pillTerm(meta.term);
+        case 'marks':
+            return bannerTotalMarksText(meta);
+        case 'class': {
+            const fromPills = (meta.extraPills || []).find((pill) => /^class\s*:/i.test(String(pill)));
+            return fromPills ? String(fromPills).replace(/^class\s*:\s*/i, '').trim() : '';
+        }
+        // Teacher / moderator / comment / signature / name are handwriting
+        // blanks on purpose — the pill row carries any known names.
+        default:
+            return '';
+    }
+};
+
+const BANNER_RECORD_LABELS: Record<BannerRecordField, string> = {
+    name: 'Name',
+    date: 'Date',
+    term: 'Term',
+    marks: 'Total',
+    class: 'Class',
+    teacher: 'Teacher',
+    moderator: 'Moderator',
+    comment: 'Comment',
+    signature: 'Signature',
+};
+
+/**
+ * The record strip inside the ONE banner: the reference templates' learner row
+ * ("Name: ____ Date: ______ Term: ___" / "Total: ___ / 30") plus the sign-off
+ * line from the foot of the page. Values that are known print as text; every
+ * handwriting field prints as a dotted blank on white.
+ */
+export const buildBannerRecordFieldsHTML = (meta: ContentTemplateMeta = {}): string => {
+    const fields = bannerRecordFieldsFor(meta);
+    const signOff = bannerSignOffFor(meta);
+    if (!fields.length && !signOff) return '';
+
+    const fieldHTML = fields.map((field) => {
+        const label = BANNER_RECORD_LABELS[field];
+        const value = bannerRecordValue(field, meta);
+        const body = value
+            ? `<span style="font-weight:800;">${esc(value)}</span>`
+            : '<span style="flex:1 1 auto;min-width:74px;border-bottom:1.5px dotted rgba(255,255,255,0.8);display:inline-block;">&nbsp;</span>';
+        return `<span class="eduai-record-field" style="display:inline-flex;align-items:baseline;gap:6px;flex:1 1 150px;min-width:140px;"><span style="opacity:0.92;">${esc(label)}:</span>${body}</span>`;
+    }).join('');
+
+    const fieldStrip = fields.length
+        ? `<div class="eduai-record-strip" style="display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 10px;font-size:11px;font-weight:700;color:#ffffff;line-height:1.5;">${fieldHTML}</div>`
+        : '';
+    const signOffHTML = signOff
+        ? `<div class="eduai-doc-signoff" style="margin:0 0 10px;padding-top:7px;border-top:1px solid rgba(255,255,255,0.22);font-size:10px;font-weight:700;color:rgba(255,255,255,0.95);overflow-wrap:anywhere;">${esc(signOff)}</div>`
+        : '';
+
+    return `${fieldStrip}${signOffHTML}`;
+};
+
+/**
+ * Plain-text edition of the record strip, for surfaces that cannot render the
+ * HTML banner (Word/DOCX tables, archive metadata, emails, ZIP readmes). The
+ * wording and order are identical to the HTML strip, so no export loses a field
+ * the reference templates printed.
+ */
+export const buildBannerRecordPlainText = (meta: ContentTemplateMeta = {}): string =>
+    bannerRecordFieldsFor(meta)
+        .map((field) => {
+            const value = bannerRecordValue(field, meta);
+            return `${BANNER_RECORD_LABELS[field]}: ${value || '____________________'}`;
+        })
+        .join('   ');
+
+/** Plain-text edition of the banner's brand lockup (header strapline + URL + country). */
+export const buildBannerBrandPlainText = (meta: ContentTemplateMeta = {}): string => {
+    const brandLine = String(meta.brandLine || EDUAI_BANNER_BRAND_LINE).trim();
+    const sourceUrl = String(meta.sourceUrl || EDUAI_TEMPLATE_URL).trim();
+    const country = meta.country === '' ? '' : String(meta.country || EDUAI_TEMPLATE_COUNTRY).trim();
+    return [brandLine, country ? `🇿🇦 ${country}` : '', sourceUrl].filter(Boolean).join(' · ');
+};
+
+/**
+ * The brand lockup inside the ONE banner — the page-header strapline, the
+ * template footer's URL and the country cell, merged so the banner alone
+ * identifies the resource (logo + "EDUAI COMPANION 2026 | OFFICIAL EDUCATIONAL
+ * RESOURCE" + "🇿🇦 South Africa · EDUAI-COMPANION.VERCEL.APP").
+ */
+export const buildBannerBrandHTML = (meta: ContentTemplateMeta = {}): string => {
+    if (meta.showBrandLogo === false && !meta.brandLine && !meta.sourceUrl && meta.country === '') return '';
+    const brandLine = String(meta.brandLine || EDUAI_BANNER_BRAND_LINE).trim();
+    const sourceUrl = String(meta.sourceUrl || EDUAI_TEMPLATE_URL).trim();
+    const country = meta.country === '' ? '' : String(meta.country || EDUAI_TEMPLATE_COUNTRY).trim();
+    const right = [country ? `🇿🇦 ${country}` : '', sourceUrl].filter(Boolean).join(' · ');
+    const logo = meta.showBrandLogo === false
+        ? ''
+        : `<img src="${getTemplateLogoSrc()}" alt="EduAI Companion logo" style="height:15px;width:auto;display:block;flex:0 0 auto;opacity:0.96;" />`;
+    return `<div class="eduai-doc-brand" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 9px;padding-bottom:7px;border-bottom:1px solid rgba(255,255,255,0.28);font-size:9px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:#ffffff;">
+  ${logo}<span style="flex:1 1 auto;min-width:0;overflow-wrap:anywhere;">${esc(brandLine)}</span>${right ? `<span style="flex:0 0 auto;white-space:nowrap;opacity:0.94;">${esc(right)}</span>` : ''}
+</div>`;
+};
+
 /**
  * Every value the single banner displays, deduplicated and ordered:
- * grade · subject · content type · term · date · school · teacher · learner,
- * followed by any caller-supplied extras. Nothing here is written anywhere
- * else in the document, which is what keeps the top of the page duplicate-free.
+ * grade · subject · content type · phase · term · date · school · teacher ·
+ * learner · total marks · duration, followed by any caller-supplied extras.
+ * Nothing here is written anywhere else in the document, which is what keeps
+ * the top of the page duplicate-free.
  */
 const buildBannerPills = (meta: ContentTemplateMeta): string[] => {
     const pills: string[] = [];
@@ -897,6 +1138,7 @@ const buildBannerPills = (meta: ContentTemplateMeta): string[] => {
     push(pillGrade(meta.grade));
     push(labelCase(meta.subject));
     push(labelCase(meta.contentType));
+    push(labelCase(meta.phase));
     push(pillTerm(meta.term));
     if (meta.leaveDateBlank) {
         push('Date: ______');
@@ -912,6 +1154,12 @@ const buildBannerPills = (meta: ContentTemplateMeta): string[] => {
         // so learners fill it in (never a pre-filled/hallucinated name).
         push('Name: ______');
     }
+    // The reference templates print the task total and the duration in the top
+    // band ("Total: ___ / 30", "45 minutes"). They live here now — once.
+    if (meta.totalMarks !== undefined && String(meta.totalMarks).trim() !== '' && !pills.some((pill) => /\bmarks?\b|total/i.test(pill))) {
+        push(`📝 ${String(meta.totalMarks).trim().match(/^\d+$/) ? `Total: ${String(meta.totalMarks).trim()} marks` : String(meta.totalMarks).trim()}`);
+    }
+    if (meta.duration && !pills.some((pill) => /⏱/.test(pill))) push(`⏱ ${String(meta.duration).trim()}`);
     (meta.extraPills || []).forEach(push);
     return pills;
 };
@@ -926,9 +1174,20 @@ const bannerTitle = (meta: ContentTemplateMeta): string =>
  * THE single document banner — the only banner in a generated document.
  *
  * Everything a reader (or an auditor) needs sits inside this one band,
- * exactly once: the title, the grade / subject / content-type / term / date
- * pills, school · teacher · learner when the caller supplies them, any extra
- * pills, and the CAPS code with the 🇿🇦/CAPS/NPA/POPIA/SIAS/WP6 labels.
+ * exactly once. It merges:
+ *   • the brand lockup the page header carries (logo + the fixed strapline);
+ *   • the resource URL and country from the reference templates' page footer;
+ *   • the title + topic subtitle;
+ *   • the grade / subject / content-type / phase / term / date pills, school ·
+ *     teacher · learner when the caller supplies them, total marks, duration
+ *     and any extra pills;
+ *   • the learner record strip (Name / Date / Term / Total ___ / N) and the
+ *     teacher / moderator / comment sign-off line the templates printed in the
+ *     top band and at the foot of the page;
+ *   • the CAPS code with the 🇿🇦/CAPS/NPA/POPIA/SIAS/WP6 labels.
+ *
+ * See `assets/templates/` (specifications in `templates/template-specs.ts`) for
+ * the measured source of every one of those slots.
  *
  * The background is a TWO-COLOUR VERTICAL GRADIENT at 180deg, picked from
  * `bannerPalettes.ts` for the document's content type — bright, dynamic
@@ -950,6 +1209,9 @@ export const buildTemplateComplianceBannerHTML = (meta: ContentTemplateMeta = {}
     // every kind of content.
     const palette: BannerPalette = bannerPaletteFor(meta.contentType, meta.palette);
     const pills = buildBannerPills(meta);
+    const subtitle = String(meta.subtitle || '').trim();
+    const brandRow = buildBannerBrandHTML(meta);
+    const recordStrip = buildBannerRecordFieldsHTML(meta);
     const capsCode = buildCAPSCode(meta);
     const capsReference = String(meta.capsReference || '').trim();
     const atpWeek = String(meta.atpWeek || '').trim();
@@ -963,8 +1225,11 @@ export const buildTemplateComplianceBannerHTML = (meta: ContentTemplateMeta = {}
 
     return `
 <section class="eduai-compliance-banner" data-eduai-palette="${palette.id}" aria-label="Document details and South African compliance" style="display:block; width:100%; box-sizing:border-box; --eduai-banner-gradient: ${palette.gradient}; background: ${palette.gradient}; background-image: ${palette.gradient}; color: #ffffff; border: 1px solid rgba(255,255,255,0.45); border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-family: ${LIGHT_BODY_FONT}; font-size: 11px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+  ${brandRow}
   <h1 class="lesson-title" style="font-family: ${LIGHT_HEADING_FONT}; font-size: clamp(19px, 3vw, 27px); font-weight: 700; line-height: 1.18; color: #ffffff; margin: 0 0 8px;">${esc(title)}</h1>
+  ${subtitle ? `<p class="eduai-doc-subtitle" style="margin:0 0 9px; font-size:12px; font-weight:700; color:rgba(255,255,255,0.94);">${esc(subtitle)}</p>` : ''}
   ${pills.length ? `<div class="lesson-meta" style="display:flex; flex-wrap:wrap; gap:7px; margin:0 0 10px; color:#e2e8f0;">${pills.map((pill) => `<span class="meta-pill" style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.34); color:#ffffff; padding:3px 10px; border-radius:999px; font-weight:600; white-space:nowrap;">${esc(pill)}</span>`).join('')}</div>` : ''}
+  ${recordStrip}
   <div class="eduai-doc-compliance" style="display:block; border-top:1px solid rgba(255,255,255,0.28); padding-top:8px; font-size:11px; font-weight:700; line-height:1.5; color:#ffffff;"><span class="eduai-caps-code" style="font-weight:800; letter-spacing:0.2px;">${esc(referenceTrail)}</span> ${esc(EDUAI_COMPLIANCE_LABELS)}${notes.length ? ` <span style="display:block; margin-top:4px; font-weight:600; color:rgba(255,255,255,0.86);">${notes.map((note) => esc(note)).join(' • ')}</span>` : ''}</div>
 </section>`.trim();
 };
@@ -1709,7 +1974,13 @@ ${buildTemplateFooterHTML(effectiveMeta)}`.trim();
 
 /** Map the print/export options onto the template metadata. */
 export const metaFromPrintOptions = (
-    options?: { subject?: string; grade?: string; contentType?: string; date?: string; term?: string; school?: string; teacher?: string; learner?: string; title?: string; className?: string; extraPills?: string[] },
+    options?: {
+        subject?: string; grade?: string; contentType?: string; date?: string;
+        term?: string; school?: string; teacher?: string; learner?: string;
+        title?: string; className?: string; extraPills?: string[];
+        subtitle?: string; phase?: string; totalMarks?: number | string;
+        duration?: string; signOff?: string;
+    },
     title?: string,
 ): ContentTemplateMeta => {
     const pills: string[] = [];
@@ -1725,6 +1996,13 @@ export const metaFromPrintOptions = (
         school: options?.school,
         teacher: options?.teacher,
         learner: options?.learner,
+        // Merged-banner slots: the print/PDF/HTML export renders the same banner
+        // as the on-screen preview, record strip and sign-off included.
+        subtitle: options?.subtitle,
+        phase: options?.phase,
+        totalMarks: options?.totalMarks,
+        duration: options?.duration,
+        signOff: options?.signOff,
         extraPills: pills.length ? pills : undefined,
     };
 };

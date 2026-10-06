@@ -5,7 +5,7 @@
 // ============================================================
 
 import { buildFullHTML, DocumentData, RenderedImage, SA_COLOURS } from "../templates/sa-html-templates";
-import { buildCAPSCode, EDUAI_COMPLIANCE_LABELS, EDUAI_TEMPLATE_FOOTER_LINE, EDUAI_TEMPLATE_HEADER_BASE, stripGeneratedComplianceMarkup } from "../contentTemplate";
+import { buildBannerBrandPlainText, buildBannerRecordPlainText, bannerSignOffFor, buildCAPSCode, EDUAI_COMPLIANCE_LABELS, EDUAI_TEMPLATE_FOOTER_LINE, EDUAI_TEMPLATE_HEADER_BASE, stripGeneratedComplianceMarkup } from "../contentTemplate";
 import { bannerPaletteFor } from "../bannerPalettes";
 
 export interface DOCXOptions {
@@ -68,6 +68,22 @@ export async function generateDOCXServer(
       term: `Term ${data.metadata.term}`,
       contentType: data.metadata.contentType
     });
+    // The merged banner data (see CONTENT_TEMPLATE.md): the same brand lockup,
+    // record strip and sign-off the HTML banner prints, in Word form.
+    const bannerMeta = {
+      title: data.metadata.title,
+      subject: data.metadata.subject,
+      grade: String(data.metadata.grade ?? ''),
+      term: data.metadata.term ? `Term ${data.metadata.term}` : undefined,
+      phase: data.metadata.phase ? `${data.metadata.phase} Phase` : undefined,
+      contentType: data.metadata.contentType,
+      totalMarks: data.metadata.totalMarks ?? undefined,
+      duration: data.metadata.duration ?? undefined,
+      date: today,
+    };
+    const bannerBrandLine = buildBannerBrandPlainText(bannerMeta);
+    const bannerRecordLine = buildBannerRecordPlainText(bannerMeta);
+    const bannerSignOff = bannerSignOffFor(bannerMeta);
     const bannerPills = [
       data.metadata.grade ? `Grade ${data.metadata.grade}` : '',
       data.metadata.subject,
@@ -91,11 +107,19 @@ export async function generateDOCXServer(
                 children: [
                   new Paragraph({
                     children: [new TextRun({
+                      text: bannerBrandLine,
+                      size: 14, color: 'FFFFFF', bold: true, font: 'Arial'
+                    })],
+                    alignment: AlignmentType.CENTER,
+                    spacing: { before: 60, after: 20 }
+                  }),
+                  new Paragraph({
+                    children: [new TextRun({
                       text: data.metadata.title,
                       bold: true, size: 32, color: 'FFFFFF', font: 'Arial'
                     })],
                     alignment: AlignmentType.CENTER,
-                    spacing: { before: 60, after: 40 }
+                    spacing: { after: 40 }
                   })
                 ]
               })
@@ -111,14 +135,24 @@ export async function generateDOCXServer(
                     alignment: AlignmentType.CENTER,
                     spacing: { before: 20, after: 20 }
                   }),
+                  ...(bannerRecordLine ? [new Paragraph({
+                    children: [new TextRun({ text: bannerRecordLine, size: 18, color: 'FFFFFF', bold: true })],
+                    alignment: AlignmentType.CENTER,
+                    spacing: { before: 20, after: 20 }
+                  })] : []),
                   new Paragraph({
                     children: [new TextRun({
                       text: `CAPS Code:${capsCode} ${EDUAI_COMPLIANCE_LABELS}`,
                       size: 16, color: 'FFFFFF', bold: true
                     })],
                     alignment: AlignmentType.CENTER,
+                    spacing: { after: 40 }
+                  }),
+                  ...(bannerSignOff ? [new Paragraph({
+                    children: [new TextRun({ text: bannerSignOff, size: 16, color: 'FFFFFF', bold: true })],
+                    alignment: AlignmentType.CENTER,
                     spacing: { after: 60 }
-                  })
+                  })] : [])
                 ]
               })
             ]

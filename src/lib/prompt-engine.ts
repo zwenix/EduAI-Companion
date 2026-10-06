@@ -12,6 +12,11 @@ import {
   FOUNDATION_PHASE_TEMPLATE
 } from './prompts/content-templates';
 import {
+  CONTENT_TYPE_PROMPT_NAMES,
+  buildContentTypeUserPrompt,
+  getContentTypePrompt,
+} from './prompts/content-type-prompts';
+import {
   LESSON_PLAN_TEMPLATE,
   REPORT_COMMENT_TEMPLATE,
   CURRICULUM_MAP_TEMPLATE
@@ -61,6 +66,14 @@ export interface PromptContext {
   teacherName?: string;
   includeWorksheet?: boolean;
   isGroq?: boolean;
+  /**
+   * The Content Creator's own content type ("Controlled Test", "Word Wall",
+   * "Permission Slip", …). When supplied, `assemblePrompt` uses the built-in
+   * per-content-type prompt reverse-engineered from `assets/templates/` instead
+   * of the four generic engine templates, so the pedagogy, marks, answer space
+   * and memo match the document the teacher actually asked for.
+   */
+  rawContentType?: string;
   // SA Compliance extensions
   assessmentType?: string;
   isFormal?: boolean;
@@ -198,15 +211,22 @@ SA CONTEXT:
       context
     );
     
+    // The built-in per-content-type prompt (reverse-engineered from the
+    // reference templates) wins whenever the caller passes the Content
+    // Creator's own type. It carries the merged-banner contract, the family
+    // craft rules and that type's blueprint in one system prompt.
+    const builtIn = context.rawContentType ? getContentTypePrompt(context.rawContentType) : null;
+
     // Select base template based on content type
-    let contentTemplate = this.selectTemplate(context.contentType, phase);
-    
-    // Handle new SA content types from document
-    if (context.contentType === 'individual_support_plan' || context.contentType === 'annual_teaching_plan' || context.contentType === 'admin_document') {
+    let contentTemplate = builtIn ? builtIn.systemPrompt : this.selectTemplate(context.contentType, phase);
+
+    // Handle new SA content types from document (the built-in prompts for
+    // these types carry their own mandated sections, so they are left as-is).
+    if (!builtIn && (context.contentType === 'individual_support_plan' || context.contentType === 'annual_teaching_plan' || context.contentType === 'admin_document')) {
       contentTemplate = this.getSAContentTypeTemplate(context.contentType, context);
     }
     
-    if (context.contentType === 'lesson-plan' && context.includeWorksheet) {
+    if (!builtIn && context.contentType === 'lesson-plan' && context.includeWorksheet) {
       contentTemplate += `
       
 ⚠️ CRITICAL INTEGRATION FOR LESSON PLAN (WORK_SHEET):
@@ -235,7 +255,24 @@ You MUST ALSO generate:
     // placed before and after the preset template so it cannot be lost inside a
     // long prompt or treated as an optional afterthought by a provider.
     const instructorPriority = buildInstructorPriority(context.additionalInstructions);
-    let userPrompt = this.injectContext(contentTemplate, {
+    let userPrompt = builtIn
+      ? buildContentTypeUserPrompt(builtIn.contentType, {
+          grade: context.grade,
+          subject: context.subject,
+          topic: context.topic,
+          term: context.term,
+          language: effectiveLanguage,
+          totalMarks: context.totalMarks,
+          duration: context.duration,
+          supportLevel: context.siasSupportLevel,
+          differentiation: context.differentiationRequired
+            ? 'Core / Extended / Simplified versions required (WP6)'
+            : undefined,
+          capsReference: context.capsReference,
+          phase,
+          additionalInstructions: context.additionalInstructions,
+        })
+      : this.injectContext(contentTemplate, {
       ...context,
       language: effectiveLanguage,
       capsCode: context.capsReference || '',
@@ -255,14 +292,18 @@ You MUST ALSO generate:
     // Add SA compliance context to user prompt
     userPrompt = `${saMandate}\n\n${userPrompt}`;
 
-    if (instructorPriority) {
+    if (instructorPriority && !builtIn) {
       userPrompt = `${instructorPriority}\n\n${userPrompt}\n\n${instructorPriority}`;
     }
     
-    // Enhance system prompt with phase-specific guidance + SA compliance
-    let systemPrompt = ENHANCED_MASTER_PROMPT
-      .replace(/\$\{phase\}/g, phase)
-      .replace(/\$\{gradeRange\}/g, this.getGradeRange(phase));
+    // Enhance system prompt with phase-specific guidance + SA compliance.
+    // With a built-in per-type prompt the type-specific document law (family
+    // rules + blueprint + banner contract) IS the system prompt.
+    let systemPrompt = builtIn
+      ? builtIn.systemPrompt
+      : ENHANCED_MASTER_PROMPT
+        .replace(/\$\{phase\}/g, phase)
+        .replace(/\$\{gradeRange\}/g, this.getGradeRange(phase));
     
     // Add SA compliance to system prompt
     systemPrompt = `${saMandate}\n\n${systemPrompt}`;
@@ -382,6 +423,11 @@ Layout Guardrails: No fixed heights on containers (use h-auto, py-4/py-6). No ab
 Output format: raw JSON (no markdown block wrapper). Escaped double quotes.
 SA Context: Rand (R), SA places (Table Mountain, Kruger, Drakensberg), SA names (Thabo, Amina, Sipho, Lerato), SA English spelling (colour, behaviour, organise), DD/MM/YYYY, IKS integration, ubuntu values, 2026 year.
 `;
+  }
+
+  /** Every content type that has a built-in prompt (Content Creator taxonomy + aliases). */
+  public static getBuiltInContentTypes(): string[] {
+    return CONTENT_TYPE_PROMPT_NAMES;
   }
 
   private static compressWhitespace(text: string): string {
