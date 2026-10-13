@@ -1,22 +1,44 @@
 import axios from "axios";
 import { checkAndReportApiError } from "../lib/apiErrorHelper";
-import { callGeminiClientDirect } from "./geminiClient";
+import { callGeminiClientDirect, buildCapsGenerationPrompts } from "./geminiClient";
 import { AI_SECRETS } from "../lib/aiSecrets";
 // True when running inside the Capacitor native app (Android APK), where there
 // is no Node backend to proxy requests — so we call the AI providers directly.
 import { isNativeApp } from "../lib/platform";
+import { buildAdminLabPrompts, buildVisualLabPrompts } from "../lib/prompts/lab-prompts";
+import {
+  AI_PROVIDER_LABELS,
+  NVIDIA_BASE_URL,
+  NVIDIA_MODELS,
+  QWEN_BASE_URL,
+  QWEN_DEFAULT_MODEL,
+} from "../lib/aiModels";
 
 // ─── Browser-side LAST RESORT ───────────────────────────────────────────────
 // If both the backend AND the direct Gemini engine fail (e.g. the shared
 // Gemini key is quota-exhausted or blocked), make one final attempt through
-// the Qwen 3.8 Max engine whose key is baked into the app. No other provider
-// participates in this chain.
+// the alternative engines whose keys are baked into the app — Qwen 3.8 Max
+// first, then the Nemotron siblings named by the frozen sibling-engine graph
+// (`alternativeProviderFor`). Endpoints and slugs come from the frozen registry
+// in `src/lib/aiModels.ts` (AGENTS.md §1) — never inline them here.
 const LAST_RESORT_PROVIDERS: { name: string; url: string; key: () => string; models: string[] }[] = [
   {
-    name: "Alibaba Qwen 3.8",
-    url: "https://ws-8ldb9u90tetxcada.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/chat/completions",
+    name: AI_PROVIDER_LABELS['alibaba-qwen'],
+    url: `${QWEN_BASE_URL}/chat/completions`,
     key: () => AI_SECRETS.ALIBABA_API_KEY,
-    models: ["qwen3.8-max"]
+    models: [QWEN_DEFAULT_MODEL]
+  },
+  {
+    name: AI_PROVIDER_LABELS['nvidia-nemotron-lightning'],
+    url: `${NVIDIA_BASE_URL}/chat/completions`,
+    key: () => AI_SECRETS.NVIDIA_API_KEY,
+    models: [NVIDIA_MODELS['nvidia-nemotron-lightning']]
+  },
+  {
+    name: AI_PROVIDER_LABELS['nvidia-nemotron-nano'],
+    url: `${NVIDIA_BASE_URL}/chat/completions`,
+    key: () => AI_SECRETS.NVIDIA_API_KEY,
+    models: [NVIDIA_MODELS['nvidia-nemotron-nano']]
   }
 ];
 
@@ -59,8 +81,9 @@ const callLastResortLLM = async (systemPrompt: string, userPrompt: string): Prom
   throw lastErr || new Error("All fallback AI providers failed");
 };
 
-// Returns true when the Node backend is unreachable (standalone APK / offline),
-// in which case we fall back to the client-side Gemini engine.
+// Returns true when the backend request failed in a way the on-device engine
+// can recover from (standalone APK / offline / provider outage / bad server
+// credentials), in which case we fall back to the client-side Gemini engine.
 const isBackendUnavailable = (error: any): boolean => {
   if (!error) return true;
   const status = error.response?.status || error.status;
@@ -68,8 +91,18 @@ const isBackendUnavailable = (error: any): boolean => {
   if (error.isAxiosError && !error.response) return true;
   if (error instanceof TypeError) return true;
   if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') return true;
+  // The backend started streaming and then aborted (provider outage midway).
+  if (error.streamFailure) return true;
   if (status === 404) return true;
   if (status >= 500) return true;
+  // The backend answered, but with a provider/config error (401/402/403/429 on
+  // the shared server keys, or a 400 for a missing key). The UI shows an error
+  // unless the on-device engine gets a turn, so never treat those as terminal:
+  // the baked client key + the alternative engines are exactly the rescue path
+  // that keeps the classroom generating. (Regression: streaming responses used
+  // to throw `HTTP error! status: …`, which matched none of the branches below
+  // and silently killed every generation.)
+  if (typeof status === 'number' && status >= 400) return true;
   // Backend replies 400 with this body when no GEMINI_API_KEY is configured on
   // the server — the client-side engine has its own baked-in key, so treat it
   // as "backend unavailable" and fall back instead of failing the generation.
@@ -78,6 +111,46 @@ const isBackendUnavailable = (error: any): boolean => {
   const msg = String(error.message || '').toLowerCase();
   if (msg.includes('network error') || msg.includes('failed to fetch') || msg.includes('load failed') || msg.includes('timeout')) return true;
   return false;
+};
+
+/**
+ * Builds the error thrown when `/api/gemini/action` answers with a non-OK
+ * status. The HTTP status and the server's own message are attached so the
+ * fallback chain can classify the failure (provider outage vs. client block)
+ * instead of receiving a bare `Error('HTTP error! status: 500')`.
+ */
+const backendHttpError = async (response: Response, action: string): Promise<Error> => {
+  let detail = '';
+  try {
+    const body: any = await response.clone().json();
+    const raw = body?.error ?? body?.message ?? body;
+    detail = typeof raw === 'string' ? raw : JSON.stringify(raw);
+  } catch {
+    try {
+      detail = (await response.clone().text()).slice(0, 400);
+    } catch {
+      /* body already consumed / unreadable — keep the status only */
+    }
+  }
+  return Object.assign(
+    new Error(
+      `Backend '${action}' request failed with status ${response.status}${detail ? `: ${detail}` : ''}`,
+    ),
+    { status: response.status, response: { status: response.status, data: { error: detail } } },
+  );
+};
+
+/**
+ * Final safety net shared by every content action: ask the alternative engines
+ * (Qwen 3.8 Max → Nemotron siblings) for the same JSON envelope the Gemini
+ * engine would have produced. Returns the parsed object, or falls back to
+ * wrapping the raw text so the UI always has something to render.
+ */
+const callLastResortJson = async (systemPrompt: string, userPrompt: string): Promise<any> => {
+  const text = await callLastResortLLM(systemPrompt, userPrompt);
+  const parsed = safeJsonParse(text);
+  if (parsed && Object.keys(parsed).length > 0) return parsed;
+  return { content: text, imagePrompt: 'Educational classroom scene' };
 };
 
 // ─── Prompt Engineering Constants ────────────
@@ -514,7 +587,9 @@ const _fetchActionSingleBackend = async (action: string, input: any, onProgress?
     });
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      // Attach the HTTP status + server message so the caller can fall back to
+      // the on-device engine instead of dead-ending the generation.
+      throw await backendHttpError(response, action);
     }
     
     const reader = response.body?.getReader();
@@ -538,7 +613,12 @@ const _fetchActionSingleBackend = async (action: string, input: any, onProgress?
             const dataStr = trimmedLine.substring(6);
             try {
               const data = JSON.parse(dataStr);
-              if (data.error) throw new Error(data.error);
+              if (data.error) {
+                // The server aborted mid-stream (provider outage). Tag it so the
+                // caller retries on the on-device engine rather than surfacing a
+                // dead generation to the classroom.
+                throw Object.assign(new Error(String(data.error)), { streamFailure: true });
+              }
               if (data.chunk) {
                 fullText += data.chunk;
                 const now = Date.now();
@@ -663,35 +743,49 @@ const executeWithContinuation = async (action: string, input: any, onProgress?: 
   return lastResult;
 };
 
-export const generateCAPSContent = async (input: any, onProgress?: (partial: any) => void) => {
+/**
+ * Shared safety net for every content action.
+ *
+ * Runs the normal chain (backend → on-device Gemini engine) and, only when that
+ * whole chain fails, makes one final attempt on the alternative engines
+ * (Qwen 3.8 Max → Nemotron siblings) before surfacing an error. This is the
+ * same promise `generateEducationalContent` has always kept — the classroom
+ * must not lose a generation because one provider is having a bad day.
+ */
+const withLastResort = async (
+  action: string,
+  input: any,
+  onProgress: ((partial: any) => void) | undefined,
+  buildPrompts: () => { system: string; user: string },
+) => {
   try {
-    return await executeWithContinuation("generate-caps", input, onProgress);
+    return await executeWithContinuation(action, input, onProgress);
   } catch (error: any) {
-    console.error("Express /api/gemini/action failed:", error.message || error);
-    checkAndReportApiError(error, "Gemini");
-    throw error;
+    console.warn(`[AI Routing] '${action}' failed on Gemini (${error?.message || error}) — trying alternative engines.`);
+    try {
+      const { system, user } = buildPrompts();
+      const rescued = await callLastResortJson(system, user);
+      if (onProgress) onProgress(rescued);
+      return rescued;
+    } catch (rescueError: any) {
+      console.error("AI generation failed on every engine:", error?.message || error);
+      console.error("Alternative-engine rescue also failed:", rescueError?.message || rescueError);
+      // Report only when there is nothing left to try, so a successful rescue
+      // never raises the "API blocked / unreachable" alert.
+      checkAndReportApiError(error, "Gemini");
+      throw error;
+    }
   }
 };
 
-export const generateVisualAid = async (input: any, onProgress?: (partial: any) => void) => {
-  try {
-    return await executeWithContinuation("generate-visual", input, onProgress);
-  } catch (error: any) {
-    console.error("Express /api/gemini/action failed:", error.message || error);
-    checkAndReportApiError(error, "Gemini");
-    throw error;
-  }
-};
+export const generateCAPSContent = async (input: any, onProgress?: (partial: any) => void) =>
+  withLastResort("generate-caps", input, onProgress, () => buildCapsGenerationPrompts(input));
 
-export const generateAdminDoc = async (input: any, onProgress?: (partial: any) => void) => {
-  try {
-    return await executeWithContinuation("generate-admin", input, onProgress);
-  } catch (error: any) {
-    console.error("Express /api/gemini/action failed:", error.message || error);
-    checkAndReportApiError(error, "Gemini");
-    throw error;
-  }
-};
+export const generateVisualAid = async (input: any, onProgress?: (partial: any) => void) =>
+  withLastResort("generate-visual", input, onProgress, () => buildVisualLabPrompts(input));
+
+export const generateAdminDoc = async (input: any, onProgress?: (partial: any) => void) =>
+  withLastResort("generate-admin", input, onProgress, () => buildAdminLabPrompts(input));
 
 export const runOCRScan = async (imageData: string | string[], language: string = 'English', isHandwritten: boolean = true) => {
   if (isNativeApp()) {

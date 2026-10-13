@@ -787,7 +787,26 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
   };
 
   // ── Handlers ─────────────────────────────────────────────────────────────
-  
+
+  /**
+   * Teacher-friendly explanation for a failed generation.
+   *
+   * Every engine (backend proxy → on-device Gemini → Qwen/Nemotron rescue) has
+   * already been tried by the time this runs, so the only useful thing left is
+   * telling the teacher what happened and that retrying is safe — never leaving
+   * the screen silently unchanged.
+   */
+  const describeGenerationFailure = (error: any): string => {
+    const raw = String(error?.message || error || '');
+    if (/quota|429|rate.?limit|resource.?exhausted/i.test(raw)) {
+      return 'All AI engines are at their limit right now. Please try again in a minute.';
+    }
+    if (/network|fetch|unreachable|timed? ?out|timeout|offline/i.test(raw)) {
+      return 'Could not reach the content service and the on-device engine also failed. Check your connection and try again.';
+    }
+    return `Content could not be generated (${raw.slice(0, 90) || 'unknown error'}). Please try again.`;
+  };
+
   const handleGenerateTeaching = async () => {
     if (!t_grade || !t_subject || !t_topic || !t_type) return;
 
@@ -932,6 +951,8 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
       });
     } catch (error) {
       console.error('Generation error:', error);
+      setGenerationPhase('Generation failed — please try again.');
+      triggerToast(describeGenerationFailure(error), 'error');
     } finally {
       clearInterval(progressInterval);
       setIsGenerating(false);
@@ -990,6 +1011,8 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
       });
     } catch (error) {
       console.error('Visual generation error:', error);
+      setGenerationPhase('Generation failed — please try again.');
+      triggerToast(describeGenerationFailure(error), 'error');
     } finally {
       clearInterval(progressInterval);
       setIsGenerating(false);
@@ -1050,6 +1073,8 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
       });
     } catch (error) {
       console.error('Admin generation error:', error);
+      setGenerationPhase('Generation failed — please try again.');
+      triggerToast(describeGenerationFailure(error), 'error');
     } finally {
       clearInterval(progressInterval);
       setIsGenerating(false);

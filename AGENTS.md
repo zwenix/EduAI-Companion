@@ -326,7 +326,7 @@ explicit user instructions.
 
 1. **Secret scan** — `scripts/scan-secrets.mjs`
 2. **Type check** — `tsc --noEmit`
-3. **Unit tests** — `vitest run` (`tests/`, 7 suites)
+3. **Unit tests** — `vitest run` (`tests/`, 10 suites)
 4. **Content template contract** — `npm run verify:template` (101 assertions)
 5. **Production build** — `npm run build`
 
