@@ -61,6 +61,49 @@ const stripDataUrl = (item: string) => {
 
 const JSON_EDUCATIONAL_HINT = `\nReturn a valid JSON object with the following keys: content (string), memo (string), rubric (string), assessmentCriteria (string), successIndicators (array of strings), imagePrompt (string).`;
 
+/**
+ * System + user prompt for the `generate-caps` action, shared by the on-device
+ * Gemini engine here and the alternative-engine rescue in `geminiService`
+ * (Qwen 3.8 Max / Nemotron) so both ask for the identical JSON envelope.
+ */
+export const buildCapsGenerationPrompts = (input: any): { system: string; user: string } => {
+  const isLessonPlan = ['Lesson Plan', 'Weekly Lesson Plan', 'Unit Plan', 'lesson-plan'].includes(input.contentType);
+  const isStudyGuide = ['Study Guide / Learning Notes', 'Revision Pack', 'Daily Lesson Notes', 'Learning Activity'].includes(input.contentType);
+  let contentTypeEng: 'lesson-plan' | 'worksheet' | 'study-guide' = 'worksheet';
+  if (isLessonPlan) contentTypeEng = 'lesson-plan';
+  else if (isStudyGuide) contentTypeEng = 'study-guide';
+
+  const { system, user } = EduAIPromptEngine.assemblePrompt({
+    contentType: contentTypeEng,
+    grade: input.grade || '4',
+    subject: input.subject || 'Mathematics',
+    topic: input.topic || 'Addition',
+    language: input.language || 'English',
+    learnerProfile: input.learnerProfile || 'General Class',
+    additionalInstructions: input.additionalInstructions || '',
+    term: input.term || '1',
+    week: input.week ? parseInt(input.week) : undefined,
+    duration: input.duration || '2 hours',
+    capsReference: input.capsReference || '',
+    includeWorksheet: !!input.includeWorksheet,
+  });
+
+  let finalUserPrompt = user;
+  if (input.existingContent) {
+    finalUserPrompt = `The previous content generation was truncated due to character limits. Here is the content generated so far:\n\n${input.existingContent}\n\nCRITICAL INSTRUCTION: Continue generating the rest of the document seamlessly from exactly where it left off. Do not repeat anything already generated. Complete all remaining sections, summaries, worksheets, or rubrics until the document is 100% complete.`;
+  } else {
+    finalUserPrompt += `\n\n📌 MANDATORY QUALITY ENHANCEMENTS:\n1. TEACHER NOTES & TIME ALLOCATIONS: Include a dedicated Teacher Notes section with formal/informal assessment recommendations (e.g. observation checklists, CAPS ATP mark weighting) and explicit minute-by-minute time allocations per phase.\n2. DIFFERENTIATION STRATEGIES: Include explicit built-in differentiation strategies (support for English Additional Language / EAL learners, extra time/scaffolding accommodations, and extension tasks for advanced learners).\n3. PRINTABLE ILLUSTRATION DESCRIPTIONS: Ensure every [Illustration: ...] placeholder has a vivid, self-contained description suitable as both an image generation prompt and a printable text description for print-only materials.`;
+    if (input.generateImage) {
+      finalUserPrompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 2-3 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of an educational graphic depicting the topic in South African context>]. Place them strategically inside the HTML to visually break up the text. The system will replace them with actual AI generated images.`;
+    } else {
+      finalUserPrompt += `\n\n⚠️ CRITICAL: DO NOT include any illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
+    }
+    finalUserPrompt += JSON_EDUCATIONAL_HINT;
+  }
+
+  return { system, user: finalUserPrompt };
+};
+
 export async function callGeminiClientDirect(action: string, input: any): Promise<any> {
   switch (action) {
     case 'quality-check': {
@@ -82,39 +125,7 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
     }
 
     case 'generate-caps': {
-      const isLessonPlan = ['Lesson Plan', 'Weekly Lesson Plan', 'Unit Plan', 'lesson-plan'].includes(input.contentType);
-      const isStudyGuide = ['Study Guide / Learning Notes', 'Revision Pack', 'Daily Lesson Notes', 'Learning Activity'].includes(input.contentType);
-      let contentTypeEng: 'lesson-plan' | 'worksheet' | 'study-guide' = 'worksheet';
-      if (isLessonPlan) contentTypeEng = 'lesson-plan';
-      else if (isStudyGuide) contentTypeEng = 'study-guide';
-
-      const { system, user } = EduAIPromptEngine.assemblePrompt({
-        contentType: contentTypeEng,
-        grade: input.grade || '4',
-        subject: input.subject || 'Mathematics',
-        topic: input.topic || 'Addition',
-        language: input.language || 'English',
-        learnerProfile: input.learnerProfile || 'General Class',
-        additionalInstructions: input.additionalInstructions || '',
-        term: input.term || '1',
-        week: input.week ? parseInt(input.week) : undefined,
-        duration: input.duration || '2 hours',
-        capsReference: input.capsReference || '',
-        includeWorksheet: !!input.includeWorksheet,
-      });
-
-      let finalUserPrompt = user;
-      if (input.existingContent) {
-        finalUserPrompt = `The previous content generation was truncated due to character limits. Here is the content generated so far:\n\n${input.existingContent}\n\nCRITICAL INSTRUCTION: Continue generating the rest of the document seamlessly from exactly where it left off. Do not repeat anything already generated. Complete all remaining sections, summaries, worksheets, or rubrics until the document is 100% complete.`;
-      } else {
-        finalUserPrompt += `\n\n📌 MANDATORY QUALITY ENHANCEMENTS:\n1. TEACHER NOTES & TIME ALLOCATIONS: Include a dedicated Teacher Notes section with formal/informal assessment recommendations and explicit minute-by-minute time allocations per phase.\n2. DIFFERENTIATION STRATEGIES: Include explicit built-in differentiation strategies (support for English Additional Language / EAL learners, extra time/scaffolding accommodations, and extension tasks for advanced learners).\n3. PRINTABLE ILLUSTRATION DESCRIPTIONS: Ensure every [Illustration: ...] placeholder has a vivid, self-contained description suitable as both an image generation prompt and a printable text description.`;
-        if (input.generateImage) {
-          finalUserPrompt += `\n\n⚠️ CRITICAL ILLUSTRATION REQUIREMENT: You MUST include at least 2-3 inline illustration placeholders using the exact format: [Illustration: <vivid, detailed description of an educational graphic depicting the topic in South African context>]. Place them strategically inside the HTML.`;
-        } else {
-          finalUserPrompt += `\n\n⚠️ CRITICAL: DO NOT include any illustration or image placeholders in the content. Keep it purely text and standard structural HTML.`;
-        }
-        finalUserPrompt += JSON_EDUCATIONAL_HINT;
-      }
+      const { system, user: finalUserPrompt } = buildCapsGenerationPrompts(input);
 
       const response = await generateWithFallback({
         contents: finalUserPrompt,

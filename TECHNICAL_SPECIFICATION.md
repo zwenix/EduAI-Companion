@@ -392,6 +392,11 @@ Additional routing rules:
 - Legacy ids (`groq-qwen`, `nvidia-nemotron`, `nvidia-nemotron-ultra-legacy`) resolve to `alibaba-qwen` so stale saved settings keep working; they are never resurrected as models.
 - A verified working model is cached to cut fallback latency; if the whole chain fails, the cache is invalidated for a 60-second window and requests restart from the top with gentle backoff (503/429 storms).
 - Alternative providers are selectable in the UI, but **any** provider failure is classified and seamlessly routed to Gemini (`src/services/unifiedAiService.ts`).
+- **Client-side chain (`src/services/geminiService.ts`)** — every content action runs backend → on-device Gemini engine → alternative engines, and only surfaces an error when all three are exhausted:
+  1. `POST /api/gemini/action` (streaming for the Content Studio).
+  2. On any backend failure — HTTP ≥ 400 (5xx outages, 401/402/403/429 on the shared server keys, 404) and network errors alike — the request is retried on the **on-device Gemini engine** (`src/services/geminiClient.ts`, same baked key, same frozen chain) and, if that fails, the **alternative engines** (Qwen 3.8 Max → Nemotron 3.5 Lightning → Nemotron 3 Nano, endpoints/slugs from `src/lib/aiModels.ts`).
+  3. Every generation failure is surfaced in the Content Studio as a toast plus a "Generation failed" phase label; the "API blocked / unreachable" alert is raised only when nothing is left to try.
+  *Regression note (fixed 13 Oct 2026):* the streaming reader threw a bare `Error('HTTP error! status: …')`, which carried no `status`; `isBackendUnavailable()` therefore classified it as terminal and every generation died silently on an HTTP (rather than network-level) failure. `tests/generation-fallback.test.ts` now pins the chain.
 - Non-text pipelines (image, OCR, TTS, video) are explicitly excluded from the frozen model list and have their own provider graphs.
 
 ### 7.2 Prompt engineering system
@@ -701,7 +706,7 @@ npm run build
 | **Full pipeline** | `npm run ci` (`scripts/ci.sh`) | The five stages below, in order, fail-fast. `--skip-build` shortens the loop. |
 | **Secret scan** | `npm run scan:secrets` | Dependency-free scan of the working tree for credential-shaped material; fails on anything outside the reviewed allowlist (`scripts/scan-secrets.mjs`). |
 | Type checking | `npm run lint` | Entire TS/TSX codebase (`tsc --noEmit`). |
-| **Unit tests** | `npm test` (`vitest run`) | 7 suites / 118 tests — see 12.2. |
+| **Unit tests** | `npm test` (`vitest run`) | 10 suites / 211 tests — see 12.2. |
 | **Coverage** | `npm run test:coverage` | V8 coverage over `src/lib/**` and `src/services/**`. |
 | Content-template contract | `npm run verify:template` | 101 assertions on template normalisation (single compliance labels, gradient banners, exact footer). |
 | Production build | `npm run build` | Vite client + esbuild server compile. |
@@ -723,6 +728,7 @@ no credentials, no emulator.
 | `foundation-templates.test.ts` | The documented 28 templates split 6/10/6/6, unique ids, authored (non-placeholder) content, grade scoping, filtering, and error-free rendering of every template (including bilingual mode). |
 | `firestore-rules.test.ts` | Deny-by-default posture, per-collection auth guards, no unauthenticated allowance anywhere, the critical invariants (uid pinning, role-escalation block, senderId ownership, tutor-session privacy) and identifier/string size caps. |
 | `rate-limit.test.ts` | Limiter window/limit maths, per-key and per-rule isolation, retry hints, key eviction, endpoint-class budgets, client-key derivation, plus a wiring guard on the middleware in `server.ts`. |
+| `generation-fallback.test.ts` | The content-generation fallback chain in `geminiService`: a 5xx (or 401/402/403/404/429) from `/api/gemini/action` is recoverable rather than terminal, the on-device Gemini engine is tried next, the alternative engines (Qwen 3.8 Max → Nemotron) rescue the generation when both Gemini paths fail, mid-stream aborts recover, a healthy streamed response still parses, and an error is thrown only after every engine has been tried. |
 
 ### 12.3 CI (GitHub Actions)
 
@@ -790,7 +796,7 @@ The right-hand column records what was done, on which date, and what remains.
 
 | # | Item | Status | Resolution / remaining work |
 | :--- | :--- | :--- | :--- |
-| 1 | No automated test suite | ✅ | **Fixed 2 Oct 2026.** Vitest 3 is configured (`vitest.config.ts`, `tests/`) with 7 suites / 118 tests covering AI model routing and fallback, the frozen provider registry, the content-template contract, CAPS/NPA/SIAS frameworks, the 28 Foundation Phase templates, Firestore rule invariants and rate limiting. `npm test` runs them; `npm run test:coverage` reports V8 coverage. *Remaining:* browser-level end-to-end tests (Playwright) for login → generate → export. |
+| 1 | No automated test suite | ✅ | **Fixed 2 Oct 2026.** Vitest 3 is configured (`vitest.config.ts`, `tests/`) with 10 suites / 211 tests covering AI model routing and fallback (including the client-side generation rescue chain), the frozen provider registry, the content-template contract, CAPS/NPA/SIAS frameworks, the 28 Foundation Phase templates, Firestore rule invariants and rate limiting. `npm test` runs them; `npm run test:coverage` reports V8 coverage. *Remaining:* browser-level end-to-end tests (Playwright) for login → generate → export. |
 | 2 | Unauthenticated API | 🟡 | **Mitigated 2 Oct 2026** with a dependency-free, per-client rate limiter on `/api` (§6.3) — AI 30/min, images 20/min, video 10/min, media 40/min, general 120/min — returning `429` + `Retry-After`. *Remaining:* Firebase ID-token verification and per-user quotas. The limiter is per process, so horizontally scaled deployments see `max × instances`. |
 | 3 | `server.ts` is a 2.4k-LOC monolith | 🟡 | **Partially addressed 2 Oct 2026:** the frozen model list, endpoints, slugs, legacy aliases and fallback graph now live in one registry, `src/lib/aiModels.ts`, consumed by `server.ts`, `multiAiService.ts`, `AiContext.tsx` and `App.tsx`. *Remaining:* extract `/api/ai`, `/api/media` and `/api/notifications` into Express routers. |
 | 4 | In-memory job/subscription state | ⬜ | Video jobs (`omniJobs`) and push subscriptions remain process-local: lost on restart and not shared between serverless instances. Persisting them requires care around the protected video pipeline (`AGENTS.md` §6) — plan as a dedicated change. |
@@ -817,7 +823,7 @@ so the remaining items stay honest. Status key: ✅ done · 🟡 partly done · 
 | # | Recommendation | Status | What landed / what is left |
 | :--- | :--- | :--- | :--- |
 | 1 | **Secure the API edge** — token verification, per-user quotas, helmet + CSP, smaller request limits, abuse alerting | 🟡 | Rate limiting is live (§6.3): per-client budgets per endpoint class, `429` + `Retry-After`, `X-RateLimit-*` headers, `RATE_LIMIT_DISABLED` override. **Left:** Firebase ID-token verification (needs admin credentials), helmet + CSP, reducing the 50 MB body limit, and alerting. |
-| 2 | **Introduce automated tests** — prompt engine, template normalisation, provider fallback, Firestore rules, E2E smoke | 🟡 | Vitest suite (7 files / 118 tests) covers routing & fallback, the frozen registry, the template contract, CAPS frameworks, the Foundation Phase library, rule invariants and rate limiting; `npm test` / `npm run test:coverage`. **Left:** Playwright smoke for login → generate → export, and emulator-backed rule tests. |
+| 2 | **Introduce automated tests** — prompt engine, template normalisation, provider fallback, Firestore rules, E2E smoke | 🟡 | Vitest suite (10 files / 211 tests) covers routing & fallback, the frozen registry, the template contract, CAPS frameworks, the Foundation Phase library, rule invariants and rate limiting; `npm test` / `npm run test:coverage`. **Left:** Playwright smoke for login → generate → export, and emulator-backed rule tests. |
 | 3 | **Refactor `server.ts`** — routers + a single model registry | 🟡 | `src/lib/aiModels.ts` is now the one place the frozen provider list, endpoints, slugs, legacy aliases and sibling-engine graph live, consumed by both server and client. **Left:** extract `/api/ai`, `/api/media`, `/api/notifications` routers. |
 | 4 | **Durable job and push state** — Firestore-backed video jobs and push subscriptions | ⬜ | Deferred deliberately: the video pipeline is protected by `AGENTS.md` §6 and push subscriptions are low-volume. Plan as a dedicated change. |
 | 5 | **Repository hygiene** — archive scripts, rename the package, run lint/build/verify in CI | ✅ | 102 scratch files archived to `archive/legacy-scripts/`; package renamed to `eduai-companion` (v1.0.0) with refreshed lockfiles; `scripts/ci.sh` runs secret scan → `tsc` → tests → template contract → build, mirrored by `docs/ci.workflow.yml`. |
