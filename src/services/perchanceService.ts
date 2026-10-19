@@ -27,7 +27,16 @@ function ensurePerchanceIframe(): Promise<void> {
     existing.id = IFRAME_ID;
     existing.src = PERCHANCE_GENERATOR_URL;
     existing.title = PERCHANCE_GENERATOR_NAME;
-    // Allow scripts and same-origin to ensure postMessage works correctly
+    // `allow-same-origin` is required here: the Perchance generator keeps its
+    // own cookies/storage ("your cookies/storage for this site got cleared…"),
+    // and an opaque origin (no allow-same-origin) makes those throw and
+    // breaks the generator. Chrome still prints the generic
+    // "allow-scripts + allow-same-origin can escape its sandboxing" notice
+    // for this frame — it is a false positive here, because the framed
+    // document is a THIRD-PARTY origin (perchance.org) and therefore cannot
+    // reach `frameElement` to drop its own sandbox. The srcdoc preview in
+    // ContentCreator.tsx has no such exemption, so it is sandboxed with
+    // `allow-scripts` only.
     existing.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms");
     existing.style.position = "fixed";
     existing.style.width = "1px";

@@ -19,9 +19,28 @@
  */
 
 import { precacheAndRoute } from 'workbox-precaching';
+import { registerRoute } from 'workbox-routing';
+import { StaleWhileRevalidate } from 'workbox-strategies';
 
 // Precaching
 precacheAndRoute(self.__WB_MANIFEST || []);
+
+/* ==========================================================================
+   SELF-HOSTED WEB FONTS
+   --------------------------------------------------------------------------
+   The app serves its typefaces from `/fonts/` (own origin) instead of
+   fonts.googleapis.com, which is blocked on many school networks.
+
+   The font files are deliberately NOT precached: they are ~1.3 MB in total
+   and the browser only ever downloads the few faces a page actually renders.
+   A runtime cache keeps them available offline and on repeat visits.
+   ========================================================================== */
+registerRoute(
+  ({ url }) => url.origin === self.location.origin && url.pathname.startsWith('/fonts/'),
+  new StaleWhileRevalidate({
+    cacheName: 'eduai-companion-fonts-v1',
+  }),
+);
 
 const NOTIFICATION_ICON = '/icon-192x192.png';
 

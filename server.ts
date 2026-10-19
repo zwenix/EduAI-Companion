@@ -2,6 +2,17 @@ import { CAPS_LESSON_PLAN_SYSTEM_PROMPT } from "./src/lib/prompts/caps-lesson-pl
 import { EduAIPromptEngine } from "./src/lib/prompt-engine";
 import { buildAdminLabPrompts, buildVisualLabPrompts } from "./src/lib/prompts/lab-prompts";
 import { clientKeyFrom, createRateLimiter, ruleForPath } from "./src/lib/rateLimit";
+import { GEMINI_CONTENT_OUTPUT_TOKENS, GEMINI_DEFAULT_OUTPUT_TOKENS } from "./src/lib/aiOutputBudget";
+import {
+  AI_ROUTE_ALTERNATIVE_MIN_MS,
+  AI_ROUTE_ALTERNATIVE_TIMEOUT_MS,
+  AI_ROUTE_BUDGET_MS,
+  AI_ROUTE_GEMINI_RESERVE_MS,
+  AI_ROUTE_MIN_ATTEMPT_MS,
+  AI_ROUTE_PROVIDER_TIMEOUT_MS,
+  AiRouteBudget,
+  withDeadline,
+} from "./src/lib/aiRouteBudget";
 import {
   GEMINI_MODEL_CHAIN,
   NVIDIA_BASE_URL,
@@ -130,7 +141,10 @@ function getGeminiClient(): GoogleGenAI {
     httpOptions: {
       headers: {
         'User-Agent': 'aistudio-build',
-      }
+      },
+      // Abort a stuck Gemini call instead of letting it eat the whole
+      // serverless function budget (which ends in a bare HTTP 504).
+      timeout: AI_ROUTE_BUDGET_MS,
     }
   });
   return cachedGeminiClient;
@@ -146,6 +160,260 @@ const geminiAi = new Proxy({} as GoogleGenAI, {
     return value;
   }
 });
+
+/**
+ * Dedicated Gemini client for image generation.
+ *
+ * Image generation sits inside the image provider chain, which has its own
+ * (much shorter) budget — the shared client's timeout is the full AI-route
+ * budget and would let one image call eat the whole function.
+ */
+let cachedGeminiImageClient: GoogleGenAI | null = null;
+function getGeminiImageClient(): GoogleGenAI {
+  if (!cachedGeminiImageClient) {
+    cachedGeminiImageClient = new GoogleGenAI({
+      apiKey: resolveGeminiKey() || "dummy",
+      httpOptions: {
+        headers: { 'User-Agent': 'aistudio-build' },
+        timeout: GEMINI_IMAGE_TIMEOUT_MS,
+      },
+    });
+  }
+  return cachedGeminiImageClient;
+}
+
+// ---------------------------------------------------------------------------
+// Image generation providers (shared by /api/image-proxy and friends)
+// ---------------------------------------------------------------------------
+//
+// Pollinations' free tier answers HTTP 402 (Payment Required) for the `turbo`
+// model and the `enhance=true` prompt rewriter, so a proxy that only pointed
+// at Pollinations returned a broken image for every generated illustration.
+// The helpers below let the server walk a real chain and hand the browser
+// bytes it actually received.
+
+/** Qwen-Image slugs on NVIDIA NIM (the gateway retires slugs over time). */
+const QWEN_IMAGE_MODELS = ["qwen/qwen-image-2512", "qwen/qwen-image"];
+
+/** NVIDIA NIM base URL (overridable for tests/mocks). */
+const NVIDIA_NIM_BASE_URL = (process.env.NVIDIA_BASE_URL || NVIDIA_BASE_URL).replace(/\/+$/, "");
+
+/** Gemini image models, newest first. */
+const GEMINI_IMAGE_MODELS = [
+  "gemini-3.1-flash-image",
+  "gemini-3.1-flash-lite-image",
+  "imagen-3.0-generate-002",
+];
+
+/** Per-provider timeouts (stay well inside the Vercel function budget). */
+const POLLINATIONS_TIMEOUT_MS = 15000;
+const GEMINI_IMAGE_TIMEOUT_MS = 18000;
+const QWEN_IMAGE_TIMEOUT_MS = 20000;
+
+/**
+ * Total time the image provider chain may take.
+ *
+ * The Vercel function is killed at 60s, so the chain (Pollinations → Gemini →
+ * Qwen-Image) must finish well before that — otherwise the request ends in
+ * another bare 504 and the illustration stays broken.
+ */
+const IMAGE_CHAIN_BUDGET_MS = 45000;
+
+interface GeneratedImageBytes {
+  buffer: Buffer;
+  contentType: string;
+}
+
+/**
+ * Pollinations API key. The service only serves the paid models when a key
+ * is supplied; without one the free tier answers 402, so the provider is
+ * skipped entirely instead of burning a request on a guaranteed failure.
+ */
+function resolvePollinationsKey(): string {
+  const keys = [
+    process.env.POLLINATIONS_API_KEY,
+    process.env.VITE_POLLINATIONS_API_KEY,
+  ];
+  for (const key of keys) {
+    if (key && key !== "dummy" && key !== "undefined" && key.trim() !== "") {
+      return key.trim().replace(/^['"\s]+|['"\s]+$/g, "");
+    }
+  }
+  return "";
+}
+
+/**
+ * Fetch an image from Pollinations. Returns null when no API key is
+ * configured (the provider cannot serve the request in that case).
+ */
+async function fetchPollinationsImage(
+  prompt: string,
+  width: number,
+  height: number,
+  seed: string | number,
+): Promise<GeneratedImageBytes | null> {
+  const key = resolvePollinationsKey();
+  if (!key) {
+    console.warn(
+      "[IMAGE GEN LOG] Pollinations skipped — no POLLINATIONS_API_KEY configured (the free tier answers HTTP 402).",
+    );
+    return null;
+  }
+
+  const url =
+    `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
+    `?width=${width}&height=${height}&nologo=true&model=turbo&enhance=true` +
+    `&seed=${encodeURIComponent(String(seed))}&token=${encodeURIComponent(key)}`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), POLLINATIONS_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "image/png, image/jpeg",
+        "User-Agent": "Mozilla/5.0",
+      },
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      throw new Error(
+        `Pollinations answered HTTP ${response.status}${detail ? ` — ${detail.slice(0, 120)}` : ""}`,
+      );
+    }
+    const contentType = response.headers.get("content-type") || "image/png";
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return { buffer, contentType };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Generate an image with the Google Gemini / Imagen image models.
+ *
+ * `deadlineAt` (epoch ms) stops the model walk early so three slow models
+ * can never add up to more than the caller's budget.
+ */
+async function fetchGeminiImage(
+  prompt: string,
+  deadlineAt?: number,
+): Promise<GeneratedImageBytes | null> {
+  const apiKey = resolveGeminiKey();
+  if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
+    console.warn("[IMAGE GEN LOG] Gemini image generation skipped — no API key configured.");
+    return null;
+  }
+
+  const errors: string[] = [];
+  const imageClient = getGeminiImageClient();
+  for (const model of GEMINI_IMAGE_MODELS) {
+    if (deadlineAt && Date.now() >= deadlineAt) {
+      errors.push(`${model}: skipped, the image budget ran out`);
+      break;
+    }
+    try {
+      const response = await imageClient.models.generateContent({
+        model,
+        contents: { parts: [{ text: prompt }] },
+        config: { imageConfig: { aspectRatio: "1:1" } },
+      });
+      const parts = response.candidates?.[0]?.content?.parts || [];
+      for (const part of parts) {
+        if (part.inlineData?.data) {
+          return {
+            buffer: Buffer.from(part.inlineData.data, "base64"),
+            contentType: part.inlineData.mimeType || "image/jpeg",
+          };
+        }
+      }
+      errors.push(`${model} returned no inline image data`);
+    } catch (err: any) {
+      errors.push(`${model}: ${err?.message || err}`);
+      console.warn(`[IMAGE GEN LOG] Gemini image model ${model} failed: ${err?.message || err}`);
+    }
+  }
+  throw new Error(errors.join(" | "));
+}
+
+/** Map an arbitrary width/height to one of the sizes Qwen-Image accepts. */
+function qwenSizeFor(width: number, height: number): string {
+  if (width > height * 1.2) return "1792x1024";
+  if (height > width * 1.2) return "1024x1792";
+  return "1024x1024";
+}
+
+/** Generate an image with Qwen-Image on the NVIDIA NIM endpoint. */
+async function fetchQwenNimImage(
+  prompt: string,
+  size: string,
+): Promise<GeneratedImageBytes | null> {
+  const nvidiaKey = resolveNvidiaKey();
+  if (!nvidiaKey) {
+    console.warn("[IMAGE GEN LOG] Qwen-Image skipped — no NVIDIA_API_KEY configured.");
+    return null;
+  }
+
+  const errors: string[] = [];
+  for (const model of QWEN_IMAGE_MODELS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), QWEN_IMAGE_TIMEOUT_MS);
+    try {
+      const nvidiaRes = await fetch(`${NVIDIA_NIM_BASE_URL}/images/generations`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${nvidiaKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          prompt,
+          n: 1,
+          size,
+          response_format: "b64_json",
+        }),
+        signal: controller.signal,
+      });
+
+      const bodyText = await nvidiaRes.text();
+      if (!nvidiaRes.ok) {
+        errors.push(`${model}: NVIDIA answered HTTP ${nvidiaRes.status} — ${bodyText.slice(0, 120)}`);
+        continue;
+      }
+
+      let data: any = null;
+      try {
+        data = JSON.parse(bodyText);
+      } catch {
+        data = null;
+      }
+      const b64 = data?.data?.[0]?.b64_json;
+      if (b64) {
+        return { buffer: Buffer.from(b64, "base64"), contentType: "image/png" };
+      }
+      const remoteUrl = data?.data?.[0]?.url;
+      if (remoteUrl) {
+        const imageRes = await fetch(remoteUrl);
+        if (imageRes.ok) {
+          return {
+            buffer: Buffer.from(await imageRes.arrayBuffer()),
+            contentType: imageRes.headers.get("content-type") || "image/png",
+          };
+        }
+        errors.push(`${model}: the returned image URL could not be fetched (HTTP ${imageRes.status})`);
+        continue;
+      }
+      errors.push(`${model} returned no image data`);
+    } catch (err: any) {
+      errors.push(`${model}: ${err?.message || err}`);
+      console.warn(`[IMAGE GEN LOG] Qwen-Image attempt failed: ${err?.message || err}`);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  throw new Error(errors.join(" | "));
+}
 
 // The frozen Gemini fallback chain lives in `src/lib/aiModels.ts` (single
 // source of truth, asserted by tests/ai-models.test.ts). AGENTS.md §1 — order
@@ -192,7 +460,7 @@ const geminiGenerateWithFallback = async (options: { model?: string, contents: a
         ...options,
         model: candidate,
         config: {
-          maxOutputTokens: 8192,
+          maxOutputTokens: GEMINI_DEFAULT_OUTPUT_TOKENS,
           ...(options.config || {})
         }
       };
@@ -226,7 +494,7 @@ const geminiStreamWithFallback = async (options: { model?: string, contents: any
         ...options,
         model: candidate,
         config: {
-          maxOutputTokens: 8192,
+          maxOutputTokens: GEMINI_DEFAULT_OUTPUT_TOKENS,
           ...(options.config || {})
         }
       };
@@ -581,7 +849,7 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
       // wait on a stuck upstream, which prevented the built-in Gemini fallback
       // from ever running. The timer is cleared once response headers arrive,
       // so legitimate long generations and streaming are unaffected.
-      timeout: 35000,
+      timeout: AI_ROUTE_PROVIDER_TIMEOUT_MS,
       maxRetries: 0,
     });
     return cachedAlibabaClient;
@@ -613,6 +881,13 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
     cachedNvidiaClient = new OpenAI({
       apiKey: nvidiaKey || "dummy",
       baseURL: NVIDIA_BASE_URL,
+      // Fail fast when the NVIDIA NIM gateway hangs. Without a timeout a
+      // single stuck Nemotron call blocked the whole serverless function
+      // until Vercel killed it (HTTP 504) and the Gemini fallback never ran.
+      // The per-request timeout is tightened further by the shared route
+      // budget in `src/lib/aiRouteBudget.ts`.
+      timeout: AI_ROUTE_PROVIDER_TIMEOUT_MS,
+      maxRetries: 0,
     });
     return cachedNvidiaClient;
   }
@@ -1056,6 +1331,29 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
     const { provider } = req.params;
     const { messages, model, temperature = 0.7, max_tokens, max_completion_tokens, stream } = req.body;
 
+    // One shared budget for the whole routing chain (requested provider →
+    // sibling engine → Gemini). Vercel kills the function after 60s and
+    // answers with a bare HTTP 504, so every hop below is capped by this
+    // budget and a final safety net always produces a response in time.
+    const budget = new AiRouteBudget();
+    let routeSettled = false;
+    const routeDeadlineTimer = setTimeout(() => {
+      if (routeSettled || res.headersSent) return;
+      routeSettled = true;
+      console.warn(
+        `[AI Routing] Route budget exhausted for ${provider} after ${budget.elapsedMs()}ms ` +
+          `(budget ${AI_ROUTE_BUDGET_MS}ms, Gemini reserve ${AI_ROUTE_GEMINI_RESERVE_MS}ms) — ` +
+          `answering 503 so the client can fall back.`,
+      );
+      res.status(503).json({
+        error: { message: `${provider} did not answer within the time budget. Please retry.` },
+      });
+    }, budget.remainingMs());
+    res.on("finish", () => {
+      routeSettled = true;
+      clearTimeout(routeDeadlineTimer);
+    });
+
     const executeGeminiFallback = async (reason: string) => {
       console.log(`[AI Routing] Seamlessly routing request from ${provider} to primary Gemini engine.`);
       try {
@@ -1129,7 +1427,13 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
           return res.end();
         }
 
-        const response = await geminiGenerateWithFallback(fallbackOptions);
+        // The Gemini fallback gets everything that is left in the shared
+        // budget, so it can never be starved by a slow upstream provider.
+        const response = await withDeadline(
+          geminiGenerateWithFallback(fallbackOptions),
+          budget.geminiTimeoutMs(),
+          "Gemini fallback exceeded the remaining route budget",
+        );
 
         const text = response.text || "";
         return res.json({
@@ -1213,6 +1517,19 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
         ? (finalModel || defaultModelFor(targetProvider))
         : defaultModelFor(targetProvider);
 
+      // Every attempt is capped by the shared route budget so the chain can
+      // never outlive the serverless function (which ends in a bare HTTP 504).
+      const attemptCapMs = targetProvider === provider
+        ? AI_ROUTE_PROVIDER_TIMEOUT_MS
+        : AI_ROUTE_ALTERNATIVE_TIMEOUT_MS;
+      const attemptTimeoutMs = budget.attemptTimeoutMs(attemptCapMs);
+      if (attemptTimeoutMs < AI_ROUTE_MIN_ATTEMPT_MS) {
+        throw Object.assign(
+          new Error(`Not enough route budget left to try ${targetProvider} (${attemptTimeoutMs}ms available).`),
+          { status: 504, code: "budget_exhausted" },
+        );
+      }
+
       const payload: any = {
         model: targetModel,
         messages,
@@ -1235,9 +1552,13 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
         payload.top_p = 0.95;
       }
 
+      // Per-request timeout + no SDK retries: a hung upstream must fail fast so
+      // the routing chain can still reach the Gemini fallback.
+      const requestOptions = { timeout: attemptTimeoutMs, maxRetries: 0 };
+
       if (stream) {
         payload.stream = true;
-        const completion = await targetClient.chat.completions.create(payload);
+        const completion = await targetClient.chat.completions.create(payload, requestOptions);
         res.setHeader("Content-Type", "text/event-stream");
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Connection", "keep-alive");
@@ -1253,7 +1574,7 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
         res.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }], done: true, final: fullText })}\n\n`);
         return res.end();
       } else {
-        const response = await targetClient.chat.completions.create(payload);
+        const response = await targetClient.chat.completions.create(payload, requestOptions);
         return res.json(response);
       }
     };
@@ -1273,20 +1594,23 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
 
       // Gateway-style failures (upstream 5xx, rate limits, DNS / connection
       // errors) are often isolated to one engine. If the first attempt failed
-      // fast enough that the serverless time budget can still fit another
-      // attempt, try one sibling engine before Gemini.
+      // fast enough that the shared route budget can still fit another
+      // attempt AND still leave the Gemini reserve intact, try one sibling
+      // engine before Gemini.
       const elapsedMs = Date.now() - upstreamStartedAt;
       const rawErrMsg = String(error.message || "");
       const isGatewayFailure = [500, 502, 503, 504, 522, 524, 429].includes(status) ||
         /timeout|eai_again|enotfound|econn(reset|refused|aborted)|fetch failed|connection error|connection closed|socket disconnected|network/i.test(rawErrMsg);
       const alternative = alternativeProviderFor(provider);
-      if (alternative && isGatewayFailure && elapsedMs < 20000) {
+      if (alternative && isGatewayFailure && budget.canTryAlternative(AI_ROUTE_ALTERNATIVE_MIN_MS)) {
         try {
           console.log(`[AI Routing] ${provider} unavailable (${status}) after ${elapsedMs}ms — trying alternative engine ${alternative} before Gemini.`);
           return await runUpstreamProvider(alternative);
         } catch (altError: any) {
           console.log(`[AI Routing] Alternative engine ${alternative} also unavailable (${altError.status || 500}) — routing to Gemini.`);
         }
+      } else if (alternative && isGatewayFailure) {
+        console.log(`[AI Routing] ${provider} unavailable (${status}) after ${elapsedMs}ms — no route budget left for ${alternative}, going straight to Gemini.`);
       }
 
       return await executeGeminiFallback(`${provider} API status ${status}`);
@@ -1593,32 +1917,56 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
         ? prompt.substring(0, 997) + "..."
         : prompt;
       
-      console.log(`[IMAGE GEN LOG] Proxying image request -> Model: Pollinations Turbo | Width: ${width} | Height: ${height} | Seed: ${seed} | Prompt: "${cleanPrompt.slice(0, 80)}"`);
+      console.log(`[IMAGE GEN LOG] Proxying image request -> Width: ${width} | Height: ${height} | Seed: ${seed} | Prompt: "${cleanPrompt.slice(0, 80)}"`);
 
-      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=${width}&height=${height}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
-      
-      const response = await fetch(pollinationsUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'image/png, image/jpeg',
-          'User-Agent': 'Mozilla/5.0'
+      // Provider chain — the browser only ever receives bytes we really got.
+      // Pollinations' free tier answers HTTP 402 (Payment Required) for the
+      // `turbo` model / `enhance=true` rewriter, so it is only attempted when
+      // an API key is configured; otherwise Gemini and Qwen-Image answer.
+      const attempts: Array<{ name: string; timeoutMs: number; run: () => Promise<{ buffer: Buffer; contentType: string } | null> }> = [
+        { name: "pollinations", timeoutMs: POLLINATIONS_TIMEOUT_MS, run: () => fetchPollinationsImage(cleanPrompt, Number(width), Number(height), String(seed)) },
+        { name: "gemini", timeoutMs: GEMINI_IMAGE_TIMEOUT_MS, run: () => fetchGeminiImage(cleanPrompt) },
+        { name: "qwen-nim", timeoutMs: QWEN_IMAGE_TIMEOUT_MS, run: () => fetchQwenNimImage(cleanPrompt, qwenSizeFor(Number(width), Number(height))) },
+      ];
+
+      // The whole chain is bounded: the serverless function is killed at 60s,
+      // and a chain that overran it would end in another bare HTTP 504.
+      const chainDeadline = Date.now() + IMAGE_CHAIN_BUDGET_MS;
+      const failures: string[] = [];
+      for (const attempt of attempts) {
+        const remainingMs = chainDeadline - Date.now();
+        if (remainingMs < 3000) {
+          failures.push(`${attempt.name}: skipped, the image chain ran out of time`);
+          continue;
         }
+        try {
+          const result = await withDeadline(
+            attempt.run(),
+            Math.min(attempt.timeoutMs, remainingMs),
+            `${attempt.name} exceeded its image-chain budget`,
+          );
+          if (!result) {
+            failures.push(`${attempt.name}: no image returned`);
+            continue;
+          }
+          console.log(`[IMAGE GEN LOG] Image proxy served by ${attempt.name} (${result.buffer.length} bytes)`);
+          res.setHeader('Content-Type', result.contentType || 'image/png');
+          res.setHeader('Cache-Control', 'public, max-age=31536000');
+          return res.send(result.buffer);
+        } catch (err: any) {
+          console.warn(`[IMAGE GEN LOG] Image proxy provider ${attempt.name} failed: ${err?.message || err}`);
+          failures.push(`${attempt.name}: ${err?.message || err}`);
+        }
+      }
+
+      // Never forward an upstream 402/404 to the browser: it only produced a
+      // broken <img> in the generated document. A 502 with a readable message
+      // lets the client's image-recovery pass try another provider.
+      console.error(`[IMAGE GEN LOG] Image proxy exhausted all providers: ${failures.join(' | ')}`);
+      return res.status(502).json({
+        error: "Every image provider is currently unavailable.",
+        providers: failures,
       });
-      
-      if (!response.ok) {
-        console.warn(`[IMAGE GEN LOG] Image proxy upstream status ${response.status}`);
-        return res.status(response.status).send(`Failed to fetch image`);
-      }
-      
-      const contentType = response.headers.get('content-type');
-      if (contentType) {
-        res.setHeader('Content-Type', contentType);
-      }
-      res.setHeader('Cache-Control', 'public, max-age=31536000');
-      
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      return res.send(buffer);
     } catch (error) {
       console.error("[IMAGE GEN LOG] Image proxy error:", error);
       return res.status(500).send("Image proxy failed");
@@ -1639,53 +1987,42 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
     console.log(`[IMAGE GEN LOG] Requested image generation -> Provider: ${provider} | Prompt: "${styledPrompt.slice(0, 80)}"`);
 
     if (provider === "gemini-imagen" || provider === "gemini") {
-      const apiKey = resolveGeminiKey();
-      if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
-        const modelsToTry = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
-        for (const m of modelsToTry) {
-          try {
-            console.log(`[IMAGE GEN LOG] Attempting primary image generation with Gemini (${m})...`);
-            const response = await geminiAi.models.generateContent({
-              model: m,
-              contents: { parts: [{ text: styledPrompt }] },
-              config: { imageConfig: { aspectRatio: "1:1" } }
-            });
-            let foundBase64 = null;
-            if (response.candidates && response.candidates[0]?.content?.parts) {
-              for (const part of response.candidates[0].content.parts) {
-                if (part.inlineData && part.inlineData.data) {
-                  foundBase64 = part.inlineData.data;
-                  break;
-                }
-              }
-            }
-            if (foundBase64) {
-              console.log(`[IMAGE GEN LOG] Image successfully generated with model: Gemini (${m})`);
-              return res.json({ url: `data:image/jpeg;base64,${foundBase64}`, imageUrl: `data:image/jpeg;base64,${foundBase64}`, provider: 'gemini', model: m });
-            }
-          } catch (err1: any) {
-            console.warn(`[IMAGE GEN LOG] Gemini generation failed with ${m}, trying next...`, err1.message);
-          }
+      // Bounded by the same image-chain budget as /api/image-proxy so three
+      // slow models can never push the function past the platform limit.
+      const imageDeadline = Date.now() + IMAGE_CHAIN_BUDGET_MS;
+      try {
+        const generated = await fetchGeminiImage(styledPrompt, imageDeadline);
+        if (generated) {
+          console.log("[IMAGE GEN LOG] Image successfully generated with Gemini");
+          const dataUrl = `data:${generated.contentType};base64,${generated.buffer.toString("base64")}`;
+          return res.json({ url: dataUrl, imageUrl: dataUrl, provider: "gemini", model: "Gemini-Image" });
         }
-        console.warn("[IMAGE GEN LOG] All Gemini models failed, falling back to Pollinations Turbo.");
+      } catch (err: any) {
+        console.warn("[IMAGE GEN LOG] All Gemini image models failed:", err?.message || err);
       }
+      console.warn("[IMAGE GEN LOG] Falling back to the server-side image proxy chain.");
 
       const seed = Math.floor(Math.random() * 100000);
-      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=1024&height=1024&nologo=true&model=turbo&enhance=true&seed=${seed}`;
-      console.log("[IMAGE GEN LOG] Returning direct fallback URL -> Model: Pollinations Turbo");
-      return res.json({ url: fallbackUrl, imageUrl: fallbackUrl, isFallback: true, provider: 'pollinations', model: 'Pollinations-Turbo' });
+      // Hand back the server-side proxy URL, never a raw Pollinations URL:
+      // the free tier answers HTTP 402 for the `turbo` model, and the proxy
+      // walks the whole provider chain before giving up.
+      const fallbackUrl = `/api/image-proxy?prompt=${encodeURIComponent(styledPrompt)}&width=1024&height=1024&seed=${seed}`;
+      console.log("[IMAGE GEN LOG] Returning server-side image proxy URL (provider chain fallback)");
+      return res.json({ url: fallbackUrl, imageUrl: fallbackUrl, isFallback: true, provider: 'image-proxy', model: 'Provider-Chain' });
     }
 
     if (provider === "perchance" || provider === "pollinations") {
       const seed = Math.floor(Math.random() * 100000);
       const model = provider === "perchance" ? "Perchance-Professional-🌟" : "flux";
-      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=1024&height=1024&nologo=true&model=${provider === "perchance" ? "turbo" : "flux"}&enhance=true&seed=${seed}`;
+      // Same reasoning as above — a raw Pollinations URL renders as a broken
+      // image on the free tier, so the request goes through the proxy.
+      const fallbackUrl = `/api/image-proxy?prompt=${encodeURIComponent(styledPrompt)}&width=1024&height=1024&seed=${seed}`;
       if (provider === "perchance") {
         console.log(`[IMAGE GEN LOG] Perchance AI Generator: "🌌 Image Generator Professional 🌟" (https://perchance.org/image-generator-professional) | Prompt: "${styledPrompt.slice(0, 60)}"`);
       } else {
-        console.log(`[IMAGE GEN LOG] Returning direct URL -> Provider: ${provider} | Model: ${model}`);
+        console.log(`[IMAGE GEN LOG] Returning server-side image proxy URL -> Provider: ${provider} | Model: ${model}`);
       }
-      return res.json({ url: fallbackUrl, provider, model });
+      return res.json({ url: fallbackUrl, imageUrl: fallbackUrl, provider, model });
     }
     
     return res.status(400).json({ error: "Unsupported provider" });
@@ -1698,8 +2035,7 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
   // with a plain "404 page not found" body). We therefore walk a list of
   // known-good slugs instead of failing the whole request on the first 404.
   // `NVIDIA_BASE_URL` can be overridden for tests/mocks.
-  const QWEN_MODELS = ["qwen/qwen-image-2512", "qwen/qwen-image"];
-  const NVIDIA_NIM_BASE_URL = (process.env.NVIDIA_BASE_URL || NVIDIA_BASE_URL).replace(/\/+$/, "");
+  const QWEN_MODELS = QWEN_IMAGE_MODELS;
   const QWEN_SIZE_MAP: Record<string, string> = {
     header: "1792x1024",
     inline: "1024x1024",
@@ -1868,7 +2204,7 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
           ],
           config: {
             responseMimeType: "application/json",
-            maxOutputTokens: 8192
+            maxOutputTokens: GEMINI_CONTENT_OUTPUT_TOKENS
           }
         });
         rawResponse = geminiResponse.text || "";
@@ -2095,11 +2431,19 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
             }
             console.log("Generating image with Gemini action:", styledPrompt);
             const modelsToTry = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
+            // The image models are slow; cap the whole walk so three slow
+            // models cannot push the function past the platform limit.
+            const imageDeadline = Date.now() + IMAGE_CHAIN_BUDGET_MS;
+            const imageClient = getGeminiImageClient();
             let foundBase64 = null;
             for (const m of modelsToTry) {
+              if (Date.now() >= imageDeadline) {
+                console.warn(`[IMAGE GEN LOG] Image budget exhausted — skipping ${m}.`);
+                break;
+              }
               try {
                 console.log(`[IMAGE GEN LOG] Trying model: ${m}`);
-                const response = await geminiAi.models.generateContent({
+                const response = await imageClient.models.generateContent({
                   model: m,
                   contents: {
                     parts: [{ text: styledPrompt }]
@@ -2128,10 +2472,14 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
             }
             throw new Error("No image data returned from Gemini models");
           } catch (err: any) {
-            console.warn("Gemini action image generation failed, returning direct Pollinations URL fallback...");
+            // Never hand out a raw image.pollinations.ai URL: the free tier
+            // answers HTTP 402 for the `turbo` model, so the browser would
+            // show a broken image. The server-side proxy walks the whole
+            // provider chain instead.
+            console.warn("Gemini action image generation failed, returning the image proxy fallback...");
             const seed = Math.floor(Math.random() * 100000);
-            const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=${width || 1024}&height=${height || 1024}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
-            return res.json({ imageUrl: fallbackUrl, isFallback: true, provider: 'pollinations', model: 'Pollinations-Turbo' });
+            const fallbackUrl = `/api/image-proxy?prompt=${encodeURIComponent(styledPrompt)}&width=${width || 1024}&height=${height || 1024}&seed=${seed}`;
+            return res.json({ imageUrl: fallbackUrl, isFallback: true, provider: 'image-proxy', model: 'Provider-Chain' });
           }
         }
 
@@ -2192,7 +2540,7 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
             model,
             contents: finalUserPrompt,
             config: {
-              maxOutputTokens: 8192,
+              maxOutputTokens: GEMINI_CONTENT_OUTPUT_TOKENS,
               systemInstruction: system,
               responseMimeType: "application/json",
               responseSchema: {
@@ -2217,7 +2565,7 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
             model,
             contents: user,
             config: {
-              maxOutputTokens: 8192,
+              maxOutputTokens: GEMINI_CONTENT_OUTPUT_TOKENS,
               systemInstruction: system,
               responseMimeType: "application/json",
               responseSchema: {
@@ -2240,7 +2588,7 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
             model,
             contents: user,
             config: {
-              maxOutputTokens: 8192,
+              maxOutputTokens: GEMINI_CONTENT_OUTPUT_TOKENS,
               systemInstruction: system,
               responseMimeType: "application/json",
               responseSchema: {

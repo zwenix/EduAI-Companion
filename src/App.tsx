@@ -1638,6 +1638,16 @@ export default function App() {
     setIsAlreadyInstalled(!!isStandalone);
 
     const handleBeforeInstallPrompt = (e: Event) => {
+      // The event is cancelled on purpose: the app shows its own install
+      // affordance (sidebar promo + Settings), so Chrome's mini-infobar is
+      // suppressed and `prompt()` is called from that button instead.
+      //
+      // Side effect: Chrome prints "Banner not shown:
+      // beforeinstallpromptevent.preventDefault() called. The page must call
+      // beforeinstallpromptevent.prompt() to show the banner." in the
+      // console. That is a DevTools notice about the DEFERRED pattern, not an
+      // error — `prompt()` is called in `installPWAApp()` on the user
+      // gesture, which is the only moment the browser allows it.
       e.preventDefault();
       setDeferredPrompt(e);
       setIsAppInstallable(true);

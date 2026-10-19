@@ -281,8 +281,18 @@ const repairTruncatedJson = (jsonStr: string): string => {
 /**
  * Robust regex-based recovery parser for when JSON responses are slightly truncated
  * or malformed (power-fallback mechanism).
+ *
+ * `options.quiet` suppresses the "reconstructed truncated JSON" warning. It is
+ * used for the PARTIAL parses of a streaming response: while the document is
+ * still being generated the JSON is incomplete by definition, so warning
+ * about it every few hundred milliseconds was pure noise. The final parse of
+ * a completed response stays loud, because there it really does mean the
+ * document was cut short.
  */
-export const safeJsonParse = (text: string | null | undefined): any => {
+export const safeJsonParse = (
+  text: string | null | undefined,
+  options: { quiet?: boolean } = {},
+): any => {
   if (!text) return {};
   let processedText = text.trim();
   
@@ -477,7 +487,9 @@ export const safeJsonParse = (text: string | null | undefined): any => {
     }
 
     if (fallbackObj.content || fallbackObj.extractedText || fallbackObj.feedback || fallbackObj.description) {
-      console.warn("safeJsonParse: Reconstructed truncated JSON response successfully via fallback regex extraction!");
+      if (!options.quiet) {
+        console.warn("safeJsonParse: Reconstructed truncated JSON response successfully via fallback regex extraction!");
+      }
       return cleanMarkdownInValue(fallbackObj);
     }
 
@@ -623,7 +635,10 @@ const _fetchActionSingleBackend = async (action: string, input: any, onProgress?
                 fullText += data.chunk;
                 const now = Date.now();
                 if (now - lastUpdateTime > 150) {
-                  const parsed = safeJsonParse(fullText);
+                  // Partial parse of a stream that is still being written —
+                  // the JSON is incomplete by definition, so the
+                  // "truncated response" warning would fire on every chunk.
+                  const parsed = safeJsonParse(fullText, { quiet: true });
                   if (parsed && Object.keys(parsed).length > 0) {
                     onProgress(parsed);
                     lastUpdateTime = now;

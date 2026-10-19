@@ -20,7 +20,12 @@ export default defineConfig(({mode}) => {
           // copies (hashed asset + /splash.mp4), and precaching them forced a
           // ~6 MB download on first load before the app became usable. The
           // video is fetched normally and cached by the browser instead.
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,ttf}'],
+          //
+          // Web fonts are excluded for the same reason (1.3 MB across ~67
+          // files): the browser only downloads the faces it actually renders,
+          // and the service worker caches them at runtime instead — see the
+          // `/fonts/` route in `src/sw.js`.
+          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
           maximumFileSizeToCacheInBytes: 10000000,
         },
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
