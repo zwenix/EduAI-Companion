@@ -33,6 +33,14 @@ import Anthropic from "@anthropic-ai/sdk";
 import axios from "axios";
 import { GoogleGenAI, Type } from "@google/genai";
 import mammoth from "mammoth";
+import {
+  GEMINI_IMAGE_MODELS,
+  buildGeminiImageConfig,
+  buildPollinationsImageUrl,
+  describeGeminiImageResponse,
+  extractGeminiInlineImage,
+  geminiAspectRatio,
+} from "./src/lib/imageProviders";
 
 async function tryExtractDocxText(base64Data: string): Promise<string> {
   try {
@@ -191,6 +199,10 @@ function getGeminiImageClient(): GoogleGenAI {
 // at Pollinations returned a broken image for every generated illustration.
 // The helpers below let the server walk a real chain and hand the browser
 // bytes it actually received.
+//
+// Request shapes (Gemini response modality, aspect ratio, Pollinations model)
+// live in `src/lib/imageProviders.ts` so they are unit-tested and shared with
+// the client-side engine instead of drifting between the two call sites.
 
 /** Qwen-Image slugs on NVIDIA NIM (the gateway retires slugs over time). */
 const QWEN_IMAGE_MODELS = ["qwen/qwen-image-2512", "qwen/qwen-image"];
@@ -198,26 +210,20 @@ const QWEN_IMAGE_MODELS = ["qwen/qwen-image-2512", "qwen/qwen-image"];
 /** NVIDIA NIM base URL (overridable for tests/mocks). */
 const NVIDIA_NIM_BASE_URL = (process.env.NVIDIA_BASE_URL || NVIDIA_BASE_URL).replace(/\/+$/, "");
 
-/** Gemini image models, newest first. */
-const GEMINI_IMAGE_MODELS = [
-  "gemini-3.1-flash-image",
-  "gemini-3.1-flash-lite-image",
-  "imagen-3.0-generate-002",
-];
-
 /** Per-provider timeouts (stay well inside the Vercel function budget). */
-const POLLINATIONS_TIMEOUT_MS = 15000;
-const GEMINI_IMAGE_TIMEOUT_MS = 18000;
-const QWEN_IMAGE_TIMEOUT_MS = 20000;
+const POLLINATIONS_TIMEOUT_MS = 12000;
+const GEMINI_IMAGE_TIMEOUT_MS = 16000;
+const QWEN_IMAGE_TIMEOUT_MS = 18000;
 
 /**
  * Total time the image provider chain may take.
  *
  * The Vercel function is killed at 60s, so the chain (Pollinations → Gemini →
- * Qwen-Image) must finish well before that — otherwise the request ends in
- * another bare 504 and the illustration stays broken.
+ * Qwen-Image → keyless Pollinations) must finish well before that — otherwise
+ * the request ends in another bare 504 and the illustration stays broken.
  */
-const IMAGE_CHAIN_BUDGET_MS = 45000;
+const IMAGE_CHAIN_BUDGET_MS = 48000;
+
 
 interface GeneratedImageBytes {
   buffer: Buffer;
@@ -243,27 +249,22 @@ function resolvePollinationsKey(): string {
 }
 
 /**
- * Fetch an image from Pollinations. Returns null when no API key is
- * configured (the provider cannot serve the request in that case).
+ * Fetch an image from Pollinations.
+ *
+ * With a key the authenticated gateway is used; without one the keyless
+ * legacy endpoint is used as a genuine last resort (throttled, watermarked,
+ * but it needs no account). Both requests ask for the free `flux` model —
+ * `turbo` + `enhance=true` is exactly what the free tier answers with 402.
  */
 async function fetchPollinationsImage(
   prompt: string,
   width: number,
   height: number,
   seed: string | number,
+  key: string = resolvePollinationsKey(),
 ): Promise<GeneratedImageBytes | null> {
-  const key = resolvePollinationsKey();
-  if (!key) {
-    console.warn(
-      "[IMAGE GEN LOG] Pollinations skipped — no POLLINATIONS_API_KEY configured (the free tier answers HTTP 402).",
-    );
-    return null;
-  }
-
-  const url =
-    `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
-    `?width=${width}&height=${height}&nologo=true&model=turbo&enhance=true` +
-    `&seed=${encodeURIComponent(String(seed))}&token=${encodeURIComponent(key)}`;
+  const url = buildPollinationsImageUrl({ prompt, width, height, seed, key });
+  const label = key ? "Pollinations (authenticated)" : "Pollinations (keyless)";
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), POLLINATIONS_TIMEOUT_MS);
@@ -271,19 +272,28 @@ async function fetchPollinationsImage(
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        Accept: "image/png, image/jpeg",
+        Accept: "image/png, image/jpeg, image/webp",
         "User-Agent": "Mozilla/5.0",
+        ...(key ? { Authorization: `Bearer ${key}` } : {}),
       },
       signal: controller.signal,
     });
     if (!response.ok) {
       const detail = await response.text().catch(() => "");
       throw new Error(
-        `Pollinations answered HTTP ${response.status}${detail ? ` — ${detail.slice(0, 120)}` : ""}`,
+        `${label} answered HTTP ${response.status}${detail ? ` — ${detail.slice(0, 120)}` : ""}`,
       );
     }
-    const contentType = response.headers.get("content-type") || "image/png";
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.startsWith("image/")) {
+      // A JSON error page (or the web UI) must never be handed to an <img>.
+      const detail = await response.text().catch(() => "");
+      throw new Error(
+        `${label} returned ${contentType || "no content type"} instead of an image${detail ? ` — ${detail.slice(0, 120)}` : ""}`,
+      );
+    }
     const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.length === 0) throw new Error(`${label} returned an empty image`);
     return { buffer, contentType };
   } finally {
     clearTimeout(timer);
@@ -291,13 +301,19 @@ async function fetchPollinationsImage(
 }
 
 /**
- * Generate an image with the Google Gemini / Imagen image models.
+ * Generate an image with the Google Gemini native image models.
+ *
+ * The request MUST ask for the IMAGE response modality (see
+ * `buildGeminiImageConfig`): the default is text, and a text-only answer has
+ * no `inlineData`, which is why every call used to report "no image data".
  *
  * `deadlineAt` (epoch ms) stops the model walk early so three slow models
  * can never add up to more than the caller's budget.
  */
 async function fetchGeminiImage(
   prompt: string,
+  width: number = 1024,
+  height: number = 1024,
   deadlineAt?: number,
 ): Promise<GeneratedImageBytes | null> {
   const apiKey = resolveGeminiKey();
@@ -317,18 +333,18 @@ async function fetchGeminiImage(
       const response = await imageClient.models.generateContent({
         model,
         contents: { parts: [{ text: prompt }] },
-        config: { imageConfig: { aspectRatio: "1:1" } },
+        config: buildGeminiImageConfig(width, height),
       });
-      const parts = response.candidates?.[0]?.content?.parts || [];
-      for (const part of parts) {
-        if (part.inlineData?.data) {
-          return {
-            buffer: Buffer.from(part.inlineData.data, "base64"),
-            contentType: part.inlineData.mimeType || "image/jpeg",
-          };
-        }
+      const image = extractGeminiInlineImage(response);
+      if (image) {
+        return {
+          buffer: Buffer.from(image.base64, "base64"),
+          contentType: image.mimeType || "image/png",
+        };
       }
-      errors.push(`${model} returned no inline image data`);
+      const reason = describeGeminiImageResponse(response);
+      errors.push(`${model}: ${reason}`);
+      console.warn(`[IMAGE GEN LOG] Gemini image model ${model} returned no image — ${reason}`);
     } catch (err: any) {
       errors.push(`${model}: ${err?.message || err}`);
       console.warn(`[IMAGE GEN LOG] Gemini image model ${model} failed: ${err?.message || err}`);
@@ -1920,13 +1936,24 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
       console.log(`[IMAGE GEN LOG] Proxying image request -> Width: ${width} | Height: ${height} | Seed: ${seed} | Prompt: "${cleanPrompt.slice(0, 80)}"`);
 
       // Provider chain — the browser only ever receives bytes we really got.
-      // Pollinations' free tier answers HTTP 402 (Payment Required) for the
-      // `turbo` model / `enhance=true` rewriter, so it is only attempted when
-      // an API key is configured; otherwise Gemini and Qwen-Image answer.
+      // Order: authenticated Pollinations (when configured) → Gemini image →
+      // Qwen-Image on NVIDIA NIM → keyless Pollinations `flux`.
+      //
+      // Pollinations' free tier answers HTTP 402 for `turbo` / `enhance=true`,
+      // so the keyless attempt asks for the free `flux` model instead. It is
+      // throttled (about one image per 15 s per IP) and therefore last, but it
+      // keeps illustrations working on deployments with no image-provider key
+      // at all — which is exactly when the chain used to return nothing.
+      const pollinationsKey = resolvePollinationsKey();
+      const widthPx = Number(width) || 800;
+      const heightPx = Number(height) || 600;
       const attempts: Array<{ name: string; timeoutMs: number; run: () => Promise<{ buffer: Buffer; contentType: string } | null> }> = [
-        { name: "pollinations", timeoutMs: POLLINATIONS_TIMEOUT_MS, run: () => fetchPollinationsImage(cleanPrompt, Number(width), Number(height), String(seed)) },
-        { name: "gemini", timeoutMs: GEMINI_IMAGE_TIMEOUT_MS, run: () => fetchGeminiImage(cleanPrompt) },
-        { name: "qwen-nim", timeoutMs: QWEN_IMAGE_TIMEOUT_MS, run: () => fetchQwenNimImage(cleanPrompt, qwenSizeFor(Number(width), Number(height))) },
+        ...(pollinationsKey
+          ? [{ name: "pollinations", timeoutMs: POLLINATIONS_TIMEOUT_MS, run: () => fetchPollinationsImage(cleanPrompt, widthPx, heightPx, String(seed), pollinationsKey) }]
+          : []),
+        { name: "gemini", timeoutMs: GEMINI_IMAGE_TIMEOUT_MS, run: () => fetchGeminiImage(cleanPrompt, widthPx, heightPx) },
+        { name: "qwen-nim", timeoutMs: QWEN_IMAGE_TIMEOUT_MS, run: () => fetchQwenNimImage(cleanPrompt, qwenSizeFor(widthPx, heightPx)) },
+        { name: "pollinations-free", timeoutMs: POLLINATIONS_TIMEOUT_MS, run: () => fetchPollinationsImage(cleanPrompt, widthPx, heightPx, String(seed), "") },
       ];
 
       // The whole chain is bounded: the serverless function is killed at 60s,
@@ -1991,7 +2018,7 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
       // slow models can never push the function past the platform limit.
       const imageDeadline = Date.now() + IMAGE_CHAIN_BUDGET_MS;
       try {
-        const generated = await fetchGeminiImage(styledPrompt, imageDeadline);
+        const generated = await fetchGeminiImage(styledPrompt, 1024, 1024, imageDeadline);
         if (generated) {
           console.log("[IMAGE GEN LOG] Image successfully generated with Gemini");
           const dataUrl = `data:${generated.contentType};base64,${generated.buffer.toString("base64")}`;
@@ -2430,47 +2457,48 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
               throw new Error("GEMINI_API_KEY is not configured.");
             }
             console.log("Generating image with Gemini action:", styledPrompt);
-            const modelsToTry = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
             // The image models are slow; cap the whole walk so three slow
             // models cannot push the function past the platform limit.
             const imageDeadline = Date.now() + IMAGE_CHAIN_BUDGET_MS;
             const imageClient = getGeminiImageClient();
-            let foundBase64 = null;
-            for (const m of modelsToTry) {
+            const widthPx = Number(width) || 1024;
+            const heightPx = Number(height) || 1024;
+            const imageConfig = buildGeminiImageConfig(widthPx, heightPx);
+            const failures: string[] = [];
+            for (const m of GEMINI_IMAGE_MODELS) {
               if (Date.now() >= imageDeadline) {
                 console.warn(`[IMAGE GEN LOG] Image budget exhausted — skipping ${m}.`);
+                failures.push(`${m}: skipped, the image budget ran out`);
                 break;
               }
               try {
-                console.log(`[IMAGE GEN LOG] Trying model: ${m}`);
+                console.log(`[IMAGE GEN LOG] Trying model: ${m} (aspect ${imageConfig.imageConfig.aspectRatio})`);
                 const response = await imageClient.models.generateContent({
                   model: m,
                   contents: {
                     parts: [{ text: styledPrompt }]
                   },
-                  config: {
-                    imageConfig: {
-                      aspectRatio: (width || 1024) > (height || 1024) ? "16:9" : (width || 1024) < (height || 1024) ? "9:16" : "1:1"
-                    }
-                  }
+                  config: imageConfig,
                 });
-                if (response.candidates && response.candidates[0]?.content?.parts) {
-                  for (const part of response.candidates[0].content.parts) {
-                    if (part.inlineData && part.inlineData.data) {
-                      foundBase64 = part.inlineData.data;
-                      break;
-                    }
-                  }
-                }
-                if (foundBase64) {
+                const image = extractGeminiInlineImage(response);
+                if (image) {
                   console.log(`[IMAGE GEN LOG] Success with model: ${m}`);
-                  return res.json({ imageUrl: `data:image/jpeg;base64,${foundBase64}`, provider: 'gemini', model: m });
+                  return res.json({
+                    imageUrl: `data:${image.mimeType};base64,${image.base64}`,
+                    provider: 'gemini',
+                    model: m,
+                    aspectRatio: geminiAspectRatio(widthPx, heightPx),
+                  });
                 }
+                const reason = describeGeminiImageResponse(response);
+                failures.push(`${m}: ${reason}`);
+                console.warn(`[IMAGE GEN LOG] Model ${m} returned no image — ${reason}`);
               } catch (modelErr: any) {
+                failures.push(`${m}: ${modelErr?.message || modelErr}`);
                 console.warn(`[IMAGE GEN LOG] Model ${m} failed:`, modelErr.message);
               }
             }
-            throw new Error("No image data returned from Gemini models");
+            throw new Error(failures.join(" | ") || "No image data returned from Gemini models");
           } catch (err: any) {
             // Never hand out a raw image.pollinations.ai URL: the free tier
             // answers HTTP 402 for the `turbo` model, so the browser would

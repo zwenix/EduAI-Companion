@@ -65,9 +65,11 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   const [imageProvider, setImageProvider] = useState<ImageProvider>(() => {
-    // Perchance is the PRIMARY image generator on every platform. Its first
-    // fallback is Pollinations AI; Gemini/Imagen remains the secondary choice.
-    const fallback: ImageProvider = 'perchance';
+    // Qwen-Image (NVIDIA NIM) is the default image generator: it is the only
+    // provider that can serve an image with the key already shipped in the
+    // bundle. Gemini/Imagen and Pollinations remain selectable; Perchance is
+    // kept as an experimental last resort (see `src/lib/imageGeneration.ts`).
+    const fallback: ImageProvider = 'qwen';
     try {
       const saved = localStorage.getItem('eduai_image_provider') as any;
       return saved && VALID_IMAGE.includes(saved) ? saved : fallback;

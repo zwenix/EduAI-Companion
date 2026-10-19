@@ -151,12 +151,12 @@ export default function AiImage({
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           AI Model: {
             provider === 'perchance'
-              ? 'Perchance AI Text-to-Image (Primary)'
+              ? 'Perchance AI (Experimental)'
               : provider === 'qwen'
                 ? 'Qwen-Image · NVIDIA NIM (Premium SA)'
                 : provider === 'gemini'
-                ? 'Gemini Imagen-3'
-                : 'Pollinations AI (Tertiary / Fallback)'
+                ? 'Gemini Image (Nano Banana)'
+                : 'Pollinations AI (flux · fallback)'
           }
         </div>
       )}

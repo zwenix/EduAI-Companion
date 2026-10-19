@@ -103,12 +103,19 @@ export default function IllustrationLibrary({ isDarkMode }: { isDarkMode: boolea
 
       // Generate enhanced educational visual style compliant with SA palette
       const enhancedPrompt = `${cleanPrompt}, World-class masterpiece work of art, crisp render, sharp focus, charmingly aesthetic design, 4k, soft lighting, masterpiece emoji-style figurine 3D render, 3D Disney Character render, pure white background, natural beauty`;
-      // Store the SERVER-SIDE image-proxy URL, not a raw
-      // image.pollinations.ai link: the free tier answers HTTP 402 for the
-      // `turbo`/`flux` models, so a direct link renders as a broken image.
-      // The proxy walks the provider chain (Pollinations with a key → Gemini
-      // → Qwen-Image) and the absolute URL keeps working inside the APK.
-      const generatedUrl = `https://eduai-companion.vercel.app/api/image-proxy?prompt=${encodeURIComponent(enhancedPrompt)}&width=800&height=600&seed=${seed}`;
+
+      // Actually generate the image through the configured provider chain.
+      // The previous code only wrote a proxy URL to Firestore — the library
+      // reported success without ever asking a provider for pixels, so entries
+      // stayed blank until something else rendered them.
+      const { generateImageWithFallback } = await import('../lib/imageGeneration.ts');
+      const result = await generateImageWithFallback({
+        prompt: enhancedPrompt,
+        width: 800,
+        height: 600,
+        seed,
+      });
+      const generatedUrl = result.url;
 
       const docRef = doc(db, 'illustrations', cleanId);
       const user = auth.currentUser;
@@ -128,11 +135,11 @@ export default function IllustrationLibrary({ isDarkMode }: { isDarkMode: boolea
       await setDoc(docRef, payload);
       
       setNewPrompt('');
-      setStatusMessage('Sucessfully generated and stored in Illustration Library!');
-      setTimeout(() => setStatusMessage(''), 3000);
+      setStatusMessage(`Generated with ${result.provider} and stored in the Illustration Library.`);
+      setTimeout(() => setStatusMessage(''), 4000);
     } catch (error) {
-      console.error(error);
-      setStatusMessage('Failed to generate. Please verify network.');
+      console.error('Illustration Library generation failed:', error);
+      setStatusMessage('Failed to generate. Please verify network and the image provider keys.');
     } finally {
       setIsGenerating(false);
     }

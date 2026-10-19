@@ -140,10 +140,10 @@ The rendered HTML/PDF/DOCX carries one host-owned compliance banner with the app
 
 ## Image Generation
 This package may contain images from:
-- Perchance AI (Primary — Professional Educational)
-- Qwen-Image via NVIDIA NIM (Premium SA-context — qwen/qwen-image)
-- Gemini/Imagen (Google — Secondary)
-- Pollinations AI (Fallback — Turbo model)
+- Qwen-Image via NVIDIA NIM (Default — SA-context, qwen/qwen-image)
+- Gemini image (Google — Secondary, gemini-3.1-flash-image)
+- Pollinations AI (Fallback — free flux model)
+- Perchance AI (Experimental — tried last)
 
 All images: Disney 3D Animation Character & 3D Icon style, 300 DPI, SA context
 

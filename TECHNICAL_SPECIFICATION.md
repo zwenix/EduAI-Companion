@@ -434,7 +434,8 @@ Content is generated as **HTML styled with Tailwind classes**, not Markdown. Tru
 
 `src/lib/imageGeneration.ts` implements a fixed fallback graph:
 
-- **Priority**: Perchance (keyless, default) → Qwen-Image via NVIDIA NIM → Gemini image models (`gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`, `imagen-3.0-generate-002`) → Pollinations (always returns a URL).
+- **Priority**: Qwen-Image via NVIDIA NIM (default) → Gemini image models (`gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`, `gemini-3-pro-image`) → Pollinations (`flux`; keyed when configured, keyless otherwise) → Perchance (experimental iframe bridge, last).
+- **Gemini request shape**: `generateContent` with `responseModalities: ['IMAGE']` plus `imageConfig.aspectRatio`. Without the modality the model answers with text and no inline image. The retired `imagen-*` models are never called (the family was shut down on the Gemini API on 17 August 2026). Request helpers live in `src/lib/imageProviders.ts`.
 - Placement-aware sizes (`header`, `inline`, `full_width`, `sidebar`) are defined in `QWEN_CONFIG`; Qwen generation runs with concurrency 2 and a 2-second pause between batches.
 - `enhancePromptForSA()` injects rainbow-nation diversity, SA landmarks/flora, flag accents and a 300 DPI, no-text, no-watermark requirement.
 - `/api/image-proxy` exists so `<img>` tags can render provider URLs that would otherwise be blocked client-side.

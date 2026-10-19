@@ -80,6 +80,29 @@ class IllustrationCache {
   }
 }
 
+/**
+ * Normalise a cached illustration URL for the current runtime.
+ *
+ * Illustrations are cached in a shared Firestore collection, and the web app
+ * stores an absolute backend URL so the APK can open the same entry. That
+ * absolute host can be an old deployment (or an old preview URL) that still
+ * runs the pre-fix image proxy, which is why a cached illustration could keep
+ * rendering as a broken image even after the app was fixed. Resolve any
+ * `/api/image-proxy` entry against THIS deployment instead.
+ */
+const resolveCachedIllustrationUrl = (url: string): string => {
+  if (!url) return url;
+  try {
+    const base = typeof window !== 'undefined' ? window.location.href : undefined;
+    const parsed = new URL(url, base);
+    if (parsed.pathname !== '/api/image-proxy') return url;
+    const path = `${parsed.pathname}${parsed.search}`;
+    return isNativeApp() ? `${NATIVE_BACKEND_BASE.replace(/\/$/, '')}${path}` : path;
+  } catch {
+    return url;
+  }
+};
+
 export function replaceImagePlaceholders(html: any, allowImages: boolean = true): string {
   if (!html || typeof html !== 'string') return '';
 
@@ -106,11 +129,12 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
 
     // Check Firestore reactive cache
     const cachedUrl = IllustrationCache.get(cleanPrompt);
-    
+
     if (cachedUrl) {
+      const resolvedUrl = resolveCachedIllustrationUrl(cachedUrl);
       return `
 <div class="my-6 overflow-hidden rounded-[2rem] border-2 border-solid border-slate-200 p-2 bg-white hover:bg-slate-50 transition-all duration-300 max-w-full print:break-inside-avoid print:border-none print:p-0 print:m-0 print:shadow-none shadow-sm">
-  <img src="${cachedUrl}"
+  <img src="${resolvedUrl}"
        alt="${cleanPrompt}"
        title="${cleanPrompt}"
        class="w-full object-cover rounded-[1.8rem] aspect-[4/3] max-h-[360px] border border-slate-100 shadow-inner print:rounded-none print:shadow-none"
@@ -133,19 +157,20 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
       `;
     }
 
-    // Fallback/First-generation flow. Perchance is the primary generator on
-    // every platform (web and native), so the badge reflects that everywhere.
-    const defaultProvider = 'perchance';
+    // Fallback/First-generation flow. Mirrors IMAGE_PROVIDER_FALLBACKS in
+    // `imageGeneration.ts` — the badge must not promise a chain the running
+    // code no longer walks.
+    const defaultProvider = 'qwen';
     const provider = typeof window !== 'undefined'
       ? window.localStorage.getItem('eduai_image_provider') || defaultProvider
       : defaultProvider;
     const providerChain = provider === 'gemini-imagen' || provider === 'gemini'
-      ? 'Google Imagen (Secondary) → Qwen (NVIDIA NIM) → Pollinations → Perchance'
+      ? 'Gemini image → Qwen (NVIDIA NIM) → Pollinations → Perchance'
       : provider === 'pollinations'
-        ? 'Pollinations (Tertiary) → Perchance → Qwen → Google Imagen'
-        : provider === 'qwen' || provider === 'qwen-image' || provider === 'nvidia-qwen'
-          ? 'Qwen-Image NVIDIA NIM (Premium SA) → Perchance → Pollinations → Google Imagen'
-          : 'Perchance (Primary) → Qwen (NVIDIA NIM) → Pollinations → Google Imagen';
+        ? 'Pollinations → Qwen (NVIDIA NIM) → Gemini image → Perchance'
+        : provider === 'perchance'
+          ? 'Perchance (experimental) → Qwen → Gemini image → Pollinations'
+          : 'Qwen-Image NVIDIA NIM → Gemini image → Pollinations → Perchance';
 
     const isLogoOrStamp = /logo|stamp|seal|crest|badge|signature|certificate|emblem/i.test(cleanPrompt);
     const styleDirective = `, ${EDUCATIONAL_IMAGE_STYLE}, educational, high quality, vibrant colours`;

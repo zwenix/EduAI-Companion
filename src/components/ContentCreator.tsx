@@ -161,8 +161,16 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
            const { generateImageWithFallback } = await import('../lib/imageGeneration.ts');
            const result = await generateImageWithFallback({ prompt, width: 800, height: 600, seed });
            iframeRef.current?.contentWindow?.postMessage({ type: 'EDUAI_IMAGE_RESULT', id, url: result.url }, '*');
-         } catch (error) {
+         } catch (error: any) {
            console.error('Failed to hydrate iframe image:', error);
+           // Tell the preview to replace the broken <img> with a readable
+           // description card instead of leaving a broken-image icon in the
+           // finished document.
+           iframeRef.current?.contentWindow?.postMessage({
+             type: 'EDUAI_IMAGE_RESULT',
+             id,
+             error: error?.message || 'Image generation failed'
+           }, '*');
          }
       }
     };
@@ -301,6 +309,28 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
     // the backend proxy on web). We only ask the host app to regenerate through
     // the configured provider chain if that direct URL actually fails to load,
     // so a slow/blocked provider can never leave an empty placeholder behind.
+    // Last resort when every provider fails: swap the broken <img> for a
+    // readable description card. The document stays printable and the teacher
+    // can still read what the illustration was meant to show.
+    const showUnavailable = (img) => {
+      if (img.dataset.unavailable === 'true') return;
+      img.dataset.unavailable = 'true';
+      const prompt = img.dataset.eduaiPrompt
+        ? decodeURIComponent(img.dataset.eduaiPrompt)
+        : (img.getAttribute('alt') || '');
+      const card = document.createElement('div');
+      card.className = 'my-6 p-4 border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50 text-slate-700 text-xs print:break-inside-avoid';
+      const label = document.createElement('strong');
+      label.className = 'block mb-1 font-bold uppercase tracking-wider';
+      label.textContent = 'Illustration temporarily unavailable';
+      const text = document.createElement('p');
+      text.className = 'italic leading-relaxed';
+      text.textContent = prompt;
+      card.appendChild(label);
+      card.appendChild(text);
+      img.replaceWith(card);
+    };
+
     const requestFromHost = (img) => {
       if (img.dataset.hydrated === "true") return;
       img.dataset.hydrated = "true";
@@ -311,11 +341,24 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
       img.dataset.reqId = reqId;
       const listener = (e) => {
         if (e.data && e.data.type === 'EDUAI_IMAGE_RESULT' && e.data.id === reqId) {
-          if (e.data.url) img.src = e.data.url;
           window.removeEventListener('message', listener);
+          if (e.data.url) {
+            img.addEventListener('error', () => showUnavailable(img), { once: true });
+            img.src = e.data.url;
+          } else if (e.data.error) {
+            showUnavailable(img);
+          }
         }
       };
       window.addEventListener('message', listener);
+      // A provider chain can take a while; never leave the broken icon up
+      // forever if the host cannot answer at all.
+      setTimeout(() => {
+        if (img.dataset.reqId === reqId && img.dataset.unavailable !== 'true') {
+          window.removeEventListener('message', listener);
+          if (!img.complete || img.naturalWidth === 0) showUnavailable(img);
+        }
+      }, 90000);
       window.parent.postMessage({ type: 'EDUAI_GENERATE_IMAGE', prompt, seed, id: reqId }, '*');
     };
 
