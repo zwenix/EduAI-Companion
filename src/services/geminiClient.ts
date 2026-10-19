@@ -13,6 +13,12 @@ import { EduAIPromptEngine } from '../lib/prompt-engine';
 import { GEMINI_CONTENT_OUTPUT_TOKENS } from '../lib/aiOutputBudget';
 import { isNativeApp } from '../lib/platform';
 import { buildAdminLabPrompts, buildVisualLabPrompts } from '../lib/prompts/lab-prompts';
+import {
+  GEMINI_IMAGE_MODELS,
+  buildGeminiImageConfig,
+  describeGeminiImageResponse,
+  extractGeminiInlineImage,
+} from '../lib/imageProviders';
 
 const GEMINI_MODELS = [
   'gemini-3.8-flash',
@@ -245,21 +251,22 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
       if (styledPrompt && (!lowerPrompt.includes('disney 3d animation character') || !lowerPrompt.includes('3d cute icon'))) {
         styledPrompt += styleSuffix;
       }
-      const aspectRatio = (width || 1024) > (height || 1024) ? '16:9' : (width || 1024) < (height || 1024) ? '9:16' : '1:1';
-      const imageModels = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
-      for (const m of imageModels) {
+      // `buildGeminiImageConfig` sets responseModalities: ['IMAGE']. Without
+      // it the model answers with text only and no inlineData part — the
+      // client then reported "no image" for every model.
+      const imageConfig = buildGeminiImageConfig(Number(width) || 1024, Number(height) || 1024);
+      for (const m of GEMINI_IMAGE_MODELS) {
         try {
           const response = await getClient().models.generateContent({
             model: m,
             contents: { parts: [{ text: styledPrompt }] },
-            config: { imageConfig: { aspectRatio: aspectRatio as any } },
+            config: imageConfig,
           });
-          const parts = response.candidates?.[0]?.content?.parts || [];
-          for (const part of parts) {
-            if (part.inlineData?.data) {
-              return { imageUrl: `data:image/jpeg;base64,${part.inlineData.data}`, provider: 'gemini', model: m };
-            }
+          const image = extractGeminiInlineImage(response);
+          if (image) {
+            return { imageUrl: `data:${image.mimeType};base64,${image.base64}`, provider: 'gemini', model: m };
           }
+          console.warn(`[client-gemini] image model ${m} returned no image: ${describeGeminiImageResponse(response)}`);
         } catch (e: any) {
           console.warn(`[client-gemini] image model ${m} failed:`, e?.message);
         }

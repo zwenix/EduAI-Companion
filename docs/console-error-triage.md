@@ -97,12 +97,20 @@ rendered as a broken image.
 **Fix.** The proxy is now a real provider chain and only ever returns bytes
 it actually received:
 
-1. **Pollinations** — attempted only when `POLLINATIONS_API_KEY` is set
-   (without a key it is skipped instead of burning a request on a guaranteed
-   402).
-2. **Google Gemini / Imagen** (`gemini-3.1-flash-image`,
-   `gemini-3.1-flash-lite-image`, `imagen-3.0-generate-002`).
+1. **Pollinations** — the authenticated gateway when `POLLINATIONS_API_KEY`
+   is set, otherwise the keyless legacy endpoint. Both ask for the free
+   `flux` model; `turbo` + `enhance=true` is what answers 402.
+2. **Gemini native image models** (`gemini-3.1-flash-image`,
+   `gemini-3.1-flash-lite-image`, `gemini-3-pro-image`) called through
+   `generateContent` with `responseModalities: ['IMAGE']` and the matching
+   `imageConfig.aspectRatio`. Without the IMAGE modality the model replies
+   with text only and no inline image — the reason every attempt used to
+   report "No image data returned from Gemini models". The `imagen-*` family
+   is never called: it was shut down on the Gemini API on 17 August 2026.
 3. **Qwen-Image on NVIDIA NIM** (`qwen/qwen-image-2512`, `qwen/qwen-image`).
+4. **Keyless Pollinations `flux`** — throttled (about one image per 15 s per
+   IP) and therefore last, but it keeps illustrations working on deployments
+   with no image-provider key at all.
 
 If every provider fails the proxy answers **502** with a readable message —
 never a 402 — so the client's image-recovery pass can try another route.

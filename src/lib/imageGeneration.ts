@@ -2,17 +2,17 @@
  * EduAI Companion - Multi-Provider Image Generation System
  *
  * Provider priority (identical on web AND inside the Android APK):
- *   1. Perchance AI             (primary → Qwen → Pollinations → Gemini)
- *   2. Qwen-Image (NVIDIA NIM)  (premium SA-context → Pollinations)
- *   3. Google Imagen / Gemini   (secondary → Pollinations AI)
- *   4. Pollinations AI          (tertiary fallback)
+ *   1. Qwen-Image (NVIDIA NIM)  (default → Gemini → Pollinations)
+ *   2. Google Gemini image      (→ Qwen → Pollinations)
+ *   3. Pollinations AI          (keyed, else keyless `flux`)
+ *   4. Perchance AI             (experimental iframe bridge, last resort)
  *
- * The default starts with Perchance. A deliberate provider choice in Settings
- * can make Qwen, Gemini, or Pollinations the first attempt, but the provider-specific
- * fallback graph remains fixed and every provider stays available.
- *
- * NEW: Qwen-Image via NVIDIA NIM (model qwen/qwen-image) provides SA-context
- * enhanced educational visuals with superior text rendering and cultural accuracy.
+ * Qwen-Image via NVIDIA NIM (model qwen/qwen-image) is the default because it
+ * is the only image provider that serves requests with the key already shipped
+ * in the bundle — it works on a fresh deployment without extra configuration.
+ * A deliberate provider choice in Settings can make Gemini or Pollinations the
+ * first attempt; Perchance stays available but is always tried last, because
+ * its iframe bridge cannot actually complete a generation.
  */
 
 import { generatePerchanceImageClient } from '../services/perchanceService';
@@ -46,17 +46,26 @@ export interface ImageGenerationOptions {
 export type ImageProviderId = 'perchance' | 'gemini' | 'pollinations' | 'qwen';
 
 export const IMAGE_PROVIDER_PRIORITY: readonly ImageProviderId[] = [
-  'perchance',
   'qwen',
   'gemini',
-  'pollinations'
+  'pollinations',
+  'perchance'
 ];
 
+/**
+ * Fallback graph.
+ *
+ * `perchance` is deliberately last everywhere: its "provider" is an iframe
+ * bridge that posts a message to perchance.org and waits for a reply. The
+ * third-party generator never answers that message, so every attempt used to
+ * stall the chain for 15 s before the real providers were even tried. It is
+ * kept (short timeout) only for deployments that explicitly select it.
+ */
 export const IMAGE_PROVIDER_FALLBACKS: Record<ImageProviderId, readonly ImageProviderId[]> = {
-  perchance: ['qwen', 'pollinations', 'gemini'],
-  qwen: ['pollinations', 'gemini', 'perchance'],
-  gemini: ['pollinations', 'perchance', 'qwen'],
-  pollinations: ['perchance', 'qwen', 'gemini']
+  perchance: ['qwen', 'gemini', 'pollinations'],
+  qwen: ['gemini', 'pollinations', 'perchance'],
+  gemini: ['qwen', 'pollinations', 'perchance'],
+  pollinations: ['qwen', 'gemini', 'perchance']
 };
 
 export const getImageProviderOrder = (preferred: ImageProviderId): ImageProviderId[] => [
@@ -202,8 +211,11 @@ export const generateImagePerchance = async (
   try {
     if (typeof window !== 'undefined') {
       try {
+        // Short timeout: the iframe bridge has no documented reply channel, so
+        // a long wait only delays Qwen/Gemini/Pollinations. See the provider
+        // priority comment above.
         const clientUrl = await generatePerchanceImageClient(
-          prompt, width, height, seed, isNativeApp() ? 6000 : 15000
+          prompt, width, height, seed, isNativeApp() ? 4000 : 6000
         );
         if (clientUrl) return clientUrl;
       } catch (clientErr) {
@@ -236,7 +248,7 @@ export const generateImagePollinations = async (
         if (settled) return;
         settled = true;
         reject(new Error('Image request timed out'));
-      }, 45000);
+      }, 55000);
 
       img.onload = () => {
         if (settled) return;
@@ -402,6 +414,9 @@ export async function generateAllQwenImages(
   return results;
 }
 
+/** Set once the Perchance iframe bridge fails; see the skip in the chain. */
+let perchanceBridgeUnavailable = false;
+
 export const generateImageWithFallback = async (
   options: ImageGenerationOptions
 ): Promise<ImageGenerationResult> => {
@@ -419,15 +434,18 @@ export const generateImageWithFallback = async (
   }
 
   const native = isNativeApp();
+  // Default to Qwen-Image (NVIDIA NIM) — it is the only provider that serves
+  // images with the key shipped in the bundle, so it is the one that works on
+  // a fresh deployment with no extra environment variables.
   const preferredProvider = typeof window !== 'undefined'
-    ? window.localStorage.getItem('eduai_image_provider') || 'perchance'
-    : 'perchance';
+    ? window.localStorage.getItem('eduai_image_provider') || 'qwen'
+    : 'qwen';
 
   const normalise = (p: string): ImageProviderId => {
     if (p === 'gemini-imagen' || p === 'gemini') return 'gemini';
     if (p === 'pollinations') return 'pollinations';
-    if (p === 'qwen' || p === 'qwen-image' || p === 'nvidia-qwen') return 'qwen';
-    return 'perchance';
+    if (p === 'perchance') return 'perchance';
+    return 'qwen';
   };
 
   const preferred = normalise(preferredProvider);
@@ -437,12 +455,19 @@ export const generateImageWithFallback = async (
 
   for (const prov of order) {
     if (prov === 'perchance') {
+      // Once the iframe bridge fails in this session it cannot start working
+      // again; retrying it for every illustration only adds a 6 s stall.
+      if (perchanceBridgeUnavailable) {
+        console.warn('[Image Gen] Skipping Perchance — its iframe bridge already failed this session.');
+        continue;
+      }
       try {
         const role = preferred === 'perchance' ? 'Primary' : 'Fallback';
         console.log(`[Image Gen] Attempting Perchance AI (${role})...`);
         const imageUrl = await generateImagePerchance(styledPrompt, width, height, seed);
         return { url: imageUrl, provider: 'perchance', prompt: styledPrompt, width, height };
       } catch (error) {
+        perchanceBridgeUnavailable = true;
         console.warn('[Image Gen] Perchance AI failed; continuing...', error);
       }
     } else if (prov === 'qwen') {

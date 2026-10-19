@@ -55,9 +55,10 @@ specified below.
   content generation.
 * Outdated Gemini defaults (`gemini-2.0-flash`, `gemini-1.5-flash`,
   `gemini-2.1`) MUST NOT be used as primary defaults.
-* Image generation (Perchance / Qwen-Image NIM / Google Imagen 3 /
-  Pollinations), OCR engines and TTS/voice engines are separate pipelines —
-  leave them exactly as configured.
+* Image generation (Qwen-Image NIM / Gemini image / Pollinations /
+  Perchance), OCR engines and TTS/voice engines are separate pipelines —
+  leave them exactly as configured. The image request shapes live in
+  `src/lib/imageProviders.ts`; `tests/image-providers.test.ts` pins them.
 
 ### The frozen registry — single source of truth (added 2 Oct 2026)
 All five provider ids, their exact model slugs, the Gemini fallback chain, both
