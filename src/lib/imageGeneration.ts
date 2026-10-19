@@ -190,9 +190,25 @@ export const generateImageGemini = async (
   }
 };
 
-// Perchance's iframe bridge answers over a single shared postMessage channel, so
-// two concurrent requests would steal each other's replies. Serialise them.
-let perchanceQueue: Promise<unknown> = Promise.resolve();
+// Every Perchance request loads a full generator in a hidden iframe that runs the
+// model in this browser, so cap how many run at once (each request has its own
+// id, so replies cannot be mixed up).
+const PERCHANCE_MAX_CONCURRENT = 2;
+let perchanceActive = 0;
+const perchanceWaiters: Array<() => void> = [];
+
+const acquirePerchanceSlot = (): Promise<void> => {
+  if (perchanceActive < PERCHANCE_MAX_CONCURRENT) {
+    perchanceActive += 1;
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => perchanceWaiters.push(() => { perchanceActive += 1; resolve(); }));
+};
+
+const releasePerchanceSlot = () => {
+  perchanceActive -= 1;
+  perchanceWaiters.shift()?.();
+};
 
 export const generateImagePerchance = async (
   prompt: string,
@@ -204,22 +220,21 @@ export const generateImagePerchance = async (
     throw new Error('Perchance AI is unavailable; use fallback');
   }
 
-  const run = async (): Promise<string> => {
-    try {
-      const clientUrl = await generatePerchanceImageClient(
-        prompt, width, height, seed, isNativeApp() ? 6000 : 15000
-      );
-      if (!clientUrl) throw new Error('Perchance AI returned no image');
-      return clientUrl;
-    } catch (clientErr) {
-      console.warn('Perchance client-side iframe generation timed out or failed, handing off...', clientErr);
-      throw clientErr;
-    }
-  };
-
-  const next = perchanceQueue.then(run, run);
-  perchanceQueue = next.catch(() => undefined);
-  return next;
+  await acquirePerchanceSlot();
+  try {
+    // Generation + Cloudflare check can take a while; give it room before the
+    // chain moves on to Gemini.
+    const clientUrl = await generatePerchanceImageClient(
+      prompt, width, height, seed, isNativeApp() ? 45000 : 60000
+    );
+    if (!clientUrl) throw new Error('Perchance AI returned no image');
+    return clientUrl;
+  } catch (clientErr) {
+    console.warn('Perchance image generation timed out or failed, handing off...', clientErr);
+    throw clientErr;
+  } finally {
+    releasePerchanceSlot();
+  }
 };
 
 export const generateImagePollinations = async (
@@ -444,7 +459,7 @@ export const generateImageWithFallback = async (
 // Some providers fail for reasons that will not fix themselves within a session:
 // Gemini image models answer 429 "limit: 0" on free API keys (retry in ~11h),
 // NVIDIA's hosted Qwen-Image 404s on accounts without access, and perchance.org
-// refuses to be framed (X-Frame-Options), so the iframe bridge never answers.
+// can be unreachable from school networks (Cloudflare).
 // Without this, EVERY illustration burned 15-30s on each dead provider before
 // reaching one that works. After repeated failures a provider is skipped for a
 // cool-down, then retried. Pollinations (the end of every chain) is never skipped.
@@ -468,9 +483,9 @@ const recordProviderFailure = (id: ImageProviderId) => {
   if (id === 'pollinations') return;
   const h = healthOf(id);
   h.failures += 1;
-  // A provider that has never produced an image this session (Perchance's
-  // iframe being blocked is the typical case) gets benched after ONE failure.
-  const limit = h.everWorked ? 3 : 1;
+  // A provider that has never produced an image this session (blocked, no
+  // access, out of quota) is benched after TWO failures; a proven one gets three.
+  const limit = h.everWorked ? 3 : 2;
   if (h.failures >= limit) {
     h.skipUntil = Date.now() + PROVIDER_COOLDOWN_MS;
     h.failures = 0;
