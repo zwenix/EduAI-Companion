@@ -176,6 +176,8 @@ Copy `.env.example` to `.env` and fill in what you need. Only `GEMINI_API_KEY` i
 | `OCR_SPACE_API_KEY` | Optional secondary OCR engine. |
 | `HUGGINGFACE_API_KEY` / `HF_TOKEN` | Hugging Face TTS and inference. |
 | `REPLICATE_API_TOKEN` | Optional Replicate video generation. |
+| `POLLINATIONS_API_KEY` | Optional. Pollinations now answers **HTTP 402** on the free tier; without a key the image proxy serves the image from Gemini/Imagen or Qwen-Image instead. |
+| `VITE_VERCEL_ANALYTICS` | Set to `true` **only** when Web Analytics is enabled for the Vercel project (otherwise the analytics script 404s on every page load). |
 | `ELEVENLABS_API_KEY` | Optional voice provider. |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push notifications (generate with `npx web-push generate-vapid-keys`). |
 | `APP_URL` | Public URL of the deployment (self-referential links / OAuth). |
@@ -203,6 +205,12 @@ npm run build        # Vite client bundle + esbuild-bundled Express server
 npm start            # node dist/server.cjs
 ```
 
+`npm run build` (and `npm run dev`) first run `scripts/build-self-hosted-fonts.mjs`, which copies the
+latin subsets of the `@fontsource/*` packages into `public/fonts/` and writes `public/fonts/fonts.css`.
+The app therefore serves its typefaces from its own origin — `fonts.googleapis.com` is blocked or
+unreachable on many school networks, and every blocked request used to leave the UI on the fallback
+stack.
+
 ---
 
 ## 📜 Available Scripts
@@ -215,6 +223,7 @@ npm start            # node dist/server.cjs
 | `npm run preview` | Serves the built client with `vite preview`. |
 | `npm run lint` | Type-checks the entire codebase (`tsc --noEmit`). This is the quality gate. |
 | `npm run clean` | Removes `dist/`. |
+| `npm run build:fonts` | Regenerates the self-hosted web fonts in `public/fonts/` (runs automatically before `dev` and `build`). |
 | `npm run build:fp-templates` | Builds the Foundation Phase template pack. |
 | `npm run build:fp-pack` | Builds the self-contained, offline "portable pack" for Foundation Phase printables. |
 | `npm run render:template-demo` | Renders the canonical content-template demos into `docs/`. |
@@ -355,6 +364,7 @@ Until the rules are deployed, affected dashboards fall back to their `localStora
 | [CAPS_LESSON_PLAN_GUIDE.md](CAPS_LESSON_PLAN_GUIDE.md) | Lesson-plan generation guide (FET Grades 10–12). |
 | [GOOGLE_SIGNIN_ANDROID_SETUP.md](GOOGLE_SIGNIN_ANDROID_SETUP.md) | Android Google Sign-In identity, keystore fingerprints and troubleshooting. |
 | [docs/CONTENT_TEMPLATE.md](docs/CONTENT_TEMPLATE.md) | The canonical content template contract (compliance banner, gradient, footer). |
+| [docs/console-error-triage.md](docs/console-error-triage.md) | Every browser-console message a deployment can produce, what it meant and the post-deploy smoke-test checklist. |
 | [docs/ci.workflow.yml](docs/ci.workflow.yml) | The CI workflow (paste-in template — the GitHub App token cannot push workflow files). |
 | [archive/README.md](archive/README.md) | The archived one-off scripts from the early build, and why they are not part of the app. |
 | [docs/android-export-print.md](docs/android-export-print.md) | Root-cause analysis of Android print/export behaviour and the native export fix. |

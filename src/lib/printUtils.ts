@@ -209,7 +209,7 @@ export const printContent = (
                      renders them unstyled ("funny unreadable formatting"). -->
                 <style>${EDUAI_DOC_TAILWIND_CSS}</style>
                 <style>
-                    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono&display=swap');
+                    @import url('/fonts/fonts.css');
                     @media print {
                         @page { margin: 15mm; }
                         body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -331,7 +331,7 @@ export const downloadAsHTML = (
             <head>
                 <title>${filename}</title>
                 <style>
-                    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono&display=swap');
+                    @import url('/fonts/fonts.css');
                     /* LIGHT Template v5 owns all inner spacing (full-bleed
                        header/banner, centred 800px page) — the shell stays
                        neutral. */

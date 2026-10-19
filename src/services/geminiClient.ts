@@ -10,6 +10,8 @@ import { GoogleGenAI } from '@google/genai';
 import { AI_SECRETS } from '../lib/aiSecrets';
 import { MASTER_SYSTEM_PROMPT, safeJsonParse } from './geminiService';
 import { EduAIPromptEngine } from '../lib/prompt-engine';
+import { GEMINI_CONTENT_OUTPUT_TOKENS } from '../lib/aiOutputBudget';
+import { isNativeApp } from '../lib/platform';
 import { buildAdminLabPrompts, buildVisualLabPrompts } from '../lib/prompts/lab-prompts';
 
 const GEMINI_MODELS = [
@@ -130,7 +132,7 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
       const response = await generateWithFallback({
         contents: finalUserPrompt,
         config: {
-          maxOutputTokens: 8192,
+          maxOutputTokens: GEMINI_CONTENT_OUTPUT_TOKENS,
           systemInstruction: system,
           responseMimeType: 'application/json',
         },
@@ -143,7 +145,7 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
       const response = await generateWithFallback({
         contents: user,
         config: {
-          maxOutputTokens: 8192,
+          maxOutputTokens: GEMINI_CONTENT_OUTPUT_TOKENS,
           systemInstruction: system,
           responseMimeType: 'application/json',
         },
@@ -156,7 +158,7 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
       const response = await generateWithFallback({
         contents: user,
         config: {
-          maxOutputTokens: 8192,
+          maxOutputTokens: GEMINI_CONTENT_OUTPUT_TOKENS,
           systemInstruction: system,
           responseMimeType: 'application/json',
         },
@@ -263,8 +265,13 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
         }
       }
       const seed = Math.floor(Math.random() * 100000);
-      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=${width || 1024}&height=${height || 1024}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
-      return { imageUrl: fallbackUrl, isFallback: true, provider: 'pollinations', model: 'Pollinations-Turbo' };
+      // Never hand out a raw image.pollinations.ai URL: the free tier answers
+      // HTTP 402 for the `turbo` model, so the browser would show a broken
+      // image. The server-side proxy walks the whole provider chain.
+      const cleanPrompt = styledPrompt.length > 1000 ? `${styledPrompt.substring(0, 997)}...` : styledPrompt;
+      const fallbackPath = `/api/image-proxy?prompt=${encodeURIComponent(cleanPrompt)}&width=${width || 1024}&height=${height || 1024}&seed=${seed}`;
+      const fallbackUrl = isNativeApp() ? `https://eduai-companion.vercel.app${fallbackPath}` : fallbackPath;
+      return { imageUrl: fallbackUrl, isFallback: true, provider: 'image-proxy', model: 'Provider-Chain' };
     }
 
     default:

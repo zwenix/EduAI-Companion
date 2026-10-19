@@ -111,6 +111,14 @@ export const buildApiUrl = (path: string): string => {
   return path;
 };
 
+/**
+ * Direct Pollinations URL.
+ *
+ * @deprecated The free tier answers HTTP 402 (Payment Required) for the
+ * `turbo` model and the `enhance=true` rewriter, so an <img> pointed at this
+ * URL renders as a broken image. Use {@link buildImageProxyUrl} instead — the
+ * server-side proxy walks the provider chain and returns real bytes.
+ */
 export const buildPollinationsUrl = (
   prompt: string,
   width: number = 1024,
@@ -121,14 +129,31 @@ export const buildPollinationsUrl = (
   return `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=${width}&height=${height}&seed=${seed}&nologo=true&model=turbo&enhance=true`;
 };
 
+/**
+ * Absolute URL of the server-side image proxy.
+ *
+ * The proxy walks the whole provider chain (Pollinations with an API key →
+ * Gemini/Imagen → Qwen-Image on NVIDIA NIM) and returns real image bytes.
+ * Pointing an <img> straight at `image.pollinations.ai` no longer works: the
+ * free tier answers HTTP 402 (Payment Required) for the `turbo` model.
+ */
+export const buildImageProxyUrl = (
+  prompt: string,
+  width: number = 800,
+  height: number = 600,
+  seed: number = Math.floor(Math.random() * 100000)
+): string => {
+  const cleanPrompt = prompt.length > 1000 ? `${prompt.substring(0, 997)}...` : prompt;
+  return `/api/image-proxy?prompt=${encodeURIComponent(cleanPrompt)}&width=${width}&height=${height}&seed=${seed}`;
+};
+
 export const buildDirectImageUrl = (
   prompt: string,
   width: number = 800,
   height: number = 600,
   seed: number = Math.floor(Math.random() * 100000)
 ): string => {
-  if (isNativeApp()) return buildPollinationsUrl(prompt, width, height, seed);
-  return `/api/image-proxy?prompt=${encodeURIComponent(prompt)}&width=${width}&height=${height}&seed=${seed}`;
+  return buildApiUrl(buildImageProxyUrl(prompt, width, height, seed));
 };
 
 export const generateImageGemini = async (
@@ -198,8 +223,11 @@ export const generateImagePollinations = async (
   height: number = 1024,
   seed: number = Math.floor(Math.random() * 10000)
 ): Promise<string> => {
+  // The request goes through the server-side proxy, which walks the provider
+  // chain and only answers with bytes it really received. A direct call to
+  // image.pollinations.ai now fails with HTTP 402 on the free tier.
   const attempt = (attemptSeed: number): Promise<string> => {
-    const imageUrl = buildPollinationsUrl(prompt, width, height, attemptSeed);
+    const imageUrl = buildApiUrl(buildImageProxyUrl(prompt, width, height, attemptSeed));
     if (typeof Image === 'undefined') return Promise.resolve(imageUrl);
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -207,8 +235,8 @@ export const generateImagePollinations = async (
       const timeoutId = setTimeout(() => {
         if (settled) return;
         settled = true;
-        reject(new Error('Pollinations AI image request timed out'));
-      }, 25000);
+        reject(new Error('Image request timed out'));
+      }, 45000);
 
       img.onload = () => {
         if (settled) return;
@@ -220,7 +248,7 @@ export const generateImagePollinations = async (
         if (settled) return;
         settled = true;
         clearTimeout(timeoutId);
-        reject(new Error('Pollinations AI image request failed'));
+        reject(new Error('Image request failed'));
       };
       img.src = imageUrl;
     });
@@ -229,10 +257,9 @@ export const generateImagePollinations = async (
   try {
     return await attempt(seed);
   } catch (err) {
-    // Pollinations rate-limits the free tier (HTTP 429 → <img> onerror). The
-    // failure is usually transient, so retry once with a fresh seed after a
-    // short pause before giving up and moving to the next provider.
-    console.warn('[Image Gen] Pollinations AI failed, retrying once after 3s:', (err as Error).message);
+    // A provider outage is usually transient, so retry once with a fresh seed
+    // after a short pause before giving up and moving to the next provider.
+    console.warn('[Image Gen] Image proxy request failed, retrying once after 3s:', (err as Error).message);
     await new Promise(r => setTimeout(r, 3000));
     return attempt(Math.floor(Math.random() * 100000));
   }
@@ -453,9 +480,9 @@ export const generateImageWithFallback = async (
     }
   }
 
-  console.log('[Image Gen] All provider attempts failed. Returning direct Pollinations URL...');
+  console.log('[Image Gen] All provider attempts failed. Returning the server-side image proxy URL...');
   return {
-    url: buildPollinationsUrl(styledPrompt, width, height, seed),
+    url: buildApiUrl(buildImageProxyUrl(styledPrompt, width, height, seed)),
     provider: 'pollinations',
     prompt: styledPrompt,
     width,
@@ -504,6 +531,7 @@ export default {
   enhanceEducationalImagePrompt,
   enhancePromptForSA,
   buildDirectImageUrl,
+  buildImageProxyUrl,
   buildPollinationsUrl,
   buildApiUrl,
   QWEN_CONFIG

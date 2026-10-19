@@ -326,7 +326,7 @@ explicit user instructions.
 
 1. **Secret scan** — `scripts/scan-secrets.mjs`
 2. **Type check** — `tsc --noEmit`
-3. **Unit tests** — `vitest run` (`tests/`, 10 suites)
+3. **Unit tests** — `vitest run` (`tests/`, 11 suites)
 4. **Content template contract** — `npm run verify:template` (101 assertions)
 5. **Production build** — `npm run build`
 
@@ -353,8 +353,37 @@ explicit user instructions.
 * `tests/firestore-rules.test.ts` fails CI if `if true` allowances reappear, if a
   collection loses its auth guard, or if the critical invariants (uid pinning,
   role-escalation block, `senderId` ownership, tutor-session privacy) change.
+* The same suite derives the expected collection list **from the source code**
+  (every `collection(db, '…')` call in `src/`), so a collection the client
+  reads but the rules do not mention fails CI. Keep it that way when adding a
+  collection.
 * Editing the rules is not enough: they must be deployed with
   `bash scripts/deploy-firestore-rules.sh` before the change is live.
+
+### 7.3b Serverless time budgets
+* The whole API is one Vercel function with a 60 s `maxDuration`
+  (`vercel.json`). A request that outlives it is killed by the platform and the
+  browser receives a bare **HTTP 504** — the in-app fallback never runs.
+* `src/lib/aiRouteBudget.ts` owns the budget for `/api/ai/:provider`
+  (52 s total, 15 s Gemini reserve, ≤ 28 s per upstream attempt). Every
+  upstream client must carry a `timeout` and `maxRetries: 0`, and every
+  attempt must be capped by the remaining budget.
+* The image provider chain has its own budget (`IMAGE_CHAIN_BUDGET_MS` in
+  `server.ts`) for the same reason.
+* `tests/ai-route-budget.test.ts` pins the arithmetic. Never raise a budget
+  above the platform ceiling.
+
+### 7.3c Self-hosted web fonts
+* The typefaces are served from the app's own origin (`/fonts/fonts.css`),
+  NOT from `fonts.googleapis.com` — that host is blocked or unreachable on
+  many school networks and every blocked request used to leave the UI on the
+  fallback stack.
+* `public/fonts/` is a **generated build artifact**
+  (`scripts/build-self-hosted-fonts.mjs`, run automatically by `prebuild` /
+  `predev`) and is git-ignored. Change the family/weight list in that script,
+  never the generated files.
+* The standalone export templates (zipped and opened from disk) are the only
+  place that may still link Google Fonts.
 
 ### 7.4 API abuse protection
 * `src/lib/rateLimit.ts` is mounted on `/api` in `server.ts` before every route

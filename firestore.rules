@@ -300,9 +300,39 @@ service cloud.firestore {
 
     // Learner intervention / SIAS support profiles — created by teachers and
     // surfaced to learners + parents across their dashboards.
+    //
+    // Payload guard for the SIAS support plans. Every field is optional
+    // except the learner's name, because older records (written before the
+    // SIAS profile shape) do not carry the full set.
+    function isValidIntervention(data) {
+      return data.keys().size() >= 2 && data.keys().size() <= 30
+        && (!('learnerName' in data) || data.learnerName is string && data.learnerName.size() <= 120)
+        && (!('studentId' in data) || data.studentId is string && data.studentId.size() <= 128)
+        && (!('teacherId' in data) || data.teacherId is string && data.teacherId.size() <= 128)
+        && (!('grade' in data) || data.grade is string && data.grade.size() <= 50)
+        && (!('subject' in data) || data.subject is string && data.subject.size() <= 80)
+        && (!('status' in data) || data.status is string && data.status.size() <= 40)
+        && (!('createdAt' in data) || data.createdAt is string || data.createdAt is timestamp);
+    }
     match /learner_interventions/{interventionId} {
       allow read: if isSignedIn();
-      allow create, update: if isSignedIn();
+      allow create: if isSignedIn() && isValidIntervention(incoming()) && incoming().teacherId == request.auth.uid;
+      allow update: if isSignedIn() && isValidIntervention(incoming())
+                     && (incoming().teacherId == request.auth.uid || existing().teacherId == request.auth.uid);
+      allow delete: if isSignedIn() && existing().teacherId == request.auth.uid;
+    }
+
+    // Legacy intervention records written by earlier versions of the app.
+    //
+    // The student and parent dashboards still read this collection
+    // (src/components/StudentDevelopmentHub.tsx), but it had NO match block
+    // here, so every read fell through to the database-wide deny and the
+    // console filled up with "Missing or insufficient permissions".
+    match /interventions/{interventionId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidIntervention(incoming()) && incoming().teacherId == request.auth.uid;
+      allow update: if isSignedIn() && isValidIntervention(incoming())
+                     && (incoming().teacherId == request.auth.uid || existing().teacherId == request.auth.uid);
       allow delete: if isSignedIn() && existing().teacherId == request.auth.uid;
     }
 

@@ -58,12 +58,31 @@ window.addEventListener('load', () => {
   void NotificationManager.init();
 });
 
+/**
+ * Vercel Web Analytics.
+ *
+ * The `<Analytics />` component injects `/_vercel/insights/script.js`. When
+ * Web Analytics is not enabled for the Vercel project that file does not
+ * exist, so every page load produced a failed request in the browser console
+ * ("Failed to load script … Be sure to enable Web Analytics for your
+ * project and deploy again").
+ *
+ * The component is therefore only mounted when the deployment explicitly
+ * opts in with `VITE_VERCEL_ANALYTICS=true` (see .env.example). Projects
+ * without Web Analytics stay completely silent instead of logging a 404 on
+ * every visit.
+ */
+const VercelAnalytics = () => {
+  const enabled = String((import.meta as any).env?.VITE_VERCEL_ANALYTICS ?? '').toLowerCase() === 'true';
+  if (!enabled) return null;
+  return <Analytics />;
+};
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AiProvider>
       <App />
-      <Analytics />
+      <VercelAnalytics />
     </AiProvider>
   </StrictMode>,
 );

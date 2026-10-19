@@ -259,9 +259,8 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Comic+Neue:wght@300;400;700&family=Kalam:wght@300;400;700&family=Lexend:wght@300;400;500;600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="/">
+  <link rel="stylesheet" href="/fonts/fonts.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
   <style>
     /* EduAI LIGHT Template v5 — the single source of truth lives in
@@ -350,7 +349,13 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
       title="CAPS Document Preview"
       className={cn("w-full border-0 rounded-2xl bg-white shadow-inner transition-all", className)}
       style={{ minHeight }}
-      sandbox="allow-scripts allow-same-origin"
+      // `allow-scripts` + `allow-same-origin` together let the framed document
+      // (a `srcdoc`, so it inherits THIS page's origin) reach out and drop
+      // its own sandbox — Chrome flags it as "an iframe which has both
+      // allow-scripts and allow-same-origin … can escape its sandboxing".
+      // The preview only needs scripts and `postMessage` to the host, both of
+      // which work from an opaque origin, so `allow-same-origin` is dropped.
+      sandbox="allow-scripts"
     />
   );
 };

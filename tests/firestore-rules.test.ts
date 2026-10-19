@@ -11,12 +11,26 @@
  * Firestore emulator + `@firebase/rules-unit-testing` (see the roadmap in
  * `TECHNICAL_SPECIFICATION.md` §15). This file is the always-on tripwire.
  */
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const rulesPath = resolve(__dirname, '..', 'firestore.rules');
 const rules = readFileSync(rulesPath, 'utf8');
+
+/** Recursively collect every source file under `src/`. */
+const collectSourceFiles = (dir: string): string[] => {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) {
+      out.push(...collectSourceFiles(full));
+    } else if (/\.(ts|tsx)$/.test(entry)) {
+      out.push(full);
+    }
+  }
+  return out;
+};
 
 /** The collections the client actually reads/writes (see the spec §8.2). */
 const EXPECTED_COLLECTIONS = [
@@ -40,6 +54,7 @@ const EXPECTED_COLLECTIONS = [
   'auto_grading_reports',
   'published_reports',
   'learner_interventions',
+  'interventions',
   'portfolio_items',
   'student_records',
   'omnihuman_videos',
@@ -66,6 +81,32 @@ describe('firestore.rules — file integrity', () => {
     const open = (rules.match(/\{/g) || []).length;
     const close = (rules.match(/\}/g) || []).length;
     expect(open).toBe(close);
+  });
+
+  it('declares a match block for EVERY collection the app queries', () => {
+    // Regression guard: a collection that the client reads but the rules do
+    // not mention falls through to the database-wide deny and every read
+    // fails with "Missing or insufficient permissions". The `interventions`
+    // collection hit exactly that bug, so the check is derived from the
+    // source code instead of a hand-written list.
+    const srcDir = resolve(__dirname, '..', 'src');
+    const queried = new Set<string>();
+    for (const file of collectSourceFiles(srcDir)) {
+      const source = readFileSync(file, 'utf8');
+      const pattern = /collection\(\s*db\s*,\s*['"`]([A-Za-z_][A-Za-z0-9_]*)['"`]/g;
+      let match: RegExpExecArray | null;
+      while ((match = pattern.exec(source)) !== null) {
+        queried.add(match[1]);
+      }
+    }
+
+    expect(queried.size).toBeGreaterThan(15);
+    for (const collection of [...queried].sort()) {
+      expect(
+        rules,
+        `firestore.rules has no match block for the "${collection}" collection the app queries`,
+      ).toMatch(new RegExp(`match\\s+/${collection}/`));
+    }
   });
 });
 
