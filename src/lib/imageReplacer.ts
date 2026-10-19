@@ -1,7 +1,6 @@
 import { collection, onSnapshot, query, setDoc, doc, Timestamp } from 'firebase/firestore';
 import { db, auth } from './firebase';
-import { buildDirectImageUrl, buildPollinationsUrl } from './imageGeneration';
-import { isNativeApp } from './platform';
+import { buildPollinationsUrl, generateImageWithFallback, peekGeneratedImage } from './imageGeneration';
 import { EDUCATIONAL_IMAGE_STYLE } from './prompt-priority';
 
 /**
@@ -80,6 +79,81 @@ class IllustrationCache {
   }
 }
 
+/** 1×1 transparent GIF. An illustration that carries this as its `src` is "pending":
+ * the live preview iframe (ContentCreator) and the global hydrator in
+ * `imageRecovery.ts` both recognise it and generate the real image through the
+ * provider chain (Perchance first). Nothing is requested from any provider until
+ * then — in particular, nothing hits Pollinations up front. */
+/** Persist a generated illustration URL to the shared Illustration Library (non-blocking). */
+export function cacheGeneratedIllustration(prompt: string, imageUrl: string): void {
+  // Firestore rules cap imageUrl at 4096 chars — inline data: URLs never fit.
+  if (!prompt || !/^https?:\/\//i.test(imageUrl) || imageUrl.length > 4000) return;
+  void IllustrationCache.save(prompt, imageUrl);
+}
+
+export const PENDING_IMAGE_SRC = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+const IMG_W = 800;
+const IMG_H = 600;
+
+const PENDING_IMG_REGEX = /<img\b[^>]*\bdata-eduai-pending=["']1["'][^>]*>/gi;
+
+/**
+ * Make every still-pending illustration in an exported/printed HTML string
+ * loadable. Pending images that were already generated this session are
+ * replaced by the generated URL; anything left falls back to a direct
+ * Pollinations link (the user's own connection, never the shared server).
+ * Synchronous on purpose — print/HTML export must not lose the user gesture.
+ */
+export function finalizeImagesForExport(html: string): string {
+  if (!html || html.indexOf('data-eduai-pending') === -1) return html;
+  return html.replace(PENDING_IMG_REGEX, (tag) => {
+    const prompt = tag.match(/data-eduai-prompt=["']([^"']*)["']/i);
+    const seed = tag.match(/data-eduai-seed=["']([^"']*)["']/i);
+    if (!prompt) return tag;
+    let decoded = '';
+    try { decoded = decodeURIComponent(prompt[1]); } catch { return tag; }
+    const url = peekGeneratedImage(decoded, IMG_W, IMG_H)
+      || buildPollinationsUrl(decoded, IMG_W, IMG_H, parseInt(seed?.[1] || '0', 10) || 1);
+    return tag
+      .replace(/\bsrc=["'][^"']*["']/i, `src="${url}"`)
+      .replace(/\bdata-eduai-pending=["']1["']/i, '')
+      .replace(/\bloading=["']lazy["']/i, 'loading="eager"');
+  });
+}
+
+/**
+ * Generate every pending illustration in an HTML string through the provider
+ * chain (Perchance → … ), at most `concurrency` at a time, then return the HTML
+ * with real image URLs in place. Used by the async PDF export so the file
+ * contains the pictures rather than blank frames. Bounded by `budgetMs`; images
+ * that miss the deadline are handled by `finalizeImagesForExport`.
+ */
+export async function resolvePendingImages(html: string, concurrency = 2, budgetMs = 60000): Promise<string> {
+  if (!html || html.indexOf('data-eduai-pending') === -1) return html;
+  const prompts = new Map<string, number>();
+  for (const tag of html.match(PENDING_IMG_REGEX) || []) {
+    const prompt = tag.match(/data-eduai-prompt=["']([^"']*)["']/i);
+    const seed = tag.match(/data-eduai-seed=["']([^"']*)["']/i);
+    if (!prompt) continue;
+    try { prompts.set(decodeURIComponent(prompt[1]), parseInt(seed?.[1] || '0', 10) || 1); } catch { /* skip */ }
+  }
+  const queue = Array.from(prompts.entries());
+  const deadline = Date.now() + budgetMs;
+  const worker = async () => {
+    while (queue.length && Date.now() < deadline) {
+      const [prompt, seed] = queue.shift()!;
+      try {
+        await generateImageWithFallback({ prompt, width: IMG_W, height: IMG_H, seed });
+      } catch (err) {
+        console.warn('[Image Resolve] could not generate illustration:', err);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, concurrency) }, worker));
+  return finalizeImagesForExport(html);
+}
+
 export function replaceImagePlaceholders(html: any, allowImages: boolean = true): string {
   if (!html || typeof html !== 'string') return '';
 
@@ -140,12 +214,12 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
       ? window.localStorage.getItem('eduai_image_provider') || defaultProvider
       : defaultProvider;
     const providerChain = provider === 'gemini-imagen' || provider === 'gemini'
-      ? 'Google Imagen (Secondary) → Qwen (NVIDIA NIM) → Pollinations → Perchance'
+      ? 'Google Imagen (Tertiary) → Pollinations'
       : provider === 'pollinations'
-        ? 'Pollinations (Tertiary) → Perchance → Qwen → Google Imagen'
+        ? 'Pollinations → Google Imagen'
         : provider === 'qwen' || provider === 'qwen-image' || provider === 'nvidia-qwen'
-          ? 'Qwen-Image NVIDIA NIM (Premium SA) → Perchance → Pollinations → Google Imagen'
-          : 'Perchance (Primary) → Qwen (NVIDIA NIM) → Pollinations → Google Imagen';
+          ? 'Qwen-Image (Secondary) → Google Imagen → Pollinations'
+          : 'Perchance (Primary) → Google Imagen → Pollinations';
 
     const isLogoOrStamp = /logo|stamp|seal|crest|badge|signature|certificate|emblem/i.test(cleanPrompt);
     const styleDirective = `, ${EDUCATIONAL_IMAGE_STYLE}, educational, high quality, vibrant colours`;
@@ -156,27 +230,21 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
       ? `${promptWithStyle}, clean professional vector logo, official school crest stamp seal aesthetic, crisp graphic design, high contrast, pure white background, masterpiece 4k vector graphic`
       : `${promptWithStyle}, professional educational illustration, clean aesthetic design, crisp render, sharp focus, vibrant lighting, pure white background, natural beauty, 4k resolution`;
     
-    // Web: use the backend proxy to bypass school network firewalls blocking
-    // external generation sites. Native app (APK): there is no backend — the
-    // Capacitor server answers /api/* with a 200 HTML page, which is what made
-    // every illustration render as a broken placeholder. Point straight at the
-    // public image API instead.
-    const imageUrl = buildDirectImageUrl(enhancedPrompt, 800, 600, seed);
-
-    // Cache an absolute URL only. A relative `/api/image-proxy?...` URL would be
-    // written to Firestore by the web app and then resolve to nothing when the
-    // same illustration is opened inside the APK.
-    if (!isNativeApp() && imageUrl.startsWith('/')) {
-      IllustrationCache.save(cleanPrompt, buildPollinationsUrl(enhancedPrompt, 800, 600, seed));
-    } else {
-      // Async save to firestore in background (non-blocking)
-      IllustrationCache.save(cleanPrompt, imageUrl);
-    }
+    // Nothing is requested from any provider here. The image starts "pending"
+    // (transparent pixel) and is generated on demand through the provider chain
+    // (Perchance → Gemini/Imagen → Pollinations …) by the preview iframe /
+    // global hydrator — or comes straight from the session cache if this exact
+    // illustration was already generated. Previously every placeholder pointed
+    // at Pollinations up front, so a few images in, its free-tier limit hit.
+    const generatedUrl = peekGeneratedImage(enhancedPrompt, IMG_W, IMG_H);
+    const imageUrl = generatedUrl || PENDING_IMAGE_SRC;
+    const pendingAttr = generatedUrl ? '' : 'data-eduai-pending="1"';
 
     return `
 <div class="my-6 overflow-hidden rounded-[2rem] border-2 border-dashed border-slate-300 p-2 bg-slate-50/50 hover:bg-slate-100 transition-all duration-300 max-w-full print:break-inside-avoid print:border-none print:p-0 print:m-0 print:shadow-none shadow-sm">
   <img data-eduai-prompt="${encodeURIComponent(enhancedPrompt)}"
        data-eduai-seed="${seed}"
+       ${pendingAttr}
        src="${imageUrl}"
        loading="lazy"
        alt="${cleanPrompt}" 

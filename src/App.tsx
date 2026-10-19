@@ -2864,16 +2864,16 @@ export default function App() {
                       }`}
                     >
                       <option value="perchance">
-                        Perchance AI Text-to-Image (Primary → Qwen / Pollinations fallback)
+                        Perchance AI Text-to-Image (Primary → Gemini / Imagen fallback)
                       </option>
                       <option value="qwen">
-                        Qwen-Image · NVIDIA NIM (Premium SA → Pollinations fallback)
+                        Qwen-Image · NVIDIA NIM (Secondary → Gemini / Imagen fallback)
                       </option>
                       <option value="gemini-imagen">
-                        Google Imagen 3 (Secondary → Pollinations fallback)
+                        Google Imagen 3 (Tertiary → Pollinations fallback)
                       </option>
                       <option value="pollinations">
-                        Pollinations AI Turbo (Tertiary → Perchance fallback)
+                        Pollinations AI Turbo (→ Gemini / Imagen fallback)
                       </option>
                     </select>
                   </div>

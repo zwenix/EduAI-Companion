@@ -2,17 +2,21 @@
  * EduAI Companion - Multi-Provider Image Generation System
  *
  * Provider priority (identical on web AND inside the Android APK):
- *   1. Perchance AI             (primary → Qwen → Pollinations → Gemini)
- *   2. Qwen-Image (NVIDIA NIM)  (premium SA-context → Pollinations)
- *   3. Google Imagen / Gemini   (secondary → Pollinations AI)
- *   4. Pollinations AI          (tertiary fallback)
+ *   1. Perchance AI             (PRIMARY   → falls back to Gemini / Imagen)
+ *   2. Qwen-Image (NVIDIA NIM)  (SECONDARY → falls back to Gemini / Imagen)
+ *   3. Google Imagen / Gemini   (TERTIARY  → falls back to Pollinations)
+ *   4. Pollinations AI          (LAST      → falls back to Gemini / Imagen)
  *
  * The default starts with Perchance. A deliberate provider choice in Settings
- * can make Qwen, Gemini, or Pollinations the first attempt, but the provider-specific
- * fallback graph remains fixed and every provider stays available.
+ * can make Qwen, Gemini, or Pollinations the first attempt, but the
+ * provider-specific fallback graph below stays fixed.
  *
- * NEW: Qwen-Image via NVIDIA NIM (model qwen/qwen-image) provides SA-context
- * enhanced educational visuals with superior text rendering and cultural accuracy.
+ * Pollinations' free tier is rate-limited ("free limit reached"), which is why
+ * it is the LAST resort in every chain except its own — it must never be the
+ * first thing an illustration asks for.
+ *
+ * Qwen-Image via NVIDIA NIM provides SA-context enhanced educational visuals
+ * with superior text rendering and cultural accuracy.
  */
 
 import { generatePerchanceImageClient } from '../services/perchanceService';
@@ -28,6 +32,8 @@ export interface ImageGenerationResult {
   height: number;
   model?: string;
   enhancedPrompt?: string;
+  /** Every provider failed; `url` is an unverified direct Pollinations link. */
+  isLastResort?: boolean;
 }
 
 export interface ImageGenerationOptions {
@@ -41,6 +47,8 @@ export interface ImageGenerationOptions {
   subject?: string;
   saContext?: boolean;
   placement?: 'header' | 'inline' | 'full_width' | 'sidebar';
+  /** Ignore (and replace) any cached result — used when a cached URL failed to load. */
+  skipCache?: boolean;
 }
 
 export type ImageProviderId = 'perchance' | 'gemini' | 'pollinations' | 'qwen';
@@ -53,10 +61,14 @@ export const IMAGE_PROVIDER_PRIORITY: readonly ImageProviderId[] = [
 ];
 
 export const IMAGE_PROVIDER_FALLBACKS: Record<ImageProviderId, readonly ImageProviderId[]> = {
-  perchance: ['qwen', 'pollinations', 'gemini'],
-  qwen: ['pollinations', 'gemini', 'perchance'],
-  gemini: ['pollinations', 'perchance', 'qwen'],
-  pollinations: ['perchance', 'qwen', 'gemini']
+  // Perchance (primary)   → Gemini/Imagen → Pollinations (tertiary's fallback)
+  perchance: ['gemini', 'pollinations'],
+  // Qwen (secondary)      → Gemini/Imagen → Pollinations
+  qwen: ['gemini', 'pollinations'],
+  // Gemini/Imagen (tertiary) → Pollinations
+  gemini: ['pollinations'],
+  // Pollinations          → Gemini/Imagen
+  pollinations: ['gemini']
 };
 
 export const getImageProviderOrder = (preferred: ImageProviderId): ImageProviderId[] => [
@@ -136,10 +148,20 @@ export const generateImageGemini = async (
   width: number = 1024,
   height: number = 1024
 ): Promise<string> => {
+  // When every Gemini/Imagen model fails, the backend and the client engine
+  // both answer with a raw Pollinations URL flagged `isFallback`. That is NOT a
+  // Gemini image — accepting it would silently route traffic to the
+  // rate-limited provider and skip the real chain — so treat it as a failure.
+  const accept = (data: any): string | null => {
+    if (!data?.imageUrl || data.isFallback) return null;
+    return data.imageUrl as string;
+  };
+
   if (isNativeApp()) {
     const data = await callGeminiClientDirect('generate-image', { prompt, width, height });
-    if (data?.imageUrl) return data.imageUrl;
-    throw new Error('No image URL returned from client-side Gemini engine');
+    const url = accept(data);
+    if (url) return url;
+    throw new Error('Gemini/Imagen produced no image (client-side engine)');
   }
 
   try {
@@ -153,14 +175,14 @@ export const generateImageGemini = async (
     });
 
     if (!response.ok) throw new Error(`Gemini API failed: ${response.status}`);
-    const data = await response.json();
-    if (!data.imageUrl) throw new Error('No image URL returned from Gemini');
-    return data.imageUrl;
+    const url = accept(await response.json());
+    if (!url) throw new Error('Gemini/Imagen produced no image (backend)');
+    return url;
   } catch (error) {
     console.error('Gemini image generation failed (backend), trying client-side engine:', error);
     try {
-      const data = await callGeminiClientDirect('generate-image', { prompt, width, height });
-      if (data.imageUrl) return data.imageUrl;
+      const url = accept(await callGeminiClientDirect('generate-image', { prompt, width, height }));
+      if (url) return url;
     } catch (clientErr) {
       console.error('Client-side Gemini image generation failed:', clientErr);
     }
@@ -168,28 +190,55 @@ export const generateImageGemini = async (
   }
 };
 
+// Perchance's iframe bridge answers over a single shared postMessage channel, so
+// two concurrent requests would steal each other's replies. Serialise them.
+let perchanceQueue: Promise<unknown> = Promise.resolve();
+
+// If Perchance is down/blocked (school firewall, captcha…) every request would
+// otherwise burn its full timeout before reaching the fallback. After a few
+// consecutive failures, skip it briefly and let the fallback chain take over;
+// it is retried automatically once the cool-down passes.
+const PERCHANCE_FAILURE_LIMIT = 3;
+const PERCHANCE_COOLDOWN_MS = 2 * 60 * 1000;
+let perchanceFailures = 0;
+let perchanceSkipUntil = 0;
+
 export const generateImagePerchance = async (
   prompt: string,
   width: number = 1024,
   height: number = 1024,
   seed: number = Math.floor(Math.random() * 10000)
 ): Promise<string> => {
-  try {
-    if (typeof window !== 'undefined') {
-      try {
-        const clientUrl = await generatePerchanceImageClient(
-          prompt, width, height, seed, isNativeApp() ? 6000 : 15000
-        );
-        if (clientUrl) return clientUrl;
-      } catch (clientErr) {
-        console.warn('Perchance client-side iframe generation timed out or failed, handing off...', clientErr);
-      }
-    }
-    throw new Error('Perchance AI is unavailable; use fallback');
-  } catch (error) {
-    console.error('Perchance image generation failed:', error);
-    throw error;
+  if (Date.now() < perchanceSkipUntil) {
+    throw new Error('Perchance AI is cooling down after repeated failures; use fallback');
   }
+  if (typeof window === 'undefined') {
+    throw new Error('Perchance AI is unavailable; use fallback');
+  }
+
+  const run = async (): Promise<string> => {
+    try {
+      const clientUrl = await generatePerchanceImageClient(
+        prompt, width, height, seed, isNativeApp() ? 6000 : 15000
+      );
+      if (!clientUrl) throw new Error('Perchance AI returned no image');
+      perchanceFailures = 0;
+      return clientUrl;
+    } catch (clientErr) {
+      perchanceFailures += 1;
+      if (perchanceFailures >= PERCHANCE_FAILURE_LIMIT) {
+        perchanceSkipUntil = Date.now() + PERCHANCE_COOLDOWN_MS;
+        perchanceFailures = 0;
+        console.warn(`[Image Gen] Perchance failed ${PERCHANCE_FAILURE_LIMIT}x in a row — pausing it for ${PERCHANCE_COOLDOWN_MS / 1000}s`);
+      }
+      console.warn('Perchance client-side iframe generation timed out or failed, handing off...', clientErr);
+      throw clientErr;
+    }
+  };
+
+  const next = perchanceQueue.then(run, run);
+  perchanceQueue = next.catch(() => undefined);
+  return next;
 };
 
 export const generateImagePollinations = async (
@@ -198,44 +247,31 @@ export const generateImagePollinations = async (
   height: number = 1024,
   seed: number = Math.floor(Math.random() * 10000)
 ): Promise<string> => {
-  const attempt = (attemptSeed: number): Promise<string> => {
-    const imageUrl = buildPollinationsUrl(prompt, width, height, attemptSeed);
-    if (typeof Image === 'undefined') return Promise.resolve(imageUrl);
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      let settled = false;
-      const timeoutId = setTimeout(() => {
-        if (settled) return;
-        settled = true;
-        reject(new Error('Pollinations AI image request timed out'));
-      }, 25000);
+  const imageUrl = buildPollinationsUrl(prompt, width, height, seed);
+  if (typeof Image === 'undefined') return imageUrl;
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    let settled = false;
+    const timeoutId = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error('Pollinations AI image request timed out'));
+    }, 25000);
 
-      img.onload = () => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        resolve(imageUrl);
-      };
-      img.onerror = () => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        reject(new Error('Pollinations AI image request failed'));
-      };
-      img.src = imageUrl;
-    });
-  };
-
-  try {
-    return await attempt(seed);
-  } catch (err) {
-    // Pollinations rate-limits the free tier (HTTP 429 → <img> onerror). The
-    // failure is usually transient, so retry once with a fresh seed after a
-    // short pause before giving up and moving to the next provider.
-    console.warn('[Image Gen] Pollinations AI failed, retrying once after 3s:', (err as Error).message);
-    await new Promise(r => setTimeout(r, 3000));
-    return attempt(Math.floor(Math.random() * 100000));
-  }
+    img.onload = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      resolve(imageUrl);
+    };
+    img.onerror = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      reject(new Error('Pollinations AI image request failed'));
+    };
+    img.src = imageUrl;
+  });
 };
 
 export const generateImageQwen = async (
@@ -331,7 +367,7 @@ export const generateImageQwen = async (
     // integrate.api.nvidia.com are always CORS-blocked (NVIDIA sends no
     // Access-Control-Allow-Origin), so a "direct fallback" could never work
     // here — it only added noise to the console. Rethrow so the provider
-    // fallback chain (Pollinations → Gemini → Perchance) takes over.
+    // fallback chain (Qwen → Gemini → Pollinations) takes over.
     // (The native app uses its own direct path above, where CORS does not apply.)
     console.warn("[Image Gen] Qwen backend failed; continuing to next provider:", backendErr);
     throw backendErr;
@@ -375,7 +411,55 @@ export async function generateAllQwenImages(
   return results;
 }
 
+// ── Session cache ────────────────────────────────────────────────────────────
+// The same illustration is requested many times per session (preview iframe
+// rebuilds on every edit, print preview, exports…). Without a cache every one of
+// those re-ran the whole provider chain and burned free-tier quota — which is
+// how "a couple of images, then the limit is reached" happened. Results are
+// remembered per prompt + size, and identical in-flight requests are shared.
+const IMAGE_CACHE_MAX = 200;
+const generatedImageCache = new Map<string, ImageGenerationResult>();
+const inFlightImages = new Map<string, Promise<ImageGenerationResult>>();
+
+const imageCacheKey = (prompt: string, width: number, height: number) => `${width}x${height}|${prompt}`;
+
+/** Return an already-generated image for this prompt + size, if the session has one. */
+export const peekGeneratedImage = (prompt: string, width: number = 800, height: number = 600): string | undefined =>
+  generatedImageCache.get(imageCacheKey(prompt, width, height))?.url;
+
 export const generateImageWithFallback = async (
+  options: ImageGenerationOptions
+): Promise<ImageGenerationResult> => {
+  // Cache / de-duplicate on the prompt the caller passed in (before styling).
+  const cacheWidth = options.width || ASPECT_RATIOS[options.aspectRatio || 'square'].width;
+  const cacheHeight = options.height || ASPECT_RATIOS[options.aspectRatio || 'square'].height;
+  const key = imageCacheKey(options.prompt, cacheWidth, cacheHeight);
+
+  if (options.skipCache) generatedImageCache.delete(key);
+  const cached = generatedImageCache.get(key);
+  if (cached) return cached;
+  const pending = inFlightImages.get(key);
+  if (pending) return pending;
+
+  const job = runImageProviderChain(options)
+    .then((result) => {
+      if (result.isLastResort !== true) {
+        if (generatedImageCache.size >= IMAGE_CACHE_MAX) {
+          const oldest = generatedImageCache.keys().next().value;
+          if (oldest !== undefined) generatedImageCache.delete(oldest);
+        }
+        generatedImageCache.set(key, result);
+      }
+      return result;
+    })
+    .finally(() => {
+      inFlightImages.delete(key);
+    });
+  inFlightImages.set(key, job);
+  return job;
+};
+
+const runImageProviderChain = async (
   options: ImageGenerationOptions
 ): Promise<ImageGenerationResult> => {
   const { prompt, aspectRatio = 'square', grade, subject, saContext = true, placement } = options;
@@ -420,7 +504,7 @@ export const generateImageWithFallback = async (
       }
     } else if (prov === 'qwen') {
       try {
-        const role = preferred === 'qwen' ? 'Premium SA' : 'Fallback';
+        const role = preferred === 'qwen' ? 'Secondary' : 'Fallback';
         console.log(`[Image Gen] Attempting Qwen-Image (NVIDIA NIM) (${role}) — SA-enhanced...`);
         const imageUrl = await generateImageQwen(styledPrompt, width, height, {
           grade,
@@ -434,7 +518,7 @@ export const generateImageWithFallback = async (
       }
     } else if (prov === 'gemini') {
       try {
-        const role = preferred === 'gemini' ? 'Secondary' : 'Final Recovery';
+        const role = preferred === 'gemini' ? 'Tertiary' : 'Fallback';
         console.log(`[Image Gen] Attempting Gemini/Imagen (${role})...`);
         const imageUrl = await generateImageGemini(styledPrompt, width, height);
         return { url: imageUrl, provider: 'gemini', prompt: styledPrompt, width, height };
@@ -443,7 +527,7 @@ export const generateImageWithFallback = async (
       }
     } else if (prov === 'pollinations') {
       try {
-        const role = preferred === 'pollinations' ? 'Tertiary' : 'Fallback';
+        const role = preferred === 'pollinations' ? 'Last resort' : 'Fallback';
         console.log(`[Image Gen] Attempting Pollinations AI (${role})...`);
         const imageUrl = await generateImagePollinations(styledPrompt, width, height, seed);
         return { url: imageUrl, provider: 'pollinations', prompt: styledPrompt, width, height };
@@ -459,7 +543,8 @@ export const generateImageWithFallback = async (
     provider: 'pollinations',
     prompt: styledPrompt,
     width,
-    height
+    height,
+    isLastResort: true
   };
 };
 

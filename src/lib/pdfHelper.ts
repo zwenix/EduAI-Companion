@@ -112,3 +112,32 @@ function installOklchPatch(): () => void {
     window.getComputedStyle = originalGetComputedStyle;
   };
 }
+
+/**
+ * Mount `surface` in the DOM, off-screen, for html2pdf / html2canvas.
+ *
+ * html2pdf.js CLONES the element it is given — inline styles included — into
+ * its own overlay. If that element is `position: absolute|fixed` the clone is
+ * taken out of flow, the overlay collapses to 0px tall and html2canvas renders
+ * a 717x0 canvas: the "exported PDF is one blank page" bug. So the render
+ * surface must stay in normal flow, and the off-screen positioning lives on a
+ * separate wrapper that html2pdf never clones. (The wrapper is `absolute`, not
+ * `fixed`, so html2canvas' scroll compensation still lines up when the app
+ * has been scrolled.)
+ *
+ * Returns a cleanup function that removes the wrapper again.
+ */
+export function mountOffscreenSurface(surface: HTMLElement, widthPx = 800): () => void {
+  const host = document.createElement('div');
+  host.setAttribute('aria-hidden', 'true');
+  host.style.position = 'absolute';
+  host.style.left = '-9999px';
+  host.style.top = '0';
+  host.style.width = `${widthPx}px`;
+  host.style.pointerEvents = 'none';
+  host.appendChild(surface);
+  document.body.appendChild(host);
+  return () => {
+    if (host.parentNode) host.parentNode.removeChild(host);
+  };
+}

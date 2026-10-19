@@ -936,13 +936,13 @@ export default function Settings({
 
                       <div className="pt-4 border-t border-white/5">
                          <h4 className="text-white font-bold text-base mb-1">Creative Image Generator</h4>
-                         <p className="text-slate-400 text-xs mb-4">Pick your preferred image engine. The selected model is tried first; the others form an automatic fallback chain so a blocked provider never leaves blank placeholders.</p>
+                         <p className="text-slate-400 text-xs mb-4">Pick your preferred image engine. The selected model is tried first. Default chain: Perchance → Gemini/Imagen → Pollinations; Qwen → Gemini/Imagen → Pollinations; Gemini/Imagen → Pollinations; Pollinations → Gemini/Imagen — so a blocked or rate-limited provider never leaves blank placeholders.</p>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {[
-                              { id: 'perchance', name: 'Perchance AI', tag: 'Primary', dotBg: 'bg-amber-500/20', dotText: 'text-amber-400', activeBorder: 'border-amber-500/40 bg-amber-500/10', desc: 'Fast stylised images · Pollinations / Qwen fallback' },
-                              { id: 'qwen', name: 'Qwen-Image (NVIDIA NIM)', tag: 'Premium SA', dotBg: 'bg-orange-500/20', dotText: 'text-orange-400', activeBorder: 'border-orange-500/40 bg-orange-500/10', desc: 'Qwen-Image via NVIDIA NIM · SA-context, superior text rendering' },
-                              { id: 'gemini-imagen', name: 'Google Imagen 3', tag: 'Secondary', dotBg: 'bg-sky-500/20', dotText: 'text-sky-400', activeBorder: 'border-sky-500/40 bg-sky-500/10', desc: 'Google Imagen / Gemini · Pollinations fallback' },
-                              { id: 'pollinations', name: 'Pollinations AI', tag: 'Fallback', dotBg: 'bg-pink-500/20', dotText: 'text-pink-400', activeBorder: 'border-pink-500/40 bg-pink-500/10', desc: 'Free open-source flux/turbo models' },
+                              { id: 'perchance', name: 'Perchance AI', tag: 'Primary', dotBg: 'bg-amber-500/20', dotText: 'text-amber-400', activeBorder: 'border-amber-500/40 bg-amber-500/10', desc: 'Fast stylised images · Gemini / Imagen fallback' },
+                              { id: 'qwen', name: 'Qwen-Image (NVIDIA NIM)', tag: 'Secondary', dotBg: 'bg-orange-500/20', dotText: 'text-orange-400', activeBorder: 'border-orange-500/40 bg-orange-500/10', desc: 'Qwen-Image via NVIDIA NIM · SA-context, superior text rendering' },
+                              { id: 'gemini-imagen', name: 'Google Imagen 3', tag: 'Tertiary', dotBg: 'bg-sky-500/20', dotText: 'text-sky-400', activeBorder: 'border-sky-500/40 bg-sky-500/10', desc: 'Google Imagen / Gemini · Pollinations fallback' },
+                              { id: 'pollinations', name: 'Pollinations AI', tag: 'Last resort', dotBg: 'bg-pink-500/20', dotText: 'text-pink-400', activeBorder: 'border-pink-500/40 bg-pink-500/10', desc: 'Free flux/turbo models (rate-limited) · Gemini / Imagen fallback' },
                             ].map((opt: any) => {
                               const isSel = imageProvider === opt.id || (opt.id === 'qwen' && imageProvider === 'qwen-image');
                               return (

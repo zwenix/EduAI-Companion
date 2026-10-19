@@ -265,13 +265,10 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
         }
       }
       const seed = Math.floor(Math.random() * 100000);
-      // Never hand out a raw image.pollinations.ai URL: the free tier answers
-      // HTTP 402 for the `turbo` model, so the browser would show a broken
-      // image. The server-side proxy walks the whole provider chain.
-      const cleanPrompt = styledPrompt.length > 1000 ? `${styledPrompt.substring(0, 997)}...` : styledPrompt;
-      const fallbackPath = `/api/image-proxy?prompt=${encodeURIComponent(cleanPrompt)}&width=${width || 1024}&height=${height || 1024}&seed=${seed}`;
-      const fallbackUrl = isNativeApp() ? `https://eduai-companion.vercel.app${fallbackPath}` : fallbackPath;
-      return { imageUrl: fallbackUrl, isFallback: true, provider: 'image-proxy', model: 'Provider-Chain' };
+      // All Gemini/Imagen models failed: hand back a direct Pollinations URL,
+      // flagged `isFallback` so callers know this is NOT a Gemini image.
+      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=${width || 1024}&height=${height || 1024}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
+      return { imageUrl: fallbackUrl, isFallback: true, provider: 'pollinations', model: 'Pollinations-Turbo' };
     }
 
     default:
