@@ -11,6 +11,7 @@ vi.mock('firebase/firestore', () => ({
   Timestamp: { now: () => ({}) },
 }));
 
+import { generatePerchanceImageClient } from '../src/services/perchanceService';
 import {
   IMAGE_PROVIDER_PRIORITY,
   getImageProviderOrder,
@@ -55,6 +56,18 @@ describe('generateImageWithFallback', () => {
     const r = await generateImageWithFallback({ prompt: 'a bird', width: 800, height: 600 });
     expect(r.provider).toBe('pollinations');
     expect(r.url).toContain('image.pollinations.ai');
+  });
+});
+
+describe('provider circuit breaker', () => {
+  it('benches a provider that has never worked so later images skip its timeout', async () => {
+    geminiDirect.mockReset();
+    geminiDirect.mockResolvedValue({ imageUrl: 'data:image/jpeg;base64,CCCC', provider: 'gemini' });
+    // Earlier tests already hit the (mocked, always failing) Perchance once.
+    const before = vi.mocked(generatePerchanceImageClient).mock.calls.length;
+    await generateImageWithFallback({ prompt: 'a fresh prompt one', width: 800, height: 600 });
+    await generateImageWithFallback({ prompt: 'a fresh prompt two', width: 800, height: 600 });
+    expect(vi.mocked(generatePerchanceImageClient).mock.calls.length).toBe(before);
   });
 });
 

@@ -194,24 +194,12 @@ export const generateImageGemini = async (
 // two concurrent requests would steal each other's replies. Serialise them.
 let perchanceQueue: Promise<unknown> = Promise.resolve();
 
-// If Perchance is down/blocked (school firewall, captcha…) every request would
-// otherwise burn its full timeout before reaching the fallback. After a few
-// consecutive failures, skip it briefly and let the fallback chain take over;
-// it is retried automatically once the cool-down passes.
-const PERCHANCE_FAILURE_LIMIT = 3;
-const PERCHANCE_COOLDOWN_MS = 2 * 60 * 1000;
-let perchanceFailures = 0;
-let perchanceSkipUntil = 0;
-
 export const generateImagePerchance = async (
   prompt: string,
   width: number = 1024,
   height: number = 1024,
   seed: number = Math.floor(Math.random() * 10000)
 ): Promise<string> => {
-  if (Date.now() < perchanceSkipUntil) {
-    throw new Error('Perchance AI is cooling down after repeated failures; use fallback');
-  }
   if (typeof window === 'undefined') {
     throw new Error('Perchance AI is unavailable; use fallback');
   }
@@ -222,15 +210,8 @@ export const generateImagePerchance = async (
         prompt, width, height, seed, isNativeApp() ? 6000 : 15000
       );
       if (!clientUrl) throw new Error('Perchance AI returned no image');
-      perchanceFailures = 0;
       return clientUrl;
     } catch (clientErr) {
-      perchanceFailures += 1;
-      if (perchanceFailures >= PERCHANCE_FAILURE_LIMIT) {
-        perchanceSkipUntil = Date.now() + PERCHANCE_COOLDOWN_MS;
-        perchanceFailures = 0;
-        console.warn(`[Image Gen] Perchance failed ${PERCHANCE_FAILURE_LIMIT}x in a row — pausing it for ${PERCHANCE_COOLDOWN_MS / 1000}s`);
-      }
       console.warn('Perchance client-side iframe generation timed out or failed, handing off...', clientErr);
       throw clientErr;
     }
@@ -459,6 +440,44 @@ export const generateImageWithFallback = async (
   return job;
 };
 
+// ── Provider health (circuit breaker) ───────────────────────────────────────
+// Some providers fail for reasons that will not fix themselves within a session:
+// Gemini image models answer 429 "limit: 0" on free API keys (retry in ~11h),
+// NVIDIA's hosted Qwen-Image 404s on accounts without access, and perchance.org
+// refuses to be framed (X-Frame-Options), so the iframe bridge never answers.
+// Without this, EVERY illustration burned 15-30s on each dead provider before
+// reaching one that works. After repeated failures a provider is skipped for a
+// cool-down, then retried. Pollinations (the end of every chain) is never skipped.
+const PROVIDER_COOLDOWN_MS = 10 * 60 * 1000;
+const providerHealth: Record<string, { failures: number; everWorked: boolean; skipUntil: number }> = {};
+
+const healthOf = (id: ImageProviderId) =>
+  (providerHealth[id] ||= { failures: 0, everWorked: false, skipUntil: 0 });
+
+const isCoolingDown = (id: ImageProviderId): boolean =>
+  id !== 'pollinations' && Date.now() < healthOf(id).skipUntil;
+
+const recordProviderSuccess = (id: ImageProviderId) => {
+  const h = healthOf(id);
+  h.failures = 0;
+  h.everWorked = true;
+  h.skipUntil = 0;
+};
+
+const recordProviderFailure = (id: ImageProviderId) => {
+  if (id === 'pollinations') return;
+  const h = healthOf(id);
+  h.failures += 1;
+  // A provider that has never produced an image this session (Perchance's
+  // iframe being blocked is the typical case) gets benched after ONE failure.
+  const limit = h.everWorked ? 3 : 1;
+  if (h.failures >= limit) {
+    h.skipUntil = Date.now() + PROVIDER_COOLDOWN_MS;
+    h.failures = 0;
+    console.warn(`[Image Gen] ${id} is failing — skipping it for ${PROVIDER_COOLDOWN_MS / 60000} min, then retrying.`);
+  }
+};
+
 const runImageProviderChain = async (
   options: ImageGenerationOptions
 ): Promise<ImageGenerationResult> => {
@@ -493,13 +512,19 @@ const runImageProviderChain = async (
   console.log(`[Image Gen] Provider priority: ${IMAGE_PROVIDER_PRIORITY.join(' → ')} | selected: ${preferred}${native ? ' (native app)' : ''} | fallback chain: ${order.join(' → ')} | SA context: ${saContext}`);
 
   for (const prov of order) {
+    if (isCoolingDown(prov)) {
+      console.log(`[Image Gen] Skipping ${prov} (cooling down after repeated failures).`);
+      continue;
+    }
     if (prov === 'perchance') {
       try {
         const role = preferred === 'perchance' ? 'Primary' : 'Fallback';
         console.log(`[Image Gen] Attempting Perchance AI (${role})...`);
         const imageUrl = await generateImagePerchance(styledPrompt, width, height, seed);
+        recordProviderSuccess('perchance');
         return { url: imageUrl, provider: 'perchance', prompt: styledPrompt, width, height };
       } catch (error) {
+        recordProviderFailure('perchance');
         console.warn('[Image Gen] Perchance AI failed; continuing...', error);
       }
     } else if (prov === 'qwen') {
@@ -512,8 +537,10 @@ const runImageProviderChain = async (
           placement: placement || aspectRatio,
           saContext
         });
+        recordProviderSuccess('qwen');
         return { url: imageUrl, provider: 'qwen', prompt: styledPrompt, width, height, model: QWEN_CONFIG.model, enhancedPrompt: saContext ? enhancePromptForSA(styledPrompt, grade, subject) : styledPrompt };
       } catch (error) {
+        recordProviderFailure('qwen');
         console.warn('[Image Gen] Qwen-Image failed; continuing...', error);
       }
     } else if (prov === 'gemini') {
@@ -521,8 +548,10 @@ const runImageProviderChain = async (
         const role = preferred === 'gemini' ? 'Tertiary' : 'Fallback';
         console.log(`[Image Gen] Attempting Gemini/Imagen (${role})...`);
         const imageUrl = await generateImageGemini(styledPrompt, width, height);
+        recordProviderSuccess('gemini');
         return { url: imageUrl, provider: 'gemini', prompt: styledPrompt, width, height };
       } catch (error) {
+        recordProviderFailure('gemini');
         console.warn('[Image Gen] Gemini/Imagen failed; continuing...', error);
       }
     } else if (prov === 'pollinations') {
@@ -530,8 +559,10 @@ const runImageProviderChain = async (
         const role = preferred === 'pollinations' ? 'Last resort' : 'Fallback';
         console.log(`[Image Gen] Attempting Pollinations AI (${role})...`);
         const imageUrl = await generateImagePollinations(styledPrompt, width, height, seed);
+        recordProviderSuccess('pollinations');
         return { url: imageUrl, provider: 'pollinations', prompt: styledPrompt, width, height };
       } catch (error) {
+        recordProviderFailure('pollinations');
         console.warn('[Image Gen] Pollinations AI failed; continuing...', error);
       }
     }

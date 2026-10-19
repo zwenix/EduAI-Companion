@@ -246,7 +246,7 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
         styledPrompt += styleSuffix;
       }
       const aspectRatio = (width || 1024) > (height || 1024) ? '16:9' : (width || 1024) < (height || 1024) ? '9:16' : '1:1';
-      const imageModels = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
+      const imageModels = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image'];
       for (const m of imageModels) {
         try {
           const response = await getClient().models.generateContent({

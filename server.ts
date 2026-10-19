@@ -1711,7 +1711,7 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
     if (provider === "gemini-imagen" || provider === "gemini") {
       const apiKey = resolveGeminiKey();
       if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
-        const modelsToTry = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
+        const modelsToTry = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image'];
         for (const m of modelsToTry) {
           try {
             console.log(`[IMAGE GEN LOG] Attempting primary image generation with Gemini (${m})...`);
@@ -2164,7 +2164,7 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
               throw new Error("GEMINI_API_KEY is not configured.");
             }
             console.log("Generating image with Gemini action:", styledPrompt);
-            const modelsToTry = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
+            const modelsToTry = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image'];
             let foundBase64 = null;
             for (const m of modelsToTry) {
               try {
