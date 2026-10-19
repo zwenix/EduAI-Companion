@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { wrapWithTemplate, type ContentTemplateMeta } from '../lib/contentTemplate';
+import { sanitiseLearnerFillInBody } from '../lib/learnerFillIn';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   BookOpen, 
@@ -201,15 +202,12 @@ export default function FoundationPhaseArchitect({
   const activeTerm = bannerMeta?.term || getCurrentSATerm();
 
   // Defensive post-processing: if the model hallucinated a pre-filled learner
-  // Name / hardcoded Date on the worksheet body, strip them back to blanks.
-  const sanitizeFoundationBody = (html: string): string => {
-    let out = html;
-    // "Name: Thabo" / "Name: Lerato" / "Name: John Doe" -> "Name: __________"
-    out = out.replace(/(Name\s*:\s*)([A-Za-z][A-Za-z\-\.\' ]{1,60})(?=<|\n|$)/gi, '$1__________');
-    // "Date: 15/03/2024" or "Date: 15 March 2025" etc. -> "Date: __________"
-    out = out.replace(/(Date\s*:\s*)(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|[A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}\s+[A-Za-z]+\s+\d{4})(?=<|\n|$)/gi, '$1__________');
-    return out;
-  };
+  // Name, a hardcoded Grade or an invented Date on the worksheet body, strip
+  // them back to blanks. Shared with every other learner-facing document (see
+  // src/lib/learnerFillIn.ts) so Name / Grade / Date behave identically
+  // everywhere; wrapWithTemplate() then injects the ONE canonical empty
+  // "Name: ____  Grade: ____  Date: ____" row under the banner.
+  const sanitizeFoundationBody = sanitiseLearnerFillInBody;
 
   const generatedMarkup = teachingResult?.content
     ? wrapWithTemplate(sanitizeFoundationBody(teachingResult.content), {

@@ -1,6 +1,6 @@
 import { collection, onSnapshot, query, setDoc, doc, Timestamp } from 'firebase/firestore';
 import { db, auth } from './firebase';
-import { buildDirectImageUrl, NATIVE_BACKEND_BASE } from './imageGeneration';
+import { buildDirectImageUrl, buildPollinationsUrl } from './imageGeneration';
 import { isNativeApp } from './platform';
 import { EDUCATIONAL_IMAGE_STYLE } from './prompt-priority';
 
@@ -165,11 +165,9 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
 
     // Cache an absolute URL only. A relative `/api/image-proxy?...` URL would be
     // written to Firestore by the web app and then resolve to nothing when the
-    // same illustration is opened inside the APK. The cached URL points at the
-    // same proxy route (not at image.pollinations.ai, whose free tier now
-    // answers HTTP 402), so the provider chain still runs for the APK.
+    // same illustration is opened inside the APK.
     if (!isNativeApp() && imageUrl.startsWith('/')) {
-      IllustrationCache.save(cleanPrompt, `${NATIVE_BACKEND_BASE.replace(/\/$/, '')}${imageUrl}`);
+      IllustrationCache.save(cleanPrompt, buildPollinationsUrl(enhancedPrompt, 800, 600, seed));
     } else {
       // Async save to firestore in background (non-blocking)
       IllustrationCache.save(cleanPrompt, imageUrl);

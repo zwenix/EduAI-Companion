@@ -103,12 +103,7 @@ export default function IllustrationLibrary({ isDarkMode }: { isDarkMode: boolea
 
       // Generate enhanced educational visual style compliant with SA palette
       const enhancedPrompt = `${cleanPrompt}, World-class masterpiece work of art, crisp render, sharp focus, charmingly aesthetic design, 4k, soft lighting, masterpiece emoji-style figurine 3D render, 3D Disney Character render, pure white background, natural beauty`;
-      // Store the SERVER-SIDE image-proxy URL, not a raw
-      // image.pollinations.ai link: the free tier answers HTTP 402 for the
-      // `turbo`/`flux` models, so a direct link renders as a broken image.
-      // The proxy walks the provider chain (Pollinations with a key → Gemini
-      // → Qwen-Image) and the absolute URL keeps working inside the APK.
-      const generatedUrl = `https://eduai-companion.vercel.app/api/image-proxy?prompt=${encodeURIComponent(enhancedPrompt)}&width=800&height=600&seed=${seed}`;
+      const generatedUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=600&nologo=true&model=flux&seed=${seed}`;
 
       const docRef = doc(db, 'illustrations', cleanId);
       const user = auth.currentUser;

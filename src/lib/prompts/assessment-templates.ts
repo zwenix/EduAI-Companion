@@ -176,9 +176,14 @@ Generate a CAPS-aligned test/memorandum with this exam-standard structure:
       </div>
     </div>
     
-    <div class="mt-6 grid grid-cols-2 gap-4">
+    <!-- Learner fill-in block: ALL THREE spaces stay EMPTY so the learner
+         completes them by hand. Never pre-fill a name, a grade or a date. -->
+    <div class="mt-6 grid grid-cols-3 gap-4">
       <div>
         <p class="font-semibold text-gray-800">Name: _______________________________</p>
+      </div>
+      <div>
+        <p class="font-semibold text-gray-800">Grade: _________________</p>
       </div>
       <div>
         <p class="font-semibold text-gray-800">Date: _________________</p>
