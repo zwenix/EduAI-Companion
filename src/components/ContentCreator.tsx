@@ -1179,22 +1179,18 @@ Target Language: ${activeLangStr}
 School Term: ${activeTermStr}
 
 CRITICAL RULES (read carefully — you MUST obey every one):
-1. DO NOT invent, write, or pre-fill ANY learner name. The only acceptable "Name:" line on the activity/worksheet must be a BLANK fill-in line for the learner to write on — use an underline or a dashed border, e.g.
-   <p><strong>Name:</strong> <span class="inline-block border-b-2 border-dashed border-slate-400 min-w-[200px] pb-0.5">&nbsp;</span></p>
-   NEVER write a real or fictional name (e.g. "Thabo", "Amina", "Sipho", "Lerato") next to "Name:" or in a learner-name field — that field MUST be empty.
-2. DO NOT invent or hard-code a specific calendar date (e.g. "12 March 2024", "15/03/2024", "10 October 2025"). If a date line is needed, leave it as a BLANK fill-in field just like the name:
-   <p><strong>Date:</strong> <span class="inline-block border-b-2 border-dashed border-slate-400 min-w-[140px] pb-0.5">&nbsp;</span></p>
-   Do not substitute today's date either — the learner/teacher fills it in.
-3. Do NOT add your own banner, header strip, school letterhead, title block, or "Name/Class/Date" meta block at the top of the page. You MAY include a single "Name: ___  Date: ___" fill-in row inside the body content for the learner to complete, but both blanks must be EMPTY.
+1. DO NOT invent, write, or pre-fill ANY learner name, grade or date. The learner's "Name:", "Grade:" and "Date:" spaces MUST be EMPTY — the learner completes them BY HAND.
+2. Do NOT draw your own Name/Grade/Date fill-in row at all. The app injects ONE canonical row of EMPTY blanks ("Name: ____  Grade: ____  Date: ____") directly under the document banner for every learner-facing sheet. If you write one anyway it is deleted, and any value you pre-fill on a "Name:"/"Grade:"/"Date:" line is stripped back to a blank before printing.
+3. Do NOT add your own banner, header strip, school letterhead, title block, or "Name/Class/Date" meta block at the top of the page — the host banner already carries the grade, subject, term and CAPS reference.
 4. Today's real-world date is ${todayStr} and the current SA school term is ${activeTermStr} — use these ONLY inside CAPS-reference text (e.g. "CAPS Foundation Phase — ${activeTermStr}"), never as a pre-filled "Date:" answer.
-5. Fictional names (Thabo, Amina, Sipho, etc.) may ONLY appear inside example sentences, reading passages, or story scenarios — NEVER next to a "Name:" label or in a metadata/learner-info block.
+5. Fictional names (Thabo, Amina, Sipho, etc.) may ONLY appear inside example sentences, reading passages, or story scenarios — NEVER next to a "Name:", "Grade:" or "Date:" label, and never in a metadata/learner-info block.
 
 Instructions: Create a complete, engaging CAPS Foundation Phase educational pack and interactive game logic. Include:
 1. Warm-up & Phonemic Awareness / Letter Sound recognition
 2. Core Gameplay Activity (Interactive matching / CVC spelling / word completion)
 3. Step-by-step game mechanics with clear instructions and rewards
 4. Differentiated challenges (Lower Order to Higher Order progression)
-5. Printable activity sheet with EMPTY "Name: ___" and "Date: ___" fill-in lines (NO pre-filled names/dates)
+5. Printable activity sheet — leave the learner's Name, Grade and Date spaces EMPTY (the app prints the blank fill-in row; do NOT pre-fill any name, grade or date)
 6. Teacher's Observation Checklist.
 Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast, colorful badges, playful emojis, and clear large typography).`;
 

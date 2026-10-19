@@ -368,10 +368,11 @@ explicit user instructions.
   (52 s total, 15 s Gemini reserve, ≤ 28 s per upstream attempt). Every
   upstream client must carry a `timeout` and `maxRetries: 0`, and every
   attempt must be capped by the remaining budget.
-* The image provider chain has its own budget (`IMAGE_CHAIN_BUDGET_MS` in
-  `server.ts`) for the same reason.
 * `tests/ai-route-budget.test.ts` pins the arithmetic. Never raise a budget
   above the platform ceiling.
+* The image routes (`/api/image-proxy`, `/api/images/generate`,
+  `/api/images/qwen-generate`) are deliberately **outside** this budget —
+  they are pinned to the pre-chain behaviour described in §7.3d.
 
 ### 7.3c Self-hosted web fonts
 * The typefaces are served from the app's own origin (`/fonts/fonts.css`),
@@ -384,6 +385,30 @@ explicit user instructions.
   never the generated files.
 * The standalone export templates (zipped and opened from disk) are the only
   place that may still link Google Fonts.
+
+### 7.3d Image generation — pinned to the pre-chain behaviour
+* **Do not re-introduce the gated "provider chain" for images.** Image
+  generation was rolled back to its earlier, working shape after the chain
+  made every illustration fail (Pollinations was skipped unless
+  `POLLINATIONS_API_KEY` was set, and when Gemini/Qwen also had no usable key
+  the proxy answered 502 — i.e. no images at all).
+* `/api/image-proxy` fetches `https://image.pollinations.ai/prompt/…`
+  (`model=turbo&enhance=true&nologo=true`) and streams the bytes straight
+  back. No API key, no chain, no budget wrapper.
+* `/api/images/generate` tries the Gemini image models
+  (`gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`,
+  `imagen-3.0-generate-002`) and otherwise hands back a **direct
+  Pollinations URL** (`turbo` for `gemini`/`perchance`, `flux` for
+  `pollinations`). The `generate-image` content action does the same.
+* `/api/images/qwen-generate` walks the Qwen-Image slugs on NVIDIA NIM
+  (`qwen/qwen-image-2512`, then `qwen/qwen-image`).
+* On the client, `src/lib/imageGeneration.ts` keeps its fixed provider
+  priority/fallback graph (Perchance → Qwen → Gemini → Pollinations) and
+  `buildPollinationsUrl()` / `buildDirectImageUrl()` are the live entry
+  points. `buildDirectImageUrl()` points a native build at Pollinations and
+  a web build at `/api/image-proxy`.
+* The image **model list is frozen** — the slugs above are the approved
+  image models. Changing them is a separate, explicit decision.
 
 ### 7.4 API abuse protection
 * `src/lib/rateLimit.ts` is mounted on `/api` in `server.ts` before every route

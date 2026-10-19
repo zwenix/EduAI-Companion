@@ -70,6 +70,11 @@ import {
     bannerPaletteFor,
     isBannerGradient,
 } from './bannerPalettes';
+import {
+    injectLearnerFillInRow,
+    isLearnerFillInContentType,
+    sanitiseLearnerFillInBody,
+} from './learnerFillIn';
 
 export {
     BANNER_PALETTES,
@@ -125,6 +130,18 @@ export interface ContentTemplateMeta {
      * worksheets/activity sheets where the learner must write the date in.
      */
     leaveDateBlank?: boolean;
+    /**
+     * When true the document is one a LEARNER writes on, so the body carries
+     * the canonical **empty** `Name: ____ Grade: ____ Date: ____` fill-in row
+     * and any value a model pre-filled on those lines is blanked out. The
+     * banner still prints the REAL grade pill for the teacher's reference, and
+     * an explicitly supplied `learner` name still wins over the blank.
+     *
+     * Defaults to {@link isLearnerFillInContentType}`(contentType)` when
+     * omitted. Set it to `false` to opt a learner-facing content type OUT of
+     * the blank row (or `true` to force the row onto a teacher document).
+     */
+    leaveLearnerFieldsBlank?: boolean;
     /**
      * Explicit banner palette id (`worksheet`, `assessment`, `certificate`, …).
      * Normally omitted — the palette is derived from `contentType` — but it
@@ -1675,24 +1692,38 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
         mergeMeta(mergeMeta(harvestMetaFromChrome(original), beforeStrip.meta), collapsed.meta),
         meta,
     );
+    // Is this a document a LEARNER writes on? When it is, the Name / Grade /
+    // Date spaces IN THE BODY must be EMPTY: the canonical blank row is
+    // injected under the banner and anything a model pre-filled on those lines
+    // is blanked out. The banner itself keeps its real metadata (grade, date,
+    // term) for the teacher's reference — the caller can still ask for blank
+    // banner pills with `leaveDateBlank` (Foundation Phase packs do), and an
+    // explicitly supplied learner name always wins over the blank.
+    const learnerFillIn = effectiveMeta.leaveLearnerFieldsBlank
+        ?? isLearnerFillInContentType(effectiveMeta.contentType);
     // Then kill anything banner-shaped that repeats the banner and any heading
     // that repeats what the banner will show, before rendering the banner.
     const deduped = stripLeadingDuplicateBanner(collapsed.html, effectiveMeta);
-    const cleaned = stripDuplicateTitleHeading(deduped, effectiveMeta);
+    const titled = stripDuplicateTitleHeading(deduped, effectiveMeta);
+    const cleaned = learnerFillIn ? sanitiseLearnerFillInBody(titled) : titled;
     const banner = buildTemplateComplianceBannerHTML(effectiveMeta);
     // ONE palette per document, chosen for the content type: the banner, every
     // repainted model band and the stylesheet safety nets all use the same two
     // colours — published below as the scoped `--eduai-banner-gradient`.
     const gradient = bannerGradientFor(effectiveMeta.contentType, effectiveMeta.palette);
 
+    // The canonical EMPTY Name / Grade / Date row sits directly under the
+    // banner, so it is the first thing a learner sees on the sheet.
+    const bannerBlock = learnerFillIn ? injectLearnerFillInRow(banner) : banner;
+
     let inner: string;
     if (cleaned.includes(COMPLIANCE_SLOT)) {
         // Exactly one banner, restored to the position the host gave it first.
-        inner = cleaned.replace(COMPLIANCE_SLOT, () => banner);
+        inner = cleaned.replace(COMPLIANCE_SLOT, () => bannerBlock);
     } else if (hasLightCards(cleaned)) {
-        inner = `${banner}\n${cleaned}`;
+        inner = `${bannerBlock}\n${cleaned}`;
     } else {
-        inner = `<article class="card">\n${banner}\n${cleaned}\n</article>`;
+        inner = `<article class="card">\n${bannerBlock}\n${cleaned}\n</article>`;
     }
 
     return `
@@ -1709,7 +1740,7 @@ ${buildTemplateFooterHTML(effectiveMeta)}`.trim();
 
 /** Map the print/export options onto the template metadata. */
 export const metaFromPrintOptions = (
-    options?: { subject?: string; grade?: string; contentType?: string; date?: string; term?: string; school?: string; teacher?: string; learner?: string; title?: string; className?: string; extraPills?: string[] },
+    options?: { subject?: string; grade?: string; contentType?: string; date?: string; term?: string; school?: string; teacher?: string; learner?: string; title?: string; className?: string; extraPills?: string[]; leaveDateBlank?: boolean; leaveLearnerFieldsBlank?: boolean },
     title?: string,
 ): ContentTemplateMeta => {
     const pills: string[] = [];
@@ -1726,5 +1757,10 @@ export const metaFromPrintOptions = (
         teacher: options?.teacher,
         learner: options?.learner,
         extraPills: pills.length ? pills : undefined,
+        // Pass the fill-in flags straight through: print, print-preview and the
+        // PDF export must blank the learner's Name / Grade / Date exactly like
+        // the on-screen preview does.
+        leaveDateBlank: options?.leaveDateBlank,
+        leaveLearnerFieldsBlank: options?.leaveLearnerFieldsBlank,
     };
 };

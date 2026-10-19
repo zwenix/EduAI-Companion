@@ -176,7 +176,6 @@ Copy `.env.example` to `.env` and fill in what you need. Only `GEMINI_API_KEY` i
 | `OCR_SPACE_API_KEY` | Optional secondary OCR engine. |
 | `HUGGINGFACE_API_KEY` / `HF_TOKEN` | Hugging Face TTS and inference. |
 | `REPLICATE_API_TOKEN` | Optional Replicate video generation. |
-| `POLLINATIONS_API_KEY` | Optional. Pollinations now answers **HTTP 402** on the free tier; without a key the image proxy serves the image from Gemini/Imagen or Qwen-Image instead. |
 | `VITE_VERCEL_ANALYTICS` | Set to `true` **only** when Web Analytics is enabled for the Vercel project (otherwise the analytics script 404s on every page load). |
 | `ELEVENLABS_API_KEY` | Optional voice provider. |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push notifications (generate with `npx web-push generate-vapid-keys`). |

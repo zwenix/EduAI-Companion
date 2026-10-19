@@ -87,28 +87,30 @@ fails over in **28 s** with a readable error instead of dying at 60 s with a
 
 ---
 
-## 4. `/api/image-proxy … 402` and `image.pollinations.ai/… 402`
+## 4. `/api/image-proxy … 402` and `image.pollinations.ai/… 402` — REVERTED
 
-**What it was.** Pollinations' free tier now answers **HTTP 402 (Payment
-Required)** for the `turbo` model and the `enhance=true` prompt rewriter.
-The proxy forwarded that status verbatim, so every generated illustration
-rendered as a broken image.
+**What it was.** Pollinations' free tier was reported to answer **HTTP 402
+(Payment Required)** for the `turbo` model and the `enhance=true` prompt
+rewriter, and the proxy forwarded that status verbatim.
 
-**Fix.** The proxy is now a real provider chain and only ever returns bytes
-it actually received:
+**What was tried.** The proxy was rewritten into a gated provider chain
+(Pollinations **only when `POLLINATIONS_API_KEY` is set** → Gemini/Imagen →
+Qwen-Image on NVIDIA NIM, bounded by an `IMAGE_CHAIN_BUDGET_MS`, answering
+502 when exhausted), and the client was switched from direct
+`image.pollinations.ai` URLs to that proxy everywhere.
 
-1. **Pollinations** — attempted only when `POLLINATIONS_API_KEY` is set
-   (without a key it is skipped instead of burning a request on a guaranteed
-   402).
-2. **Google Gemini / Imagen** (`gemini-3.1-flash-image`,
-   `gemini-3.1-flash-lite-image`, `imagen-3.0-generate-002`).
-3. **Qwen-Image on NVIDIA NIM** (`qwen/qwen-image-2512`, `qwen/qwen-image`).
+**Why it was rolled back.** The cure was worse than the disease: with no
+`POLLINATIONS_API_KEY` configured, Pollinations was skipped outright, and
+when Gemini/Qwen had no usable key either, **every** image request ended in a
+502 — the app could not generate a single illustration. The whole image
+subsystem (`server.ts` image routes, `src/lib/imageGeneration.ts`,
+`src/lib/imageReplacer.ts`, `src/components/IllustrationLibrary.tsx` and the
+`POLLINATIONS_API_KEY` env entry) has been restored to its earlier working
+state. See AGENTS.md §7.3d — do not re-introduce the gated chain.
 
-If every provider fails the proxy answers **502** with a readable message —
-never a 402 — so the client's image-recovery pass can try another route.
-The client (`src/lib/imageGeneration.ts`) now asks the proxy for images
-instead of pointing an `<img>` straight at `image.pollinations.ai`, on the web
-**and** inside the Android APK.
+**If a 402 from Pollinations is ever confirmed again,** fix it by adding a
+key to the *existing* direct fetch (or by swapping the `model=` parameter),
+not by gating the provider behind one.
 
 ---
 
@@ -204,6 +206,6 @@ this list:
 - [ ] `css2:1 … ERR_CONNECTION_CLOSED` (self-hosted fonts)
 - [ ] `/_vercel/insights/script.js` (opt-in analytics only)
 - [ ] `/api/ai/<provider> … 504` (route budget)
-- [ ] `/api/image-proxy … 402` (image provider chain)
+- [ ] illustrations actually render (image routes reverted to the direct Pollinations proxy — see §4)
 - [ ] `Interventions sync err … Missing or insufficient permissions` (rules deployed)
 - [ ] `Banner not shown: beforeinstallpromptevent.preventDefault()` (expected notice)
