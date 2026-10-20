@@ -319,6 +319,18 @@ export const EDUAI_LIGHT_CSS = `
     text-transform: uppercase;
     margin-top: 4px;
 }
+/* Content opens right under the banner: wrappers on the way to the first real
+   text (tagged by tightenLeadingSpace) lose their TOP margin / padding / forced
+   height, so no hero block, \`min-h-screen\` wrapper or \`mt-16\` can open a big
+   empty band between the banner and the first line. */
+.eduai-light-scope [data-eduai-lead] {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    min-height: 0 !important;
+}
+/* Documents saved by older template revisions carry an inline 28px top padding
+   on <main class="page">; this keeps the banner right under the page header. */
+.eduai-light-scope > .page { padding-top: 10px !important; }
 /* ── THE single document banner ──
    Title + every metadata pill + the CAPS reference and compliance labels live
    in this ONE band, so nothing at the top of a document is ever repeated. */
@@ -471,7 +483,9 @@ export const EDUAI_LIGHT_CSS = `
     z-index: 1;
     max-width: 800px;
     margin: 0 auto;
-    padding: 28px 20px 60px;
+    /* Small top padding: the banner must sit 1–2 lines under the page header,
+       never a large empty band. */
+    padding: 10px 20px 60px;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     color: #1e293b;
     line-height: 1.65;
@@ -607,7 +621,7 @@ export const EDUAI_LIGHT_CSS = `
     .site-header { padding: 0 8px; gap: 5px; height: 23px; }
     .site-header .logo { height: 13px; }
     .header-text { font-size: clamp(7px, 1.6vw, 9px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .eduai-light-scope .page { padding: 20px 14px 50px; }
+    .eduai-light-scope .page { padding: 8px 14px 50px; }
     .eduai-light-scope .card { padding: 20px; border-radius: 14px; }
     .eduai-light-scope .card > .eduai-compliance-banner { width: calc(100% + 40px) !important; margin-left: -20px !important; margin-right: -20px !important; }
     .eduai-light-scope .card > .eduai-compliance-banner:first-child { margin-top: -20px !important; border-radius: 13px 13px 10px 10px; }
@@ -630,7 +644,15 @@ export const EDUAI_LIGHT_CSS = `
 }
 @media print {
     .site-header { position: static; }
-    .eduai-light-scope .card { box-shadow: none; break-inside: avoid; }
+    /* The card usually holds the WHOLE document. \`break-inside: avoid\` on it
+       makes the browser move it to the next sheet when it does not fit in what
+       is left of page 1 — page 1 then prints the header only, with a huge
+       empty gap before the banner, followed by blank-looking sheets. Let it
+       flow, and only keep small blocks whole. */
+    .eduai-light-scope .card { box-shadow: none; break-inside: auto; page-break-inside: auto; }
+    .eduai-light-scope tr, .eduai-light-scope img, .eduai-light-scope figure,
+    .eduai-light-scope li, .eduai-light-scope blockquote { break-inside: avoid; page-break-inside: avoid; }
+    .eduai-light-scope h1, .eduai-light-scope h2, .eduai-light-scope h3, .eduai-light-scope h4 { break-after: avoid; page-break-after: avoid; }
     .eduai-light-scope .btn { display: none !important; }
     /* The 50%-opacity logo watermark sits at 50% of the *whole* document, so
        in a browser print (usually without "background graphics") it bleeds
@@ -1654,6 +1676,56 @@ export const stripDuplicateTitleHeading = (html: string, meta: ContentTemplateMe
     return source.slice(match[0].length).trim();
 };
 
+
+/**
+ * Remove the vertical dead space a model likes to open its document with.
+ *
+ * Right under the banner the content must start within a line or two. Models
+ * often emit spacer markup first — `<br>` runs, `<p>&nbsp;</p>`, empty
+ * fixed-height `<div>`s — or wrap everything in a hero / container that has
+ * `min-height: 100vh`, `margin-top: 60px`, `padding-top: 80px` and similar.
+ * Blank leading nodes are deleted, and every wrapper on the way down to the
+ * first real text is tagged `data-eduai-lead` so the stylesheet can zero its
+ * TOP margin / padding / min-height (only the top: side and bottom spacing the
+ * author chose is left alone).
+ */
+const LEADING_BLANK_RE = /^\s*(?:<br\s*\/?>|<hr\b[^>]*\/?>|<p\b[^>]*>(?:\s|&nbsp;|&#160;|<br\s*\/?>)*<\/p\s*>|<div\b[^>]*>(?:\s|&nbsp;|&#160;|<br\s*\/?>)*<\/div\s*>|<span\b[^>]*>(?:\s|&nbsp;|&#160;)*<\/span\s*>)/i;
+const LEADING_WRAPPER_RE = /^\s*<(div|section|article|main|header|figure)\b([^>]*)>/i;
+
+export const tightenLeadingSpace = (html: string, depth = 0): string => {
+    let rest = String(html || '');
+    let prefix = '';
+    // Keep leading <style>/<script>/comment nodes in place, drop blank spacers.
+    for (let guard = 0; guard < 60; guard += 1) {
+        const keep = rest.match(/^\s*(?:<style\b[\s\S]*?<\/style\s*>|<script\b[\s\S]*?<\/script\s*>|<link\b[^>]*>|<meta\b[^>]*>|<!--[\s\S]*?-->)/i);
+        if (keep && !keep[0].includes('EDUAI_COMPLIANCE_SLOT')) {
+            prefix += keep[0];
+            rest = rest.slice(keep[0].length);
+            continue;
+        }
+        const blank = rest.match(LEADING_BLANK_RE);
+        if (blank) {
+            rest = rest.slice(blank[0].length);
+            continue;
+        }
+        break;
+    }
+    const wrapper = depth < 5 ? rest.match(LEADING_WRAPPER_RE) : null;
+    if (!wrapper) {
+        // Leading text-level element (heading, paragraph …): tag it too, so its
+        // own top margin cannot add a gap under the banner.
+        const first = rest.match(/^\s*<([a-z][\w:-]*)\b([^>]*)>/i);
+        if (first && !/^(?:script|style|link|meta|img|svg|table)$/i.test(first[1]) && !/data-eduai-lead/.test(first[2])) {
+            rest = rest.replace(first[0], first[0].replace(/<([a-z][\w:-]*)\b/i, '<$1 data-eduai-lead="1"'));
+        }
+        return `${prefix}${rest}`;
+    }
+    const open = wrapper[0];
+    const tagged = /data-eduai-lead/.test(open) ? open : open.replace(/<([a-z][\w:-]*)\b/i, '<$1 data-eduai-lead="1"');
+    const after = rest.slice(open.length);
+    return `${prefix}${tagged}${tightenLeadingSpace(after, depth + 1)}`;
+};
+
 /**
  * Wrap generated content in the LIGHT Template v5 chrome:
  * very light blue translucent page header → ONE full-width two-colour vertical
@@ -1705,8 +1777,17 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
     // that repeats what the banner will show, before rendering the banner.
     const deduped = stripLeadingDuplicateBanner(collapsed.html, effectiveMeta);
     const titled = stripDuplicateTitleHeading(deduped, effectiveMeta);
-    const cleaned = learnerFillIn ? sanitiseLearnerFillInBody(titled) : titled;
+    const cleanedBody = learnerFillIn ? sanitiseLearnerFillInBody(titled) : titled;
     const banner = buildTemplateComplianceBannerHTML(effectiveMeta);
+    const tight = (() => {
+        const at = cleanedBody.indexOf(COMPLIANCE_SLOT);
+        if (at < 0) return tightenLeadingSpace(cleanedBody);
+        const head = cleanedBody.slice(0, at);
+        const tail = cleanedBody.slice(at + COMPLIANCE_SLOT.length);
+        return head.trim()
+            ? `${tightenLeadingSpace(head)}${COMPLIANCE_SLOT}${tail}`
+            : `${COMPLIANCE_SLOT}${tightenLeadingSpace(tail)}`;
+    })();
     // ONE palette per document, chosen for the content type: the banner, every
     // repainted model band and the stylesheet safety nets all use the same two
     // colours — published below as the scoped `--eduai-banner-gradient`.
@@ -1716,6 +1797,7 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
     // banner, so it is the first thing a learner sees on the sheet.
     const bannerBlock = learnerFillIn ? injectLearnerFillInRow(banner) : banner;
 
+    const cleaned = tight;
     let inner: string;
     if (cleaned.includes(COMPLIANCE_SLOT)) {
         // Exactly one banner, restored to the position the host gave it first.
@@ -1731,7 +1813,7 @@ ${buildTemplateStyleHTML()}
 ${buildTemplateHeaderHTML(effectiveMeta)}
 <div class="eduai-light-scope" style="--eduai-banner-gradient: ${gradient}; position: relative; background: ${EDUAI_TEMPLATE_COLOURS.paper}; overflow: hidden;">
   ${buildTemplateWatermarkHTML()}
-  <main class="page" style="position: relative; z-index: 1; max-width: 800px; margin: 0 auto; padding: 28px 20px 60px; font-family: ${LIGHT_BODY_FONT}; color: #1e293b; line-height: 1.65; box-sizing: border-box;">
+  <main class="page" style="position: relative; z-index: 1; max-width: 800px; margin: 0 auto; padding: 10px 20px 60px; font-family: ${LIGHT_BODY_FONT}; color: #1e293b; line-height: 1.65; box-sizing: border-box;">
 ${applyBannerGradients(inner, gradient)}
   </main>
 </div>

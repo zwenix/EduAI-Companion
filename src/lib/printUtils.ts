@@ -1,5 +1,5 @@
 import { replaceImagePlaceholders, finalizeImagesForExport, resolvePendingImages } from './imageReplacer';
-import { patchOklchForHtml2canvas, mountOffscreenSurface } from './pdfHelper';
+import { patchOklchForHtml2canvas, mountOffscreenSurface, relaxOversizedBreakAvoid, PDF_PAGEBREAK_OPTIONS } from './pdfHelper';
 import { isAndroidDevice, isNativeApp, supportsSystemPrint } from './platform';
 import { deliverFile, notify, triggerWebDownload } from './nativeExport';
 import { wrapWithTemplate, metaFromPrintOptions, ContentTemplateMeta } from './contentTemplate';
@@ -458,7 +458,7 @@ async function buildPdfBlob(container: HTMLElement, pdfFilename: string): Promis
             }
         },
         jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait', compress: true },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        pagebreak: PDF_PAGEBREAK_OPTIONS
     } as any;
 
     updateExport('Rendering document…');
@@ -532,6 +532,7 @@ export const downloadAsPDF = async (
         // so without this the rasterised PDF comes out unstyled.
         container.innerHTML = `<style>${EDUAI_DOC_TAILWIND_CSS}</style>${html}`;
         unmountSurface = mountOffscreenSurface(container, 800);
+        relaxOversizedBreakAvoid(container);
 
         // Resolve any relative image URLs in the container to absolute URLs so
         // that html2canvas can fetch them cross-origin (relative /api/image-proxy

@@ -7,7 +7,7 @@
 import { buildFullHTML, DocumentData, RenderedImage, SA_COLOURS } from "../templates/sa-html-templates";
 import { EDUAI_DOC_TAILWIND_CSS } from "../docTailwindCompat";
 import { cleanupExportArtifacts } from "../printUtils";
-import { mountOffscreenSurface } from "../pdfHelper";
+import { mountOffscreenSurface, relaxOversizedBreakAvoid, PDF_PAGEBREAK_OPTIONS } from "../pdfHelper";
 import { deliverFile } from "../nativeExport";
 import { recommendedScale, renderElementToPdfBlob, shouldUsePaginatedRenderer } from "../pdfPaginate";
 
@@ -69,6 +69,7 @@ export async function generatePDFClient(
 
   try {
     unmount = mountOffscreenSurface(container, 800);
+    relaxOversizedBreakAvoid(container);
 
     // Dynamic import html2pdf if available
     const html2pdfModule = await import("html2pdf.js").catch(() => null);
@@ -79,7 +80,8 @@ export async function generatePDFClient(
       filename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', removeContainer: true },
-      jsPDF: { unit: 'mm', format, orientation: landscape ? 'landscape' : 'portrait' }
+      jsPDF: { unit: 'mm', format, orientation: landscape ? 'landscape' : 'portrait' },
+      pagebreak: PDF_PAGEBREAK_OPTIONS
     };
 
     const scale = recommendedScale();

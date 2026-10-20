@@ -10,7 +10,7 @@ import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firesto
 import jsPDF from 'jspdf';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
-import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
+import { patchOklchForHtml2canvas, relaxOversizedBreakAvoid, PDF_PAGEBREAK_OPTIONS } from '../lib/pdfHelper';
 import { cleanupExportArtifacts } from '../lib/printUtils';
 import { bannerGradientFor, buildCAPSCode, EDUAI_COMPLIANCE_LABELS, EDUAI_TEMPLATE_FOOTER_LINE, wrapWithTemplate } from '../lib/contentTemplate';
 import {
@@ -710,6 +710,7 @@ export default function StudentPortfolio({
       });
 
       document.body.appendChild(element);
+      relaxOversizedBreakAvoid(element);
 
       const opt = {
         margin: 15,
@@ -717,7 +718,7 @@ export default function StudentPortfolio({
         image: { type: 'jpeg' as const, quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, logging: false },
         jsPDF: { unit: 'pt' as const, format: 'a4' as const, orientation: 'portrait' as const },
-        pagebreak: { mode: ['avoid-all' as const, 'css' as const, 'legacy' as const] }
+        pagebreak: PDF_PAGEBREAK_OPTIONS
       };
 
       const restoreGetComputedStyle = patchOklchForHtml2canvas();
