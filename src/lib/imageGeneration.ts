@@ -207,7 +207,7 @@ export const generateImageGemini = async (
 // id, so replies cannot be mixed up).
 const PERCHANCE_MAX_CONCURRENT = 2;
 /** Timeout while Perchance has never worked this session (blocked frame = no reply). */
-const PERCHANCE_FIRST_TRY_MS = 12000;
+const PERCHANCE_FIRST_TRY_MS = 30000;
 let perchanceActive = 0;
 const perchanceWaiters: Array<() => void> = [];
 
@@ -239,7 +239,7 @@ export const generateImagePerchance = async (
     // Generation + Cloudflare check can take a while; give it room before the
     // chain moves on to Gemini.
     // Until Perchance has produced one image this session, give up quickly: if
-    // perchance.org refuses to be framed (X-Frame-Options) nothing ever comes
+    // Perchance refuses to be framed (X-Frame-Options) nothing ever comes
     // back, and waiting a full minute per illustration just stalls the document.
     const proven = providerHealth.perchance?.everWorked === true;
     const clientUrl = await generatePerchanceImageClient(
@@ -554,7 +554,7 @@ const PROVIDER_COOLDOWN_MS = 10 * 60 * 1000;
 // A Perchance that has NEVER worked here is almost certainly blocked outright
 // (perchance.org sends X-Frame-Options: sameorigin to embedders, or a school
 // network blocks it) — that does not fix itself, so remember it across reloads.
-const PERCHANCE_BLOCKED_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+const PERCHANCE_BLOCKED_COOLDOWN_MS = 30 * 60 * 1000;
 const PERCHANCE_BENCH_KEY = 'eduai_perchance_bench_until';
 const providerHealth: Record<string, { failures: number; everWorked: boolean; skipUntil: number }> = {};
 

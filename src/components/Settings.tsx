@@ -19,6 +19,7 @@ import {
 import { initDB, clearStudyNotes } from '../lib/offlineDB';
 import ProfileSettings from './ProfileSettings';
 import PasswordSecurity from './PasswordSecurity';
+import ImageEngineTest from './ImageEngineTest';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
@@ -971,6 +972,7 @@ export default function Settings({
                          <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
                             <strong className="text-cyan-400">Qwen-Image (NVIDIA NIM)</strong> uses <code className="font-mono text-cyan-300">qwen/qwen-image</code> on NVIDIA's hosted inference endpoint and produces premium SA-context enhanced educational illustrations with better text rendering and cultural accuracy.
                          </p>
+                         <ImageEngineTest />
                       </div>
                    </div>
                 </div>

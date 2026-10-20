@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { generatePerchanceImageClient, pickPerchanceResolution, PERCHANCE_API_URL } from '../src/services/perchanceService';
+import { generatePerchanceImageClient, pickPerchanceResolution, PERCHANCE_API_URL, PERCHANCE_EMBED_HOST, PERCHANCE_GENERATOR_PAGE } from '../src/services/perchanceService';
 
 type Handler = (e: any) => void;
 
@@ -83,5 +83,13 @@ describe('generatePerchanceImageClient', () => {
   it('times out so the provider chain can move on', async () => {
     installFakeBrowser(() => { /* never answers */ });
     await expect(generatePerchanceImageClient('a cat', 1024, 1024, 1, 50)).rejects.toThrow(/timed out/);
+  });
+});
+
+describe('embed host', () => {
+  it('frames Perchance only through null.perchance.org (perchance.org itself sends X-Frame-Options: sameorigin)', () => {
+    expect(PERCHANCE_EMBED_HOST).toBe('https://null.perchance.org');
+    expect(PERCHANCE_API_URL.startsWith('https://null.perchance.org/')).toBe(true);
+    expect(PERCHANCE_GENERATOR_PAGE).toBe('https://perchance.org/ai-images-generator');
   });
 });

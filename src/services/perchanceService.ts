@@ -1,32 +1,36 @@
 /**
  * Perchance AI Image Generator Service
  *
- * Uses the community "Perchance Image API" (https://perchance.org/perchance-ai-api),
- * which is built to be consumed from ANY website — no keys, no backend:
+ * Perchance has no REST API; its image engine (the "text-to-image plugin" that
+ * powers https://perchance.org/ai-images-generator) only runs inside a browser
+ * page. The supported way to use it from another site is to frame a Perchance
+ * generator and read its postMessage reply. This client does that with the
+ * community "Perchance Image API" generator, which wraps the SAME plugin/engine
+ * as the AI Images Generator page:
  *
- *   1. Warm up once per session: a hidden iframe visits https://perchance.org so
- *      Cloudflare lets this browser through.
- *   2. For every image, load
- *        https://perchance.org/perchance-ai-api?prompt=…&format=json&id=<random>
- *      in a hidden iframe. The page runs the generation in THIS browser (so it
- *      uses the caller's quota, not ours), uploads the result to Perchance's file
- *      host and posts back
- *        { api: "perchance-image-api", result: { id, ok, url, dataUrl, seed } }
- *      via postMessage. `url` is a permanent user.uploads.dev link.
+ *   • Perchance's FAQ (https://perchance.org/embed-generator) says generators may
+ *     only be embedded through the `null.perchance.org` subdomain. The plain
+ *     `perchance.org` host answers `X-Frame-Options: sameorigin` and is refused
+ *     in every browser — that was why every image fell through to the fallbacks.
+ *   • Warm-up: a hidden frame visits the AI Images Generator page (null host) once
+ *     per session so Cloudflare/ad verification can settle for this browser.
+ *   • Per image: frame `…/perchance-ai-api?prompt=…&format=json&id=<random>`; the
+ *     page generates in THIS browser, uploads the result to Perchance's file host
+ *     and posts back
+ *       { api: "perchance-image-api", result: { id, ok, url, dataUrl, seed } }.
  *
- * (The older approach framed perchance.org/ai-text-to-image-generator directly,
- * but that page sends `X-Frame-Options: sameorigin` — it can never be embedded,
- * so it always timed out.)
- *
- * NOTE: this depends on a third-party Perchance generator. If its owner changes
- * or removes it, generation fails and the provider chain falls through to the
- * next provider; update PERCHANCE_API_URL below if it moves.
+ * NOTE: this depends on third-party Perchance pages. If they move, update the
+ * constants below; failures fall through to the next provider in the chain.
  */
 
-export const PERCHANCE_GENERATOR_NAME = "Perchance AI Image API";
-export const PERCHANCE_API_URL = "https://perchance.org/perchance-ai-api";
+/** The generator the product owner asked for (opened manually / used for warm-up). */
+export const PERCHANCE_GENERATOR_PAGE = "https://perchance.org/ai-images-generator";
+/** Perchance only allows embedding through this subdomain. */
+export const PERCHANCE_EMBED_HOST = "https://null.perchance.org";
+export const PERCHANCE_GENERATOR_NAME = "Perchance AI Images Generator";
+export const PERCHANCE_API_URL = `${PERCHANCE_EMBED_HOST}/perchance-ai-api`;
 export const PERCHANCE_GENERATOR_URL = PERCHANCE_API_URL;
-const PERCHANCE_HOME_URL = "https://perchance.org";
+const PERCHANCE_WARMUP_URL = `${PERCHANCE_EMBED_HOST}/ai-images-generator`;
 const API_MARKER = "perchance-image-api";
 
 const HIDDEN_FRAME_STYLE =
@@ -35,7 +39,7 @@ const HIDDEN_FRAME_STYLE =
 let warmedUp = false;
 let warmUpPromise: Promise<boolean> | null = null;
 
-/** Visit perchance.org once so Cloudflare passes this browser. Never throws. */
+/** Visit the AI Images Generator (embed host) once per session. Never throws. */
 export function warmUpPerchance(timeoutMs = 15000): Promise<boolean> {
   if (typeof window === "undefined" || typeof document === "undefined") return Promise.resolve(false);
   if (warmedUp) return Promise.resolve(true);
@@ -46,7 +50,7 @@ export function warmUpPerchance(timeoutMs = 15000): Promise<boolean> {
     frame.setAttribute("aria-hidden", "true");
     frame.title = "Perchance warm-up";
     frame.style.cssText = HIDDEN_FRAME_STYLE;
-    frame.src = PERCHANCE_HOME_URL;
+    frame.src = PERCHANCE_WARMUP_URL;
 
     const finish = (ok: boolean) => {
       clearTimeout(timer);
