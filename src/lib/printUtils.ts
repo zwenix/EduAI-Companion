@@ -1,5 +1,5 @@
-import { replaceImagePlaceholders } from './imageReplacer';
-import { patchOklchForHtml2canvas } from './pdfHelper';
+import { replaceImagePlaceholders, finalizeImagesForExport, resolvePendingImages } from './imageReplacer';
+import { patchOklchForHtml2canvas, mountOffscreenSurface, relaxOversizedBreakAvoid, PDF_PAGEBREAK_OPTIONS } from './pdfHelper';
 import { isAndroidDevice, isNativeApp, supportsSystemPrint } from './platform';
 import { deliverFile, notify, triggerWebDownload } from './nativeExport';
 import { wrapWithTemplate, metaFromPrintOptions, ContentTemplateMeta } from './contentTemplate';
@@ -180,7 +180,10 @@ export const printContent = (
             return;
         }
 
-        let cleaned = replaceImagePlaceholders(rawHtml);
+        // Pending illustrations that were never generated in the preview fall back
+        // to a direct image link (sync — the print popup needs the user gesture).
+        const withPending = replaceImagePlaceholders(rawHtml);
+        let cleaned = finalizeImagesForExport(withPending);
         cleaned = removeLegacyHeader(cleaned);
 
         const html = wrapWithBrandedTemplate(cleaned, options, title);
@@ -226,6 +229,17 @@ export const printContent = (
                         color: #1e293b;
                         line-height: 1.65;
                     }
+                    /* The app stylesheet copied in above pins html/body/#root to
+                       height:100% + overflow:hidden (a fixed app shell). In a
+                       print document that clips everything past the first
+                       sheet — so only page 1 printed. Release the page so it
+                       flows and paginates naturally. */
+                    html, body, #root {
+                        height: auto !important;
+                        max-height: none !important;
+                        min-height: 0 !important;
+                        overflow: visible !important;
+                    }
                 </style>
             </head>
             <body>
@@ -239,7 +253,9 @@ export const printContent = (
         // header itself, so passing `html` here would print it twice.
         if (!supportsSystemPrint()) {
             console.log("[Print] Android/WebView detected — routing the print request to a saved PDF instead of a popup window.");
-            return downloadAsPDF(cleaned, `${safeSlug(title)}.pdf`, options);
+            // (Hand over the still-pending illustrations: the PDF exporter
+            // generates them through the provider chain properly.)
+            return downloadAsPDF(removeLegacyHeader(withPending), `${safeSlug(title)}.pdf`, options);
         }
 
         let printWindow: Window | null = null;
@@ -320,7 +336,7 @@ export const downloadAsHTML = (
             return;
         }
 
-        let html = replaceImagePlaceholders(rawHtml);
+        let html = finalizeImagesForExport(replaceImagePlaceholders(rawHtml));
         html = removeLegacyHeader(html);
         
         html = wrapWithBrandedTemplate(html, options, filename.replace(/\.html$/i, ''));
@@ -442,7 +458,7 @@ async function buildPdfBlob(container: HTMLElement, pdfFilename: string): Promis
             }
         },
         jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait', compress: true },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        pagebreak: PDF_PAGEBREAK_OPTIONS
     } as any;
 
     updateExport('Rendering document…');
@@ -467,6 +483,7 @@ export const downloadAsPDF = async (
     // "app freezes after exporting" report.
     const restoreComputedStyle = patchOklchForHtml2canvas();
     let container: HTMLDivElement | null = null;
+    let unmountSurface: (() => void) | null = null;
 
     try {
         let rawHtml = extractHtmlString(input);
@@ -482,29 +499,40 @@ export const downloadAsPDF = async (
 
         beginExport(options?.title ? `Exporting “${options.title}”` : 'Exporting your PDF', 'Preparing print layout…');
 
+        // Make sure every illustration is a real image before rasterising —
+        // otherwise pending ones come out as blank frames in the PDF. Images the
+        // preview already generated are reused from the session cache.
+        if (html.includes('data-eduai-pending')) {
+            updateExport('Preparing illustrations…');
+            html = await resolvePendingImages(html);
+        }
+
         // Container element.
-        // `position: absolute` — NOT `fixed`: html2canvas clones the document
-        // into a hidden iframe and compensates for the current page scroll.
-        // A *fixed* offscreen element does not move with that scroll
-        // compensation, so when the teacher had scrolled the app the render
-        // was cropped from the wrong coordinates — the classic blank /
-        // half-shifted PDF. An absolute element scrolls with the document,
-        // so the crop always lines up.
+        //
+        // The render surface itself MUST stay `position: static`. html2pdf.js
+        // CLONES the element (inline styles included) into its own overlay; a
+        // clone that is `absolute`/`fixed` is taken out of flow, so the overlay
+        // collapses to 0px tall and html2canvas rasterises a 717x0 canvas —
+        // the classic "exported PDF is one blank page" bug. The off-screen
+        // positioning therefore lives on a separate wrapper (which html2pdf
+        // never clones); the wrapper is `absolute` rather than `fixed` so
+        // html2canvas' scroll compensation still lines up when the teacher has
+        // scrolled the app.
         container = document.createElement('div');
         // LIGHT Template v5 owns all inner spacing/typography — no padding or
         // prose classes on the shell, or the header/footer would inset.
         container.className = 'bg-white text-slate-900';
-        container.style.width = '800px';
-        container.style.position = 'absolute';
-        container.style.left = '-9999px';
-        container.style.top = '0';
+        // No fixed width here: html2pdf re-flows its clone to the printable
+        // page width (A4 minus margins ≈ 717px); the 800px layout width for
+        // the paginated renderer comes from the host wrapper instead.
         container.style.backgroundColor = '#ffffff';
         container.style.color = '#0f172a';
         // Static Tailwind compatibility layer first: AI-authored content uses
         // runtime utility classes the app's build-time CSS doesn't contain,
         // so without this the rasterised PDF comes out unstyled.
         container.innerHTML = `<style>${EDUAI_DOC_TAILWIND_CSS}</style>${html}`;
-        document.body.appendChild(container);
+        unmountSurface = mountOffscreenSurface(container, 800);
+        relaxOversizedBreakAvoid(container);
 
         // Resolve any relative image URLs in the container to absolute URLs so
         // that html2canvas can fetch them cross-origin (relative /api/image-proxy
@@ -572,9 +600,7 @@ export const downloadAsPDF = async (
         }
     } finally {
         restoreComputedStyle();
-        if (container && document.body.contains(container)) {
-            document.body.removeChild(container);
-        }
+        if (unmountSurface) unmountSurface();
         // Never leave an invisible html2pdf overlay (or a cloned-iframe DOM copy)
         // sitting on top of the app after a failed/aborted render.
         cleanupExportArtifacts();

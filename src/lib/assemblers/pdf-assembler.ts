@@ -7,6 +7,7 @@
 import { buildFullHTML, DocumentData, RenderedImage, SA_COLOURS } from "../templates/sa-html-templates";
 import { EDUAI_DOC_TAILWIND_CSS } from "../docTailwindCompat";
 import { cleanupExportArtifacts } from "../printUtils";
+import { mountOffscreenSurface, relaxOversizedBreakAvoid, PDF_PAGEBREAK_OPTIONS } from "../pdfHelper";
 import { deliverFile } from "../nativeExport";
 import { recommendedScale, renderElementToPdfBlob, shouldUsePaginatedRenderer } from "../pdfPaginate";
 
@@ -57,21 +58,18 @@ export async function generatePDFClient(
     }
   }
 
-  // Temporary render container (kept off-screen but attached, so layout applies).
-  // `position: absolute` — NOT `fixed`: html2canvas compensates for the
-  // current page scroll when it clones the document; a fixed offscreen
-  // element does not follow that compensation, so a scrolled app cropped the
-  // render from the wrong coordinates (blank / shifted PDF pages).
+  // Temporary render container. It stays in normal flow (html2pdf clones the
+  // element with its inline styles, and a cloned `absolute`/`fixed` element
+  // collapses to 0px → blank PDF); the off-screen positioning is done by the
+  // wrapper that `mountOffscreenSurface` creates.
   const container = document.createElement("div");
   container.innerHTML = `<style>${docStyles}</style><style>${EDUAI_DOC_TAILWIND_CSS}</style>${bodyHtml}`;
-  container.style.position = "absolute";
-  container.style.left = "-9999px";
-  container.style.top = "0";
-  container.style.width = "800px";
   container.style.backgroundColor = "#ffffff";
+  let unmount: (() => void) | null = null;
 
   try {
-    document.body.appendChild(container);
+    unmount = mountOffscreenSurface(container, 800);
+    relaxOversizedBreakAvoid(container);
 
     // Dynamic import html2pdf if available
     const html2pdfModule = await import("html2pdf.js").catch(() => null);
@@ -82,7 +80,8 @@ export async function generatePDFClient(
       filename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', removeContainer: true },
-      jsPDF: { unit: 'mm', format, orientation: landscape ? 'landscape' : 'portrait' }
+      jsPDF: { unit: 'mm', format, orientation: landscape ? 'landscape' : 'portrait' },
+      pagebreak: PDF_PAGEBREAK_OPTIONS
     };
 
     const scale = recommendedScale();
@@ -117,7 +116,7 @@ export async function generatePDFClient(
     console.error(`PDF client generation failed: ${e.message}`);
     throw e;
   } finally {
-    if (document.body.contains(container)) document.body.removeChild(container);
+    if (unmount) unmount();
     cleanupExportArtifacts();
   }
 }

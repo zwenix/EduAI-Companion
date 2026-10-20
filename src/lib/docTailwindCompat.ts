@@ -134,7 +134,7 @@ function build(): string {
   rule('space-x-4 > * + *', 'margin-left:16px');
 
   // ── Display & layout ────────────────────────────────────────────────────
-  for (const d of ['block','inline-block','inline','flex','inline-flex','grid','hidden','contents']) rule(d, `display:${d === 'inline-flex' ? 'inline-flex' : d}`);
+  for (const d of ['block','inline-block','inline','flex','inline-flex','grid','hidden','contents']) rule(d, `display:${d === 'hidden' ? 'none' : d}`);
   rule('flex-row', 'flex-direction:row');
   rule('flex-col', 'flex-direction:column');
   rule('flex-wrap', 'flex-wrap:wrap');

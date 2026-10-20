@@ -174,7 +174,8 @@ Copy `.env.example` to `.env` and fill in what you need. Only `GEMINI_API_KEY` i
 | `ALIBABA_API_KEY` / `ALIBABA_API_BASE` | Alibaba Cloud Model Studio — Qwen 3.8 Max (OpenAI-compatible endpoint). |
 | `NVIDIA_API_KEY` | NVIDIA NIM — Nemotron text models and Qwen-Image generation. |
 | `OCR_SPACE_API_KEY` | Optional secondary OCR engine. |
-| `HUGGINGFACE_API_KEY` / `HF_TOKEN` | Hugging Face TTS and inference. |
+| `HUGGINGFACE_API_KEY` / `HF_TOKEN` | Hugging Face TTS and the free FLUX.1-schnell image engine (server-side only). |
+| `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Workers AI FLUX.1-schnell image engine (server-side only; token needs the *Workers AI* permission). |
 | `REPLICATE_API_TOKEN` | Optional Replicate video generation. |
 | `VITE_VERCEL_ANALYTICS` | Set to `true` **only** when Web Analytics is enabled for the Vercel project (otherwise the analytics script 404s on every page load). |
 | `ELEVENLABS_API_KEY` | Optional voice provider. |

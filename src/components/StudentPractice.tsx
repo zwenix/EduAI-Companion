@@ -26,7 +26,7 @@ import { educationalData } from '../lib/educational-data';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import html2pdf from 'html2pdf.js';
-import { patchOklchForHtml2canvas } from '../lib/pdfHelper';
+import { patchOklchForHtml2canvas, mountOffscreenSurface, relaxOversizedBreakAvoid, PDF_PAGEBREAK_OPTIONS } from '../lib/pdfHelper';
 import { cleanupExportArtifacts } from '../lib/printUtils';
 import { wrapWithTemplate } from '../lib/contentTemplate';
 import PrintPreviewModal from './PrintPreviewModal';
@@ -179,13 +179,12 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
     // bypassing the single compliance banner/footer contract.
     const tempContainer = document.createElement('div');
     tempContainer.className = 'bg-white text-slate-900';
-    tempContainer.style.position = 'absolute';
-    tempContainer.style.left = '-9999px';
-    tempContainer.style.top = '-9999px';
-    tempContainer.style.width = '800px';
-    tempContainer.style.zIndex = '-9999';
+    // Keep the render surface in normal flow: html2pdf clones it with its
+    // inline styles and an `absolute`/`fixed` clone collapses to 0px (blank
+    // PDF). Off-screen positioning lives on the wrapper instead.
     tempContainer.innerHTML = practiceMarkup;
-    document.body.appendChild(tempContainer);
+    const unmountTempContainer = mountOffscreenSurface(tempContainer, 800);
+    relaxOversizedBreakAvoid(tempContainer);
 
     const opt = {
       margin:       10,
@@ -193,7 +192,7 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
       image:        { type: 'jpeg' as const, quality: 0.98 },
       html2canvas:  { scale: 2, useCORS: true, logging: false },
       jsPDF:        { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
-      pagebreak:    { mode: ['avoid-all' as const, 'css' as const, 'legacy' as const] }
+      pagebreak:    PDF_PAGEBREAK_OPTIONS
     };
 
     const restoreGetComputedStyle = patchOklchForHtml2canvas();
@@ -205,9 +204,7 @@ export default function StudentPractice({ isDarkMode }: { isDarkMode: boolean })
       // A failed render can leave html2pdf's invisible full-screen overlay (and a
       // cloned-iframe DOM copy) behind — sweep them so the app stays tappable.
       cleanupExportArtifacts();
-      if (document.body.contains(tempContainer)) {
-        document.body.removeChild(tempContainer);
-      }
+      unmountTempContainer();
     });
   };
   

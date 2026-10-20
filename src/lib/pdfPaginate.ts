@@ -106,6 +106,11 @@ const isRenderable = (el: HTMLElement): boolean => {
   }
 };
 
+/** Wrappers taller than this share of a page are split into their children. */
+const OPEN_UP_RATIO = 0.3;
+
+const HEADING_TAG = /^h[1-6]$/i;
+
 /** Displays whose children must not be re-parented onto their own page. */
 const ATOMIC_DISPLAYS = /^(flex|inline-flex|grid|inline-grid|table|table-row|table-row-group|table-header-group|table-footer-group|table-cell|contents|inline-block)$/i;
 
@@ -114,7 +119,7 @@ const ATOMIC_DISPLAYS = /^(flex|inline-flex|grid|inline-grid|table|table-row|tab
  * are opened up (unless they are flex/grid/table hosts, where moving children
  * would destroy the layout — those get sliced instead).
  */
-const collectBreakBlocks = (root: HTMLElement, pageHeightPx: number, maxDepth = 6): HTMLElement[] => {
+const collectBreakBlocks = (root: HTMLElement, pageHeightPx: number, maxDepth = 12): HTMLElement[] => {
   const blocks: HTMLElement[] = [];
 
   const visit = (el: HTMLElement, depth: number) => {
@@ -131,7 +136,12 @@ const collectBreakBlocks = (root: HTMLElement, pageHeightPx: number, maxDepth = 
       })();
       const canOpenUp = !ATOMIC_DISPLAYS.test(display) && child.children.length > 0 && depth < maxDepth;
 
-      if (height > pageHeightPx * 1.02 && canOpenUp) {
+      // Open a wrapper up as soon as it is a sizeable part of a page (not only
+      // when it is taller than one). Otherwise a card / model-authored container
+      // that is a bit shorter than a page is treated as one indivisible block
+      // and shoved wholesale onto the next page, leaving page 1 with only the
+      // header + banner and a huge blank gap below.
+      if (height > pageHeightPx * OPEN_UP_RATIO && canOpenUp) {
         visit(child, depth + 1);
       } else {
         blocks.push(child);
@@ -175,6 +185,7 @@ export const computePageSlices = (root: HTMLElement, pageHeightPx: number): Page
 
   let currentStart: number | null = null;
   let lastBottom = 0;
+  let prevHeading: { top: number } | null = null;
 
   for (const block of blocks) {
     const top = topOf(block);
@@ -190,6 +201,7 @@ export const computePageSlices = (root: HTMLElement, pageHeightPx: number): Page
         currentStart = null;
         lastBottom = 0;
       }
+      prevHeading = null;
       const pieces = Math.max(1, Math.ceil(height / pageHeightPx));
       const pieceHeight = height / pieces;
       for (let i = 0; i < pieces; i += 1) {
@@ -201,17 +213,27 @@ export const computePageSlices = (root: HTMLElement, pageHeightPx: number): Page
     if (currentStart === null) {
       currentStart = top;
       lastBottom = bottom;
+      prevHeading = HEADING_TAG.test(block.tagName) ? { top } : null;
       continue;
     }
 
     if (bottom - currentStart <= pageHeightPx) {
       lastBottom = bottom;
+      prevHeading = HEADING_TAG.test(block.tagName) ? { top } : null;
       continue;
     }
 
-    pushSlice(currentStart, lastBottom);
-    currentStart = top;
+    // Never leave a heading stranded at the bottom of a page: carry it over
+    // to the page that holds the text it introduces.
+    if (prevHeading && prevHeading.top > currentStart + 1) {
+      pushSlice(currentStart, prevHeading.top);
+      currentStart = prevHeading.top;
+    } else {
+      pushSlice(currentStart, lastBottom);
+      currentStart = top;
+    }
     lastBottom = bottom;
+    prevHeading = HEADING_TAG.test(block.tagName) ? { top } : null;
   }
 
   if (currentStart !== null) pushSlice(currentStart, lastBottom);

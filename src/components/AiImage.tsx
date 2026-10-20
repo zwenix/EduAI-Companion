@@ -153,10 +153,10 @@ export default function AiImage({
             provider === 'perchance'
               ? 'Perchance AI Text-to-Image (Primary)'
               : provider === 'qwen'
-                ? 'Qwen-Image · NVIDIA NIM (Premium SA)'
+                ? 'Qwen-Image · NVIDIA NIM (Secondary)'
                 : provider === 'gemini'
-                ? 'Gemini Imagen-3'
-                : 'Pollinations AI (Tertiary / Fallback)'
+                ? 'Gemini Imagen-3 (Tertiary)'
+                : 'Pollinations AI (Last resort)'
           }
         </div>
       )}
