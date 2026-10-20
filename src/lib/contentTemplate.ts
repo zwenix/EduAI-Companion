@@ -617,6 +617,38 @@ export const EDUAI_LIGHT_CSS = `
 .eduai-light-scope ul, .eduai-light-scope ol { padding-left: 1.5rem; margin-bottom: 14px; color: #334155; }
 .eduai-light-scope ul.objectives { padding-left: 0; }
 .eduai-light-scope a { color: #2563eb; }
+/* ── Illustration placeholders ──
+   An illustration that is still being generated (or could not be) used to be a
+   blank 4:3 box up to 360px tall — a huge empty hole, usually right under the
+   banner. While pending it is now a slim shimmer strip, and one that failed is
+   removed completely, so a missing picture never leaves a gap. */
+img.eduai-async-image[data-eduai-pending] {
+    aspect-ratio: auto !important;
+    height: 44px !important;
+    max-height: 44px !important;
+    width: 100% !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%);
+    background-size: 200% 100%;
+    animation: eduai-pending-shimmer 1.4s linear infinite;
+}
+@keyframes eduai-pending-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+div:has(> img.eduai-async-image[data-eduai-pending]) { margin-top: 8px !important; margin-bottom: 8px !important; border-radius: 12px !important; }
+/* Caption / label under an illustration — small navy type. Defined here (not only
+   in the app stylesheet) so the preview iframe, print and HTML exports match. */
+.eduai-illustration-label {
+    font-size: 7px !important;
+    line-height: 1.2 !important;
+    color: rgba(10, 15, 33, 0.3) !important;
+    letter-spacing: 0.12em;
+    font-weight: 900;
+}
+img[data-eduai-failed] { display: none !important; }
+div:has(> img[data-eduai-failed]) { display: none !important; }
+@media print {
+    img.eduai-async-image[data-eduai-pending] { display: none !important; }
+}
 @media (max-width: 640px) {
     .site-header { padding: 0 8px; gap: 5px; height: 23px; }
     .site-header .logo { height: 13px; }
@@ -1280,6 +1312,14 @@ export const mergeMeta = (base: ContentTemplateMeta, override: ContentTemplateMe
  * headings are never re-painted as banners.
  */
 const BANNER_HINT = /\b(?:banner|hero|masthead|jumbotron|title-?block|doc-?title|page-?title|cover(?:-head)?|top-?bar|title-?bar|letterhead|school-?header|doc-?header|caps-?bar|reference-?bar)\b/i;
+/**
+ * Does a class/id string name a banner-like band? Tailwind utilities such as
+ * `object-cover` / `bg-cover` contain the word "cover" (hyphen = word boundary),
+ * which used to repaint EVERY illustration <img> with the banner gradient — a big
+ * purple block under the banner while the picture was loading or had failed.
+ */
+const looksLikeBanner = (classOrId: string): boolean =>
+    BANNER_HINT.test(String(classOrId || '').replace(/\b(?:object|bg|bg-origin|bg-clip)-(?:cover|contain)\b/gi, ' '));
 
 /**
  * Inline declarations that force the document's two-colour palette gradient.
@@ -1321,11 +1361,11 @@ export const applyBannerGradients = (html: string, gradient: string = EDUAI_BANN
     const source = String(html || '');
     const bannerGradient = isBannerGradient(gradient) ? gradient : EDUAI_BANNER_GRADIENT;
     return source.replace(/<(?!\/)([a-z][\w:-]*)\b([^>]*)>/gi, (match, tag: string, attrs: string) => {
-        if (/^(style|script|svg|path|circle|rect|line|polygon|polyline|ellipse|g|defs|use|text|tspan)$/i.test(tag)) return match;
+        if (/^(style|script|svg|path|circle|rect|line|polygon|polyline|ellipse|g|defs|use|text|tspan|img|picture|source|video|canvas)$/i.test(tag)) return match;
         if (/site-header|header-text|eduai-compliance-banner/i.test(attrs)) return match;
         const isHeaderTag = /^header$/i.test(tag);
         const classOrId = `${attrs.match(/class\s*=\s*["'][^"']*["']/i)?.[0] ?? ''} ${attrs.match(/id\s*=\s*["'][^"']*["']/i)?.[0] ?? ''}`;
-        if (!isHeaderTag && !BANNER_HINT.test(classOrId)) return match;
+        if (!isHeaderTag && !looksLikeBanner(classOrId)) return match;
         return `<${tag}${withGradientStyle(attrs, bannerGradient)}>`;
     });
 };
@@ -1406,7 +1446,7 @@ export const stripLeadingDuplicateBanner = (html: string, meta: ContentTemplateM
     if (!element) return source;
     const classOrId = `${element.attrs.match(/class\s*=\s*["'][^"']*["']/i)?.[0] ?? ''} ${element.attrs.match(/id\s*=\s*["'][^"']*["']/i)?.[0] ?? ''}`;
     const painted = /background(-color|-image)?\s*:/i.test(element.attrs);
-    if (!/^header$/i.test(element.tag) && !BANNER_HINT.test(classOrId) && !painted) return source;
+    if (!/^header$/i.test(element.tag) && !looksLikeBanner(classOrId) && !painted) return source;
 
     const text = normaliseForCompare(source.slice(element.innerStart, element.innerEnd));
     const title = normaliseForCompare(String(meta.title || ''));

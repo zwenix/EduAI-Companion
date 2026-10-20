@@ -14,9 +14,18 @@ const RETRY_ATTR = 'data-eduai-retry';
 const MAX_RETRIES = 2;
 let installed = false;
 
+/** Give up on an illustration: hide it (CSS) instead of leaving a blank/broken box. */
+const markFailed = (img: HTMLImageElement) => {
+  img.removeAttribute('data-eduai-pending');
+  img.setAttribute('data-eduai-failed', '1');
+};
+
 const recover = async (img: HTMLImageElement) => {
   const attempts = parseInt(img.getAttribute(RETRY_ATTR) || '0', 10);
-  if (attempts >= MAX_RETRIES) return;
+  if (attempts >= MAX_RETRIES) {
+    markFailed(img);
+    return;
+  }
   img.setAttribute(RETRY_ATTR, String(attempts + 1));
 
   const encoded = img.getAttribute('data-eduai-prompt');
@@ -33,6 +42,7 @@ const recover = async (img: HTMLImageElement) => {
     if (result?.url) img.src = result.url;
   } catch (err) {
     console.warn('[Image Recovery] Could not regenerate illustration:', err);
+    if (attempts + 1 >= MAX_RETRIES) markFailed(img);
   }
 };
 
@@ -53,12 +63,18 @@ const hydrate = async (img: HTMLImageElement) => {
 
   const encoded = img.getAttribute('data-eduai-prompt');
   const prompt = encoded ? decodeURIComponent(encoded) : '';
-  if (!prompt) return;
+  if (!prompt) {
+    markFailed(img);
+    return;
+  }
   const seed = parseInt(img.getAttribute('data-eduai-seed') || '0', 10) || Math.floor(Math.random() * 100000);
 
   try {
     const result = await generateImageWithFallback({ prompt, width: 800, height: 600, seed });
-    if (!result?.url) return;
+    if (!result?.url) {
+      markFailed(img);
+      return;
+    }
     img.src = result.url;
     img.removeAttribute('data-eduai-pending');
     if (result.provider !== 'pollinations') {
@@ -66,6 +82,7 @@ const hydrate = async (img: HTMLImageElement) => {
     }
   } catch (err) {
     console.warn('[Image Hydrate] Could not generate illustration:', err);
+    markFailed(img);
   }
 };
 

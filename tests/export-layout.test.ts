@@ -54,3 +54,25 @@ describe('template spacing', () => {
     expect(doc.match(/class="eduai-compliance-banner"/g)?.length).toBe(1);
   });
 });
+
+describe('illustration placeholders', () => {
+  it('never repaints an object-cover <img> with the banner gradient', async () => {
+    const { replaceImagePlaceholders } = await import('../src/lib/imageReplacer');
+    const body = replaceImagePlaceholders('[Illustration: learners counting flowers]<h2>Objectives</h2>');
+    const doc = wrapWithTemplate(body, { title: 'Counting', contentType: 'Lesson Plan' });
+    const img = doc.match(/<img[^>]*eduai-async-image[^>]*>/i)?.[0] || '';
+    expect(img).toBeTruthy();
+    expect(img).not.toMatch(/linear-gradient/i);
+  });
+
+  it('collapses pending illustrations and hides failed ones', () => {
+    expect(EDUAI_LIGHT_CSS).toMatch(/img\.eduai-async-image\[data-eduai-pending\][^}]*height:\s*44px/);
+    expect(EDUAI_LIGHT_CSS).toMatch(/img\[data-eduai-failed\]\s*\{\s*display:\s*none/);
+  });
+
+  it('the static utility layer really hides `.hidden`', async () => {
+    const { EDUAI_DOC_TAILWIND_CSS } = await import('../src/lib/docTailwindCompat');
+    expect(EDUAI_DOC_TAILWIND_CSS).toMatch(/\.hidden\s*\{\s*display:\s*none/);
+    expect(EDUAI_DOC_TAILWIND_CSS).not.toMatch(/display:\s*hidden/);
+  });
+});

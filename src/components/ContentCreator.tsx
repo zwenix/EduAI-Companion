@@ -163,6 +163,8 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
            iframeRef.current?.contentWindow?.postMessage({ type: 'EDUAI_IMAGE_RESULT', id, url: result.url }, '*');
          } catch (error) {
            console.error('Failed to hydrate iframe image:', error);
+           // Tell the frame so it can drop the placeholder instead of leaving a gap.
+           iframeRef.current?.contentWindow?.postMessage({ type: 'EDUAI_IMAGE_RESULT', id, url: null }, '*');
          }
       }
     };
@@ -311,8 +313,19 @@ const HtmlPreviewFrame = ({ html, minHeight = "550px", className = "", fontStyle
       img.dataset.reqId = reqId;
       const listener = (e) => {
         if (e.data && e.data.type === 'EDUAI_IMAGE_RESULT' && e.data.id === reqId) {
-          if (e.data.url) img.src = e.data.url;
           window.removeEventListener('message', listener);
+          if (e.data.url) {
+            // A generated URL that still fails to load must not leave a broken box.
+            img.addEventListener('error', () => {
+              img.removeAttribute('data-eduai-pending');
+              img.setAttribute('data-eduai-failed', '1');
+            }, { once: true });
+            img.removeAttribute('data-eduai-pending');
+            img.src = e.data.url;
+          } else {
+            img.removeAttribute('data-eduai-pending');
+            img.setAttribute('data-eduai-failed', '1');
+          }
         }
       };
       window.addEventListener('message', listener);

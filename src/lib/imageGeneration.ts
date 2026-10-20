@@ -194,6 +194,8 @@ export const generateImageGemini = async (
 // model in this browser, so cap how many run at once (each request has its own
 // id, so replies cannot be mixed up).
 const PERCHANCE_MAX_CONCURRENT = 2;
+/** Timeout while Perchance has never worked this session (blocked frame = no reply). */
+const PERCHANCE_FIRST_TRY_MS = 12000;
 let perchanceActive = 0;
 const perchanceWaiters: Array<() => void> = [];
 
@@ -224,8 +226,12 @@ export const generateImagePerchance = async (
   try {
     // Generation + Cloudflare check can take a while; give it room before the
     // chain moves on to Gemini.
+    // Until Perchance has produced one image this session, give up quickly: if
+    // perchance.org refuses to be framed (X-Frame-Options) nothing ever comes
+    // back, and waiting a full minute per illustration just stalls the document.
+    const proven = providerHealth.perchance?.everWorked === true;
     const clientUrl = await generatePerchanceImageClient(
-      prompt, width, height, seed, isNativeApp() ? 45000 : 60000
+      prompt, width, height, seed, proven ? (isNativeApp() ? 45000 : 60000) : PERCHANCE_FIRST_TRY_MS
     );
     if (!clientUrl) throw new Error('Perchance AI returned no image');
     return clientUrl;
@@ -237,22 +243,23 @@ export const generateImagePerchance = async (
   }
 };
 
-export const generateImagePollinations = async (
-  prompt: string,
-  width: number = 1024,
-  height: number = 1024,
-  seed: number = Math.floor(Math.random() * 10000)
-): Promise<string> => {
-  const imageUrl = buildPollinationsUrl(prompt, width, height, seed);
-  if (typeof Image === 'undefined') return imageUrl;
-  return new Promise((resolve, reject) => {
+// Pollinations' anonymous tier answers a burst of parallel requests with its
+// "free limit reached" picture / 429. Requests therefore go through ONE queue,
+// a few seconds apart, and a failed one is retried once after a pause.
+const POLLINATIONS_GAP_MS = 2500;
+const POLLINATIONS_RETRY_DELAY_MS = 6000;
+let pollinationsTail: Promise<unknown> = Promise.resolve();
+let pollinationsLastStart = 0;
+
+const loadPollinationsOnce = (imageUrl: string): Promise<string> =>
+  new Promise((resolve, reject) => {
     const img = new Image();
     let settled = false;
     const timeoutId = setTimeout(() => {
       if (settled) return;
       settled = true;
       reject(new Error('Pollinations AI image request timed out'));
-    }, 25000);
+    }, 45000);
 
     img.onload = () => {
       if (settled) return;
@@ -268,6 +275,35 @@ export const generateImagePollinations = async (
     };
     img.src = imageUrl;
   });
+
+export const generateImagePollinations = async (
+  prompt: string,
+  width: number = 1024,
+  height: number = 1024,
+  seed: number = Math.floor(Math.random() * 10000)
+): Promise<string> => {
+  const imageUrl = buildPollinationsUrl(prompt, width, height, seed);
+  if (typeof Image === 'undefined') return imageUrl;
+
+  const run = async (): Promise<string> => {
+    const wait = pollinationsLastStart + POLLINATIONS_GAP_MS - Date.now();
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    pollinationsLastStart = Date.now();
+    try {
+      return await loadPollinationsOnce(imageUrl);
+    } catch (firstError) {
+      await new Promise((r) => setTimeout(r, POLLINATIONS_RETRY_DELAY_MS));
+      pollinationsLastStart = Date.now();
+      // Fresh seed: a rate-limited URL can be cached negatively by the CDN.
+      return await loadPollinationsOnce(buildPollinationsUrl(prompt, width, height, seed + 1)).catch(() => {
+        throw firstError;
+      });
+    }
+  };
+
+  const job = pollinationsTail.then(run, run);
+  pollinationsTail = job.catch(() => undefined);
+  return job;
 };
 
 export const generateImageQwen = async (
@@ -464,10 +500,24 @@ export const generateImageWithFallback = async (
 // reaching one that works. After repeated failures a provider is skipped for a
 // cool-down, then retried. Pollinations (the end of every chain) is never skipped.
 const PROVIDER_COOLDOWN_MS = 10 * 60 * 1000;
+// A Perchance that has NEVER worked here is almost certainly blocked outright
+// (perchance.org sends X-Frame-Options: sameorigin to embedders, or a school
+// network blocks it) — that does not fix itself, so remember it across reloads.
+const PERCHANCE_BLOCKED_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+const PERCHANCE_BENCH_KEY = 'eduai_perchance_bench_until';
 const providerHealth: Record<string, { failures: number; everWorked: boolean; skipUntil: number }> = {};
 
+const readPersistedBench = (id: ImageProviderId): number => {
+  if (id !== 'perchance' || typeof window === 'undefined') return 0;
+  try {
+    return parseInt(window.localStorage.getItem(PERCHANCE_BENCH_KEY) || '0', 10) || 0;
+  } catch {
+    return 0;
+  }
+};
+
 const healthOf = (id: ImageProviderId) =>
-  (providerHealth[id] ||= { failures: 0, everWorked: false, skipUntil: 0 });
+  (providerHealth[id] ||= { failures: 0, everWorked: false, skipUntil: readPersistedBench(id) });
 
 const isCoolingDown = (id: ImageProviderId): boolean =>
   id !== 'pollinations' && Date.now() < healthOf(id).skipUntil;
@@ -477,19 +527,34 @@ const recordProviderSuccess = (id: ImageProviderId) => {
   h.failures = 0;
   h.everWorked = true;
   h.skipUntil = 0;
+  if (id === 'perchance') {
+    try { window.localStorage.removeItem(PERCHANCE_BENCH_KEY); } catch { /* ignore */ }
+  }
+};
+
+/** Forget every benched provider (e.g. after the user changes network / settings). */
+export const resetImageProviderHealth = () => {
+  for (const key of Object.keys(providerHealth)) delete providerHealth[key];
+  try { window.localStorage.removeItem(PERCHANCE_BENCH_KEY); } catch { /* ignore */ }
 };
 
 const recordProviderFailure = (id: ImageProviderId) => {
   if (id === 'pollinations') return;
   const h = healthOf(id);
   h.failures += 1;
-  // A provider that has never produced an image this session (blocked, no
-  // access, out of quota) is benched after TWO failures; a proven one gets three.
-  const limit = h.everWorked ? 3 : 2;
+  // Perchance that never worked: one failure benches it (hours). Any other
+  // provider that has never produced an image is benched after TWO failures;
+  // a proven one gets three.
+  const neverWorkedPerchance = id === 'perchance' && !h.everWorked;
+  const limit = neverWorkedPerchance ? 1 : h.everWorked ? 3 : 2;
   if (h.failures >= limit) {
-    h.skipUntil = Date.now() + PROVIDER_COOLDOWN_MS;
+    const cooldown = neverWorkedPerchance ? PERCHANCE_BLOCKED_COOLDOWN_MS : PROVIDER_COOLDOWN_MS;
+    h.skipUntil = Date.now() + cooldown;
     h.failures = 0;
-    console.warn(`[Image Gen] ${id} is failing — skipping it for ${PROVIDER_COOLDOWN_MS / 60000} min, then retrying.`);
+    if (id === 'perchance') {
+      try { window.localStorage.setItem(PERCHANCE_BENCH_KEY, String(h.skipUntil)); } catch { /* ignore */ }
+    }
+    console.warn(`[Image Gen] ${id} is failing — skipping it for ${Math.round(cooldown / 60000)} min, then retrying.`);
   }
 };
 
