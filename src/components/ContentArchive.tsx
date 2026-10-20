@@ -34,12 +34,17 @@ const renderArchivedGeneratedContent = (item: any): string => {
     grade: item?.grade,
     term: item?.term || item?.metadata?.term,
     contentType: item?.contentType || item?.type || 'Educational Resource',
-    date: item?.createdAt ? new Date(item.createdAt).toLocaleDateString('en-ZA') : undefined
+    date: item?.createdAt ? new Date(item.createdAt).toLocaleDateString('en-ZA') : undefined,
+    // Archived items are Content Factory output, so honour the doctrine the
+    // teacher has selected — under `classic` the stored page already carries
+    // its own banner, grade badge, score card and footer.
+    designStyle: resolveContentDesignStyle({})
   });
 };
 
 import { printContent, downloadAsHTML, downloadAsPDF } from '../lib/printUtils';
 import { wrapWithTemplate } from '../lib/contentTemplate';
+import { resolveContentDesignStyle } from '../lib/contentStyle';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 // PrintHeader import removed as per user request
 import { PosterPreview } from './PosterPreview';

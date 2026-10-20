@@ -75,6 +75,10 @@ import {
     isLearnerFillInContentType,
     sanitiseLearnerFillInBody,
 } from './learnerFillIn';
+import {
+    isExplicitClassicStyle,
+    type ContentDesignStyle,
+} from './contentStyle';
 
 export {
     BANNER_PALETTES,
@@ -148,6 +152,16 @@ export interface ContentTemplateMeta {
      * lets a caller pin the colours for a document whose type is ambiguous.
      */
     palette?: BannerPaletteId | string;
+    /**
+     * Which design doctrine produced this content.
+     *
+     * `'classic'` (the default) means the MODEL designed the whole page — its
+     * own full-width banner, grade badge, name/date/score row and footer — so
+     * the host must NOT wrap it in the LIGHT chrome or strip its leading band.
+     * `'light-v5'` keeps the host-owned single banner and the full chrome
+     * pipeline. See `contentStyle.ts`.
+     */
+    designStyle?: ContentDesignStyle;
 }
 
 /**
@@ -1654,6 +1668,39 @@ export const stripDuplicateTitleHeading = (html: string, meta: ContentTemplateMe
     return source.slice(match[0].length).trim();
 };
 
+/** Markdown fences a model sometimes wraps its HTML in. */
+const stripMarkdownFences = (html: string): string =>
+    String(html || '')
+        .replace(/^\s*```[a-zA-Z0-9_-]*\s*\n?/, '')
+        .replace(/\n?```\s*$/, '')
+        .trim();
+
+/**
+ * Prepare a CLASSIC-doctrine document for preview, print and export.
+ *
+ * The model owns this page: its full-width banner, circular grade badge,
+ * name/date/score row, hero illustration block, motivational banner and the
+ * "EduAI Companion | CAPS Aligned" footer are all part of the design and must
+ * survive untouched. The only edits made here are hygiene ones that cannot
+ * change the look:
+ *
+ *   • unwrap a stray `<html>`/`<head>`/`<body>` shell (the app already supplies
+ *     one, and a nested shell breaks print pagination);
+ *   • drop markdown fences;
+ *   • drop an injected Tailwind CDN `<script>` — the app ships Tailwind, and a
+ *     second runtime copy repaints the page and breaks offline/native builds.
+ *
+ * Unlike {@link cleanGeneratedBodyHTML}, this deliberately keeps `<footer>`
+ * elements and never touches a leading banner.
+ */
+export const prepareClassicDocument = (html: string): string => {
+    let cleaned = stripMarkdownFences(extractGeneratedBodyHTML(html));
+    cleaned = cleaned
+        .replace(/<script\b[^>]*cdn\.tailwindcss\.com[^>]*>\s*<\/script>/gi, '')
+        .replace(/<script\b[^>]*tailwindcss[^>]*>\s*<\/script>/gi, '');
+    return cleaned.trim();
+};
+
 /**
  * Wrap generated content in the LIGHT Template v5 chrome:
  * very light blue translucent page header → ONE full-width two-colour vertical
@@ -1675,6 +1722,21 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
     const original = String(bodyHtml || '');
     if (!original.trim()) return original;
     if (isCurrentTemplateOutput(original)) return original;
+
+    // CLASSIC doctrine: the MODEL designed the whole page — its own full-width
+    // banner, circular grade badge, name/date/score row, hero illustration and
+    // footer. Wrapping that in the LIGHT chrome (or absorbing its leading band
+    // into a second banner) is exactly what destroyed the original look, so the
+    // host hands the document back untouched apart from markdown-fence and
+    // Tailwind-CDN hygiene.
+    //
+    // This is opt-IN, never the default: hand-built documents (learner
+    // portfolios, Foundation Phase packs, progress reports, student notes) are
+    // not AI-generated and rely on the LIGHT chrome, so they must keep it. Only
+    // content actually generated under the classic doctrine says so.
+    if (isExplicitClassicStyle(meta.designStyle)) {
+        return prepareClassicDocument(original);
+    }
 
     // Values are harvested from the ORIGINAL body as well: legacy host title
     // blocks (`.lesson-meta`, `.doc-meta`, `.lesson-title`) are deleted by
@@ -1740,7 +1802,7 @@ ${buildTemplateFooterHTML(effectiveMeta)}`.trim();
 
 /** Map the print/export options onto the template metadata. */
 export const metaFromPrintOptions = (
-    options?: { subject?: string; grade?: string; contentType?: string; date?: string; term?: string; school?: string; teacher?: string; learner?: string; title?: string; className?: string; extraPills?: string[]; leaveDateBlank?: boolean; leaveLearnerFieldsBlank?: boolean },
+    options?: { subject?: string; grade?: string; contentType?: string; date?: string; term?: string; school?: string; teacher?: string; learner?: string; title?: string; className?: string; extraPills?: string[]; leaveDateBlank?: boolean; leaveLearnerFieldsBlank?: boolean; designStyle?: ContentDesignStyle },
     title?: string,
 ): ContentTemplateMeta => {
     const pills: string[] = [];
@@ -1762,5 +1824,9 @@ export const metaFromPrintOptions = (
         // the on-screen preview does.
         leaveDateBlank: options?.leaveDateBlank,
         leaveLearnerFieldsBlank: options?.leaveLearnerFieldsBlank,
+        // The doctrine the content was generated under, so a classic document
+        // is exported exactly as the model designed it instead of being
+        // re-wrapped in the LIGHT chrome.
+        designStyle: options?.designStyle,
     };
 };

@@ -6,6 +6,13 @@ import { AI_SECRETS } from "../lib/aiSecrets";
 // is no Node backend to proxy requests — so we call the AI providers directly.
 import { isNativeApp } from "../lib/platform";
 import { buildAdminLabPrompts, buildVisualLabPrompts } from "../lib/prompts/lab-prompts";
+import { buildClassicEducationalPrompts } from "../lib/prompts/classic-templates";
+import {
+  CLASSIC_IMAGE_PROMPT_GOLDEN_RULE,
+  CLASSIC_MASTER_SYSTEM_PROMPT,
+  resolveContentDesignStyle,
+  resolveIllustrationStyle,
+} from "../lib/contentStyle";
 import {
   AI_PROVIDER_LABELS,
   NVIDIA_BASE_URL,
@@ -154,7 +161,12 @@ const callLastResortJson = async (systemPrompt: string, userPrompt: string): Pro
 };
 
 // ─── Prompt Engineering Constants ────────────
-export const MASTER_SYSTEM_PROMPT = `
+/**
+ * LIGHT Template v5 doctrine. Used only when the resolved content design style
+ * is `light-v5`; the default (`classic`) restores the original commit 6d3f1d2
+ * doctrine from `src/lib/contentStyle.ts`.
+ */
+export const LIGHT_MASTER_SYSTEM_PROMPT = `
 You are an expert South African CAPS-aligned educational content designer and senior graphic designer specializing in primary and high school learning materials for South African classrooms.
 
 Your task is to generate BEAUTIFUL, PROFESSIONAL, PRINT-READY classroom materials (worksheets, posters, study guides, infographics, flashcards, diagrams, mind maps, etc.) that are:
@@ -204,10 +216,29 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
 
 `;
 
-export const IMAGE_PROMPT_GOLDEN_RULE = `
-Ultra-detailed digital illustration, professional educational graphic design, vibrant colors, perfect composition, sharp focus, 300 DPI print quality, award-winning children’s non-fiction book style, no text overlays (text will be added separately), no borders, no frames, no watermarks, no emojis, no cartoonish exaggeration, suitable for South African classroom display, museum-quality detail
+/**
+ * The restored classic golden rule — the semi-realistic children's
+ * non-fiction book style from commit 6d3f1d2. Kept as the module default so
+ * every image prompt asks for the original look.
+ */
+export const IMAGE_PROMPT_GOLDEN_RULE = CLASSIC_IMAGE_PROMPT_GOLDEN_RULE;
 
-`;
+/**
+ * Backwards-compatible alias. Callers that import `MASTER_SYSTEM_PROMPT`
+ * directly get the DEFAULT doctrine, which is `classic` — the original EduAI
+ * look. Use {@link masterSystemPromptFor} for a per-request choice.
+ */
+export const MASTER_SYSTEM_PROMPT = CLASSIC_MASTER_SYSTEM_PROMPT;
+
+/**
+ * Resolve the master doctrine for one request. `classic` (the default) restores
+ * the original commit 6d3f1d2 prompt engineering; `light-v5` keeps the
+ * restrained LIGHT Template v5 doctrine.
+ */
+export const masterSystemPromptFor = (input: any = {}): string =>
+  resolveContentDesignStyle({ designStyle: input?.designStyle }) === 'classic'
+    ? CLASSIC_MASTER_SYSTEM_PROMPT
+    : LIGHT_MASTER_SYSTEM_PROMPT;
 
 const repairTruncatedJson = (jsonStr: string): string => {
   let inString = false;
@@ -504,8 +535,16 @@ export const safeJsonParse = (
  * Route proxy calls to the secure full-stack backend
  */
 export const generateEducationalContent = async (type: string, details: string) => {
-  const eduSystemPrompt = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN. NEVER INJECT <script src="https://cdn.tailwindcss.com"></script>. The app already has Tailwind.`;
-  const eduUserPrompt = `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design). Do NOT add Tailwind CDN scripts.`;
+  // `classic` (the default) restores the original commit 6d3f1d2 brief; the
+  // LIGHT v5 doctrine stays available behind the same switch.
+  const classicPair = buildClassicEducationalPrompts({ type, details });
+  const isClassic = resolveContentDesignStyle({}) === 'classic';
+  const eduSystemPrompt = isClassic
+    ? classicPair.system
+    : `${LIGHT_MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN. NEVER INJECT <script src="https://cdn.tailwindcss.com"></script>. The app already has Tailwind.`;
+  const eduUserPrompt = isClassic
+    ? classicPair.user
+    : `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design). Do NOT add Tailwind CDN scripts.`;
 
   // Native app: no backend — call Gemini directly (with multi-provider rescue).
   if (isNativeApp()) {
@@ -767,12 +806,31 @@ const executeWithContinuation = async (action: string, input: any, onProgress?: 
  * same promise `generateEducationalContent` has always kept — the classroom
  * must not lose a generation because one provider is having a bad day.
  */
+/**
+ * Stamp the teacher's resolved design doctrine onto a request payload.
+ *
+ * The Express backend has no `localStorage`, so without this it could only fall
+ * back to the `.env` value or the built-in default. Sending the resolved choice
+ * means a teacher who switches to LIGHT v5 in Settings gets LIGHT v5 from the
+ * server too, and the on-device engine and the alternative-engine rescue below
+ * all ask for the same design.
+ */
+const withResolvedDesignStyle = (input: any): any => {
+  const base = input && typeof input === 'object' ? input : {};
+  return {
+    ...base,
+    designStyle: resolveContentDesignStyle({ designStyle: base.designStyle }),
+    illustrationStyle: resolveIllustrationStyle({ illustrationStyle: base.illustrationStyle }),
+  };
+};
+
 const withLastResort = async (
   action: string,
-  input: any,
+  rawInput: any,
   onProgress: ((partial: any) => void) | undefined,
   buildPrompts: () => { system: string; user: string },
 ) => {
+  const input = withResolvedDesignStyle(rawInput);
   try {
     return await executeWithContinuation(action, input, onProgress);
   } catch (error: any) {

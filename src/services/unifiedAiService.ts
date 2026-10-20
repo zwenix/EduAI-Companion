@@ -7,13 +7,15 @@ import {
   runOCRScan as geminiOCRScan,
   runTextGrade as geminiTextGrade,
   chatWithTutor as geminiChat,
-  MASTER_SYSTEM_PROMPT,
+  LIGHT_MASTER_SYSTEM_PROMPT,
   safeJsonParse
 } from './geminiService';
 
 import { callMultiAi, performOCR, AIProvider } from './multiAiService';
 import { EduAIPromptEngine } from '../lib/prompt-engine';
 import { buildAdminLabPrompts, buildVisualLabPrompts } from '../lib/prompts/lab-prompts';
+import { buildClassicEducationalPrompts } from '../lib/prompts/classic-templates';
+import { resolveContentDesignStyle } from '../lib/contentStyle';
 
 const isProviderFailure = (error: any): boolean => {
   const status = error.response?.status || error.status;
@@ -64,14 +66,22 @@ export const generateEducationalContent = async (type: string, details: string, 
     }
   }
   
+  // `classic` (the default) restores the original commit 6d3f1d2 brief so the
+  // alternative engines ask for the same design as the Gemini path.
+  const classicPair = buildClassicEducationalPrompts({ type, details });
+  const isClassic = resolveContentDesignStyle({}) === 'classic';
   const messages = [
     { 
       role: 'system', 
-      content: `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN.` 
+      content: isClassic
+        ? classicPair.system
+        : `${LIGHT_MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN.` 
     },
     { 
       role: 'user', 
-      content: `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design).` 
+      content: isClassic
+        ? classicPair.user
+        : `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design).` 
     }
   ];
   try {

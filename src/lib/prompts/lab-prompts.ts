@@ -4,7 +4,15 @@
  * Keep these builders provider-agnostic: the Express/Gemini path, the native
  * client fallback, and alternative LLM providers must receive the same brief
  * and quality constraints.
+ *
+ * Each builder honours the resolved content design style (`contentStyle.ts`):
+ * `classic` — the default — returns the original commit 6d3f1d2 briefs verbatim
+ * so the model designs the whole vibrant page; `light-v5` returns the
+ * restrained LIGHT Template v5 briefs below.
  */
+
+import { resolveContentDesignStyle, resolveIllustrationStyle } from '../contentStyle';
+import { buildClassicAdminPrompts, buildClassicVisualPrompts } from './classic-templates';
 
 export interface LabPromptPair {
   system: string;
@@ -228,6 +236,43 @@ export function buildVisualLabPrompts(input: PromptInput = {}): LabPromptPair {
   const kind = visualKind(type);
   const language = inferLanguage(input);
   const generateImage = input.generateImage === true;
+
+  // Classic (default) restores the original commit 6d3f1d2 Visual Lab briefs
+  // verbatim: bubble-letter poster titles, floating fact boxes, double-sided
+  // flashcard grids, radiating mind maps and SA-landscape diagrams.
+  if (resolveContentDesignStyle({ designStyle: input.designStyle }) === 'classic') {
+    const illustrationStyle = resolveIllustrationStyle({
+      illustrationStyle: input.illustrationStyle,
+    });
+    const classic = buildClassicVisualPrompts({
+      visualType: type,
+      grade: text(input.grade),
+      subject: text(input.subject),
+      topic: text(input.topic),
+      language,
+      style: text(input.style),
+      colorScheme: text(input.colorScheme),
+      specificContent: text(input.specificContent),
+      quantity: text(input.quantity),
+      illustrationStyle,
+    });
+    const brief = text(input.additionalInstructions);
+
+    // Truncated output: continue the same fragment instead of rebuilding it.
+    if (text(input.existingContent)) {
+      return {
+        system: classic.system,
+        user: `Continue the same Visual Lab response from the exact point where this HTML fragment was truncated. Preserve all existing text, the full-width banner, the grade badge and every fact box already written; do not restart, repeat, summarize, or close an element that is already open. Put only the remaining HTML in content. Recreate the short supporting fields in the required JSON schema without changing their meaning. Keep the same topic, labels, language, style, paper size and print rules.\n\nORIGINAL REQUEST:\n${classic.user}\n\nReturn exactly one valid JSON object with content, description, printInstructions, and imagePrompt. Escape JSON strings correctly.\n\nTRUNCATED CONTENT SO FAR:\n${text(input.existingContent)}`,
+      };
+    }
+
+    const user = `${classic.user}${brief ? `\n\nInstructor brief (highest priority for creative choices): ${brief}\n` : ''}${generateImage
+        ? `\nILLUSTRATION: Include [Illustration: ...] placeholders with vivid, self-contained South African scene descriptions so the system can replace them with generated artwork, and set imagePrompt to a detailed prompt for the hero illustration.\n`
+        : `\nILLUSTRATION: Do not include any image or illustration placeholders. Set imagePrompt to an empty string.\n`
+      }\nReturn exactly one valid JSON object with no Markdown fences and no surrounding commentary, using these keys only:\n{\n  "content": "HTML with the finished visual aid",\n  "description": "One or two sentences describing its teaching purpose and contents",\n  "printInstructions": "The selected paper size/orientation and concise practical print guidance",\n  "imagePrompt": "Detailed prompt for the matching illustration, or an empty string when illustration generation is off"\n}\nAll visible text must be in the requested language. Escape JSON string characters correctly.`;
+    return { system: classic.system, user };
+  }
+
   const requestData = {
     visualType: type,
     topic: text(input.topic),
@@ -290,6 +335,43 @@ export function buildAdminLabPrompts(input: PromptInput = {}): LabPromptPair {
   const rawBrief = text(input.additionalInstructions) || text(input.keyPoints);
   const wantsImage = input.generateImage === true && adminImageAllowed(kind, rawBrief);
   const includeReplySlip = input.includeReplySlip === true;
+
+  // Classic (default) restores the original commit 6d3f1d2 Admin Lab brief:
+  // a formal document rendered as visually pleasing Tailwind HTML under the
+  // restored master doctrine.
+  if (resolveContentDesignStyle({ designStyle: input.designStyle }) === 'classic') {
+    const classic = buildClassicAdminPrompts({
+      documentType: type,
+      schoolName: text(input.schoolName),
+      tone: text(input.tone),
+      purpose: text(input.purpose),
+      keyPoints: text(input.keyPoints),
+      includeReplySlip,
+      language,
+      illustrationStyle: resolveIllustrationStyle({ illustrationStyle: input.illustrationStyle }),
+    });
+    // Truncated output: continue the same fragment instead of rebuilding it.
+    if (text(input.existingContent)) {
+      return {
+        system: classic.system,
+        user: `Continue this Admin Lab HTML fragment from exactly where it was truncated. Put only the remaining HTML in content; do not repeat or rewrite the existing content. Preserve the supplied facts, document type, tone, language, privacy safeguards, and print rules. Recreate the supporting JSON fields consistently with the original request.\n\nORIGINAL REQUEST:\n${classic.user}\n\nReturn exactly one valid JSON object with content, notes, documentType, and imagePrompt. Set documentType to exactly ${JSON.stringify(type)} and escape JSON strings correctly.\n\nCONTENT SO FAR:\n${text(input.existingContent)}`,
+      };
+    }
+
+    const user = `${classic.user}${text(input.recipient) ? `\n            Recipient: ${text(input.recipient)}\n` : ''}${text(input.timeDate) ? `\n            Date / Time: ${text(input.timeDate)}\n` : ''}${text(input.venue) ? `\n            Venue: ${text(input.venue)}\n` : ''}${rawBrief ? `\n            Instructor brief (highest priority for wording and structure): ${rawBrief}\n` : ''}
+            SAFETY & ACCURACY: Carry every supplied value (school, recipient, date/time, venue, names) through exactly as given. Never invent recipients, dates, reference numbers, costs, contact details, signatures, or official crests/seals. Omit a missing optional detail rather than printing "Not specified". Use South African English spelling when English is requested. Respect POPIA — no real learner data.
+
+            Return exactly one valid JSON object and no surrounding commentary, using these keys only:
+            {
+              "content": "Complete HTML for the requested school document, styled with Tailwind CSS",
+              "notes": "Brief editorial note or missing-essential-information note; otherwise an empty string",
+              "documentType": ${JSON.stringify(type)},
+              "imagePrompt": "Detailed prompt for one matching decorative illustration, or an empty string when none is appropriate"
+            }
+            All human-readable output must be in the requested language; keep documentType exactly as supplied. Escape JSON string characters correctly.`;
+    return { system: classic.system, user };
+  }
+
   const requestData = {
     documentType: type,
     purposeOrSubject: text(input.purpose),

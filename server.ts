@@ -1,6 +1,8 @@
 import { CAPS_LESSON_PLAN_SYSTEM_PROMPT } from "./src/lib/prompts/caps-lesson-plan-prompt";
 import { EduAIPromptEngine } from "./src/lib/prompt-engine";
 import { buildAdminLabPrompts, buildVisualLabPrompts } from "./src/lib/prompts/lab-prompts";
+import { buildClassicEducationalPrompts } from "./src/lib/prompts/classic-templates";
+import { CLASSIC_MASTER_SYSTEM_PROMPT, resolveContentDesignStyle, resolveIllustrationStyle } from "./src/lib/contentStyle";
 import { clientKeyFrom, createRateLimiter, ruleForPath } from "./src/lib/rateLimit";
 import { GEMINI_CONTENT_OUTPUT_TOKENS, GEMINI_DEFAULT_OUTPUT_TOKENS } from "./src/lib/aiOutputBudget";
 import {
@@ -270,7 +272,13 @@ const app = express();
 // cookies reflect the original https request instead of the internal hop.
 app.set("trust proxy", 1);
 
-const MASTER_SYSTEM_PROMPT = `
+/**
+ * LIGHT Template v5 doctrine — used only when the resolved content design
+ * style is `light-v5`. The default (`classic`) restores the original
+ * commit 6d3f1d2 doctrine from `src/lib/contentStyle.ts`, where the model owns
+ * the full page design.
+ */
+const LIGHT_MASTER_SYSTEM_PROMPT = `
 You are an expert South African CAPS-aligned educational content designer and senior graphic designer specializing in primary and high school learning materials for South African classrooms.
 
 Your task is to generate BEAUTIFUL, PROFESSIONAL, PRINT-READY classroom materials (worksheets, posters, study guides, infographics, flashcards, diagrams, mind maps, etc.) that are:
@@ -319,6 +327,19 @@ OUTPUT FORMATTING GOLDEN RULE:
 Make every output teacher-proud, parent-shareable, and ready for immediate printing or digital use in South African schools.
 
 `;
+
+/**
+ * Resolve the design doctrine for one request.
+ *
+ * `classic` (the default) restores the original commit 6d3f1d2 prompt
+ * engineering so the model designs the full vibrant page; `light-v5` keeps the
+ * restrained LIGHT Template v5 doctrine. The request body wins over the
+ * `EDUAI_CONTENT_DESIGN_STYLE` environment variable.
+ */
+const masterPromptFor = (input: any = {}): string =>
+  resolveContentDesignStyle({ designStyle: input?.designStyle }) === 'classic'
+    ? CLASSIC_MASTER_SYSTEM_PROMPT
+    : LIGHT_MASTER_SYSTEM_PROMPT;
 
   const repairTruncatedJson = (jsonStr: string): string => {
      let inString = false;
@@ -2207,10 +2228,16 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
 
         case "generate-educational": {
           const { type, details } = input;
-          const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN. NEVER INJECT <script src="https://cdn.tailwindcss.com"></script>. The app already has Tailwind.`;
+          const isClassic = resolveContentDesignStyle({ designStyle: input?.designStyle }) === 'classic';
+          const classicPair = buildClassicEducationalPrompts({ type, details });
+          const systemInstruction = isClassic
+            ? classicPair.system
+            : `${LIGHT_MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN. NEVER INJECT <script src="https://cdn.tailwindcss.com"></script>. The app already has Tailwind.`;
           return await executeOrStream({
             model,
-            contents: `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design). Do NOT add Tailwind CDN scripts.`,
+            contents: isClassic
+              ? classicPair.user
+              : `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design). Do NOT add Tailwind CDN scripts.`,
             config: {
               systemInstruction,
               temperature: 0.7,
@@ -2238,7 +2265,11 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
             week: input.week ? parseInt(input.week) : undefined,
             duration: input.duration || '2 hours',
             capsReference: input.capsReference || '',
-            includeWorksheet: !!input.includeWorksheet
+            includeWorksheet: !!input.includeWorksheet,
+            // The caller's design doctrine wins; `classic` is the default and
+            // restores the original vibrant EduAI prompt engineering.
+            designStyle: resolveContentDesignStyle({ designStyle: input.designStyle }),
+            illustrationStyle: resolveIllustrationStyle({ illustrationStyle: input.illustrationStyle })
           });
 
           let finalUserPrompt = user;

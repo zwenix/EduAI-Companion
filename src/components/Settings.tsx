@@ -18,6 +18,18 @@ import {
 } from '../lib/platform';
 import { initDB, clearStudyNotes } from '../lib/offlineDB';
 import ProfileSettings from './ProfileSettings';
+import {
+  CONTENT_DESIGN_STYLE_OPTIONS,
+  DEFAULT_CONTENT_DESIGN_STYLE,
+  DEFAULT_ILLUSTRATION_STYLE,
+  ILLUSTRATION_STYLE_OPTIONS,
+  readSavedContentDesignStyle,
+  readSavedIllustrationStyle,
+  saveContentDesignStyle,
+  saveIllustrationStyle,
+  type ContentDesignStyle,
+  type IllustrationStyle,
+} from '../lib/contentStyle';
 import PasswordSecurity from './PasswordSecurity';
 
 const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
@@ -499,6 +511,16 @@ export default function Settings({
   const [dyslexiaTheme, setDyslexiaTheme] = useState(() => localStorage.getItem('eduai_dyslexia') === 'true');
   const [readSpeed, setReadSpeed] = useState(() => Number(localStorage.getItem('eduai_read_speed') || '1.0'));
   const [dyscalculiaHelp, setDyscalculiaHelp] = useState(() => localStorage.getItem('eduai_dyscalculia') === 'true');
+
+  // Content design doctrine. `classic` restores the original vibrant EduAI look
+  // (the AI designs the whole page); `light-v5` keeps the restrained host-owned
+  // LIGHT Template v5 chrome. See `src/lib/contentStyle.ts`.
+  const [contentDesignStyle, setContentDesignStyle] = useState<ContentDesignStyle>(
+    () => readSavedContentDesignStyle() ?? DEFAULT_CONTENT_DESIGN_STYLE,
+  );
+  const [illustrationStyle, setIllustrationStyle] = useState<IllustrationStyle>(
+    () => readSavedIllustrationStyle() ?? DEFAULT_ILLUSTRATION_STYLE,
+  );
   
   const [activeSubTab, setActiveSubTab] = useState(initialSection || 'personal');
   const [isLoading, setIsLoading] = useState(true);
@@ -931,6 +953,74 @@ export default function Settings({
                                   <p className="text-[10px] text-slate-400 mt-1">Alibaba Model Studio (qwen3.8-max) • Fallback: Gemini</p>
                                </div>
                             </div>
+                         </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-white/5">
+                         <h4 className="text-white font-bold text-base mb-1">Content Design Style</h4>
+                         <p className="text-slate-400 text-xs mb-4">Controls how generated worksheets, posters, study guides, lesson plans and admin documents are designed. This applies to every generator immediately.</p>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {CONTENT_DESIGN_STYLE_OPTIONS.map((opt) => {
+                              const isSel = contentDesignStyle === opt.id;
+                              return (
+                                <button
+                                  key={opt.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setContentDesignStyle(opt.id);
+                                    saveContentDesignStyle(opt.id);
+                                  }}
+                                  className={`p-4 rounded-2xl border flex items-start gap-3 text-left transition-all cursor-pointer ${isSel ? 'border-orange-500/40 bg-orange-500/10' : 'border-white/10 bg-[#0a1226]/60 hover:border-white/25'}`}
+                                >
+                                   <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${isSel ? 'bg-orange-500/20 text-orange-400' : 'bg-white/5 text-slate-500'}`}>
+                                      {isSel ? '✓' : '○'}
+                                   </div>
+                                   <div className="flex-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                         <span className="text-white font-bold text-xs">{opt.label}</span>
+                                         {opt.id === DEFAULT_CONTENT_DESIGN_STYLE && (
+                                           <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-400">Default</span>
+                                         )}
+                                      </div>
+                                      <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">{opt.description}</p>
+                                   </div>
+                                </button>
+                              );
+                            })}
+                         </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-white/5">
+                         <h4 className="text-white font-bold text-base mb-1">Illustration Style</h4>
+                         <p className="text-slate-400 text-xs mb-4">The artwork style requested for every generated illustration and hero image.</p>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {ILLUSTRATION_STYLE_OPTIONS.map((opt) => {
+                              const isSel = illustrationStyle === opt.id;
+                              return (
+                                <button
+                                  key={opt.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setIllustrationStyle(opt.id);
+                                    saveIllustrationStyle(opt.id);
+                                  }}
+                                  className={`p-4 rounded-2xl border flex items-start gap-3 text-left transition-all cursor-pointer ${isSel ? 'border-sky-500/40 bg-sky-500/10' : 'border-white/10 bg-[#0a1226]/60 hover:border-white/25'}`}
+                                >
+                                   <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${isSel ? 'bg-sky-500/20 text-sky-400' : 'bg-white/5 text-slate-500'}`}>
+                                      {isSel ? '✓' : '○'}
+                                   </div>
+                                   <div className="flex-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                         <span className="text-white font-bold text-xs">{opt.label}</span>
+                                         {opt.id === DEFAULT_ILLUSTRATION_STYLE && (
+                                           <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-400">Default</span>
+                                         )}
+                                      </div>
+                                      <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">{opt.description}</p>
+                                   </div>
+                                </button>
+                              );
+                            })}
                          </div>
                       </div>
 

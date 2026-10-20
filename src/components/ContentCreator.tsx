@@ -23,6 +23,7 @@ import { EDUCATIONAL_IMAGE_STYLE } from '../lib/prompt-priority';
 import { printContent, downloadAsHTML, downloadAsPDF } from '../lib/printUtils';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { wrapWithTemplate, EDUAI_LIGHT_CSS, type ContentTemplateMeta } from '../lib/contentTemplate';
+import { resolveContentDesignStyle } from '../lib/contentStyle';
 import { EDUAI_DOC_TAILWIND_CSS } from '../lib/docTailwindCompat';
 import PrintPreviewModal from './PrintPreviewModal';
 import { PosterPreview } from './PosterPreview';
@@ -724,6 +725,12 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
     school?: string;
   } = {}) => {
     const meta: ContentTemplateMeta = { ...overrides };
+    // Stamp the resolved design doctrine onto every banner meta object. Under
+    // `classic` (the default) the model designed the whole page — its own
+    // full-width banner, grade badge, name/date/score row and footer — so the
+    // host template must hand it back untouched instead of absorbing its
+    // leading band into a second banner. See `src/lib/contentStyle.ts`.
+    meta.designStyle = resolveContentDesignStyle({});
     if (includeTeacherInfo) {
       const tName = bannerTeacherName || userName;
       if (tName) meta.teacher = tName;
@@ -1386,7 +1393,11 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
         school: printSchool,
         className: printClass,
         learner: printLearner,
-        contentType: contentTypeOverride
+        contentType: contentTypeOverride,
+        // Export the document under the doctrine it was generated with, so a
+        // classic page keeps the banner, grade badge and score card the model
+        // built instead of being re-wrapped in the LIGHT chrome.
+        designStyle: resolveContentDesignStyle({})
       });
     } catch (error) {
       console.error('Print/export failed:', error);
@@ -1433,7 +1444,10 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
         school: pdfSchool,
         className: pdfClass,
         learner: pdfLearner,
-        contentType: pdfContentType
+        contentType: pdfContentType,
+        // Same rule as print: export under the doctrine the content was
+        // generated with.
+        designStyle: resolveContentDesignStyle({})
       });
     } catch (error) {
       console.error('PDF export failed:', error);
@@ -1682,7 +1696,7 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
 
     const previewMarkup = wrapWithTemplate(
       replaceImagePlaceholders(html || '', allowImages),
-      { title: label, subject, grade, contentType }
+      { title: label, subject, grade, contentType, designStyle: resolveContentDesignStyle({}) }
     );
 
     return (
