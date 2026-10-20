@@ -144,8 +144,11 @@ describe('no prompt source file hardcodes a date', () => {
         'src/lib/prompts/master-prompt.ts',
         'src/lib/prompts/classic-templates.ts',
         'src/lib/compliance/sa-prompts.ts',
+        'src/lib/compliance/sa-frameworks.ts',
         'src/lib/contentStyle.ts',
         'src/lib/saDates.ts',
+        'src/lib/prompt-engine.ts',
+        'src/lib/prompts/lab-prompts.ts',
         'server.ts',
         'src/services/geminiService.ts',
     ];
@@ -195,6 +198,9 @@ describe('no prompt source file hardcodes a date', () => {
         const code = codeOnly(read(file))
             .replace(/©\s*\d{4}|\(c\)\s*\d{4}/gi, '')       // copyright mark
             .replace(/EDUAI_TEMPLATE_RIGHTS_LINE_2.*$/gm, '')
+            // A Unicode escape such as \\u2010-\\u2015 (the dash range)
+            // contains four digits that are code points, not years.
+            .replace(/\\u[0-9a-fA-F]{4}/g, '')
             // A four-digit number used as a NUMBER, not a year: a function
             // argument (Math.min(2000, …)) or an operand in arithmetic.
             .replace(/\(\s*20\d{2}\s*[,)]/g, '(')

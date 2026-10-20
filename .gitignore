@@ -96,3 +96,6 @@ Thumbs.db
 # They are build artifacts, not source — see .github/workflows/build-android2.yml
 android/
 ios/
+
+# Generated visual-preview scratch (rendered sample documents)
+.preview/

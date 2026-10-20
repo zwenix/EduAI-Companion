@@ -5,7 +5,7 @@
  */
 
 import { resolveMasterPrompt } from './prompts/master-prompt';
-import { dateMandate } from './saDates';
+import { currentYear, dateMandate } from './saDates';
 import { 
   WORKSHEET_PROMPT_TEMPLATE, 
   VISUAL_AID_PROMPT_TEMPLATE, 
@@ -123,7 +123,7 @@ CRITICAL MANDATORY INSTRUCTIONS FOR ${langUpper} OUTPUT:
       const npaWeight = phaseConfig.assessmentWeights;
 
       return `
-🇿🇦 SA COMPLIANCE MANDATE — CAPS · NPA · SIAS · WP6 · POPIA (2026):
+🇿🇦 SA COMPLIANCE MANDATE — CAPS · NPA · SIAS · WP6 · POPIA (${currentYear()}):
 
 CAPS PHASE: ${phaseConfig.displayName} | Grade: ${context.grade} | Subject: ${context.subject} | Term: ${context.term || "Term 1"}
 CAPS Reference: ${capsRef}
@@ -161,7 +161,7 @@ POPIA — Protection of Personal Information Act (Act 4 of 2013):
 
 SA CONTEXT:
 - Currency: ${SA_CONTEXT_GUIDELINES.currency}
-- Date: ${SA_CONTEXT_GUIDELINES.dateFormat} — Year MUST be 2026, NOT 2024
+- Date: ${SA_CONTEXT_GUIDELINES.dateFormat}
 - Spelling: ${SA_CONTEXT_GUIDELINES.spelling} — colour, behaviour, organise, centre
 - Places: ${SA_CONTEXT_GUIDELINES.places.slice(0, 3).join(", ")}
 - Animals/Flora: ${SA_CONTEXT_GUIDELINES.animals.slice(0, 2).join(", ")}
@@ -173,7 +173,6 @@ SA CONTEXT:
       // Fallback if grade parsing fails
       return `
 🇿🇦 SA COMPLIANCE CONTEXT — the host adds the single CAPS/NPA/POPIA/SIAS/WP6 compliance banner after generation
-- Year: 2026 (not 2024)
 - Currency: Rand (R), Date: DD/MM/YYYY, SA English spelling
 - Illustrations: ${EDUCATIONAL_IMAGE_STYLE}, diverse SA learners
 - Include privacy-safe teaching guidance and an SA flag stripe where relevant; do not output a compliance banner, compliance labels, or footer because the host adds them once
@@ -312,7 +311,7 @@ You MUST ALSO generate:
     // "do not emit a header band" wording would directly contradict it.
     const designRule = isClassic
       ? `6. CLASSIC EDUAI VISUAL SYSTEM (MANDATORY): Build the complete page yourself, exactly as the VISUAL STYLING DOCTRINE above requires — a full-width subject-coloured header banner first, a large circular Grade badge in the top right, the "NAME: ____  DATE: ____  TOTAL __ / ${context.totalMarks || 30}" row directly below the banner, pill-shaped coloured section headers, numbered question circles with white text, pill/capsule answer options, thick playful 2–4px borders on rounded-[2.5rem] cards, a 25–30% hero illustration block, differentiation boxes (Core/Extended/Simplified), SIAS support boxes, an NPA 7-point table, Bloom's tags, a motivational closing banner and the "EduAI Companion | CAPS Aligned" footer. Never omit the banner or the score card.`
-      : `6. SA COMPLIANCE VISUALS: Start straight into content cards. Include differentiation boxes (Core/Extended/Simplified), SIAS support boxes, an NPA 7-point table and Bloom's tags. Do NOT emit a school/DBE header band, a CAPS reference bar, a formal assessment header, a meta/name-date row, an SA flag-stripe header or any other band at the top of the document — the host's ONE two-colour vertical gradient banner already carries the school context, the grade/subject/term/type/date labels and the CAPS reference. Do not emit compliance labels or a footer either; the host adds one compliance banner and the exact 2026 footer.`;
+      : `6. SA COMPLIANCE VISUALS: Start straight into content cards. Include differentiation boxes (Core/Extended/Simplified), SIAS support boxes, an NPA 7-point table and Bloom's tags. Do NOT emit a school/DBE header band, a CAPS reference bar, a formal assessment header, a meta/name-date row, an SA flag-stripe header or any other band at the top of the document — the host's ONE two-colour vertical gradient banner already carries the school context, the grade/subject/term/type/date labels and the CAPS reference. Do not emit compliance labels or a footer either; the host adds one compliance banner and the exact footer.`;
 
     const illustrationRule = isClassic
       ? `7. ILLUSTRATION INTEGRATION: All [Illustration: ...] placeholders are replaced with generated artwork. Keep every placeholder ultra-detailed and SA-specific, with no text overlays, 300 DPI, in the ${illustrationStyle === 'disney3d' ? 'Disney 3D Animation Character & 3D Cute Icon' : "semi-realistic children's non-fiction book"} style.`
@@ -361,7 +360,7 @@ SA Requirements:
 - NPA: 7-point scale, Bloom's tagged, SBA weighting
 - SIAS: \${siasSupportLevel} accommodations
 - POPIA: Placeholder names only; the host owns the compliance banner and exact footer
-- SA Context: Rand, SA places, SA names, IKS, 2026 year
+- SA Context: Rand, SA places, SA names, IKS
 - Visuals: ${EDUCATIONAL_IMAGE_STYLE} placed inside the content — never a top-of-page header band (the host banner owns the document header and labels)
 
 Content must be complete, print-ready, Tailwind CSS, high contrast.
@@ -397,13 +396,13 @@ Generate 1 image for a small DBE-branded emblem used INSIDE the body (the host b
         return base + `
 ADMIN DOCUMENT STRUCTURE (SA Official):
 - Start with the REF number: the official header (flag stripe, school info, EMIS, district, province) is drawn by the host's ONE banner, so never repeat it
-- REF number, Date DD Month YYYY (2026)
+- REF number, Date __________ (hand-filled — never pre-fill a date)
 - Recipient, Subject, Salutation
 - Body with headings, action items, contact placeholders
 - Reply slip if applicable
 - Signatures: Class Teacher, Principal, SGB placeholders
 - Distribution list
-- Privacy-safe placeholders; do not generate a footer because the host inserts the exact canonical 2026 footer
+- Privacy-safe placeholders; do not generate a footer because the host inserts the exact canonical footer
 Generate 1 image for a small official seal used INSIDE the body (the host banner owns the document header).
 `;
       default:
@@ -431,7 +430,7 @@ Phase Rules:
 Image: "Professional educational illustration for South African Grade [X] [Subject]: [Topic]. Style: Semi-realistic digital painting. 300 DPI, sharp, no text." — will be generated by Qwen-Image (qwen/qwen-image) via NVIDIA NIM with SA context enhancement.
 Layout Guardrails: No fixed heights on containers (use h-auto, py-4/py-6). No absolute text positioning. Use rounded-xl/2xl (not rounded-full) for choice pills to prevent clipping on wrap. Pair text-2xl+ headings with leading-tight/leading-snug.
 Output format: raw JSON (no markdown block wrapper). Escaped double quotes.
-SA Context: Rand (R), SA places (Table Mountain, Kruger, Drakensberg), SA names (Thabo, Amina, Sipho, Lerato), SA English spelling (colour, behaviour, organise), DD/MM/YYYY, IKS integration, ubuntu values, 2026 year.
+SA Context: Rand (R), SA places (Table Mountain, Kruger, Drakensberg), SA names (Thabo, Amina, Sipho, Lerato), SA English spelling (colour, behaviour, organise), DD/MM/YYYY (never invent a date), IKS integration, ubuntu values.
 `;
   }
 

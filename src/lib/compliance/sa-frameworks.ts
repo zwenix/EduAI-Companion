@@ -344,7 +344,7 @@ export const POPIA_GUIDELINES = {
 
 export const SA_CONTEXT_GUIDELINES = {
   currency: "South African Rand (R) — e.g., R25.50, R1 250",
-  dateFormat: "DD/MM/YYYY — e.g., 15/06/2026",
+  dateFormat: "DD/MM/YYYY — South African order, day first. Never invent a date; see the DATE RULES block.",
   spelling: "South African English — colour, behaviour, organise, centre, etc.",
   places: [
     "Table Mountain, Cape Town", "Kruger National Park", "Drakensberg",
