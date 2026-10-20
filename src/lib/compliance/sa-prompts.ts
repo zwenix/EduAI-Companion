@@ -12,7 +12,10 @@ import {
 } from "./sa-frameworks";
 
 import { EDUCATIONAL_IMAGE_STYLE, buildInstructorPriority } from "../prompt-priority";
-import { ENHANCED_MASTER_PROMPT } from "../prompts/master-prompt";
+// `resolveMasterPrompt()` fills the master prompt's date placeholder with
+// TODAY's real date, so this pipeline never states a stale year.
+import { resolveMasterPrompt } from "../prompts/master-prompt";
+import { currentYear } from "../saDates";
 
 // ── SA FLAG COLOURS & BRANDING ──
 export const SA_BRANDING = {
@@ -40,10 +43,10 @@ export function buildSASystemPrompt(request: SAContentRequest): string {
   // Enhanced system prompt that merges document's SA compliance with existing master prompt
   return `You are EduAI Companion, an expert South African educational content designer fully aligned with ALL Department of Basic Education (DBE) frameworks.
 
-${ENHANCED_MASTER_PROMPT}
+${resolveMasterPrompt()}
 
 ══════════════════════════════════════════════════════════════
-🇿🇦 NON-NEGOTIABLE SA COMPLIANCE FRAMEWORKS — 2026:
+🇿🇦 NON-NEGOTIABLE SA COMPLIANCE FRAMEWORKS — ${currentYear()}:
 ══════════════════════════════════════════════════════════════
 
 1. CAPS — Curriculum and Assessment Policy Statement
@@ -84,7 +87,7 @@ ${ENHANCED_MASTER_PROMPT}
 
 7. SA CONTEXT & LANGUAGE
    Currency: ${SA_CONTEXT_GUIDELINES.currency}
-   Date: ${SA_CONTEXT_GUIDELINES.dateFormat} — Current year MUST be 2026
+   Date: the host banner prints today's date automatically — leave every date field in the content BLANK for hand-filling
    Spelling: ${SA_CONTEXT_GUIDELINES.spelling}
    Places: Use SA places — ${SA_CONTEXT_GUIDELINES.places.slice(0, 3).join(", ")}
    Values: ${SA_CONTEXT_GUIDELINES.values.join(", ")}
@@ -163,11 +166,11 @@ When HTML is requested (default for EduAI Companion classroom use):
 - NPA 7-point rating table
 - Bloom's tags on every question
 - Illustration placeholders: [Illustration: <detailed SA context prompt, ${EDUCATIONAL_IMAGE_STYLE}>]
-- Do not generate a footer; the host inserts the exact canonical 2026 footer.
+- Do not generate a footer; the host inserts the exact canonical ${currentYear()} footer.
 - High contrast: dark text on light banners, white text only on deep dark backgrounds
 
 CRITICAL RULES:
-- Current year is 2026 — never 2024
+- Never hardcode or assume a year. The runtime date mandate above states today's real date and year.
 - No emojis in formal text (use icons only where pedagogically appropriate)
 - Break up dense text with illustration placeholders
 - Keep poster/infographic text brief, punchy, bullet lists
@@ -186,7 +189,7 @@ export function buildSAUserPrompt(request: SAContentRequest): string {
 SA Context Requirements:
 - Currency: Rand (R), SA places, SA names (Thabo, Amina, Sipho, Lerato), metric system
 - SA English spelling: colour, behaviour, organise, centre
-- Date format: DD/MM/YYYY, Year: 2026
+- Date format: DD/MM/YYYY, Year: ${currentYear()}
 - Include IKS (Indigenous Knowledge Systems) where relevant
 - Visuals: Diverse SA learners, rainbow nation, local animals (lion, springbok, protea, etc.)
 - Illustration style: ${EDUCATIONAL_IMAGE_STYLE}
@@ -248,7 +251,7 @@ Applying ~${config.bloomsDistribution.applying}% | Analyzing ~${config.bloomsDis
 Evaluating ~${config.bloomsDistribution.evaluating}% | Creating ~${config.bloomsDistribution.creating}%
 
 STRUCTURE (SA School Branded):
-1. Start straight into the instructions — the school info placeholder, subject, grade, date (DD/MM/YYYY 2026), marks, time and flag stripe are already in the host's ONE banner, so there is no second header band
+1. Start straight into the instructions — the school info placeholder, subject, grade, date (DD/MM/YYYY ${currentYear()}), marks, time and flag stripe are already in the host's ONE banner, so there is no second header band
 2. Instructions — clear, age-appropriate, in ${request.lolt || "English"}${request.homeLanguage ? ` with ${request.homeLanguage} glossary` : ""}
 3. Section A: Short Questions / Knowledge (lower order: Remembering, Understanding) — e.g., MCQ, true/false, matching
 4. Section B: Application (middle order: Applying) — word problems with SA context (Rands, local places)
@@ -298,7 +301,7 @@ SECTIONS (SA Branded, Visual-Rich):
 10. Did You Know? — SA context / IKS facts (e.g., Table Mountain, Kruger, indigenous plants)
 11. Self-Assessment Checklist — learner reflection
 12. SIAS Support Notes — if enabled
-13. Privacy-safe placeholder guidance (the host owns the compliance banner and exact 2026 footer)
+13. Privacy-safe placeholder guidance (the host owns the compliance banner and exact ${currentYear()} footer)
 
 ${request.differentiationRequired ? "DIFFERENTIATION: Provide simplified and extended versions with visual supports." : "Include UDL visual supports."}
 ${request.includeInclusiveSupport ? `SIAS: ${request.siasSupportLevel || "level_1"} accommodations included.` : ""}
@@ -357,7 +360,7 @@ ${instructorPriority}
 
 Create a CAPS-aligned Annual Teaching Plan (ATP) / Work Schedule:
 Subject: ${request.subject} | Grade: ${request.grade} | Term: ${request.term}
-Topic: ${request.topic} | Year: 2026
+Topic: ${request.topic} | Year: ${currentYear()}
 CAPS Reference: ${request.capsReference || generateCAPSReference(request.subject, request.grade, request.term, request.topic)}
 
 ATP STRUCTURE (DBE Official Format):
@@ -394,13 +397,13 @@ ${instructorPriority}
 
 Create a South African school administrative document — professional, formal, DBE-compliant:
 Type: ${request.topic} (e.g., Parent Notification, Certificate, Letter, Notice, Timetable) | Grade: ${request.grade} | Term: ${request.term}
-Subject: ${request.subject} | Date: DD/MM/YYYY 2026
+Subject: ${request.subject} | Date: DD/MM/YYYY ${currentYear()}
 School: Placeholder — use SA school branding
 
 STRUCTURE (Official SA School Document):
-1. Official header data (school name, address, contact, EMIS number, district, province, logo) is drawn by the host banner — do not repeat it here; start with REF and Date 2026
-2. Reference Number — e.g., REF: ${request.grade}/ADMIN/2026/${request.term}
-3. Date — DD Month YYYY (e.g., 15 June 2026) — Year MUST be 2026
+1. Official header data (school name, address, contact, EMIS number, district, province, logo) is drawn by the host banner — do not repeat it here; start with REF and Date ${currentYear()}
+2. Reference Number — e.g., REF: ${request.grade}/ADMIN/${currentYear()}/${request.term}
+3. Date — leave BLANK as "Date: __________" for the recipient or administrator to complete by hand; never pre-fill it
 4. Recipient — To: (e.g., Parents/Guardians of Grade ${request.grade} learners)
 5. Subject Line — clear, concise, e.g., RE: ${request.topic}
 6. Salutation — formal, e.g., Dear Parents/Guardians
@@ -414,7 +417,7 @@ STRUCTURE (Official SA School Document):
 10. Signatures — Class Teacher, Principal, SGB placeholders with signature lines
 11. Distribution List — who receives copies
 12. Attachments — if any
-13. Footer — POPIA confidentiality notice, school motto, DBE branding, 2026
+13. Footer — POPIA confidentiality notice, school motto, DBE branding, ${currentYear()}
 
 Tone: Formal, professional, respectful, clear, inclusive, SA English.
 Visual: Professional, clean, print-ready, SA school branding colours (green #007749, gold #FFB81C)
@@ -438,7 +441,7 @@ Requirements:
 - Full SA compliance: CAPS, NPA, SIAS, WP6, POPIA
 - Bloom's distribution: ${JSON.stringify(config.bloomsDistribution)}
 - NPA weighting: SBA ${config.assessmentWeights.schoolBasedAssessment}% / Exam ${config.assessmentWeights.yearEndExam}%
-- SA context: Rand, SA places, SA names, IKS, 2026 year
+- SA context: Rand, SA places, SA names, IKS, ${currentYear()} year
 - Visuals: ${EDUCATIONAL_IMAGE_STYLE}, 2-3 illustration placeholders with SA context
 - Differentiation: ${request.differentiationRequired ? "Core/Extended/Simplified" : "UDL"}
 - SIAS: ${request.includeInclusiveSupport ? request.siasSupportLevel : "Level 1 accommodations"}
@@ -469,7 +472,7 @@ export function buildSAQualityChecklist(request: SAContentRequest): string[] {
     `✅ POPIA Compliant — No real learner PII, placeholder names only`,
     `✅ IKS Integration — Indigenous Knowledge Systems accurate and respectful`,
     `✅ SA English — colour, behaviour, organise, centre spelling`,
-    `✅ SA Context — Rand (R), SA places, SA names, metric system, DD/MM/YYYY, 2026 year`,
+    `✅ SA Context — Rand (R), SA places, SA names, metric system, DD/MM/YYYY, ${currentYear()} year`,
     `✅ Visual Quality — ${EDUCATIONAL_IMAGE_STYLE}, diverse SA learners, rainbow nation`,
     `✅ Differentiation — ${request.differentiationRequired ? "Core/Extended/Simplified" : "UDL"} strategies included`,
     `✅ Print-Ready — High contrast (4.5:1), Tailwind CSS, @media print, 300 DPI image prompts`

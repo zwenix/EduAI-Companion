@@ -20,9 +20,22 @@ import {
   imageGoldenRule,
   type IllustrationStyle,
 } from '../contentStyle';
+import { dateMandate } from '../saDates';
 
 /** The restored master doctrine, re-exported for prompt builders. */
 export const CLASSIC_MASTER_PROMPT = CLASSIC_MASTER_SYSTEM_PROMPT;
+
+/**
+ * The classic doctrine plus TODAY's real date mandate.
+ *
+ * The restored 6d3f1d2 text is kept byte-for-byte in `contentStyle.ts`, so the
+ * date rule is appended here rather than written into it. This is what every
+ * classic builder actually sends — it guarantees a model reached through
+ * `server.ts`, the on-device engine or the alternative-engine rescue all hear
+ * today's date and the one-date rule.
+ */
+const classicSystemPrompt = (): string =>
+  `${CLASSIC_MASTER_PROMPT}\n${dateMandate()}`;
 
 /** The restored image golden rule, re-exported for prompt builders. */
 export const CLASSIC_IMAGE_GOLDEN_RULE = CLASSIC_IMAGE_PROMPT_GOLDEN_RULE;
@@ -38,7 +51,7 @@ export const buildClassicEducationalPrompts = (input: {
   const type = input.type || 'educational material';
   const details = input.details || '';
   return {
-    system: `${CLASSIC_MASTER_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN.`,
+    system: `${classicSystemPrompt()}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN.`,
     user: `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design).`,
   };
 };
@@ -89,7 +102,7 @@ export const buildClassicCapsPrompts = (
     : '';
   const goldenRule = imageGoldenRule(input.illustrationStyle);
 
-  const system = `${CLASSIC_MASTER_PROMPT}\n\nGenerate high-quality ${contentType} for Grade ${input.grade || '4'} ${input.subject || ''}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.`;
+  const system = `${classicSystemPrompt()}\n\nGenerate high-quality ${contentType} for Grade ${input.grade || '4'} ${input.subject || ''}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.`;
 
   const user = `
             Type: ${contentType}
@@ -232,7 +245,7 @@ export const buildClassicVisualPrompts = (
   const visualPrompt = classicVisualBlueprint(input);
   const goldenRule = imageGoldenRule(input.illustrationStyle);
 
-  const system = `${CLASSIC_MASTER_PROMPT}${CLASSIC_VISUAL_SYSTEM_SUFFIX}`;
+  const system = `${classicSystemPrompt()}${CLASSIC_VISUAL_SYSTEM_SUFFIX}`;
 
   const user = `
             ${visualPrompt}
@@ -265,7 +278,7 @@ export interface ClassicAdminInput {
 export const buildClassicAdminPrompts = (
   input: ClassicAdminInput,
 ): { system: string; user: string } => {
-  const system = `${CLASSIC_MASTER_PROMPT}\n\nGenerate a formal ${input.documentType || 'school document'} for ${input.schoolName || 'the school'}.
+  const system = `${classicSystemPrompt()}\n\nGenerate a formal ${input.documentType || 'school document'} for ${input.schoolName || 'the school'}.
           The tone should be ${input.tone || 'Formal & Professional'}.
           IMPORTANT: The 'content' field MUST be formatted as visually pleasing HTML string styled with Tailwind CSS classes. DO NOT use generic Markdown.`;
 

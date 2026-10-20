@@ -177,6 +177,71 @@ export const stripLearnerFillInRows = (html: string): string => {
 export const FILL_IN_BLANK = '__________';
 
 /**
+ * Every label a document-metadata date is written under (English + Afrikaans).
+ *
+ * Deliberately a LABEL vocabulary, not a bare-date pattern: the one-date rule
+ * targets dates a learner or teacher fills in by hand, not dates that ARE the
+ * lesson. A History timeline entry ("16 June 1976 — Soweto Uprising") or a
+ * Mathematics date problem is teaching content and must survive untouched, so
+ * only a date sitting in a recognised field is blanked.
+ */
+const DATE_FIELD_LABEL =
+    '(?:' +
+    [
+        'Date', 'Datum',
+        'Date issued', 'Date completed', 'Date received', 'Date returned',
+        'Date of assessment', 'Date of birth', 'Date of meeting', 'Date of event',
+        'Due date', 'Closing date', 'Sperdatum', 'Vervaldatum',
+        'Signed on', 'Onderteken op', 'Assessment date', 'Completion date',
+        'Issued on', 'Gegee op', 'Handed in', 'Ingehandig',
+    ].join('|') +
+    ')';
+
+/**
+ * A date value in any common South African written form.
+ *
+ *   15/10/2026 · 15-10-2026 · 2026-10-15 · 15 October 2026 · October 15, 2026
+ */
+const DATE_VALUE =
+    '(?:' +
+    '\\d{1,2}[-/.]\\d{1,2}[-/.]\\d{2,4}' +      // 15/10/2026, 15-10-26
+    '|\\d{4}[-/.]\\d{1,2}[-/.]\\d{1,2}' +       // 2026-10-15
+    '|[A-Za-z]+\\.?\\s+\\d{1,2},?\\s+\\d{4}' +  // October 15, 2026
+    '|\\d{1,2}\\s+[A-Za-z]+\\.?,?\\s+\\d{4}' +  // 15 October 2026
+    ')';
+
+/**
+ * Blank EVERY document-metadata date in a generated body.
+ *
+ * This is the enforcement half of the one-date rule: the host banner prints
+ * today's real date, and every other date on the page is a field the learner or
+ * teacher completes by hand — so a date the model pre-filled is emptied.
+ *
+ * Applies to ALL content types, not only learner worksheets: a teacher-facing
+ * lesson plan or an admin letter also carries fill-in dates (issued, signed,
+ * meeting, due). Unlike {@link blankLearnerFillInValues}, it is safe to run on
+ * any document because it only fires inside a recognised date FIELD — a date
+ * that is part of the teaching content is left exactly as written.
+ *
+ *   "Date: 15/10/2026"          -> "Date: __________"
+ *   "Datum: 2026-10-15"         -> "Datum: __________"
+ *   "Due date: 15 October 2026" -> "Due date: __________"
+ *   "16 June 1976 — Soweto"     -> untouched (teaching content, no field label)
+ */
+export const blankFillInDates = (html: string): string => {
+    let out = String(html || '');
+    if (!out) return out;
+
+    // A labelled date field: blank the value, keep the label.
+    out = out.replace(
+        new RegExp(`(${DATE_FIELD_LABEL}\\s*:\\s*)${DATE_VALUE}`, 'gi'),
+        `$1${FILL_IN_BLANK}`,
+    );
+
+    return out;
+};
+
+/**
  * Empty any value a model pre-filled on a Name / Grade / Date line.
  *
  * Handles the English and Afrikaans labels and only fires when the value sits
@@ -236,6 +301,7 @@ export default {
     hasLearnerFillInRow,
     injectLearnerFillInRow,
     stripLearnerFillInRows,
+    blankFillInDates,
     blankLearnerFillInValues,
     sanitiseLearnerFillInBody,
 };

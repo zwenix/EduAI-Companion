@@ -4,7 +4,8 @@
  * Integrated with CAPS · NPA · SIAS · WP6 · POPIA frameworks
  */
 
-import { ENHANCED_MASTER_PROMPT } from './prompts/master-prompt';
+import { resolveMasterPrompt } from './prompts/master-prompt';
+import { dateMandate } from './saDates';
 import { 
   WORKSHEET_PROMPT_TEMPLATE, 
   VISUAL_AID_PROMPT_TEMPLATE, 
@@ -289,16 +290,22 @@ You MUST ALSO generate:
     // Enhance system prompt with phase-specific guidance + SA compliance.
     // Classic mode uses the restored 6d3f1d2 doctrine (the model owns the whole
     // page); LIGHT v5 keeps the restrained ENHANCED_MASTER_PROMPT.
-    let systemPrompt = isClassic
+    //
+    // `${dateMandate}` is resolved for BOTH doctrines: it carries today's real
+    // date and the one-date rule. Leaving the placeholder unresolved would leak
+    // the literal text into the model prompt, and the prompts previously
+    // hardcoded "Today's date is …" which drifted into hallucinated dates.
+    const resolvedDateMandate = dateMandate();
+    let systemPrompt = (isClassic
       ? CLASSIC_MASTER_SYSTEM_PROMPT
-          .replace(/\$\{phase\}/g, phase)
-          .replace(/\$\{gradeRange\}/g, this.getGradeRange(phase))
-      : ENHANCED_MASTER_PROMPT
-          .replace(/\$\{phase\}/g, phase)
-          .replace(/\$\{gradeRange\}/g, this.getGradeRange(phase));
+      : resolveMasterPrompt()
+    )
+      .replace(/\$\{phase\}/g, phase)
+      .replace(/\$\{gradeRange\}/g, this.getGradeRange(phase))
+      .replace(/\$\{dateMandate\}/g, resolvedDateMandate);
     
     // Add SA compliance to system prompt
-    systemPrompt = `${saMandate}\n\n${systemPrompt}`;
+    systemPrompt = `${resolvedDateMandate}\n${saMandate}\n\n${systemPrompt}`;
 
     // Rules 6 and 7 are doctrine-specific: classic mode MUST build the banner,
     // grade badge, name/date/score row and footer itself, so the LIGHT v5
