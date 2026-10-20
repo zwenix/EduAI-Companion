@@ -1724,9 +1724,12 @@ export const buildTemplateClosingMetaHTML = (meta: ContentTemplateMeta = {}): st
     if (meta.school) facts.push(String(meta.school));
     if (meta.teacher) facts.push(String(meta.teacher));
 
-    // The one real date on the page — the banner's and this block's are the same
-    // computed value, never something a model guessed.
-    const dateLabel = meta.leaveDateBlank ? saToday() : normaliseDate(meta.date) || saToday();
+    // Mirror the opening banner's date pill EXACTLY, including the blank: when a
+    // caller asks for the date to be left for handwriting (Foundation Phase packs
+    // do), this block must not print the one date that was suppressed.
+    const dateLabel = meta.leaveDateBlank
+        ? 'Date: ______'
+        : normaliseDate(meta.date) || saToday();
 
     return `
 <aside class="eduai-closing-meta" aria-label="Document summary" style="display:block; width:100%; box-sizing:border-box; background: ${reversed}; background-image: ${reversed}; color:#ffffff; border:1px solid rgba(255,255,255,0.45); border-radius:10px; padding:12px 16px; margin:24px 0 0; font-family:${LIGHT_BODY_FONT}; font-size:11px; font-weight:600; line-height:1.55; overflow-wrap:anywhere; page-break-inside:avoid; break-inside:avoid; -webkit-print-color-adjust:exact; print-color-adjust:exact;">

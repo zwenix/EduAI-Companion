@@ -330,6 +330,21 @@ describe('buildTemplateClosingMetaHTML — metadata at the end of the content', 
         expect(closing).not.toMatch(/GENERATED:\s*\d{2}\/\d{2}\/\d{4}/i);
     });
 
+    it('leaves the date blank when the caller asks for it', () => {
+        // Regression: this was inverted — it printed today's real date in the
+        // exact case the caller asked for a hand-filled blank, which would
+        // defeat `leaveDateBlank` on Foundation Phase packs.
+        const blank = buildTemplateClosingMetaHTML({ ...meta, leaveDateBlank: true });
+        expect(blank).toContain('Date: ______');
+        expect(blank).not.toContain(saToday());
+    });
+
+    it('matches the opening banner\'s date treatment either way', () => {
+        const withDate = buildTemplateClosingMetaHTML(meta);
+        expect(withDate).toContain(saToday());
+        expect(withDate).not.toContain('Date: ______');
+    });
+
     it('omits fields that were never supplied', () => {
         const closing = buildTemplateClosingMetaHTML({ title: 'Notice' });
         expect(closing).toContain('Notice');
@@ -400,6 +415,12 @@ describe('wrapWithTemplate — the closing block renders once, at the end', () =
         const wrapped = wrapWithTemplate(body, meta);
         // Banner pill + closing block: both computed from the clock.
         expect((wrapped.split(saToday()).length - 1)).toBeGreaterThanOrEqual(2);
+    });
+
+    it('prints no real date anywhere when leaveDateBlank is set', () => {
+        const wrapped = wrapWithTemplate(body, { ...meta, leaveDateBlank: true });
+        expect(wrapped).not.toContain(saToday());
+        expect(wrapped).toContain('Date: ______');
     });
 
     it('can be suppressed with closingMeta: false', () => {
