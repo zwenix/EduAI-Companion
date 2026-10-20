@@ -26,7 +26,7 @@ import { AI_SECRETS } from './aiSecrets';
 
 export interface ImageGenerationResult {
   url: string;
-  provider: 'perchance' | 'gemini' | 'pollinations' | 'qwen';
+  provider: 'perchance' | 'gemini' | 'pollinations' | 'qwen' | 'cloudflare' | 'flux';
   prompt: string;
   width: number;
   height: number;
@@ -51,24 +51,36 @@ export interface ImageGenerationOptions {
   skipCache?: boolean;
 }
 
-export type ImageProviderId = 'perchance' | 'gemini' | 'pollinations' | 'qwen';
+export type ImageProviderId = 'perchance' | 'gemini' | 'pollinations' | 'qwen' | 'cloudflare' | 'flux';
 
 export const IMAGE_PROVIDER_PRIORITY: readonly ImageProviderId[] = [
   'perchance',
   'qwen',
   'gemini',
+  // Free FLUX engines (server-side keys): Cloudflare Workers AI, then Hugging Face.
+  'cloudflare',
+  'flux',
   'pollinations'
 ];
 
+// The required orders are unchanged — Perchance → Gemini/Imagen, Qwen → Gemini/
+// Imagen, Gemini/Imagen → Pollinations, Pollinations → Gemini/Imagen. The two
+// free FLUX engines (Cloudflare, then Hugging Face) are slotted in AFTER the
+// required step of every chain, so they catch whatever the required providers
+// could not produce before the chain ends on Pollinations.
 export const IMAGE_PROVIDER_FALLBACKS: Record<ImageProviderId, readonly ImageProviderId[]> = {
-  // Perchance (primary)   → Gemini/Imagen → Pollinations (tertiary's fallback)
-  perchance: ['gemini', 'pollinations'],
-  // Qwen (secondary)      → Gemini/Imagen → Pollinations
-  qwen: ['gemini', 'pollinations'],
-  // Gemini/Imagen (tertiary) → Pollinations
-  gemini: ['pollinations'],
-  // Pollinations          → Gemini/Imagen
-  pollinations: ['gemini']
+  // Perchance (primary)   → Gemini/Imagen → Cloudflare FLUX → HF FLUX → Pollinations
+  perchance: ['gemini', 'cloudflare', 'flux', 'pollinations'],
+  // Qwen (secondary)      → Gemini/Imagen → Cloudflare FLUX → HF FLUX → Pollinations
+  qwen: ['gemini', 'cloudflare', 'flux', 'pollinations'],
+  // Gemini/Imagen (tertiary) → Cloudflare FLUX → HF FLUX → Pollinations
+  gemini: ['cloudflare', 'flux', 'pollinations'],
+  // Pollinations          → Gemini/Imagen → Cloudflare FLUX → HF FLUX
+  pollinations: ['gemini', 'cloudflare', 'flux'],
+  // Cloudflare FLUX       → HF FLUX → Gemini/Imagen → Pollinations
+  cloudflare: ['flux', 'gemini', 'pollinations'],
+  // Hugging Face FLUX     → Cloudflare FLUX → Gemini/Imagen → Pollinations
+  flux: ['cloudflare', 'gemini', 'pollinations']
 };
 
 export const getImageProviderOrder = (preferred: ImageProviderId): ImageProviderId[] => [
@@ -241,6 +253,45 @@ export const generateImagePerchance = async (
   } finally {
     releasePerchanceSlot();
   }
+};
+
+/**
+ * Cloudflare Workers AI / Hugging Face FLUX.1-schnell, called through OUR backend
+ * (`/api/images/flux-generate`) so the tokens never reach the browser. Resolves to
+ * a `data:` URL. A missing/rejected token (HTTP 400/401/402) is flagged `fatal`,
+ * which benches the provider at once instead of retrying a call that cannot work.
+ */
+export class FluxClientError extends Error {
+  constructor(message: string, public readonly status: number, public readonly fatal: boolean) {
+    super(message);
+    this.name = 'FluxClientError';
+  }
+}
+
+export const generateImageFlux = async (
+  provider: 'cloudflare' | 'huggingface',
+  prompt: string,
+  width: number = 1024,
+  height: number = 768,
+  seed: number = Math.floor(Math.random() * 100000)
+): Promise<string> => {
+  const response = await fetch(buildApiUrl('/api/images/flux-generate'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, provider, width, height, seed })
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({} as any));
+    throw new FluxClientError(
+      data?.error || `FLUX (${provider}) backend failed: ${response.status}`,
+      response.status,
+      response.status === 400 || response.status === 401 || response.status === 402
+    );
+  }
+  const data = await response.json();
+  const url: string | undefined = data?.url || data?.imageUrl;
+  if (!url) throw new Error(`FLUX (${provider}) returned no image`);
+  return url;
 };
 
 // Pollinations' anonymous tier answers a burst of parallel requests with its
@@ -538,9 +589,18 @@ export const resetImageProviderHealth = () => {
   try { window.localStorage.removeItem(PERCHANCE_BENCH_KEY); } catch { /* ignore */ }
 };
 
-const recordProviderFailure = (id: ImageProviderId) => {
+const FATAL_COOLDOWN_MS = 30 * 60 * 1000;
+
+const recordProviderFailure = (id: ImageProviderId, fatal = false) => {
   if (id === 'pollinations') return;
   const h = healthOf(id);
+  if (fatal) {
+    // Not configured / token rejected / credit used up: retrying cannot help.
+    h.skipUntil = Date.now() + FATAL_COOLDOWN_MS;
+    h.failures = 0;
+    console.warn(`[Image Gen] ${id} is unavailable (not configured or rejected) — skipping it for ${FATAL_COOLDOWN_MS / 60000} min.`);
+    return;
+  }
   h.failures += 1;
   // Perchance that never worked: one failure benches it (hours). Any other
   // provider that has never produced an image is benched after TWO failures;
@@ -583,6 +643,8 @@ const runImageProviderChain = async (
     if (p === 'gemini-imagen' || p === 'gemini') return 'gemini';
     if (p === 'pollinations') return 'pollinations';
     if (p === 'qwen' || p === 'qwen-image' || p === 'nvidia-qwen') return 'qwen';
+    if (p === 'cloudflare' || p === 'cloudflare-flux') return 'cloudflare';
+    if (p === 'flux' || p === 'huggingface' || p === 'hf-flux') return 'flux';
     return 'perchance';
   };
 
@@ -633,6 +695,19 @@ const runImageProviderChain = async (
       } catch (error) {
         recordProviderFailure('gemini');
         console.warn('[Image Gen] Gemini/Imagen failed; continuing...', error);
+      }
+    } else if (prov === 'cloudflare' || prov === 'flux') {
+      const label = prov === 'cloudflare' ? 'Cloudflare FLUX.1-schnell' : 'Hugging Face FLUX.1-schnell';
+      const engine = prov === 'cloudflare' ? 'cloudflare' : 'huggingface';
+      try {
+        const role = preferred === prov ? 'Selected' : 'Fallback';
+        console.log(`[Image Gen] Attempting ${label} (${role})...`);
+        const imageUrl = await generateImageFlux(engine, styledPrompt, width, height, seed);
+        recordProviderSuccess(prov);
+        return { url: imageUrl, provider: prov, prompt: styledPrompt, width, height, model: prov === 'cloudflare' ? '@cf/black-forest-labs/flux-1-schnell' : 'black-forest-labs/FLUX.1-schnell' };
+      } catch (error: any) {
+        recordProviderFailure(prov, error instanceof FluxClientError && error.fatal);
+        console.warn(`[Image Gen] ${label} failed; continuing...`, error?.message || error);
       }
     } else if (prov === 'pollinations') {
       try {

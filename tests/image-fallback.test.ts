@@ -22,14 +22,23 @@ import { replaceImagePlaceholders, finalizeImagesForExport, PENDING_IMAGE_SRC } 
 
 describe('image provider chain', () => {
   it('keeps the agreed priority', () => {
-    expect(IMAGE_PROVIDER_PRIORITY).toEqual(['perchance', 'qwen', 'gemini', 'pollinations']);
+    expect(IMAGE_PROVIDER_PRIORITY).toEqual(['perchance', 'qwen', 'gemini', 'cloudflare', 'flux', 'pollinations']);
   });
 
-  it('wires every fallback exactly as specified', () => {
-    expect(getImageProviderOrder('perchance')).toEqual(['perchance', 'gemini', 'pollinations']);
-    expect(getImageProviderOrder('qwen')).toEqual(['qwen', 'gemini', 'pollinations']);
-    expect(getImageProviderOrder('gemini')).toEqual(['gemini', 'pollinations']);
-    expect(getImageProviderOrder('pollinations')).toEqual(['pollinations', 'gemini']);
+  it('wires every fallback exactly as specified (FLUX engines slot in after the required step)', () => {
+    expect(getImageProviderOrder('perchance')).toEqual(['perchance', 'gemini', 'cloudflare', 'flux', 'pollinations']);
+    expect(getImageProviderOrder('qwen')).toEqual(['qwen', 'gemini', 'cloudflare', 'flux', 'pollinations']);
+    expect(getImageProviderOrder('gemini')).toEqual(['gemini', 'cloudflare', 'flux', 'pollinations']);
+    expect(getImageProviderOrder('pollinations')).toEqual(['pollinations', 'gemini', 'cloudflare', 'flux']);
+    expect(getImageProviderOrder('cloudflare')).toEqual(['cloudflare', 'flux', 'gemini', 'pollinations']);
+    expect(getImageProviderOrder('flux')).toEqual(['flux', 'cloudflare', 'gemini', 'pollinations']);
+  });
+
+  it('always puts Gemini/Imagen before the FLUX engines for the required chains', () => {
+    for (const first of ['perchance', 'qwen'] as const) {
+      const order = getImageProviderOrder(first);
+      expect(order.indexOf('gemini')).toBeLessThan(order.indexOf('cloudflare'));
+    }
   });
 });
 
@@ -53,9 +62,11 @@ describe('generateImageWithFallback', () => {
 
   it('treats a Gemini "isFallback" Pollinations URL as a failure, not a Gemini image', async () => {
     geminiDirect.mockResolvedValue({ imageUrl: 'https://image.pollinations.ai/prompt/x', isFallback: true });
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 400, json: async () => ({ error: 'not configured' }) })));
     const r = await generateImageWithFallback({ prompt: 'a bird', width: 800, height: 600 });
     expect(r.provider).toBe('pollinations');
     expect(r.url).toContain('image.pollinations.ai');
+    vi.unstubAllGlobals();
   });
 });
 

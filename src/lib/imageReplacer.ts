@@ -214,12 +214,16 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
       ? window.localStorage.getItem('eduai_image_provider') || defaultProvider
       : defaultProvider;
     const providerChain = provider === 'gemini-imagen' || provider === 'gemini'
-      ? 'Google Imagen (Tertiary) → Pollinations'
+      ? 'Google Imagen (Tertiary) → Cloudflare FLUX → HF FLUX → Pollinations'
       : provider === 'pollinations'
-        ? 'Pollinations → Google Imagen'
-        : provider === 'qwen' || provider === 'qwen-image' || provider === 'nvidia-qwen'
-          ? 'Qwen-Image (Secondary) → Google Imagen → Pollinations'
-          : 'Perchance (Primary) → Google Imagen → Pollinations';
+        ? 'Pollinations → Google Imagen → Cloudflare FLUX → HF FLUX'
+        : provider === 'cloudflare'
+          ? 'Cloudflare FLUX → HF FLUX → Google Imagen → Pollinations'
+          : provider === 'flux'
+            ? 'HF FLUX → Cloudflare FLUX → Google Imagen → Pollinations'
+            : provider === 'qwen' || provider === 'qwen-image' || provider === 'nvidia-qwen'
+              ? 'Qwen-Image (Secondary) → Google Imagen → Cloudflare FLUX → HF FLUX → Pollinations'
+              : 'Perchance (Primary) → Google Imagen → Cloudflare FLUX → HF FLUX → Pollinations';
 
     const isLogoOrStamp = /logo|stamp|seal|crest|badge|signature|certificate|emblem/i.test(cleanPrompt);
     const styleDirective = `, ${EDUCATIONAL_IMAGE_STYLE}, educational, high quality, vibrant colours`;

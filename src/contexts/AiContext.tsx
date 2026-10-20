@@ -6,7 +6,7 @@ import { AI_PROVIDERS, AIProvider, isLegacyProvider } from '../lib/aiModels';
 export type { AIProvider } from '../lib/aiModels';
 export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
 export type OCRProvider = 'gemini' | 'ocrspace';
-export type ImageProvider = 'gemini-imagen' | 'perchance' | 'pollinations' | 'qwen' | 'qwen-image';
+export type ImageProvider = 'gemini-imagen' | 'perchance' | 'pollinations' | 'qwen' | 'qwen-image' | 'cloudflare' | 'flux';
 
 interface AiContextType {
   provider: AIProvider;
@@ -24,7 +24,7 @@ const AiContext = createContext<AiContextType | undefined>(undefined);
 const VALID_PROVIDERS: readonly AIProvider[] = AI_PROVIDERS;
 const VALID_TTS: TTSProvider[] = ['browser', 'groq-whisper', 'huggingface', 'google-tts'];
 const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace'];
-const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'perchance', 'pollinations', 'qwen', 'qwen-image'];
+const VALID_IMAGE: ImageProvider[] = ['gemini-imagen', 'perchance', 'pollinations', 'qwen', 'qwen-image', 'cloudflare', 'flux'];
 
 export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {

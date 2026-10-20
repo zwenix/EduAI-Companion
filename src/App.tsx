@@ -2864,13 +2864,19 @@ export default function App() {
                       }`}
                     >
                       <option value="perchance">
-                        Perchance AI Text-to-Image (Primary → Gemini / Imagen fallback)
+                        Perchance AI Text-to-Image (Primary → Gemini / Imagen → FLUX fallback)
                       </option>
                       <option value="qwen">
                         Qwen-Image · NVIDIA NIM (Secondary → Gemini / Imagen fallback)
                       </option>
                       <option value="gemini-imagen">
-                        Google Imagen 3 (Tertiary → Pollinations fallback)
+                        Google Imagen 3 (Tertiary → FLUX → Pollinations fallback)
+                      </option>
+                      <option value="cloudflare">
+                        Cloudflare FLUX.1-schnell (Free FLUX → Hugging Face FLUX fallback)
+                      </option>
+                      <option value="flux">
+                        Hugging Face FLUX.1-schnell (Free FLUX → Cloudflare FLUX fallback)
                       </option>
                       <option value="pollinations">
                         Pollinations AI Turbo (→ Gemini / Imagen fallback)

@@ -33,6 +33,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import axios from "axios";
 import { GoogleGenAI, Type } from "@google/genai";
 import mammoth from "mammoth";
+import { FluxProviderError, generateFluxImage, isFluxProviderConfigured } from "./src/lib/freeFluxProviders";
 
 async function tryExtractDocxText(base64Data: string): Promise<string> {
   try {
@@ -1886,6 +1887,36 @@ Make every output teacher-proud, parent-shareable, and ready for immediate print
 
     console.error(`[QWEN IMAGE] All model slugs failed. Last error: ${lastError}`);
     return res.status(502).json({ error: lastError, provider: "qwen", models: QWEN_MODELS });
+  });
+
+  // --- Free FLUX providers (Cloudflare Workers AI + Hugging Face) -----------
+  // Tokens stay on the server (CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID /
+  // HF_TOKEN). The browser/APK only ever receives the finished image.
+  app.get("/api/images/flux-status", (_req, res) => {
+    res.json({
+      cloudflare: isFluxProviderConfigured("cloudflare"),
+      huggingface: isFluxProviderConfigured("huggingface"),
+    });
+  });
+
+  app.post("/api/images/flux-generate", async (req, res) => {
+    const { prompt, provider, width, height, seed } = req.body || {};
+    if (!prompt || typeof prompt !== "string") return res.status(400).json({ error: "Prompt required" });
+    if (provider !== "cloudflare" && provider !== "huggingface") {
+      return res.status(400).json({ error: "provider must be \"cloudflare\" or \"huggingface\"" });
+    }
+    try {
+      const result = await generateFluxImage(provider, { prompt, width, height, seed });
+      console.log(`[FLUX IMAGE] ${provider} OK (${result.model})`);
+      return res.json({ url: result.url, imageUrl: result.url, provider: result.provider, model: result.model });
+    } catch (err: any) {
+      const status = err instanceof FluxProviderError ? err.status : 502;
+      console.warn(`[FLUX IMAGE] ${provider} failed (HTTP ${status}): ${err?.message}`);
+      return res.status(status >= 400 && status < 600 ? status : 502).json({
+        error: err?.message || "FLUX generation failed",
+        provider,
+      });
+    }
   });
 
   // --- SA-Compliant Full Package Generation (new) ---
