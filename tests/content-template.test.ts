@@ -18,6 +18,7 @@ import {
   EDUAI_BANNER_GRADIENT,
   EDUAI_COMPLIANCE_LABELS,
   EDUAI_HEADER_TINT,
+  EDUAI_LIGHT_CSS,
   EDUAI_TEMPLATE_FOOTER_LINE,
   bannerGradientFor,
   bannerPaletteFor,
@@ -63,6 +64,14 @@ const meta = {
 
 describe('wrapWithTemplate — contract', () => {
   const wrapped = wrapWithTemplate(messyModelOutput, meta);
+
+  it('keeps long documents flowing across print pages', () => {
+    expect(wrapped).toContain('overflow: visible;');
+    expect(EDUAI_LIGHT_CSS).toContain('.eduai-light-scope .card');
+    expect(EDUAI_LIGHT_CSS).toContain('break-inside: auto !important');
+    expect(EDUAI_LIGHT_CSS).toContain('page-break-inside: auto !important');
+    expect(EDUAI_LIGHT_CSS).not.toContain('.eduai-light-scope .card { box-shadow: none; break-inside: avoid; }');
+  });
 
   it('produces a non-empty document for valid input', () => {
     expect(wrapped.length).toBeGreaterThan(500);

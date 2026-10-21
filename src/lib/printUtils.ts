@@ -23,6 +23,31 @@ import {
 // @ts-ignore
 import html2pdfLib from 'html2pdf.js';
 
+/**
+ * Export-only layout safeguards. These also repair documents created by older
+ * LIGHT template versions (which had inline overflow clipping and treated each
+ * whole card as an unbreakable print unit).
+ */
+const EXPORT_LAYOUT_CSS = `
+  .eduai-light-scope, .eduai-light-scope .page {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+  @media print {
+    html, body { height: auto !important; overflow: visible !important; }
+    .eduai-light-scope, .eduai-light-scope .page {
+      overflow: visible !important;
+      height: auto !important;
+      max-height: none !important;
+    }
+    .eduai-light-scope .card {
+      break-inside: auto !important;
+      page-break-inside: auto !important;
+    }
+  }
+`;
+
 export interface PrintOptions {
     subject?: string;
     grade?: string;
@@ -234,6 +259,7 @@ export const printContent = (
                         line-height: 1.65;
                     }
                 </style>
+                <style data-eduai-export-layout>${EXPORT_LAYOUT_CSS}</style>
             </head>
             <body>
                 ${html}
@@ -356,6 +382,7 @@ export const downloadAsHTML = (
                      self-contained: no CDN, works fully offline, and the
                      layout matches the in-app preview exactly. -->
                 <style>${EDUAI_DOC_TAILWIND_CSS}</style>
+                <style data-eduai-export-layout>${EXPORT_LAYOUT_CSS}</style>
             </head>
             <body>
                 ${html}
@@ -449,7 +476,10 @@ async function buildPdfBlob(container: HTMLElement, pdfFilename: string): Promis
             }
         },
         jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait', compress: true },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        // Avoid-all makes a full-document `.card` effectively unbreakable on
+        // some browsers, truncating long exports after the first page. Respect
+        // authored CSS break rules instead and allow normal flow pagination.
+        pagebreak: { mode: ['css', 'legacy'] }
     } as any;
 
     updateExport('Rendering document…');
@@ -510,7 +540,7 @@ export const downloadAsPDF = async (
         // Static Tailwind compatibility layer first: AI-authored content uses
         // runtime utility classes the app's build-time CSS doesn't contain,
         // so without this the rasterised PDF comes out unstyled.
-        container.innerHTML = `<style>${EDUAI_DOC_TAILWIND_CSS}</style>${html}`;
+        container.innerHTML = `<style>${EDUAI_DOC_TAILWIND_CSS}</style><style data-eduai-export-layout>${EXPORT_LAYOUT_CSS}</style>${html}`;
         document.body.appendChild(container);
 
         // Resolve any relative image URLs in the container to absolute URLs so
