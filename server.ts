@@ -1776,7 +1776,7 @@ const masterPromptFor = (input: any = {}): string =>
       const model = provider === "perchance" ? "Perchance-Professional-🌟" : "flux";
       const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=1024&height=1024&nologo=true&model=${provider === "perchance" ? "turbo" : "flux"}&enhance=true&seed=${seed}`;
       if (provider === "perchance") {
-        console.log(`[IMAGE GEN LOG] Perchance AI Generator: "🌌 Image Generator Professional 🌟" (https://perchance.org/image-generator-professional) | Prompt: "${styledPrompt.slice(0, 60)}"`);
+        console.log(`[IMAGE GEN LOG] Perchance is a browser-only engine (client iframe → https://perchance.org/l62y86k8kq). This REST caller receives its documented Pollinations turbo fallback URL. | Prompt: "${styledPrompt.slice(0, 60)}"`);
       } else {
         console.log(`[IMAGE GEN LOG] Returning direct URL -> Provider: ${provider} | Model: ${model}`);
       }
