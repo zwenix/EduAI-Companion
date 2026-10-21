@@ -3,6 +3,7 @@ import { patchOklchForHtml2canvas } from './pdfHelper';
 import { isAndroidDevice, isNativeApp, supportsSystemPrint } from './platform';
 import { deliverFile, notify, triggerWebDownload } from './nativeExport';
 import { wrapWithTemplate, metaFromPrintOptions, ContentTemplateMeta } from './contentTemplate';
+import { resolveContentDesignStyle, type ContentDesignStyle } from './contentStyle';
 import { EDUAI_DOC_TAILWIND_CSS } from './docTailwindCompat';
 import {
   beginExport,
@@ -40,6 +41,12 @@ export interface PrintOptions {
     className?: string;
     /** Optional extra banner pills. */
     extraPills?: string[];
+    /**
+     * The design doctrine the content was generated under. `'classic'` means the
+     * model designed the whole page, so the export must not re-wrap it in the
+     * LIGHT chrome. See `src/lib/contentStyle.ts`.
+     */
+    designStyle?: ContentDesignStyle;
 }
 
 /**

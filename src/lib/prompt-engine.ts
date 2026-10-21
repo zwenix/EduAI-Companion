@@ -4,7 +4,8 @@
  * Integrated with CAPS · NPA · SIAS · WP6 · POPIA frameworks
  */
 
-import { ENHANCED_MASTER_PROMPT } from './prompts/master-prompt';
+import { resolveMasterPrompt } from './prompts/master-prompt';
+import { currentYear, dateMandate } from './saDates';
 import { 
   WORKSHEET_PROMPT_TEMPLATE, 
   VISUAL_AID_PROMPT_TEMPLATE, 
@@ -22,6 +23,14 @@ import {
   PROGRESS_TRACKER_TEMPLATE
 } from './prompts/assessment-templates';
 import { buildInstructorPriority, EDUCATIONAL_IMAGE_STYLE } from './prompt-priority';
+import {
+  CLASSIC_MASTER_SYSTEM_PROMPT,
+  resolveContentDesignStyle,
+  resolveIllustrationStyle,
+  type ContentDesignStyle,
+  type IllustrationStyle,
+} from './contentStyle';
+import { buildClassicCapsPrompts } from './prompts/classic-templates';
 
 // SA Compliance imports — new from CAPS document
 import {
@@ -72,6 +81,14 @@ export interface PromptContext {
   lolt?: string;
   questionCount?: number;
   containsLearnerData?: boolean;
+  /**
+   * Which design doctrine to assemble. `'classic'` (the default) restores the
+   * original vibrant EduAI look where the model owns the whole page; `'light-v5'`
+   * keeps the restrained LIGHT Template v5 fragment. See `contentStyle.ts`.
+   */
+  designStyle?: ContentDesignStyle;
+  /** Illustration style for the generated image prompt. Defaults to `'book'`. */
+  illustrationStyle?: IllustrationStyle;
 }
 
 export class EduAIPromptEngine {
@@ -106,7 +123,7 @@ CRITICAL MANDATORY INSTRUCTIONS FOR ${langUpper} OUTPUT:
       const npaWeight = phaseConfig.assessmentWeights;
 
       return `
-🇿🇦 SA COMPLIANCE MANDATE — CAPS · NPA · SIAS · WP6 · POPIA (2026):
+🇿🇦 SA COMPLIANCE MANDATE — CAPS · NPA · SIAS · WP6 · POPIA (${currentYear()}):
 
 CAPS PHASE: ${phaseConfig.displayName} | Grade: ${context.grade} | Subject: ${context.subject} | Term: ${context.term || "Term 1"}
 CAPS Reference: ${capsRef}
@@ -144,7 +161,7 @@ POPIA — Protection of Personal Information Act (Act 4 of 2013):
 
 SA CONTEXT:
 - Currency: ${SA_CONTEXT_GUIDELINES.currency}
-- Date: ${SA_CONTEXT_GUIDELINES.dateFormat} — Year MUST be 2026, NOT 2024
+- Date: ${SA_CONTEXT_GUIDELINES.dateFormat}
 - Spelling: ${SA_CONTEXT_GUIDELINES.spelling} — colour, behaviour, organise, centre
 - Places: ${SA_CONTEXT_GUIDELINES.places.slice(0, 3).join(", ")}
 - Animals/Flora: ${SA_CONTEXT_GUIDELINES.animals.slice(0, 2).join(", ")}
@@ -156,7 +173,6 @@ SA CONTEXT:
       // Fallback if grade parsing fails
       return `
 🇿🇦 SA COMPLIANCE CONTEXT — the host adds the single CAPS/NPA/POPIA/SIAS/WP6 compliance banner after generation
-- Year: 2026 (not 2024)
 - Currency: Rand (R), Date: DD/MM/YYYY, SA English spelling
 - Illustrations: ${EDUCATIONAL_IMAGE_STYLE}, diverse SA learners
 - Include privacy-safe teaching guidance and an SA flag stripe where relevant; do not output a compliance banner, compliance labels, or footer because the host adds them once
@@ -187,6 +203,15 @@ SA CONTEXT:
 
     const langMandate = this.buildLanguageMandate(effectiveLanguage, context.subject);
     const saMandate = this.buildSAComplianceMandate(context);
+
+    // Which design doctrine this request uses. `'classic'` is the default and
+    // restores the original vibrant EduAI look; `'light-v5'` keeps the
+    // restrained LIGHT Template v5 fragment. See `contentStyle.ts`.
+    const designStyle = resolveContentDesignStyle({ designStyle: context.designStyle });
+    const isClassic = designStyle === 'classic';
+    const illustrationStyle = resolveIllustrationStyle({
+      illustrationStyle: context.illustrationStyle,
+    });
     
     // Enhance image prompt with context — now with SA compliance
     const enhancedImagePrompt = this.enhanceImagePrompt(
@@ -199,7 +224,9 @@ SA CONTEXT:
     );
     
     // Select base template based on content type
-    let contentTemplate = this.selectTemplate(context.contentType, phase);
+    let contentTemplate = isClassic
+      ? this.selectClassicTemplate(context, illustrationStyle)
+      : this.selectTemplate(context.contentType, phase);
     
     // Handle new SA content types from document
     if (context.contentType === 'individual_support_plan' || context.contentType === 'annual_teaching_plan' || context.contentType === 'admin_document') {
@@ -259,13 +286,36 @@ You MUST ALSO generate:
       userPrompt = `${instructorPriority}\n\n${userPrompt}\n\n${instructorPriority}`;
     }
     
-    // Enhance system prompt with phase-specific guidance + SA compliance
-    let systemPrompt = ENHANCED_MASTER_PROMPT
+    // Enhance system prompt with phase-specific guidance + SA compliance.
+    // Classic mode uses the restored 6d3f1d2 doctrine (the model owns the whole
+    // page); LIGHT v5 keeps the restrained ENHANCED_MASTER_PROMPT.
+    //
+    // `${dateMandate}` is resolved for BOTH doctrines: it carries today's real
+    // date and the one-date rule. Leaving the placeholder unresolved would leak
+    // the literal text into the model prompt, and the prompts previously
+    // hardcoded "Today's date is …" which drifted into hallucinated dates.
+    const resolvedDateMandate = dateMandate();
+    let systemPrompt = (isClassic
+      ? CLASSIC_MASTER_SYSTEM_PROMPT
+      : resolveMasterPrompt()
+    )
       .replace(/\$\{phase\}/g, phase)
-      .replace(/\$\{gradeRange\}/g, this.getGradeRange(phase));
+      .replace(/\$\{gradeRange\}/g, this.getGradeRange(phase))
+      .replace(/\$\{dateMandate\}/g, resolvedDateMandate);
     
     // Add SA compliance to system prompt
-    systemPrompt = `${saMandate}\n\n${systemPrompt}`;
+    systemPrompt = `${resolvedDateMandate}\n${saMandate}\n\n${systemPrompt}`;
+
+    // Rules 6 and 7 are doctrine-specific: classic mode MUST build the banner,
+    // grade badge, name/date/score row and footer itself, so the LIGHT v5
+    // "do not emit a header band" wording would directly contradict it.
+    const designRule = isClassic
+      ? `6. CLASSIC EDUAI VISUAL SYSTEM (MANDATORY): Build the complete page yourself, exactly as the VISUAL STYLING DOCTRINE above requires — a full-width subject-coloured header banner first, a large circular Grade badge in the top right, the "NAME: ____  DATE: ____  TOTAL __ / ${context.totalMarks || 30}" row directly below the banner, pill-shaped coloured section headers, numbered question circles with white text, pill/capsule answer options, thick playful 2–4px borders on rounded-[2.5rem] cards, a 25–30% hero illustration block, differentiation boxes (Core/Extended/Simplified), SIAS support boxes, an NPA 7-point table, Bloom's tags, a motivational closing banner and the "EduAI Companion | CAPS Aligned" footer. Never omit the banner or the score card.`
+      : `6. SA COMPLIANCE VISUALS: Start straight into content cards. Include differentiation boxes (Core/Extended/Simplified), SIAS support boxes, an NPA 7-point table and Bloom's tags. Do NOT emit a school/DBE header band, a CAPS reference bar, a formal assessment header, a meta/name-date row, an SA flag-stripe header or any other band at the top of the document — the host's ONE two-colour vertical gradient banner already carries the school context, the grade/subject/term/type/date labels and the CAPS reference. Do not emit compliance labels or a footer either; the host adds one compliance banner and the exact footer.`;
+
+    const illustrationRule = isClassic
+      ? `7. ILLUSTRATION INTEGRATION: All [Illustration: ...] placeholders are replaced with generated artwork. Keep every placeholder ultra-detailed and SA-specific, with no text overlays, 300 DPI, in the ${illustrationStyle === 'disney3d' ? 'Disney 3D Animation Character & 3D Cute Icon' : "semi-realistic children's non-fiction book"} style.`
+      : `7. QWEN IMAGE INTEGRATION: All [Illustration: ...] placeholders will be replaced by Qwen-Image (NVIDIA NIM qwen/qwen-image) with SA context enhancement — ensure prompts are ultra-detailed, SA-specific, no text overlays, 300 DPI, ${illustrationStyle === 'disney3d' ? 'Disney 3D style' : "children's non-fiction book style"}.`;
 
     const antiSummaryMandate = `\n\n🚨 CRITICAL ANTI-TRUNCATION & ANTI-SUMMARY MANDATE:
 1. ZERO PLACEHOLDERS OR SUMMARIES: You are STRICTLY FORBIDDEN from outputting summaries, placeholder comments, or sentences such as "Summarized HTML below for brevity", "Full HTML available upon request", "etc.", "more questions here", or "insert content here".
@@ -273,8 +323,8 @@ You MUST ALSO generate:
 3. FULL TEACHING MATERIALS: If generating a lesson plan, include all 5 detailed teaching phases, scripts, and accommodations. If generating a worksheet, test, or memo, write out every single question and every single answer without short-cutting.
 4. METADATA & CONTEXT: Add explicit CAPS-aligned metadata such as learning objectives, duration, and cognitive levels. Incorporate South African contexts, such as sorting local animals, indigenous fruits, or typical school items to align with cultural relevance requirements.
 5. OPTIMIZED FOR SPEED: Keep the HTML clean, well-structured, and concise without excessive repetitive boilerplate text so that generation completes rapidly and within token boundaries.
-6. SA COMPLIANCE VISUALS: Start straight into content cards. Include differentiation boxes (Core/Extended/Simplified), SIAS support boxes, an NPA 7-point table and Bloom's tags. Do NOT emit a school/DBE header band, a CAPS reference bar, a formal assessment header, a meta/name-date row, an SA flag-stripe header or any other band at the top of the document — the host's ONE two-colour vertical gradient banner already carries the school context, the grade/subject/term/type/date labels and the CAPS reference. Do not emit compliance labels or a footer either; the host adds one compliance banner and the exact 2026 footer.
-7. QWEN IMAGE INTEGRATION: All [Illustration: ...] placeholders will be replaced by Qwen-Image (NVIDIA NIM qwen/qwen-image) with SA context enhancement — ensure prompts are ultra-detailed, SA-specific, no text overlays, 300 DPI, Disney 3D style.
+${designRule}
+${illustrationRule}
 `;
 
     systemPrompt += antiSummaryMandate;
@@ -310,7 +360,7 @@ SA Requirements:
 - NPA: 7-point scale, Bloom's tagged, SBA weighting
 - SIAS: \${siasSupportLevel} accommodations
 - POPIA: Placeholder names only; the host owns the compliance banner and exact footer
-- SA Context: Rand, SA places, SA names, IKS, 2026 year
+- SA Context: Rand, SA places, SA names, IKS
 - Visuals: ${EDUCATIONAL_IMAGE_STYLE} placed inside the content — never a top-of-page header band (the host banner owns the document header and labels)
 
 Content must be complete, print-ready, Tailwind CSS, high contrast.
@@ -346,13 +396,13 @@ Generate 1 image for a small DBE-branded emblem used INSIDE the body (the host b
         return base + `
 ADMIN DOCUMENT STRUCTURE (SA Official):
 - Start with the REF number: the official header (flag stripe, school info, EMIS, district, province) is drawn by the host's ONE banner, so never repeat it
-- REF number, Date DD Month YYYY (2026)
+- REF number, Date __________ (hand-filled — never pre-fill a date)
 - Recipient, Subject, Salutation
 - Body with headings, action items, contact placeholders
 - Reply slip if applicable
 - Signatures: Class Teacher, Principal, SGB placeholders
 - Distribution list
-- Privacy-safe placeholders; do not generate a footer because the host inserts the exact canonical 2026 footer
+- Privacy-safe placeholders; do not generate a footer because the host inserts the exact canonical footer
 Generate 1 image for a small official seal used INSIDE the body (the host banner owns the document header).
 `;
       default:
@@ -380,7 +430,7 @@ Phase Rules:
 Image: "Professional educational illustration for South African Grade [X] [Subject]: [Topic]. Style: Semi-realistic digital painting. 300 DPI, sharp, no text." — will be generated by Qwen-Image (qwen/qwen-image) via NVIDIA NIM with SA context enhancement.
 Layout Guardrails: No fixed heights on containers (use h-auto, py-4/py-6). No absolute text positioning. Use rounded-xl/2xl (not rounded-full) for choice pills to prevent clipping on wrap. Pair text-2xl+ headings with leading-tight/leading-snug.
 Output format: raw JSON (no markdown block wrapper). Escaped double quotes.
-SA Context: Rand (R), SA places (Table Mountain, Kruger, Drakensberg), SA names (Thabo, Amina, Sipho, Lerato), SA English spelling (colour, behaviour, organise), DD/MM/YYYY, IKS integration, ubuntu values, 2026 year.
+SA Context: Rand (R), SA places (Table Mountain, Kruger, Drakensberg), SA names (Thabo, Amina, Sipho, Lerato), SA English spelling (colour, behaviour, organise), DD/MM/YYYY (never invent a date), IKS integration, ubuntu values.
 `;
   }
 
@@ -392,6 +442,33 @@ SA Context: Rand (R), SA places (Table Mountain, Kruger, Drakensberg), SA names 
       .join('\n');
   }
   
+  /**
+   * Select the restored Classic (commit 6d3f1d2) template for a content type.
+   *
+   * These carry the original `generate-caps` design requirements verbatim: the
+   * 25–30% hero illustration, full-width coloured banner, circular grade badge,
+   * Name/Date/Total row, numbered question circles, pill answer options and the
+   * EduAI footer. The LIGHT v5 templates deliberately forbid all of that, so
+   * classic mode cannot reuse them.
+   */
+  private static selectClassicTemplate(
+    context: PromptContext,
+    illustrationStyle: IllustrationStyle,
+  ): string {
+    const { user } = buildClassicCapsPrompts({
+      contentType: context.contentType,
+      grade: context.grade,
+      subject: context.subject,
+      topic: context.topic,
+      language: context.language,
+      learnerProfile: context.learnerProfile,
+      additionalInstructions: context.additionalInstructions,
+      totalMarks: context.totalMarks,
+      illustrationStyle,
+    });
+    return user;
+  }
+
   /**
    * Select appropriate template based on content type
    */

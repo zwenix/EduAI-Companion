@@ -68,13 +68,19 @@ import {
     type BannerPaletteId,
     bannerGradientFor,
     bannerPaletteFor,
+    buildBannerGradient,
     isBannerGradient,
 } from './bannerPalettes';
 import {
+    blankFillInDates,
     injectLearnerFillInRow,
     isLearnerFillInContentType,
     sanitiseLearnerFillInBody,
 } from './learnerFillIn';
+import {
+    isExplicitClassicStyle,
+    type ContentDesignStyle,
+} from './contentStyle';
 
 export {
     BANNER_PALETTES,
@@ -148,6 +154,23 @@ export interface ContentTemplateMeta {
      * lets a caller pin the colours for a document whose type is ambiguous.
      */
     palette?: BannerPaletteId | string;
+    /**
+     * Which design doctrine produced this content.
+     *
+     * `'classic'` (the default) means the MODEL designed the whole page — its
+     * own full-width banner, grade badge, name/date/score row and footer — so
+     * the host must NOT wrap it in the LIGHT chrome or strip its leading band.
+     * `'light-v5'` keeps the host-owned single banner and the full chrome
+     * pipeline. See `contentStyle.ts`.
+     */
+    designStyle?: ContentDesignStyle;
+    /**
+     * Render the closing metadata banner at the END of the document — a compact
+     * block carrying the title, grade, subject, term, content type and today's
+     * real date. Defaults to `true`; set `false` to suppress it (for example on
+     * a poster where a trailing block would compete with the artwork).
+     */
+    closingMeta?: boolean;
 }
 
 /**
@@ -1655,6 +1678,107 @@ export const stripDuplicateTitleHeading = (html: string, meta: ContentTemplateMe
 };
 
 /**
+ * The closing metadata banner — a compact signature block placed at the END of
+ * the generated content.
+ *
+ * It repeats the document's identity where a teacher signing off or filing the
+ * page will actually look: the title, grade, subject, term, content type and
+ * TODAY's real date, plus the curriculum reference. Same palette as the opening
+ * banner, but the gradient runs the other way so it reads as a close rather than
+ * a second header.
+ *
+ * DELIBERATE CONSTRAINTS — the content-template contract (`verify-content-
+ * template.ts`, 171 checks) asserts that certain tokens appear exactly ONCE per
+ * document, so this block must not repeat them:
+ *
+ *   • no `eduai-compliance-banner` class (the opening banner owns it);
+ *   • none of the compliance labels (CAPS Aligned / NPA / POPIA / SIAS /
+ *     WP6 Differentiated) — they live in the one compliance section;
+ *   • no "CAPS Code" wording — the reference is written as a plain code;
+ *   • NOT a `<footer>` element — the canonical navy footer must stay the only
+ *     one, so this is an `<aside>`;
+ *   • no "ALL CONTENT RIGHTS RESERVED TO" and no "GENERATED: dd/mm/yyyy" line.
+ *
+ * It is metadata only: nothing here is a fill-in field, and no date other than
+ * the real one is printed.
+ */
+export const buildTemplateClosingMetaHTML = (meta: ContentTemplateMeta = {}): string => {
+    const title = bannerTitle(meta);
+    const palette: BannerPalette = bannerPaletteFor(meta.contentType, meta.palette);
+    // Mirror the opening gradient so the pair reads as one design language:
+    // the opening banner runs from → to, the closing block runs to → from.
+    const [from, to] = palette.gradient.match(/#[0-9a-f]{6}/gi) ?? [palette.from, palette.to];
+    const reversed = buildBannerGradient(to, from);
+
+    const capsCode = buildCAPSCode(meta);
+    const capsReference = String(meta.capsReference || '').trim();
+    const reference = capsReference || capsCode;
+
+    const facts: string[] = [];
+    if (meta.grade) facts.push(`Grade ${String(meta.grade).replace(/^grade\s*/i, '')}`);
+    if (meta.subject) facts.push(String(meta.subject));
+    // Same casing as the opening banner's term pill, so the two blocks read as
+    // one design rather than one shouting.
+    if (meta.term) facts.push(pillTerm(meta.term));
+    if (meta.contentType) facts.push(String(meta.contentType));
+    if (meta.school) facts.push(String(meta.school));
+    if (meta.teacher) facts.push(String(meta.teacher));
+
+    // Mirror the opening banner's date pill EXACTLY, including the blank: when a
+    // caller asks for the date to be left for handwriting (Foundation Phase packs
+    // do), this block must not print the one date that was suppressed.
+    const dateLabel = meta.leaveDateBlank
+        ? 'Date: ______'
+        : normaliseDate(meta.date) || saToday();
+
+    return `
+<aside class="eduai-closing-meta" aria-label="Document summary" style="display:block; width:100%; box-sizing:border-box; background: ${reversed}; background-image: ${reversed}; color:#ffffff; border:1px solid rgba(255,255,255,0.45); border-radius:10px; padding:12px 16px; margin:24px 0 0; font-family:${LIGHT_BODY_FONT}; font-size:11px; font-weight:600; line-height:1.55; overflow-wrap:anywhere; page-break-inside:avoid; break-inside:avoid; -webkit-print-color-adjust:exact; print-color-adjust:exact;">
+  <div style="display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:6px 14px;">
+    <span style="font-family:${LIGHT_HEADING_FONT}; font-size:13px; font-weight:700; color:#ffffff;">${esc(title)}</span>
+    <span style="font-weight:700; color:#ffffff; white-space:nowrap;">${esc(dateLabel)}</span>
+  </div>
+  ${facts.length ? `<div style="margin-top:6px; color:rgba(255,255,255,0.92);">${facts.map((fact) => esc(fact)).join(' &nbsp;·&nbsp; ')}</div>` : ''}
+  ${reference ? `<div style="margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.28); font-weight:700; letter-spacing:0.2px; color:#ffffff;">${esc(reference)}</div>` : ''}
+</aside>`.trim();
+};
+
+/** Markdown fences a model sometimes wraps its HTML in. */
+const stripMarkdownFences = (html: string): string =>
+    String(html || '')
+        .replace(/^\s*```[a-zA-Z0-9_-]*\s*\n?/, '')
+        .replace(/\n?```\s*$/, '')
+        .trim();
+
+/**
+ * Prepare a CLASSIC-doctrine document for preview, print and export.
+ *
+ * The model owns this page: its full-width banner, circular grade badge,
+ * name/date/score row, hero illustration block, motivational banner and the
+ * "EduAI Companion | CAPS Aligned" footer are all part of the design and must
+ * survive untouched. The only edits made here are hygiene ones that cannot
+ * change the look:
+ *
+ *   • unwrap a stray `<html>`/`<head>`/`<body>` shell (the app already supplies
+ *     one, and a nested shell breaks print pagination);
+ *   • drop markdown fences;
+ *   • drop an injected Tailwind CDN `<script>` — the app ships Tailwind, and a
+ *     second runtime copy repaints the page and breaks offline/native builds.
+ *
+ * Unlike {@link cleanGeneratedBodyHTML}, this deliberately keeps `<footer>`
+ * elements and never touches a leading banner.
+ */
+export const prepareClassicDocument = (html: string): string => {
+    // The one-date rule applies in classic mode too: the model designed the
+    // page, but it must not pre-fill a date field — those are written in by
+    // hand. Teaching-content dates are left alone (see `blankFillInDates`).
+    let cleaned = blankFillInDates(stripMarkdownFences(extractGeneratedBodyHTML(html)));
+    cleaned = cleaned
+        .replace(/<script\b[^>]*cdn\.tailwindcss\.com[^>]*>\s*<\/script>/gi, '')
+        .replace(/<script\b[^>]*tailwindcss[^>]*>\s*<\/script>/gi, '');
+    return cleaned.trim();
+};
+
+/**
  * Wrap generated content in the LIGHT Template v5 chrome:
  * very light blue translucent page header → ONE full-width two-colour vertical
  * gradient document banner (title + every label + compliance) → watermark +
@@ -1675,6 +1799,28 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
     const original = String(bodyHtml || '');
     if (!original.trim()) return original;
     if (isCurrentTemplateOutput(original)) return original;
+
+    // CLASSIC doctrine: the MODEL designed the whole page — its own full-width
+    // banner, circular grade badge, name/date/score row, hero illustration and
+    // footer. Wrapping that in the LIGHT chrome (or absorbing its leading band
+    // into a second banner) is exactly what destroyed the original look, so the
+    // host hands the document back untouched apart from markdown-fence and
+    // Tailwind-CDN hygiene.
+    //
+    // This is opt-IN, never the default: hand-built documents (learner
+    // portfolios, Foundation Phase packs, progress reports, student notes) are
+    // not AI-generated and rely on the LIGHT chrome, so they must keep it. Only
+    // content actually generated under the classic doctrine says so.
+    if (isExplicitClassicStyle(meta.designStyle)) {
+        // The model's own design is preserved; the closing metadata block is
+        // still appended so a classic document carries the same end-of-page
+        // summary (title, grade, term, subject, today's real date) as a LIGHT
+        // one — unless the caller opts out.
+        const classicDoc = prepareClassicDocument(original);
+        return meta.closingMeta === false
+            ? classicDoc
+            : `${classicDoc}\n${buildTemplateClosingMetaHTML(meta)}`;
+    }
 
     // Values are harvested from the ORIGINAL body as well: legacy host title
     // blocks (`.lesson-meta`, `.doc-meta`, `.lesson-title`) are deleted by
@@ -1705,7 +1851,11 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
     // that repeats what the banner will show, before rendering the banner.
     const deduped = stripLeadingDuplicateBanner(collapsed.html, effectiveMeta);
     const titled = stripDuplicateTitleHeading(deduped, effectiveMeta);
-    const cleaned = learnerFillIn ? sanitiseLearnerFillInBody(titled) : titled;
+    // The one-date rule is universal: whatever the content type, a date field in
+    // the body is hand-filled, so any pre-filled metadata date is emptied here.
+    // Learner-facing documents additionally get the full name/grade/date row
+    // treatment. Teaching-content dates survive both passes.
+    const cleaned = blankFillInDates(learnerFillIn ? sanitiseLearnerFillInBody(titled) : titled);
     const banner = buildTemplateComplianceBannerHTML(effectiveMeta);
     // ONE palette per document, chosen for the content type: the banner, every
     // repainted model band and the stylesheet safety nets all use the same two
@@ -1726,13 +1876,20 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
         inner = `<article class="card">\n${bannerBlock}\n${cleaned}\n</article>`;
     }
 
+    // The closing metadata banner sits at the END of the content flow — after
+    // the last card, before the navy footer — so it prints on the final page of
+    // the document rather than on its own page.
+    const closingMeta = effectiveMeta.closingMeta === false
+        ? ''
+        : `\n${buildTemplateClosingMetaHTML(effectiveMeta)}`;
+
     return `
 ${buildTemplateStyleHTML()}
 ${buildTemplateHeaderHTML(effectiveMeta)}
 <div class="eduai-light-scope" style="--eduai-banner-gradient: ${gradient}; position: relative; background: ${EDUAI_TEMPLATE_COLOURS.paper}; overflow: hidden;">
   ${buildTemplateWatermarkHTML()}
   <main class="page" style="position: relative; z-index: 1; max-width: 800px; margin: 0 auto; padding: 28px 20px 60px; font-family: ${LIGHT_BODY_FONT}; color: #1e293b; line-height: 1.65; box-sizing: border-box;">
-${applyBannerGradients(inner, gradient)}
+${applyBannerGradients(inner, gradient)}${closingMeta}
   </main>
 </div>
 ${buildTemplateFooterHTML(effectiveMeta)}`.trim();
@@ -1740,7 +1897,7 @@ ${buildTemplateFooterHTML(effectiveMeta)}`.trim();
 
 /** Map the print/export options onto the template metadata. */
 export const metaFromPrintOptions = (
-    options?: { subject?: string; grade?: string; contentType?: string; date?: string; term?: string; school?: string; teacher?: string; learner?: string; title?: string; className?: string; extraPills?: string[]; leaveDateBlank?: boolean; leaveLearnerFieldsBlank?: boolean },
+    options?: { subject?: string; grade?: string; contentType?: string; date?: string; term?: string; school?: string; teacher?: string; learner?: string; title?: string; className?: string; extraPills?: string[]; leaveDateBlank?: boolean; leaveLearnerFieldsBlank?: boolean; designStyle?: ContentDesignStyle; closingMeta?: boolean },
     title?: string,
 ): ContentTemplateMeta => {
     const pills: string[] = [];
@@ -1762,5 +1919,12 @@ export const metaFromPrintOptions = (
         // the on-screen preview does.
         leaveDateBlank: options?.leaveDateBlank,
         leaveLearnerFieldsBlank: options?.leaveLearnerFieldsBlank,
+        // The doctrine the content was generated under, so a classic document
+        // is exported exactly as the model designed it instead of being
+        // re-wrapped in the LIGHT chrome.
+        designStyle: options?.designStyle,
+        // Print, print-preview and PDF export keep the same closing metadata
+        // block the on-screen preview shows.
+        closingMeta: options?.closingMeta,
     };
 };

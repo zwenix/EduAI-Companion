@@ -23,6 +23,7 @@ const geminiMocks = vi.hoisted(() => ({
   runTextGrade: vi.fn(),
   chatWithTutor: vi.fn(),
   MASTER_SYSTEM_PROMPT: 'MASTER SYSTEM PROMPT',
+  LIGHT_MASTER_SYSTEM_PROMPT: 'LIGHT MASTER SYSTEM PROMPT',
   IMAGE_PROMPT_GOLDEN_RULE: 'GOLDEN RULE',
   safeJsonParse: vi.fn(),
 }));
@@ -60,8 +61,24 @@ const gatewayError = (status = 503) =>
 /** A realistic Gemini-style tutor turn (parts-based, not content-based). */
 const tutorTurn = (text: string) => [{ role: 'user', parts: [{ text }] }];
 
+/**
+ * Minimal `window.localStorage` stub — the suite runs in the `node` environment
+ * (see `vitest.config.ts`). `contentStyle` reads the teacher's saved design
+ * doctrine from here, so the tests need it present and empty by default.
+ */
+const designStyleStore = new Map<string, string>();
+
 beforeEach(() => {
   vi.clearAllMocks();
+  designStyleStore.clear();
+  (globalThis as any).window = {
+    localStorage: {
+      getItem: (key: string) => (designStyleStore.has(key) ? designStyleStore.get(key)! : null),
+      setItem: (key: string, value: string) => void designStyleStore.set(key, String(value)),
+      removeItem: (key: string) => void designStyleStore.delete(key),
+      clear: () => designStyleStore.clear(),
+    },
+  };
 });
 
 describe('generateEducationalContent', () => {
@@ -105,8 +122,25 @@ describe('generateEducationalContent', () => {
     const [, messages] = multiAiMocks.callMultiAi.mock.calls[0];
     expect(Array.isArray(messages)).toBe(true);
     expect(messages.map((m: any) => m.role)).toEqual(['system', 'user']);
-    expect(messages[0].content).toContain('MASTER SYSTEM PROMPT');
+    // `classic` is the default doctrine, so the alternative engine must be given
+    // the restored master prompt — not the LIGHT v5 one.
+    expect(messages[0].content).toContain(
+      'You are the official AI content generator for **EduAI Companion**',
+    );
+    expect(messages[0].content).toContain('VISUAL STYLING DOCTRINE');
+    expect(messages[0].content).not.toBe('LIGHT MASTER SYSTEM PROMPT');
     expect(messages[1].content).toContain('Grade 5 fractions');
+  });
+
+  it('gives the alternative engine the LIGHT v5 doctrine when that style is selected', async () => {
+    multiAiMocks.callMultiAi.mockResolvedValue('ok');
+    window.localStorage.setItem('eduai.contentDesignStyle', 'light-v5');
+
+    await generateEducationalContent('Lesson Plan', 'Grade 5 fractions', 'alibaba-qwen');
+
+    const [, messages] = multiAiMocks.callMultiAi.mock.calls[0];
+    expect(messages[0].content).toContain('LIGHT MASTER SYSTEM PROMPT');
+    expect(messages[0].content).not.toContain('VISUAL STYLING DOCTRINE');
   });
 
   it('still rejects when both the alternative engine and Gemini fail', async () => {

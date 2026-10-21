@@ -8,11 +8,13 @@
 
 import { GoogleGenAI } from '@google/genai';
 import { AI_SECRETS } from '../lib/aiSecrets';
-import { MASTER_SYSTEM_PROMPT, safeJsonParse } from './geminiService';
+import { LIGHT_MASTER_SYSTEM_PROMPT, safeJsonParse } from './geminiService';
 import { EduAIPromptEngine } from '../lib/prompt-engine';
 import { GEMINI_CONTENT_OUTPUT_TOKENS } from '../lib/aiOutputBudget';
 import { isNativeApp } from '../lib/platform';
 import { buildAdminLabPrompts, buildVisualLabPrompts } from '../lib/prompts/lab-prompts';
+import { buildClassicEducationalPrompts } from '../lib/prompts/classic-templates';
+import { resolveContentDesignStyle, resolveIllustrationStyle } from '../lib/contentStyle';
 
 const GEMINI_MODELS = [
   'gemini-3.8-flash',
@@ -88,6 +90,10 @@ export const buildCapsGenerationPrompts = (input: any): { system: string; user: 
     duration: input.duration || '2 hours',
     capsReference: input.capsReference || '',
     includeWorksheet: !!input.includeWorksheet,
+    // The caller's design doctrine wins; `classic` is the default and restores
+    // the original vibrant EduAI prompt engineering.
+    designStyle: resolveContentDesignStyle({ designStyle: input.designStyle }),
+    illustrationStyle: resolveIllustrationStyle({ illustrationStyle: input.illustrationStyle }),
   });
 
   let finalUserPrompt = user;
@@ -118,9 +124,16 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
 
     case 'generate-educational': {
       const { type, details } = input;
-      const systemInstruction = `${MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN. NEVER INJECT <script src="https://cdn.tailwindcss.com"></script>. The app already has Tailwind.`;
+      // `classic` (the default) restores the original commit 6d3f1d2 brief.
+      const classicPair = buildClassicEducationalPrompts({ type, details });
+      const isClassic = resolveContentDesignStyle({ designStyle: input?.designStyle }) === 'classic';
+      const systemInstruction = isClassic
+        ? classicPair.system
+        : `${LIGHT_MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN. NEVER INJECT <script src="https://cdn.tailwindcss.com"></script>. The app already has Tailwind.`;
       const response = await generateWithFallback({
-        contents: `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design). Do NOT add Tailwind CDN scripts.`,
+        contents: isClassic
+          ? classicPair.user
+          : `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design). Do NOT add Tailwind CDN scripts.`,
         config: { systemInstruction, temperature: 0.7 },
       });
       return { text: response.text || '' };
