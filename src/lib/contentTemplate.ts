@@ -487,7 +487,8 @@ export const EDUAI_LIGHT_CSS = `
 .eduai-light-scope {
     position: relative;
     background: #ffffff;
-    overflow: hidden;
+    /* Do not clip long documents: this wrapper spans every printed/exported page. */
+    overflow: visible;
 }
 .eduai-light-scope .page {
     position: relative;
@@ -653,7 +654,14 @@ export const EDUAI_LIGHT_CSS = `
 }
 @media print {
     .site-header { position: static; }
-    .eduai-light-scope .card { box-shadow: none; break-inside: avoid; }
+    /* A card may contain an entire generated lesson or worksheet. Keeping the
+       card unbreakable makes browsers print only its first page. */
+    .eduai-light-scope, .eduai-light-scope .page { overflow: visible !important; }
+    .eduai-light-scope .card {
+        box-shadow: none;
+        break-inside: auto !important;
+        page-break-inside: auto !important;
+    }
     .eduai-light-scope .btn { display: none !important; }
     /* The 50%-opacity logo watermark sits at 50% of the *whole* document, so
        in a browser print (usually without "background graphics") it bleeds
@@ -1886,7 +1894,7 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
     return `
 ${buildTemplateStyleHTML()}
 ${buildTemplateHeaderHTML(effectiveMeta)}
-<div class="eduai-light-scope" style="--eduai-banner-gradient: ${gradient}; position: relative; background: ${EDUAI_TEMPLATE_COLOURS.paper}; overflow: hidden;">
+<div class="eduai-light-scope" style="--eduai-banner-gradient: ${gradient}; position: relative; background: ${EDUAI_TEMPLATE_COLOURS.paper}; overflow: visible;">
   ${buildTemplateWatermarkHTML()}
   <main class="page" style="position: relative; z-index: 1; max-width: 800px; margin: 0 auto; padding: 28px 20px 60px; font-family: ${LIGHT_BODY_FONT}; color: #1e293b; line-height: 1.65; box-sizing: border-box;">
 ${applyBannerGradients(inner, gradient)}${closingMeta}
