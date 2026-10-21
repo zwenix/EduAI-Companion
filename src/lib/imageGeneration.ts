@@ -168,6 +168,18 @@ export const generateImageGemini = async (
   }
 };
 
+// The Perchance engine drives ONE hidden iframe (a single prompt field + one
+// result area). Concurrent callers would overwrite each other's prompts, so
+// all Perchance requests are funnelled through a simple promise queue.
+let perchanceQueueTail: Promise<any> = Promise.resolve();
+
+const enqueuePerchance = <T>(task: () => Promise<T>): Promise<T> => {
+  const run = perchanceQueueTail.then(task, task);
+  // Keep the chain alive even when a task rejects.
+  perchanceQueueTail = run.catch(() => undefined);
+  return run;
+};
+
 export const generateImagePerchance = async (
   prompt: string,
   width: number = 1024,
@@ -177,8 +189,12 @@ export const generateImagePerchance = async (
   try {
     if (typeof window !== 'undefined') {
       try {
-        const clientUrl = await generatePerchanceImageClient(
-          prompt, width, height, seed, isNativeApp() ? 6000 : 15000
+        // Give the real generator enough room: postMessage protocol → DOM
+        // driver → secondary embed, then hand off to the next provider.
+        const clientUrl = await enqueuePerchance(() =>
+          generatePerchanceImageClient(
+            prompt, width, height, seed, isNativeApp() ? 20000 : 30000
+          )
         );
         if (clientUrl) return clientUrl;
       } catch (clientErr) {
