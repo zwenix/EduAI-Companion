@@ -36,12 +36,12 @@
 - **Interfaces:** `DocumentData`, `RenderedImage`, `RenderedSection`
 
 ### 4. Image Generation Enhancement (`src/lib/imageGeneration.ts`)
-- **New Provider:** `qwen` (Qwen-Image via NVIDIA NIM, model `qwen/qwen-image`, baseURL `https://integrate.api.nvidia.com/v1`)
-- **QWEN_CONFIG:** SizeMap header 1792x1024, inline 1024x1024, full_width 1792x1024, sidebar 1024x1792
+- **Provider:** `flux` — FLUX.1-schnell via Hugging Face Inference Providers (`https://router.huggingface.co/hf-inference/models`), free tier (Qwen-Image on NVIDIA NIM retired 22 Oct 2026)
+- **FLUX_CONFIG:** SizeMap header 1024x576, inline 1024x1024, full_width 1024x576, sidebar 768x1024 (FLUX.1-schnell grid, max 1024 px)
 - **SA Enhancer:** `enhancePromptForSA()` — rainbow nation, Table Mountain/Kruger/protea, diverse SA learners, 300 DPI, Disney 3D style
-- **Generation:** `generateImageQwen()` — backend proxy `/api/images/qwen-generate` + direct NVIDIA fallback with `AI_SECRETS.NVIDIA_API_KEY`
-- **Batch:** `generateAllQwenImages()` — concurrency 2, 2s pause (from doc, safer than 3)
-- **Priority:** perchance (primary) → qwen (premium SA) → gemini → pollinations (fallback)
+- **Generation:** `generateImageFlux()` — backend proxy `/api/images/flux-generate` (Hugging Face Inference Providers) + direct HF router call in the APK
+- **Batch:** `generateAllEducationalImages()` — walks the full provider graph, concurrency 2, 2s pause (from doc, safer than 3)
+- **Priority:** flux (FLUX.1-schnell, primary) → pollinations (keyless) → gemini (secondary). Perchance and Qwen-Image are retired.
 - **Options Extended:** `grade`, `subject`, `saContext`, `placement` header/inline/full_width/sidebar
 
 ### 5. Assemblers (`src/lib/assemblers/`)
@@ -53,7 +53,7 @@
 ### 6. Content Pipeline (`src/services/saContentPipeline.ts`)
 - **Pre-flight:** `preFlightCheck()` — CAPS phase detection, NPA weights, SIAS level, POPIA flag
 - **Text Gen:** `generateSATextContent()` — uses existing `callMultiAi` (Nemotron 3 Ultra) + `safeJsonParse`
-- **Image Gen:** `generateSAImages()` — Qwen-Image with SA context, concurrency control
+- **Image Gen:** `generateSAImages()` — FLUX.1-schnell with SA context, full provider graph, concurrency control
 - **Audit:** `postAudit()` — CAPS ref, Bloom's, NPA, SIAS, POPIA, sections, images
 - **Full Pipeline:** `generateFullSAPackage()` — 0:pre-flight, 1:text, 2:audit, 3:images, 4:checklist
 - **Factory:** `mapContentCreatorToSARequest()` — maps ContentCreator UI to SAContentRequest
@@ -62,28 +62,28 @@
 - **SA Compliance Mandate:** `buildSAComplianceMandate()` — CAPS phase, time allocation, NPA 7-point, Bloom's distribution, SIAS accommodations, WP6, POPIA, SA context (Rand, places, animals, values, IKS, 2026 year)
 - **Extended Content Types:** `individual_support_plan`, `annual_teaching_plan`, `admin_document`, `assessment`, `diagram`, `mind-map`, `flashcard`, `homework`, `classroom-exercise`, `revision-pack`
 - **SA Content Templates:** ISP (11 sections), ATP (weekly breakdown), Admin (official header with seal)
-- **Image Prompt Enhancement:** Qwen-optimized, SA context (rainbow nation, diverse SA children, Table Mountain/Kruger, Rand), grade/subject aware
+- **Image Prompt Enhancement:** FLUX-optimized, SA context (rainbow nation, diverse SA children, Table Mountain/Kruger, Rand), grade/subject aware
 
 ### 8. Master Prompt (`src/lib/prompts/master-prompt.ts`) v3.0
 - **Frameworks:** CAPS, NPA (7-point, SBA/Exam weights, Bloom's tagging), SIAS (4 levels), WP6 (Core/Extended/Simplified), POPIA (Act 4 of 2013, placeholder names), SASA, NCS R-12
 - **SA Context:** Rand (R), DD/MM/YYYY 2026, SA English spelling, 12 official languages, ubuntu, IKS, metric, SA places/animals/names
 - **Visuals:** SA flag colours #000000 #FFB81C #007749 #FFFFFF #E31E24 #002395, flag stripe header, compliance stamps, Disney 3D diverse SA learners
-- **Qwen Optimization:** All image prompts optimized for qwen/qwen-image via NVIDIA NIM — clean flat vector, educational poster, no text overlays, 300 DPI, legible text
+- **FLUX Optimization:** All image prompts optimized for FLUX.1-schnell via Hugging Face — clean flat vector, educational poster, no text overlays, 300 DPI, legible text
 
 ### 9. Server (`server.ts`)
-- **New Endpoint:** `POST /api/images/qwen-generate` — NVIDIA NIM integration
-  - Model: `qwen/qwen-image`, baseURL `https://integrate.api.nvidia.com/v1`
-  - Tries `images.generate` with `b64_json`, then `chat.completions`, then direct fetch
-  - SA context enhancement with grade/subject awareness
-  - Returns data URL or b64_json with width/height/size
+- **New Endpoint:** `POST /api/images/flux-generate` — Hugging Face Inference Providers
+  - Model: `black-forest-labs/FLUX.1-schnell` (free), router `https://router.huggingface.co/hf-inference/models`
+  - Bounded cold-start retry, then the legacy `api-inference.huggingface.co` host
+  - Answers 501 + `{configured:false}` when `HUGGINGFACE_API_KEY` is unset (client skips FLUX for the session)
+  - Returns a data URL with width/height/size
 - **New Endpoint:** `POST /api/sa/generate-package` — SA-compliant full package
   - Pre-flight compliance via `validateCAPSCompliance`
   - Text generation via NVIDIA Nemotron 3 Ultra (or Gemini fallback)
   - Returns content + compliance report + compliance flags
 
 ### 10. AI Context (`src/contexts/AiContext.tsx`)
-- **ImageProvider Extended:** `'qwen' | 'qwen-image'` added to type and VALID_IMAGE
-- **Priority Preserved:** Default remains perchance (as per existing app), Qwen selectable in Settings
+- **ImageProvider:** `'flux' | 'pollinations' | 'gemini-imagen'`; `perchance`, `qwen` and `qwen-image` migrate to `flux` on read
+- **Default:** FLUX.1-schnell (Hugging Face), with keyless Pollinations as the guaranteed fallback
 
 ### 11. Unified AI Service (`src/services/unifiedAiService.ts`)
 - **SA Fields Passed:** assessmentType, isFormal, includeInclusiveSupport, siasSupportLevel, differentiationRequired, barrierCategories, homeLanguage, lolt, questionCount, containsLearnerData, totalMarks, studentName, teacherName
@@ -91,7 +91,7 @@
 ## 🔄 Duplicate Resolution Strategy
 - **App Structure Kept Same:** No breaking changes to existing ContentCreator, Visual Lab, Admin Lab, Video Lab
 - **Best Implementation Chosen:** 
-  - Image gen: Kept existing Perchance/Gemini/Pollinations + added Qwen as premium (doc's recommendation)
+  - Image gen: FLUX.1-schnell (Hugging Face) primary → Pollinations (keyless) → Gemini; Perchance and Qwen-Image retired on 22 Oct 2026
   - PDF/DOCX: New assemblers use dynamic imports to avoid client bundling issues, fallback to existing html2pdf
   - Prompts: Merged doc's SA compliance into existing master-prompt and prompt-engine (not replaced)
   - Templates: New SA templates are additive, existing ContentCreator HTML still works
@@ -109,13 +109,13 @@
 - ZIP: Bundle with pdf/docx/html/images/data + README + COMPLIANCE_REPORT
 
 ## 🔑 Environment Variables Required
-- `NVIDIA_API_KEY` or `VITE_NVIDIA_API_KEY` — for Qwen-Image via NVIDIA NIM
+- `HUGGINGFACE_API_KEY` (or `HF_TOKEN`) — for FLUX.1-schnell image generation (optional: keyless Pollinations is the fallback)
 - Existing: `GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`, etc.
 
 ## 🎯 Next Steps for User
 1. Set `NVIDIA_API_KEY` in .env (get from https://build.nvidia.com/settings/api-keys)
 2. Install optional assemblers deps if needed: `npm install docx archiver puppeteer jszip html2pdf.js`
-3. Test Qwen image generation via Settings → Image Provider → Qwen
+3. Test image generation via Settings → Image Provider → FLUX.1-schnell
 4. Generate SA-compliant content via ContentCreator — compliance stamps auto-included
 5. Use new `/api/sa/generate-package` for full SA pipeline (optional)
 

@@ -1,6 +1,6 @@
 import { collection, onSnapshot, query, setDoc, doc, Timestamp } from 'firebase/firestore';
 import { db, auth } from './firebase';
-import { buildDirectImageUrl, buildPollinationsUrl } from './imageGeneration';
+import { buildDirectImageUrl, buildPollinationsUrl, normaliseImageProviderId } from './imageGeneration';
 import { isNativeApp } from './platform';
 import { EDUCATIONAL_IMAGE_STYLE } from './prompt-priority';
 
@@ -133,19 +133,19 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
       `;
     }
 
-    // Fallback/First-generation flow. Perchance is the primary generator on
-    // every platform (web and native), so the badge reflects that everywhere.
-    const defaultProvider = 'perchance';
-    const provider = typeof window !== 'undefined'
+    // Fallback/First-generation flow. FLUX.1-schnell (Hugging Face) is the
+    // primary generator on every platform (web and native), so the badge
+    // reflects that everywhere. Perchance/Qwen are retired engine ids.
+    const defaultProvider = 'flux';
+    const storedProvider = typeof window !== 'undefined'
       ? window.localStorage.getItem('eduai_image_provider') || defaultProvider
       : defaultProvider;
-    const providerChain = provider === 'gemini-imagen' || provider === 'gemini'
-      ? 'Google Imagen (Secondary) → Qwen (NVIDIA NIM) → Pollinations → Perchance'
+    const provider = normaliseImageProviderId(storedProvider);
+    const providerChain = provider === 'gemini'
+      ? 'Google Imagen (Secondary) → Pollinations → FLUX.1-schnell'
       : provider === 'pollinations'
-        ? 'Pollinations (Tertiary) → Perchance → Qwen → Google Imagen'
-        : provider === 'qwen' || provider === 'qwen-image' || provider === 'nvidia-qwen'
-          ? 'Qwen-Image NVIDIA NIM (Premium SA) → Perchance → Pollinations → Google Imagen'
-          : 'Perchance (Primary) → Qwen (NVIDIA NIM) → Pollinations → Google Imagen';
+        ? 'Pollinations (Keyless) → FLUX.1-schnell → Google Imagen'
+        : 'FLUX.1-schnell (Primary) → Pollinations → Google Imagen';
 
     const isLogoOrStamp = /logo|stamp|seal|crest|badge|signature|certificate|emblem/i.test(cleanPrompt);
     const styleDirective = `, ${EDUCATIONAL_IMAGE_STYLE}, educational, high quality, vibrant colours`;

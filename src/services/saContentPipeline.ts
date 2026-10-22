@@ -9,7 +9,7 @@ import { buildSASystemPrompt, buildSAUserPrompt, buildSAQualityChecklist } from 
 import { DocumentData, RenderedImage } from "../lib/templates/sa-html-templates";
 import { callMultiAi } from "./multiAiService";
 import { safeJsonParse } from "./geminiService";
-import { generateAllQwenImages, enhancePromptForSA } from "../lib/imageGeneration";
+import { generateAllEducationalImages, enhancePromptForSA } from "../lib/imageGeneration";
 
 export interface PipelineResult {
   content: DocumentData;
@@ -145,7 +145,7 @@ export async function generateSATextContent(
   }
 }
 
-// ── Image generation via Qwen-Image + existing fallback chain ──
+// ── Image generation via FLUX.1-schnell + existing fallback chain ──
 export async function generateSAImages(
   imagePrompts: Array<{ imageId: string; sectionId: number; prompt: string; placement: string; accessibilityAltText?: string }>,
   request: SAContentRequest
@@ -155,10 +155,11 @@ export async function generateSAImages(
     return [];
   }
 
-  console.log(`\n🎨 Generating ${imagePrompts.length} SA-context images via Qwen-Image (NVIDIA NIM) + fallback chain...\n`);
+  console.log(`\n🎨 Generating ${imagePrompts.length} SA-context images via FLUX.1-schnell (Hugging Face) + fallback chain...\n`);
 
-  // Use the new generateAllQwenImages with concurrency control from document
-  const qwenResults = await generateAllQwenImages(
+  // Walks the full image provider graph (FLUX.1-schnell → Pollinations → Gemini)
+  // with concurrency control so one slow engine cannot stall the whole pack.
+  const imageResults = await generateAllEducationalImages(
     imagePrompts.map(p => ({
       imageId: p.imageId,
       sectionId: p.sectionId,
@@ -172,7 +173,7 @@ export async function generateSAImages(
   );
 
   // Convert to RenderedImage format
-  const rendered: RenderedImage[] = qwenResults.map(r => {
+  const rendered: RenderedImage[] = imageResults.map(r => {
     let base64Data = "";
     let url = "";
     if (r.url.startsWith("data:")) {
@@ -239,7 +240,7 @@ export async function generateFullSAPackage(
   console.log("\n" + "═".repeat(70));
   console.log("🇿🇦 EduAI Companion — SA-Compliant Content Generation Pipeline (Enhanced)");
   console.log("   Frameworks: CAPS · NPA · NPPPPR · SIAS · WP6 · POPIA · SASA · NCS R-12");
-  console.log("   Models: Qwen 3.8 Max (text) · Qwen-Image (visuals) + fallback chain");
+  console.log("   Models: Qwen 3.8 Max (text) · FLUX.1-schnell (visuals) + fallback chain");
   console.log("═".repeat(70) + "\n");
 
   // Step 0: Pre-flight

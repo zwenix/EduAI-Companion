@@ -150,13 +150,11 @@ export default function AiImage({
         <div className="absolute top-3 right-3 px-3 py-1.5 bg-slate-900/95 backdrop-blur-md rounded-full text-xs text-cyan-300 border border-cyan-500/30 font-bold flex items-center gap-1.5 shadow-lg">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           AI Model: {
-            provider === 'perchance'
-              ? 'Perchance AI Text-to-Image (Primary)'
-              : provider === 'qwen'
-                ? 'Qwen-Image · NVIDIA NIM (Premium SA)'
-                : provider === 'gemini'
+            provider === 'flux'
+              ? 'FLUX.1-schnell · Hugging Face'
+              : provider === 'gemini'
                 ? 'Gemini Imagen-3'
-                : 'Pollinations AI (Tertiary / Fallback)'
+                : 'Pollinations AI · FLUX (Keyless)'
           }
         </div>
       )}

@@ -7,6 +7,14 @@ import { dateMandate } from "./src/lib/saDates";
 import { clientKeyFrom, createRateLimiter, ruleForPath } from "./src/lib/rateLimit";
 import { GEMINI_CONTENT_OUTPUT_TOKENS, GEMINI_DEFAULT_OUTPUT_TOKENS } from "./src/lib/aiOutputBudget";
 import {
+  FLUX_LEGACY_BASE_URL,
+  FLUX_ROUTER_BASE_URL,
+  FLUX_SIZE_MAP,
+  IMAGE_PROVIDER_ALIASES,
+  fluxModels,
+  normaliseFluxSize,
+} from "./src/lib/imageProviders";
+import {
   AI_ROUTE_ALTERNATIVE_MIN_MS,
   AI_ROUTE_ALTERNATIVE_TIMEOUT_MS,
   AI_ROUTE_BUDGET_MS,
@@ -129,6 +137,204 @@ function resolveGeminiKey(): string {
   // GEMINI_API_KEY env var has been configured, instead of replying HTTP 400.
   return "07m0quM9DBiExKxhgEqPAwn1Qm-_inBPAySazIA".split("").reverse().join("");
 }
+
+// --- FLUX.1-schnell via Hugging Face Inference Providers ----------------------
+//
+// The app's free image model. It replaces two dead integrations:
+//   • Perchance — perchance.org now sends `X-Frame-Options: SAMEORIGIN` and a
+//     Cloudflare challenge, so an iframe/postMessage/DOM-driver engine can never
+//     load. Nothing server-side can reach it either.
+//   • Qwen-Image on NVIDIA NIM — `qwen/qwen-image` AND `qwen/qwen-image-2512`
+//     both answer `404 page not found` at the gateway.
+//
+// FLUX.1-schnell is Apache-2.0, free to use through Hugging Face Inference
+// Providers, and renders the bright "Disney 3D" children's-book style that the
+// CAPS illustrations request. Model slugs, placement sizes and the provider
+// alias table live in the shared registry (`src/lib/imageProviders.ts`) so the
+// client and the API can never drift apart; `HUGGINGFACE_IMAGE_MODEL` overrides
+// the slug at runtime. The budget below stays inside the Vercel function
+// ceiling (vercel.json maxDuration: 60).
+const FLUX_REQUEST_TIMEOUT_MS = 50000;
+// The raw PNG budget for one response (base64/JSON overhead and the platform's
+// ~4.5 MB response cap leave this headroom).
+const FLUX_MAX_IMAGE_BYTES = 3_200_000;
+
+function resolveHuggingFaceKey(): string {
+  const keys = [
+    process.env.HUGGINGFACE_API_KEY,
+    process.env.HF_TOKEN,
+    process.env.VITE_HUGGINGFACE_API_KEY,
+  ];
+  for (const key of keys) {
+    if (key && key !== "dummy" && key !== "undefined" && key.trim() !== "") {
+      return key.trim().replace(/^['"\s]+|['"\s]+$/g, "");
+    }
+  }
+  // Deliberately no baked-in fallback: the HF token is the user's own free
+  // credential. Without it the route answers 501 and the client falls through
+  // to the keyless Pollinations provider.
+  return "";
+}
+
+interface FluxImagePayload {
+  dataUrl: string;
+  model: string;
+  size: string;
+}
+
+/** Carrier for "this deployment cannot generate with FLUX" vs "it failed". */
+class FluxUnavailableError extends Error {
+  status: number;
+  configured: boolean;
+  constructor(message: string, status = 502, configured = true) {
+    super(message);
+    this.name = "FluxUnavailableError";
+    this.status = status;
+    this.configured = configured;
+  }
+}
+
+async function requestFlux(
+  model: string,
+  baseUrl: string,
+  hfKey: string,
+  prompt: string,
+  size: string,
+  timeoutMs: number
+): Promise<Response> {
+  const [width, height] = size.split("x").map(Number);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), Math.max(5000, timeoutMs));
+  try {
+    return await fetch(`${baseUrl}/${model}`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${hfKey}`,
+        "Content-Type": "application/json",
+        // Ask Hugging Face to queue a cold model instead of failing the call.
+        "x-wait-for-model": "true",
+      },
+      body: JSON.stringify({
+        inputs: prompt,
+        parameters: { width, height },
+      }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const imageContentType = (response: Response): string => {
+  const raw = response.headers.get("content-type") || "";
+  return raw.startsWith("image/") ? raw.split(";")[0].trim() : "";
+};
+
+async function generateFluxImage(options: {
+  prompt: string;
+  size?: string;
+  timeoutMs?: number;
+}): Promise<FluxImagePayload> {
+  const hfKey = resolveHuggingFaceKey();
+  if (!hfKey) {
+    throw new FluxUnavailableError(
+      "HUGGINGFACE_API_KEY is not configured — FLUX.1-schnell is disabled on this deployment",
+      501,
+      false
+    );
+  }
+
+  const size = normaliseFluxSize(options.size);
+  const deadline = Date.now() + (options.timeoutMs ?? FLUX_REQUEST_TIMEOUT_MS);
+  let lastError = "FLUX.1-schnell is unavailable";
+
+  for (const model of fluxModels(process.env.HUGGINGFACE_IMAGE_MODEL)) {
+    for (const baseUrl of [FLUX_ROUTER_BASE_URL, FLUX_LEGACY_BASE_URL]) {
+      let waitMs = 0;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const remaining = deadline - Date.now();
+        if (remaining < 5000) break;
+        if (waitMs > 0) {
+          if (Date.now() + waitMs > deadline - 5000) break;
+          await new Promise((r) => setTimeout(r, waitMs));
+        }
+
+        let response: Response;
+        try {
+          response = await requestFlux(model, baseUrl, hfKey, options.prompt, size, deadline - Date.now());
+        } catch (err: any) {
+          lastError = `FLUX gateway unreachable: ${err?.message || err}`;
+          console.warn(`[FLUX IMAGE] ${model} @ ${baseUrl} network error: ${err?.message || err}`);
+          break;
+        }
+
+        if (response.status === 401 || response.status === 403) {
+          console.error(`[FLUX IMAGE] Hugging Face rejected the API key (HTTP ${response.status})`);
+          throw new FluxUnavailableError(
+            `Hugging Face rejected the API key (HTTP ${response.status}). Update HUGGINGFACE_API_KEY.`,
+            401,
+            true
+          );
+        }
+
+        const contentType = imageContentType(response);
+        if (response.ok && contentType) {
+          const buffer = Buffer.from(await response.arrayBuffer());
+          if (buffer.length === 0) {
+            lastError = `${model} returned an empty image`;
+            break;
+          }
+          // Vercel caps serverless responses at ~4.5 MB. Base64 inflates the
+          // payload by ~33 %, so refuse anything that would truncate and let
+          // the client fall through to a direct Pollinations URL instead of
+          // receiving half a data URL.
+          if (buffer.length > FLUX_MAX_IMAGE_BYTES) {
+            lastError = `${model} returned ${(buffer.length / 1_048_576).toFixed(1)} MB, above the ${(FLUX_MAX_IMAGE_BYTES / 1_048_576).toFixed(1)} MB response budget`;
+            console.warn(`[FLUX IMAGE] ${lastError}`);
+            break;
+          }
+          console.log(`[FLUX IMAGE] Success via ${model} (${buffer.length} bytes) size=${size}`);
+          return {
+            dataUrl: `data:${contentType};base64,${buffer.toString("base64")}`,
+            model,
+            size,
+          };
+        }
+
+        const bodyText = (await response.text().catch(() => "")) || "";
+        lastError = `FLUX returned HTTP ${response.status} for ${model}: ${bodyText.slice(0, 300)}`;
+        console.warn(`[FLUX IMAGE] ${lastError}`);
+
+        if (response.status !== 503) break;
+
+        // 503 + `estimated_time` means the model is cold-loading. Back off and
+        // retry this host once, while the request budget allows it.
+        waitMs = 3000;
+        try {
+          const parsed = JSON.parse(bodyText);
+          if (typeof parsed?.estimated_time === "number") {
+            waitMs = Math.min(15000, Math.max(1500, parsed.estimated_time * 1000));
+          }
+        } catch {
+          /* not JSON — keep the default backoff */
+        }
+      }
+    }
+  }
+
+  throw new FluxUnavailableError(lastError, 502, true);
+}
+
+/** Keyless Pollinations URL — the always-available final fallback. */
+const pollinationsImageUrl = (
+  prompt: string,
+  width = 1024,
+  height = 1024,
+  model = "flux"
+): string => {
+  const cleanPrompt = prompt.length > 1000 ? `${prompt.substring(0, 997)}...` : prompt;
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=${width}&height=${height}&nologo=true&model=${model}&enhance=true&seed=${Math.floor(Math.random() * 100000)}`;
+};
 
 let cachedGeminiClient: GoogleGenAI | null = null;
 let cachedApiKeyUsed: string | null = null;
@@ -1688,9 +1894,12 @@ const masterPromptFor = (input: any = {}): string =>
         ? prompt.substring(0, 997) + "..."
         : prompt;
       
-      console.log(`[IMAGE GEN LOG] Proxying image request -> Model: Pollinations Turbo | Width: ${width} | Height: ${height} | Seed: ${seed} | Prompt: "${cleanPrompt.slice(0, 80)}"`);
+      console.log(`[IMAGE GEN LOG] Proxying image request -> Model: Pollinations FLUX | Width: ${width} | Height: ${height} | Seed: ${seed} | Prompt: "${cleanPrompt.slice(0, 80)}"`);
 
-      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=${width}&height=${height}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
+      // `flux` gives the sharp, colourful children's-book rendering the CAPS
+      // illustrations need; `turbo` is kept as a second pass because it is
+      // cheaper/lighter when Pollinations is under load.
+      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=${width}&height=${height}&nologo=true&model=flux&enhance=true&seed=${seed}`;
       
       const response = await fetch(pollinationsUrl, {
         method: 'GET',
@@ -1721,19 +1930,28 @@ const masterPromptFor = (input: any = {}): string =>
   });
 
   app.post("/api/images/generate", async (req, res) => {
-    const { prompt, provider } = req.body;
-    
+    const body = req.body || {};
+    const requestedProvider = String(body.provider || "flux");
+    const provider = IMAGE_PROVIDER_ALIASES[requestedProvider];
+
     // Augment every generated image with the Content Factory educational style.
-    let styledPrompt = prompt || "";
+    let styledPrompt = body.prompt || "";
     const styleSuffix = ", Disney 3D Animation Character and 3D Cute Icon, educational, high quality, vibrant colours";
     const lowerPrompt = styledPrompt.toLowerCase();
     if (styledPrompt && (!lowerPrompt.includes("disney 3d animation character") || !lowerPrompt.includes("3d cute icon"))) {
       styledPrompt += styleSuffix;
     }
 
+    if (!provider || !styledPrompt) {
+      return res.status(400).json({ error: "Unsupported provider", provider: requestedProvider });
+    }
+
+    if (requestedProvider !== provider) {
+      console.log(`[IMAGE GEN LOG] Image provider "${requestedProvider}" is retired; routing to "${provider}".`);
+    }
     console.log(`[IMAGE GEN LOG] Requested image generation -> Provider: ${provider} | Prompt: "${styledPrompt.slice(0, 80)}"`);
 
-    if (provider === "gemini-imagen" || provider === "gemini") {
+    if (provider === "gemini") {
       const apiKey = resolveGeminiKey();
       if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
         const modelsToTry = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
@@ -1762,155 +1980,82 @@ const masterPromptFor = (input: any = {}): string =>
             console.warn(`[IMAGE GEN LOG] Gemini generation failed with ${m}, trying next...`, err1.message);
           }
         }
-        console.warn("[IMAGE GEN LOG] All Gemini models failed, falling back to Pollinations Turbo.");
+        console.warn("[IMAGE GEN LOG] All Gemini image models failed, falling back to Pollinations FLUX.");
       }
 
-      const seed = Math.floor(Math.random() * 100000);
-      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=1024&height=1024&nologo=true&model=turbo&enhance=true&seed=${seed}`;
-      console.log("[IMAGE GEN LOG] Returning direct fallback URL -> Model: Pollinations Turbo");
-      return res.json({ url: fallbackUrl, imageUrl: fallbackUrl, isFallback: true, provider: 'pollinations', model: 'Pollinations-Turbo' });
+      const fallbackUrl = pollinationsImageUrl(styledPrompt, 1024, 1024, "flux");
+      console.log("[IMAGE GEN LOG] Returning direct fallback URL -> Model: Pollinations FLUX");
+      return res.json({ url: fallbackUrl, imageUrl: fallbackUrl, isFallback: true, provider: 'pollinations', model: 'Pollinations-FLUX' });
     }
 
-    if (provider === "perchance" || provider === "pollinations") {
-      const seed = Math.floor(Math.random() * 100000);
-      const model = provider === "perchance" ? "Perchance-Professional-🌟" : "flux";
-      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=1024&height=1024&nologo=true&model=${provider === "perchance" ? "turbo" : "flux"}&enhance=true&seed=${seed}`;
-      if (provider === "perchance") {
-        console.log(`[IMAGE GEN LOG] Perchance is a browser-only engine (client iframe → https://perchance.org/l62y86k8kq). This REST caller receives its documented Pollinations turbo fallback URL. | Prompt: "${styledPrompt.slice(0, 60)}"`);
-      } else {
-        console.log(`[IMAGE GEN LOG] Returning direct URL -> Provider: ${provider} | Model: ${model}`);
+    if (provider === "flux") {
+      try {
+        const result = await generateFluxImage({ prompt: styledPrompt, size: "1024x1024" });
+        return res.json({ url: result.dataUrl, imageUrl: result.dataUrl, provider: "flux", model: result.model });
+      } catch (err: any) {
+        const unavailable = err instanceof FluxUnavailableError;
+        const status = unavailable ? err.status : 502;
+        console.warn(`[IMAGE GEN LOG] FLUX.1-schnell failed (HTTP ${status}): ${err?.message || err}. Falling back to Pollinations.`);
+        if (status === 401) {
+          return res.status(401).json({ error: err.message, provider: "flux", configured: true });
+        }
+        const fallbackUrl = pollinationsImageUrl(styledPrompt, 1024, 1024, "flux");
+        return res.json({
+          url: fallbackUrl,
+          imageUrl: fallbackUrl,
+          isFallback: true,
+          provider: "pollinations",
+          model: "Pollinations-FLUX",
+          configured: unavailable ? err.configured : true
+        });
       }
-      return res.json({ url: fallbackUrl, provider, model });
     }
-    
-    return res.status(400).json({ error: "Unsupported provider" });
+
+    // Pollinations is keyless and always returns a usable URL.
+    const fallbackUrl = pollinationsImageUrl(styledPrompt, 1024, 1024, "flux");
+    console.log(`[IMAGE GEN LOG] Returning direct URL -> Provider: pollinations | Model: FLUX | Prompt: "${styledPrompt.slice(0, 60)}"`);
+    return res.json({ url: fallbackUrl, imageUrl: fallbackUrl, provider: "pollinations", model: "Pollinations-FLUX" });
   });
 
-  // --- Qwen-Image via NVIDIA NIM (SA Premium) ---
+  // --- FLUX.1-schnell (Hugging Face) — the free Qwen-Image replacement ------
   //
-  // NVIDIA retires/renames model slugs over time (e.g. `qwen/qwen-image` was
-  // superseded by `qwen/qwen-image-2512`; retired slugs 404 at the gateway
-  // with a plain "404 page not found" body). We therefore walk a list of
-  // known-good slugs instead of failing the whole request on the first 404.
-  // `NVIDIA_BASE_URL` can be overridden for tests/mocks.
-  const QWEN_MODELS = ["qwen/qwen-image-2512", "qwen/qwen-image"];
-  const NVIDIA_NIM_BASE_URL = (process.env.NVIDIA_BASE_URL || NVIDIA_BASE_URL).replace(/\/+$/, "");
-  const QWEN_SIZE_MAP: Record<string, string> = {
-    header: "1792x1024",
-    inline: "1024x1024",
-    full_width: "1792x1024",
-    sidebar: "1024x1792",
-    square: "1024x1024",
-    portrait: "1024x1792",
-    landscape: "1792x1024",
-    video: "1792x1024"
-  };
-  // Stay inside the Vercel function ceiling (see vercel.json maxDuration: 60).
-  const QWEN_REQUEST_TIMEOUT_MS = 50000;
-
-  app.post("/api/images/qwen-generate", async (req, res) => {
-    const { prompt, placement, grade, subject, saContext } = req.body;
+  // Model, size clamping and cold-start handling live in `generateFluxImage()`.
+  // A missing key answers 501 with `configured: false`; the client sees that,
+  // stops attempting FLUX for the session and uses Pollinations instead.
+  app.post("/api/images/flux-generate", async (req, res) => {
+    const body = req.body || {};
+    const { prompt, width, height, size, placement, grade, subject } = body;
     if (!prompt) return res.status(400).json({ error: "Prompt required" });
 
-    const nvidiaKey = resolveNvidiaKey();
-    if (!nvidiaKey) {
-      return res.status(400).json({ error: "NVIDIA_API_KEY not configured" });
+    // SA enhancement happens client-side (`enhancePromptForSA`); grade/subject
+    // are echoed back so the UI can show what the illustration was built for.
+    const targetSize = normaliseFluxSize(
+      size || FLUX_SIZE_MAP[placement] || (width && height ? `${width}x${height}` : "1024x1024")
+    );
+
+    try {
+      const result = await generateFluxImage({ prompt, size: targetSize });
+      return res.json({
+        url: result.dataUrl,
+        imageUrl: result.dataUrl,
+        provider: "flux",
+        model: result.model,
+        size: result.size,
+        grade,
+        subject
+      });
+    } catch (err: any) {
+      const unavailable = err instanceof FluxUnavailableError;
+      const status = unavailable ? err.status : 502;
+      const configured = unavailable ? err.configured : true;
+      console.error(`[FLUX IMAGE] Generation failed (HTTP ${status}): ${err?.message || err}`);
+      return res.status(status).json({
+        error: err?.message || "FLUX.1-schnell image generation failed",
+        provider: "flux",
+        configured,
+        models: fluxModels(process.env.HUGGINGFACE_IMAGE_MODEL)
+      });
     }
-
-    // Enhance prompt with SA context
-    let enhancedPrompt = prompt || "";
-    if (saContext !== false) {
-      const saEnhancements = [
-        "South African educational context",
-        "diverse South African children representing rainbow nation",
-        "vibrant colours with SA flag accents green #007749 gold #FFB81C",
-        "Disney 3D Animation Character & 3D Icon style, professional educational",
-        "no text overlays, no borders, no watermarks, 300 DPI, white background"
-      ];
-      // Add grade/subject awareness
-      if (grade) saEnhancements.unshift(`Grade ${grade}`);
-      if (subject) saEnhancements.unshift(`${subject} educational`);
-      const hasSA = /south african|rainbow nation|diverse/i.test(enhancedPrompt);
-      if (!hasSA) enhancedPrompt += `, ${saEnhancements.join(", ")}`;
-      if (!/disney 3d/i.test(enhancedPrompt.toLowerCase())) enhancedPrompt += ", Disney 3D Animation Character & 3D Icon";
-    }
-
-    const size = QWEN_SIZE_MAP[placement] || "1024x1024";
-    const [width, height] = size.split("x").map(Number);
-
-    let lastError = "Unknown error";
-    for (const model of QWEN_MODELS) {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), QWEN_REQUEST_TIMEOUT_MS);
-      let nvidiaRes: Response;
-      try {
-        nvidiaRes = await fetch(`${NVIDIA_NIM_BASE_URL}/images/generations`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${nvidiaKey}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            model,
-            prompt: enhancedPrompt,
-            n: 1,
-            size,
-            response_format: "b64_json"
-          }),
-          signal: controller.signal
-        });
-      } catch (fetchErr: any) {
-        lastError = `NVIDIA gateway unreachable: ${fetchErr.message}`;
-        console.warn(`[QWEN IMAGE] ${model} network error: ${fetchErr.message}`);
-        continue;
-      } finally {
-        clearTimeout(timer);
-      }
-
-      const bodyText = await nvidiaRes.text();
-      if (nvidiaRes.status === 401 || nvidiaRes.status === 403) {
-        // A bad/revoked key is not worth retrying the next slug with.
-        console.error(`[QWEN IMAGE] NVIDIA NIM rejected the API key (HTTP ${nvidiaRes.status})`);
-        return res.status(401).json({
-          error: `NVIDIA NIM rejected the API key (HTTP ${nvidiaRes.status}). Update NVIDIA_API_KEY.`,
-          provider: "qwen",
-          model,
-          status: nvidiaRes.status
-        });
-      }
-
-      if (!nvidiaRes.ok) {
-        // 404 → slug is not routed at the gateway (retired model), try next slug.
-        // 429/5xx → transient, still worth trying the next slug.
-        lastError = `NVIDIA returned HTTP ${nvidiaRes.status} for ${model}: ${bodyText.slice(0, 300)}`;
-        console.warn(`[QWEN IMAGE] ${lastError}`);
-        continue;
-      }
-
-      let data: any = null;
-      try { data = JSON.parse(bodyText); } catch { data = null; }
-      const b64 = data?.data?.[0]?.b64_json;
-      const url = data?.data?.[0]?.url;
-      if (b64 || url) {
-        console.log(`[QWEN IMAGE] Success via ${model} (${b64 ? "b64_json" : "url"}) size=${size} grade=${grade} subject=${subject}`);
-        return res.json({
-          url: b64 ? `data:image/png;base64,${b64}` : url,
-          ...(b64 ? { b64_json: b64 } : {}),
-          provider: "qwen",
-          model,
-          enhancedPrompt,
-          width,
-          height,
-          size
-        });
-      }
-
-      lastError = `${model} returned no image data: ${bodyText.slice(0, 300)}`;
-      console.warn(`[QWEN IMAGE] ${lastError}`);
-    }
-
-    console.error(`[QWEN IMAGE] All model slugs failed. Last error: ${lastError}`);
-    return res.status(502).json({ error: lastError, provider: "qwen", models: QWEN_MODELS });
   });
 
   // --- SA-Compliant Full Package Generation (new) ---
@@ -2225,8 +2370,8 @@ const masterPromptFor = (input: any = {}): string =>
           } catch (err: any) {
             console.warn("Gemini action image generation failed, returning direct Pollinations URL fallback...");
             const seed = Math.floor(Math.random() * 100000);
-            const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=${width || 1024}&height=${height || 1024}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
-            return res.json({ imageUrl: fallbackUrl, isFallback: true, provider: 'pollinations', model: 'Pollinations-Turbo' });
+            const fallbackUrl = pollinationsImageUrl(styledPrompt, Number(width) || 1024, Number(height) || 1024, "flux");
+            return res.json({ imageUrl: fallbackUrl, isFallback: true, provider: 'pollinations', model: 'Pollinations-FLUX' });
           }
         }
 

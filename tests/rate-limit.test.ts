@@ -95,7 +95,7 @@ describe('createRateLimiter', () => {
 describe('ruleForPath', () => {
   it('routes each endpoint class to its own budget', () => {
     expect(ruleForPath('/api/ai/gemini').name).toBe('ai');
-    expect(ruleForPath('/api/images/qwen-generate').name).toBe('images');
+    expect(ruleForPath('/api/images/flux-generate').name).toBe('images');
     expect(ruleForPath('/api/image-proxy').name).toBe('images');
     expect(ruleForPath('/api/video/generate').name).toBe('video');
     expect(ruleForPath('/api/video/status/omni-1').name).toBe('video');

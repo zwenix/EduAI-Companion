@@ -2863,17 +2863,14 @@ export default function App() {
                             : 'bg-slate-50 border border-slate-200 text-slate-705 focus:border-orange-500 shadow-sm'
                       }`}
                     >
-                      <option value="perchance">
-                        Perchance AI Text-to-Image (Primary → Qwen / Pollinations fallback)
+                      <option value="flux">
+                        FLUX.1-schnell · Hugging Face (Primary → Pollinations / Imagen fallback)
                       </option>
-                      <option value="qwen">
-                        Qwen-Image · NVIDIA NIM (Premium SA → Pollinations fallback)
+                      <option value="pollinations">
+                        Pollinations AI · FLUX (Keyless → FLUX.1-schnell / Imagen fallback)
                       </option>
                       <option value="gemini-imagen">
                         Google Imagen 3 (Secondary → Pollinations fallback)
-                      </option>
-                      <option value="pollinations">
-                        Pollinations AI Turbo (Tertiary → Perchance fallback)
                       </option>
                     </select>
                   </div>

@@ -153,7 +153,7 @@ export default function ProfileSettings({
         },
         body: JSON.stringify({
           prompt: promptToUse,
-          provider: 'perchance'
+          provider: 'flux'
         })
       });
 

@@ -126,7 +126,7 @@ ${contents.metadata ? `
 - \`pdf/\` — Print-ready PDF with SA school branding (green #007749, gold #FFB81C)
 - \`docx/\` — Editable Word document with SA formatting
 - \`html/\` — Web preview with Tailwind CSS, SA flag stripe
-- \`images/\` — Generated educational visuals (Qwen-Image, Perchance, Gemini, Pollinations)
+- \`images/\` — Generated educational visuals (FLUX.1-schnell, Pollinations, Gemini)
 - \`data/\` — Raw structured JSON data with CAPS compliance metadata
 
 ## Compliance
@@ -140,10 +140,9 @@ The rendered HTML/PDF/DOCX carries one host-owned compliance banner with the app
 
 ## Image Generation
 This package may contain images from:
-- Perchance AI (Primary — Professional Educational)
-- Qwen-Image via NVIDIA NIM (Premium SA-context — qwen/qwen-image)
-- Gemini/Imagen (Google — Secondary)
-- Pollinations AI (Fallback — Turbo model)
+- FLUX.1-schnell (Hugging Face — primary, free open-weights model)
+- Pollinations AI (Keyless fallback — FLUX model)
+- Gemini/Imagen (Google — secondary)
 
 All images: Disney 3D Animation Character & 3D Icon style, 300 DPI, SA context
 

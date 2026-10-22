@@ -55,8 +55,8 @@ specified below.
   content generation.
 * Outdated Gemini defaults (`gemini-2.0-flash`, `gemini-1.5-flash`,
   `gemini-2.1`) MUST NOT be used as primary defaults.
-* Image generation (Perchance / Qwen-Image NIM / Google Imagen 3 /
-  Pollinations), OCR engines and TTS/voice engines are separate pipelines —
+* Image generation (FLUX.1-schnell on Hugging Face / Pollinations /
+  Google Imagen 3), OCR engines and TTS/voice engines are separate pipelines —
   leave them exactly as configured.
 
 ### The frozen registry — single source of truth (added 2 Oct 2026)
@@ -393,22 +393,38 @@ explicit user instructions.
   `POLLINATIONS_API_KEY` was set, and when Gemini/Qwen also had no usable key
   the proxy answered 502 — i.e. no images at all).
 * `/api/image-proxy` fetches `https://image.pollinations.ai/prompt/…`
-  (`model=turbo&enhance=true&nologo=true`) and streams the bytes straight
+  (`model=flux&enhance=true&nologo=true`) and streams the bytes straight
   back. No API key, no chain, no budget wrapper.
 * `/api/images/generate` tries the Gemini image models
   (`gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`,
   `imagen-3.0-generate-002`) and otherwise hands back a **direct
-  Pollinations URL** (`turbo` for `gemini`/`perchance`, `flux` for
-  `pollinations`). The `generate-image` content action does the same.
-* `/api/images/qwen-generate` walks the Qwen-Image slugs on NVIDIA NIM
-  (`qwen/qwen-image-2512`, then `qwen/qwen-image`).
+  Pollinations URL** (`model=flux`). The `generate-image` content action does
+  the same.
+* `/api/images/flux-generate` renders **FLUX.1-schnell**
+  (`black-forest-labs/FLUX.1-schnell`) through Hugging Face Inference
+  Providers (`router.huggingface.co/hf-inference/models`, with the legacy
+  `api-inference.huggingface.co` host and one bounded cold-start retry). It
+  needs `HUGGINGFACE_API_KEY` (`HUGGINGFACE_IMAGE_MODEL` overrides the slug).
+  With no key it answers **HTTP 501 + `{configured:false}`**, and the client
+  stops attempting FLUX for the rest of the session.
 * On the client, `src/lib/imageGeneration.ts` keeps its fixed provider
-  priority/fallback graph (Perchance → Qwen → Gemini → Pollinations) and
+  priority/fallback graph (**FLUX → Pollinations → Gemini**) and
   `buildPollinationsUrl()` / `buildDirectImageUrl()` are the live entry
   points. `buildDirectImageUrl()` points a native build at Pollinations and
   a web build at `/api/image-proxy`.
-* The image **model list is frozen** — the slugs above are the approved
-  image models. Changing them is a separate, explicit decision.
+* **Retired engines (22 Oct 2026) — do not reintroduce:**
+  * **Perchance**: perchance.org answers `X-Frame-Options: SAMEORIGIN` plus a
+    Cloudflare challenge, so the hidden-iframe/postMessage/DOM-driver engine can
+    never load. No iframe image generator may be added anywhere.
+  * **Qwen-Image on NVIDIA NIM**: `qwen/qwen-image` *and*
+    `qwen/qwen-image-2512` answer `404 page not found` at the gateway.
+  * `perchance`, `qwen`, `qwen-image` and `nvidia-qwen` survive only as
+    *aliases* that resolve to FLUX (client `normaliseImageProviderId()`,
+    server `IMAGE_PROVIDER_ALIASES`) so stale saved settings keep working.
+* The image **model list is frozen** — FLUX.1-schnell, Pollinations `flux`
+  and the three Gemini image models are the approved image models. Changing
+  them is a separate, explicit decision (`tests/image-providers.test.ts`
+  guards the graph and the retired integrations).
 
 ### 7.4 API abuse protection
 * `src/lib/rateLimit.ts` is mounted on `/api` in `server.ts` before every route

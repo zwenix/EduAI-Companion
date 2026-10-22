@@ -69,7 +69,8 @@ export function checkAndReportApiError(error: any, provider: string, targetUrl?:
     provider.includes("nemotron") ||
     provider.includes("alibaba") ||
     provider.includes("qwen") ||
-    provider.includes("perchance") ||
+    provider.includes("huggingface") ||
+    provider.includes("flux") ||
     provider.includes("pollinations")
   ) {
     console.log(`[AI Routing] ${provider} credentials or network status (${statusCode || 'transient'}). System is automatically routing to primary fallback.`);
