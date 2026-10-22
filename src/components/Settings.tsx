@@ -1030,7 +1030,7 @@ export default function Settings({
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {[
                               { id: 'flux', name: 'FLUX.1-schnell', tag: 'Primary', dotBg: 'bg-emerald-500/20', dotText: 'text-emerald-400', activeBorder: 'border-emerald-500/40 bg-emerald-500/10', desc: 'Free Hugging Face FLUX model · SA-context, crisp text rendering' },
-                              { id: 'pollinations', name: 'Pollinations AI', tag: 'Keyless', dotBg: 'bg-pink-500/20', dotText: 'text-pink-400', activeBorder: 'border-pink-500/40 bg-pink-500/10', desc: 'No API key needed · always the last automatic fallback' },
+                              { id: 'pollinations', name: 'Pollinations AI', tag: 'Last resort', dotBg: 'bg-pink-500/20', dotText: 'text-pink-400', activeBorder: 'border-pink-500/40 bg-pink-500/10', desc: 'No API key · anonymous tier allows ~1 image every 45 s per IP' },
                               { id: 'gemini-imagen', name: 'Google Imagen 3', tag: 'Secondary', dotBg: 'bg-sky-500/20', dotText: 'text-sky-400', activeBorder: 'border-sky-500/40 bg-sky-500/10', desc: 'Google Imagen / Gemini image models · Pollinations fallback' },
                             ].map((opt: any) => {
                               const isSel = imageProvider === opt.id;
@@ -1056,6 +1056,7 @@ export default function Settings({
                             })}
                          </div>
                          <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
+                            Pollinations' free tier throttles anonymous requests to roughly one image every 45 seconds per IP (it answers <code className="font-mono text-pink-300">402 FREE_LIMIT</code> beyond that). Add a free key from <span className="text-pink-300">enter.pollinations.ai</span> as <code className="font-mono text-pink-300">POLLINATIONS_API_KEY</code> to remove the throttle. Free-tier limits and missing keys no longer leave blank images: the app shows a printable EduAI placeholder instead.{' '}
                             <strong className="text-emerald-400">FLUX.1-schnell</strong> is served by Hugging Face Inference Providers and needs a free <code className="font-mono text-emerald-300">HUGGINGFACE_API_KEY</code>. When that key is missing the app falls straight through to keyless <strong className="text-pink-400">Pollinations AI</strong>, so illustrations are never left blank.
                          </p>
                       </div>

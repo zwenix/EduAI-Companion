@@ -26,6 +26,7 @@ export default function AiImage({
   const [imageUrl, setImageUrl] = useState('');
   const [provider, setProvider] = useState<string>('');
   const [model, setModel] = useState<string>('');
+  const [unavailable, setUnavailable] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
   // Enhance the prompt if educational context is provided
@@ -39,6 +40,7 @@ export default function AiImage({
     const generateImage = async () => {
       setIsLoading(true);
       setError(null);
+      setUnavailable(false);
       
       try {
         const result = await generateImageWithFallback({
@@ -51,6 +53,9 @@ export default function AiImage({
           setImageUrl(result.url);
           setProvider(result.provider);
           setModel(result.model || '');
+          // A placeholder is a real, renderable SVG — show it, but tell the
+          // teacher that the engines were unavailable instead of pretending.
+          setUnavailable(result.provider === 'placeholder');
           setIsLoading(false);
         }
       } catch (err: any) {
@@ -147,6 +152,12 @@ export default function AiImage({
         )}
       </div>
 
+      {unavailable && !isLoading && !error && (
+        <p className="mt-2 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+          Image engines are busy or rate-limited — showing a printable placeholder.
+        </p>
+      )}
+
       {/* Provider & AI Model Badge */}
       {provider && !isLoading && !error && (
         <div className="absolute top-3 right-3 px-3 py-1.5 bg-slate-900/95 backdrop-blur-md rounded-full text-xs text-cyan-300 border border-cyan-500/30 font-bold flex items-center gap-1.5 shadow-lg">
@@ -156,7 +167,9 @@ export default function AiImage({
               ? (model || 'FLUX.1-schnell')
               : provider === 'gemini'
                 ? 'Gemini Imagen-3'
-                : 'Pollinations AI · FLUX (Keyless)'
+                : provider === 'placeholder'
+                  ? 'Offline placeholder'
+                  : 'Pollinations AI · FLUX'
           }
         </div>
       )}

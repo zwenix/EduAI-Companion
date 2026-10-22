@@ -3,10 +3,12 @@
  * client (`src/lib/imageGeneration.ts`) and the Express API (`server.ts`).
  *
  * ENGINES (22 Oct 2026):
- *   1. `flux`         — FLUX.1-schnell via Hugging Face Inference Providers.
- *                       Free, Apache-2.0, needs `HUGGINGFACE_API_KEY`.
- *   2. `pollinations` — keyless, always available. The guaranteed fallback.
- *   3. `gemini`       — Google Imagen 3 / Gemini image models (own key).
+ *   1. `flux`         — FLUX.1-schnell via Hugging Face Inference Providers
+ *                       (or Cloudflare Workers AI). Free, Apache-2.0.
+ *   2. `gemini`       — Google Imagen / Gemini image models (own key).
+ *   3. `pollinations` — keyless, but throttled to ~1 image / 45 s per IP
+ *                       (HTTP 402 `FREE_LIMIT`) unless `POLLINATIONS_API_KEY`
+ *                       is set. Always the last resort.
  *
  * RETIRED — aliases only, resolvable but never offered again:
  *   • `perchance` — perchance.org sends `X-Frame-Options: SAMEORIGIN` + a
@@ -30,15 +32,38 @@ export const DEFAULT_IMAGE_PROVIDER: ImageProviderId = 'flux';
 
 export const IMAGE_PROVIDER_PRIORITY: readonly ImageProviderId[] = [
   'flux',
-  'pollinations',
-  'gemini'
+  'gemini',
+  'pollinations'
 ];
 
+/**
+ * Fallback graph — ORDER MATTERS, and it changed on 22 Oct 2026.
+ *
+ * Pollinations is now the LAST resort, not the second engine. Its anonymous
+ * tier throttles to "1 image every 45 s per IP" and answers **HTTP 402
+ * `{code:"FREE_LIMIT"}`**, so putting it second burned 60+ seconds of retries
+ * on a quota that was already spent and pushed a working Gemini engine to the
+ * end of the chain. Gemini has a key in every build of this app, so it gets the
+ * second slot; Pollinations keeps the guaranteed-keyless slot.
+ */
 export const IMAGE_PROVIDER_FALLBACKS: Record<ImageProviderId, readonly ImageProviderId[]> = {
-  flux: ['pollinations', 'gemini'],
-  pollinations: ['flux', 'gemini'],
-  gemini: ['pollinations', 'flux']
+  flux: ['gemini', 'pollinations'],
+  gemini: ['flux', 'pollinations'],
+  pollinations: ['gemini', 'flux']
 };
+
+/**
+ * Pollinations throttling contract (anonymous / free tier).
+ *
+ * `image.pollinations.ai/prompt/…` needs no key but allows roughly one image
+ * per 45 s per IP. Over the limit it answers **402** with
+ * `{error:{code:'FREE_LIMIT', message, retryAfter}}` (and sometimes a 200 HTML
+ * banner). A key from enter.pollinations.ai removes the throttle; a `sk_`
+ * secret key has no IP limit at all.
+ */
+export const POLLINATIONS_FREE_INTERVAL_MS = 45_000;
+/** Stop retrying a rate-limited Pollinations for the rest of the session. */
+export const POLLINATIONS_COOLDOWN_MS = POLLINATIONS_FREE_INTERVAL_MS;
 
 export const getImageProviderOrder = (preferred: ImageProviderId): ImageProviderId[] => [
   preferred,

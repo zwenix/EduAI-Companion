@@ -339,7 +339,9 @@ There is no authentication middleware, rate limiting, CSRF layer or CORS configu
 | POST | `/api/tts/hf` | Hugging Face TTS inference (returns base64 FLAC). | `text`, `model` |
 | POST | `/api/images/generate` | Image generation (Gemini/Imagen path) with educational style augmentation. | `prompt`, `provider?` |
 | POST | `/api/images/flux-generate` | FLUX.1-schnell via Hugging Face Inference Providers, then Cloudflare Workers AI (when configured). Answers 501 + `{configured:false}` when neither backend is configured so the client can skip straight to Pollinations. | `prompt`, `placement?`, `size?`, `width?`, `height?`, `grade?`, `subject?` |
-| GET | `/api/image-proxy` | Pollinations image proxy used by `<img>` tags (avoids client-side blocking). | `prompt`, `seed?`, `width?`, `height?` |
+| GET | `/api/image-proxy` | Pollinations image proxy used by `<img>` tags (avoids client-side blocking). Forwards `402 FREE_LIMIT` with `Retry-After`. | `prompt`, `seed?`, `width?`, `height?`, `model?` |
+| POST | `/api/images/pollinations-generate` | Same-origin Pollinations render (carries `POLLINATIONS_API_KEY` and the deployment IP). `402` + `retryAfter` when the quota is spent. | `prompt`, `width?`, `height?`, `seed?`, `model?` |
+| GET | `/api/images/status` | Diagnostics: configured engines/keys and live reachability of every upstream host (including the `fetch failed` cause code). | — |
 | POST | `/api/video/generate` | Starts an OmniHuman-1 or Replicate video job. | `prompt`, `model` |
 | GET | `/api/video/status/:id` | Polls job status (in-memory for OmniHuman; Replicate prediction otherwise). | — |
 | POST | `/api/sa/generate-package` | Full SA compliance package: CAPS pre-flight, prompt build, text generation (Qwen → Gemini), images, assemblers. | `request` (grade, subject, term, contentType…), `provider?`, `generateImages?` |
@@ -434,7 +436,7 @@ Content is generated as **HTML styled with Tailwind classes**, not Markdown. Tru
 
 `src/lib/imageGeneration.ts` implements a fixed fallback graph:
 
-- **Priority**: FLUX.1-schnell (free: Hugging Face `black-forest-labs/FLUX.1-schnell` → Cloudflare Workers AI `@cf/black-forest-labs/flux-1-schnell`) → Pollinations (keyless, always returns a URL) → Gemini image models (`gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`, `imagen-3.0-generate-002`).
+- **Priority**: FLUX.1-schnell (free: Hugging Face `black-forest-labs/FLUX.1-schnell` → Cloudflare Workers AI `@cf/black-forest-labs/flux-1-schnell`) → Gemini image models / Imagen → Pollinations (keyless last resort, ~1 image / 45 s per IP) → inline SVG placeholder (never a broken `<img>`) (`gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`, `imagen-3.0-generate-002`).
 - Placement-aware sizes (`header`, `inline`, `full_width`, `sidebar`) are defined in `FLUX_CONFIG`; batch generation runs with concurrency 2 and a 2-second pause between batches.
 - **Retired 22 Oct 2026**: Perchance (the site now sends `X-Frame-Options: SAMEORIGIN` plus a Cloudflare challenge, so no iframe can load) and Qwen-Image on NVIDIA NIM (`qwen/qwen-image` and `qwen/qwen-image-2512` both 404). Their ids remain aliases that resolve to FLUX.
 - `enhancePromptForSA()` injects rainbow-nation diversity, SA landmarks/flora, flag accents and a 300 DPI, no-text, no-watermark requirement.
@@ -644,6 +646,8 @@ South African English, ZAR currency, DD/MM/YYYY dates, local names/context. Foun
 | `OCR_SPACE_API_KEY` | optional | Server/native | Secondary OCR. |
 | `HUGGINGFACE_API_KEY` / `HF_TOKEN` (alias `HUGGINGFACE_IMAGE_MODEL`) | optional | Server + native | HF TTS/inference **and FLUX.1-schnell images** (primary image engine; keyless Pollinations is the fallback). |
 | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` | optional | Server | Second free FLUX.1-schnell backend (`@cf/black-forest-labs/flux-1-schnell`, 10k neurons/day). Tried only after Hugging Face fails. |
+| `POLLINATIONS_API_KEY` | optional | Server | Removes the Pollinations anonymous throttle (`402 FREE_LIMIT`, ~1 image / 45 s per IP). |
+| `VITE_HUGGINGFACE_API_KEY` | optional | Client | Browser-side FLUX fallback when the server cannot reach `router.huggingface.co`. Public bundle — dedicated token only. |
 | `REPLICATE_API_TOKEN` | optional | Server | Replicate video. |
 | `ELEVENLABS_API_KEY` | optional | Client | Voice provider. |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | optional | Server | Web Push; when absent the API reports `{ enabled: false }`. |

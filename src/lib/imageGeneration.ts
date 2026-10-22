@@ -28,6 +28,7 @@ import {
   FLUX_CONFIG,
   IMAGE_PROVIDER_FALLBACKS,
   IMAGE_PROVIDER_PRIORITY,
+  POLLINATIONS_COOLDOWN_MS,
   POLLINATIONS_FALLBACK_MODEL,
   POLLINATIONS_MODEL,
   getImageProviderOrder,
@@ -57,7 +58,11 @@ export {
 
 export interface ImageGenerationResult {
   url: string;
-  provider: 'flux' | 'gemini' | 'pollinations';
+  /**
+   * `placeholder` means every engine was unavailable and `url` is a self-
+   * contained SVG — still a real, renderable image, never a broken link.
+   */
+  provider: 'flux' | 'gemini' | 'pollinations' | 'placeholder';
   prompt: string;
   width: number;
   height: number;
@@ -154,15 +159,23 @@ export const generateImageGemini = async (
       })
     });
 
-    if (!response.ok) throw new Error(`Gemini API failed: ${response.status}`);
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({} as any));
+      throw new Error(payload?.error || `Gemini API failed: ${response.status}`);
+    }
     const data = await response.json();
     if (!data.imageUrl) throw new Error('No image URL returned from Gemini');
+    // A proxy/fallback URL is not a Gemini image: treat it as a failure so the
+    // provider chain keeps its own ordering instead of stopping here.
+    if (data.isFallback || (data.provider && data.provider !== 'gemini')) {
+      throw new Error(data.error || 'Gemini returned a fallback URL instead of an image');
+    }
     return data.imageUrl;
   } catch (error) {
     console.error('Gemini image generation failed (backend), trying client-side engine:', error);
     try {
       const data = await callGeminiClientDirect('generate-image', { prompt, width, height });
-      if (data.imageUrl) return data.imageUrl;
+      if (data?.imageUrl && !data.isFallback) return data.imageUrl;
     } catch (clientErr) {
       console.error('Client-side Gemini image generation failed:', clientErr);
     }
@@ -202,6 +215,30 @@ const fluxDimensions = (width: number, height: number, placement?: string): { wi
   const [w, h] = size.split('x').map(Number);
   return { width: w, height: h, size };
 };
+
+/**
+ * OPTIONAL browser-side Hugging Face key (`VITE_HUGGINGFACE_API_KEY`).
+ *
+ * Some deployments cannot open a TLS connection to `router.huggingface.co` from
+ * the Node runtime ("fetch failed" / ECONNRESET) while the teacher's BROWSER
+ * can. In that case the client retries FLUX directly — Hugging Face's router is
+ * CORS-enabled, which is also how the APK talks to it.
+ *
+ * A `VITE_` variable is compiled into the public bundle, so this is opt-in and
+ * should use a dedicated, rate-limited token — never an account-wide one.
+ */
+const getBrowserHuggingFaceKey = (): string => {
+  try {
+    const env = (import.meta as any)?.env;
+    const key = env?.VITE_HUGGINGFACE_API_KEY;
+    return typeof key === 'string' ? key.trim() : '';
+  } catch {
+    return '';
+  }
+};
+
+const isNetworkFailure = (message: string): boolean =>
+  /unreachable|fetch failed|network|ECONNRESET|ENOTFOUND|ETIMEDOUT|EAI_AGAIN|aborted/i.test(message);
 
 const blobToDataUrl = (blob: Blob): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -306,44 +343,134 @@ export const generateImageFlux = async (
     throw new Error(lastError);
   }
 
-  const response = await fetch(buildApiUrl('/api/images/flux-generate'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt: enhancedPrompt,
-      width: w,
-      height: h,
-      size,
-      placement,
-      grade,
-      subject
-    })
-  });
+  const browserKey = getBrowserHuggingFaceKey();
+  let serverFailure = '';
 
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({} as any));
-    if (errData?.configured === false || response.status === 501) {
-      fluxDisabledForSession = true;
-      throw providerUnavailable(
-        errData?.error || 'FLUX.1-schnell is not configured on this deployment (HUGGINGFACE_API_KEY missing)'
-      );
+  try {
+    const response = await fetch(buildApiUrl('/api/images/flux-generate'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: enhancedPrompt,
+        width: w,
+        height: h,
+        size,
+        placement,
+        grade,
+        subject
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({} as any));
+      if (errData?.configured === false || response.status === 501) {
+        fluxDisabledForSession = true;
+        throw providerUnavailable(
+          errData?.error || 'FLUX.1-schnell is not configured on this deployment (HUGGINGFACE_API_KEY missing)'
+        );
+      }
+      serverFailure = errData?.error || `FLUX backend failed: ${response.status}`;
+    } else {
+      const data = await response.json().catch(() => ({} as any));
+      const backend: FluxBackend = data?.backend === 'cloudflare' ? 'cloudflare' : 'huggingface';
+      if (data?.url) return { url: data.url, model: data.model || FLUX_CONFIG.model, backend };
+      if (data?.b64_json) {
+        return { url: `data:image/png;base64,${data.b64_json}`, model: data.model || FLUX_CONFIG.model, backend };
+      }
+      serverFailure = 'No image payload in the FLUX backend response';
     }
-    throw new Error(errData?.error || `FLUX backend failed: ${response.status}`);
+  } catch (err: any) {
+    if (err?.providerUnavailable) throw err;
+    serverFailure = err?.message || String(err);
   }
 
-  const data = await response.json().catch(() => ({} as any));
-  const backend: FluxBackend = data?.backend === 'cloudflare' ? 'cloudflare' : 'huggingface';
-  if (data?.url) return { url: data.url, model: data.model || FLUX_CONFIG.model, backend };
-  if (data?.b64_json) {
-    return { url: `data:image/png;base64,${data.b64_json}`, model: data.model || FLUX_CONFIG.model, backend };
+  // The deployment could not reach Hugging Face (TLS/DNS/proxy). If this build
+  // carries an optional browser key, the teacher's own network can still render
+  // the same model — Hugging Face's router allows browser clients.
+  if (browserKey && isNetworkFailure(serverFailure)) {
+    console.warn(`[Image Gen] Server FLUX unreachable (${serverFailure}); retrying from the browser...`);
+    for (const model of FLUX_CONFIG.models) {
+      try {
+        const response = await fetch(`${FLUX_CONFIG.routerBaseUrl}/${model}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${browserKey}`,
+            'x-wait-for-model': 'true'
+          },
+          body: JSON.stringify({ inputs: enhancedPrompt, parameters: { width: w, height: h } })
+        });
+        if (!response.ok) {
+          serverFailure = `Browser FLUX failed (${response.status})`;
+          continue;
+        }
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.startsWith('image/')) continue;
+        const dataUrl = await blobToDataUrl(await response.blob());
+        if (dataUrl) {
+          console.log('[Image Gen] FLUX rendered in the browser (server egress blocked).');
+          return { url: dataUrl, model, backend: 'huggingface' };
+        }
+      } catch (err: any) {
+        serverFailure = `Browser FLUX failed: ${err?.message || err}`;
+      }
+    }
   }
-  throw new Error('No image payload in the FLUX backend response');
+
+  throw new Error(serverFailure || 'FLUX.1-schnell failed');
+
 };
 
-/* ── Pollinations AI (keyless) ─────────────────────────────────────────────── */
+/* ── Pollinations AI (keyless, throttled) ─────────────────────────────────── */
+
+/**
+ * Pollinations' anonymous tier allows roughly one image per 45 s per IP and
+ * refuses the rest with **HTTP 402 `{error:{code:'FREE_LIMIT'}}`**. The old code
+ * could not see that status (an `<img>` probe only fires `onerror`) and retried
+ * four times with fresh seeds, so a spent quota cost ~90 s and still failed.
+ */
+export class PollinationsRateLimitError extends Error {
+  readonly retryAfterSeconds: number;
+  constructor(message: string, retryAfterSeconds = 45) {
+    super(message);
+    this.name = 'PollinationsRateLimitError';
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
+/** Retry-after we honour once Pollinations says the quota is spent. */
+let pollinationsCooldownUntil = 0;
+
+export const resetPollinationsCooldown = (): void => {
+  pollinationsCooldownUntil = 0;
+};
+
+export const isPollinationsCoolingDown = (now = Date.now()): boolean =>
+  now < pollinationsCooldownUntil;
+
+export const pollinationsCooldownActive = (): boolean => isPollinationsCoolingDown();
+
+const markPollinationsCoolingDown = (retryAfterSeconds: number): void => {
+  pollinationsCooldownUntil = Date.now() + Math.max(
+    POLLINATIONS_COOLDOWN_MS,
+    (retryAfterSeconds || 0) * 1000
+  );
+};
+
+const parseRetryAfter = (payload: any, headerValue: string | null): number => {
+  const fromBody =
+    payload?.error?.retryAfter ??
+    payload?.error?.retry_after ??
+    payload?.retryAfter ??
+    payload?.retry_after;
+  if (typeof fromBody === 'number' && Number.isFinite(fromBody)) return fromBody;
+  const fromHeader = Number(headerValue);
+  if (Number.isFinite(fromHeader) && fromHeader > 0) return fromHeader;
+  return 45;
+};
 
 /** Resolves once the browser has actually decoded the image. */
-const probeImageUrl = (url: string, timeoutMs = 30000): Promise<string> => {
+const probeImageUrl = (url: string, timeoutMs = 25000): Promise<string> => {
   if (typeof Image === 'undefined') return Promise.resolve(url);
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -370,37 +497,256 @@ const probeImageUrl = (url: string, timeoutMs = 30000): Promise<string> => {
   });
 };
 
+/**
+ * Fetches an image URL and reports WHY it failed.
+ *
+ * Returns `'ok'`, `'rate-limited'` (402/429), `'error'` (any other status) or
+ * `'unknown'` when CORS prevented us from reading the response at all — in that
+ * case the caller falls back to the `<img>` probe, which still renders the
+ * image if the browser can load it.
+ */
+const classifyImageResponse = async (
+  url: string,
+  timeoutMs = 20000
+): Promise<{ verdict: 'ok' | 'rate-limited' | 'error' | 'unknown'; retryAfter?: number; message?: string }> => {
+  if (typeof fetch !== 'function') return { verdict: 'unknown' };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { method: 'GET', mode: 'cors', signal: controller.signal });
+    if (response.ok) {
+      const type = response.headers.get('content-type') || '';
+      if (type.startsWith('image/')) return { verdict: 'ok' };
+      // A 200 that is HTML means Pollinations served its "free limit" banner.
+      const text = await response.text().catch(() => '');
+      if (/free limit|rate limit|pollen/i.test(text)) {
+        return { verdict: 'rate-limited', retryAfter: 45, message: text.slice(0, 200) };
+      }
+      return { verdict: 'error', message: `unexpected content-type ${type || 'unknown'}` };
+    }
+    if (response.status === 402 || response.status === 429) {
+      const text = await response.text().catch(() => '');
+      let payload: any = null;
+      try { payload = JSON.parse(text); } catch { payload = null; }
+      const retryAfter = parseRetryAfter(payload, response.headers.get('retry-after'));
+      const message =
+        payload?.error?.message || payload?.message || `Pollinations rate limit (HTTP ${response.status})`;
+      return { verdict: 'rate-limited', retryAfter, message: String(message).slice(0, 200) };
+    }
+    return { verdict: 'error', message: `HTTP ${response.status}` };
+  } catch (err: any) {
+    // Network/CORS failures are indistinguishable here — let the <img> probe
+    // decide, since the browser may still be able to load the picture.
+    return { verdict: 'unknown', message: err?.message || String(err) };
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+/** One attempt: read the status when possible, otherwise probe the URL. */
+const attemptPollinationsUrl = async (url: string, timeoutMs: number): Promise<string> => {
+  const classified = await classifyImageResponse(url, timeoutMs);
+  if (classified.verdict === 'ok') return url;
+  if (classified.verdict === 'rate-limited') {
+    throw new PollinationsRateLimitError(
+      classified.message || 'Pollinations free limit reached',
+      classified.retryAfter ?? 45
+    );
+  }
+  // 'error' and 'unknown' both fall back to letting the browser try.
+  return probeImageUrl(url, timeoutMs);
+};
+
+/** Server-side proxy — carries the deployment's Pollinations key and IP. */
+const generateImagePollinationsViaApi = async (
+  prompt: string,
+  width: number,
+  height: number,
+  seed: number,
+  timeoutMs: number
+): Promise<string> => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let response: Response;
+  try {
+    response = await fetch(buildApiUrl('/api/images/pollinations-generate'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, width, height, seed, model: POLLINATIONS_MODEL }),
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (response.status === 402 || response.status === 429) {
+    const payload = await response.json().catch(() => ({} as any));
+    throw new PollinationsRateLimitError(
+      payload?.error || 'Pollinations free limit reached',
+      Number(payload?.retryAfter) || 45
+    );
+  }
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({} as any));
+    throw new Error(payload?.error || `Pollinations proxy failed: ${response.status}`);
+  }
+  const data = await response.json().catch(() => ({} as any));
+  if (data?.url) return data.url;
+  throw new Error('No image payload in the Pollinations proxy response');
+};
+
 export const generateImagePollinations = async (
   prompt: string,
   width: number = 1024,
   height: number = 1024,
   seed: number = Math.floor(Math.random() * 10000)
 ): Promise<string> => {
-  // 1. Direct `flux` render, 2. one retry with a fresh seed (transient 429s),
-  // 3. the same-origin proxy if the browser blocked image.pollinations.ai
-  //    directly (ad blockers / school filters are the usual culprits), and
-  //    finally 4. the lighter `turbo` model.
-  const candidates = [
-    buildPollinationsUrl(prompt, width, height, seed, POLLINATIONS_MODEL),
-    buildPollinationsUrl(prompt, width, height, seed + 1, POLLINATIONS_MODEL),
-    buildDirectImageUrl(prompt, width, height, seed + 2),
-    buildPollinationsUrl(prompt, width, height, seed + 3, POLLINATIONS_FALLBACK_MODEL)
-  ];
+  if (isPollinationsCoolingDown()) {
+    throw new PollinationsRateLimitError(
+      'Pollinations free limit already reached — waiting for the quota window to reset'
+    );
+  }
 
+  // Two different IPs are involved: the deployment's (the proxy route) and the
+  // teacher's (a direct URL). One being throttled does not mean the other is,
+  // so both are tried exactly once — and the moment BOTH report 402 we stop
+  // instead of burning the whole image budget on a spent quota.
+  const attempts: Array<{ label: string; run: () => Promise<string> }> = [];
+
+  if (!isNativeApp()) {
+    attempts.push({
+      label: 'server proxy',
+      run: () => generateImagePollinationsViaApi(prompt, width, height, seed, 25000)
+    });
+  }
+
+  const directFlux = buildPollinationsUrl(prompt, width, height, seed, POLLINATIONS_MODEL);
+  attempts.push({ label: 'direct flux', run: () => attemptPollinationsUrl(directFlux, 22000) });
+
+  let rateLimited = 0;
   let lastError: Error = new Error('Pollinations AI image request failed');
-  for (const [index, url] of candidates.entries()) {
+
+  for (const [index, attempt] of attempts.entries()) {
     try {
-      return await probeImageUrl(url);
+      return await attempt.run();
     } catch (err: any) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      console.warn(
-        `[Image Gen] Pollinations attempt ${index + 1}/${candidates.length} failed: ${lastError.message}`
-      );
-      // Small pause between attempts so a rate-limit window can clear.
-      if (index < candidates.length - 1) await new Promise(r => setTimeout(r, 1500));
+      if (err instanceof PollinationsRateLimitError) {
+        rateLimited += 1;
+        console.warn(
+          `[Image Gen] Pollinations ${attempt.label} is rate-limited (${lastError.message}); trying the next path...`
+        );
+        continue;
+      }
+      console.warn(`[Image Gen] Pollinations ${attempt.label} failed: ${lastError.message}`);
+    }
+    if (index < attempts.length - 1) await new Promise(r => setTimeout(r, 500));
+  }
+
+  if (rateLimited > 0) {
+    markPollinationsCoolingDown(lastError instanceof PollinationsRateLimitError ? lastError.retryAfterSeconds : 45);
+    throw lastError instanceof PollinationsRateLimitError ? lastError : new PollinationsRateLimitError(lastError.message);
+  }
+
+  // Last chance inside this provider: the lighter model, once.
+  try {
+    return await attemptPollinationsUrl(
+      buildPollinationsUrl(prompt, width, height, seed + 7, POLLINATIONS_FALLBACK_MODEL),
+      20000
+    );
+  } catch (err: any) {
+    if (err instanceof PollinationsRateLimitError) markPollinationsCoolingDown(err.retryAfterSeconds);
+    throw err instanceof Error ? err : lastError;
+  }
+};
+
+/* ── Guaranteed-visible placeholder ────────────────────────────────────────── */
+
+const PLACEHOLDER_PALETTE = ['#007749', '#FFB81C', '#002395', '#E31E24', '#0f766e', '#7c3aed'];
+
+const escapeSvgText = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+
+const hashString = (value: string): number => {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
+/** Wraps the prompt onto at most `maxLines` lines of ~34 characters. */
+const wrapPrompt = (prompt: string, maxLines = 3): string[] => {
+  const words = prompt.replace(/\s+/g, ' ').trim().split(' ');
+  const lines: string[] = [];
+  let current = '';
+  for (const word of words) {
+    if (!current) {
+      current = word;
+    } else if (`${current} ${word}`.length <= 34) {
+      current += ` ${word}`;
+    } else {
+      lines.push(current);
+      current = word;
+      if (lines.length === maxLines) break;
     }
   }
-  throw lastError;
+  if (lines.length < maxLines && current) lines.push(current);
+  return lines.slice(0, maxLines);
+};
+
+/**
+ * Self-contained SVG data URL used when every engine is unavailable.
+ *
+ * This exists because the old final fallback returned a *Pollinations URL*: when
+ * the quota was spent, the `<img>` just rendered a broken-image icon with no
+ * explanation. An inline SVG always renders — offline, in print, in the APK,
+ * and inside exported packages — and tells the teacher what happened.
+ */
+export const buildPlaceholderImageUrl = (
+  prompt: string,
+  width: number = 1024,
+  height: number = 1024,
+  reason: string = 'Illustration service busy'
+): string => {
+  const w = Math.max(320, Math.round(width));
+  const h = Math.max(240, Math.round(height));
+  const accent = PLACEHOLDER_PALETTE[hashString(prompt) % PLACEHOLDER_PALETTE.length];
+  const lines = wrapPrompt(prompt);
+  const titleSize = Math.round(Math.min(w, h) * 0.052);
+  const lineSize = Math.round(titleSize * 0.78);
+  const startY = h / 2 - (lines.length * lineSize) / 2;
+  const tspans = lines
+    .map(
+      (line, index) =>
+        `<tspan x="${w / 2}" y="${Math.round(startY + index * lineSize * 1.35)}">${escapeSvgText(line)}</tspan>`
+    )
+    .join('');
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="${escapeSvgText(prompt)}">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#e2e8f0"/>
+    </linearGradient>
+  </defs>
+  <rect width="${w}" height="${h}" fill="url(#bg)"/>
+  <rect x="0" y="0" width="${w}" height="${Math.round(h * 0.012)}" fill="${accent}"/>
+  <rect x="0" y="${h - Math.round(h * 0.012)}" width="${w}" height="${Math.round(h * 0.012)}" fill="#FFB81C"/>
+  <circle cx="${w / 2}" cy="${Math.round(h * 0.26)}" r="${Math.round(Math.min(w, h) * 0.075)}" fill="${accent}" opacity="0.12"/>
+  <text x="${w / 2}" y="${Math.round(h * 0.285)}" text-anchor="middle" font-family="Fredoka, Nunito, system-ui, sans-serif" font-size="${Math.round(Math.min(w, h) * 0.085)}" fill="${accent}">✎</text>
+  <text text-anchor="middle" font-family="Fredoka, Nunito, system-ui, sans-serif" font-size="${titleSize}" font-weight="700" fill="#0f172a">${tspans}</text>
+  <text x="${w / 2}" y="${Math.round(h * 0.78)}" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-size="${Math.round(lineSize * 0.72)}" fill="#475569">${escapeSvgText(reason)}</text>
+  <text x="${w / 2}" y="${Math.round(h * 0.84)}" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-size="${Math.round(lineSize * 0.62)}" fill="#64748b">Tap “Try Again” to regenerate · EduAI Companion</text>
+</svg>`;
+
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 };
 
 /* ── Batch helper (SA content pipeline) ────────────────────────────────────── */
@@ -507,35 +853,48 @@ export const generateImageWithFallback = async (
         }
         console.warn('[Image Gen] FLUX.1-schnell failed; continuing...', error?.message || error);
       }
-    } else if (prov === 'pollinations') {
-      try {
-        const role = preferred === 'pollinations' ? 'Keyless primary' : 'Keyless fallback';
-        console.log(`[Image Gen] Attempting Pollinations AI (${role})...`);
-        const imageUrl = await generateImagePollinations(styledPrompt, width, height, seed);
-        return { url: imageUrl, provider: 'pollinations', prompt: styledPrompt, width, height, model: POLLINATIONS_MODEL };
-      } catch (error: any) {
-        console.warn('[Image Gen] Pollinations AI failed; continuing...', error?.message || error);
-      }
     } else if (prov === 'gemini') {
       try {
-        const role = preferred === 'gemini' ? 'Secondary' : 'Final recovery';
+        const role = preferred === 'gemini' ? 'Secondary' : 'Recovery';
         console.log(`[Image Gen] Attempting Gemini/Imagen (${role})...`);
         const imageUrl = await generateImageGemini(styledPrompt, width, height);
         return { url: imageUrl, provider: 'gemini', prompt: styledPrompt, width, height, model: 'imagen-3' };
       } catch (error: any) {
         console.warn('[Image Gen] Gemini/Imagen failed; continuing...', error?.message || error);
       }
+    } else if (prov === 'pollinations') {
+      try {
+        const role = preferred === 'pollinations' ? 'Keyless primary' : 'Last resort';
+        console.log(`[Image Gen] Attempting Pollinations AI (${role})...`);
+        const imageUrl = await generateImagePollinations(styledPrompt, width, height, seed);
+        return { url: imageUrl, provider: 'pollinations', prompt: styledPrompt, width, height, model: POLLINATIONS_MODEL };
+      } catch (error: any) {
+        if (error instanceof PollinationsRateLimitError) {
+          console.warn(
+            `[Image Gen] Pollinations AI is rate-limited (${error.message}). It will be skipped for ~${error.retryAfterSeconds}s.`
+          );
+        } else {
+          console.warn('[Image Gen] Pollinations AI failed; continuing...', error?.message || error);
+        }
+      }
     }
   }
 
-  console.log('[Image Gen] All provider attempts failed. Returning a direct Pollinations URL so the image can still resolve lazily...');
+  // Never hand back a URL that is already known to fail: a dead Pollinations
+  // link renders as a broken-image icon with no explanation. The inline SVG
+  // always renders (offline, in the APK, in printed packs) and says what
+  // happened, so the teacher can retry with context.
+  const reason = pollinationsCooldownActive()
+    ? 'Image services are busy — free image quota reached'
+    : 'Illustration service unavailable';
+  console.warn(`[Image Gen] All provider attempts failed. Using the built-in placeholder (${reason}).`);
   return {
-    url: buildPollinationsUrl(styledPrompt, width, height, seed),
-    provider: 'pollinations',
+    url: buildPlaceholderImageUrl(styledPrompt, width, height, reason),
+    provider: 'placeholder',
     prompt: styledPrompt,
     width,
     height,
-    model: POLLINATIONS_MODEL
+    model: 'EduAI placeholder'
   };
 };
 
@@ -575,6 +934,7 @@ export default {
   generateImageGemini,
   generateImageFlux,
   generateImagePollinations,
+  buildPlaceholderImageUrl,
   generateAllEducationalImages,
   enhanceEducationalImagePrompt,
   enhancePromptForSA,

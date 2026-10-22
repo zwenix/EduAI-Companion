@@ -27,13 +27,17 @@ import {
   IMAGE_PROVIDER_FALLBACKS,
   IMAGE_PROVIDER_PRIORITY,
   buildDirectImageUrl,
+  PollinationsRateLimitError,
+  buildPlaceholderImageUrl,
   buildPollinationsUrl,
   describeFluxBackend,
   enhancePromptForSA,
   generateImageWithFallback,
   getImageProviderOrder,
   normaliseImageProviderId,
+  pollinationsCooldownActive,
   resetFluxAvailability,
+  resetPollinationsCooldown,
 } from '../src/lib/imageGeneration';
 import { fluxModels, normaliseFluxSize } from '../src/lib/imageProviders';
 
@@ -41,8 +45,8 @@ const repoRoot = path.resolve(__dirname, '..');
 const read = (relative: string) => fs.readFileSync(path.join(repoRoot, relative), 'utf8');
 
 describe('image provider registry', () => {
-  it('runs FLUX → Pollinations → Gemini with FLUX as the default', () => {
-    expect(IMAGE_PROVIDER_PRIORITY).toEqual(['flux', 'pollinations', 'gemini']);
+  it('runs FLUX → Gemini → Pollinations with FLUX as the default', () => {
+    expect(IMAGE_PROVIDER_PRIORITY).toEqual(['flux', 'gemini', 'pollinations']);
     expect(DEFAULT_IMAGE_PROVIDER).toBe('flux');
     expect(Object.keys(IMAGE_PROVIDER_FALLBACKS).sort()).toEqual(['flux', 'gemini', 'pollinations']);
   });
@@ -162,6 +166,61 @@ describe('image URLs', () => {
   });
 });
 
+describe('placeholder contract', () => {
+  it('is a self-contained SVG data URL that needs no network', () => {
+    const url = buildPlaceholderImageUrl('Grade 4 water cycle poster', 1024, 768, 'Image services are busy');
+    expect(url.startsWith('data:image/svg+xml;charset=utf-8,')).toBe(true);
+
+    const svg = decodeURIComponent(url.split(',')[1]);
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('Grade 4 water cycle');
+    expect(svg).toContain('Image services are busy');
+    // No external RESOURCE references — it must render offline and inside
+    // printed packs. (`xmlns` is a namespace identifier, not a fetch.)
+    const withoutNamespace = svg.replace(/xmlns="http:\/\/www\.w3\.org\/2000\/svg"/, '');
+    expect(withoutNamespace).not.toMatch(/https?:\/\//);
+    // `url(#bg)` is an internal gradient reference — only external loads are
+    // forbidden here.
+    expect(svg).not.toMatch(/<image|xlink:href/);
+    expect(svg).not.toMatch(/url\((?!['"]?#)/);
+  });
+
+  it('escapes prompt text so a quoted prompt cannot break the SVG', () => {
+    const svg = decodeURIComponent(
+      buildPlaceholderImageUrl('A <frog> & "pond" poster', 512, 512).split(',')[1]
+    );
+    expect(svg).toContain('&lt;frog&gt;');
+    expect(svg).toContain('&amp;');
+    expect(svg).not.toContain('<frog>');
+  });
+
+  it('stays deterministic for the same prompt', () => {
+    expect(buildPlaceholderImageUrl('same prompt', 640, 480)).toBe(
+      buildPlaceholderImageUrl('same prompt', 640, 480)
+    );
+  });
+});
+
+describe('pollinations free-tier contract', () => {
+  const server = read('server.ts');
+
+  it('understands the 402 FREE_LIMIT answer instead of retrying blindly', () => {
+    expect(server).toContain('PollinationsRateLimitError');
+    expect(server).toContain('code: "FREE_LIMIT"');
+    expect(server).toContain('retryAfter');
+  });
+
+  it('supports a Pollinations key so the 45-second throttle can be removed', () => {
+    expect(server).toContain('POLLINATIONS_API_KEY');
+    expect(server).toMatch(/POLLINATIONS_API_KEY[\s\S]{0,200}POLLINATIONS_TOKEN/);
+  });
+
+  it('exposes a same-origin render route that forwards the quota status', () => {
+    expect(server).toContain('app.post("/api/images/pollinations-generate"');
+    expect(server).toContain('app.get("/api/images/status"');
+  });
+});
+
 describe('retired integrations stay removed', () => {
   it('no longer ships the Perchance iframe client', () => {
     expect(fs.existsSync(path.join(repoRoot, 'src/services/perchanceClient.ts'))).toBe(false);
@@ -210,7 +269,7 @@ describe('retired integrations stay removed', () => {
     expect(server).toContain('options.prompt.slice(0, CLOUDFLARE_MAX_PROMPT_CHARS)');
 
     // It is a BACKEND of the flux engine, never a separate provider id.
-    expect(IMAGE_PROVIDER_PRIORITY).toEqual(['flux', 'pollinations', 'gemini']);
+    expect(IMAGE_PROVIDER_PRIORITY).toEqual(['flux', 'gemini', 'pollinations']);
   });
 
   it('surfaces which backend rendered the image', () => {
@@ -239,11 +298,31 @@ describe('retired integrations stay removed', () => {
 
 describe('provider chain execution', () => {
   const originalFetch = globalThis.fetch;
+  const originalImage = (globalThis as any).Image;
+
+  /**
+   * Node has no `Image`, so the Pollinations probe used to "succeed" by
+   * returning the URL unchecked. This stub makes it behave like a browser
+   * whose image request failed, which is what the tests need to exercise.
+   */
+  const installFailingImageProbe = () => {
+    class FailingImage {
+      onload: null | (() => void) = null;
+      onerror: null | (() => void) = null;
+      set src(_value: string) {
+        setTimeout(() => this.onerror?.(), 0);
+      }
+    }
+    (globalThis as any).Image = FailingImage;
+  };
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
-    // The "FLUX is not configured" memo is module state — clear it per test.
+    (globalThis as any).Image = originalImage;
+    // The "FLUX is not configured" / Pollinations cooldown memos are module
+    // state — clear them per test.
     resetFluxAvailability();
+    resetPollinationsCooldown();
     vi.restoreAllMocks();
   });
 
@@ -308,14 +387,98 @@ describe('provider chain execution', () => {
     expect(fluxHits).toBe(1);
   });
 
-  it('survives every engine failing by handing back a Pollinations URL', async () => {
+  it('falls back to a printable placeholder when every engine fails', async () => {
+    installFailingImageProbe();
     globalThis.fetch = vi.fn(async () => {
       throw new Error('network down');
     }) as typeof fetch;
 
     const result = await generateImageWithFallback({ prompt: 'A frog life cycle' });
 
-    expect(result.provider).toBe('pollinations');
-    expect(result.url).toContain('image.pollinations.ai');
+    // A dead Pollinations URL used to be returned here, which rendered as a
+    // broken-image icon. The placeholder is a real, self-contained image.
+    expect(result.provider).toBe('placeholder');
+    expect(result.url.startsWith('data:image/svg+xml')).toBe(true);
+    expect(decodeURIComponent(result.url)).toContain('A frog life cycle');
+  });
+
+  it('stops retrying Pollinations the moment it reports the free limit', async () => {
+    installFailingImageProbe();
+    resetPollinationsCooldown();
+    let pollinationsCalls = 0;
+    globalThis.fetch = vi.fn(async (input: any) => {
+      const url = String(input);
+      if (url.includes('/api/images/pollinations-generate')) {
+        pollinationsCalls += 1;
+        return jsonResponse(
+          { error: 'Free limit reached: 1 image every 45 seconds per IP', code: 'FREE_LIMIT', retryAfter: 45 },
+          402
+        );
+      }
+      if (url.includes('image.pollinations.ai')) {
+        pollinationsCalls += 1;
+        return jsonResponse({ error: { code: 'FREE_LIMIT', message: 'Free limit reached' } }, 402);
+      }
+      // FLUX and Gemini are unavailable in this scenario.
+      return jsonResponse({ error: 'nope', configured: false }, 501);
+    }) as typeof fetch;
+
+    const result = await generateImageWithFallback({ prompt: 'A frog life cycle' });
+
+    expect(result.provider).toBe('placeholder');
+    // Two paths (server proxy + direct) — then it gives up. The old code
+    // retried four times and re-probed seeds for ~90 seconds.
+    expect(pollinationsCalls).toBeLessThanOrEqual(2);
+    expect(pollinationsCooldownActive()).toBe(true);
+    resetPollinationsCooldown();
+  });
+
+  it('skips Pollinations entirely while its cooldown is active', async () => {
+    installFailingImageProbe();
+    resetPollinationsCooldown();
+    // First call exhausts the quota…
+    globalThis.fetch = vi.fn(async () => jsonResponse({ code: 'FREE_LIMIT' }, 402)) as typeof fetch;
+    await generateImageWithFallback({ prompt: 'first' });
+    expect(pollinationsCooldownActive()).toBe(true);
+
+    // …so the second call must not touch it at all.
+    const calls: string[] = [];
+    globalThis.fetch = vi.fn(async (input: any) => {
+      calls.push(String(input));
+      return jsonResponse({ error: 'nope', configured: false }, 501);
+    }) as typeof fetch;
+    await generateImageWithFallback({ prompt: 'second' });
+    expect(calls.some(function call(u) { return u.includes('pollinations'); })).toBe(false);
+    resetPollinationsCooldown();
+  });
+
+  it('keeps the chain going when the server cannot reach Hugging Face', async () => {
+    installFailingImageProbe();
+    const calls: string[] = [];
+    globalThis.fetch = vi.fn(async (input: any) => {
+      calls.push(String(input));
+      if (String(input).includes('/api/images/flux-generate')) {
+        return jsonResponse(
+          { error: 'All FLUX backends failed — huggingface: FLUX gateway unreachable: ENOTFOUND', configured: true },
+          502
+        );
+      }
+      return jsonResponse({ error: 'nope' }, 502);
+    }) as typeof fetch;
+
+    const result = await generateImageWithFallback({ prompt: 'A frog life cycle' });
+
+    // FLUX was tried, Gemini was tried, Pollinations was tried — then the
+    // placeholder. A dead engine must never end the chain early.
+    expect(calls.some(u => u.includes('/api/images/flux-generate'))).toBe(true);
+    expect(calls.some(u => u.includes('/api/gemini/action'))).toBe(true);
+    expect(result.provider).toBe('placeholder');
+  });
+
+  it('reports a typed rate-limit error with the retry window', () => {
+    const error = new PollinationsRateLimitError('Free limit reached', 45);
+    expect(error).toBeInstanceOf(Error);
+    expect(error.name).toBe('PollinationsRateLimitError');
+    expect(error.retryAfterSeconds).toBe(45);
   });
 });

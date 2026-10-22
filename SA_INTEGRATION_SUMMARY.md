@@ -111,6 +111,7 @@
 ## 🔑 Environment Variables Required
 - `HUGGINGFACE_API_KEY` (or `HF_TOKEN`) — for FLUX.1-schnell image generation (optional: keyless Pollinations is the fallback)
 - `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` — optional second FLUX backend (Workers AI)
+- `POLLINATIONS_API_KEY` — optional; removes the Pollinations 45-second free-tier throttle
 - Existing: `GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`, etc.
 
 ## 🎯 Next Steps for User

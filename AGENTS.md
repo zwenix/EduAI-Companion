@@ -415,10 +415,32 @@ explicit user instructions.
   answers **HTTP 501 + `{configured:false}`** and the client stops attempting
   FLUX for the rest of the session.
 * On the client, `src/lib/imageGeneration.ts` keeps its fixed provider
-  priority/fallback graph (**FLUX → Pollinations → Gemini**) and
+  priority/fallback graph (**FLUX → Gemini → Pollinations → placeholder**) and
   `buildPollinationsUrl()` / `buildDirectImageUrl()` are the live entry
   points. `buildDirectImageUrl()` points a native build at Pollinations and
   a web build at `/api/image-proxy`.
+* **Pollinations is the LAST resort, and it throttles.** The anonymous tier
+  allows roughly one image every 45 s per IP and answers **HTTP 402
+  `{error:{code:"FREE_LIMIT", retryAfter}}`** (sometimes a 200 HTML banner)
+  beyond that. Consequences that are now enforced in code:
+  * An `<img>` probe cannot see a status, so `classifyImageResponse()` fetches
+    first and only falls back to the `<img>` probe when CORS hides the status.
+  * A 402/429 is terminal for the provider: the client records a cooldown
+    (`POLLINATIONS_COOLDOWN_MS`) and **skips Pollinations entirely** until the
+    window passes. Never re-add seed-retry loops on a rate limit — the old four
+    attempts cost ~90 s and always failed.
+  * `POST /api/images/pollinations-generate` (server proxy) and the direct URL
+    are BOTH tried once, because they use different IPs; one being throttled
+    does not imply the other is.
+  * `POLLINATIONS_API_KEY` removes the throttle (`sk_` keys have no IP limit).
+    This is the documented fix for "free limit reached" reports.
+* **Every engine may fail — the result must still render.** The final fallback
+  is `buildPlaceholderImageUrl()`: a self-contained SVG data URL (no network,
+  deterministic, escaped) carrying the prompt and a reason. Never return a
+  known-dead provider URL as if it were an image.
+* `GET /api/images/status` is the first stop for any "images don't work"
+  report: it lists configured engines and probes every upstream host, surfacing
+  undici's real cause (`ENOTFOUND`, `ECONNRESET`, …) instead of `fetch failed`.
 * **Retired engines (22 Oct 2026) — do not reintroduce:**
   * **Perchance**: perchance.org answers `X-Frame-Options: SAMEORIGIN` plus a
     Cloudflare challenge, so the hidden-iframe/postMessage/DOM-driver engine can
