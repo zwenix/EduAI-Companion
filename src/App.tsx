@@ -158,7 +158,7 @@ import Helpdesk from './components/Helpdesk';
 import CategoryOverview from './components/CategoryOverview';
 import IllustrationLibrary from './components/IllustrationLibrary';
 import { cleanTextForSpeech } from './services/ttsService';
-import { chatWithTutor } from './services/geminiService';
+import { chatWithTutor, safeJsonParse } from './services/geminiService';
 import { callMultiAi } from './services/multiAiService';
 import { auth, db } from './lib/firebase';
 import { doc, setDoc, updateDoc, serverTimestamp, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -782,13 +782,29 @@ export default function App() {
   const checkModelConnection = async (selectedProvider: string) => {
     setModelStatus('checking');
     setModelStatusError(null);
-    const testMsg = [{ role: 'user', content: 'Say "connected"' }];
+    // Ask for plain text only. "Say \"connected\"" with quotes made some
+    // engines answer with a bare JSON scalar (`"connected"`), which then hit
+    // the JSON-envelope parser and logged "Failed to parse AI response".
+    const testMsg = [{ role: 'user', content: 'Reply with exactly one word: connected' }];
+
+    // Models legitimately answer with JSON envelopes or bare scalars; unwrap
+    // them so a working model is never reported as "empty response".
+    const extractTestText = (raw: any): string => {
+      const text = typeof raw === 'string' ? raw : String(raw?.text || raw?.content || '');
+      if (!text.trim()) return '';
+      try {
+        const parsed = safeJsonParse(text, { quiet: true });
+        if (parsed && typeof parsed === 'object' && typeof parsed.content === 'string') return parsed.content.trim();
+      } catch { /* not JSON — use raw */ }
+      return text.trim();
+    };
 
     const testClientEngine = async () => {
-      const text = selectedProvider === 'gemini'
+      const raw = selectedProvider === 'gemini'
         ? await chatWithTutor(testMsg)
         : await callMultiAi(selectedProvider as any, testMsg);
-      if (text && text.trim()) {
+      const text = extractTestText(raw);
+      if (text) {
         setModelStatus('connected');
       } else {
         setModelStatus('error');
@@ -809,14 +825,15 @@ export default function App() {
         temperature: 0.1,
         max_completion_tokens: 10
       });
-      if (res.data && res.data.choices && res.data.choices[0]?.message?.content) {
+      const backendText = extractTestText(res.data?.choices?.[0]?.message?.content);
+      if (backendText) {
         setModelStatus('connected');
       } else {
         // Backend returned a non-AI response (e.g. SPA HTML) — fall back to client engine.
         await testClientEngine();
       }
     } catch (err: any) {
-      console.error('Error testing model connection (backend):', err?.message || err);
+      console.warn('Backend model probe unavailable (falling back to client engine):', err?.response?.status || err?.message || err);
       // Backend may be unreachable (standalone APK) — test the client-side engine directly.
       try { await testClientEngine(); }
       catch (clientErr: any) {

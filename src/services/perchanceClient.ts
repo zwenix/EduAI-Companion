@@ -14,6 +14,16 @@
  *    embed API is not guaranteed and which is heavily rate-limited. Per the
  *    user's instruction, the generator was switched to l62y86k8kq.
  *
+ *    IMPORTANT: perchance.org pages are cross-origin, so the framed document
+ *    never answers our protocol unless the generator author explicitly added
+ *    an embedded-API listener. Because we cannot rely on that, every message
+ *    we send is also mirrored onto the frame element as data attributes
+ *    (`data-eduai-prompt` / `data-eduai-request-id`) and dispatched as a
+ *    bubbling CustomEvent on the host document. A tiny companion script can
+ *    live inside the generator (see scripts/README or the comment in
+ *    `buildEmbedMirrorAttributes`) to bridge those signals back out via
+ *    postMessage. The mirror costs nothing when unused.
+ *
  * 2. DOM-DRIVER PATH (fallback inside the Perchance provider): if the framed
  *    page does not answer the postMessage protocol within half of the budget,
  *    we drive the actual generator UI inside the iframe — type the prompt
@@ -37,21 +47,58 @@ export const PERCHANCE_GENERATOR_URL_SECONDARY = "https://perchance.org/ai-text-
 const IFRAME_ID = "perchance-ai-generator-iframe";
 let iframeInstance: HTMLIFrameElement | null = null;
 let iframeReadyPromise: Promise<void> | null = null;
+// Which generator the live frame is actually pointed at. Perchance serves
+// both the desktop and `m.` (mobile) variants of a generator under the same
+// origin, so we normalise for comparison.
+let activeFrameSrc: string | null = null;
+
+const normalizeGeneratorUrl = (url: string): string => url.replace("//m.perchance.org", "//perchance.org");
+
+/**
+ * Mirror the generation request onto the iframe element itself. If the hosted
+ * generator was built with the EduAI embed bridge (a small script that reads
+ * these attributes / listens for `eduai-perchance-generate` on its parent
+ * frame element when it detects it is embedded), it can pick the request up
+ * even in browsers where direct postMessage delivery to the sandboxed frame
+ * is unreliable. Harmless when the generator has no bridge — the DOM driver
+ * path below is the fallback in that case.
+ */
+function buildEmbedMirrorAttributes(iframe: HTMLIFrameElement, prompt: string, requestId: string) {
+  try {
+    iframe.setAttribute("data-eduai-prompt", prompt);
+    iframe.setAttribute("data-eduai-request-id", requestId);
+    iframe.dispatchEvent(new CustomEvent("eduai-perchance-generate", { detail: { prompt, requestId }, bubbles: false }));
+  } catch {
+    /* non-fatal */
+  }
+}
 
 function ensurePerchanceIframe(src: string = PERCHANCE_GENERATOR_URL): Promise<void> {
   if (typeof window === "undefined" || typeof document === "undefined") {
     return Promise.reject(new Error("Perchance iframe client can only run in a browser environment"));
   }
 
-  if (iframeInstance && document.getElementById(IFRAME_ID)) {
+  // If a stale frame from an earlier code version points at a DIFFERENT
+  // generator than the one we need right now, tear it down and rebuild —
+  // otherwise every call silently runs against the wrong engine.
+  const existingEl = document.getElementById(IFRAME_ID) as HTMLIFrameElement | null;
+  if (
+    existingEl &&
+    normalizeGeneratorUrl(existingEl.getAttribute("src") || "") !== normalizeGeneratorUrl(src)
+  ) {
+    try { existingEl.remove(); } catch { /* ignore */ }
+    iframeInstance = null;
+    iframeReadyPromise = null;
+  } else if (iframeInstance && existingEl) {
     return iframeReadyPromise || Promise.resolve();
   }
 
-  let existing = document.getElementById(IFRAME_ID) as HTMLIFrameElement | null;
+  let existing = existingEl as HTMLIFrameElement | null;
   if (!existing) {
     existing = document.createElement("iframe");
     existing.id = IFRAME_ID;
     existing.src = src;
+    activeFrameSrc = src;
     existing.title = PERCHANCE_GENERATOR_NAME;
     // `allow-same-origin` is required here: the Perchance generator keeps its
     // own cookies/storage ("your cookies/storage for this site got cleared…"),
@@ -114,8 +161,17 @@ function tryPostMessageProtocol(
     };
 
     const messageHandler = (event: MessageEvent) => {
-      // Strict origin check for security
-      if (!event.origin.includes("perchance.org")) {
+      // Strict origin check for security. The frame may be redirected to
+      // m.perchance.org (mobile variant of the same generator), so accept
+      // any *.perchance.org origin.
+      let originOk = false;
+      try {
+        const host = new URL(event.origin).hostname;
+        originOk = host === "perchance.org" || host.endsWith(".perchance.org");
+      } catch {
+        originOk = event.origin.includes("perchance.org");
+      }
+      if (!originOk) {
         return;
       }
 
@@ -130,6 +186,10 @@ function tryPostMessageProtocol(
           imgUrl = data;
         }
       } else if (typeof data === "object") {
+        // Ignore replies that clearly belong to a different request when the
+        // generator echoes requestId back to us.
+        const echoedId = data.requestId || data.id;
+        if (echoedId && typeof echoedId === "string" && echoedId !== requestId) return;
         imgUrl = data.url || data.image || data.imageUrl || data.result || data.output || data.data || data.imageData;
         if (imgUrl && typeof imgUrl !== "string") imgUrl = null;
       }
@@ -152,6 +212,12 @@ function tryPostMessageProtocol(
       seed: seed,
       requestId: requestId
     };
+
+    // Mirror the request onto the frame element + host CustomEvent so a
+    // generator built with the EduAI embed bridge can pick it up even when
+    // direct postMessage delivery into a sandboxed cross-origin frame is
+    // swallowed by the browser. See buildEmbedMirrorAttributes().
+    buildEmbedMirrorAttributes(iframe, prompt, requestId);
 
     try {
       iframe.contentWindow?.postMessage(payload, "*");
@@ -232,16 +298,17 @@ function extractGeneratedImage(iframe: HTMLIFrameElement, startedAt: number): st
     if (/icon|logo|avatar|spinner|loading/i.test(src)) return false;
     const isResult =
       src.startsWith("data:image/") ||
+      src.startsWith("blob:") ||
       /perchance\.org\/(dl|storage|uploads|api)/i.test(src) ||
-      /userusercontent|cloudflarestorage|fileservers/i.test(src);
+      /userusercontent|cloudflarestorage|fileservers|imageproxy/i.test(src);
     return isResult;
   });
 
   const fresh = usable.find((img) => {
     const natural = img.naturalWidth || 0;
-    return natural >= 128 && Number(img.dataset.eduaiStamp || 0) >= startedAt;
+    return natural >= 64 && Number(img.dataset.eduaiStamp || 0) >= startedAt;
   });
-  const pick = fresh || usable.find((img) => (img.naturalWidth || 0) >= 128 && img.complete);
+  const pick = fresh || usable.find((img) => (img.naturalWidth || 0) >= 64 && img.complete);
   if (!pick) {
     // Canvases (some generators draw straight to canvas)
     const canvas = doc.querySelector("canvas") as HTMLCanvasElement | null;
@@ -277,10 +344,19 @@ function tryDomDriver(
       return;
     }
 
+    // Cloudflare interstitials ("Just a moment…") render no prompt control at
+    // all. Detect them explicitly so logs say WHY Perchance was skipped.
+    const title = (doc.title || "").toLowerCase();
+    const bodyText = (doc.body?.textContent || "").slice(0, 300).toLowerCase();
+    if (/just a moment|checking your browser|verify you are human/.test(title + " " + bodyText)) {
+      reject(new Error("Perchance frame is stuck on the Cloudflare verification page"));
+      return;
+    }
+
     const control = findPromptControl(doc);
     const button = findGenerateButton(doc);
     if (!control) {
-      reject(new Error("Perchance generator UI: no prompt field found"));
+      reject(new Error("Perchance generator UI: no prompt field found (page may still be loading)"));
       return;
     }
 
@@ -306,6 +382,7 @@ function tryDomDriver(
         resolve(url);
       } else if (Date.now() > deadline) {
         clearInterval(poll);
+        clearTimeout(guard);
         reject(new Error("Perchance DOM driver timed out waiting for an image"));
       }
     }, 750);
@@ -338,8 +415,8 @@ export async function generatePerchanceImageClient(
   // Budget split: half the time on the clean postMessage protocol against the
   // approved l62y86k8kq generator, the other half on the DOM driver (and one
   // quick protocol retry against the secondary generator before giving up).
-  const protocolBudget = Math.max(3000, Math.floor(timeoutMs * 0.45));
-  const driverBudget = Math.max(4000, timeoutMs - protocolBudget);
+  const protocolBudget = Math.max(3500, Math.floor(timeoutMs * 0.4));
+  const driverBudget = Math.max(6000, timeoutMs - protocolBudget);
 
   try {
     return await tryPostMessageProtocol(iframe, prompt, width, height, generatedSeed, requestId, protocolBudget);
@@ -375,11 +452,12 @@ export async function generatePerchanceImageClient(
 async function reloadIframe(src: string): Promise<void> {
   const iframe = iframeInstance || (document.getElementById(IFRAME_ID) as HTMLIFrameElement);
   if (!iframe) throw new Error("Perchance iframe missing");
-  if (iframe.src === src) {
+  if (normalizeGeneratorUrl(iframe.getAttribute("src") || "") === normalizeGeneratorUrl(src) && activeFrameSrc === src) {
     await new Promise((r) => setTimeout(r, 300));
     return;
   }
   iframeReadyPromise = null;
+  activeFrameSrc = src;
   iframe.src = src;
   await new Promise<void>((resolve) => {
     const done = () => {

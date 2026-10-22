@@ -415,6 +415,22 @@ export const safeJsonParse = (
     return { content: closeOpenHtmlTags(processedText), imagePrompt: "Educational classroom scene" };
   }
 
+  // Bare quoted scalar — e.g. a model answering a connection test with
+  // `"connected"`. There is no `{...}` envelope, so the curly-brace
+  // extraction below would slice the string apart and every JSON.parse
+  // attempt fails ("Failed to parse AI response as JSON"). Unwrap it into
+  // the standard content envelope instead.
+  if (/^["'].*["']$/s.test(processedText) && !processedText.includes('{')) {
+    try {
+      const value = JSON.parse(processedText);
+      if (typeof value === 'string') {
+        return cleanMarkdownInValue({ content: value });
+      }
+    } catch {
+      /* fall through to the JSON-envelope pipeline */
+    }
+  }
+
   // 3. Extract JSON object from first '{'
   let extractedJson = processedText;
   const firstCurly = processedText.indexOf('{');

@@ -180,6 +180,30 @@ const enqueuePerchance = <T>(task: () => Promise<T>): Promise<T> => {
   return run;
 };
 
+// One circuit-breaker per REASON class, not global: if the approved generator
+// is stuck behind Cloudflare we stop paying its full timeout for a while, but
+// we keep trying it again periodically — otherwise "Perchance always gets
+// skipped" becomes permanent after a single transient failure (e.g. the user
+// refreshed mid-page-load once).
+const PERCHANCE_COOLDOWN_MS = 60_000;
+const perReasonCooldowns = new Map<string, number>();
+
+const cooldownKeyFor = (message: string): string | null => {
+  if (/cross-origin|Cloudflare/i.test(message)) return "frame-unreachable";
+  if (/no prompt field/i.test(message)) return "ui-not-ready";
+  if (/postMessage protocol did not respond/i.test(message)) return "protocol-silent";
+  return null; // timeouts / image-poll misses stay fully retryable
+};
+
+const activeCooldownKey = (): string | null => {
+  const now = Date.now();
+  for (const [key, until] of perReasonCooldowns.entries()) {
+    if (now < until) return key;
+    perReasonCooldowns.delete(key); // expired entry — clean up
+  }
+  return null;
+};
+
 export const generateImagePerchance = async (
   prompt: string,
   width: number = 1024,
@@ -188,6 +212,10 @@ export const generateImagePerchance = async (
 ): Promise<string> => {
   try {
     if (typeof window !== 'undefined') {
+      const cooling = activeCooldownKey();
+      if (cooling) {
+        throw new Error(`Perchance temporarily cooling down (${cooling}); handing off to next provider`);
+      }
       try {
         // Give the real generator enough room: postMessage protocol → DOM
         // driver → secondary embed, then hand off to the next provider.
@@ -197,7 +225,13 @@ export const generateImagePerchance = async (
           )
         );
         if (clientUrl) return clientUrl;
-      } catch (clientErr) {
+      } catch (clientErr: any) {
+        const msg = String(clientErr?.message || clientErr);
+        const coolKey = cooldownKeyFor(msg);
+        if (coolKey) {
+          perReasonCooldowns.set(coolKey, Date.now() + PERCHANCE_COOLDOWN_MS);
+          console.warn(`[Image Gen] Perchance "${coolKey}" — pausing Perchance attempts for ${PERCHANCE_COOLDOWN_MS / 1000}s.`);
+        }
         console.warn('Perchance client-side iframe generation timed out or failed, handing off...', clientErr);
       }
     }
