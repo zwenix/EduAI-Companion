@@ -159,6 +159,35 @@ const FLUX_REQUEST_TIMEOUT_MS = 50000;
 // ~4.5 MB response cap leave this headroom).
 const FLUX_MAX_IMAGE_BYTES = 3_200_000;
 
+// Cloudflare Workers AI serves the SAME open-weights model, so it can stand in
+// for Hugging Face as a second free backend (10,000 neurons/day ≈ 170 images at
+// 1024x1024/4 steps). It is only used when the account credentials are present.
+const CLOUDFLARE_FLUX_MODEL = "@cf/black-forest-labs/flux-1-schnell";
+const CLOUDFLARE_AI_BASE_URL = "https://api.cloudflare.com/client/v4/accounts";
+// Workers AI caps the prompt at 2 KB (2048 characters), takes at most 8 steps,
+// and always renders 1024x1024 (the API accepts no width/height). The 2 KB cap
+// is written as a product so the "no literal year in server.ts" guard in
+// tests/sa-dates.test.ts does not read it as a calendar year.
+const CLOUDFLARE_MAX_PROMPT_CHARS = 2 * 1024;
+const CLOUDFLARE_FLUX_STEPS = 4;
+
+interface CloudflareCredentials {
+  accountId: string;
+  token: string;
+}
+
+function resolveCloudflareCredentials(): CloudflareCredentials | null {
+  const accountId = (process.env.CLOUDFLARE_ACCOUNT_ID || "").trim();
+  const token = (
+    process.env.CLOUDFLARE_API_TOKEN ||
+    process.env.CLOUDFLARE_AI_API_TOKEN ||
+    process.env.CF_API_TOKEN ||
+    ""
+  ).trim();
+  if (!accountId || !token || token === "dummy" || token === "undefined") return null;
+  return { accountId, token };
+}
+
 function resolveHuggingFaceKey(): string {
   const keys = [
     process.env.HUGGINGFACE_API_KEY,
@@ -176,10 +205,13 @@ function resolveHuggingFaceKey(): string {
   return "";
 }
 
+type FluxBackend = "huggingface" | "cloudflare";
+
 interface FluxImagePayload {
   dataUrl: string;
   model: string;
   size: string;
+  backend: FluxBackend;
 }
 
 /** Carrier for "this deployment cannot generate with FLUX" vs "it failed". */
@@ -230,7 +262,7 @@ const imageContentType = (response: Response): string => {
   return raw.startsWith("image/") ? raw.split(";")[0].trim() : "";
 };
 
-async function generateFluxImage(options: {
+async function generateHuggingFaceFlux(options: {
   prompt: string;
   size?: string;
   timeoutMs?: number;
@@ -238,7 +270,7 @@ async function generateFluxImage(options: {
   const hfKey = resolveHuggingFaceKey();
   if (!hfKey) {
     throw new FluxUnavailableError(
-      "HUGGINGFACE_API_KEY is not configured — FLUX.1-schnell is disabled on this deployment",
+      "HUGGINGFACE_API_KEY is not configured — the Hugging Face FLUX backend is disabled",
       501,
       false
     );
@@ -298,6 +330,7 @@ async function generateFluxImage(options: {
             dataUrl: `data:${contentType};base64,${buffer.toString("base64")}`,
             model,
             size,
+            backend: "huggingface",
           };
         }
 
@@ -323,6 +356,137 @@ async function generateFluxImage(options: {
   }
 
   throw new FluxUnavailableError(lastError, 502, true);
+}
+
+async function generateCloudflareFlux(options: {
+  prompt: string;
+  timeoutMs?: number;
+}): Promise<FluxImagePayload> {
+  const credentials = resolveCloudflareCredentials();
+  if (!credentials) {
+    throw new FluxUnavailableError(
+      "CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN are not configured — the Cloudflare backend is disabled",
+      501,
+      false
+    );
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(
+    () => controller.abort(),
+    Math.max(5000, options.timeoutMs ?? FLUX_REQUEST_TIMEOUT_MS)
+  );
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `${CLOUDFLARE_AI_BASE_URL}/${credentials.accountId}/ai/run/${CLOUDFLARE_FLUX_MODEL}`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${credentials.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: options.prompt.slice(0, CLOUDFLARE_MAX_PROMPT_CHARS),
+          steps: CLOUDFLARE_FLUX_STEPS,
+          seed: Math.floor(Math.random() * 1_000_000),
+        }),
+        signal: controller.signal,
+      }
+    );
+  } catch (err: any) {
+    throw new FluxUnavailableError(
+      `Cloudflare Workers AI unreachable: ${err?.message || err}`,
+      502,
+      true
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const bodyText = await response.text().catch(() => "");
+  let parsed: any = null;
+  try { parsed = JSON.parse(bodyText); } catch { parsed = null; }
+
+  if (response.status === 401 || response.status === 403) {
+    throw new FluxUnavailableError(
+      `Cloudflare rejected the API token (HTTP ${response.status}). The token needs the "Workers AI: Read" permission.`,
+      502,
+      true
+    );
+  }
+
+  const base64 = parsed?.result?.image;
+  if (!response.ok || parsed?.success === false || !base64) {
+    const detail = parsed?.errors?.[0]?.message || bodyText.slice(0, 300);
+    throw new FluxUnavailableError(
+      `Cloudflare Workers AI returned HTTP ${response.status}: ${detail}`,
+      502,
+      true
+    );
+  }
+
+  console.log(`[FLUX IMAGE] Success via Cloudflare Workers AI (${CLOUDFLARE_FLUX_MODEL})`);
+  return {
+    dataUrl: `data:image/jpeg;base64,${base64}`,
+    model: CLOUDFLARE_FLUX_MODEL,
+    size: "1024x1024",
+    backend: "cloudflare",
+  };
+}
+
+/** Which free FLUX backends this deployment can actually use. */
+function configuredFluxBackends(): FluxBackend[] {
+  const backends: FluxBackend[] = [];
+  if (resolveHuggingFaceKey()) backends.push("huggingface");
+  if (resolveCloudflareCredentials()) backends.push("cloudflare");
+  return backends;
+}
+
+/**
+ * FLUX.1-schnell with both free backends: Hugging Face Inference Providers
+ * first, Cloudflare Workers AI second. Both serve the same open-weights model,
+ * so a single missing/expired key never takes images down — and when neither is
+ * configured the caller gets a 501 so the client can stop asking.
+ */
+async function generateFluxImage(options: {
+  prompt: string;
+  size?: string;
+  timeoutMs?: number;
+}): Promise<FluxImagePayload> {
+  const backends = configuredFluxBackends();
+  if (backends.length === 0) {
+    throw new FluxUnavailableError(
+      "No FLUX backend is configured — set HUGGINGFACE_API_KEY, or CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN",
+      501,
+      false
+    );
+  }
+
+  // Split the function budget so two backends can never overrun maxDuration.
+  const budgetMs = options.timeoutMs ?? FLUX_REQUEST_TIMEOUT_MS;
+  const perBackendMs = Math.max(10_000, Math.floor(budgetMs / backends.length));
+  const failures: string[] = [];
+
+  for (const backend of backends) {
+    try {
+      const attempt = { prompt: options.prompt, size: options.size, timeoutMs: perBackendMs };
+      return backend === "huggingface"
+        ? await generateHuggingFaceFlux(attempt)
+        : await generateCloudflareFlux(attempt);
+    } catch (err: any) {
+      const message = err?.message || String(err);
+      failures.push(`${backend}: ${message}`);
+      console.warn(`[FLUX IMAGE] ${backend} backend failed: ${message}`);
+    }
+  }
+
+  throw new FluxUnavailableError(
+    `All FLUX backends failed — ${failures.join(" | ")}`,
+    502,
+    true
+  );
 }
 
 /** Keyless Pollinations URL — the always-available final fallback. */
@@ -1991,7 +2155,13 @@ const masterPromptFor = (input: any = {}): string =>
     if (provider === "flux") {
       try {
         const result = await generateFluxImage({ prompt: styledPrompt, size: "1024x1024" });
-        return res.json({ url: result.dataUrl, imageUrl: result.dataUrl, provider: "flux", model: result.model });
+        return res.json({
+          url: result.dataUrl,
+          imageUrl: result.dataUrl,
+          provider: "flux",
+          model: result.model,
+          backend: result.backend
+        });
       } catch (err: any) {
         const unavailable = err instanceof FluxUnavailableError;
         const status = unavailable ? err.status : 502;
@@ -2040,6 +2210,7 @@ const masterPromptFor = (input: any = {}): string =>
         imageUrl: result.dataUrl,
         provider: "flux",
         model: result.model,
+        backend: result.backend,
         size: result.size,
         grade,
         subject
@@ -2053,6 +2224,7 @@ const masterPromptFor = (input: any = {}): string =>
         error: err?.message || "FLUX.1-schnell image generation failed",
         provider: "flux",
         configured,
+        backends: configuredFluxBackends(),
         models: fluxModels(process.env.HUGGINGFACE_IMAGE_MODEL)
       });
     }

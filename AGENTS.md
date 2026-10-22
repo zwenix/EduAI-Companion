@@ -400,13 +400,20 @@ explicit user instructions.
   `imagen-3.0-generate-002`) and otherwise hands back a **direct
   Pollinations URL** (`model=flux`). The `generate-image` content action does
   the same.
-* `/api/images/flux-generate` renders **FLUX.1-schnell**
-  (`black-forest-labs/FLUX.1-schnell`) through Hugging Face Inference
-  Providers (`router.huggingface.co/hf-inference/models`, with the legacy
-  `api-inference.huggingface.co` host and one bounded cold-start retry). It
-  needs `HUGGINGFACE_API_KEY` (`HUGGINGFACE_IMAGE_MODEL` overrides the slug).
-  With no key it answers **HTTP 501 + `{configured:false}`**, and the client
-  stops attempting FLUX for the rest of the session.
+* `/api/images/flux-generate` renders **FLUX.1-schnell** with up to two free
+  backends, in order:
+  1. **Hugging Face Inference Providers** (`black-forest-labs/FLUX.1-schnell`,
+     `router.huggingface.co/hf-inference/models`, legacy
+     `api-inference.huggingface.co` host, one bounded cold-start retry);
+     `HUGGINGFACE_API_KEY` (`HUGGINGFACE_IMAGE_MODEL` overrides the slug).
+  2. **Cloudflare Workers AI** (`@cf/black-forest-labs/flux-1-schnell`); needs
+     `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` ("Workers AI: Read").
+     It takes only `prompt` (≤2048 chars), `steps` (≤8) and `seed` — it always
+     renders 1024×1024, so the requested size is ignored on this path.
+  The function budget is split between the configured backends, so two
+  attempts cannot overrun `maxDuration`. With **neither** configured the route
+  answers **HTTP 501 + `{configured:false}`** and the client stops attempting
+  FLUX for the rest of the session.
 * On the client, `src/lib/imageGeneration.ts` keeps its fixed provider
   priority/fallback graph (**FLUX → Pollinations → Gemini**) and
   `buildPollinationsUrl()` / `buildDirectImageUrl()` are the live entry
@@ -415,7 +422,11 @@ explicit user instructions.
 * **Retired engines (22 Oct 2026) — do not reintroduce:**
   * **Perchance**: perchance.org answers `X-Frame-Options: SAMEORIGIN` plus a
     Cloudflare challenge, so the hidden-iframe/postMessage/DOM-driver engine can
-    never load. No iframe image generator may be added anywhere.
+    never load. No iframe image generator may be added anywhere. Perchance also
+    has **no public REST API**: its AI plugins are deliberately same-origin only
+    (ads cannot be shown in an embed), bare HTTP requests 403 at Cloudflare, and
+    so neither a `fetch()` to `perchance.org` nor a "browser-like" Worker proxy
+    can generate an image. Do not attempt either.
   * **Qwen-Image on NVIDIA NIM**: `qwen/qwen-image` *and*
     `qwen/qwen-image-2512` answer `404 page not found` at the gateway.
   * `perchance`, `qwen`, `qwen-image` and `nvidia-qwen` survive only as

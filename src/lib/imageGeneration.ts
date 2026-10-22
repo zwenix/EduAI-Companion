@@ -172,10 +172,20 @@ export const generateImageGemini = async (
 
 /* ── FLUX.1-schnell (Hugging Face) ─────────────────────────────────────────── */
 
+/** Which free backend rendered the image (both serve FLUX.1-schnell). */
+export type FluxBackend = 'huggingface' | 'cloudflare';
+
 export interface FluxImageResult {
   url: string;
   model: string;
+  backend: FluxBackend;
 }
+
+/** Human-readable engine label for the UI badge and generated-file metadata. */
+export const describeFluxBackend = (backend?: FluxBackend): string =>
+  backend === 'cloudflare'
+    ? 'FLUX.1-schnell · Cloudflare Workers AI'
+    : 'FLUX.1-schnell · Hugging Face';
 
 const fluxPrompt = (prompt: string, grade?: string, subject?: string, saContext = true): string => {
   let enhanced = saContext ? enhancePromptForSA(prompt, grade, subject) : prompt;
@@ -285,7 +295,7 @@ export const generateImageFlux = async (
         }
 
         const dataUrl = await blobToDataUrl(await response.blob());
-        if (dataUrl) return { url: dataUrl, model };
+        if (dataUrl) return { url: dataUrl, model, backend: 'huggingface' };
         lastError = `FLUX ${model} returned an empty image`;
       } catch (err: any) {
         if (err?.providerUnavailable) throw err;
@@ -322,8 +332,11 @@ export const generateImageFlux = async (
   }
 
   const data = await response.json().catch(() => ({} as any));
-  if (data?.url) return { url: data.url, model: data.model || FLUX_CONFIG.model };
-  if (data?.b64_json) return { url: `data:image/png;base64,${data.b64_json}`, model: data.model || FLUX_CONFIG.model };
+  const backend: FluxBackend = data?.backend === 'cloudflare' ? 'cloudflare' : 'huggingface';
+  if (data?.url) return { url: data.url, model: data.model || FLUX_CONFIG.model, backend };
+  if (data?.b64_json) {
+    return { url: `data:image/png;base64,${data.b64_json}`, model: data.model || FLUX_CONFIG.model, backend };
+  }
   throw new Error('No image payload in the FLUX backend response');
 };
 
@@ -485,7 +498,7 @@ export const generateImageWithFallback = async (
           prompt: styledPrompt,
           width,
           height,
-          model: result.model,
+          model: describeFluxBackend(result.backend),
           enhancedPrompt: saContext ? enhancePromptForSA(styledPrompt, grade, subject) : styledPrompt
         };
       } catch (error: any) {

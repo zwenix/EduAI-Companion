@@ -28,6 +28,7 @@ import {
   IMAGE_PROVIDER_PRIORITY,
   buildDirectImageUrl,
   buildPollinationsUrl,
+  describeFluxBackend,
   enhancePromptForSA,
   generateImageWithFallback,
   getImageProviderOrder,
@@ -194,6 +195,40 @@ describe('retired integrations stay removed', () => {
     expect(server).not.toContain('ai-text-to-image-generator');
   });
 
+  it('ships a second free FLUX backend instead of a Perchance proxy', () => {
+    const server = read('server.ts');
+
+    // Cloudflare Workers AI serves the same open-weights model…
+    expect(server).toContain('@cf/black-forest-labs/flux-1-schnell');
+    expect(server).toContain('https://api.cloudflare.com/client/v4/accounts');
+    // …inside the documented request limits (2 KB prompt, ≤8 steps).
+    expect(server).toMatch(/CLOUDFLARE_MAX_PROMPT_CHARS = 2 \* 1024/);
+    const steps = Number(server.match(/CLOUDFLARE_FLUX_STEPS = (\d+)/)![1]);
+    expect(steps).toBeGreaterThan(0);
+    expect(steps).toBeLessThanOrEqual(8);
+    // The prompt is actually truncated to that ceiling before it is sent.
+    expect(server).toContain('options.prompt.slice(0, CLOUDFLARE_MAX_PROMPT_CHARS)');
+
+    // It is a BACKEND of the flux engine, never a separate provider id.
+    expect(IMAGE_PROVIDER_PRIORITY).toEqual(['flux', 'pollinations', 'gemini']);
+  });
+
+  it('surfaces which backend rendered the image', () => {
+    expect(describeFluxBackend('cloudflare')).toBe('FLUX.1-schnell · Cloudflare Workers AI');
+    expect(describeFluxBackend('huggingface')).toBe('FLUX.1-schnell · Hugging Face');
+    expect(describeFluxBackend(undefined)).toBe('FLUX.1-schnell · Hugging Face');
+  });
+
+  it('refuses any Perchance network integration (no API exists)', () => {
+    // Perchance AI plugins are same-origin only and 403 plain HTTP requests, so
+    // neither a client fetch nor a "browser-like" Worker proxy can work.
+    for (const file of ['server.ts', 'src/lib/imageGeneration.ts', 'src/lib/imageProviders.ts']) {
+      const source = read(file);
+      expect(source, file).not.toMatch(/fetch\([^)]*perchance\.org/);
+      expect(source, file).not.toContain('null.perchance.org');
+    }
+  });
+
   it('keeps the retired engines as aliases in the shared registry', () => {
     const registry = read('src/lib/imageProviders.ts');
     expect(registry).toContain('perchance: \'flux\'');
@@ -238,20 +273,22 @@ describe('provider chain execution', () => {
     expect(result.url).toContain('model=flux');
   });
 
-  it('returns the FLUX image when the backend succeeds', async () => {
-    globalThis.fetch = vi.fn(async () =>
-      jsonResponse({
-        url: 'data:image/png;base64,AAAA',
-        provider: 'flux',
-        model: 'black-forest-labs/FLUX.1-schnell'
-      })
-    ) as typeof fetch;
+  it('returns the FLUX image and names the backend that rendered it', async () => {
+    const respond = (backend: 'huggingface' | 'cloudflare') =>
+      vi.fn(async () =>
+        jsonResponse({ url: 'data:image/png;base64,AAAA', provider: 'flux', model: 'FLUX.1-schnell', backend })
+      ) as typeof fetch;
 
-    const result = await generateImageWithFallback({ prompt: 'A frog life cycle' });
+    globalThis.fetch = respond('huggingface');
+    const viaHf = await generateImageWithFallback({ prompt: 'A frog life cycle' });
+    expect(viaHf.provider).toBe('flux');
+    expect(viaHf.url).toBe('data:image/png;base64,AAAA');
+    expect(viaHf.model).toBe('FLUX.1-schnell · Hugging Face');
 
-    expect(result.provider).toBe('flux');
-    expect(result.url).toBe('data:image/png;base64,AAAA');
-    expect(result.model).toBe('black-forest-labs/FLUX.1-schnell');
+    globalThis.fetch = respond('cloudflare');
+    const viaCloudflare = await generateImageWithFallback({ prompt: 'A frog life cycle' });
+    expect(viaCloudflare.provider).toBe('flux');
+    expect(viaCloudflare.model).toBe('FLUX.1-schnell · Cloudflare Workers AI');
   });
 
   it('stops retrying FLUX for the session once it reports "not configured"', async () => {

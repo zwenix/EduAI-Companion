@@ -25,6 +25,7 @@ export default function AiImage({
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [provider, setProvider] = useState<string>('');
+  const [model, setModel] = useState<string>('');
   const [retryCount, setRetryCount] = useState(0);
 
   // Enhance the prompt if educational context is provided
@@ -49,6 +50,7 @@ export default function AiImage({
         if (active) {
           setImageUrl(result.url);
           setProvider(result.provider);
+          setModel(result.model || '');
           setIsLoading(false);
         }
       } catch (err: any) {
@@ -151,7 +153,7 @@ export default function AiImage({
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           AI Model: {
             provider === 'flux'
-              ? 'FLUX.1-schnell · Hugging Face'
+              ? (model || 'FLUX.1-schnell')
               : provider === 'gemini'
                 ? 'Gemini Imagen-3'
                 : 'Pollinations AI · FLUX (Keyless)'

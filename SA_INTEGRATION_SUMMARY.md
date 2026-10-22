@@ -39,7 +39,7 @@
 - **Provider:** `flux` — FLUX.1-schnell via Hugging Face Inference Providers (`https://router.huggingface.co/hf-inference/models`), free tier (Qwen-Image on NVIDIA NIM retired 22 Oct 2026)
 - **FLUX_CONFIG:** SizeMap header 1024x576, inline 1024x1024, full_width 1024x576, sidebar 768x1024 (FLUX.1-schnell grid, max 1024 px)
 - **SA Enhancer:** `enhancePromptForSA()` — rainbow nation, Table Mountain/Kruger/protea, diverse SA learners, 300 DPI, Disney 3D style
-- **Generation:** `generateImageFlux()` — backend proxy `/api/images/flux-generate` (Hugging Face Inference Providers) + direct HF router call in the APK
+- **Generation:** `generateImageFlux()` — backend proxy `/api/images/flux-generate` (Hugging Face Inference Providers → Cloudflare Workers AI) + direct HF router call in the APK
 - **Batch:** `generateAllEducationalImages()` — walks the full provider graph, concurrency 2, 2s pause (from doc, safer than 3)
 - **Priority:** flux (FLUX.1-schnell, primary) → pollinations (keyless) → gemini (secondary). Perchance and Qwen-Image are retired.
 - **Options Extended:** `grade`, `subject`, `saContext`, `placement` header/inline/full_width/sidebar
@@ -110,6 +110,7 @@
 
 ## 🔑 Environment Variables Required
 - `HUGGINGFACE_API_KEY` (or `HF_TOKEN`) — for FLUX.1-schnell image generation (optional: keyless Pollinations is the fallback)
+- `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` — optional second FLUX backend (Workers AI)
 - Existing: `GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`, etc.
 
 ## 🎯 Next Steps for User
