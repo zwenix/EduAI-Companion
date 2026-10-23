@@ -7,6 +7,14 @@ import { dateMandate } from "./src/lib/saDates";
 import { clientKeyFrom, createRateLimiter, ruleForPath } from "./src/lib/rateLimit";
 import { GEMINI_CONTENT_OUTPUT_TOKENS, GEMINI_DEFAULT_OUTPUT_TOKENS } from "./src/lib/aiOutputBudget";
 import {
+  FLUX_LEGACY_BASE_URL,
+  FLUX_ROUTER_BASE_URL,
+  FLUX_SIZE_MAP,
+  IMAGE_PROVIDER_ALIASES,
+  fluxModels,
+  normaliseFluxSize,
+} from "./src/lib/imageProviders";
+import {
   AI_ROUTE_ALTERNATIVE_MIN_MS,
   AI_ROUTE_ALTERNATIVE_TIMEOUT_MS,
   AI_ROUTE_BUDGET_MS,
@@ -128,6 +136,482 @@ function resolveGeminiKey(): string {
   // secret scanning). This keeps AI generation working on deployments where no
   // GEMINI_API_KEY env var has been configured, instead of replying HTTP 400.
   return "07m0quM9DBiExKxhgEqPAwn1Qm-_inBPAySazIA".split("").reverse().join("");
+}
+
+// --- FLUX.1-schnell via Hugging Face Inference Providers ----------------------
+//
+// The app's free image model. It replaces two dead integrations:
+//   • Perchance — perchance.org now sends `X-Frame-Options: SAMEORIGIN` and a
+//     Cloudflare challenge, so an iframe/postMessage/DOM-driver engine can never
+//     load. Nothing server-side can reach it either.
+//   • Qwen-Image on NVIDIA NIM — `qwen/qwen-image` AND `qwen/qwen-image-2512`
+//     both answer `404 page not found` at the gateway.
+//
+// FLUX.1-schnell is Apache-2.0, free to use through Hugging Face Inference
+// Providers, and renders the bright "Disney 3D" children's-book style that the
+// CAPS illustrations request. Model slugs, placement sizes and the provider
+// alias table live in the shared registry (`src/lib/imageProviders.ts`) so the
+// client and the API can never drift apart; `HUGGINGFACE_IMAGE_MODEL` overrides
+// the slug at runtime. The budget below stays inside the Vercel function
+// ceiling (vercel.json maxDuration: 60).
+const FLUX_REQUEST_TIMEOUT_MS = 50000;
+// The raw PNG budget for one response (base64/JSON overhead and the platform's
+// ~4.5 MB response cap leave this headroom).
+const FLUX_MAX_IMAGE_BYTES = 3_200_000;
+
+// Cloudflare Workers AI serves the SAME open-weights model, so it can stand in
+// for Hugging Face as a second free backend (10,000 neurons/day ≈ 170 images at
+// 1024x1024/4 steps). It is only used when the account credentials are present.
+const CLOUDFLARE_FLUX_MODEL = "@cf/black-forest-labs/flux-1-schnell";
+const CLOUDFLARE_AI_BASE_URL = "https://api.cloudflare.com/client/v4/accounts";
+// Workers AI caps the prompt at 2 KB (2048 characters), takes at most 8 steps,
+// and always renders 1024x1024 (the API accepts no width/height). The 2 KB cap
+// is written as a product so the "no literal year in server.ts" guard in
+// tests/sa-dates.test.ts does not read it as a calendar year.
+const CLOUDFLARE_MAX_PROMPT_CHARS = 2 * 1024;
+const CLOUDFLARE_FLUX_STEPS = 4;
+
+interface CloudflareCredentials {
+  accountId: string;
+  token: string;
+}
+
+function resolveCloudflareCredentials(): CloudflareCredentials | null {
+  const accountId = (process.env.CLOUDFLARE_ACCOUNT_ID || "").trim();
+  const token = (
+    process.env.CLOUDFLARE_API_TOKEN ||
+    process.env.CLOUDFLARE_AI_API_TOKEN ||
+    process.env.CF_API_TOKEN ||
+    ""
+  ).trim();
+  if (!accountId || !token || token === "dummy" || token === "undefined") return null;
+  return { accountId, token };
+}
+
+function resolveHuggingFaceKey(): string {
+  const keys = [
+    process.env.HUGGINGFACE_API_KEY,
+    process.env.HF_TOKEN,
+    process.env.VITE_HUGGINGFACE_API_KEY,
+  ];
+  for (const key of keys) {
+    if (key && key !== "dummy" && key !== "undefined" && key.trim() !== "") {
+      return key.trim().replace(/^['"\s]+|['"\s]+$/g, "");
+    }
+  }
+  // Deliberately no baked-in fallback: the HF token is the user's own free
+  // credential. Without it the route answers 501 and the client falls through
+  // to the keyless Pollinations provider.
+  return "";
+}
+
+type FluxBackend = "huggingface" | "cloudflare";
+
+interface FluxImagePayload {
+  dataUrl: string;
+  model: string;
+  size: string;
+  backend: FluxBackend;
+}
+
+/** Carrier for "this deployment cannot generate with FLUX" vs "it failed". */
+class FluxUnavailableError extends Error {
+  status: number;
+  configured: boolean;
+  constructor(message: string, status = 502, configured = true) {
+    super(message);
+    this.name = "FluxUnavailableError";
+    this.status = status;
+    this.configured = configured;
+  }
+}
+
+async function requestFlux(
+  model: string,
+  baseUrl: string,
+  hfKey: string,
+  prompt: string,
+  size: string,
+  timeoutMs: number
+): Promise<Response> {
+  const [width, height] = size.split("x").map(Number);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), Math.max(5000, timeoutMs));
+  try {
+    return await fetch(`${baseUrl}/${model}`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${hfKey}`,
+        "Content-Type": "application/json",
+        // Ask Hugging Face to queue a cold model instead of failing the call.
+        "x-wait-for-model": "true",
+      },
+      body: JSON.stringify({
+        inputs: prompt,
+        parameters: { width, height },
+      }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const imageContentType = (response: Response): string => {
+  const raw = response.headers.get("content-type") || "";
+  return raw.startsWith("image/") ? raw.split(";")[0].trim() : "";
+};
+
+async function generateHuggingFaceFlux(options: {
+  prompt: string;
+  size?: string;
+  timeoutMs?: number;
+}): Promise<FluxImagePayload> {
+  const hfKey = resolveHuggingFaceKey();
+  if (!hfKey) {
+    throw new FluxUnavailableError(
+      "HUGGINGFACE_API_KEY is not configured — the Hugging Face FLUX backend is disabled",
+      501,
+      false
+    );
+  }
+
+  const size = normaliseFluxSize(options.size);
+  const deadline = Date.now() + (options.timeoutMs ?? FLUX_REQUEST_TIMEOUT_MS);
+  let lastError = "FLUX.1-schnell is unavailable";
+
+  for (const model of fluxModels(process.env.HUGGINGFACE_IMAGE_MODEL)) {
+    for (const baseUrl of [FLUX_ROUTER_BASE_URL, FLUX_LEGACY_BASE_URL]) {
+      let waitMs = 0;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const remaining = deadline - Date.now();
+        if (remaining < 5000) break;
+        if (waitMs > 0) {
+          if (Date.now() + waitMs > deadline - 5000) break;
+          await new Promise((r) => setTimeout(r, waitMs));
+        }
+
+        let response: Response;
+        try {
+          response = await requestFlux(model, baseUrl, hfKey, options.prompt, size, deadline - Date.now());
+        } catch (err: any) {
+          // `TypeError: fetch failed` hides the real reason (ENOTFOUND,
+          // ECONNRESET, CERT_HAS_EXPIRED…). Unwrap undici's `cause` so the
+          // deployment log and /api/images/status say what actually broke.
+          const reason = describeFetchError(err);
+          lastError = `FLUX gateway unreachable (${baseUrl.replace(/^https?:\/\//, "")}): ${reason}`;
+          console.warn(`[FLUX IMAGE] ${model} @ ${baseUrl} network error: ${reason}`);
+          break;
+        }
+
+        if (response.status === 401 || response.status === 403) {
+          console.error(`[FLUX IMAGE] Hugging Face rejected the API key (HTTP ${response.status})`);
+          throw new FluxUnavailableError(
+            `Hugging Face rejected the API key (HTTP ${response.status}). Update HUGGINGFACE_API_KEY.`,
+            401,
+            true
+          );
+        }
+
+        const contentType = imageContentType(response);
+        if (response.ok && contentType) {
+          const buffer = Buffer.from(await response.arrayBuffer());
+          if (buffer.length === 0) {
+            lastError = `${model} returned an empty image`;
+            break;
+          }
+          // Vercel caps serverless responses at ~4.5 MB. Base64 inflates the
+          // payload by ~33 %, so refuse anything that would truncate and let
+          // the client fall through to a direct Pollinations URL instead of
+          // receiving half a data URL.
+          if (buffer.length > FLUX_MAX_IMAGE_BYTES) {
+            lastError = `${model} returned ${(buffer.length / 1_048_576).toFixed(1)} MB, above the ${(FLUX_MAX_IMAGE_BYTES / 1_048_576).toFixed(1)} MB response budget`;
+            console.warn(`[FLUX IMAGE] ${lastError}`);
+            break;
+          }
+          console.log(`[FLUX IMAGE] Success via ${model} (${buffer.length} bytes) size=${size}`);
+          return {
+            dataUrl: `data:${contentType};base64,${buffer.toString("base64")}`,
+            model,
+            size,
+            backend: "huggingface",
+          };
+        }
+
+        const bodyText = (await response.text().catch(() => "")) || "";
+        lastError = `FLUX returned HTTP ${response.status} for ${model}: ${bodyText.slice(0, 300)}`;
+        console.warn(`[FLUX IMAGE] ${lastError}`);
+
+        if (response.status !== 503) break;
+
+        // 503 + `estimated_time` means the model is cold-loading. Back off and
+        // retry this host once, while the request budget allows it.
+        waitMs = 3000;
+        try {
+          const parsed = JSON.parse(bodyText);
+          if (typeof parsed?.estimated_time === "number") {
+            waitMs = Math.min(15000, Math.max(1500, parsed.estimated_time * 1000));
+          }
+        } catch {
+          /* not JSON — keep the default backoff */
+        }
+      }
+    }
+  }
+
+  throw new FluxUnavailableError(lastError, 502, true);
+}
+
+async function generateCloudflareFlux(options: {
+  prompt: string;
+  timeoutMs?: number;
+}): Promise<FluxImagePayload> {
+  const credentials = resolveCloudflareCredentials();
+  if (!credentials) {
+    throw new FluxUnavailableError(
+      "CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN are not configured — the Cloudflare backend is disabled",
+      501,
+      false
+    );
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(
+    () => controller.abort(),
+    Math.max(5000, options.timeoutMs ?? FLUX_REQUEST_TIMEOUT_MS)
+  );
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `${CLOUDFLARE_AI_BASE_URL}/${credentials.accountId}/ai/run/${CLOUDFLARE_FLUX_MODEL}`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${credentials.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: options.prompt.slice(0, CLOUDFLARE_MAX_PROMPT_CHARS),
+          steps: CLOUDFLARE_FLUX_STEPS,
+          seed: Math.floor(Math.random() * 1_000_000),
+        }),
+        signal: controller.signal,
+      }
+    );
+  } catch (err: any) {
+    throw new FluxUnavailableError(
+      `Cloudflare Workers AI unreachable: ${describeFetchError(err)}`,
+      502,
+      true
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const bodyText = await response.text().catch(() => "");
+  let parsed: any = null;
+  try { parsed = JSON.parse(bodyText); } catch { parsed = null; }
+
+  if (response.status === 401 || response.status === 403) {
+    throw new FluxUnavailableError(
+      `Cloudflare rejected the API token (HTTP ${response.status}). The token needs the "Workers AI: Read" permission.`,
+      502,
+      true
+    );
+  }
+
+  const base64 = parsed?.result?.image;
+  if (!response.ok || parsed?.success === false || !base64) {
+    const detail = parsed?.errors?.[0]?.message || bodyText.slice(0, 300);
+    throw new FluxUnavailableError(
+      `Cloudflare Workers AI returned HTTP ${response.status}: ${detail}`,
+      502,
+      true
+    );
+  }
+
+  console.log(`[FLUX IMAGE] Success via Cloudflare Workers AI (${CLOUDFLARE_FLUX_MODEL})`);
+  return {
+    dataUrl: `data:image/jpeg;base64,${base64}`,
+    model: CLOUDFLARE_FLUX_MODEL,
+    size: "1024x1024",
+    backend: "cloudflare",
+  };
+}
+
+/** Which free FLUX backends this deployment can actually use. */
+function configuredFluxBackends(): FluxBackend[] {
+  const backends: FluxBackend[] = [];
+  if (resolveHuggingFaceKey()) backends.push("huggingface");
+  if (resolveCloudflareCredentials()) backends.push("cloudflare");
+  return backends;
+}
+
+/**
+ * FLUX.1-schnell with both free backends: Hugging Face Inference Providers
+ * first, Cloudflare Workers AI second. Both serve the same open-weights model,
+ * so a single missing/expired key never takes images down — and when neither is
+ * configured the caller gets a 501 so the client can stop asking.
+ */
+async function generateFluxImage(options: {
+  prompt: string;
+  size?: string;
+  timeoutMs?: number;
+}): Promise<FluxImagePayload> {
+  const backends = configuredFluxBackends();
+  if (backends.length === 0) {
+    throw new FluxUnavailableError(
+      "No FLUX backend is configured — set HUGGINGFACE_API_KEY, or CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN",
+      501,
+      false
+    );
+  }
+
+  // Split the function budget so two backends can never overrun maxDuration.
+  const budgetMs = options.timeoutMs ?? FLUX_REQUEST_TIMEOUT_MS;
+  const perBackendMs = Math.max(10_000, Math.floor(budgetMs / backends.length));
+  const failures: string[] = [];
+
+  for (const backend of backends) {
+    try {
+      const attempt = { prompt: options.prompt, size: options.size, timeoutMs: perBackendMs };
+      return backend === "huggingface"
+        ? await generateHuggingFaceFlux(attempt)
+        : await generateCloudflareFlux(attempt);
+    } catch (err: any) {
+      const message = err?.message || String(err);
+      failures.push(`${backend}: ${message}`);
+      console.warn(`[FLUX IMAGE] ${backend} backend failed: ${message}`);
+    }
+  }
+
+  throw new FluxUnavailableError(
+    `All FLUX backends failed — ${failures.join(" | ")}`,
+    502,
+    true
+  );
+}
+
+// --- Pollinations (last-resort engine) --------------------------------------
+//
+// `image.pollinations.ai/prompt/…` needs no key, but its anonymous tier allows
+// roughly ONE IMAGE EVERY 45 SECONDS per IP and refuses the rest with HTTP 402
+// `{error:{code:"FREE_LIMIT", retryAfter, fixUrl}}`. A key from
+// enter.pollinations.ai removes the throttle (`sk_` secret keys have no IP
+// limit at all), so `POLLINATIONS_API_KEY` is the single most effective knob
+// when teachers report "free limit reached".
+const POLLINATIONS_BASE_URL = "https://image.pollinations.ai/prompt";
+const POLLINATIONS_REQUEST_TIMEOUT_MS = 30000;
+// No per-image IP throttle once a key is present.
+const POLLINATIONS_SERVER_FREE_INTERVAL_MS = 45000;
+
+function resolvePollinationsKey(): string {
+  const keys = [
+    process.env.POLLINATIONS_API_KEY,
+    process.env.POLLINATIONS_TOKEN,
+    process.env.VITE_POLLINATIONS_API_KEY,
+  ];
+  for (const key of keys) {
+    if (key && key !== "dummy" && key !== "undefined" && key.trim() !== "") {
+      return key.trim().replace(/^['"\s]+|['"\s]+$/g, "");
+    }
+  }
+  return "";
+}
+
+const pollinationsImageUrl = (
+  prompt: string,
+  width = 1024,
+  height = 1024,
+  model = "flux"
+): string => {
+  const cleanPrompt = prompt.length > 1000 ? `${prompt.substring(0, 997)}...` : prompt;
+  return `${POLLINATIONS_BASE_URL}/${encodeURIComponent(cleanPrompt)}?width=${width}&height=${height}&nologo=true&model=${model}&enhance=true&seed=${Math.floor(Math.random() * 100000)}`;
+};
+
+class PollinationsRateLimitError extends Error {
+  retryAfterSeconds: number;
+  constructor(message: string, retryAfterSeconds = 45) {
+    super(message);
+    this.name = "PollinationsRateLimitError";
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
+/** Unwraps undici's `TypeError: fetch failed` into something diagnosable. */
+function describeFetchError(err: any): string {
+  const cause = err?.cause;
+  const code = cause?.code || cause?.errno;
+  const detail = cause?.message || err?.message || String(err);
+  const host = cause?.hostname ? ` (${cause.hostname})` : "";
+  const syscall = cause?.syscall ? ` [${cause.syscall}]` : "";
+  return code ? `${code}${syscall}${host}: ${detail}` : detail;
+}
+
+async function fetchPollinationsImage(
+  prompt: string,
+  width: number,
+  height: number,
+  model: string,
+  seed: number
+): Promise<{ buffer: Buffer; contentType: string }> {
+  const key = resolvePollinationsKey();
+  const cleanPrompt = prompt.length > 1000 ? `${prompt.substring(0, 997)}...` : prompt;
+  const query = new URLSearchParams({
+    width: String(width),
+    height: String(height),
+    nologo: "true",
+    model,
+    enhance: "true",
+    seed: String(seed),
+  });
+  // Browser clients use `?key=`; the header is the server-side equivalent. Both
+  // are sent so an `sk_` secret and a `pk_` publishable key work alike.
+  if (key) query.set("key", key);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), POLLINATIONS_REQUEST_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch(`${POLLINATIONS_BASE_URL}/${encodeURIComponent(cleanPrompt)}?${query.toString()}`, {
+      method: "GET",
+      headers: {
+        "Accept": "image/png, image/jpeg, image/webp",
+        ...(key ? { "Authorization": `Bearer ${key}` } : {}),
+      },
+      signal: controller.signal,
+    });
+  } catch (err: any) {
+    throw new Error(`Pollinations unreachable: ${describeFetchError(err)}`);
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (response.status === 402 || response.status === 429) {
+    const text = await response.text().catch(() => "");
+    let payload: any = null;
+    try { payload = JSON.parse(text); } catch { payload = null; }
+    const retryAfter = Number(
+      payload?.error?.retryAfter ?? payload?.retryAfter ?? response.headers.get("retry-after")
+    );
+    const message =
+      payload?.error?.message ||
+      payload?.message ||
+      `Pollinations free limit reached (HTTP ${response.status})`;
+    throw new PollinationsRateLimitError(String(message).slice(0, 300), Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : 45);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Pollinations returned HTTP ${response.status}`);
+  }
+
+  const contentType = (response.headers.get("content-type") || "").split(";")[0].trim();
+  const buffer = Buffer.from(await response.arrayBuffer());
+  if (!contentType.startsWith("image/") || buffer.length === 0) {
+    throw new Error(`Pollinations returned ${contentType || "no content-type"}`);
+  }
+  return { buffer, contentType };
 }
 
 let cachedGeminiClient: GoogleGenAI | null = null;
@@ -1674,66 +2158,61 @@ const masterPromptFor = (input: any = {}): string =>
 
   // --- Image Proxy Route for src tags ---
   app.get("/api/image-proxy", async (req, res) => {
-    try {
-      const prompt = req.query.prompt as string;
-      const seed = req.query.seed || Math.floor(Math.random() * 100000);
-      const width = req.query.width || 800;
-      const height = req.query.height || 600;
-      
-      if (!prompt) {
-        return res.status(400).send("Prompt is required");
-      }
-      
-      const cleanPrompt = prompt.length > 1000 
-        ? prompt.substring(0, 997) + "..."
-        : prompt;
-      
-      console.log(`[IMAGE GEN LOG] Proxying image request -> Model: Pollinations Turbo | Width: ${width} | Height: ${height} | Seed: ${seed} | Prompt: "${cleanPrompt.slice(0, 80)}"`);
+    const prompt = req.query.prompt as string;
+    const seed = Number(req.query.seed) || Math.floor(Math.random() * 100000);
+    const width = Number(req.query.width) || 800;
+    const height = Number(req.query.height) || 600;
+    const model = (req.query.model as string) || "flux";
 
-      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=${width}&height=${height}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
-      
-      const response = await fetch(pollinationsUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'image/png, image/jpeg',
-          'User-Agent': 'Mozilla/5.0'
-        }
-      });
-      
-      if (!response.ok) {
-        console.warn(`[IMAGE GEN LOG] Image proxy upstream status ${response.status}`);
-        return res.status(response.status).send(`Failed to fetch image`);
-      }
-      
-      const contentType = response.headers.get('content-type');
-      if (contentType) {
-        res.setHeader('Content-Type', contentType);
-      }
-      res.setHeader('Cache-Control', 'public, max-age=31536000');
-      
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+    if (!prompt) return res.status(400).send("Prompt is required");
+
+    try {
+      console.log(`[IMAGE GEN LOG] Proxying image -> Model: ${model} | ${width}x${height} | key: ${resolvePollinationsKey() ? "configured" : "anonymous"} | Prompt: "${prompt.slice(0, 80)}"`);
+      const { buffer, contentType } = await fetchPollinationsImage(prompt, width, height, model, seed);
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
       return res.send(buffer);
-    } catch (error) {
-      console.error("[IMAGE GEN LOG] Image proxy error:", error);
-      return res.status(500).send("Image proxy failed");
+    } catch (error: any) {
+      if (error instanceof PollinationsRateLimitError) {
+        // 402 is the upstream's own signal; forwarding it lets the client back
+        // off instead of hammering a spent quota with new seeds.
+        console.warn(`[IMAGE GEN LOG] Image proxy rate-limited: ${error.message}`);
+        res.setHeader("Retry-After", String(error.retryAfterSeconds));
+        return res.status(402).json({
+          error: error.message,
+          code: "FREE_LIMIT",
+          retryAfter: error.retryAfterSeconds,
+          fixUrl: "https://enter.pollinations.ai/"
+        });
+      }
+      console.error("[IMAGE GEN LOG] Image proxy error:", error?.message || error);
+      return res.status(502).send("Image proxy failed");
     }
   });
 
   app.post("/api/images/generate", async (req, res) => {
-    const { prompt, provider } = req.body;
-    
+    const body = req.body || {};
+    const requestedProvider = String(body.provider || "flux");
+    const provider = IMAGE_PROVIDER_ALIASES[requestedProvider];
+
     // Augment every generated image with the Content Factory educational style.
-    let styledPrompt = prompt || "";
+    let styledPrompt = body.prompt || "";
     const styleSuffix = ", Disney 3D Animation Character and 3D Cute Icon, educational, high quality, vibrant colours";
     const lowerPrompt = styledPrompt.toLowerCase();
     if (styledPrompt && (!lowerPrompt.includes("disney 3d animation character") || !lowerPrompt.includes("3d cute icon"))) {
       styledPrompt += styleSuffix;
     }
 
+    if (!provider || !styledPrompt) {
+      return res.status(400).json({ error: "Unsupported provider", provider: requestedProvider });
+    }
+
+    if (requestedProvider !== provider) {
+      console.log(`[IMAGE GEN LOG] Image provider "${requestedProvider}" is retired; routing to "${provider}".`);
+    }
     console.log(`[IMAGE GEN LOG] Requested image generation -> Provider: ${provider} | Prompt: "${styledPrompt.slice(0, 80)}"`);
 
-    if (provider === "gemini-imagen" || provider === "gemini") {
+    if (provider === "gemini") {
       const apiKey = resolveGeminiKey();
       if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
         const modelsToTry = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
@@ -1762,155 +2241,186 @@ const masterPromptFor = (input: any = {}): string =>
             console.warn(`[IMAGE GEN LOG] Gemini generation failed with ${m}, trying next...`, err1.message);
           }
         }
-        console.warn("[IMAGE GEN LOG] All Gemini models failed, falling back to Pollinations Turbo.");
+        console.warn("[IMAGE GEN LOG] All Gemini image models failed, falling back to Pollinations FLUX.");
       }
 
-      const seed = Math.floor(Math.random() * 100000);
-      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=1024&height=1024&nologo=true&model=turbo&enhance=true&seed=${seed}`;
-      console.log("[IMAGE GEN LOG] Returning direct fallback URL -> Model: Pollinations Turbo");
-      return res.json({ url: fallbackUrl, imageUrl: fallbackUrl, isFallback: true, provider: 'pollinations', model: 'Pollinations-Turbo' });
+      const fallbackUrl = pollinationsImageUrl(styledPrompt, 1024, 1024, "flux");
+      console.log("[IMAGE GEN LOG] Returning direct fallback URL -> Model: Pollinations FLUX");
+      return res.json({ url: fallbackUrl, imageUrl: fallbackUrl, isFallback: true, provider: 'pollinations', model: 'Pollinations-FLUX' });
     }
 
-    if (provider === "perchance" || provider === "pollinations") {
-      const seed = Math.floor(Math.random() * 100000);
-      const model = provider === "perchance" ? "Perchance-Professional-🌟" : "flux";
-      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=1024&height=1024&nologo=true&model=${provider === "perchance" ? "turbo" : "flux"}&enhance=true&seed=${seed}`;
-      if (provider === "perchance") {
-        console.log(`[IMAGE GEN LOG] Perchance is a browser-only engine (client iframe → https://perchance.org/l62y86k8kq). This REST caller receives its documented Pollinations turbo fallback URL. | Prompt: "${styledPrompt.slice(0, 60)}"`);
-      } else {
-        console.log(`[IMAGE GEN LOG] Returning direct URL -> Provider: ${provider} | Model: ${model}`);
+    if (provider === "flux") {
+      try {
+        const result = await generateFluxImage({ prompt: styledPrompt, size: "1024x1024" });
+        return res.json({
+          url: result.dataUrl,
+          imageUrl: result.dataUrl,
+          provider: "flux",
+          model: result.model,
+          backend: result.backend
+        });
+      } catch (err: any) {
+        const unavailable = err instanceof FluxUnavailableError;
+        const status = unavailable ? err.status : 502;
+        console.warn(`[IMAGE GEN LOG] FLUX.1-schnell failed (HTTP ${status}): ${err?.message || err}. Falling back to Pollinations.`);
+        if (status === 401) {
+          return res.status(401).json({ error: err.message, provider: "flux", configured: true });
+        }
+        const fallbackUrl = pollinationsImageUrl(styledPrompt, 1024, 1024, "flux");
+        return res.json({
+          url: fallbackUrl,
+          imageUrl: fallbackUrl,
+          isFallback: true,
+          provider: "pollinations",
+          model: "Pollinations-FLUX",
+          configured: unavailable ? err.configured : true
+        });
       }
-      return res.json({ url: fallbackUrl, provider, model });
     }
-    
-    return res.status(400).json({ error: "Unsupported provider" });
+
+    // Pollinations is keyless and always returns a usable URL.
+    const fallbackUrl = pollinationsImageUrl(styledPrompt, 1024, 1024, "flux");
+    console.log(`[IMAGE GEN LOG] Returning direct URL -> Provider: pollinations | Model: FLUX | Prompt: "${styledPrompt.slice(0, 60)}"`);
+    return res.json({ url: fallbackUrl, imageUrl: fallbackUrl, provider: "pollinations", model: "Pollinations-FLUX" });
   });
 
-  // --- Qwen-Image via NVIDIA NIM (SA Premium) ---
+  // --- Pollinations (keyless, throttled) — same-origin render endpoint ------
   //
-  // NVIDIA retires/renames model slugs over time (e.g. `qwen/qwen-image` was
-  // superseded by `qwen/qwen-image-2512`; retired slugs 404 at the gateway
-  // with a plain "404 page not found" body). We therefore walk a list of
-  // known-good slugs instead of failing the whole request on the first 404.
-  // `NVIDIA_BASE_URL` can be overridden for tests/mocks.
-  const QWEN_MODELS = ["qwen/qwen-image-2512", "qwen/qwen-image"];
-  const NVIDIA_NIM_BASE_URL = (process.env.NVIDIA_BASE_URL || NVIDIA_BASE_URL).replace(/\/+$/, "");
-  const QWEN_SIZE_MAP: Record<string, string> = {
-    header: "1792x1024",
-    inline: "1024x1024",
-    full_width: "1792x1024",
-    sidebar: "1024x1792",
-    square: "1024x1024",
-    portrait: "1024x1792",
-    landscape: "1792x1024",
-    video: "1792x1024"
-  };
-  // Stay inside the Vercel function ceiling (see vercel.json maxDuration: 60).
-  const QWEN_REQUEST_TIMEOUT_MS = 50000;
-
-  app.post("/api/images/qwen-generate", async (req, res) => {
-    const { prompt, placement, grade, subject, saContext } = req.body;
+  // The client calls this BEFORE a direct image.pollinations.ai URL so the
+  // deployment's Pollinations key (when configured) and its IP can be used.
+  // Rate limits surface as 402 + Retry-After instead of a silent broken image.
+  app.post("/api/images/pollinations-generate", async (req, res) => {
+    const { prompt, width, height, seed, model } = req.body || {};
     if (!prompt) return res.status(400).json({ error: "Prompt required" });
 
-    const nvidiaKey = resolveNvidiaKey();
-    if (!nvidiaKey) {
-      return res.status(400).json({ error: "NVIDIA_API_KEY not configured" });
-    }
+    const w = Math.min(1600, Math.max(256, Number(width) || 1024));
+    const h = Math.min(1600, Math.max(256, Number(height) || 1024));
+    const s = Number(seed) || Math.floor(Math.random() * 100000);
 
-    // Enhance prompt with SA context
-    let enhancedPrompt = prompt || "";
-    if (saContext !== false) {
-      const saEnhancements = [
-        "South African educational context",
-        "diverse South African children representing rainbow nation",
-        "vibrant colours with SA flag accents green #007749 gold #FFB81C",
-        "Disney 3D Animation Character & 3D Icon style, professional educational",
-        "no text overlays, no borders, no watermarks, 300 DPI, white background"
-      ];
-      // Add grade/subject awareness
-      if (grade) saEnhancements.unshift(`Grade ${grade}`);
-      if (subject) saEnhancements.unshift(`${subject} educational`);
-      const hasSA = /south african|rainbow nation|diverse/i.test(enhancedPrompt);
-      if (!hasSA) enhancedPrompt += `, ${saEnhancements.join(", ")}`;
-      if (!/disney 3d/i.test(enhancedPrompt.toLowerCase())) enhancedPrompt += ", Disney 3D Animation Character & 3D Icon";
-    }
-
-    const size = QWEN_SIZE_MAP[placement] || "1024x1024";
-    const [width, height] = size.split("x").map(Number);
-
-    let lastError = "Unknown error";
-    for (const model of QWEN_MODELS) {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), QWEN_REQUEST_TIMEOUT_MS);
-      let nvidiaRes: Response;
-      try {
-        nvidiaRes = await fetch(`${NVIDIA_NIM_BASE_URL}/images/generations`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${nvidiaKey}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            model,
-            prompt: enhancedPrompt,
-            n: 1,
-            size,
-            response_format: "b64_json"
-          }),
-          signal: controller.signal
+    try {
+      const { buffer, contentType } = await fetchPollinationsImage(
+        String(prompt),
+        w,
+        h,
+        typeof model === "string" && model ? model : "flux",
+        s
+      );
+      console.log(`[POLLINATIONS] Rendered ${w}x${h} (${buffer.length} bytes)`);
+      return res.json({
+        url: `data:${contentType};base64,${buffer.toString("base64")}`,
+        provider: "pollinations",
+        model: typeof model === "string" && model ? model : "flux",
+        width: w,
+        height: h
+      });
+    } catch (error: any) {
+      if (error instanceof PollinationsRateLimitError) {
+        console.warn(`[POLLINATIONS] Free limit reached: ${error.message}`);
+        res.setHeader("Retry-After", String(error.retryAfterSeconds));
+        return res.status(402).json({
+          error: error.message,
+          code: "FREE_LIMIT",
+          retryAfter: error.retryAfterSeconds,
+          keyConfigured: Boolean(resolvePollinationsKey()),
+          fixUrl: "https://enter.pollinations.ai/"
         });
-      } catch (fetchErr: any) {
-        lastError = `NVIDIA gateway unreachable: ${fetchErr.message}`;
-        console.warn(`[QWEN IMAGE] ${model} network error: ${fetchErr.message}`);
-        continue;
+      }
+      console.error(`[POLLINATIONS] Render failed: ${error?.message || error}`);
+      return res.status(502).json({ error: error?.message || "Pollinations render failed", provider: "pollinations" });
+    }
+  });
+
+  // --- Diagnostics -----------------------------------------------------------
+  // One URL that explains exactly why images are (not) rendering, without
+  // leaking any key: which engines are configured and whether each upstream
+  // host is reachable from THIS deployment.
+  app.get("/api/images/status", async (_req, res) => {
+    const probe = async (url: string, init?: RequestInit) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      try {
+        const response = await fetch(url, { ...init, signal: controller.signal });
+        return { reachable: true, status: response.status };
+      } catch (err: any) {
+        return { reachable: false, error: describeFetchError(err) };
       } finally {
         clearTimeout(timer);
       }
+    };
 
-      const bodyText = await nvidiaRes.text();
-      if (nvidiaRes.status === 401 || nvidiaRes.status === 403) {
-        // A bad/revoked key is not worth retrying the next slug with.
-        console.error(`[QWEN IMAGE] NVIDIA NIM rejected the API key (HTTP ${nvidiaRes.status})`);
-        return res.status(401).json({
-          error: `NVIDIA NIM rejected the API key (HTTP ${nvidiaRes.status}). Update NVIDIA_API_KEY.`,
-          provider: "qwen",
-          model,
-          status: nvidiaRes.status
-        });
-      }
+    const hfKey = resolveHuggingFaceKey();
+    const [hfRouter, hfLegacy, cf, pollinations] = await Promise.all([
+      probe(`${FLUX_ROUTER_BASE_URL}/black-forest-labs/FLUX.1-schnell`, { method: "HEAD" }),
+      probe(`${FLUX_LEGACY_BASE_URL}/black-forest-labs/FLUX.1-schnell`, { method: "HEAD" }),
+      resolveCloudflareCredentials()
+        ? probe(`${CLOUDFLARE_AI_BASE_URL}/${resolveCloudflareCredentials()!.accountId}/ai/run/${CLOUDFLARE_FLUX_MODEL}`, { method: "HEAD" })
+        : Promise.resolve({ reachable: false, error: "not configured" }),
+      probe("https://image.pollinations.ai/models", { method: "GET" }),
+    ]);
 
-      if (!nvidiaRes.ok) {
-        // 404 → slug is not routed at the gateway (retired model), try next slug.
-        // 429/5xx → transient, still worth trying the next slug.
-        lastError = `NVIDIA returned HTTP ${nvidiaRes.status} for ${model}: ${bodyText.slice(0, 300)}`;
-        console.warn(`[QWEN IMAGE] ${lastError}`);
-        continue;
-      }
+    return res.json({
+      engines: {
+        flux: {
+          backends: configuredFluxBackends(),
+          huggingFaceKey: Boolean(hfKey),
+          cloudflare: Boolean(resolveCloudflareCredentials()),
+        },
+        gemini: { key: Boolean(resolveGeminiKey()) },
+        pollinations: {
+          key: Boolean(resolvePollinationsKey()),
+          note: resolvePollinationsKey()
+            ? "key configured — no per-IP 45s throttle"
+            : "anonymous tier: ~1 image / 45s per IP (HTTP 402 FREE_LIMIT)",
+        },
+      },
+      reachability: { hfRouter, hfLegacy, cloudflare: cf, pollinations },
+      hint: !hfKey && configuredFluxBackends().length === 0
+        ? "Set HUGGINGFACE_API_KEY (or CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN) for the FLUX engine."
+        : undefined,
+    });
+  });
 
-      let data: any = null;
-      try { data = JSON.parse(bodyText); } catch { data = null; }
-      const b64 = data?.data?.[0]?.b64_json;
-      const url = data?.data?.[0]?.url;
-      if (b64 || url) {
-        console.log(`[QWEN IMAGE] Success via ${model} (${b64 ? "b64_json" : "url"}) size=${size} grade=${grade} subject=${subject}`);
-        return res.json({
-          url: b64 ? `data:image/png;base64,${b64}` : url,
-          ...(b64 ? { b64_json: b64 } : {}),
-          provider: "qwen",
-          model,
-          enhancedPrompt,
-          width,
-          height,
-          size
-        });
-      }
+  // --- FLUX.1-schnell (Hugging Face) — the free Qwen-Image replacement ------
+  //
+  // Model, size clamping and cold-start handling live in `generateFluxImage()`.
+  // A missing key answers 501 with `configured: false`; the client sees that,
+  // stops attempting FLUX for the session and uses Pollinations instead.
+  app.post("/api/images/flux-generate", async (req, res) => {
+    const body = req.body || {};
+    const { prompt, width, height, size, placement, grade, subject } = body;
+    if (!prompt) return res.status(400).json({ error: "Prompt required" });
 
-      lastError = `${model} returned no image data: ${bodyText.slice(0, 300)}`;
-      console.warn(`[QWEN IMAGE] ${lastError}`);
+    // SA enhancement happens client-side (`enhancePromptForSA`); grade/subject
+    // are echoed back so the UI can show what the illustration was built for.
+    const targetSize = normaliseFluxSize(
+      size || FLUX_SIZE_MAP[placement] || (width && height ? `${width}x${height}` : "1024x1024")
+    );
+
+    try {
+      const result = await generateFluxImage({ prompt, size: targetSize });
+      return res.json({
+        url: result.dataUrl,
+        imageUrl: result.dataUrl,
+        provider: "flux",
+        model: result.model,
+        backend: result.backend,
+        size: result.size,
+        grade,
+        subject
+      });
+    } catch (err: any) {
+      const unavailable = err instanceof FluxUnavailableError;
+      const status = unavailable ? err.status : 502;
+      const configured = unavailable ? err.configured : true;
+      console.error(`[FLUX IMAGE] Generation failed (HTTP ${status}): ${err?.message || err}`);
+      return res.status(status).json({
+        error: err?.message || "FLUX.1-schnell image generation failed",
+        provider: "flux",
+        configured,
+        backends: configuredFluxBackends(),
+        models: fluxModels(process.env.HUGGINGFACE_IMAGE_MODEL)
+      });
     }
-
-    console.error(`[QWEN IMAGE] All model slugs failed. Last error: ${lastError}`);
-    return res.status(502).json({ error: lastError, provider: "qwen", models: QWEN_MODELS });
   });
 
   // --- SA-Compliant Full Package Generation (new) ---
@@ -2183,51 +2693,83 @@ const masterPromptFor = (input: any = {}): string =>
             styledPrompt += styleSuffix;
           }
 
-          try {
-            const apiKey = resolveGeminiKey();
-            if (!apiKey || apiKey === "" || apiKey === "dummy" || apiKey === "undefined") {
-              throw new Error("GEMINI_API_KEY is not configured.");
-            }
-            console.log("Generating image with Gemini action:", styledPrompt);
-            const modelsToTry = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
-            let foundBase64 = null;
-            for (const m of modelsToTry) {
-              try {
-                console.log(`[IMAGE GEN LOG] Trying model: ${m}`);
-                const response = await geminiAi.models.generateContent({
-                  model: m,
-                  contents: {
-                    parts: [{ text: styledPrompt }]
-                  },
-                  config: {
-                    imageConfig: {
-                      aspectRatio: (width || 1024) > (height || 1024) ? "16:9" : (width || 1024) < (height || 1024) ? "9:16" : "1:1"
-                    }
-                  }
-                });
-                if (response.candidates && response.candidates[0]?.content?.parts) {
-                  for (const part of response.candidates[0].content.parts) {
-                    if (part.inlineData && part.inlineData.data) {
-                      foundBase64 = part.inlineData.data;
-                      break;
-                    }
-                  }
-                }
-                if (foundBase64) {
-                  console.log(`[IMAGE GEN LOG] Success with model: ${m}`);
-                  return res.json({ imageUrl: `data:image/jpeg;base64,${foundBase64}`, provider: 'gemini', model: m });
-                }
-              } catch (modelErr: any) {
-                console.warn(`[IMAGE GEN LOG] Model ${m} failed:`, modelErr.message);
-              }
-            }
-            throw new Error("No image data returned from Gemini models");
-          } catch (err: any) {
-            console.warn("Gemini action image generation failed, returning direct Pollinations URL fallback...");
-            const seed = Math.floor(Math.random() * 100000);
-            const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=${width || 1024}&height=${height || 1024}&nologo=true&model=turbo&enhance=true&seed=${seed}`;
-            return res.json({ imageUrl: fallbackUrl, isFallback: true, provider: 'pollinations', model: 'Pollinations-Turbo' });
+          const imgWidth = Number(width) || 1024;
+          const imgHeight = Number(height) || 1024;
+          const aspect = imgWidth > imgHeight ? "16:9" : imgWidth < imgHeight ? "9:16" : "1:1";
+          const attempts: string[] = [];
+
+          const geminiKey = resolveGeminiKey();
+          if (!geminiKey || geminiKey === "" || geminiKey === "dummy" || geminiKey === "undefined") {
+            return res.status(501).json({ error: "GEMINI_API_KEY is not configured.", provider: "gemini", configured: false });
           }
+
+          // Gemini image models return inlineData from `generateContent`.
+          // `gemini-2.5-flash-image` is the long-lived GA id and stays last, so
+          // a renamed 3.x alias cannot take the whole engine down.
+          for (const m of ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'gemini-2.5-flash-image']) {
+            try {
+              console.log(`[IMAGE GEN LOG] Gemini image attempt: ${m} (${aspect})`);
+              const response = await geminiAi.models.generateContent({
+                model: m,
+                contents: { parts: [{ text: styledPrompt }] },
+                config: { imageConfig: { aspectRatio: aspect } }
+              });
+              let foundBase64: string | null = null;
+              for (const part of response.candidates?.[0]?.content?.parts || []) {
+                if (part.inlineData?.data) { foundBase64 = part.inlineData.data; break; }
+              }
+              if (foundBase64) {
+                console.log(`[IMAGE GEN LOG] Gemini image success: ${m}`);
+                return res.json({
+                  imageUrl: `data:image/jpeg;base64,${foundBase64}`,
+                  url: `data:image/jpeg;base64,${foundBase64}`,
+                  provider: "gemini",
+                  model: m
+                });
+              }
+              attempts.push(`${m}: no image part`);
+            } catch (modelErr: any) {
+              attempts.push(`${m}: ${modelErr?.message || modelErr}`);
+              console.warn(`[IMAGE GEN LOG] ${m} failed: ${modelErr?.message || modelErr}`);
+            }
+          }
+
+          // Imagen models are NOT chat models — they need `generateImages`.
+          for (const m of ['imagen-3.0-generate-002', 'imagen-4.0-generate-001']) {
+            try {
+              console.log(`[IMAGE GEN LOG] Imagen attempt: ${m}`);
+              const response: any = await (geminiAi.models as any).generateImages({
+                model: m,
+                prompt: styledPrompt,
+                config: { numberOfImages: 1, aspectRatio: aspect }
+              });
+              const generated = response?.generatedImages?.[0]?.image?.imageBytes
+                || response?.generatedImages?.[0]?.imageBytes;
+              if (generated) {
+                console.log(`[IMAGE GEN LOG] Imagen success: ${m}`);
+                return res.json({
+                  imageUrl: `data:image/png;base64,${generated}`,
+                  url: `data:image/png;base64,${generated}`,
+                  provider: "gemini",
+                  model: m
+                });
+              }
+              attempts.push(`${m}: no image bytes`);
+            } catch (modelErr: any) {
+              attempts.push(`${m}: ${modelErr?.message || modelErr}`);
+              console.warn(`[IMAGE GEN LOG] ${m} failed: ${modelErr?.message || modelErr}`);
+            }
+          }
+
+          // Honest failure: the client's provider chain decides what comes next.
+          // Returning a dead Pollinations URL here used to masquerade as success.
+          console.warn(`[IMAGE GEN LOG] Gemini/Imagen exhausted: ${attempts.join(" | ")}`);
+          return res.status(502).json({
+            error: "All Gemini/Imagen image models failed",
+            provider: "gemini",
+            configured: true,
+            attempts
+          });
         }
 
         case "generate-educational": {

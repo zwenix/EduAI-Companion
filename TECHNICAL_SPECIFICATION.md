@@ -130,7 +130,7 @@ Express API server (server.ts)        Firebase project
         ├── Alibaba Model Studio       • (No Firebase Hosting / Functions / Genkit)
         ├── NVIDIA NIM
         ├── OCR.space / Hugging Face
-        ├── Perchance / Pollinations
+        ├── FLUX.1-schnell (HF) / Pollinations
         ├── Hugging Face Gradio (OmniHuman-1)
         └── Replicate (optional)
 ```
@@ -338,8 +338,10 @@ There is no authentication middleware, rate limiting, CSRF layer or CORS configu
 | GET | `/api/tts/proxy` | Streams Google TTS audio to bypass CORS/referrer restrictions. | `url` |
 | POST | `/api/tts/hf` | Hugging Face TTS inference (returns base64 FLAC). | `text`, `model` |
 | POST | `/api/images/generate` | Image generation (Gemini/Imagen path) with educational style augmentation. | `prompt`, `provider?` |
-| POST | `/api/images/qwen-generate` | Qwen-Image via NVIDIA NIM with SA-context enhancer. | `prompt`, `placement?`, `grade?`, `subject?`, `saContext?` |
-| GET | `/api/image-proxy` | Pollinations image proxy used by `<img>` tags (avoids client-side blocking). | `prompt`, `seed?`, `width?`, `height?` |
+| POST | `/api/images/flux-generate` | FLUX.1-schnell via Hugging Face Inference Providers, then Cloudflare Workers AI (when configured). Answers 501 + `{configured:false}` when neither backend is configured so the client can skip straight to Pollinations. | `prompt`, `placement?`, `size?`, `width?`, `height?`, `grade?`, `subject?` |
+| GET | `/api/image-proxy` | Pollinations image proxy used by `<img>` tags (avoids client-side blocking). Forwards `402 FREE_LIMIT` with `Retry-After`. | `prompt`, `seed?`, `width?`, `height?`, `model?` |
+| POST | `/api/images/pollinations-generate` | Same-origin Pollinations render (carries `POLLINATIONS_API_KEY` and the deployment IP). `402` + `retryAfter` when the quota is spent. | `prompt`, `width?`, `height?`, `seed?`, `model?` |
+| GET | `/api/images/status` | Diagnostics: configured engines/keys and live reachability of every upstream host (including the `fetch failed` cause code). | — |
 | POST | `/api/video/generate` | Starts an OmniHuman-1 or Replicate video job. | `prompt`, `model` |
 | GET | `/api/video/status/:id` | Polls job status (in-memory for OmniHuman; Replicate prediction otherwise). | — |
 | POST | `/api/sa/generate-package` | Full SA compliance package: CAPS pre-flight, prompt build, text generation (Qwen → Gemini), images, assemblers. | `request` (grade, subject, term, contentType…), `provider?`, `generateImages?` |
@@ -434,8 +436,9 @@ Content is generated as **HTML styled with Tailwind classes**, not Markdown. Tru
 
 `src/lib/imageGeneration.ts` implements a fixed fallback graph:
 
-- **Priority**: Perchance (keyless, default) → Qwen-Image via NVIDIA NIM → Gemini image models (`gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`, `imagen-3.0-generate-002`) → Pollinations (always returns a URL).
-- Placement-aware sizes (`header`, `inline`, `full_width`, `sidebar`) are defined in `QWEN_CONFIG`; Qwen generation runs with concurrency 2 and a 2-second pause between batches.
+- **Priority**: FLUX.1-schnell (free: Hugging Face `black-forest-labs/FLUX.1-schnell` → Cloudflare Workers AI `@cf/black-forest-labs/flux-1-schnell`) → Gemini image models / Imagen → Pollinations (keyless last resort, ~1 image / 45 s per IP) → inline SVG placeholder (never a broken `<img>`) (`gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`, `imagen-3.0-generate-002`).
+- Placement-aware sizes (`header`, `inline`, `full_width`, `sidebar`) are defined in `FLUX_CONFIG`; batch generation runs with concurrency 2 and a 2-second pause between batches.
+- **Retired 22 Oct 2026**: Perchance (the site now sends `X-Frame-Options: SAMEORIGIN` plus a Cloudflare challenge, so no iframe can load) and Qwen-Image on NVIDIA NIM (`qwen/qwen-image` and `qwen/qwen-image-2512` both 404). Their ids remain aliases that resolve to FLUX.
 - `enhancePromptForSA()` injects rainbow-nation diversity, SA landmarks/flora, flag accents and a 300 DPI, no-text, no-watermark requirement.
 - `/api/image-proxy` exists so `<img>` tags can render provider URLs that would otherwise be blocked client-side.
 
@@ -639,9 +642,12 @@ South African English, ZAR currency, DD/MM/YYYY dates, local names/context. Foun
 | :--- | :---: | :--- | :--- |
 | `GEMINI_API_KEY` (aliases `GOOGLE_AI_API_KEY`, `GOOGLE_GENAI_API_KEY`, `VITE_GEMINI_API_KEY`) | ✅ | Server + client | Primary text/vision/image engine. |
 | `ALIBABA_API_KEY`, `ALIBABA_API_BASE` (aliases `DASHSCOPE_*`) | optional | Server + native | Qwen 3.8 Max via Model Studio. |
-| `NVIDIA_API_KEY` (alias `NVIDIA_API_TOKEN`) | optional | Server + native | Nemotron text + Qwen-Image. |
+| `NVIDIA_API_KEY` (alias `NVIDIA_API_TOKEN`) | optional | Server + native | Nemotron text models. |
 | `OCR_SPACE_API_KEY` | optional | Server/native | Secondary OCR. |
-| `HUGGINGFACE_API_KEY` / `HF_TOKEN` | optional | Server | HF TTS/inference. |
+| `HUGGINGFACE_API_KEY` / `HF_TOKEN` (alias `HUGGINGFACE_IMAGE_MODEL`) | optional | Server + native | HF TTS/inference **and FLUX.1-schnell images** (primary image engine; keyless Pollinations is the fallback). |
+| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` | optional | Server | Second free FLUX.1-schnell backend (`@cf/black-forest-labs/flux-1-schnell`, 10k neurons/day). Tried only after Hugging Face fails. |
+| `POLLINATIONS_API_KEY` | optional | Server | Removes the Pollinations anonymous throttle (`402 FREE_LIMIT`, ~1 image / 45 s per IP). |
+| `VITE_HUGGINGFACE_API_KEY` | optional | Client | Browser-side FLUX fallback when the server cannot reach `router.huggingface.co`. Public bundle — dedicated token only. |
 | `REPLICATE_API_TOKEN` | optional | Server | Replicate video. |
 | `ELEVENLABS_API_KEY` | optional | Client | Voice provider. |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | optional | Server | Web Push; when absent the API reports `{ enabled: false }`. |
@@ -803,7 +809,7 @@ The right-hand column records what was done, on which date, and what remains.
 | 5 | Legacy/scratch artefacts in repo root | ✅ | **Fixed 2 Oct 2026.** 102 one-off files (`fix_*`, `patch_*`, `update_*`, `test-*`, `fixes.patch`, env probes…) moved to `archive/legacy-scripts/` with a manifest in `archive/README.md`; `tsconfig.json` excludes the folder. |
 | 6 | `package.json` name is `react-example` | ✅ | **Fixed 2 Oct 2026.** Renamed to `eduai-companion`, version set to `1.0.0`, a description added, `engines.node >= 20` declared, and both lockfiles refreshed/updated. |
 | 7 | Optional server assemblers (`docx`, `puppeteer`, `jszip`) are not dependencies | ⬜ | Server-side DOCX/PDF/ZIP still degrade to the client-side renderer. Either declare them or document the intended deployment subset. |
-| 8 | Provider costs depend on external free tiers | ⬜ | NIM / Gradio / Perchance endpoints can rate-limit or change without notice. The documented fallback graphs and the new rate limiter reduce exposure; production SLAs need paid tiers. |
+| 8 | Provider costs depend on external free tiers | ⬜ | NIM / Gradio / Hugging Face / Pollinations endpoints can rate-limit or change without notice. The documented fallback graphs and the new rate limiter reduce exposure; production SLAs need paid tiers. |
 | 9 | Frozen model list required coordinated edits in four files | ✅ | **Fixed 2 Oct 2026.** `src/lib/aiModels.ts` is now the single source of truth and `tests/ai-models.test.ts` fails CI on any drift from `AGENTS.md` §1. `AGENTS.md` §1 now documents the registry as the single source of truth and names `src/lib/aiModels.ts` in its file list; a new `AGENTS.md` §7 ("Repository Guardrails") records the CI gate, secret-scanning, rules-deployment and rate-limit obligations. |
 | 10 | No i18n framework | ⬜ | South African English only. Introduce a message catalogue before hard-coding more copy if multilingual rollout is required. |
 | 11 | GitHub App token cannot push workflow edits | 🟡 | **Confirmed again 2 Oct 2026** by a probe push (rejected with "refusing to allow a GitHub App to create or update workflow … without `workflows` permission"). The CI workflow is therefore delivered as a paste-in template at `docs/ci.workflow.yml`, following the existing `docs/build-android2.workflow.yml` convention. *Remaining:* grant the integration `workflows` permission, or paste both files in manually. |

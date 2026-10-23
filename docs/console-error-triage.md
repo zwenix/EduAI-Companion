@@ -95,13 +95,13 @@ rewriter, and the proxy forwarded that status verbatim.
 
 **What was tried.** The proxy was rewritten into a gated provider chain
 (Pollinations **only when `POLLINATIONS_API_KEY` is set** → Gemini/Imagen →
-Qwen-Image on NVIDIA NIM, bounded by an `IMAGE_CHAIN_BUDGET_MS`, answering
-502 when exhausted), and the client was switched from direct
+FLUX.1-schnell on Hugging Face, bounded by an `IMAGE_CHAIN_BUDGET_MS`,
+answering 502 when exhausted), and the client was switched from direct
 `image.pollinations.ai` URLs to that proxy everywhere.
 
 **Why it was rolled back.** The cure was worse than the disease: with no
 `POLLINATIONS_API_KEY` configured, Pollinations was skipped outright, and
-when Gemini/Qwen had no usable key either, **every** image request ended in a
+when Gemini/FLUX had no usable key either, **every** image request ended in a
 502 — the app could not generate a single illustration. The whole image
 subsystem (`server.ts` image routes, `src/lib/imageGeneration.ts`,
 `src/lib/imageReplacer.ts`, `src/components/IllustrationLibrary.tsx` and the

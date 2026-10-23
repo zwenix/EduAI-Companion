@@ -1029,12 +1029,11 @@ export default function Settings({
                          <p className="text-slate-400 text-xs mb-4">Pick your preferred image engine. The selected model is tried first; the others form an automatic fallback chain so a blocked provider never leaves blank placeholders.</p>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {[
-                              { id: 'perchance', name: 'Perchance AI', tag: 'Primary', dotBg: 'bg-amber-500/20', dotText: 'text-amber-400', activeBorder: 'border-amber-500/40 bg-amber-500/10', desc: 'Fast stylised images · Pollinations / Qwen fallback' },
-                              { id: 'qwen', name: 'Qwen-Image (NVIDIA NIM)', tag: 'Premium SA', dotBg: 'bg-orange-500/20', dotText: 'text-orange-400', activeBorder: 'border-orange-500/40 bg-orange-500/10', desc: 'Qwen-Image via NVIDIA NIM · SA-context, superior text rendering' },
-                              { id: 'gemini-imagen', name: 'Google Imagen 3', tag: 'Secondary', dotBg: 'bg-sky-500/20', dotText: 'text-sky-400', activeBorder: 'border-sky-500/40 bg-sky-500/10', desc: 'Google Imagen / Gemini · Pollinations fallback' },
-                              { id: 'pollinations', name: 'Pollinations AI', tag: 'Fallback', dotBg: 'bg-pink-500/20', dotText: 'text-pink-400', activeBorder: 'border-pink-500/40 bg-pink-500/10', desc: 'Free open-source flux/turbo models' },
+                              { id: 'flux', name: 'FLUX.1-schnell', tag: 'Primary', dotBg: 'bg-emerald-500/20', dotText: 'text-emerald-400', activeBorder: 'border-emerald-500/40 bg-emerald-500/10', desc: 'Free Hugging Face FLUX model · SA-context, crisp text rendering' },
+                              { id: 'pollinations', name: 'Pollinations AI', tag: 'Last resort', dotBg: 'bg-pink-500/20', dotText: 'text-pink-400', activeBorder: 'border-pink-500/40 bg-pink-500/10', desc: 'No API key · anonymous tier allows ~1 image every 45 s per IP' },
+                              { id: 'gemini-imagen', name: 'Google Imagen 3', tag: 'Secondary', dotBg: 'bg-sky-500/20', dotText: 'text-sky-400', activeBorder: 'border-sky-500/40 bg-sky-500/10', desc: 'Google Imagen / Gemini image models · Pollinations fallback' },
                             ].map((opt: any) => {
-                              const isSel = imageProvider === opt.id || (opt.id === 'qwen' && imageProvider === 'qwen-image');
+                              const isSel = imageProvider === opt.id;
                               return (
                                 <button
                                   key={opt.id}
@@ -1057,7 +1056,8 @@ export default function Settings({
                             })}
                          </div>
                          <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
-                            <strong className="text-cyan-400">Qwen-Image (NVIDIA NIM)</strong> uses <code className="font-mono text-cyan-300">qwen/qwen-image</code> on NVIDIA's hosted inference endpoint and produces premium SA-context enhanced educational illustrations with better text rendering and cultural accuracy.
+                            Pollinations' free tier throttles anonymous requests to roughly one image every 45 seconds per IP (it answers <code className="font-mono text-pink-300">402 FREE_LIMIT</code> beyond that). Add a free key from <span className="text-pink-300">enter.pollinations.ai</span> as <code className="font-mono text-pink-300">POLLINATIONS_API_KEY</code> to remove the throttle. Free-tier limits and missing keys no longer leave blank images: the app shows a printable EduAI placeholder instead.{' '}
+                            <strong className="text-emerald-400">FLUX.1-schnell</strong> is served by Hugging Face Inference Providers and needs a free <code className="font-mono text-emerald-300">HUGGINGFACE_API_KEY</code>. When that key is missing the app falls straight through to keyless <strong className="text-pink-400">Pollinations AI</strong>, so illustrations are never left blank.
                          </p>
                       </div>
                    </div>

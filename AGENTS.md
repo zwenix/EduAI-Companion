@@ -55,8 +55,8 @@ specified below.
   content generation.
 * Outdated Gemini defaults (`gemini-2.0-flash`, `gemini-1.5-flash`,
   `gemini-2.1`) MUST NOT be used as primary defaults.
-* Image generation (Perchance / Qwen-Image NIM / Google Imagen 3 /
-  Pollinations), OCR engines and TTS/voice engines are separate pipelines —
+* Image generation (FLUX.1-schnell on Hugging Face / Pollinations /
+  Google Imagen 3), OCR engines and TTS/voice engines are separate pipelines —
   leave them exactly as configured.
 
 ### The frozen registry — single source of truth (added 2 Oct 2026)
@@ -393,22 +393,71 @@ explicit user instructions.
   `POLLINATIONS_API_KEY` was set, and when Gemini/Qwen also had no usable key
   the proxy answered 502 — i.e. no images at all).
 * `/api/image-proxy` fetches `https://image.pollinations.ai/prompt/…`
-  (`model=turbo&enhance=true&nologo=true`) and streams the bytes straight
+  (`model=flux&enhance=true&nologo=true`) and streams the bytes straight
   back. No API key, no chain, no budget wrapper.
 * `/api/images/generate` tries the Gemini image models
   (`gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`,
   `imagen-3.0-generate-002`) and otherwise hands back a **direct
-  Pollinations URL** (`turbo` for `gemini`/`perchance`, `flux` for
-  `pollinations`). The `generate-image` content action does the same.
-* `/api/images/qwen-generate` walks the Qwen-Image slugs on NVIDIA NIM
-  (`qwen/qwen-image-2512`, then `qwen/qwen-image`).
+  Pollinations URL** (`model=flux`). The `generate-image` content action does
+  the same.
+* `/api/images/flux-generate` renders **FLUX.1-schnell** with up to two free
+  backends, in order:
+  1. **Hugging Face Inference Providers** (`black-forest-labs/FLUX.1-schnell`,
+     `router.huggingface.co/hf-inference/models`, legacy
+     `api-inference.huggingface.co` host, one bounded cold-start retry);
+     `HUGGINGFACE_API_KEY` (`HUGGINGFACE_IMAGE_MODEL` overrides the slug).
+  2. **Cloudflare Workers AI** (`@cf/black-forest-labs/flux-1-schnell`); needs
+     `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` ("Workers AI: Read").
+     It takes only `prompt` (≤2048 chars), `steps` (≤8) and `seed` — it always
+     renders 1024×1024, so the requested size is ignored on this path.
+  The function budget is split between the configured backends, so two
+  attempts cannot overrun `maxDuration`. With **neither** configured the route
+  answers **HTTP 501 + `{configured:false}`** and the client stops attempting
+  FLUX for the rest of the session.
 * On the client, `src/lib/imageGeneration.ts` keeps its fixed provider
-  priority/fallback graph (Perchance → Qwen → Gemini → Pollinations) and
+  priority/fallback graph (**FLUX → Gemini → Pollinations → placeholder**) and
   `buildPollinationsUrl()` / `buildDirectImageUrl()` are the live entry
   points. `buildDirectImageUrl()` points a native build at Pollinations and
   a web build at `/api/image-proxy`.
-* The image **model list is frozen** — the slugs above are the approved
-  image models. Changing them is a separate, explicit decision.
+* **Pollinations is the LAST resort, and it throttles.** The anonymous tier
+  allows roughly one image every 45 s per IP and answers **HTTP 402
+  `{error:{code:"FREE_LIMIT", retryAfter}}`** (sometimes a 200 HTML banner)
+  beyond that. Consequences that are now enforced in code:
+  * An `<img>` probe cannot see a status, so `classifyImageResponse()` fetches
+    first and only falls back to the `<img>` probe when CORS hides the status.
+  * A 402/429 is terminal for the provider: the client records a cooldown
+    (`POLLINATIONS_COOLDOWN_MS`) and **skips Pollinations entirely** until the
+    window passes. Never re-add seed-retry loops on a rate limit — the old four
+    attempts cost ~90 s and always failed.
+  * `POST /api/images/pollinations-generate` (server proxy) and the direct URL
+    are BOTH tried once, because they use different IPs; one being throttled
+    does not imply the other is.
+  * `POLLINATIONS_API_KEY` removes the throttle (`sk_` keys have no IP limit).
+    This is the documented fix for "free limit reached" reports.
+* **Every engine may fail — the result must still render.** The final fallback
+  is `buildPlaceholderImageUrl()`: a self-contained SVG data URL (no network,
+  deterministic, escaped) carrying the prompt and a reason. Never return a
+  known-dead provider URL as if it were an image.
+* `GET /api/images/status` is the first stop for any "images don't work"
+  report: it lists configured engines and probes every upstream host, surfacing
+  undici's real cause (`ENOTFOUND`, `ECONNRESET`, …) instead of `fetch failed`.
+* **Retired engines (22 Oct 2026) — do not reintroduce:**
+  * **Perchance**: perchance.org answers `X-Frame-Options: SAMEORIGIN` plus a
+    Cloudflare challenge, so the hidden-iframe/postMessage/DOM-driver engine can
+    never load. No iframe image generator may be added anywhere. Perchance also
+    has **no public REST API**: its AI plugins are deliberately same-origin only
+    (ads cannot be shown in an embed), bare HTTP requests 403 at Cloudflare, and
+    so neither a `fetch()` to `perchance.org` nor a "browser-like" Worker proxy
+    can generate an image. Do not attempt either.
+  * **Qwen-Image on NVIDIA NIM**: `qwen/qwen-image` *and*
+    `qwen/qwen-image-2512` answer `404 page not found` at the gateway.
+  * `perchance`, `qwen`, `qwen-image` and `nvidia-qwen` survive only as
+    *aliases* that resolve to FLUX (client `normaliseImageProviderId()`,
+    server `IMAGE_PROVIDER_ALIASES`) so stale saved settings keep working.
+* The image **model list is frozen** — FLUX.1-schnell, Pollinations `flux`
+  and the three Gemini image models are the approved image models. Changing
+  them is a separate, explicit decision (`tests/image-providers.test.ts`
+  guards the graph and the retired integrations).
 
 ### 7.4 API abuse protection
 * `src/lib/rateLimit.ts` is mounted on `/api` in `server.ts` before every route
