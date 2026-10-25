@@ -177,6 +177,7 @@ Copy `.env.example` to `.env` and fill in what you need. Only `GEMINI_API_KEY` i
 | `HUGGINGFACE_API_KEY` / `HF_TOKEN` | Hugging Face TTS **and FLUX.1-schnell image generation** (the primary image engine; without it images fall back to keyless Pollinations). Optional `HUGGINGFACE_IMAGE_MODEL` overrides the FLUX slug. |
 | `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_API_TOKEN` | Optional second free FLUX.1-schnell backend (`@cf/black-forest-labs/flux-1-schnell` on Workers AI, 10k neurons/day ≈ 170 images). Token needs the **Workers AI: Read** permission. Tried only if Hugging Face fails. |
 | `POLLINATIONS_API_KEY` | Optional. Removes Pollinations' anonymous throttle (~1 image / 45 s per IP, HTTP 402 `FREE_LIMIT`). Free key at <https://enter.pollinations.ai>. |
+| `IMAGE_PROXY_PROVIDER` | Optional diagnostic override for `/api/image-proxy` (the route behind every `[[IMG:...]]` document illustration). Blank = FLUX.1-schnell → Gemini → Pollinations. Set `flux`, `gemini` or `pollinations` to force one engine while diagnosing a deployment. |
 | `VITE_HUGGINGFACE_API_KEY` | Optional, advanced. Browser-side FLUX fallback for deployments whose **server** cannot reach `router.huggingface.co`. Compiled into the public bundle — use a dedicated token. |
 | `REPLICATE_API_TOKEN` | Optional Replicate video generation. |
 | `VITE_VERCEL_ANALYTICS` | Set to `true` **only** when Web Analytics is enabled for the Vercel project (otherwise the analytics script 404s on every page load). |

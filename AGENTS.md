@@ -371,8 +371,11 @@ explicit user instructions.
 * `tests/ai-route-budget.test.ts` pins the arithmetic. Never raise a budget
   above the platform ceiling.
 * The image routes (`/api/image-proxy`, `/api/images/generate`,
-  `/api/images/qwen-generate`) are deliberately **outside** this budget —
-  they are pinned to the pre-chain behaviour described in §7.3d.
+  `/api/images/flux-generate`, `/api/images/pollinations-generate`) are
+  deliberately **outside** the `aiRouteBudget` chain, but they still respect
+  the platform ceiling: `generateFluxImage()` splits its own budget across the
+  configured FLUX backends so two attempts cannot overrun `maxDuration`.
+  See §7.3d.
 
 ### 7.3c Self-hosted web fonts
 * The typefaces are served from the app's own origin (`/fonts/fonts.css`),
@@ -386,15 +389,26 @@ explicit user instructions.
 * The standalone export templates (zipped and opened from disk) are the only
   place that may still link Google Fonts.
 
-### 7.3d Image generation — pinned to the pre-chain behaviour
-* **Do not re-introduce the gated "provider chain" for images.** Image
-  generation was rolled back to its earlier, working shape after the chain
-  made every illustration fail (Pollinations was skipped unless
-  `POLLINATIONS_API_KEY` was set, and when Gemini/Qwen also had no usable key
-  the proxy answered 502 — i.e. no images at all).
-* `/api/image-proxy` fetches `https://image.pollinations.ai/prompt/…`
-  (`model=flux&enhance=true&nologo=true`) and streams the bytes straight
-  back. No API key, no chain, no budget wrapper.
+### 7.3d Image generation — engine order and the no-gate rule
+* **Never gate an image engine behind an env var, and never answer 502/500
+  because an engine is unconfigured.** Image generation was once rolled back
+  after a *gated* chain made every illustration fail: Pollinations was skipped
+  unless `POLLINATIONS_API_KEY` was set, and when Gemini/Qwen also had no
+  usable key the proxy answered 502 — i.e. no images at all. What is banned is
+  the **gate**, not a preference order. Pollinations must stay reachable with
+  zero configuration.
+* `/api/image-proxy` serves every `[[IMG:…]]` placeholder in a generated
+  document (`buildDirectImageUrl()`), so it is the app's **highest-volume**
+  image path and it decides how hard the deployment leans on Pollinations'
+  anonymous per-IP throttle. It therefore follows `IMAGE_PROVIDER_PRIORITY` —
+  **FLUX.1-schnell → Gemini → Pollinations** — reusing `generateFluxImage()`,
+  and streams raw bytes back with `Cache-Control: immutable`. Pollinations is
+  still attempted last, keyless, and its **402 `FREE_LIMIT` is forwarded with
+  `Retry-After`** so the client backs off. `IMAGE_PROXY_PROVIDER=flux|gemini|
+  pollinations` forces one engine for diagnosis. Before this, the route called
+  Pollinations directly for every illustration while `/api/images/generate`
+  already preferred FLUX — so the busiest path was the one burning the
+  1-image-per-45s quota.
 * `/api/images/generate` tries the Gemini image models
   (`gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`,
   `imagen-3.0-generate-002`) and otherwise hands back a **direct
