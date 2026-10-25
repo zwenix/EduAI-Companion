@@ -12,7 +12,9 @@ import {
   FLUX_SIZE_MAP,
   IMAGE_PROVIDER_ALIASES,
   fluxModels,
+  isBrowserOnlyImageProvider,
   normaliseFluxSize,
+  serverSideImageProvider,
 } from "./src/lib/imageProviders";
 import {
   AI_ROUTE_ALTERNATIVE_MIN_MS,
@@ -2293,7 +2295,13 @@ const masterPromptFor = (input: any = {}): string =>
   app.post("/api/images/generate", async (req, res) => {
     const body = req.body || {};
     const requestedProvider = String(body.provider || "flux");
-    const provider = IMAGE_PROVIDER_ALIASES[requestedProvider];
+    const resolvedProvider = IMAGE_PROVIDER_ALIASES[requestedProvider];
+    // Perchance generates inside the CALLER'S own browser iframe ("it happens on
+    // the caller's quota, not yours"), so no Express route can serve it. Rather
+    // than answering 400 for a provider the client legitimately offers, map it
+    // onto the default server-side engine. Retired ids already resolve to flux
+    // through the alias table.
+    const provider = resolvedProvider ? serverSideImageProvider(resolvedProvider) : resolvedProvider;
 
     // Augment every generated image with the Content Factory educational style.
     let styledPrompt = body.prompt || "";
@@ -2308,7 +2316,10 @@ const masterPromptFor = (input: any = {}): string =>
     }
 
     if (requestedProvider !== provider) {
-      console.log(`[IMAGE GEN LOG] Image provider "${requestedProvider}" is retired; routing to "${provider}".`);
+      const reason = isBrowserOnlyImageProvider(resolvedProvider)
+        ? "is browser-only and cannot run server-side"
+        : "is retired";
+      console.log(`[IMAGE GEN LOG] Image provider "${requestedProvider}" ${reason}; routing to "${provider}".`);
     }
     console.log(`[IMAGE GEN LOG] Requested image generation -> Provider: ${provider} | Prompt: "${styledPrompt.slice(0, 80)}"`);
 

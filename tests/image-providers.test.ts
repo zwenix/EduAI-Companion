@@ -3,15 +3,17 @@
  *
  * Regression guard for "I cannot generate any images":
  *
- *  • Perchance is retired. perchance.org answers with
- *    `X-Frame-Options: SAMEORIGIN` + a Cloudflare challenge, so the hidden
- *    iframe / postMessage / DOM-driver engine could never load. No iframe
- *    integration may come back.
  *  • Qwen-Image on NVIDIA NIM is retired. `qwen/qwen-image` and
- *    `qwen/qwen-image-2512` both 404 at the gateway.
- *  • FLUX.1-schnell (Hugging Face Inference Providers) is the free
- *    replacement, with keyless Pollinations as the guaranteed fallback and
- *    Google Imagen as the secondary engine.
+ *    `qwen/qwen-image-2512` both 404 at the gateway. No Qwen route may return.
+ *  • FLUX.1-schnell (Hugging Face Inference Providers) is the free DEFAULT,
+ *    with keyless Pollinations as the guaranteed last resort and Google Imagen
+ *    as the paid secondary engine.
+ *  • Perchance was retired on 22 Oct 2026 and RE-ADDED on 25 Oct against the
+ *    API Perchance actually documents (`perchance-ai-api`, framed through the
+ *    `null.perchance.org` embed host). The original integration was dead
+ *    because it framed a community UI page and posted an invented payload at
+ *    it — NOT because Perchance has no API. It stays BROWSER-ONLY: see
+ *    `tests/perchance-image-api.test.ts` for its protocol contract.
  *
  * The tests import the real module (no network) and re-read the two files that
  * own the wiring so a reintroduced iframe/route fails CI.
@@ -39,34 +41,76 @@ import {
   resetFluxAvailability,
   resetPollinationsCooldown,
 } from '../src/lib/imageGeneration';
-import { fluxModels, normaliseFluxSize } from '../src/lib/imageProviders';
+import {
+  BROWSER_ONLY_IMAGE_PROVIDERS,
+  fluxModels,
+  isBrowserOnlyImageProvider,
+  normaliseFluxSize,
+  serverSideImageProvider,
+} from '../src/lib/imageProviders';
 
 const repoRoot = path.resolve(__dirname, '..');
 const read = (relative: string) => fs.readFileSync(path.join(repoRoot, relative), 'utf8');
 
 describe('image provider registry', () => {
-  it('runs FLUX → Gemini → Pollinations with FLUX as the default', () => {
-    expect(IMAGE_PROVIDER_PRIORITY).toEqual(['flux', 'gemini', 'pollinations']);
+  it('runs FLUX → Perchance → Gemini → Pollinations with FLUX as the default', () => {
+    expect(IMAGE_PROVIDER_PRIORITY).toEqual(['flux', 'perchance', 'gemini', 'pollinations']);
+    // FLUX stays the default: Perchance is free and unmetered but depends on a
+    // third-party iframe that Cloudflare can challenge without notice.
     expect(DEFAULT_IMAGE_PROVIDER).toBe('flux');
-    expect(Object.keys(IMAGE_PROVIDER_FALLBACKS).sort()).toEqual(['flux', 'gemini', 'pollinations']);
+    expect(Object.keys(IMAGE_PROVIDER_FALLBACKS).sort()).toEqual(
+      ['flux', 'gemini', 'perchance', 'pollinations']
+    );
   });
 
-  it('retires Perchance and Qwen-Image instead of silently keeping them', () => {
+  it('ranks the two free engines ahead of the paid and throttled ones', () => {
+    const order = IMAGE_PROVIDER_PRIORITY as readonly string[];
+    // Perchance is free and unmetered; Gemini image models have no free API
+    // tier, so Perchance must come first.
+    expect(order.indexOf('perchance')).toBeLessThan(order.indexOf('gemini'));
+    // Pollinations throttles to ~1 image / 45 s per IP, so it stays last.
+    expect(order[order.length - 1]).toBe('pollinations');
+  });
+
+  it('marks Perchance browser-only and maps it onto FLUX server-side', () => {
+    expect(BROWSER_ONLY_IMAGE_PROVIDERS).toContain('perchance');
+    expect(isBrowserOnlyImageProvider('perchance')).toBe(true);
+    expect(isBrowserOnlyImageProvider('flux')).toBe(false);
+    // Perchance generates inside the caller's own frame, so no Express route
+    // can serve it — the API must substitute the default engine rather than
+    // answer 400 for a provider the client legitimately offers.
+    expect(serverSideImageProvider('perchance')).toBe(DEFAULT_IMAGE_PROVIDER);
+    expect(serverSideImageProvider('flux')).toBe('flux');
+    expect(serverSideImageProvider('gemini')).toBe('gemini');
+    expect(serverSideImageProvider('pollinations')).toBe('pollinations');
+  });
+
+  it('retires Qwen-Image instead of silently keeping it', () => {
     const ids = Object.keys(IMAGE_PROVIDER_FALLBACKS);
-    expect(ids).not.toContain('perchance');
     expect(ids).not.toContain('qwen');
     expect(ids).not.toContain('qwen-image');
+    expect(ids).not.toContain('nvidia-qwen');
 
     // Old localStorage values migrate to the free replacement.
-    for (const retired of ['perchance', 'qwen', 'qwen-image', 'nvidia-qwen']) {
+    for (const retired of ['qwen', 'qwen-image', 'nvidia-qwen', 'nvidia']) {
       expect(normaliseImageProviderId(retired)).toBe('flux');
     }
+  });
+
+  it('re-admits Perchance as a live engine, not a retired alias', () => {
+    // A teacher who had Perchance selected before it was retired must get it
+    // back rather than being silently migrated to FLUX.
+    expect(Object.keys(IMAGE_PROVIDER_FALLBACKS)).toContain('perchance');
+    expect(normaliseImageProviderId('perchance')).toBe('perchance');
+    expect(normaliseImageProviderId('perchance-ai')).toBe('perchance');
+    expect(normaliseImageProviderId('perchance-image-api')).toBe('perchance');
   });
 
   it('normalises current settings values', () => {
     expect(normaliseImageProviderId('flux')).toBe('flux');
     expect(normaliseImageProviderId('hf-flux')).toBe('flux');
     expect(normaliseImageProviderId('huggingface')).toBe('flux');
+    expect(normaliseImageProviderId('perchance')).toBe('perchance');
     expect(normaliseImageProviderId('pollinations')).toBe('pollinations');
     expect(normaliseImageProviderId('gemini-imagen')).toBe('gemini');
     expect(normaliseImageProviderId('gemini')).toBe('gemini');
@@ -268,8 +312,9 @@ describe('retired integrations stay removed', () => {
     // The prompt is actually truncated to that ceiling before it is sent.
     expect(server).toContain('options.prompt.slice(0, CLOUDFLARE_MAX_PROMPT_CHARS)');
 
-    // It is a BACKEND of the flux engine, never a separate provider id.
-    expect(IMAGE_PROVIDER_PRIORITY).toEqual(['flux', 'gemini', 'pollinations']);
+    // Cloudflare is a BACKEND of the flux engine, never a separate provider id.
+    expect(IMAGE_PROVIDER_PRIORITY).not.toContain('cloudflare' as any);
+    expect(IMAGE_PROVIDER_PRIORITY[0]).toBe('flux');
   });
 
   it('surfaces which backend rendered the image', () => {
@@ -278,21 +323,33 @@ describe('retired integrations stay removed', () => {
     expect(describeFluxBackend(undefined)).toBe('FLUX.1-schnell · Hugging Face');
   });
 
-  it('refuses any Perchance network integration (no API exists)', () => {
-    // Perchance AI plugins are same-origin only and 403 plain HTTP requests, so
-    // neither a client fetch nor a "browser-like" Worker proxy can work.
-    for (const file of ['server.ts', 'src/lib/imageGeneration.ts', 'src/lib/imageProviders.ts']) {
-      const source = read(file);
-      expect(source, file).not.toMatch(/fetch\([^)]*perchance\.org/);
-      expect(source, file).not.toContain('null.perchance.org');
+  it('keeps Perchance out of the server and off the apex host', () => {
+    // Perchance runs the generation in the CALLER'S browser, so there is no
+    // server-side form of it. The Express API must not fetch or frame it.
+    const server = read('server.ts');
+    expect(server).not.toMatch(/fetch\([^)]*perchance\.org/);
+    expect(server).not.toContain('null.perchance.org');
+    expect(server).not.toContain('perchance-ai-api');
+    // A browser-only engine must be substituted, not served.
+    expect(server).toContain('serverSideImageProvider');
+
+    // The apex host sends X-Frame-Options: SAMEORIGIN, which is what killed the
+    // original integration — framing must go through the embed host instead.
+    const client = read('src/services/perchanceImageApi.ts');
+    expect(client).toContain("'https://null.perchance.org'");
+    expect(client).not.toMatch(/src\s*=\s*["'`]https:\/\/perchance\.org\/perchance-ai-api/);
+    // …and the dead community UI page must never come back.
+    for (const file of ['server.ts', 'src/lib/imageGeneration.ts', 'src/services/perchanceImageApi.ts']) {
+      expect(read(file), file).not.toContain('ai-text-to-image-generator');
     }
   });
 
-  it('keeps the retired engines as aliases in the shared registry', () => {
+  it('keeps the retired Qwen engines as aliases in the shared registry', () => {
     const registry = read('src/lib/imageProviders.ts');
-    expect(registry).toContain('perchance: \'flux\'');
     expect(registry).toContain("'qwen-image': 'flux'");
     expect(registry).toContain("'nvidia-qwen': 'flux'");
+    // Perchance is live again, so it must map to itself.
+    expect(registry).toContain("perchance: 'perchance'");
   });
 });
 

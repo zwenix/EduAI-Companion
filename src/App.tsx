@@ -2866,6 +2866,9 @@ export default function App() {
                       <option value="flux">
                         FLUX.1-schnell · Hugging Face (Primary → Pollinations / Imagen fallback)
                       </option>
+                      <option value="perchance">
+                        Perchance AI · Image API v1 (Free &amp; unmetered → FLUX / Imagen / Pollinations fallback)
+                      </option>
                       <option value="pollinations">
                         Pollinations AI · FLUX (Keyless → FLUX.1-schnell / Imagen fallback)
                       </option>

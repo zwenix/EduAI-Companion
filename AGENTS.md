@@ -400,12 +400,17 @@ explicit user instructions.
 * `/api/image-proxy` serves every `[[IMG:…]]` placeholder in a generated
   document (`buildDirectImageUrl()`), so it is the app's **highest-volume**
   image path and it decides how hard the deployment leans on Pollinations'
-  anonymous per-IP throttle. It therefore follows `IMAGE_PROVIDER_PRIORITY` —
-  **FLUX.1-schnell → Gemini → Pollinations** — reusing `generateFluxImage()`,
+  anonymous per-IP throttle. It therefore follows the **server-side subset** of
+  `IMAGE_PROVIDER_PRIORITY` — **FLUX.1-schnell → Gemini → Pollinations** —
+  reusing `generateFluxImage()`,
   and streams raw bytes back with `Cache-Control: immutable`. Pollinations is
   still attempted last, keyless, and its **402 `FREE_LIMIT` is forwarded with
-  `Retry-After`** so the client backs off. `IMAGE_PROXY_PROVIDER=flux|gemini|
-  pollinations` forces one engine for diagnosis. Before this, the route called
+  `Retry-After`** so the client backs off. Perchance is **absent from this
+  route** because it renders inside the caller's own browser frame and so has
+  no server-side form; `serverSideImageProvider()` substitutes FLUX rather than
+  answering 400 for a provider the client legitimately offers.
+  `IMAGE_PROXY_PROVIDER=flux|gemini|pollinations` forces one engine for
+  diagnosis. Before this, the route called
   Pollinations directly for every illustration while `/api/images/generate`
   already preferred FLUX — so the busiest path was the one burning the
   1-image-per-45s quota.
@@ -429,10 +434,42 @@ explicit user instructions.
   answers **HTTP 501 + `{configured:false}`** and the client stops attempting
   FLUX for the rest of the session.
 * On the client, `src/lib/imageGeneration.ts` keeps its fixed provider
-  priority/fallback graph (**FLUX → Gemini → Pollinations → placeholder**) and
+  priority/fallback graph (**FLUX → Perchance → Gemini → Pollinations →
+  placeholder**) and
   `buildPollinationsUrl()` / `buildDirectImageUrl()` are the live entry
   points. `buildDirectImageUrl()` points a native build at Pollinations and
   a web build at `/api/image-proxy`.
+* **Perchance is a free, unmetered engine #2 — and it is browser-only.**
+  `src/services/perchanceImageApi.ts` implements Perchance's documented Image
+  API v1 (`https://perchance.org/perchance-ai-api`), which is framed through the
+  `null.perchance.org` **embed host** and answered by `postMessage` with
+  `{api:"perchance-image-api", result:{id, ok, url, dataUrl, seed}}`.
+  Constraints that are load-bearing and must not be "fixed" away:
+  * **A `warmUp()` visit to the apex host is mandatory** once per session
+    (hidden 1×1 iframe, wait for `load` + 500 ms) so Cloudflare passes the
+    browser before the API call. Skipping it is how naive integrations fail.
+  * **Frame the embed host, never the apex.** `perchance.org` answers with
+    `X-Frame-Options: SAMEORIGIN` — this is precisely what killed the previous
+    integration, which additionally framed a *community UI page* that had no
+    message listener. The dead page name must not reappear in `src/`.
+  * **Reply validation.** Accept a message only if the origin hostname is
+    `perchance.org` or ends with `.perchance.org` (a substring check would
+    accept `evil-perchance.org.attacker.tld`), `api` matches, and the
+    correlation `id` matches the request.
+  * **Resolution cap.** Perchance offers only `512x512 | 512x768 | 768x512 |
+    768x768`; `nearestPerchanceResolution()` picks **orientation first**, then
+    nearest area — a 768×1024 portrait request must map to `512x768`, not to a
+    square.
+  * **Prefer `dataUrl` over `url`.** The hosted URL is cross-origin
+    (`user.uploads.dev`) and would taint the html2canvas canvas in
+    `downloadAsPDF`.
+  * **Containment.** A 45 s cap (their reference sample allows 180 s, far
+    longer than this app may block) and `PERCHANCE_FAILURE_LIMIT` consecutive
+    failures retire the engine for the session via `isPerchanceAvailable()`.
+    Per-prompt caching reuses results, since Perchance URLs are permanent.
+  * **It is opt-in, not the default.** `DEFAULT_IMAGE_PROVIDER` stays `flux`.
+    Framing cannot be verified from a sandbox with no egress, so the engine
+    must not sit in front of a working one.
 * **Pollinations is the LAST resort, and it throttles.** The anonymous tier
   allows roughly one image every 45 s per IP and answers **HTTP 402
   `{error:{code:"FREE_LIMIT", retryAfter}}`** (sometimes a 200 HTML banner)

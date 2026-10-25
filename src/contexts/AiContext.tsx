@@ -6,9 +6,11 @@ import { AI_PROVIDERS, AIProvider, isLegacyProvider } from '../lib/aiModels';
 export type { AIProvider } from '../lib/aiModels';
 export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
 export type OCRProvider = 'gemini' | 'ocrspace';
-// Image engines. `perchance` and `qwen`/`qwen-image` are RETIRED (see
-// src/lib/imageGeneration.ts) and are migrated on read — never offered again.
-export type ImageProvider = 'flux' | 'pollinations' | 'gemini-imagen';
+// Image engines. `qwen`/`qwen-image` are RETIRED (see src/lib/imageProviders.ts)
+// and are migrated on read — never offered again. `perchance` was retired on
+// 22 Oct and RE-ADDED on 25 Oct 2026 against Perchance's documented Image API
+// v1; it is browser-only, so the Express API maps it onto `flux`.
+export type ImageProvider = 'flux' | 'perchance' | 'pollinations' | 'gemini-imagen';
 
 interface AiContextType {
   provider: AIProvider;
@@ -26,11 +28,12 @@ const AiContext = createContext<AiContextType | undefined>(undefined);
 const VALID_PROVIDERS: readonly AIProvider[] = AI_PROVIDERS;
 const VALID_TTS: TTSProvider[] = ['browser', 'groq-whisper', 'huggingface', 'google-tts'];
 const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace'];
-const VALID_IMAGE: ImageProvider[] = ['flux', 'pollinations', 'gemini-imagen'];
+const VALID_IMAGE: ImageProvider[] = ['flux', 'perchance', 'pollinations', 'gemini-imagen'];
 // Stored values from retired engines. `flux` (FLUX.1-schnell on Hugging Face)
-// is the free replacement for both Perchance and Qwen-Image.
+// is the free replacement for Qwen-Image. `perchance` is deliberately NOT in
+// this table any more — it is a live engine again, so a teacher who had it
+// selected keeps it instead of being silently migrated to FLUX.
 const LEGACY_IMAGE_PROVIDERS: Record<string, ImageProvider> = {
-  perchance: 'flux',
   qwen: 'flux',
   'qwen-image': 'flux',
   'nvidia-qwen': 'flux',
