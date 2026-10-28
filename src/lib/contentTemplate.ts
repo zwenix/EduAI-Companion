@@ -169,6 +169,11 @@ export interface ContentTemplateMeta {
      * block carrying the title, grade, subject, term, content type and today's
      * real date. Defaults to `true`; set `false` to suppress it (for example on
      * a poster where a trailing block would compete with the artwork).
+     *
+     * When OMITTED, the global teacher preference decides
+     * ({@link isClosingMetaBannerEnabled}, toggled in the Content Factory and
+     * persisted as `eduai_closing_meta_banner`) — default ON. An explicit
+     * `true`/`false` here always wins over the preference.
      */
     closingMeta?: boolean;
 }
@@ -1787,6 +1792,37 @@ export const prepareClassicDocument = (html: string): string => {
 };
 
 /**
+ * Global teacher preference for the closing metadata banner.
+ *
+ * The Content Factory exposes this as a toggle ("Closing Metadata Banner") and
+ * every `wrapWithTemplate` call honours it whenever the caller does not pass an
+ * explicit `closingMeta` — so archive re-renders, print, PDF and HTML exports
+ * all agree with the preview. Default: ON (the banner is added).
+ */
+export const CLOSING_META_PREF_KEY = 'eduai_closing_meta_banner';
+
+/** Reads the saved preference. Missing storage or missing key means ON. */
+export const isClosingMetaBannerEnabled = (): boolean => {
+    try {
+        const store = (globalThis as { localStorage?: { getItem(key: string): string | null } }).localStorage;
+        if (!store) return true;
+        return store.getItem(CLOSING_META_PREF_KEY) !== 'false';
+    } catch {
+        return true;
+    }
+};
+
+/** Persists the preference (no-op when storage is unavailable). */
+export const setClosingMetaBannerEnabled = (enabled: boolean): void => {
+    try {
+        const store = (globalThis as { localStorage?: { setItem(key: string, value: string): void } }).localStorage;
+        store?.setItem(CLOSING_META_PREF_KEY, String(enabled));
+    } catch {
+        // Private mode / storage disabled — the toggle simply stops persisting.
+    }
+};
+
+/**
  * Wrap generated content in the LIGHT Template v5 chrome:
  * very light blue translucent page header → ONE full-width two-colour vertical
  * gradient document banner (title + every label + compliance) → watermark +
@@ -1825,7 +1861,7 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
         // summary (title, grade, term, subject, today's real date) as a LIGHT
         // one — unless the caller opts out.
         const classicDoc = prepareClassicDocument(original);
-        return meta.closingMeta === false
+        return (meta.closingMeta ?? isClosingMetaBannerEnabled()) === false
             ? classicDoc
             : `${classicDoc}\n${buildTemplateClosingMetaHTML(meta)}`;
     }
@@ -1886,8 +1922,9 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
 
     // The closing metadata banner sits at the END of the content flow — after
     // the last card, before the navy footer — so it prints on the final page of
-    // the document rather than on its own page.
-    const closingMeta = effectiveMeta.closingMeta === false
+    // the document rather than on its own page. An explicit caller choice wins;
+    // otherwise the saved teacher toggle (default ON) decides.
+    const closingMeta = (effectiveMeta.closingMeta ?? isClosingMetaBannerEnabled()) === false
         ? ''
         : `\n${buildTemplateClosingMetaHTML(effectiveMeta)}`;
 
