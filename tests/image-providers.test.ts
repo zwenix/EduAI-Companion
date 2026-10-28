@@ -43,6 +43,7 @@ import {
 } from '../src/lib/imageGeneration';
 import {
   BROWSER_ONLY_IMAGE_PROVIDERS,
+  GEMINI_IMAGE_MODELS,
   fluxModels,
   isBrowserOnlyImageProvider,
   normaliseFluxSize,
@@ -537,5 +538,81 @@ describe('provider chain execution', () => {
     expect(error).toBeInstanceOf(Error);
     expect(error.name).toBe('PollinationsRateLimitError');
     expect(error.retryAfterSeconds).toBe(45);
+  });
+});
+
+describe('Gemini image model list', () => {
+  it('pins the four Developer API ids, current model first', () => {
+    // Checked against ai.google.dev/gemini-api/docs/deprecations on 25 Oct 2026.
+    expect(GEMINI_IMAGE_MODELS).toEqual([
+      'gemini-nano-banana-2.1',
+      'gemini-3.1-flash-lite-image',
+      'gemini-3.1-flash-image',
+      'gemini-2.5-flash-image',
+    ]);
+  });
+
+  it('contains no Imagen id, because every one Google shipped is shut down', () => {
+    expect(GEMINI_IMAGE_MODELS.some((m) => m.startsWith('imagen'))).toBe(false);
+    // Matched as a QUOTED model string, so the explanatory comment in
+    // imageProviders.ts — which names the dead ids in backticks precisely to
+    // warn future editors — does not trip the guard.
+    for (const file of [
+      'src/lib/imageProviders.ts',
+      'src/lib/imageGeneration.ts',
+      'server.ts',
+      'src/services/geminiClient.ts',
+    ]) {
+      expect(read(file), file).not.toMatch(/['"]imagen-/);
+    }
+  });
+
+  it('deleted the Imagen generateImages() endpoint rather than repopulating it', () => {
+    // imagen-3.0-generate-002 shut down 10 Nov 2025 and all three imagen-4.0-*
+    // ids on 17 Aug 2026, so this loop was two guaranteed-failing API calls on
+    // every Gemini-keyed request. Google names gemini-nano-banana-2.1 as the
+    // replacement, which is a generateContent model already in the list above.
+    for (const file of ['server.ts', 'src/services/geminiClient.ts']) {
+      expect(read(file), file).not.toContain('.generateImages(');
+    }
+  });
+
+  it('keeps exactly one literal Gemini image list, in the shared registry', () => {
+    // /api/image-proxy, /api/images/generate and the standalone client engine
+    // each used to hardcode their own array. That three-way divergence is what
+    // let two shut-down Imagen ids survive an earlier cleanup, so no consumer
+    // may inline a competing list again.
+    // Scoped to IMAGE ids (a `-image` suffix or the nano-banana family). A bare
+    // /\[\s*['"]gemini-/ is wrong here: `read()` returns the whole file, so
+    // \s* crosses newlines and matches geminiClient.ts's legitimate multi-line
+    // TEXT-model chain (`gemini-3.8-flash`, ...). Line-based grep does not
+    // cross lines, which is how that over-broad version looked safe.
+    const inlineImageList = /\[\s*['"]gemini-(?:[^'"]*-image|nano-banana)/;
+    for (const file of ['server.ts', 'src/services/geminiClient.ts']) {
+      const source = read(file);
+      expect(source, file).toContain('GEMINI_IMAGE_MODELS');
+      expect(source, file).not.toMatch(inlineImageList);
+    }
+    // ...and the registry is the one place the literal list is allowed to live.
+    const registry = read('src/lib/imageProviders.ts');
+    expect(registry).toMatch(/export const GEMINI_IMAGE_MODELS/);
+    expect(registry).toMatch(inlineImageList);
+  });
+
+  it('never shows a teacher an Imagen label', () => {
+    // The SETTING id `gemini-imagen` must survive: it is a stored-settings key,
+    // and renaming it would silently reset saved preferences. Only the
+    // user-facing claim that an Imagen model produced the image had to go.
+    for (const file of [
+      'src/App.tsx',
+      'src/components/Settings.tsx',
+      'src/components/AiImage.tsx',
+      'src/lib/imageReplacer.ts',
+      'src/lib/assemblers/zip-packager.ts',
+    ]) {
+      expect(read(file), file).not.toMatch(/Imagen 3|Gemini Imagen|Gemini\/Imagen|Google Imagen/);
+    }
+    expect(read('src/components/Settings.tsx')).toContain("'gemini-imagen'");
+    expect(read('src/App.tsx')).toContain('value="gemini-imagen"');
   });
 });

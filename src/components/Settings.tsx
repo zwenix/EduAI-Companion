@@ -1032,7 +1032,7 @@ export default function Settings({
                               { id: 'flux', name: 'FLUX.1-schnell', tag: 'Primary', dotBg: 'bg-emerald-500/20', dotText: 'text-emerald-400', activeBorder: 'border-emerald-500/40 bg-emerald-500/10', desc: 'Free Hugging Face FLUX model · SA-context, crisp text rendering' },
                               { id: 'perchance', name: 'Perchance AI', tag: 'Free · unmetered', dotBg: 'bg-amber-500/20', dotText: 'text-amber-400', activeBorder: 'border-amber-500/40 bg-amber-500/10', desc: 'Perchance Image API v1 · no key, no usage cap · browser-only, max 768 px, slower than FLUX' },
                               { id: 'pollinations', name: 'Pollinations AI', tag: 'Last resort', dotBg: 'bg-pink-500/20', dotText: 'text-pink-400', activeBorder: 'border-pink-500/40 bg-pink-500/10', desc: 'No API key · anonymous tier allows ~1 image every 45 s per IP' },
-                              { id: 'gemini-imagen', name: 'Google Imagen 3', tag: 'Secondary', dotBg: 'bg-sky-500/20', dotText: 'text-sky-400', activeBorder: 'border-sky-500/40 bg-sky-500/10', desc: 'Google Imagen / Gemini image models · Pollinations fallback' },
+                              { id: 'gemini-imagen', name: 'Google Gemini Image', tag: 'Secondary', dotBg: 'bg-sky-500/20', dotText: 'text-sky-400', activeBorder: 'border-sky-500/40 bg-sky-500/10', desc: 'Gemini image models (Nano Banana 2.1) · own API key · FLUX / Perchance / Pollinations fallback' },
                             ].map((opt: any) => {
                               const isSel = imageProvider === opt.id;
                               return (

@@ -11,7 +11,7 @@
  *                       real documented protocol; see
  *                       `src/services/perchanceImageApi.ts` for why the earlier
  *                       integration could never load.
- *   3. `gemini`       — Google Imagen / Gemini image models (own key).
+ *   3. `gemini`       — Google Gemini image models (own key).
  *   4. `pollinations` — keyless, but throttled to ~1 image / 45 s per IP
  *                       (HTTP 402 `FREE_LIMIT`) unless `POLLINATIONS_API_KEY`
  *                       is set. Always the last resort.
@@ -122,7 +122,9 @@ export const IMAGE_PROVIDER_ALIASES: Record<string, ImageProviderId> = {
   'pollinations-turbo': 'pollinations',
   turbo: 'pollinations',
 
-  // Google Imagen / Gemini image models
+  // Google Gemini image models. `gemini-imagen` / `google-imagen` / `imagen`
+  // are STORED-SETTINGS ids, kept so saved preferences keep resolving; no
+  // Imagen model is called any more (see GEMINI_IMAGE_MODELS).
   gemini: 'gemini',
   'gemini-imagen': 'gemini',
   'google-imagen': 'gemini',
@@ -195,5 +197,47 @@ export const normaliseFluxSize = (raw?: string | null): string => {
 };
 
 /** Pollinations model slugs — `flux` for quality, `turbo` for speed. */
+/**
+ * Gemini image models, in attempt order. Shared by `server.ts` and
+ * `src/services/geminiClient.ts` so the two lists can never diverge again —
+ * they had already drifted, and the drift is what hid the dead ids below.
+ *
+ * Status from Google's own deprecations table
+ * (ai.google.dev/gemini-api/docs/deprecations, checked 25 Oct 2026):
+ *
+ *   gemini-nano-banana-2.1        GA  6 Oct 2026   no shutdown date   <- current
+ *   gemini-3.1-flash-lite-image   GA 30 Jun 2026   no shutdown date
+ *   gemini-3.1-flash-image        GA 28 May 2026   no shutdown date   (deprecated;
+ *                                                    replacement = nano-banana-2.1)
+ *   gemini-2.5-flash-image        GA  2 Oct 2025   shuts down 15 Mar 2027
+ *
+ * All four answer `generateContent` with an `inlineData` part, so one loop
+ * covers them. Nano Banana 2.1 leads: it is Google's current recommendation,
+ * costs roughly half of 3.1-flash-image per 1K image, and renders legible text
+ * better — which matters for worksheet illustrations. The deprecated
+ * 3.1-flash-image is kept as a bridge, because Google announced NO shutdown
+ * date for it (a launch-day note citing 29 Oct 2026 was withdrawn the next
+ * day), and the long-lived 2.5 id stays last so a renamed 3.x alias cannot take
+ * the whole engine down.
+ *
+ * IMAGEN IS GONE, deliberately. Every Imagen id Google shipped on the Developer
+ * API has passed its shutdown date: `imagen-3.0-generate-002` (10 Nov 2025) and
+ * all three `imagen-4.0-*` ids (17 Aug 2026). Google names
+ * `gemini-nano-banana-2.1` as the replacement for every one of them — a
+ * `generateContent` model already covered above — so the separate
+ * `generateImages` loop was deleted rather than repopulated. It was making two
+ * guaranteed-failing API calls on every Gemini-keyed image request. Do not add
+ * an Imagen id back without re-reading that table.
+ *
+ * These are DEVELOPER API ids (GEMINI_API_KEY), which is what this app uses.
+ * Vertex AI runs a different, later retirement schedule.
+ */
+export const GEMINI_IMAGE_MODELS: readonly string[] = [
+  'gemini-nano-banana-2.1',
+  'gemini-3.1-flash-lite-image',
+  'gemini-3.1-flash-image',
+  'gemini-2.5-flash-image',
+];
+
 export const POLLINATIONS_MODEL = 'flux';
 export const POLLINATIONS_FALLBACK_MODEL = 'turbo';

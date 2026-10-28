@@ -414,11 +414,29 @@ explicit user instructions.
   Pollinations directly for every illustration while `/api/images/generate`
   already preferred FLUX — so the busiest path was the one burning the
   1-image-per-45s quota.
-* `/api/images/generate` tries the Gemini image models
-  (`gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`,
-  `imagen-3.0-generate-002`) and otherwise hands back a **direct
-  Pollinations URL** (`model=flux`). The `generate-image` content action does
-  the same.
+* `/api/images/generate` tries the Gemini image models and otherwise hands back
+  a **direct Pollinations URL** (`model=flux`). The `generate-image` content
+  action does the same. The list lives in **`GEMINI_IMAGE_MODELS`**
+  (`src/lib/imageProviders.ts`), imported by `server.ts` (this route *and*
+  `/api/image-proxy`) and by `src/services/geminiClient.ts`, so the standalone
+  APK and the API can never offer different models. Order:
+  `gemini-nano-banana-2.1` (Google's current recommendation, GA 6 Oct 2026,
+  ~half the per-image price of its predecessor, better text rendering) →
+  `gemini-3.1-flash-lite-image` → `gemini-3.1-flash-image` (deprecated, but
+  **no shutdown date announced**) → `gemini-2.5-flash-image` (shuts down
+  15 Mar 2027; kept last as a long-lived bridge).
+* **There are no Imagen models in this app.** Every Imagen id Google shipped on
+  the Developer API is past its shutdown date — `imagen-3.0-generate-002`
+  (10 Nov 2025) and all three `imagen-4.0-*` ids (17 Aug 2026) — and Google
+  names `gemini-nano-banana-2.1` as the replacement for all of them. The
+  separate `generateImages()` loop was therefore **deleted, not repopulated**:
+  it made two guaranteed-failing API calls on every Gemini-keyed request. A
+  third bug went with it — `/api/images/generate` carried
+  `imagen-3.0-generate-002` in a list it fed to `generateContent`, i.e. a
+  shut-down Imagen model sent to a chat endpoint. Re-check
+  `ai.google.dev/gemini-api/docs/deprecations` before adding any Google image
+  id back, and note that Vertex AI runs a different, later retirement schedule
+  from the Developer API these ids belong to.
 * `/api/images/flux-generate` renders **FLUX.1-schnell** with up to two free
   backends, in order:
   1. **Hugging Face Inference Providers** (`black-forest-labs/FLUX.1-schnell`,
@@ -502,13 +520,23 @@ explicit user instructions.
     can generate an image. Do not attempt either.
   * **Qwen-Image on NVIDIA NIM**: `qwen/qwen-image` *and*
     `qwen/qwen-image-2512` answer `404 page not found` at the gateway.
-  * `perchance`, `qwen`, `qwen-image` and `nvidia-qwen` survive only as
-    *aliases* that resolve to FLUX (client `normaliseImageProviderId()`,
-    server `IMAGE_PROVIDER_ALIASES`) so stale saved settings keep working.
-* The image **model list is frozen** — FLUX.1-schnell, Pollinations `flux`
-  and the three Gemini image models are the approved image models. Changing
-  them is a separate, explicit decision (`tests/image-providers.test.ts`
-  guards the graph and the retired integrations).
+  * `qwen`, `qwen-image` and `nvidia-qwen` survive only as *aliases* that
+    resolve to FLUX (client `normaliseImageProviderId()`, server
+    `IMAGE_PROVIDER_ALIASES`) so stale saved settings keep working.
+    **`perchance` is no longer one of them** — it was re-admitted as a live
+    engine on 25 Oct 2026 and maps to itself, so a teacher who selected it
+    before the 22 Oct retirement gets it back instead of being silently
+    migrated to FLUX (see §7.3d).
+* The image **model list is frozen** — FLUX.1-schnell, Pollinations `flux`,
+  Perchance and the four `GEMINI_IMAGE_MODELS` are the approved image models.
+  Changing them is a separate, explicit decision (`tests/image-providers.test.ts`
+  guards the graph, the retired integrations and the Gemini id list).
+  * The Gemini list was last changed on 25 Oct 2026 **on explicit user
+    instruction**, which is exactly what this rule requires. It had drifted:
+    `/api/image-proxy` kept one list, `/api/images/generate` another and
+    `geminiClient.ts` a third. That divergence is what let two shut-down Imagen
+    ids survive an earlier cleanup. There is now one shared const, and the guard
+    fails if any file hardcodes a competing literal list.
 
 ### 7.4 API abuse protection
 * `src/lib/rateLimit.ts` is mounted on `/api` in `server.ts` before every route

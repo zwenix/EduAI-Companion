@@ -2864,16 +2864,16 @@ export default function App() {
                       }`}
                     >
                       <option value="flux">
-                        FLUX.1-schnell · Hugging Face (Primary → Pollinations / Imagen fallback)
+                        FLUX.1-schnell · Hugging Face (Primary → Perchance / Gemini / Pollinations fallback)
                       </option>
                       <option value="perchance">
-                        Perchance AI · Image API v1 (Free &amp; unmetered → FLUX / Imagen / Pollinations fallback)
+                        Perchance AI · Image API v1 (Free &amp; unmetered → FLUX / Gemini / Pollinations fallback)
                       </option>
                       <option value="pollinations">
-                        Pollinations AI · FLUX (Keyless → FLUX.1-schnell / Imagen fallback)
+                        Pollinations AI · FLUX (Keyless last resort → Gemini / FLUX / Perchance fallback)
                       </option>
                       <option value="gemini-imagen">
-                        Google Imagen 3 (Secondary → Pollinations fallback)
+                        Google Gemini Image (Secondary → FLUX / Perchance / Pollinations fallback)
                       </option>
                     </select>
                   </div>

@@ -83,7 +83,8 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [imageProvider, setImageProvider] = useState<ImageProvider>(() => {
     // FLUX.1-schnell (Hugging Face) is the primary engine on every platform;
-    // Pollinations stays the keyless fallback and Imagen the secondary choice.
+    // Pollinations stays the keyless fallback and the Gemini image models the
+    // secondary choice.
     const fallback: ImageProvider = 'flux';
     try {
       const saved = localStorage.getItem('eduai_image_provider');

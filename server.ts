@@ -10,6 +10,7 @@ import {
   FLUX_LEGACY_BASE_URL,
   FLUX_ROUTER_BASE_URL,
   FLUX_SIZE_MAP,
+  GEMINI_IMAGE_MODELS,
   IMAGE_PROVIDER_ALIASES,
   fluxModels,
   isBrowserOnlyImageProvider,
@@ -2176,12 +2177,12 @@ const masterPromptFor = (input: any = {}): string =>
   // images exactly as it did before. Set IMAGE_PROXY_PROVIDER=flux|gemini|
   // pollinations to force a single engine (useful for diagnosing a deployment).
   //
-  // NOTE: the Gemini image-model list below is the frozen one from AGENTS.md
-  // §7.3d and is duplicated at /api/images/generate. Two of its ids are past
-  // their Google shutdown dates — changing it is a separate, explicit decision.
-  const GEMINI_IMAGE_MODELS = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
+  // GEMINI_IMAGE_MODELS is imported from src/lib/imageProviders.ts and shared
+  // with /api/images/generate and the standalone client engine, so the three
+  // cannot drift apart. It no longer contains an Imagen id: every Imagen model
+  // Google shipped is past its shutdown date (see the const's own notes).
 
-  /** Nearest Gemini/Imagen aspect-ratio token for the requested box. */
+  /** Nearest Gemini aspect-ratio token for the requested box. */
   const geminiAspectForBox = (width: number, height: number): string => {
     const ratio = width / Math.max(1, height);
     if (ratio >= 1.5) return "16:9";
@@ -2236,7 +2237,8 @@ const masterPromptFor = (input: any = {}): string =>
         }
       }
 
-      // 2. Gemini / Imagen — second slot in IMAGE_PROVIDER_PRIORITY.
+      // 2. Gemini image models — second slot in the SERVER-SIDE chain, because
+      //    Perchance is browser-only and cannot run on this route.
       if (wanted("gemini")) {
         const apiKey = resolveGeminiKey();
         if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
@@ -2814,10 +2816,10 @@ const masterPromptFor = (input: any = {}): string =>
             return res.status(501).json({ error: "GEMINI_API_KEY is not configured.", provider: "gemini", configured: false });
           }
 
-          // Gemini image models return inlineData from `generateContent`.
-          // `gemini-2.5-flash-image` is the long-lived GA id and stays last, so
-          // a renamed 3.x alias cannot take the whole engine down.
-          for (const m of ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'gemini-2.5-flash-image']) {
+          // Gemini image models return inlineData from `generateContent`. The
+          // shared list runs current -> cheapest -> deprecated bridge ->
+          // long-lived GA bridge; GEMINI_IMAGE_MODELS documents each date.
+          for (const m of GEMINI_IMAGE_MODELS) {
             try {
               console.log(`[IMAGE GEN LOG] Gemini image attempt: ${m} (${aspect})`);
               const response = await geminiAi.models.generateContent({
@@ -2845,38 +2847,11 @@ const masterPromptFor = (input: any = {}): string =>
             }
           }
 
-          // Imagen models are NOT chat models — they need `generateImages`.
-          for (const m of ['imagen-3.0-generate-002', 'imagen-4.0-generate-001']) {
-            try {
-              console.log(`[IMAGE GEN LOG] Imagen attempt: ${m}`);
-              const response: any = await (geminiAi.models as any).generateImages({
-                model: m,
-                prompt: styledPrompt,
-                config: { numberOfImages: 1, aspectRatio: aspect }
-              });
-              const generated = response?.generatedImages?.[0]?.image?.imageBytes
-                || response?.generatedImages?.[0]?.imageBytes;
-              if (generated) {
-                console.log(`[IMAGE GEN LOG] Imagen success: ${m}`);
-                return res.json({
-                  imageUrl: `data:image/png;base64,${generated}`,
-                  url: `data:image/png;base64,${generated}`,
-                  provider: "gemini",
-                  model: m
-                });
-              }
-              attempts.push(`${m}: no image bytes`);
-            } catch (modelErr: any) {
-              attempts.push(`${m}: ${modelErr?.message || modelErr}`);
-              console.warn(`[IMAGE GEN LOG] ${m} failed: ${modelErr?.message || modelErr}`);
-            }
-          }
-
           // Honest failure: the client's provider chain decides what comes next.
           // Returning a dead Pollinations URL here used to masquerade as success.
-          console.warn(`[IMAGE GEN LOG] Gemini/Imagen exhausted: ${attempts.join(" | ")}`);
+          console.warn(`[IMAGE GEN LOG] Gemini image models exhausted: ${attempts.join(" | ")}`);
           return res.status(502).json({
-            error: "All Gemini/Imagen image models failed",
+            error: "All Gemini image models failed",
             provider: "gemini",
             configured: true,
             attempts

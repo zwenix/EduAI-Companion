@@ -4,7 +4,7 @@
  * Provider priority (identical on web AND inside the Android APK):
  *   1. FLUX.1-schnell (Hugging Face Inference) — free, open-weights model
  *   2. Pollinations AI                          — keyless, always-on fallback
- *   3. Google Imagen / Gemini                   — secondary, own API key
+ *   3. Google Gemini image models               — secondary, own API key
  *
  * A deliberate provider choice in Settings can make Pollinations or Gemini the
  * first attempt, but the fallback graph below stays fixed and every provider
@@ -164,7 +164,7 @@ export const generateImageGemini = async (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'generate-image',
-        input: { prompt, width, height, model: 'imagen-3' }
+        input: { prompt, width, height }
       })
     });
 
@@ -916,11 +916,11 @@ export const generateImageWithFallback = async (
     } else if (prov === 'gemini') {
       try {
         const role = preferred === 'gemini' ? 'Secondary' : 'Recovery';
-        console.log(`[Image Gen] Attempting Gemini/Imagen (${role})...`);
+        console.log(`[Image Gen] Attempting Gemini image models (${role})...`);
         const imageUrl = await generateImageGemini(styledPrompt, width, height);
-        return { url: imageUrl, provider: 'gemini', prompt: styledPrompt, width, height, model: 'imagen-3' };
+        return { url: imageUrl, provider: 'gemini', prompt: styledPrompt, width, height, model: 'Gemini image' };
       } catch (error: any) {
-        console.warn('[Image Gen] Gemini/Imagen failed; continuing...', error?.message || error);
+        console.warn('[Image Gen] Gemini image models failed; continuing...', error?.message || error);
       }
     } else if (prov === 'pollinations') {
       try {
