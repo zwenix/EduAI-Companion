@@ -2863,14 +2863,17 @@ export default function App() {
                             : 'bg-slate-50 border border-slate-200 text-slate-705 focus:border-orange-500 shadow-sm'
                       }`}
                     >
+                      <option value="perchance">
+                        Perchance Image API v1 (Primary · unlimited, no key)
+                      </option>
                       <option value="flux">
-                        FLUX.1-schnell · Hugging Face (Primary → Pollinations / Imagen fallback)
+                        FLUX.1-schnell · Hugging Face (Fallback → Imagen / Pollinations)
                       </option>
                       <option value="pollinations">
-                        Pollinations AI · FLUX (Keyless → FLUX.1-schnell / Imagen fallback)
+                        Pollinations AI · FLUX (Keyless → Perchance / Imagen fallback)
                       </option>
                       <option value="gemini-imagen">
-                        Google Imagen 3 (Secondary → Pollinations fallback)
+                        Google Imagen 3 (Secondary → Perchance / FLUX fallback)
                       </option>
                     </select>
                   </div>

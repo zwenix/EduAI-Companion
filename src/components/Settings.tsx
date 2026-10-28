@@ -1029,9 +1029,10 @@ export default function Settings({
                          <p className="text-slate-400 text-xs mb-4">Pick your preferred image engine. The selected model is tried first; the others form an automatic fallback chain so a blocked provider never leaves blank placeholders.</p>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {[
-                              { id: 'flux', name: 'FLUX.1-schnell', tag: 'Primary', dotBg: 'bg-emerald-500/20', dotText: 'text-emerald-400', activeBorder: 'border-emerald-500/40 bg-emerald-500/10', desc: 'Free Hugging Face FLUX model · SA-context, crisp text rendering' },
+                              { id: 'perchance', name: 'Perchance Image API', tag: 'Primary', dotBg: 'bg-violet-500/20', dotText: 'text-violet-400', activeBorder: 'border-violet-500/40 bg-violet-500/10', desc: 'Free & unlimited · no API key · Image API v1 (hidden iframe + postMessage)' },
+                              { id: 'flux', name: 'FLUX.1-schnell', tag: 'Fallback', dotBg: 'bg-emerald-500/20', dotText: 'text-emerald-400', activeBorder: 'border-emerald-500/40 bg-emerald-500/10', desc: 'Free Hugging Face FLUX model · SA-context, crisp text rendering' },
+                              { id: 'gemini-imagen', name: 'Google Imagen 3', tag: 'Secondary', dotBg: 'bg-sky-500/20', dotText: 'text-sky-400', activeBorder: 'border-sky-500/40 bg-sky-500/10', desc: 'Google Imagen / Gemini image models · own API key' },
                               { id: 'pollinations', name: 'Pollinations AI', tag: 'Last resort', dotBg: 'bg-pink-500/20', dotText: 'text-pink-400', activeBorder: 'border-pink-500/40 bg-pink-500/10', desc: 'No API key · anonymous tier allows ~1 image every 45 s per IP' },
-                              { id: 'gemini-imagen', name: 'Google Imagen 3', tag: 'Secondary', dotBg: 'bg-sky-500/20', dotText: 'text-sky-400', activeBorder: 'border-sky-500/40 bg-sky-500/10', desc: 'Google Imagen / Gemini image models · Pollinations fallback' },
                             ].map((opt: any) => {
                               const isSel = imageProvider === opt.id;
                               return (
@@ -1056,8 +1057,7 @@ export default function Settings({
                             })}
                          </div>
                          <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
-                            Pollinations' free tier throttles anonymous requests to roughly one image every 45 seconds per IP (it answers <code className="font-mono text-pink-300">402 FREE_LIMIT</code> beyond that). Add a free key from <span className="text-pink-300">enter.pollinations.ai</span> as <code className="font-mono text-pink-300">POLLINATIONS_API_KEY</code> to remove the throttle. Free-tier limits and missing keys no longer leave blank images: the app shows a printable EduAI placeholder instead.{' '}
-                            <strong className="text-emerald-400">FLUX.1-schnell</strong> is served by Hugging Face Inference Providers and needs a free <code className="font-mono text-emerald-300">HUGGINGFACE_API_KEY</code>. When that key is missing the app falls straight through to keyless <strong className="text-pink-400">Pollinations AI</strong>, so illustrations are never left blank.
+                            <strong className="text-violet-400">Perchance Image API</strong> is unlimited and needs no key — your browser generates the image through Perchance's documented Image API v1 (a hidden iframe replies via <code className="font-mono text-violet-300">postMessage</code>). <strong className="text-emerald-400">FLUX.1-schnell</strong> is served by Hugging Face Inference Providers and needs a free <code className="font-mono text-emerald-300">HUGGINGFACE_API_KEY</code>. Pollinations' free tier throttles anonymous requests to roughly one image every 45 seconds per IP (it answers <code className="font-mono text-pink-300">402 FREE_LIMIT</code> beyond that); add a free key from <span className="text-pink-300">enter.pollinations.ai</span> as <code className="font-mono text-pink-300">POLLINATIONS_API_KEY</code> to remove the throttle. Whichever engine is chosen, the others form an automatic fallback chain and free-tier limits never leave blank images: the app shows a printable EduAI placeholder instead.
                          </p>
                       </div>
                    </div>

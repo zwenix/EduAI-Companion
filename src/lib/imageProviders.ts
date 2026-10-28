@@ -2,54 +2,66 @@
  * Image-provider registry — the single source of truth shared by the React
  * client (`src/lib/imageGeneration.ts`) and the Express API (`server.ts`).
  *
- * ENGINES (22 Oct 2026):
- *   1. `flux`         — FLUX.1-schnell via Hugging Face Inference Providers
+ * ENGINES (28 Oct 2026):
+ *   1. `perchance`    — Perchance **Image API v1** (`perchance.org/perchance-ai-api`),
+ *                       the purpose-built cross-origin API: hidden iframe +
+ *                       postMessage, no keys, no CORS, unlimited. Runs entirely
+ *                       in the teacher's browser (see `src/services/perchanceClient.ts`).
+ *   2. `flux`         — FLUX.1-schnell via Hugging Face Inference Providers
  *                       (or Cloudflare Workers AI). Free, Apache-2.0.
- *   2. `gemini`       — Google Imagen / Gemini image models (own key).
- *   3. `pollinations` — keyless, but throttled to ~1 image / 45 s per IP
+ *   3. `gemini`       — Google Imagen / Gemini image models (own key).
+ *   4. `pollinations` — keyless, but throttled to ~1 image / 45 s per IP
  *                       (HTTP 402 `FREE_LIMIT`) unless `POLLINATIONS_API_KEY`
  *                       is set. Always the last resort.
  *
  * RETIRED — aliases only, resolvable but never offered again:
- *   • `perchance` — perchance.org sends `X-Frame-Options: SAMEORIGIN` + a
- *     Cloudflare challenge, so no iframe/postMessage/DOM-driver engine can load.
  *   • `qwen` / `qwen-image` / `nvidia-qwen` — the NVIDIA NIM image slugs
- *     `qwen/qwen-image` and `qwen/qwen-image-2512` both answer 404.
+ *     `qwen/qwen-image` and `qwen/qwen-image-2512` both answer 404. They
+ *     resolve to `flux` so a stale `localStorage` value can never strand a
+ *     teacher on a dead engine.
  *
- * Both resolve to `flux` so a stale `localStorage` value or an old client can
- * never strand a teacher on a dead engine.
+ * HISTORY: `perchance` was retired on 22 Oct 2026 because the OLD bridge
+ * framed the generator pages (`ai-text-to-image-generator`), which send
+ * `X-Frame-Options: SAMEORIGIN` and could never load. It was REINSTATED on
+ * 28 Oct 2026 via the documented Image API v1, which is designed for exactly
+ * this use case. The generator pages stay forbidden — only `perchance-ai-api`
+ * may ever be framed.
  *
  * This module is intentionally dependency-free (no React, no Node APIs) so the
  * browser bundle and the server can import the exact same constants.
  */
 
-export type ImageProviderId = 'flux' | 'pollinations' | 'gemini';
+export type ImageProviderId = 'perchance' | 'flux' | 'pollinations' | 'gemini';
 
 /** Settings value → engine id. `gemini-imagen` is kept for stored settings. */
-export type ImageProviderSetting = 'flux' | 'pollinations' | 'gemini-imagen';
+export type ImageProviderSetting = 'perchance' | 'flux' | 'pollinations' | 'gemini-imagen';
 
-export const DEFAULT_IMAGE_PROVIDER: ImageProviderId = 'flux';
+export const DEFAULT_IMAGE_PROVIDER: ImageProviderId = 'perchance';
 
 export const IMAGE_PROVIDER_PRIORITY: readonly ImageProviderId[] = [
+  'perchance',
   'flux',
   'gemini',
   'pollinations'
 ];
 
 /**
- * Fallback graph — ORDER MATTERS, and it changed on 22 Oct 2026.
+ * Fallback graph — ORDER MATTERS (last revised 28 Oct 2026, when Perchance
+ * Image API v1 rejoined the chain as the default engine).
  *
- * Pollinations is now the LAST resort, not the second engine. Its anonymous
+ * Pollinations stays the LAST resort, not the second engine. Its anonymous
  * tier throttles to "1 image every 45 s per IP" and answers **HTTP 402
  * `{code:"FREE_LIMIT"}`**, so putting it second burned 60+ seconds of retries
- * on a quota that was already spent and pushed a working Gemini engine to the
- * end of the chain. Gemini has a key in every build of this app, so it gets the
- * second slot; Pollinations keeps the guaranteed-keyless slot.
+ * on a quota that was already spent and pushed working engines to the end of
+ * the chain. Perchance (unlimited, keyless) leads; Gemini has a key in every
+ * build of this app and keeps the second slot; Pollinations keeps the
+ * guaranteed-keyless slot.
  */
 export const IMAGE_PROVIDER_FALLBACKS: Record<ImageProviderId, readonly ImageProviderId[]> = {
-  flux: ['gemini', 'pollinations'],
-  gemini: ['flux', 'pollinations'],
-  pollinations: ['gemini', 'flux']
+  perchance: ['flux', 'gemini', 'pollinations'],
+  flux: ['perchance', 'gemini', 'pollinations'],
+  gemini: ['perchance', 'flux', 'pollinations'],
+  pollinations: ['perchance', 'gemini', 'flux']
 };
 
 /**
@@ -75,6 +87,11 @@ export const getImageProviderOrder = (preferred: ImageProviderId): ImageProvider
  * engines. Anything unknown falls back to `flux`.
  */
 export const IMAGE_PROVIDER_ALIASES: Record<string, ImageProviderId> = {
+  // Perchance Image API v1 (browser iframe engine)
+  perchance: 'perchance',
+  'perchance-image-api': 'perchance',
+  'perchance-ai-api': 'perchance',
+
   // FLUX.1-schnell (Hugging Face)
   flux: 'flux',
   'hf-flux': 'flux',
@@ -94,8 +111,7 @@ export const IMAGE_PROVIDER_ALIASES: Record<string, ImageProviderId> = {
   'google-imagen': 'gemini',
   imagen: 'gemini',
 
-  // RETIRED — kept so old settings and cached clients keep working.
-  perchance: 'flux',
+  // RETIRED (22 Oct 2026) — kept so old settings and cached clients keep working.
   qwen: 'flux',
   'qwen-image': 'flux',
   'nvidia-qwen': 'flux',
@@ -159,3 +175,18 @@ export const normaliseFluxSize = (raw?: string | null): string => {
 /** Pollinations model slugs — `flux` for quality, `turbo` for speed. */
 export const POLLINATIONS_MODEL = 'flux';
 export const POLLINATIONS_FALLBACK_MODEL = 'turbo';
+
+/* ── Perchance Image API v1 (browser-only iframe engine) ───────────────────── */
+
+/**
+ * The purpose-built, documented endpoint: "Works from any domain … No keys, no
+ * CORS, no backend. The app loads the API in a hidden iframe and receives the
+ * result via postMessage." The constants live in the shared registry so the
+ * server's `/api/images/status` can describe the engine without importing the
+ * DOM client (`src/services/perchanceClient.ts`).
+ */
+export const PERCHANCE_API_URL = 'https://perchance.org/perchance-ai-api';
+/** Framing mirror documented by Perchance's embed-generator FAQ — automatic fallback host. */
+export const PERCHANCE_EMBED_API_URL = 'https://null.perchance.org/perchance-ai-api';
+/** `event.data.api` marker from the official postMessage contract. */
+export const PERCHANCE_API_MARKER = 'perchance-image-api';

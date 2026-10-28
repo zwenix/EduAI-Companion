@@ -6,9 +6,10 @@ import { AI_PROVIDERS, AIProvider, isLegacyProvider } from '../lib/aiModels';
 export type { AIProvider } from '../lib/aiModels';
 export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
 export type OCRProvider = 'gemini' | 'ocrspace';
-// Image engines. `perchance` and `qwen`/`qwen-image` are RETIRED (see
-// src/lib/imageGeneration.ts) and are migrated on read — never offered again.
-export type ImageProvider = 'flux' | 'pollinations' | 'gemini-imagen';
+// Image engines. `perchance` is the Perchance Image API v1 browser engine
+// (see src/services/perchanceClient.ts). `qwen`/`qwen-image` are RETIRED and
+// migrate on read — never offered again.
+export type ImageProvider = 'perchance' | 'flux' | 'pollinations' | 'gemini-imagen';
 
 interface AiContextType {
   provider: AIProvider;
@@ -26,11 +27,10 @@ const AiContext = createContext<AiContextType | undefined>(undefined);
 const VALID_PROVIDERS: readonly AIProvider[] = AI_PROVIDERS;
 const VALID_TTS: TTSProvider[] = ['browser', 'groq-whisper', 'huggingface', 'google-tts'];
 const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace'];
-const VALID_IMAGE: ImageProvider[] = ['flux', 'pollinations', 'gemini-imagen'];
-// Stored values from retired engines. `flux` (FLUX.1-schnell on Hugging Face)
-// is the free replacement for both Perchance and Qwen-Image.
+const VALID_IMAGE: ImageProvider[] = ['perchance', 'flux', 'pollinations', 'gemini-imagen'];
+// Stored values from retired/renamed engines. `flux` (FLUX.1-schnell on Hugging
+// Face) is the free replacement for the retired Qwen-Image.
 const LEGACY_IMAGE_PROVIDERS: Record<string, ImageProvider> = {
-  perchance: 'flux',
   qwen: 'flux',
   'qwen-image': 'flux',
   'nvidia-qwen': 'flux',
@@ -79,9 +79,10 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   const [imageProvider, setImageProvider] = useState<ImageProvider>(() => {
-    // FLUX.1-schnell (Hugging Face) is the primary engine on every platform;
-    // Pollinations stays the keyless fallback and Imagen the secondary choice.
-    const fallback: ImageProvider = 'flux';
+    // Perchance Image API v1 is the primary engine on every platform
+    // (unlimited, keyless); FLUX.1-schnell, Imagen and keyless Pollinations
+    // form the automatic fallback chain.
+    const fallback: ImageProvider = 'perchance';
     try {
       const saved = localStorage.getItem('eduai_image_provider');
       if (!saved) return fallback;

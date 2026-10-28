@@ -438,7 +438,8 @@ Content is generated as **HTML styled with Tailwind classes**, not Markdown. Tru
 
 - **Priority**: FLUX.1-schnell (free: Hugging Face `black-forest-labs/FLUX.1-schnell` → Cloudflare Workers AI `@cf/black-forest-labs/flux-1-schnell`) → Gemini image models / Imagen → Pollinations (keyless last resort, ~1 image / 45 s per IP) → inline SVG placeholder (never a broken `<img>`) (`gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`, `imagen-3.0-generate-002`).
 - Placement-aware sizes (`header`, `inline`, `full_width`, `sidebar`) are defined in `FLUX_CONFIG`; batch generation runs with concurrency 2 and a 2-second pause between batches.
-- **Retired 22 Oct 2026**: Perchance (the site now sends `X-Frame-Options: SAMEORIGIN` plus a Cloudflare challenge, so no iframe can load) and Qwen-Image on NVIDIA NIM (`qwen/qwen-image` and `qwen/qwen-image-2512` both 404). Their ids remain aliases that resolve to FLUX.
+- **Reinstated 28 Oct 2026**: Perchance, via its purpose-built **Image API v1** (`perchance.org/perchance-ai-api` — hidden iframe + postMessage, no keys, no CORS, unlimited). The old generator-page bridge stays dead (`ai-text-to-image-generator` sends `X-Frame-Options: SAMEORIGIN`); only the API endpoint may be framed, and nothing server-side may fetch perchance.org. Browser-only engine in `src/services/perchanceClient.ts`.
+- **Retired 22 Oct 2026**: Qwen-Image on NVIDIA NIM (`qwen/qwen-image` and `qwen/qwen-image-2512` both 404). Its id remains an alias that resolves to FLUX.
 - `enhancePromptForSA()` injects rainbow-nation diversity, SA landmarks/flora, flag accents and a 300 DPI, no-text, no-watermark requirement.
 - `/api/image-proxy` exists so `<img>` tags can render provider URLs that would otherwise be blocked client-side.
 

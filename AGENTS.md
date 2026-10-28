@@ -442,18 +442,32 @@ explicit user instructions.
   report: it lists configured engines and probes every upstream host, surfacing
   undici's real cause (`ENOTFOUND`, `ECONNRESET`, …) instead of `fetch failed`.
 * **Retired engines (22 Oct 2026) — do not reintroduce:**
-  * **Perchance**: perchance.org answers `X-Frame-Options: SAMEORIGIN` plus a
-    Cloudflare challenge, so the hidden-iframe/postMessage/DOM-driver engine can
-    never load. No iframe image generator may be added anywhere. Perchance also
-    has **no public REST API**: its AI plugins are deliberately same-origin only
-    (ads cannot be shown in an embed), bare HTTP requests 403 at Cloudflare, and
-    so neither a `fetch()` to `perchance.org` nor a "browser-like" Worker proxy
-    can generate an image. Do not attempt either.
   * **Qwen-Image on NVIDIA NIM**: `qwen/qwen-image` *and*
     `qwen/qwen-image-2512` answer `404 page not found` at the gateway.
-  * `perchance`, `qwen`, `qwen-image` and `nvidia-qwen` survive only as
-    *aliases* that resolve to FLUX (client `normaliseImageProviderId()`,
-    server `IMAGE_PROVIDER_ALIASES`) so stale saved settings keep working.
+  * `qwen`, `qwen-image` and `nvidia-qwen` survive only as *aliases* that
+    resolve to FLUX (client `normaliseImageProviderId()`, server
+    `IMAGE_PROVIDER_ALIASES`) so stale saved settings keep working.
+* **Perchance (reinstated 28 Oct 2026) — Image API v1 only.** The engine
+  speaks Perchance's purpose-built, documented **Image API v1** at
+  `https://perchance.org/perchance-ai-api`: "Works from any domain … No keys,
+  no CORS, no backend. The app loads the API in a hidden iframe and receives
+  the result via postMessage." Unlimited, no rate limits. Implementation:
+  `src/services/perchanceClient.ts` (warm-up iframe once per session, one
+  hidden iframe per image, reply matched by request id and Perchance origin,
+  permanent `user.uploads.dev` URLs cached, max 2 concurrent, 60 s timeout,
+  embed-mirror failover to `null.perchance.org`, circuit breaker benches the
+  engine after 2 consecutive failures for 10 min). Rules that are enforced by
+  `tests/image-providers.test.ts`:
+  * ONLY `perchance-ai-api` may ever be framed. The generator pages
+    (`ai-text-to-image-generator`, `ai-images-generator`) send
+    `X-Frame-Options: SAMEORIGIN` and can never load — that dead bridge must
+    not come back.
+  * Never `fetch()` `perchance.org` from any layer (client or server): bare
+    HTTP is answered by a Cloudflare 403. The hidden iframe IS the transport.
+  * The engine is browser-only; server-side callers that ask for `perchance`
+    are routed to FLUX (`/api/images/generate`).
+  * Always send `PERCHANCE_NEGATIVE_PROMPT` (child-safety floor for a school
+    product); callers may extend it, never replace it.
 * The image **model list is frozen** — FLUX.1-schnell, Pollinations `flux`
   and the three Gemini image models are the approved image models. Changing
   them is a separate, explicit decision (`tests/image-providers.test.ts`

@@ -2,25 +2,38 @@
  * EduAI Companion — Multi-Provider Image Generation System
  *
  * Provider priority (identical on web AND inside the Android APK):
- *   1. FLUX.1-schnell (Hugging Face Inference) — free, open-weights model
- *   2. Pollinations AI                          — keyless, always-on fallback
- *   3. Google Imagen / Gemini                   — secondary, own API key
+ *   1. Perchance Image API v1 — unlimited, keyless, browser-side
+ *      (hidden iframe + postMessage; `src/services/perchanceClient.ts`)
+ *   2. FLUX.1-schnell (Hugging Face Inference) — free, open-weights model
+ *   3. Google Imagen / Gemini                  — secondary, own API key
+ *   4. Pollinations AI                          — keyless, always-on fallback
  *
- * A deliberate provider choice in Settings can make Pollinations or Gemini the
- * first attempt, but the fallback graph below stays fixed and every provider
- * stays reachable.
+ * A deliberate provider choice in Settings can make FLUX, Pollinations or
+ * Gemini the first attempt, but the fallback graph below stays fixed and every
+ * provider stays reachable.
  *
- * REMOVED (22 Oct 2026):
- *   • Perchance — perchance.org now sends `X-Frame-Options: SAMEORIGIN` and
- *     serves a Cloudflare challenge, so the hidden-iframe engine can never
- *     load. Any iframe/postMessage/DOM-driver approach is dead by design.
- *   • Qwen-Image on NVIDIA NIM — `qwen/qwen-image` and `qwen/qwen-image-2512`
- *     both 404 at the NVIDIA gateway. FLUX.1-schnell replaces it: it is a
- *     free, Apache-2.0, text-to-image model that renders the bright 3D
- *     children's-book style this app asks for.
+ * PERCHANCE (reinstated 28 Oct 2026): the engine now speaks Perchance's
+ * purpose-built **Image API v1** (`perchance.org/perchance-ai-api`) — designed
+ * for consumption from any site via a hidden iframe + postMessage, no keys, no
+ * CORS, no backend. The OLD bridge that framed the generator pages
+ * (`ai-text-to-image-generator`) remains dead and forbidden: those pages send
+ * `X-Frame-Options: SAMEORIGIN` and could never load (that is why the engine
+ * was briefly retired on 22 Oct 2026).
+ *
+ * Qwen-Image on NVIDIA NIM stays retired: `qwen/qwen-image` and
+ * `qwen/qwen-image-2512` both 404 at the NVIDIA gateway. FLUX.1-schnell
+ * replaces it: free, Apache-2.0, and it renders the bright 3D children's-book
+ * style this app asks for.
  */
 
 import { callGeminiClientDirect } from '../services/geminiClient';
+import {
+  generatePerchanceImageClient,
+  isPerchanceBenching,
+  isPerchanceRuntimeAvailable,
+  resetPerchanceClient,
+  warmUpPerchance
+} from '../services/perchanceClient';
 import { isNativeApp } from './platform';
 import { AI_SECRETS } from './aiSecrets';
 import {
@@ -46,6 +59,9 @@ export {
   IMAGE_PROVIDER_ALIASES,
   IMAGE_PROVIDER_FALLBACKS,
   IMAGE_PROVIDER_PRIORITY,
+  PERCHANCE_API_MARKER,
+  PERCHANCE_API_URL,
+  PERCHANCE_EMBED_API_URL,
   POLLINATIONS_FALLBACK_MODEL,
   POLLINATIONS_MODEL,
   getImageProviderOrder,
@@ -56,13 +72,17 @@ export {
   type ImageProviderSetting
 } from './imageProviders';
 
+// Perchance Image API v1 client state — re-exported so tests and debug tools
+// can reset/bench-check the browser-only engine through this module.
+export { isPerchanceAvailable, isPerchanceBenching, resetPerchanceClient, warmUpPerchance } from '../services/perchanceClient';
+
 export interface ImageGenerationResult {
   url: string;
   /**
    * `placeholder` means every engine was unavailable and `url` is a self-
    * contained SVG — still a real, renderable image, never a broken link.
    */
-  provider: 'flux' | 'gemini' | 'pollinations' | 'placeholder';
+  provider: 'perchance' | 'flux' | 'gemini' | 'pollinations' | 'placeholder';
   prompt: string;
   width: number;
   height: number;
@@ -181,6 +201,44 @@ export const generateImageGemini = async (
     }
     throw error;
   }
+};
+
+/* ── Perchance Image API v1 (browser iframe + postMessage) ─────────────────── */
+
+/**
+ * Generates through Perchance's documented Image API v1. Browser-only (the
+ * teacher's WebView runs the generation — "on the caller's quota"), unlimited
+ * and keyless. Rejects on any failure/timeout so the chain moves on.
+ */
+export const generateImagePerchance = async (
+  prompt: string,
+  width: number = 1024,
+  height: number = 1024,
+  options: {
+    grade?: string;
+    subject?: string;
+    saContext?: boolean;
+    seed?: number;
+    negativePrompt?: string;
+  } = {}
+): Promise<string> => {
+  if (!isPerchanceRuntimeAvailable()) {
+    throw providerUnavailable('Perchance Image API runs in the browser only');
+  }
+  if (isPerchanceBenching()) {
+    throw providerUnavailable('Perchance Image API benched after repeated failures');
+  }
+
+  const { grade, subject, saContext = true, seed, negativePrompt } = options;
+  // Same SA treatment as FLUX. Trimmed to a URL-friendly budget: the request
+  // travels as a query string on the framed API page.
+  const enhanced = saContext ? enhancePromptForSA(prompt, grade, subject) : prompt;
+  const trimmed = enhanced.length > 700 ? `${enhanced.slice(0, 697).trimEnd()}...` : enhanced;
+
+  console.log(
+    `[Image Gen] Perchance Image API v1 request: "${trimmed.substring(0, 60)}..." | ${width}x${height}`
+  );
+  return generatePerchanceImageClient(trimmed, width, height, seed, undefined, negativePrompt);
 };
 
 /* ── FLUX.1-schnell (Hugging Face) ─────────────────────────────────────────── */
@@ -824,7 +882,41 @@ export const generateImageWithFallback = async (
   );
 
   for (const prov of order) {
-    if (prov === 'flux') {
+    if (prov === 'perchance') {
+      if (!isPerchanceRuntimeAvailable()) {
+        console.log('[Image Gen] Perchance Image API needs a browser runtime; skipping.');
+        continue;
+      }
+      if (isPerchanceBenching()) {
+        console.log('[Image Gen] Perchance Image API is benched after repeated failures; skipping.');
+        continue;
+      }
+      try {
+        const role = preferred === 'perchance' ? 'Primary' : 'Fallback';
+        console.log(`[Image Gen] Attempting Perchance Image API v1 (${role}) — SA-enhanced...`);
+        const imageUrl = await generateImagePerchance(styledPrompt, width, height, {
+          grade,
+          subject,
+          saContext,
+          seed: options.seed !== undefined ? seed : undefined
+        });
+        return {
+          url: imageUrl,
+          provider: 'perchance',
+          prompt: styledPrompt,
+          width,
+          height,
+          model: 'Perchance Image API v1',
+          enhancedPrompt: saContext ? enhancePromptForSA(styledPrompt, grade, subject) : styledPrompt
+        };
+      } catch (error: any) {
+        if (error?.providerUnavailable) {
+          console.warn('[Image Gen] Perchance Image API unavailable; continuing...', error?.message || error);
+        } else {
+          console.warn('[Image Gen] Perchance Image API failed; continuing...', error?.message || error);
+        }
+      }
+    } else if (prov === 'flux') {
       if (fluxDisabledForSession) {
         console.log('[Image Gen] FLUX.1-schnell is unavailable in this session; skipping.');
         continue;
@@ -933,6 +1025,7 @@ export default {
   generateImageWithFallback,
   generateImageGemini,
   generateImageFlux,
+  generateImagePerchance,
   generateImagePollinations,
   buildPlaceholderImageUrl,
   generateAllEducationalImages,
@@ -942,5 +1035,7 @@ export default {
   buildDirectImageUrl,
   buildPollinationsUrl,
   buildApiUrl,
+  resetPerchanceClient,
+  warmUpPerchance,
   FLUX_CONFIG
 };

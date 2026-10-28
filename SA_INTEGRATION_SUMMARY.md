@@ -41,7 +41,7 @@
 - **SA Enhancer:** `enhancePromptForSA()` — rainbow nation, Table Mountain/Kruger/protea, diverse SA learners, 300 DPI, Disney 3D style
 - **Generation:** `generateImageFlux()` — backend proxy `/api/images/flux-generate` (Hugging Face Inference Providers → Cloudflare Workers AI) + direct HF router call in the APK
 - **Batch:** `generateAllEducationalImages()` — walks the full provider graph, concurrency 2, 2s pause (from doc, safer than 3)
-- **Priority:** flux (FLUX.1-schnell, primary) → pollinations (keyless) → gemini (secondary). Perchance and Qwen-Image are retired.
+- **Priority:** perchance (Perchance Image API v1, primary — unlimited, keyless) → flux (FLUX.1-schnell) → gemini (secondary) → pollinations (keyless, last resort). Qwen-Image is retired.
 - **Options Extended:** `grade`, `subject`, `saContext`, `placement` header/inline/full_width/sidebar
 
 ### 5. Assemblers (`src/lib/assemblers/`)
@@ -82,7 +82,7 @@
   - Returns content + compliance report + compliance flags
 
 ### 10. AI Context (`src/contexts/AiContext.tsx`)
-- **ImageProvider:** `'flux' | 'pollinations' | 'gemini-imagen'`; `perchance`, `qwen` and `qwen-image` migrate to `flux` on read
+- **ImageProvider:** `'perchance' | 'flux' | 'pollinations' | 'gemini-imagen'`; `qwen` and `qwen-image` migrate to `flux` on read
 - **Default:** FLUX.1-schnell (Hugging Face), with keyless Pollinations as the guaranteed fallback
 
 ### 11. Unified AI Service (`src/services/unifiedAiService.ts`)
@@ -91,7 +91,7 @@
 ## 🔄 Duplicate Resolution Strategy
 - **App Structure Kept Same:** No breaking changes to existing ContentCreator, Visual Lab, Admin Lab, Video Lab
 - **Best Implementation Chosen:** 
-  - Image gen: FLUX.1-schnell (Hugging Face) primary → Pollinations (keyless) → Gemini; Perchance and Qwen-Image retired on 22 Oct 2026
+  - Image gen: Perchance Image API v1 (primary, unlimited) → FLUX.1-schnell → Pollinations (keyless) → Gemini; Qwen-Image retired on 22 Oct 2026, Perchance reinstated via Image API v1 on 28 Oct 2026
   - PDF/DOCX: New assemblers use dynamic imports to avoid client bundling issues, fallback to existing html2pdf
   - Prompts: Merged doc's SA compliance into existing master-prompt and prompt-engine (not replaced)
   - Templates: New SA templates are additive, existing ContentCreator HTML still works
