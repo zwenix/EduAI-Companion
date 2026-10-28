@@ -539,9 +539,20 @@ export const SA_BASE_CSS = `
   @media print {
     body { padding: 0; background: white; }
     .page { width: 100%; padding: 10mm 15mm; min-height: auto; margin: 0; box-shadow: none; }
-    .section { page-break-inside: avoid; box-shadow: none; }
+    /* PAGINATION FIX - a .section routinely exceeds one printed page (a
+       20-question activity, a whole lesson plan). The base rule above says
+       page-break-inside: avoid together with overflow: hidden, so browsers
+       either clipped the section or pushed it onto a blank sheet, and the
+       PDF / DOCX / HTML export came out as page 1 followed by blanks.
+       Sections must flow across pages; only genuinely small blocks stay
+       atomic. This mirrors the fix already applied to the .card rule in
+       src/lib/contentTemplate.ts. */
+    .section { page-break-inside: auto; break-inside: auto; overflow: visible; box-shadow: none; }
     .no-print { display: none; }
-    .section-heading { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    /* Keep a heading with the content it introduces - no orphaned headings. */
+    .section-heading { page-break-after: avoid; break-after: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    /* Small blocks must not split mid-row or mid-item across a page boundary. */
+    tr, li { page-break-inside: avoid; break-inside: avoid; }
     /* The single document banner keeps its two-colour gradient on paper. */
     .eduai-compliance-banner { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }

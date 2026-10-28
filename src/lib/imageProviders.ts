@@ -2,36 +2,62 @@
  * Image-provider registry — the single source of truth shared by the React
  * client (`src/lib/imageGeneration.ts`) and the Express API (`server.ts`).
  *
- * ENGINES (22 Oct 2026):
+ * ENGINES:
  *   1. `flux`         — FLUX.1-schnell via Hugging Face Inference Providers
- *                       (or Cloudflare Workers AI). Free, Apache-2.0.
- *   2. `gemini`       — Google Imagen / Gemini image models (own key).
- *   3. `pollinations` — keyless, but throttled to ~1 image / 45 s per IP
+ *                       (or Cloudflare Workers AI). Free, Apache-2.0. DEFAULT.
+ *   2. `perchance`    — Perchance Image API v1. Free and unmetered, but
+ *                       BROWSER-ONLY (see `BROWSER_ONLY_IMAGE_PROVIDERS`) and
+ *                       capped at 768 px. Re-added 25 Oct 2026 against the
+ *                       real documented protocol; see
+ *                       `src/services/perchanceImageApi.ts` for why the earlier
+ *                       integration could never load.
+ *   3. `gemini`       — Google Gemini image models (own key).
+ *   4. `pollinations` — keyless, but throttled to ~1 image / 45 s per IP
  *                       (HTTP 402 `FREE_LIMIT`) unless `POLLINATIONS_API_KEY`
  *                       is set. Always the last resort.
  *
  * RETIRED — aliases only, resolvable but never offered again:
- *   • `perchance` — perchance.org sends `X-Frame-Options: SAMEORIGIN` + a
- *     Cloudflare challenge, so no iframe/postMessage/DOM-driver engine can load.
  *   • `qwen` / `qwen-image` / `nvidia-qwen` — the NVIDIA NIM image slugs
  *     `qwen/qwen-image` and `qwen/qwen-image-2512` both answer 404.
  *
- * Both resolve to `flux` so a stale `localStorage` value or an old client can
- * never strand a teacher on a dead engine.
+ * Retired ids resolve to `flux` so a stale `localStorage` value or an old
+ * client can never strand a teacher on a dead engine.
  *
  * This module is intentionally dependency-free (no React, no Node APIs) so the
  * browser bundle and the server can import the exact same constants.
  */
 
-export type ImageProviderId = 'flux' | 'pollinations' | 'gemini';
+export type ImageProviderId = 'flux' | 'perchance' | 'gemini' | 'pollinations';
 
 /** Settings value → engine id. `gemini-imagen` is kept for stored settings. */
-export type ImageProviderSetting = 'flux' | 'pollinations' | 'gemini-imagen';
+export type ImageProviderSetting = 'flux' | 'perchance' | 'pollinations' | 'gemini-imagen';
 
+/**
+ * FLUX stays the default. Perchance is a free, unmetered engine but it depends
+ * on a third-party iframe that Cloudflare can challenge at any time, so it is
+ * an opt-in choice and a fallback rather than the first attempt.
+ */
 export const DEFAULT_IMAGE_PROVIDER: ImageProviderId = 'flux';
+
+/**
+ * Engines that can ONLY run in a browser. Perchance generates inside the
+ * caller's own frame ("it happens on the caller's quota, not yours"), so no
+ * Express route can serve it. `serverSideImageProvider()` maps these onto the
+ * best server-side engine so a client that asks the API for `perchance` still
+ * gets an image instead of a 400.
+ */
+export const BROWSER_ONLY_IMAGE_PROVIDERS: readonly ImageProviderId[] = ['perchance'];
+
+export const isBrowserOnlyImageProvider = (id: string): boolean =>
+  BROWSER_ONLY_IMAGE_PROVIDERS.includes(id as ImageProviderId);
+
+/** Browser-only engine → the engine the Express API should use instead. */
+export const serverSideImageProvider = (id: ImageProviderId): ImageProviderId =>
+  isBrowserOnlyImageProvider(id) ? DEFAULT_IMAGE_PROVIDER : id;
 
 export const IMAGE_PROVIDER_PRIORITY: readonly ImageProviderId[] = [
   'flux',
+  'perchance',
   'gemini',
   'pollinations'
 ];
@@ -39,17 +65,25 @@ export const IMAGE_PROVIDER_PRIORITY: readonly ImageProviderId[] = [
 /**
  * Fallback graph — ORDER MATTERS, and it changed on 22 Oct 2026.
  *
- * Pollinations is now the LAST resort, not the second engine. Its anonymous
- * tier throttles to "1 image every 45 s per IP" and answers **HTTP 402
+ * Pollinations is the LAST resort, not the second engine. Its anonymous tier
+ * throttles to "1 image every 45 s per IP" and answers **HTTP 402
  * `{code:"FREE_LIMIT"}`**, so putting it second burned 60+ seconds of retries
- * on a quota that was already spent and pushed a working Gemini engine to the
- * end of the chain. Gemini has a key in every build of this app, so it gets the
- * second slot; Pollinations keeps the guaranteed-keyless slot.
+ * on a quota that was already spent.
+ *
+ * Perchance sits second: it is free and unmetered, and unlike Gemini (whose
+ * image models have no free API tier) it needs no key at all. Gemini keeps the
+ * third slot for deployments that do pay for it; Pollinations keeps the
+ * guaranteed-keyless slot so a deployment with zero configuration still
+ * renders images.
+ *
+ * Every chain must list all four engines exactly once and must end with a
+ * keyless provider — `tests/image-providers.test.ts` asserts both.
  */
 export const IMAGE_PROVIDER_FALLBACKS: Record<ImageProviderId, readonly ImageProviderId[]> = {
-  flux: ['gemini', 'pollinations'],
-  gemini: ['flux', 'pollinations'],
-  pollinations: ['gemini', 'flux']
+  flux: ['perchance', 'gemini', 'pollinations'],
+  perchance: ['flux', 'gemini', 'pollinations'],
+  gemini: ['flux', 'perchance', 'pollinations'],
+  pollinations: ['gemini', 'flux', 'perchance']
 };
 
 /**
@@ -88,14 +122,20 @@ export const IMAGE_PROVIDER_ALIASES: Record<string, ImageProviderId> = {
   'pollinations-turbo': 'pollinations',
   turbo: 'pollinations',
 
-  // Google Imagen / Gemini image models
+  // Google Gemini image models. `gemini-imagen` / `google-imagen` / `imagen`
+  // are STORED-SETTINGS ids, kept so saved preferences keep resolving; no
+  // Imagen model is called any more (see GEMINI_IMAGE_MODELS).
   gemini: 'gemini',
   'gemini-imagen': 'gemini',
   'google-imagen': 'gemini',
   imagen: 'gemini',
 
+  // Perchance Image API v1 (browser-only) — re-added 25 Oct 2026.
+  perchance: 'perchance',
+  'perchance-ai': 'perchance',
+  'perchance-image-api': 'perchance',
+
   // RETIRED — kept so old settings and cached clients keep working.
-  perchance: 'flux',
   qwen: 'flux',
   'qwen-image': 'flux',
   'nvidia-qwen': 'flux',
@@ -157,5 +197,47 @@ export const normaliseFluxSize = (raw?: string | null): string => {
 };
 
 /** Pollinations model slugs — `flux` for quality, `turbo` for speed. */
+/**
+ * Gemini image models, in attempt order. Shared by `server.ts` and
+ * `src/services/geminiClient.ts` so the two lists can never diverge again —
+ * they had already drifted, and the drift is what hid the dead ids below.
+ *
+ * Status from Google's own deprecations table
+ * (ai.google.dev/gemini-api/docs/deprecations, checked 25 Oct 2026):
+ *
+ *   gemini-nano-banana-2.1        GA  6 Oct 2026   no shutdown date   <- current
+ *   gemini-3.1-flash-lite-image   GA 30 Jun 2026   no shutdown date
+ *   gemini-3.1-flash-image        GA 28 May 2026   no shutdown date   (deprecated;
+ *                                                    replacement = nano-banana-2.1)
+ *   gemini-2.5-flash-image        GA  2 Oct 2025   shuts down 15 Mar 2027
+ *
+ * All four answer `generateContent` with an `inlineData` part, so one loop
+ * covers them. Nano Banana 2.1 leads: it is Google's current recommendation,
+ * costs roughly half of 3.1-flash-image per 1K image, and renders legible text
+ * better — which matters for worksheet illustrations. The deprecated
+ * 3.1-flash-image is kept as a bridge, because Google announced NO shutdown
+ * date for it (a launch-day note citing 29 Oct 2026 was withdrawn the next
+ * day), and the long-lived 2.5 id stays last so a renamed 3.x alias cannot take
+ * the whole engine down.
+ *
+ * IMAGEN IS GONE, deliberately. Every Imagen id Google shipped on the Developer
+ * API has passed its shutdown date: `imagen-3.0-generate-002` (10 Nov 2025) and
+ * all three `imagen-4.0-*` ids (17 Aug 2026). Google names
+ * `gemini-nano-banana-2.1` as the replacement for every one of them — a
+ * `generateContent` model already covered above — so the separate
+ * `generateImages` loop was deleted rather than repopulated. It was making two
+ * guaranteed-failing API calls on every Gemini-keyed image request. Do not add
+ * an Imagen id back without re-reading that table.
+ *
+ * These are DEVELOPER API ids (GEMINI_API_KEY), which is what this app uses.
+ * Vertex AI runs a different, later retirement schedule.
+ */
+export const GEMINI_IMAGE_MODELS: readonly string[] = [
+  'gemini-nano-banana-2.1',
+  'gemini-3.1-flash-lite-image',
+  'gemini-3.1-flash-image',
+  'gemini-2.5-flash-image',
+];
+
 export const POLLINATIONS_MODEL = 'flux';
 export const POLLINATIONS_FALLBACK_MODEL = 'turbo';

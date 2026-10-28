@@ -353,6 +353,36 @@ describe('SA pipeline — the same ONE-banner contract for structured documents'
       expect(rule, `${band} must use a 180deg gradient`).toMatch(/linear-gradient\(180deg/i);
     }
   });
+
+  it('lets a long section flow across print pages (no page-1-only / blank-page export)', async () => {
+    const { SA_BASE_CSS } = await import('../src/lib/templates/sa-html-templates');
+
+    // Scope every assertion to the print block: the BASE .section rule keeps
+    // page-break-inside: avoid on screen (with overflow: hidden) so the rounded
+    // corners still clip the heading gradient. Only print must release it.
+    const start = SA_BASE_CSS.indexOf('@media print');
+    expect(start, 'SA_BASE_CSS must ship an @media print block').toBeGreaterThan(-1);
+    const rest = SA_BASE_CSS.slice(start);
+    const nextMedia = rest.indexOf('@media', 1);
+    const printBlock = nextMedia > 0 ? rest.slice(0, nextMedia) : rest;
+
+    const sectionRule = /\.section\s*\{[^}]*\}/i.exec(printBlock)?.[0] ?? '';
+    expect(sectionRule, 'the print block must restyle .section').not.toBe('');
+    // A section routinely exceeds one printed page (a 20-question activity, a
+    // whole lesson plan). "avoid" + overflow:hidden clipped it or pushed it
+    // onto a blank sheet, so PDF/DOCX/HTML exports came out as page 1 only.
+    expect(sectionRule).toMatch(/page-break-inside:\s*auto/i);
+    expect(sectionRule).toMatch(/break-inside:\s*auto/i);
+    expect(sectionRule).toMatch(/overflow:\s*visible/i);
+    expect(sectionRule).not.toMatch(/page-break-inside:\s*avoid/i);
+
+    // A heading must never be orphaned at the foot of a page.
+    const headingRule = /\.section-heading\s*\{[^}]*\}/i.exec(printBlock)?.[0] ?? '';
+    expect(headingRule, 'the print block must restyle .section-heading').not.toBe('');
+    expect(headingRule).toMatch(/break-after:\s*avoid/i);
+    // The heading gradient must still print (browsers drop backgrounds otherwise).
+    expect(headingRule).toMatch(/print-color-adjust:\s*exact/i);
+  });
 });
 
 describe('banner palettes — a bright two-colour gradient per content type', () => {

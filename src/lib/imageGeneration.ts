@@ -4,7 +4,7 @@
  * Provider priority (identical on web AND inside the Android APK):
  *   1. FLUX.1-schnell (Hugging Face Inference) — free, open-weights model
  *   2. Pollinations AI                          — keyless, always-on fallback
- *   3. Google Imagen / Gemini                   — secondary, own API key
+ *   3. Google Gemini image models               — secondary, own API key
  *
  * A deliberate provider choice in Settings can make Pollinations or Gemini the
  * first attempt, but the fallback graph below stays fixed and every provider
@@ -41,9 +41,12 @@ import {
 // The provider registry lives in `./imageProviders` so the Express API and the
 // React client share one table. Re-exported here for existing imports.
 export {
+  BROWSER_ONLY_IMAGE_PROVIDERS,
   DEFAULT_IMAGE_PROVIDER,
   FLUX_CONFIG,
   IMAGE_PROVIDER_ALIASES,
+  isBrowserOnlyImageProvider,
+  serverSideImageProvider,
   IMAGE_PROVIDER_FALLBACKS,
   IMAGE_PROVIDER_PRIORITY,
   POLLINATIONS_FALLBACK_MODEL,
@@ -56,13 +59,19 @@ export {
   type ImageProviderSetting
 } from './imageProviders';
 
+import {
+  generatePerchanceImage,
+  isPerchanceAvailable,
+  nearestPerchanceResolution
+} from '../services/perchanceImageApi';
+
 export interface ImageGenerationResult {
   url: string;
   /**
    * `placeholder` means every engine was unavailable and `url` is a self-
    * contained SVG — still a real, renderable image, never a broken link.
    */
-  provider: 'flux' | 'gemini' | 'pollinations' | 'placeholder';
+  provider: 'flux' | 'perchance' | 'gemini' | 'pollinations' | 'placeholder';
   prompt: string;
   width: number;
   height: number;
@@ -155,7 +164,7 @@ export const generateImageGemini = async (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'generate-image',
-        input: { prompt, width, height, model: 'imagen-3' }
+        input: { prompt, width, height }
       })
     });
 
@@ -797,6 +806,34 @@ export async function generateAllEducationalImages(
 
 /* ── Provider chain ────────────────────────────────────────────────────────── */
 
+/**
+ * Perchance Image API v1 — free and unmetered, but BROWSER-ONLY: Perchance runs
+ * the generation inside the caller's own hidden iframe ("it happens on the
+ * caller's quota, not yours"), so no Express route can serve it. `server.ts`
+ * maps a `perchance` request onto FLUX via `serverSideImageProvider()`.
+ *
+ * Returns a self-contained `data:` URL whenever Perchance supplies one, which
+ * matters for PDF export: a cross-origin `user.uploads.dev` URL can taint the
+ * canvas html2canvas renders, a data URL cannot.
+ *
+ * Resolution is capped at 768 px by the API — `nearestPerchanceResolution()`
+ * maps the requested box onto the closest accepted preset.
+ */
+export const generateImagePerchance = async (
+  prompt: string,
+  width: number = 1024,
+  height: number = 1024,
+  seed?: number
+): Promise<{ url: string; resolution: string; isDataUrl: boolean }> => {
+  if (!isPerchanceAvailable()) {
+    throw new Error('Perchance is unavailable for this session');
+  }
+  const result = await generatePerchanceImage({ prompt, width, height, seed });
+  return { url: result.url, resolution: result.resolution, isDataUrl: result.isDataUrl };
+};
+
+export { nearestPerchanceResolution };
+
 export const generateImageWithFallback = async (
   options: ImageGenerationOptions
 ): Promise<ImageGenerationResult> => {
@@ -853,14 +890,37 @@ export const generateImageWithFallback = async (
         }
         console.warn('[Image Gen] FLUX.1-schnell failed; continuing...', error?.message || error);
       }
+    } else if (prov === 'perchance') {
+      // Browser-only. During SSR / on the server there is no frame to run in,
+      // and once the session memo trips we must not keep paying its timeout.
+      if (typeof window === 'undefined' || !isPerchanceAvailable()) {
+        console.log('[Image Gen] Perchance is unavailable here; skipping.');
+        continue;
+      }
+      try {
+        const role = preferred === 'perchance' ? 'Primary' : 'Fallback';
+        console.log(`[Image Gen] Attempting Perchance Image API (${role})...`);
+        const result = await generateImagePerchance(styledPrompt, width, height, seed);
+        return {
+          url: result.url,
+          provider: 'perchance',
+          prompt: styledPrompt,
+          width,
+          height,
+          model: `Perchance Image API · ${result.resolution}${result.isDataUrl ? ' · inline' : ''}`,
+          enhancedPrompt: saContext ? enhancePromptForSA(styledPrompt, grade, subject) : styledPrompt
+        };
+      } catch (error: any) {
+        console.warn('[Image Gen] Perchance failed; continuing...', error?.message || error);
+      }
     } else if (prov === 'gemini') {
       try {
         const role = preferred === 'gemini' ? 'Secondary' : 'Recovery';
-        console.log(`[Image Gen] Attempting Gemini/Imagen (${role})...`);
+        console.log(`[Image Gen] Attempting Gemini image models (${role})...`);
         const imageUrl = await generateImageGemini(styledPrompt, width, height);
-        return { url: imageUrl, provider: 'gemini', prompt: styledPrompt, width, height, model: 'imagen-3' };
+        return { url: imageUrl, provider: 'gemini', prompt: styledPrompt, width, height, model: 'Gemini image' };
       } catch (error: any) {
-        console.warn('[Image Gen] Gemini/Imagen failed; continuing...', error?.message || error);
+        console.warn('[Image Gen] Gemini image models failed; continuing...', error?.message || error);
       }
     } else if (prov === 'pollinations') {
       try {

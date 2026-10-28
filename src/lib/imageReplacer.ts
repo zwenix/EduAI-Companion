@@ -135,17 +135,20 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
 
     // Fallback/First-generation flow. FLUX.1-schnell (Hugging Face) is the
     // primary generator on every platform (web and native), so the badge
-    // reflects that everywhere. Perchance/Qwen are retired engine ids.
+    // reflects that everywhere. Qwen is a retired engine id; Perchance is live
+    // again as a browser-only engine (see imageProviders.ts).
     const defaultProvider = 'flux';
     const storedProvider = typeof window !== 'undefined'
       ? window.localStorage.getItem('eduai_image_provider') || defaultProvider
       : defaultProvider;
     const provider = normaliseImageProviderId(storedProvider);
     const providerChain = provider === 'gemini'
-      ? 'Google Imagen (Secondary) → Pollinations → FLUX.1-schnell'
+      ? 'Google Gemini Image (Secondary) → FLUX.1-schnell → Perchance → Pollinations'
       : provider === 'pollinations'
-        ? 'Pollinations (Keyless) → FLUX.1-schnell → Google Imagen'
-        : 'FLUX.1-schnell (Primary) → Pollinations → Google Imagen';
+        ? 'Pollinations (Keyless) → Gemini → FLUX.1-schnell → Perchance'
+        : provider === 'perchance'
+          ? 'Perchance (Free, browser-only) → FLUX.1-schnell → Gemini → Pollinations'
+          : 'FLUX.1-schnell (Primary) → Perchance → Gemini → Pollinations';
 
     const isLogoOrStamp = /logo|stamp|seal|crest|badge|signature|certificate|emblem/i.test(cleanPrompt);
     const styleDirective = `, ${EDUCATIONAL_IMAGE_STYLE}, educational, high quality, vibrant colours`;

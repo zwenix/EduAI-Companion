@@ -166,10 +166,12 @@ export default function AiImage({
             provider === 'flux'
               ? (model || 'FLUX.1-schnell')
               : provider === 'gemini'
-                ? 'Gemini Imagen-3'
-                : provider === 'placeholder'
-                  ? 'Offline placeholder'
-                  : 'Pollinations AI · FLUX'
+                ? (model || 'Gemini image')
+                : provider === 'perchance'
+                  ? (model || 'Perchance Image API')
+                  : provider === 'placeholder'
+                    ? 'Offline placeholder'
+                    : (model || 'Pollinations AI · FLUX')
           }
         </div>
       )}

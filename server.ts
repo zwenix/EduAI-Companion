@@ -10,9 +10,12 @@ import {
   FLUX_LEGACY_BASE_URL,
   FLUX_ROUTER_BASE_URL,
   FLUX_SIZE_MAP,
+  GEMINI_IMAGE_MODELS,
   IMAGE_PROVIDER_ALIASES,
   fluxModels,
+  isBrowserOnlyImageProvider,
   normaliseFluxSize,
+  serverSideImageProvider,
 } from "./src/lib/imageProviders";
 import {
   AI_ROUTE_ALTERNATIVE_MIN_MS,
@@ -2156,7 +2159,39 @@ const masterPromptFor = (input: any = {}): string =>
     }
   });
 
-  // --- Image Proxy Route for src tags ---
+  // --- Image Proxy Route for src tags ---------------------------------------
+  //
+  // This route serves EVERY [[IMG:...]] placeholder in a generated document
+  // (see buildDirectImageUrl in src/lib/imageGeneration.ts), which makes it the
+  // app's highest-volume image path. It used to call Pollinations directly for
+  // every single image, bypassing the FLUX-first chain that
+  // /api/images/generate already uses. Because the proxy runs server-side, all
+  // of a deployment's teachers share ONE outbound IP, and Pollinations'
+  // anonymous tier allows roughly one image per 45 s per IP — so a document
+  // with a few illustrations spent the quota instantly and answered
+  // 402 FREE_LIMIT ("pollinations free limit reached").
+  //
+  // It now follows IMAGE_PROVIDER_PRIORITY: FLUX.1-schnell -> Gemini ->
+  // Pollinations. Nothing is gated: Pollinations remains the guaranteed keyless
+  // last resort, so a deployment with no keys configured at all still renders
+  // images exactly as it did before. Set IMAGE_PROXY_PROVIDER=flux|gemini|
+  // pollinations to force a single engine (useful for diagnosing a deployment).
+  //
+  // GEMINI_IMAGE_MODELS is imported from src/lib/imageProviders.ts and shared
+  // with /api/images/generate and the standalone client engine, so the three
+  // cannot drift apart. It no longer contains an Imagen id: every Imagen model
+  // Google shipped is past its shutdown date (see the const's own notes).
+
+  /** Nearest Gemini aspect-ratio token for the requested box. */
+  const geminiAspectForBox = (width: number, height: number): string => {
+    const ratio = width / Math.max(1, height);
+    if (ratio >= 1.5) return "16:9";
+    if (ratio <= 0.67) return "9:16";
+    if (ratio >= 1.2) return "4:3";
+    if (ratio <= 0.83) return "3:4";
+    return "1:1";
+  };
+
   app.get("/api/image-proxy", async (req, res) => {
     const prompt = req.query.prompt as string;
     const seed = Number(req.query.seed) || Math.floor(Math.random() * 100000);
@@ -2166,8 +2201,77 @@ const masterPromptFor = (input: any = {}): string =>
 
     if (!prompt) return res.status(400).send("Prompt is required");
 
+    const forced = (process.env.IMAGE_PROXY_PROVIDER || "").trim().toLowerCase();
+    const wanted = (engine: string) => forced === "" || forced === engine;
+    const keyState = () => (resolvePollinationsKey() ? "configured" : "anonymous");
+
+    const deliver = (buffer: Buffer, contentType: string, engine: string) => {
+      console.log(`[IMAGE GEN LOG] Proxying image -> Engine: ${engine} | ${width}x${height} | key: ${keyState()} | Prompt: "${prompt.slice(0, 80)}"`);
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      return res.send(buffer);
+    };
+
+    /** FLUX returns a base64 data URL; the proxy streams raw bytes. */
+    const fromDataUrl = (dataUrl: string): { buffer: Buffer; contentType: string } | null => {
+      const match = /^data:([^;,]+);base64,([\s\S]*)$/.exec(dataUrl || "");
+      if (!match) return null;
+      const buffer = Buffer.from(match[2], "base64");
+      return buffer.length > 0 ? { buffer, contentType: match[1] || "image/png" } : null;
+    };
+
     try {
-      console.log(`[IMAGE GEN LOG] Proxying image -> Model: ${model} | ${width}x${height} | key: ${resolvePollinationsKey() ? "configured" : "anonymous"} | Prompt: "${prompt.slice(0, 80)}"`);
+      // 1. FLUX.1-schnell — free, Apache-2.0, the app's primary engine.
+      if (wanted("flux")) {
+        try {
+          const result = await generateFluxImage({
+            prompt,
+            size: normaliseFluxSize(`${width}x${height}`)
+          });
+          const image = fromDataUrl(result.dataUrl);
+          if (image) return deliver(image.buffer, image.contentType, `FLUX.1-schnell (${result.backend}/${result.model})`);
+          console.warn("[IMAGE GEN LOG] Image proxy: FLUX returned no usable image data");
+        } catch (err: any) {
+          const status = err instanceof FluxUnavailableError ? err.status : 502;
+          console.warn(`[IMAGE GEN LOG] Image proxy: FLUX unavailable (HTTP ${status}): ${err?.message || err}`);
+        }
+      }
+
+      // 2. Gemini image models — second slot in the SERVER-SIDE chain, because
+      //    Perchance is browser-only and cannot run on this route.
+      if (wanted("gemini")) {
+        const apiKey = resolveGeminiKey();
+        if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
+          const aspectRatio = geminiAspectForBox(width, height);
+          for (const m of GEMINI_IMAGE_MODELS) {
+            try {
+              const response = await geminiAi.models.generateContent({
+                model: m,
+                contents: { parts: [{ text: prompt }] },
+                config: { imageConfig: { aspectRatio } }
+              });
+              const parts = (response.candidates?.[0]?.content?.parts || []) as any[];
+              for (const part of parts) {
+                if (part?.inlineData?.data) {
+                  return deliver(
+                    Buffer.from(part.inlineData.data, "base64"),
+                    part.inlineData.mimeType || "image/jpeg",
+                    `Gemini (${m})`
+                  );
+                }
+              }
+              console.warn(`[IMAGE GEN LOG] Image proxy: Gemini ${m} returned no inline image data`);
+            } catch (err: any) {
+              console.warn(`[IMAGE GEN LOG] Image proxy: Gemini ${m} failed: ${err?.message || err}`);
+            }
+          }
+        }
+      }
+
+      // 3. Pollinations — keyless last resort. Behaviour here is unchanged, and
+      //    its 402 FREE_LIMIT is still forwarded with Retry-After so the client
+      //    backs off instead of hammering a spent quota with fresh seeds.
+      console.log(`[IMAGE GEN LOG] Proxying image -> Model: ${model} | ${width}x${height} | key: ${keyState()} | Prompt: "${prompt.slice(0, 80)}"`);
       const { buffer, contentType } = await fetchPollinationsImage(prompt, width, height, model, seed);
       res.setHeader("Content-Type", contentType);
       res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
@@ -2193,7 +2297,13 @@ const masterPromptFor = (input: any = {}): string =>
   app.post("/api/images/generate", async (req, res) => {
     const body = req.body || {};
     const requestedProvider = String(body.provider || "flux");
-    const provider = IMAGE_PROVIDER_ALIASES[requestedProvider];
+    const resolvedProvider = IMAGE_PROVIDER_ALIASES[requestedProvider];
+    // Perchance generates inside the CALLER'S own browser iframe ("it happens on
+    // the caller's quota, not yours"), so no Express route can serve it. Rather
+    // than answering 400 for a provider the client legitimately offers, map it
+    // onto the default server-side engine. Retired ids already resolve to flux
+    // through the alias table.
+    const provider = resolvedProvider ? serverSideImageProvider(resolvedProvider) : resolvedProvider;
 
     // Augment every generated image with the Content Factory educational style.
     let styledPrompt = body.prompt || "";
@@ -2208,14 +2318,17 @@ const masterPromptFor = (input: any = {}): string =>
     }
 
     if (requestedProvider !== provider) {
-      console.log(`[IMAGE GEN LOG] Image provider "${requestedProvider}" is retired; routing to "${provider}".`);
+      const reason = isBrowserOnlyImageProvider(resolvedProvider)
+        ? "is browser-only and cannot run server-side"
+        : "is retired";
+      console.log(`[IMAGE GEN LOG] Image provider "${requestedProvider}" ${reason}; routing to "${provider}".`);
     }
     console.log(`[IMAGE GEN LOG] Requested image generation -> Provider: ${provider} | Prompt: "${styledPrompt.slice(0, 80)}"`);
 
     if (provider === "gemini") {
       const apiKey = resolveGeminiKey();
       if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
-        const modelsToTry = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
+        const modelsToTry = GEMINI_IMAGE_MODELS;
         for (const m of modelsToTry) {
           try {
             console.log(`[IMAGE GEN LOG] Attempting primary image generation with Gemini (${m})...`);
@@ -2703,10 +2816,10 @@ const masterPromptFor = (input: any = {}): string =>
             return res.status(501).json({ error: "GEMINI_API_KEY is not configured.", provider: "gemini", configured: false });
           }
 
-          // Gemini image models return inlineData from `generateContent`.
-          // `gemini-2.5-flash-image` is the long-lived GA id and stays last, so
-          // a renamed 3.x alias cannot take the whole engine down.
-          for (const m of ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'gemini-2.5-flash-image']) {
+          // Gemini image models return inlineData from `generateContent`. The
+          // shared list runs current -> cheapest -> deprecated bridge ->
+          // long-lived GA bridge; GEMINI_IMAGE_MODELS documents each date.
+          for (const m of GEMINI_IMAGE_MODELS) {
             try {
               console.log(`[IMAGE GEN LOG] Gemini image attempt: ${m} (${aspect})`);
               const response = await geminiAi.models.generateContent({
@@ -2734,38 +2847,11 @@ const masterPromptFor = (input: any = {}): string =>
             }
           }
 
-          // Imagen models are NOT chat models — they need `generateImages`.
-          for (const m of ['imagen-3.0-generate-002', 'imagen-4.0-generate-001']) {
-            try {
-              console.log(`[IMAGE GEN LOG] Imagen attempt: ${m}`);
-              const response: any = await (geminiAi.models as any).generateImages({
-                model: m,
-                prompt: styledPrompt,
-                config: { numberOfImages: 1, aspectRatio: aspect }
-              });
-              const generated = response?.generatedImages?.[0]?.image?.imageBytes
-                || response?.generatedImages?.[0]?.imageBytes;
-              if (generated) {
-                console.log(`[IMAGE GEN LOG] Imagen success: ${m}`);
-                return res.json({
-                  imageUrl: `data:image/png;base64,${generated}`,
-                  url: `data:image/png;base64,${generated}`,
-                  provider: "gemini",
-                  model: m
-                });
-              }
-              attempts.push(`${m}: no image bytes`);
-            } catch (modelErr: any) {
-              attempts.push(`${m}: ${modelErr?.message || modelErr}`);
-              console.warn(`[IMAGE GEN LOG] ${m} failed: ${modelErr?.message || modelErr}`);
-            }
-          }
-
           // Honest failure: the client's provider chain decides what comes next.
           // Returning a dead Pollinations URL here used to masquerade as success.
-          console.warn(`[IMAGE GEN LOG] Gemini/Imagen exhausted: ${attempts.join(" | ")}`);
+          console.warn(`[IMAGE GEN LOG] Gemini image models exhausted: ${attempts.join(" | ")}`);
           return res.status(502).json({
-            error: "All Gemini/Imagen image models failed",
+            error: "All Gemini image models failed",
             provider: "gemini",
             configured: true,
             attempts

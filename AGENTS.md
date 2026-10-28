@@ -371,8 +371,11 @@ explicit user instructions.
 * `tests/ai-route-budget.test.ts` pins the arithmetic. Never raise a budget
   above the platform ceiling.
 * The image routes (`/api/image-proxy`, `/api/images/generate`,
-  `/api/images/qwen-generate`) are deliberately **outside** this budget —
-  they are pinned to the pre-chain behaviour described in §7.3d.
+  `/api/images/flux-generate`, `/api/images/pollinations-generate`) are
+  deliberately **outside** the `aiRouteBudget` chain, but they still respect
+  the platform ceiling: `generateFluxImage()` splits its own budget across the
+  configured FLUX backends so two attempts cannot overrun `maxDuration`.
+  See §7.3d.
 
 ### 7.3c Self-hosted web fonts
 * The typefaces are served from the app's own origin (`/fonts/fonts.css`),
@@ -386,20 +389,54 @@ explicit user instructions.
 * The standalone export templates (zipped and opened from disk) are the only
   place that may still link Google Fonts.
 
-### 7.3d Image generation — pinned to the pre-chain behaviour
-* **Do not re-introduce the gated "provider chain" for images.** Image
-  generation was rolled back to its earlier, working shape after the chain
-  made every illustration fail (Pollinations was skipped unless
-  `POLLINATIONS_API_KEY` was set, and when Gemini/Qwen also had no usable key
-  the proxy answered 502 — i.e. no images at all).
-* `/api/image-proxy` fetches `https://image.pollinations.ai/prompt/…`
-  (`model=flux&enhance=true&nologo=true`) and streams the bytes straight
-  back. No API key, no chain, no budget wrapper.
-* `/api/images/generate` tries the Gemini image models
-  (`gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`,
-  `imagen-3.0-generate-002`) and otherwise hands back a **direct
-  Pollinations URL** (`model=flux`). The `generate-image` content action does
-  the same.
+### 7.3d Image generation — engine order and the no-gate rule
+* **Never gate an image engine behind an env var, and never answer 502/500
+  because an engine is unconfigured.** Image generation was once rolled back
+  after a *gated* chain made every illustration fail: Pollinations was skipped
+  unless `POLLINATIONS_API_KEY` was set, and when Gemini/Qwen also had no
+  usable key the proxy answered 502 — i.e. no images at all. What is banned is
+  the **gate**, not a preference order. Pollinations must stay reachable with
+  zero configuration.
+* `/api/image-proxy` serves every `[[IMG:…]]` placeholder in a generated
+  document (`buildDirectImageUrl()`), so it is the app's **highest-volume**
+  image path and it decides how hard the deployment leans on Pollinations'
+  anonymous per-IP throttle. It therefore follows the **server-side subset** of
+  `IMAGE_PROVIDER_PRIORITY` — **FLUX.1-schnell → Gemini → Pollinations** —
+  reusing `generateFluxImage()`,
+  and streams raw bytes back with `Cache-Control: immutable`. Pollinations is
+  still attempted last, keyless, and its **402 `FREE_LIMIT` is forwarded with
+  `Retry-After`** so the client backs off. Perchance is **absent from this
+  route** because it renders inside the caller's own browser frame and so has
+  no server-side form; `serverSideImageProvider()` substitutes FLUX rather than
+  answering 400 for a provider the client legitimately offers.
+  `IMAGE_PROXY_PROVIDER=flux|gemini|pollinations` forces one engine for
+  diagnosis. Before this, the route called
+  Pollinations directly for every illustration while `/api/images/generate`
+  already preferred FLUX — so the busiest path was the one burning the
+  1-image-per-45s quota.
+* `/api/images/generate` tries the Gemini image models and otherwise hands back
+  a **direct Pollinations URL** (`model=flux`). The `generate-image` content
+  action does the same. The list lives in **`GEMINI_IMAGE_MODELS`**
+  (`src/lib/imageProviders.ts`), imported by `server.ts` (this route *and*
+  `/api/image-proxy`) and by `src/services/geminiClient.ts`, so the standalone
+  APK and the API can never offer different models. Order:
+  `gemini-nano-banana-2.1` (Google's current recommendation, GA 6 Oct 2026,
+  ~half the per-image price of its predecessor, better text rendering) →
+  `gemini-3.1-flash-lite-image` → `gemini-3.1-flash-image` (deprecated, but
+  **no shutdown date announced**) → `gemini-2.5-flash-image` (shuts down
+  15 Mar 2027; kept last as a long-lived bridge).
+* **There are no Imagen models in this app.** Every Imagen id Google shipped on
+  the Developer API is past its shutdown date — `imagen-3.0-generate-002`
+  (10 Nov 2025) and all three `imagen-4.0-*` ids (17 Aug 2026) — and Google
+  names `gemini-nano-banana-2.1` as the replacement for all of them. The
+  separate `generateImages()` loop was therefore **deleted, not repopulated**:
+  it made two guaranteed-failing API calls on every Gemini-keyed request. A
+  third bug went with it — `/api/images/generate` carried
+  `imagen-3.0-generate-002` in a list it fed to `generateContent`, i.e. a
+  shut-down Imagen model sent to a chat endpoint. Re-check
+  `ai.google.dev/gemini-api/docs/deprecations` before adding any Google image
+  id back, and note that Vertex AI runs a different, later retirement schedule
+  from the Developer API these ids belong to.
 * `/api/images/flux-generate` renders **FLUX.1-schnell** with up to two free
   backends, in order:
   1. **Hugging Face Inference Providers** (`black-forest-labs/FLUX.1-schnell`,
@@ -415,10 +452,42 @@ explicit user instructions.
   answers **HTTP 501 + `{configured:false}`** and the client stops attempting
   FLUX for the rest of the session.
 * On the client, `src/lib/imageGeneration.ts` keeps its fixed provider
-  priority/fallback graph (**FLUX → Gemini → Pollinations → placeholder**) and
+  priority/fallback graph (**FLUX → Perchance → Gemini → Pollinations →
+  placeholder**) and
   `buildPollinationsUrl()` / `buildDirectImageUrl()` are the live entry
   points. `buildDirectImageUrl()` points a native build at Pollinations and
   a web build at `/api/image-proxy`.
+* **Perchance is a free, unmetered engine #2 — and it is browser-only.**
+  `src/services/perchanceImageApi.ts` implements Perchance's documented Image
+  API v1 (`https://perchance.org/perchance-ai-api`), which is framed through the
+  `null.perchance.org` **embed host** and answered by `postMessage` with
+  `{api:"perchance-image-api", result:{id, ok, url, dataUrl, seed}}`.
+  Constraints that are load-bearing and must not be "fixed" away:
+  * **A `warmUp()` visit to the apex host is mandatory** once per session
+    (hidden 1×1 iframe, wait for `load` + 500 ms) so Cloudflare passes the
+    browser before the API call. Skipping it is how naive integrations fail.
+  * **Frame the embed host, never the apex.** `perchance.org` answers with
+    `X-Frame-Options: SAMEORIGIN` — this is precisely what killed the previous
+    integration, which additionally framed a *community UI page* that had no
+    message listener. The dead page name must not reappear in `src/`.
+  * **Reply validation.** Accept a message only if the origin hostname is
+    `perchance.org` or ends with `.perchance.org` (a substring check would
+    accept `evil-perchance.org.attacker.tld`), `api` matches, and the
+    correlation `id` matches the request.
+  * **Resolution cap.** Perchance offers only `512x512 | 512x768 | 768x512 |
+    768x768`; `nearestPerchanceResolution()` picks **orientation first**, then
+    nearest area — a 768×1024 portrait request must map to `512x768`, not to a
+    square.
+  * **Prefer `dataUrl` over `url`.** The hosted URL is cross-origin
+    (`user.uploads.dev`) and would taint the html2canvas canvas in
+    `downloadAsPDF`.
+  * **Containment.** A 45 s cap (their reference sample allows 180 s, far
+    longer than this app may block) and `PERCHANCE_FAILURE_LIMIT` consecutive
+    failures retire the engine for the session via `isPerchanceAvailable()`.
+    Per-prompt caching reuses results, since Perchance URLs are permanent.
+  * **It is opt-in, not the default.** `DEFAULT_IMAGE_PROVIDER` stays `flux`.
+    Framing cannot be verified from a sandbox with no egress, so the engine
+    must not sit in front of a working one.
 * **Pollinations is the LAST resort, and it throttles.** The anonymous tier
   allows roughly one image every 45 s per IP and answers **HTTP 402
   `{error:{code:"FREE_LIMIT", retryAfter}}`** (sometimes a 200 HTML banner)
@@ -451,13 +520,23 @@ explicit user instructions.
     can generate an image. Do not attempt either.
   * **Qwen-Image on NVIDIA NIM**: `qwen/qwen-image` *and*
     `qwen/qwen-image-2512` answer `404 page not found` at the gateway.
-  * `perchance`, `qwen`, `qwen-image` and `nvidia-qwen` survive only as
-    *aliases* that resolve to FLUX (client `normaliseImageProviderId()`,
-    server `IMAGE_PROVIDER_ALIASES`) so stale saved settings keep working.
-* The image **model list is frozen** — FLUX.1-schnell, Pollinations `flux`
-  and the three Gemini image models are the approved image models. Changing
-  them is a separate, explicit decision (`tests/image-providers.test.ts`
-  guards the graph and the retired integrations).
+  * `qwen`, `qwen-image` and `nvidia-qwen` survive only as *aliases* that
+    resolve to FLUX (client `normaliseImageProviderId()`, server
+    `IMAGE_PROVIDER_ALIASES`) so stale saved settings keep working.
+    **`perchance` is no longer one of them** — it was re-admitted as a live
+    engine on 25 Oct 2026 and maps to itself, so a teacher who selected it
+    before the 22 Oct retirement gets it back instead of being silently
+    migrated to FLUX (see §7.3d).
+* The image **model list is frozen** — FLUX.1-schnell, Pollinations `flux`,
+  Perchance and the four `GEMINI_IMAGE_MODELS` are the approved image models.
+  Changing them is a separate, explicit decision (`tests/image-providers.test.ts`
+  guards the graph, the retired integrations and the Gemini id list).
+  * The Gemini list was last changed on 25 Oct 2026 **on explicit user
+    instruction**, which is exactly what this rule requires. It had drifted:
+    `/api/image-proxy` kept one list, `/api/images/generate` another and
+    `geminiClient.ts` a third. That divergence is what let two shut-down Imagen
+    ids survive an earlier cleanup. There is now one shared const, and the guard
+    fails if any file hardcodes a competing literal list.
 
 ### 7.4 API abuse protection
 * `src/lib/rateLimit.ts` is mounted on `/api` in `server.ts` before every route
