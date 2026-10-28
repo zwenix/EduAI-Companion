@@ -163,7 +163,9 @@ export default function AiImage({
         <div className="absolute top-3 right-3 px-3 py-1.5 bg-slate-900/95 backdrop-blur-md rounded-full text-xs text-cyan-300 border border-cyan-500/30 font-bold flex items-center gap-1.5 shadow-lg">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           AI Model: {
-            provider === 'flux'
+            provider === 'perchance'
+              ? 'Perchance Image API v1'
+              : provider === 'flux'
               ? (model || 'FLUX.1-schnell')
               : provider === 'gemini'
                 ? 'Gemini Imagen-3'

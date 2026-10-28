@@ -34,6 +34,9 @@ import {
     buildTemplateClosingMetaHTML,
     EDUAI_COMPLIANCE_LABELS,
     EDUAI_TEMPLATE_FOOTER_LINE,
+    isClosingMetaBannerEnabled,
+    metaFromPrintOptions,
+    setClosingMetaBannerEnabled,
     wrapWithTemplate,
 } from '../src/lib/contentTemplate';
 import { resolveMasterPrompt } from '../src/lib/prompts/master-prompt';
@@ -438,5 +441,46 @@ describe('wrapWithTemplate — the closing block renders once, at the end', () =
         const timeline = '<section><h2>Timeline</h2><p>16 June 1976 — Soweto Uprising</p></section>';
         const wrapped = wrapWithTemplate(timeline, { ...meta, contentType: 'Study Guide' });
         expect(wrapped).toContain('16 June 1976 — Soweto Uprising');
+    });
+
+    it('is added by default and suppressed by the saved toggle preference', () => {
+        const store = new Map<string, string>();
+        const fakeStorage = {
+            getItem: (k: string) => store.get(k) ?? null,
+            setItem: (k: string, v: string) => { store.set(k, v); },
+            removeItem: (k: string) => { store.delete(k); },
+        };
+        const original = (globalThis as { localStorage?: unknown }).localStorage;
+        (globalThis as { localStorage?: unknown }).localStorage = fakeStorage;
+        try {
+            // Default ON — the banner is added when the caller is silent.
+            expect(isClosingMetaBannerEnabled()).toBe(true);
+            expect(wrapWithTemplate(body, meta)).toContain('eduai-closing-meta');
+
+            // Toggle OFF — the saved preference suppresses it for every producer…
+            setClosingMetaBannerEnabled(false);
+            expect(isClosingMetaBannerEnabled()).toBe(false);
+            expect(wrapWithTemplate(body, meta)).not.toContain('eduai-closing-meta');
+            // …including classic documents…
+            expect(wrapWithTemplate(body, { ...meta, designStyle: 'classic' })).not.toContain('eduai-closing-meta');
+
+            // …but an explicit caller choice still wins over the preference.
+            expect(wrapWithTemplate(body, { ...meta, closingMeta: true })).toContain('eduai-closing-meta');
+
+            // Toggle back ON — the banner returns.
+            setClosingMetaBannerEnabled(true);
+            expect(isClosingMetaBannerEnabled()).toBe(true);
+            expect(wrapWithTemplate(body, meta)).toContain('eduai-closing-meta');
+            expect(store.get('eduai_closing_meta_banner')).toBe('true');
+        } finally {
+            (globalThis as { localStorage?: unknown }).localStorage = original;
+        }
+    });
+
+    it('metaFromPrintOptions passes the toggle through to print/PDF exports', () => {
+        expect(metaFromPrintOptions({ closingMeta: false }).closingMeta).toBe(false);
+        expect(metaFromPrintOptions({ closingMeta: true }).closingMeta).toBe(true);
+        // Omitted means "defer to the saved preference" — never an explicit false.
+        expect(metaFromPrintOptions({}).closingMeta).toBeUndefined();
     });
 });

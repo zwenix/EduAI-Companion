@@ -72,6 +72,12 @@ export interface PrintOptions {
      * LIGHT chrome. See `src/lib/contentStyle.ts`.
      */
     designStyle?: ContentDesignStyle;
+    /**
+     * Whether the closing metadata banner is added to the export. Keep in sync
+     * with the Content Factory's "Closing Metadata Banner" toggle so print/PDF
+     * match the on-screen preview; omit to fall back to the saved preference.
+     */
+    closingMeta?: boolean;
 }
 
 /**

@@ -133,19 +133,22 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
       `;
     }
 
-    // Fallback/First-generation flow. FLUX.1-schnell (Hugging Face) is the
-    // primary generator on every platform (web and native), so the badge
-    // reflects that everywhere. Perchance/Qwen are retired engine ids.
-    const defaultProvider = 'flux';
+    // Fallback/First-generation flow. Perchance Image API v1 is the primary
+    // generator on every platform (web and native WebView); FLUX.1-schnell,
+    // Google Imagen and keyless Pollinations form the fallback chain. Qwen is
+    // a retired engine id.
+    const defaultProvider = 'perchance';
     const storedProvider = typeof window !== 'undefined'
       ? window.localStorage.getItem('eduai_image_provider') || defaultProvider
       : defaultProvider;
     const provider = normaliseImageProviderId(storedProvider);
     const providerChain = provider === 'gemini'
-      ? 'Google Imagen (Secondary) → Pollinations → FLUX.1-schnell'
+      ? 'Google Imagen (Secondary) → Perchance → FLUX.1-schnell → Pollinations'
       : provider === 'pollinations'
-        ? 'Pollinations (Keyless) → FLUX.1-schnell → Google Imagen'
-        : 'FLUX.1-schnell (Primary) → Pollinations → Google Imagen';
+        ? 'Pollinations (Keyless) → Perchance → Google Imagen → FLUX.1-schnell'
+        : provider === 'flux'
+          ? 'FLUX.1-schnell → Perchance → Google Imagen → Pollinations'
+          : 'Perchance Image API (Primary) → FLUX.1-schnell → Google Imagen → Pollinations';
 
     const isLogoOrStamp = /logo|stamp|seal|crest|badge|signature|certificate|emblem/i.test(cleanPrompt);
     const styleDirective = `, ${EDUCATIONAL_IMAGE_STYLE}, educational, high quality, vibrant colours`;

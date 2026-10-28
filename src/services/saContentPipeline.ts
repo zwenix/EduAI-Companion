@@ -145,7 +145,7 @@ export async function generateSATextContent(
   }
 }
 
-// ── Image generation via FLUX.1-schnell + existing fallback chain ──
+// ── Image generation via Perchance Image API v1 + existing fallback chain ──
 export async function generateSAImages(
   imagePrompts: Array<{ imageId: string; sectionId: number; prompt: string; placement: string; accessibilityAltText?: string }>,
   request: SAContentRequest
@@ -155,10 +155,11 @@ export async function generateSAImages(
     return [];
   }
 
-  console.log(`\n🎨 Generating ${imagePrompts.length} SA-context images via FLUX.1-schnell (Hugging Face) + fallback chain...\n`);
+  console.log(`\n🎨 Generating ${imagePrompts.length} SA-context images via Perchance Image API v1 + fallback chain...\n`);
 
-  // Walks the full image provider graph (FLUX.1-schnell → Pollinations → Gemini)
-  // with concurrency control so one slow engine cannot stall the whole pack.
+  // Walks the full image provider graph (Perchance → FLUX → Gemini →
+  // Pollinations) with concurrency control so one slow engine cannot stall the
+  // whole pack.
   const imageResults = await generateAllEducationalImages(
     imagePrompts.map(p => ({
       imageId: p.imageId,
@@ -240,7 +241,7 @@ export async function generateFullSAPackage(
   console.log("\n" + "═".repeat(70));
   console.log("🇿🇦 EduAI Companion — SA-Compliant Content Generation Pipeline (Enhanced)");
   console.log("   Frameworks: CAPS · NPA · NPPPPR · SIAS · WP6 · POPIA · SASA · NCS R-12");
-  console.log("   Models: Qwen 3.8 Max (text) · FLUX.1-schnell (visuals) + fallback chain");
+  console.log("   Models: Qwen 3.8 Max (text) · Perchance Image API v1 + FLUX.1-schnell (visuals)");
   console.log("═".repeat(70) + "\n");
 
   // Step 0: Pre-flight

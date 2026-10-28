@@ -22,7 +22,7 @@ import { PromptQualityValidator } from '../lib/prompt-validator';
 import { EDUCATIONAL_IMAGE_STYLE } from '../lib/prompt-priority';
 import { printContent, downloadAsHTML, downloadAsPDF } from '../lib/printUtils';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
-import { wrapWithTemplate, EDUAI_LIGHT_CSS, type ContentTemplateMeta } from '../lib/contentTemplate';
+import { wrapWithTemplate, EDUAI_LIGHT_CSS, isClosingMetaBannerEnabled, setClosingMetaBannerEnabled, type ContentTemplateMeta } from '../lib/contentTemplate';
 import { resolveContentDesignStyle } from '../lib/contentStyle';
 import { EDUAI_DOC_TAILWIND_CSS } from '../lib/docTailwindCompat';
 import PrintPreviewModal from './PrintPreviewModal';
@@ -621,6 +621,11 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
   const [bannerSchoolName, setBannerSchoolName] = useState<string>(() => localStorage.getItem('eduai_user_school') || '');
   const [bannerClassName, setBannerClassName] = useState<string>(() => localStorage.getItem('eduai_user_class') || '');
   const [includeTeacherInfo, setIncludeTeacherInfo] = useState<boolean>(() => localStorage.getItem('eduai_include_teacher_banner') !== 'false');
+  // Toggle for the closing metadata banner — the compact title/grade/subject/
+  // date summary block added at the END of every generated document. Persisted
+  // as a global preference so archive re-renders, print and exports agree with
+  // the preview (see `isClosingMetaBannerEnabled` in contentTemplate.ts).
+  const [includeClosingMeta, setIncludeClosingMeta] = useState<boolean>(() => isClosingMetaBannerEnabled());
   const [learnerName, setLearnerName] = useState<string>('');
   
   // Firebase & Data State
@@ -731,6 +736,9 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
     // host template must hand it back untouched instead of absorbing its
     // leading band into a second banner. See `src/lib/contentStyle.ts`.
     meta.designStyle = resolveContentDesignStyle({});
+    // The closing metadata banner is a teacher toggle — stamping it keeps the
+    // preview, print and PDF exports in exact agreement.
+    meta.closingMeta = includeClosingMeta;
     if (includeTeacherInfo) {
       const tName = bannerTeacherName || userName;
       if (tName) meta.teacher = tName;
@@ -1397,7 +1405,9 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
         // Export the document under the doctrine it was generated with, so a
         // classic page keeps the banner, grade badge and score card the model
         // built instead of being re-wrapped in the LIGHT chrome.
-        designStyle: resolveContentDesignStyle({})
+        designStyle: resolveContentDesignStyle({}),
+        // Keep the closing metadata banner in step with the on-screen toggle.
+        closingMeta: includeClosingMeta
       });
     } catch (error) {
       console.error('Print/export failed:', error);
@@ -1447,7 +1457,9 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
         contentType: pdfContentType,
         // Same rule as print: export under the doctrine the content was
         // generated with.
-        designStyle: resolveContentDesignStyle({})
+        designStyle: resolveContentDesignStyle({}),
+        // Keep the closing metadata banner in step with the on-screen toggle.
+        closingMeta: includeClosingMeta
       });
     } catch (error) {
       console.error('PDF export failed:', error);
@@ -2430,6 +2442,35 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                         Learners fill this in when they receive/print the document. It is placed inside the banner next to teacher/school info.
                       </p>
                     </div>
+                  </div>
+
+                  {/* ─── Closing Metadata Banner toggle ─────────────────────
+                       Adds/removes the compact document-summary block at the
+                       END of every generated page (title, grade, subject,
+                       term, content type, today's date). Persisted globally
+                       so previews, print, PDF and archive re-renders agree. */}
+                  <div className={cn("pt-4 pb-2 border-t space-y-2", isDarkMode ? "border-cyan-500/20" : "border-slate-200")}>
+                    <label className="flex items-center justify-between gap-3 p-3 rounded-xl border cursor-pointer transition-colors
+                      bg-teal-500/10 border-teal-500/30 hover:bg-teal-500/15">
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-white flex items-center gap-2">
+                          <FileText size={13} className="text-teal-300" />
+                          Closing Metadata Banner
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5 leading-snug">
+                          Adds the document summary block (title, grade, subject, term, today's date) at the end of every generated document. Applies to previews, printing and exports.
+                        </p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={includeClosingMeta}
+                        onChange={(e) => {
+                          setIncludeClosingMeta(e.target.checked);
+                          setClosingMetaBannerEnabled(e.target.checked);
+                        }}
+                        className="w-5 h-5 accent-teal-400 shrink-0"
+                      />
+                    </label>
                   </div>
 
                   {/* Instructor brief — intentionally surfaced as the primary

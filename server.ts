@@ -11,6 +11,7 @@ import {
   FLUX_ROUTER_BASE_URL,
   FLUX_SIZE_MAP,
   IMAGE_PROVIDER_ALIASES,
+  PERCHANCE_API_URL,
   fluxModels,
   normaliseFluxSize,
 } from "./src/lib/imageProviders";
@@ -140,12 +141,14 @@ function resolveGeminiKey(): string {
 
 // --- FLUX.1-schnell via Hugging Face Inference Providers ----------------------
 //
-// The app's free image model. It replaces two dead integrations:
-//   • Perchance — perchance.org now sends `X-Frame-Options: SAMEORIGIN` and a
-//     Cloudflare challenge, so an iframe/postMessage/DOM-driver engine can never
-//     load. Nothing server-side can reach it either.
-//   • Qwen-Image on NVIDIA NIM — `qwen/qwen-image` AND `qwen/qwen-image-2512`
-//     both answer `404 page not found` at the gateway.
+// The app's free SERVER-SIDE image model. Perchance Image API v1 is the
+// primary engine overall, but it is browser-only (a hidden iframe + postMessage
+// — see `src/services/perchanceClient.ts`); nothing server-side may fetch
+// perchance.org (bare HTTP is answered by a Cloudflare 403). This route covers
+// every server-side caller (avatars, exports) and the client's fallback slots.
+//
+// Qwen-Image on NVIDIA NIM stays retired: `qwen/qwen-image` AND
+// `qwen/qwen-image-2512` both answer `404 page not found` at the gateway.
 //
 // FLUX.1-schnell is Apache-2.0, free to use through Hugging Face Inference
 // Providers, and renders the bright "Disney 3D" children's-book style that the
@@ -2210,9 +2213,17 @@ const masterPromptFor = (input: any = {}): string =>
     if (requestedProvider !== provider) {
       console.log(`[IMAGE GEN LOG] Image provider "${requestedProvider}" is retired; routing to "${provider}".`);
     }
-    console.log(`[IMAGE GEN LOG] Requested image generation -> Provider: ${provider} | Prompt: "${styledPrompt.slice(0, 80)}"`);
+    // The Perchance Image API v1 engine is browser-only (hidden iframe +
+    // postMessage) — it cannot run inside the API server. A server-side caller
+    // asking for `perchance` gets the first network engine instead, matching
+    // the client's chain order. Nothing server-side may fetch perchance.org.
+    const serverProvider = provider === "perchance" ? "flux" : provider;
+    if (serverProvider !== provider) {
+      console.log(`[IMAGE GEN LOG] Provider "perchance" is browser-only; rendering server-side with "flux".`);
+    }
+    console.log(`[IMAGE GEN LOG] Requested image generation -> Provider: ${serverProvider} | Prompt: "${styledPrompt.slice(0, 80)}"`);
 
-    if (provider === "gemini") {
+    if (serverProvider === "gemini") {
       const apiKey = resolveGeminiKey();
       if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
         const modelsToTry = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
@@ -2249,7 +2260,7 @@ const masterPromptFor = (input: any = {}): string =>
       return res.json({ url: fallbackUrl, imageUrl: fallbackUrl, isFallback: true, provider: 'pollinations', model: 'Pollinations-FLUX' });
     }
 
-    if (provider === "flux") {
+    if (serverProvider === "flux") {
       try {
         const result = await generateFluxImage({ prompt: styledPrompt, size: "1024x1024" });
         return res.json({
@@ -2360,6 +2371,11 @@ const masterPromptFor = (input: any = {}): string =>
 
     return res.json({
       engines: {
+        perchance: {
+          mode: "browser-iframe",
+          api: PERCHANCE_API_URL,
+          note: "Image API v1 — hidden iframe + postMessage, unlimited, no key. Runs in the teacher's browser; nothing to configure server-side.",
+        },
         flux: {
           backends: configuredFluxBackends(),
           huggingFaceKey: Boolean(hfKey),

@@ -3,18 +3,21 @@
  *
  * Regression guard for "I cannot generate any images":
  *
- *  • Perchance is retired. perchance.org answers with
- *    `X-Frame-Options: SAMEORIGIN` + a Cloudflare challenge, so the hidden
- *    iframe / postMessage / DOM-driver engine could never load. No iframe
- *    integration may come back.
+ *  • Perchance speaks the documented **Image API v1**
+ *    (`perchance.org/perchance-ai-api`) via a hidden iframe + postMessage —
+ *    reinstated 28 Oct 2026. Only that endpoint may ever be framed: the
+ *    generator pages (`ai-text-to-image-generator`, `ai-images-generator`)
+ *    send `X-Frame-Options: SAMEORIGIN` and can never load. No layer may
+ *    `fetch()` perchance.org either (Cloudflare 403s bare HTTP).
  *  • Qwen-Image on NVIDIA NIM is retired. `qwen/qwen-image` and
  *    `qwen/qwen-image-2512` both 404 at the gateway.
  *  • FLUX.1-schnell (Hugging Face Inference Providers) is the free
- *    replacement, with keyless Pollinations as the guaranteed fallback and
- *    Google Imagen as the secondary engine.
+ *    server-side engine, with keyless Pollinations as the guaranteed fallback
+ *    and Google Imagen as the secondary engine.
  *
- * The tests import the real module (no network) and re-read the two files that
- * own the wiring so a reintroduced iframe/route fails CI.
+ * The tests import the real module (no network) and re-read the files that
+ * own the wiring so a reintroduced generator-page embed or a server-side
+ * Perchance fetch fails CI.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -45,34 +48,39 @@ const repoRoot = path.resolve(__dirname, '..');
 const read = (relative: string) => fs.readFileSync(path.join(repoRoot, relative), 'utf8');
 
 describe('image provider registry', () => {
-  it('runs FLUX → Gemini → Pollinations with FLUX as the default', () => {
-    expect(IMAGE_PROVIDER_PRIORITY).toEqual(['flux', 'gemini', 'pollinations']);
-    expect(DEFAULT_IMAGE_PROVIDER).toBe('flux');
-    expect(Object.keys(IMAGE_PROVIDER_FALLBACKS).sort()).toEqual(['flux', 'gemini', 'pollinations']);
+  it('runs Perchance → FLUX → Gemini → Pollinations with Perchance as the default', () => {
+    expect(IMAGE_PROVIDER_PRIORITY).toEqual(['perchance', 'flux', 'gemini', 'pollinations']);
+    expect(DEFAULT_IMAGE_PROVIDER).toBe('perchance');
+    expect(Object.keys(IMAGE_PROVIDER_FALLBACKS).sort()).toEqual(['flux', 'gemini', 'perchance', 'pollinations']);
   });
 
-  it('retires Perchance and Qwen-Image instead of silently keeping them', () => {
+  it('keeps Perchance live and Qwen-Image retired', () => {
     const ids = Object.keys(IMAGE_PROVIDER_FALLBACKS);
-    expect(ids).not.toContain('perchance');
+    expect(ids).toContain('perchance');
     expect(ids).not.toContain('qwen');
     expect(ids).not.toContain('qwen-image');
 
-    // Old localStorage values migrate to the free replacement.
-    for (const retired of ['perchance', 'qwen', 'qwen-image', 'nvidia-qwen']) {
+    // Perchance is a real engine again (Image API v1, reinstated 28 Oct 2026).
+    expect(normaliseImageProviderId('perchance')).toBe('perchance');
+
+    // Old localStorage values from the retired engines migrate to FLUX.
+    for (const retired of ['qwen', 'qwen-image', 'nvidia-qwen']) {
       expect(normaliseImageProviderId(retired)).toBe('flux');
     }
   });
 
   it('normalises current settings values', () => {
+    expect(normaliseImageProviderId('perchance')).toBe('perchance');
+    expect(normaliseImageProviderId('perchance-image-api')).toBe('perchance');
     expect(normaliseImageProviderId('flux')).toBe('flux');
     expect(normaliseImageProviderId('hf-flux')).toBe('flux');
     expect(normaliseImageProviderId('huggingface')).toBe('flux');
     expect(normaliseImageProviderId('pollinations')).toBe('pollinations');
     expect(normaliseImageProviderId('gemini-imagen')).toBe('gemini');
     expect(normaliseImageProviderId('gemini')).toBe('gemini');
-    expect(normaliseImageProviderId(null)).toBe('flux');
-    expect(normaliseImageProviderId('')).toBe('flux');
-    expect(normaliseImageProviderId('totally-unknown')).toBe('flux');
+    expect(normaliseImageProviderId(null)).toBe('perchance');
+    expect(normaliseImageProviderId('')).toBe('perchance');
+    expect(normaliseImageProviderId('totally-unknown')).toBe('perchance');
   });
 
   it('gives every engine a fallback chain that ends in a keyless provider', () => {
@@ -221,32 +229,69 @@ describe('pollinations free-tier contract', () => {
   });
 });
 
-describe('retired integrations stay removed', () => {
-  it('no longer ships the Perchance iframe client', () => {
-    expect(fs.existsSync(path.join(repoRoot, 'src/services/perchanceClient.ts'))).toBe(false);
+describe('Perchance Image API v1 integration contract', () => {
+  const client = read('src/services/perchanceClient.ts');
+  const registry = read('src/lib/imageProviders.ts');
+
+  it('ships the browser-only Image API v1 client (never the old generator-page bridge)', () => {
+    expect(fs.existsSync(path.join(repoRoot, 'src/services/perchanceClient.ts'))).toBe(true);
+    // The pre-22-Oct bridge framed the generator pages and must never return.
     expect(fs.existsSync(path.join(repoRoot, 'src/services/perchanceService.ts'))).toBe(false);
+    // Comments may name the forbidden pages; code must not reference them.
+    const code = client.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    expect(code).not.toMatch(/ai-text-to-image-generator|ai-images-generator/);
   });
 
-  it('nothing in the client imports Perchance or an iframe generator', () => {
-    const clientFiles = [
-      'src/lib/imageGeneration.ts',
-      'src/lib/imageReplacer.ts',
-      'src/contexts/AiContext.tsx',
-      'src/components/AiImage.tsx',
-      'src/components/Settings.tsx',
-    ];
-    for (const file of clientFiles) {
-      const source = read(file);
-      expect(source).not.toMatch(/perchanceClient|perchanceService/);
-      expect(source).not.toMatch(/https?:\/\/perchance\.org/);
+  it('frames only the documented perchance-ai-api endpoint', () => {
+    expect(client).toContain("export const PERCHANCE_API_URL = 'https://perchance.org/perchance-ai-api'");
+    // The embed-generator FAQ mirror is allowed as an automatic fallback host.
+    expect(client).toContain("export const PERCHANCE_EMBED_API_URL = 'https://null.perchance.org/perchance-ai-api'");
+    // Anything framed must be the API endpoint (or the warm-up homepage) — no other Perchance pages.
+    const framed = client.match(/https:\/\/[^'"`\s]*perchance\.org[^'"`\s]*/g) || [];
+    for (const url of framed) {
+      const ok =
+        url === 'https://perchance.org/perchance-ai-api' ||
+        url === 'https://null.perchance.org/perchance-ai-api' ||
+        url === 'https://perchance.org/' ||
+        // bare origins, used for the postMessage origin allow-list
+        url === 'https://perchance.org' ||
+        url === 'https://null.perchance.org';
+      expect(ok, `unexpected framed URL: ${url}`).toBe(true);
     }
+  });
+
+  it('accepts replies only from a Perchance origin and the matching request id', () => {
+    // Official `event.data.api` marker, origin allow-list, and id matching —
+    // all three are required before an image URL enters the content pipeline.
+    expect(client).toContain("'perchance-image-api'");
+    expect(client).toMatch(/isPerchanceOrigin\(event\.origin\)/);
+    expect(client).toMatch(/data\.result\.id !== requestId/);
+  });
+
+  it('always sends the child-safety negative prompt', () => {
+    expect(client).toContain('PERCHANCE_NEGATIVE_PROMPT');
+    expect(client).toContain('NSFW, nudity');
+    // Callers may only extend the negatives — never replace them.
+    expect(client).toMatch(/extraNegatives \? `\$\{PERCHANCE_NEGATIVE_PROMPT\}/);
+  });
+
+  it('is wired into the provider chain as a live engine', () => {
+    const generation = read('src/lib/imageGeneration.ts');
+    expect(generation).toContain("from '../services/perchanceClient'");
+    expect(IMAGE_PROVIDER_PRIORITY).toContain('perchance');
+    expect(registry).toContain("PERCHANCE_API_URL = 'https://perchance.org/perchance-ai-api'");
+  });
+
+  it('keeps Qwen-Image retired as aliases onto FLUX', () => {
+    expect(registry).toContain("'qwen-image': 'flux'");
+    expect(registry).toContain("'nvidia-qwen': 'flux'");
   });
 
   it('the server exposes the FLUX route and no Qwen/Perchance image route', () => {
     const server = read('server.ts');
     expect(server).toContain('app.post("/api/images/flux-generate"');
     expect(server).not.toContain('/api/images/qwen-generate');
-    expect(server).not.toContain('integrate.api.nvidia.com/v1",\n          method: "POST"');
+    expect(server).not.toContain('/api/images/perchance-generate');
     // The API and the client share ONE registry module.
     expect(server).toContain('from "./src/lib/imageProviders"');
     // No Perchance generator embed of any kind (the comment may name the host).
@@ -269,7 +314,7 @@ describe('retired integrations stay removed', () => {
     expect(server).toContain('options.prompt.slice(0, CLOUDFLARE_MAX_PROMPT_CHARS)');
 
     // It is a BACKEND of the flux engine, never a separate provider id.
-    expect(IMAGE_PROVIDER_PRIORITY).toEqual(['flux', 'gemini', 'pollinations']);
+    expect(IMAGE_PROVIDER_PRIORITY).toEqual(['perchance', 'flux', 'gemini', 'pollinations']);
   });
 
   it('surfaces which backend rendered the image', () => {
@@ -278,21 +323,20 @@ describe('retired integrations stay removed', () => {
     expect(describeFluxBackend(undefined)).toBe('FLUX.1-schnell · Hugging Face');
   });
 
-  it('refuses any Perchance network integration (no API exists)', () => {
-    // Perchance AI plugins are same-origin only and 403 plain HTTP requests, so
-    // neither a client fetch nor a "browser-like" Worker proxy can work.
-    for (const file of ['server.ts', 'src/lib/imageGeneration.ts', 'src/lib/imageProviders.ts']) {
+  it('never fetch()es perchance.org from any layer — the hidden iframe is the transport', () => {
+    // Bare HTTP to perchance.org is answered by a Cloudflare 403, so neither a
+    // client fetch nor a "browser-like" Worker proxy can generate an image.
+    for (const file of [
+      'server.ts',
+      'src/lib/imageGeneration.ts',
+      'src/lib/imageProviders.ts',
+      'src/services/perchanceClient.ts',
+    ]) {
       const source = read(file);
-      expect(source, file).not.toMatch(/fetch\([^)]*perchance\.org/);
-      expect(source, file).not.toContain('null.perchance.org');
+      expect(source, file).not.toMatch(/fetch\(\s*['"`]?https?:\/\/[^'"`]*perchance\.org/);
     }
-  });
-
-  it('keeps the retired engines as aliases in the shared registry', () => {
-    const registry = read('src/lib/imageProviders.ts');
-    expect(registry).toContain('perchance: \'flux\'');
-    expect(registry).toContain("'qwen-image': 'flux'");
-    expect(registry).toContain("'nvidia-qwen': 'flux'");
+    // The DOM client must not smuggle one in through helpers either.
+    expect(client).not.toMatch(/fetch\([^)]*perchance/);
   });
 });
 
