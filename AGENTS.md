@@ -490,7 +490,7 @@ explicit user instructions.
   them is a separate, explicit decision (`tests/image-providers.test.ts`
   guards the graph and the retired integrations).
 
-### 7.3e Deployment headers & console hygiene
+### 7.3f Deployment headers & console hygiene
 * **The web manifest must be fetched with credentials.**
   `vite.config.ts` sets `useCredentials: true` on `VitePWA`, which emits
   `<link rel="manifest" … crossorigin="use-credentials">`. Browsers request a
