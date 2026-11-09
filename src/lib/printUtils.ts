@@ -1,4 +1,5 @@
 import { replaceImagePlaceholders } from './imageReplacer';
+import { toExportableImageUrl } from './imageGeneration';
 import { patchOklchForHtml2canvas } from './pdfHelper';
 import { isAndroidDevice, isNativeApp, supportsSystemPrint } from './platform';
 import { deliverFile, notify, triggerWebDownload } from './nativeExport';
@@ -459,8 +460,16 @@ async function buildPdfBlob(container: HTMLElement, pdfFilename: string): Promis
         image: { type: 'jpeg', quality: 0.96 },
         html2canvas: {
             scale,
+            // `useCORS` loads cross-origin artwork through a CORS request so the
+            // canvas stays READABLE. `allowTaint` does the opposite — it lets
+            // images through without CORS, which TAINTS the canvas, and the very
+            // next `toDataURL()` throws a SecurityError. html2pdf swallows that
+            // and emits a blank PDF. The two options are mutually exclusive in
+            // practice; the illustrations are served cross-origin
+            // (user.uploads.dev, image.pollinations.ai), so CORS is the one to
+            // keep.
             useCORS: true,
-            allowTaint: true,
+            allowTaint: false,
             logging: false,
             backgroundColor: '#ffffff',
             imageTimeout: 15000,
@@ -557,7 +566,17 @@ export const downloadAsPDF = async (
         container.querySelectorAll('img').forEach(img => {
             try {
                 const src = img.getAttribute('src') || '';
-                if (src && src.startsWith('/') && !src.startsWith('//') && origin) {
+                // Generated artwork (Perchance's user.uploads.dev, Pollinations)
+                // is served WITHOUT a CORS header, so html2canvas cannot read
+                // its pixels: with allowTaint:false the illustration is skipped,
+                // with allowTaint:true the canvas taints and toDataURL() throws
+                // (blank PDF). Route those through the same-origin relay first.
+                const exportSrc = toExportableImageUrl(src, origin);
+                if (exportSrc !== src) {
+                    img.setAttribute('src', exportSrc);
+                    img.src = exportSrc;
+                    img.crossOrigin = 'anonymous';
+                } else if (src && src.startsWith('/') && !src.startsWith('//') && origin) {
                     img.src = origin + src;
                     img.crossOrigin = 'anonymous';
                 } else if (src.startsWith('http')) {

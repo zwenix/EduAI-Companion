@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { FIREBASE_WEB_CLIENT_ID, GOOGLE_AUTH_SCOPES, ANDROID_APP_PACKAGE_NAME, ANDROID_DEBUG_SHA1 } from '../config/googleAuth';
+import { logAuthFailure } from '../lib/consoleDiagnostics';
 
 interface LoginPageProps {
   onSuccess: () => void;
@@ -109,7 +110,9 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
         onSuccess(); // Directly go to homepage/dashboard
       }
     } catch (err: any) {
-      console.error(err);
+      // A wrong password is a normal login outcome and the form already says
+      // so — one info line, not a FirebaseError stack per typo.
+      logAuthFailure('Email sign-in failed', err);
       const errMsg = err?.message || String(err);
       if (errMsg.includes('auth/invalid-credential') || errMsg.includes('auth/wrong-password') || errMsg.includes('auth/user-not-found')) {
         setError("Invalid email or password. Please try again!");
@@ -180,7 +183,7 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
     } catch (err: any) {
       const code = String(err?.code || '');
       const msg = String(err?.message || '');
-      console.error('[EduAI] sendPasswordResetEmail failed', { code, msg, targetEmail });
+      logAuthFailure('sendPasswordResetEmail failed', err);
       if (code === 'auth/user-not-found') {
         setResetSent(`If ${targetEmail} is registered on EduAI, a password reset link is on its way. Check your inbox (and spam folder).`);
       } else if (code === 'auth/invalid-email' || /invalid-email/i.test(msg)) {
@@ -295,7 +298,7 @@ export default function LoginPage({ onSuccess, onSignUpClick }: LoginPageProps) 
       const combined = `${errMsg} ${errCode}`.trim();
 
       if (errCode !== 'auth/popup-closed-by-user' && !errMsg.includes('popup-closed-by-user') && errCode !== 'auth/popup-blocked' && !errMsg.includes('popup-blocked')) {
-        console.error("Google Auth error:", err);
+        logAuthFailure('Google sign-in failed', err);
       }
 
       if (errCode === 'auth/popup-closed-by-user' || errMsg.includes('popup-closed-by-user')) {

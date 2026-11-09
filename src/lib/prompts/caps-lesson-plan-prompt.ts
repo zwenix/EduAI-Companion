@@ -1,7 +1,22 @@
 // src/lib/prompts/caps-lesson-plan-prompt.ts
 
+import {
+  LESSON_PLAN_CONTENT_CONTRACT,
+  LESSON_PLAN_WORKSHEET_CONTRACT,
+} from './template-library/lesson-plan-contract';
+
+/**
+ * The house lesson-plan contract (reverse-engineered from `GFr3LPFull_Copy.pdf`)
+ * is injected into both halves of this pair. It is the same constant the Classic
+ * prompt, the LIGHT v5 prompt and `assets/templates/instructions/lesson-plan.md` use,
+ * so no lesson plan can ship without the eight mandatory blocks.
+ */
 export const CAPS_LESSON_PLAN_SYSTEM_PROMPT = `
 You are an expert South African CAPS (Curriculum Assessment Policy Statement) curriculum specialist and lesson planning assistant.
+
+${LESSON_PLAN_CONTENT_CONTRACT}
+
+${LESSON_PLAN_WORKSHEET_CONTRACT}
 
 CRITICAL DISTINCTION:
 A lesson plan is a comprehensive teaching guide for educators. By default, it MUST focus on detailed teacher instructions, lesson structures, resources, and time-allocation procedures, NOT just student worksheets.
@@ -239,23 +254,20 @@ SPECIFIC REQUIREMENTS:
 - Special considerations: [ANY BARRIERS OR NEEDS]
 - Append student practice worksheet/activities at the end: [INCLUDE_WORKSHEET_FLAG]
 
-Please generate a complete lesson plan following the exact CAPS structure provided in the system prompt, including:
+Please generate a complete lesson plan following the exact CAPS structure provided in the system prompt. The eight mandatory blocks of the house lesson-plan contract — in this order — are:
 
-1. NO header band — the host's ONE two-colour vertical gradient banner (bright colours picked for the content type) already carries the title, school, grade, subject, term, date and CAPS reference; start with the learning objectives
-2. 3-5 specific, measurable learning objectives
-3. Prior knowledge activation strategies
-4. Comprehensive list of resources (teacher and learner)
-5. DETAILED content section with:
-   - Key concepts explained
-   - Teaching content with South African examples
-   - Skills to be developed
-6. Step-by-step lesson procedure with time allocations for each phase
-7. Formative and summative assessment strategies
-8. Differentiation strategies for diverse learners
-9. Cross-curricular links
-10. Values/life skills integration
-11. Homework/extension activities
-12. Teacher reflection prompts
+1. 🎯 Aim of the Lesson — the lead-in sentence "At the end of this lesson, learners will be able to:" and exactly FOUR measurable ✓ objectives
+2. 🎒 Resources Needed — "For the Teacher:" (textbook with page numbers, demonstration kit, charts) and "For the Learners:" (workbooks, writing materials, handout)
+3. 🧠 Prior Knowledge & Preparation — one preparation paragraph (what they already know, how the room is arranged, the safety check) plus the 💡 "CAPS Connection:" callout naming the CAPS sub-field
+4. 📑 Core Content & Key Concepts — 3–5 numbered concept cards, each with an "Action:" paragraph, plus the 🚨 "Emergency Rule:" / golden-rule callout
+5. ⏰ Lesson Procedure — five timed phases, each an amber pill "Phase N: <Name> (<n> Minutes)":
+   Phase 1: Introduction & Hook (15 Minutes) · Phase 2: Direct Instruction & Demonstration (30 Minutes) · Phase 3: Guided Practice (25 Minutes) · Phase 4: Independent Practice & Worksheet (35 Minutes) · Phase 5: Closure & Summary (15 Minutes)
+   (scale the minutes proportionally when the requested duration is not two hours, but keep all five phases)
+6. 💙 Inclusive Education & Differentiation — "For Struggling Learners:" and "For Advanced Learners:" cards, 2–3 concrete bullets each
+7. 📝 Teacher Reflection Notes (Year ____) — the lead-in "Use this space to reflect on the success of the lesson:" and a dashed box with two lesson-specific guiding questions
+8. The appended learner worksheet — ONLY when the caller's worksheet flag is YES
+
+Where the CAPS WCED structure above adds further detail (formal/informal assessment, cross-curricular links, values, homework), fold it INTO those eight blocks rather than opening new top-level sections, so the plan keeps the house shape.
 
 Ensure the lesson plan is:
 ✓ CAPS-compliant and ATP-aligned

@@ -12,6 +12,7 @@ import { useAi } from '../contexts/AiContext';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
+import { getPerchanceDiagnostics } from '../services/perchanceClient';
 import {
   isNativeApp, getPlatform, isAndroidDevice, isWebViewRuntime,
   supportsSystemPrint, isLowMemoryDevice,
@@ -293,6 +294,34 @@ export default function Settings({
             { label: 'OCR / grading', value: ocrProvider || 'unset' },
             { label: 'Speech (TTS)', value: ttsProvider || 'unset' },
             { label: 'Image generation', value: imageProvider || 'unset' },
+            ...(() => {
+              // Perchance runs a diffusion model inside a hidden iframe on THIS
+              // device, so "is it configured" is not the question — "does it
+              // render here" is. These rows answer that without a support round
+              // trip; use the Test button below for a real generation.
+              const d = getPerchanceDiagnostics();
+              return [
+                {
+                  label: 'Perchance runtime',
+                  value: d.runtimeAvailable ? 'browser — iframe transport available' : 'unavailable (no DOM)',
+                  tone: d.runtimeAvailable ? ('ok' as const) : ('bad' as const),
+                },
+                {
+                  label: 'Perchance circuit',
+                  value: d.benched
+                    ? `benched for another ${Math.ceil(d.benchRemainingMs / 60000)} min`
+                    : d.consecutiveFailures
+                      ? `${d.consecutiveFailures} recent failure(s), still usable`
+                      : 'healthy',
+                  tone: d.benched ? ('bad' as const) : d.consecutiveFailures ? ('warn' as const) : ('ok' as const),
+                },
+                {
+                  label: 'Perchance host',
+                  value: `${d.host} · ${Math.round(d.timeoutMs / 1000)}s budget`,
+                  tone: 'muted' as const,
+                },
+              ];
+            })(),
           ],
         },
         {

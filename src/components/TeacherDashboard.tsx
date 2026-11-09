@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../lib/firebase';
+import { warnOnce } from '../lib/consoleDiagnostics';
 import { collection, addDoc, doc, serverTimestamp, query, onSnapshot, updateDoc, where } from 'firebase/firestore';
 import { 
   ShieldAlert, 
@@ -523,7 +524,15 @@ export default function TeacherDashboard({ isDarkMode, onNavigate, triggerToast 
           // (deploy the repo's firestore.rules, see scripts/deploy-firestore-rules.sh).
           // Fall back to the local mirror so the dashboard still shows the
           // teacher's intervention plans.
-          console.warn("Interventions sync err (falling back to local mirror):", err);
+          //
+          // Warned once per session: the condition persists until the rules are
+          // deployed, and this listener restarts on every mount — it used to
+          // repeat the same warning dozens of times and bury everything else.
+          warnOnce(
+            'learner-interventions-sync',
+            'Interventions sync err (falling back to local mirror):',
+            err
+          );
           try {
             const stored = localStorage.getItem('eduai_learner_interventions');
             if (stored) {

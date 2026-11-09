@@ -559,8 +559,10 @@ export default function ProgressReports({ isDarkMode = false }: { isDarkMode?: b
         try {
           canvas = await html2canvas(element, {
             scale: 2, // High resolution crisp text and graphics
+            // CORS, not taint: `allowTaint: true` makes the canvas unreadable
+            // and the toDataURL() below throw, leaving a blank report.
             useCORS: true,
-            allowTaint: true,
+            allowTaint: false,
             backgroundColor: '#0f172a', // Consistent theme background
             logging: false,
           });

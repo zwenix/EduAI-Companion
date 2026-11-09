@@ -31,6 +31,7 @@ import {
   type IllustrationStyle,
 } from './contentStyle';
 import { buildClassicCapsPrompts } from './prompts/classic-templates';
+import { contentTypeAnatomyBrief } from './prompts/template-library';
 
 // SA Compliance imports — new from CAPS document
 import {
@@ -227,6 +228,15 @@ SA CONTEXT:
     let contentTemplate = isClassic
       ? this.selectClassicTemplate(context, illustrationStyle)
       : this.selectTemplate(context.contentType, phase);
+
+    // Reverse-engineered reference anatomy for this content type (see
+    // `prompts/template-library/`). Appended — never in place of — the selected
+    // template, so the existing doctrine keeps its full text while the document
+    // still carries the section order, fixed micro-copy and guardrails measured
+    // from `assets/templates/**`.
+    if (context.contentType !== 'lesson-plan') {
+      contentTemplate += `\n\n${contentTypeAnatomyBrief(context.contentType)}`;
+    }
     
     // Handle new SA content types from document
     if (context.contentType === 'individual_support_plan' || context.contentType === 'annual_teaching_plan' || context.contentType === 'admin_document') {

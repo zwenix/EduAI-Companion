@@ -239,6 +239,13 @@ config stay byte-identical, so the frozen designs in 3b are unaffected.
 
 The following sections define the explicit guidelines, prompt configurations, and layouts for all non-video content types supported by this application.
 
+### 5.0 Built-in content-type prompt library (reverse-engineered — SINGLE SOURCE OF TRUTH)
+
+* **`src/lib/prompts/template-library/`** holds one typed `ContentTypeTemplate` per content type: the fixed page anatomy, the measured visual system, the fixed micro-copy, the guardrails, and a complete **system prompt + user-prompt builder**. It was reverse-engineered from the finished documents in `assets/templates/**` (PDF page reads, text extraction, 16-colour quantisation, block deconstruction).
+* **`assets/templates/instructions/`** holds the generated Markdown copies (`README.md`, `_anatomy.md` and one `<content-type>.md` per template). They are BUILD OUTPUT — regenerate with `npm run build:prompts`; never hand-edit them. `tests/template-library.test.ts` fails if they drift from the source.
+* **`src/lib/prompts/template-library/lesson-plan-contract.ts`** holds `LESSON_PLAN_CONTENT_CONTRACT` — the eight mandatory lesson-plan blocks and five timed procedure phases reverse-engineered from the supplied `GFr3LPFull_Copy.pdf`. It is imported by `caps-lesson-plan-prompt.ts`, `admin-templates.ts` (LIGHT v5), `system-prompts.ts` and `classic-templates.ts`, and asserted for all four by the test suite. **Do not fork it into a second copy.**
+* When you change a content type's structure or prompt, change the library and re-run `npm run build:prompts`. Do not add a parallel prompt in another module.
+
 ### 5.1 CAPS Lesson Plans & Unit Plans
 * **Target Audience**: Teachers and educators. Must be structured as a detailed instructional guide.
 * **Core Layout Structure**:
@@ -248,12 +255,13 @@ The following sections define the explicit guidelines, prompt configurations, an
   4. **Prior Knowledge**: Concrete strategies to hook attention and bridge concepts.
   5. **Resources**: Bulleted breakdowns of teacher materials and learner resources.
   6. **Core Concepts & CAPS References**: Thorough explanations with local South African context (names, Rand currency, local provinces, indigenous plants/animals).
-  7. **Step-by-Step Lesson Procedure**: Detailed phase transitions:
-     * *Introduction / Hook* (10-15 min)
-     * *Direct Teaching Input* (20-30 min)
-     * *Guided Practice / Active Learning* (15-20 min)
-     * *Independent Practice / Homework* (10-15 min)
-     * *Consolidation & Closure* (5-10 min)
+  7. **Step-by-Step Lesson Procedure**: the five phases of the house contract (§5.0, reverse-engineered from the supplied reference plan). These names and minutes are FROZEN:
+     * *Phase 1: Introduction & Hook* (15 min)
+     * *Phase 2: Direct Instruction & Demonstration* (30 min)
+     * *Phase 3: Guided Practice* (25 min)
+     * *Phase 4: Independent Practice & Worksheet* (35 min)
+     * *Phase 5: Closure & Summary* (15 min)
+     (`scaleLessonPhases()` keeps the split proportional for a non-two-hour duration — all five phases always survive.)
   8. **Assessment & Diagnostic Strategy**: Standard informal checklists and structured formative check-points.
   9. **Differentiated Accommodations**: Explicit instructions for struggling learners (scaffolding), advanced learners (extension tasks), and learners with specialized physical/cognitive barriers.
   10. **Values & Life Skills integration**.
@@ -434,6 +442,9 @@ explicit user instructions.
     does not imply the other is.
   * `POLLINATIONS_API_KEY` removes the throttle (`sk_` keys have no IP limit).
     This is the documented fix for "free limit reached" reports.
+  * A **503** from `image.pollinations.ai/prompt/…` is upstream capacity, not
+    our route — the chain falls through and the placeholder renders. Never
+    "fix" a 503 by retrying the same seed in a loop (§4 prohibition).
 * **Every engine may fail — the result must still render.** The final fallback
   is `buildPlaceholderImageUrl()`: a self-contained SVG data URL (no network,
   deterministic, escaped) carrying the prompt and a reason. Never return a
@@ -452,26 +463,95 @@ explicit user instructions.
   `https://perchance.org/perchance-ai-api`: "Works from any domain … No keys,
   no CORS, no backend. The app loads the API in a hidden iframe and receives
   the result via postMessage." Unlimited, no rate limits. Implementation:
-  `src/services/perchanceClient.ts` (warm-up iframe once per session, one
-  hidden iframe per image, reply matched by request id and Perchance origin,
-  permanent `user.uploads.dev` URLs cached, max 2 concurrent, 60 s timeout,
-  embed-mirror failover to `null.perchance.org`, circuit breaker benches the
-  engine after 2 consecutive failures for 10 min). Rules that are enforced by
-  `tests/image-providers.test.ts`:
+  `src/services/perchanceClient.ts` (memoised frame-free preflight once per
+  session, one hidden iframe per image, reply matched by request id and
+  Perchance origin, permanent `user.uploads.dev` URLs cached, max 2
+  concurrent, 60 s timeout, embed-mirror failover to `null.perchance.org`,
+  circuit breaker benches the engine after 2 consecutive failures for 10 min).
+  Rules that are enforced by `tests/image-providers.test.ts`:
   * ONLY `perchance-ai-api` may ever be framed. The generator pages
     (`ai-text-to-image-generator`, `ai-images-generator`) send
     `X-Frame-Options: SAMEORIGIN` and can never load — that dead bridge must
     not come back.
+  * **Never frame the bare `perchance.org` homepage.** The docs' sample
+    "warm-up" iframe does exactly that and the browser logs
+    `Refused to display 'https://perchance.org/' in a frame because it set
+    'X-Frame-Options' to 'sameorigin'` on the first image of every session.
+    The framed API page is the Cloudflare visit; `warmUpPerchance()` is now a
+    memoised, DOM-free capability check and must stay that way.
   * Never `fetch()` `perchance.org` from any layer (client or server): bare
     HTTP is answered by a Cloudflare 403. The hidden iframe IS the transport.
   * The engine is browser-only; server-side callers that ask for `perchance`
     are routed to FLUX (`/api/images/generate`).
   * Always send `PERCHANCE_NEGATIVE_PROMPT` (child-safety floor for a school
     product); callers may extend it, never replace it.
+* **Perchance runs on the user's device — treat the iframe as a renderer.**
+  The framed API page executes the diffusion model itself, so anything that
+  throttles a renderer starves it and the generation silently never finishes
+  (the only symptom is a timeout).
+  * The generation iframe must keep a real layout box **inside the viewport**.
+    Never `width:1px`/`height:1px`, `opacity: 0`, `visibility: hidden`,
+    `display: none`, or `top/left: -9999px` — all of those are
+    render-throttling triggers in Chromium. `clip-path: inset(100%)` +
+    `pointer-events: none` hides it from the teacher while keeping the
+    pipeline live (`HIDDEN_FRAME_STYLE`).
+  * The per-image budget is **180 s** (the docs' own figure). 60 s timed out
+    on school laptops and low-end Android, which read as "Perchance is broken".
+  * **A timeout is not a failure.** It must never count towards the circuit
+    breaker — two slow renders used to bench the engine for 10 minutes. The
+    breaker now needs 3 *real* failures inside `PERCHANCE_FAILURE_WINDOW_MS`.
+  * Timeouts must say **whether the framed page loaded**: loaded = still
+    rendering (slow device), never loaded = blocked (network filter, CSP,
+    offline). `frame.onerror` fails fast instead of burning the whole budget.
+  * `getPerchanceDiagnostics()` + `probePerchance()` drive Settings →
+    Diagnostics. The probe renders one 512×512 image end to end and never
+    touches the breaker or the result cache.
+* **Generated artwork must be CORS-readable for export.** Perchance's
+  `user.uploads.dev` and Pollinations' `image.pollinations.ai` responses carry
+  no `Access-Control-Allow-Origin`. They display fine but the PDF exporter
+  cannot read their pixels. `toExportableImageUrl()` routes them through the
+  same-origin `/api/image-relay` (strict host allow-list, `image/*` only,
+  rate-limited like any `/api` route). Never widen that allow-list into a
+  general proxy.
+* **Never set `allowTaint: true` on an html2canvas call.** It and `useCORS` are
+  opposites: tainting makes the canvas unreadable, so the following
+  `toDataURL()`/`toBlob()` throws and the export comes out blank.
+  `tests/image-relay.test.ts` guards both rules.
 * The image **model list is frozen** — FLUX.1-schnell, Pollinations `flux`
   and the three Gemini image models are the approved image models. Changing
   them is a separate, explicit decision (`tests/image-providers.test.ts`
   guards the graph and the retired integrations).
+
+### 7.3f Deployment headers & console hygiene
+* **The web manifest must be fetched with credentials.**
+  `vite.config.ts` sets `useCredentials: true` on `VitePWA`, which emits
+  `<link rel="manifest" … crossorigin="use-credentials">`. Browsers request a
+  manifest WITHOUT credentials even same-origin; on a Vercel deployment behind
+  Deployment Protection that request is unauthenticated, gets redirected to
+  `vercel.com/sso-api`, and the browser logs
+  `Access to manifest … blocked by CORS policy`. `tests/deployment-headers.test.ts`
+  fails CI if the flag is removed.
+* **Do not hand-roll a `Permissions-Policy` header.** The five
+  `Error with Permissions-Policy header: Unrecognized feature …` lines
+  (`attribution-reporting`, `private-aggregation`, `join-ad-interest-group`,
+  `run-ad-auction`, `browsing-topics`) are emitted by Vercel's
+  preview-protection layer on **protected preview URLs only** — production
+  sends no such header at all. Adding one in `vercel.json` collides with theirs
+  and makes the whole policy unparseable. Camera and microphone must never be
+  denied (OCR, QR scanning, avatar capture).
+* **Expected authentication outcomes are not console errors.** Use
+  `logAuthFailure()` from `src/lib/consoleDiagnostics.ts`: a wrong password or
+  a closed Google popup logs one `console.info` line, while real
+  misconfiguration (`auth/unauthorized-domain`, `auth/invalid-api-key`) stays a
+  `console.error`. Never `console.error(err)` directly from an auth `catch`.
+* **Conditions that persist across remounts warn once per session** via
+  `warnOnce(key, message, detail)` — never once per listener restart. A stale
+  Firestore rule otherwise prints dozens of identical warnings.
+* A `503`/`402` from `image.pollinations.ai/prompt/<encoded prompt>` is upstream
+  throttling, not our route; the provider chain and the SVG placeholder already
+  handle it. `POLLINATIONS_API_KEY` removes the throttle.
+* `net::ERR_BLOCKED_BY_CLIENT` is always a client-side blocker — no server can
+  produce it; never chase it in app code.
 
 ### 7.4 API abuse protection
 * `src/lib/rateLimit.ts` is mounted on `/api` in `server.ts` before every route

@@ -1021,6 +1021,45 @@ SA Context: Diverse learners representing rainbow nation, local landmarks (Table
 Optimized for ${FLUX_CONFIG.model} — clear, legible, educational poster design.`;
 };
 
+/* ── CORS-safe artwork for export ──────────────────────────────────────────── */
+
+/** Hosts whose images are NOT CORS-readable in the browser (see /api/image-relay). */
+const RELAY_HOSTS = ['user.uploads.dev', 'image.pollinations.ai'];
+
+/**
+ * Returns a URL the PDF exporter can actually read.
+ *
+ * Perchance's permanent `user.uploads.dev` URLs (and Pollinations' output)
+ * render fine in an `<img>` but carry no CORS header, so html2canvas cannot
+ * read their pixels: with `allowTaint: false` the illustration is skipped, and
+ * with `allowTaint: true` the canvas taints and `toDataURL()` throws — a blank
+ * PDF. Routing them through the same-origin `/api/image-relay` makes them
+ * readable.
+ *
+ * Already-usable URLs (`data:`, blob:, our own origin, anything else) are
+ * returned untouched, so this is safe to apply to every `<img>` in a document.
+ * In the native app there is no backend server, so it is a no-op there.
+ */
+export const toExportableImageUrl = (url: string, origin?: string): string => {
+  if (!url) return url;
+  if (/^(data:|blob:)/i.test(url)) return url;
+  if (isNativeApp()) return url;
+
+  const base = origin || (typeof window !== 'undefined' ? window.location.origin : '');
+  // Same-origin or relative: already readable by the exporter.
+  if (url.startsWith('/') && !url.startsWith('//')) return url;
+  if (base && url.startsWith(base)) return url;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(url, base || undefined);
+  } catch {
+    return url;
+  }
+  if (!RELAY_HOSTS.includes(parsed.hostname)) return url;
+  return `/api/image-relay?url=${encodeURIComponent(parsed.toString())}`;
+};
+
 export default {
   generateImageWithFallback,
   generateImageGemini,
@@ -1037,5 +1076,6 @@ export default {
   buildApiUrl,
   resetPerchanceClient,
   warmUpPerchance,
+  toExportableImageUrl,
   FLUX_CONFIG
 };

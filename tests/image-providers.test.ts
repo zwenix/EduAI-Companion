@@ -7,7 +7,8 @@
  *    (`perchance.org/perchance-ai-api`) via a hidden iframe + postMessage —
  *    reinstated 28 Oct 2026. Only that endpoint may ever be framed: the
  *    generator pages (`ai-text-to-image-generator`, `ai-images-generator`)
- *    send `X-Frame-Options: SAMEORIGIN` and can never load. No layer may
+ *    and the bare `perchance.org` homepage all send
+ *    `X-Frame-Options: SAMEORIGIN` and can never load. No layer may
  *    `fetch()` perchance.org either (Cloudflare 403s bare HTTP).
  *  • Qwen-Image on NVIDIA NIM is retired. `qwen/qwen-image` and
  *    `qwen/qwen-image-2512` both 404 at the gateway.
@@ -243,21 +244,29 @@ describe('Perchance Image API v1 integration contract', () => {
   });
 
   it('frames only the documented perchance-ai-api endpoint', () => {
+    // Comments may quote the blocked homepage (to explain WHY it is blocked);
+    // only executable string literals can ever become an `iframe.src`.
+    const clientCode = client.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
     expect(client).toContain("export const PERCHANCE_API_URL = 'https://perchance.org/perchance-ai-api'");
     // The embed-generator FAQ mirror is allowed as an automatic fallback host.
     expect(client).toContain("export const PERCHANCE_EMBED_API_URL = 'https://null.perchance.org/perchance-ai-api'");
-    // Anything framed must be the API endpoint (or the warm-up homepage) — no other Perchance pages.
-    const framed = client.match(/https:\/\/[^'"`\s]*perchance\.org[^'"`\s]*/g) || [];
+    // Anything framed must be the API endpoint — no other Perchance pages.
+    // The bare homepage is deliberately absent: it answers
+    // `X-Frame-Options: SAMEORIGIN`, so framing it only logs
+    // "Refused to display 'https://perchance.org/' in a frame …".
+    const framed = clientCode.match(/https:\/\/[^'"`\s]*perchance\.org[^'"`\s]*/g) || [];
     for (const url of framed) {
       const ok =
         url === 'https://perchance.org/perchance-ai-api' ||
         url === 'https://null.perchance.org/perchance-ai-api' ||
-        url === 'https://perchance.org/' ||
         // bare origins, used for the postMessage origin allow-list
         url === 'https://perchance.org' ||
         url === 'https://null.perchance.org';
       expect(ok, `unexpected framed URL: ${url}`).toBe(true);
     }
+    // No iframe (or fetch) may ever be pointed at the homepage again.
+    expect(clientCode).not.toContain("'https://perchance.org/'");
+    expect(clientCode).not.toContain('PERCHANCE_WARMUP_URL');
   });
 
   it('accepts replies only from a Perchance origin and the matching request id', () => {
