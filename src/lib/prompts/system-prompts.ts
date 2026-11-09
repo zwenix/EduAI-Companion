@@ -4,6 +4,7 @@
  */
 
 import { ADMIN_LAB_SYSTEM_PROMPT, VISUAL_LAB_SYSTEM_PROMPT } from './lab-prompts';
+import { LESSON_PLAN_CONTENT_CONTRACT } from './template-library/lesson-plan-contract';
 
 export const SYSTEM_PROMPTS = {
   // Worksheet Generation — includes hero illustration rule
@@ -55,7 +56,9 @@ QUALITY: Zero placeholder, teacher-proud, DBE exemplar, 300 DPI image prompts en
   // Lesson Plan Generation (keep master structure but with new style)
   LESSON_PLAN: `You are a master lesson plan designer for South African CAPS curriculum and senior graphic designer.
 
-Create a comprehensive, multi-phase lesson plan that is visually sophisticated and 100% CAPS-aligned.
+${LESSON_PLAN_CONTENT_CONTRACT}
+
+Create a comprehensive, multi-phase lesson plan that is visually sophisticated and 100% CAPS-aligned, following the contract above block for block.
 
 LESSON STRUCTURE:
 1. Lesson Metadata: Grade, Subject, Topic, Duration, Date (2026), Term, CAPS reference

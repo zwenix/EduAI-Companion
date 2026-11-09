@@ -239,6 +239,13 @@ config stay byte-identical, so the frozen designs in 3b are unaffected.
 
 The following sections define the explicit guidelines, prompt configurations, and layouts for all non-video content types supported by this application.
 
+### 5.0 Built-in content-type prompt library (reverse-engineered — SINGLE SOURCE OF TRUTH)
+
+* **`src/lib/prompts/template-library/`** holds one typed `ContentTypeTemplate` per content type: the fixed page anatomy, the measured visual system, the fixed micro-copy, the guardrails, and a complete **system prompt + user-prompt builder**. It was reverse-engineered from the finished documents in `assets/templates/**` (PDF page reads, text extraction, 16-colour quantisation, block deconstruction).
+* **`assets/templates/instructions/`** holds the generated Markdown copies (`README.md`, `_anatomy.md` and one `<content-type>.md` per template). They are BUILD OUTPUT — regenerate with `npm run build:prompts`; never hand-edit them. `tests/template-library.test.ts` fails if they drift from the source.
+* **`src/lib/prompts/template-library/lesson-plan-contract.ts`** holds `LESSON_PLAN_CONTENT_CONTRACT` — the eight mandatory lesson-plan blocks and five timed procedure phases reverse-engineered from the supplied `GFr3LPFull_Copy.pdf`. It is imported by `caps-lesson-plan-prompt.ts`, `admin-templates.ts` (LIGHT v5), `system-prompts.ts` and `classic-templates.ts`, and asserted for all four by the test suite. **Do not fork it into a second copy.**
+* When you change a content type's structure or prompt, change the library and re-run `npm run build:prompts`. Do not add a parallel prompt in another module.
+
 ### 5.1 CAPS Lesson Plans & Unit Plans
 * **Target Audience**: Teachers and educators. Must be structured as a detailed instructional guide.
 * **Core Layout Structure**:
@@ -248,12 +255,13 @@ The following sections define the explicit guidelines, prompt configurations, an
   4. **Prior Knowledge**: Concrete strategies to hook attention and bridge concepts.
   5. **Resources**: Bulleted breakdowns of teacher materials and learner resources.
   6. **Core Concepts & CAPS References**: Thorough explanations with local South African context (names, Rand currency, local provinces, indigenous plants/animals).
-  7. **Step-by-Step Lesson Procedure**: Detailed phase transitions:
-     * *Introduction / Hook* (10-15 min)
-     * *Direct Teaching Input* (20-30 min)
-     * *Guided Practice / Active Learning* (15-20 min)
-     * *Independent Practice / Homework* (10-15 min)
-     * *Consolidation & Closure* (5-10 min)
+  7. **Step-by-Step Lesson Procedure**: the five phases of the house contract (§5.0, reverse-engineered from the supplied reference plan). These names and minutes are FROZEN:
+     * *Phase 1: Introduction & Hook* (15 min)
+     * *Phase 2: Direct Instruction & Demonstration* (30 min)
+     * *Phase 3: Guided Practice* (25 min)
+     * *Phase 4: Independent Practice & Worksheet* (35 min)
+     * *Phase 5: Closure & Summary* (15 min)
+     (`scaleLessonPhases()` keeps the split proportional for a non-two-hour duration — all five phases always survive.)
   8. **Assessment & Diagnostic Strategy**: Standard informal checklists and structured formative check-points.
   9. **Differentiated Accommodations**: Explicit instructions for struggling learners (scaffolding), advanced learners (extension tasks), and learners with specialized physical/cognitive barriers.
   10. **Values & Life Skills integration**.

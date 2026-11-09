@@ -20,7 +20,8 @@ import {
   imageGoldenRule,
   type IllustrationStyle,
 } from '../contentStyle';
-import { dateMandate } from '../saDates';
+import { currentYear, dateMandate } from '../saDates';
+import { LESSON_PLAN_CONTENT_CONTRACT } from './template-library/lesson-plan-contract';
 
 /** The restored master doctrine, re-exported for prompt builders. */
 export const CLASSIC_MASTER_PROMPT = CLASSIC_MASTER_SYSTEM_PROMPT;
@@ -72,6 +73,9 @@ export const CLASSIC_STUDY_GUIDE_REQUIREMENTS = `
 /** True for the content types the classic doctrine treats as study notes. */
 export const isClassicStudyGuide = (contentType?: string): boolean => {
   const value = (contentType || '').toLowerCase();
+  // "Daily Lesson Notes" are lesson plans, not revision notes — they must NOT
+  // pick up the study-guide mandate, or the plan loses its procedure blocks.
+  if (isClassicLessonPlan(value)) return false;
   return (
     value.includes('study guide') ||
     value.includes('learning notes') ||
@@ -79,6 +83,43 @@ export const isClassicStudyGuide = (contentType?: string): boolean => {
     value.includes('daily lesson notes')
   );
 };
+
+/**
+ * True for every label the Content Creator uses for a lesson plan.
+ *
+ * The classic doctrine routes lesson plans through the shared house contract
+ * (reverse-engineered from `GFr3LPFull_Copy.pdf`) so the eight mandatory blocks
+ * — aim, resources, prior knowledge, core content, five timed phases,
+ * differentiation, reflection, optional worksheet — are always produced.
+ */
+export const isClassicLessonPlan = (contentType?: string): boolean => {
+  const value = (contentType || '').toLowerCase().trim();
+  if (!value) return false;
+  return (
+    value === 'lesson-plan' ||
+    value === 'lesson plan' ||
+    value.includes('lesson plan') ||
+    value.includes('unit plan') ||
+    value.includes('daily lesson notes') ||
+    value.includes('weekly lesson notes')
+  );
+};
+
+/**
+ * The house lesson-plan contract, injected into the classic CAPS prompt.
+ *
+ * Imported rather than duplicated: `caps-lesson-plan-prompt.ts`,
+ * `admin-templates.ts` (LIGHT v5), `system-prompts.ts` and the
+ * `assets/templates/instructions/lesson-plan.md` doc all render the same constant,
+ * so the blocks can never drift between doctrines.
+ */
+export const CLASSIC_LESSON_PLAN_REQUIREMENTS = `
+            ⛔ THIS DOCUMENT IS A LESSON PLAN — NOT A WORKSHEET, NOT A STUDY GUIDE.
+
+            ${LESSON_PLAN_CONTENT_CONTRACT}
+
+            BANNER MODE FOR THIS DOCUMENT: you build the page (Classic doctrine) — use MODE B of the contract: ONE full-width two-colour gradient band carrying the three pills, the topic as the H1, the "Topic: …" subtitle and the Date · Duration · Class Size row. Then the eight blocks follow in order.
+            `;
 
 export interface ClassicCapsInput {
   contentType?: string;
@@ -97,12 +138,16 @@ export const buildClassicCapsPrompts = (
   input: ClassicCapsInput,
 ): { system: string; user: string } => {
   const contentType = input.contentType || 'Worksheet';
-  const studyGuideRequirements = isClassicStudyGuide(contentType)
+  const isLessonPlan = isClassicLessonPlan(contentType);
+  // A lesson plan outranks the study-guide mandate: it is a teaching script,
+  // not revision notes, so the two must never be applied together.
+  const studyGuideRequirements = !isLessonPlan && isClassicStudyGuide(contentType)
     ? CLASSIC_STUDY_GUIDE_REQUIREMENTS
     : '';
+  const lessonPlanRequirements = isLessonPlan ? CLASSIC_LESSON_PLAN_REQUIREMENTS : '';
   const goldenRule = imageGoldenRule(input.illustrationStyle);
 
-  const system = `${classicSystemPrompt()}\n\nGenerate high-quality ${contentType} for Grade ${input.grade || '4'} ${input.subject || ''}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.`;
+  const system = `${classicSystemPrompt()}\n\nGenerate high-quality ${contentType} for Grade ${input.grade || '4'} ${input.subject || ''}.\nThe response must be a JSON object, but the 'content', 'memo', and 'rubric' fields MUST be fully styled HTML. Use modern, beautiful Tailwind CSS styling directly in the class attributes for a professional, print-ready "award winning" layout. Include @media print styles if needed. DO NOT use Markdown.${lessonPlanRequirements ? `\n${lessonPlanRequirements}\nThis request is a LESSON PLAN: satisfy the contract above block for block.` : ''}`;
 
   const user = `
             Type: ${contentType}
@@ -132,6 +177,18 @@ export const buildClassicCapsPrompts = (
             - Footer: "EduAI Companion | CAPS Aligned | eduai-companion.github.io".
             - DO NOT USE MARKDOWN. Write raw HTML inside the JSON content values using tailwind CSS classes.
             ${studyGuideRequirements}
+            ${lessonPlanRequirements ? `
+            LESSON PLAN BLOCK CHECKLIST (verify every line is present before you answer):
+            ☐ the ONE gradient banner: 3 pills + topic H1 + "Topic: …" subtitle + Date · Duration · Class Size row
+            ☐ 🎯 Aim of the Lesson — the "At the end of this lesson, learners will be able to:" lead-in and exactly four ✓ objectives
+            ☐ 🎒 Resources Needed — "For the Teacher:" and "For the Learners:"
+            ☐ 🧠 Prior Knowledge & Preparation — preparation paragraph + 💡 "CAPS Connection:" callout
+            ☐ 📑 Core Content & Key Concepts — numbered concept cards with "Action:" paragraphs + 🚨 rule callout
+            ☐ ⏰ Lesson Procedure — all five amber "Phase N: … (n Minutes)" pills with spoken scripts and named scenarios
+            ☐ 💙 Inclusive Education & Differentiation — "For Struggling Learners:" and "For Advanced Learners:"
+            ☐ 📝 Teacher Reflection Notes (Year ${currentYear()}) — lead-in sentence + dashed box with two guiding questions
+            ☐ the learner worksheet appended at the end — ONLY if the Additional Info asks for one
+            ` : ''}
             
             GUIDE: ${goldenRule}
           `;

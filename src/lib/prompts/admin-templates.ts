@@ -3,9 +3,14 @@
  * Lesson Plans, Curriculum Maps, Report Comments, Meeting Notes
  */
 
+import { LESSON_PLAN_CONTENT_CONTRACT } from './template-library/lesson-plan-contract';
+
 export const LESSON_PLAN_TEMPLATE = `
+${LESSON_PLAN_CONTENT_CONTRACT}
+
 ⛔ ONE BANNER ONLY — NEVER BUILD YOUR OWN HEADER BAND:
 The host app wraps your output in the official EduAI LIGHT Template v5 chrome: a very light blue 70%-transparent page header and ONE full-width two-colour VERTICAL gradient document banner (bright colours chosen by the host for the content type) that already prints the title, grade, subject, term, content type, date, school/teacher, marks, the CAPS code and the compliance labels. Any <header>, banner, cover section, title block, school/DBE header or metadata strip you emit at the top of the document is removed by the host and only wastes the vertical space the learner needs — start straight into the content.
+(That is Banner Mode A of the contract above: the pills and the "Topic: …" subtitle are already printed by the host, so open on "🎯 Aim of the Lesson".)
 
 Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extremely detailed and easy to implement for anyone (even a layman or substitute teacher) with zero preparation.
 
@@ -35,16 +40,16 @@ Generate an exceptionally detailed, CAPS-aligned lesson plan. It MUST be extreme
   <!-- HEADER CARD -->
   <header class="bg-[#EA580C] text-white p-8 rounded-b-3xl relative overflow-hidden shadow-lg" style="background-color: \${primary};">
     <div class="flex flex-wrap gap-2 mb-4">
-      <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">CURRICULUM FOCUS</span>
-      <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">\${subject} : GRADE \${grade}</span>
+      <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">CAPS ALIGNED</span>
+      <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">\${subject}: GRADE \${grade}</span>
       <span class="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider uppercase shadow-sm">TERM \${term} • WEEK \${week}</span>
     </div>
     <h1 class="text-4xl font-extrabold tracking-tight leading-tight mb-2">\${topic}</h1>
-    <p class="text-lg text-white/90 font-medium">CAPS Content & Diagnostic Mastery System</p>
+    <p class="text-lg text-white/90 font-medium">Topic: \${topic}</p>
     
     <div class="mt-6 pt-6 border-t border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm font-medium">
       <div class="flex items-center gap-2">⏱️ <span class="font-bold">Duration:</span> \${duration}</div>
-      <div class="flex items-center gap-2">🏫 <span class="font-bold">Class Size:</span> 35-40 Learners</div>
+      <div class="flex items-center gap-2">👥 <span class="font-bold">Class Size:</span> 35-40 Learners</div>
       <div class="flex items-center gap-2">🧬 <span class="font-bold">Curriculum reference:</span> \${capsCode}</div>
     </div>
   </header>

@@ -17,6 +17,7 @@
     "render:template-demo": "tsx scripts/render-content-template-demo.ts",
     "verify:template": "tsx scripts/verify-content-template.ts",
     "build:fp-pack": "tsx scripts/build-foundation-template-portable-pack.ts",
+    "build:prompts": "tsx scripts/build-content-type-prompts.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
