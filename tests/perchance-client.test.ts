@@ -7,14 +7,21 @@
  * These tests pin the request shape, the origin/id filtering, the child-safety
  * negative prompt, the timeout path, caching, the embed-mirror failover and
  * the circuit breaker — see `src/services/perchanceClient.ts`.
+ *
+ * One more thing is pinned here: the bare `perchance.org` homepage is NEVER
+ * framed. It answers `X-Frame-Options: SAMEORIGIN` (the browser logs
+ * "Refused to display 'https://perchance.org/' in a frame …"), and the API
+ * iframe is the Cloudflare visit anyway — so the session preflight must stay
+ * frame-free.
  */
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   PERCHANCE_API_MARKER,
   PERCHANCE_API_URL,
   PERCHANCE_EMBED_API_URL,
   PERCHANCE_NEGATIVE_PROMPT,
-  PERCHANCE_WARMUP_URL,
   buildPerchanceRequestUrl,
   generatePerchanceImageClient,
   isPerchanceBenching,
@@ -37,11 +44,11 @@ const installFakeBrowser = (reply: (src: URL, post: (data: any, origin?: string)
       appendChild: (frame: any) => {
         frames.push(frame);
         const src = String(frame.src);
+        // Only the documented API page may be framed. Anything else (the bare
+        // homepage in particular) would 403 in a real browser and is never
+        // loaded here — it simply stays in `frames` for the assertion below.
         if (src.includes('perchance-ai-api')) {
           setTimeout(() => reply(new URL(src), post), 0);
-        } else if (frame.onload) {
-          // Warm-up frame — the page "loads", Cloudflare passes the browser.
-          setTimeout(() => frame.onload(), 0);
         }
       },
     },
@@ -101,7 +108,7 @@ describe('generatePerchanceImageClient', () => {
   beforeEach(() => resetPerchanceClient());
   afterEach(() => vi.unstubAllGlobals());
 
-  it('warms up, then requests the Image API in a hidden iframe and returns the hosted URL', async () => {
+  it('requests the Image API in one hidden iframe and returns the hosted URL', async () => {
     let requested: URL | undefined;
     const env = installFakeBrowser((src, post) => {
       requested = src;
@@ -111,8 +118,9 @@ describe('generatePerchanceImageClient', () => {
     const url = await generatePerchanceImageClient('a lion', 800, 600, 7, 5000);
 
     expect(url).toBe('https://user.uploads.dev/abc.jpeg');
-    // First frame is the documented warm-up; the second is the API call.
-    expect(String(env.frames[0].src)).toBe(PERCHANCE_WARMUP_URL);
+    // Exactly one frame, and it is the API call — no homepage warm-up frame.
+    expect(env.frames.length).toBe(1);
+    expect(String(env.frames[0].src).startsWith(PERCHANCE_API_URL)).toBe(true);
     expect(requested!.origin + requested!.pathname).toBe(PERCHANCE_API_URL);
     expect(requested!.searchParams.get('prompt')).toBe('a lion');
     expect(requested!.searchParams.get('format')).toBe('json');
@@ -188,14 +196,28 @@ describe('generatePerchanceImageClient', () => {
     expect(isPerchanceBenching()).toBe(false);
   });
 
-  it('reuses one warm-up per session', async () => {
+  it('preflights once per session without framing the homepage', async () => {
     const env = installFakeBrowser((src, post) => {
       post({ api: PERCHANCE_API_MARKER, result: { id: src.searchParams.get('id'), ok: true, url: 'https://user.uploads.dev/x.jpeg' } });
     });
-    await warmUpPerchance();
+    await expect(warmUpPerchance()).resolves.toBe(true);
+    await expect(warmUpPerchance()).resolves.toBe(true);
     await generatePerchanceImageClient('a zebra', 512, 512, undefined, 5000);
-    const warmups = env.frames.filter((f) => String(f.src) === PERCHANCE_WARMUP_URL);
-    expect(warmups.length).toBe(1);
+    // The preflight is memoised and loads nothing at all.
+    expect(env.frames.length).toBe(1);
+    expect(String(env.frames[0].src)).toContain('perchance-ai-api');
+  });
+
+  it('never frames the bare perchance.org homepage (X-Frame-Options: SAMEORIGIN)', () => {
+    // Read the source, not the module: a reintroduced constant next to an
+    // `iframe.src = …` assignment must fail even though no test runs it.
+    const source = readFileSync(path.resolve(__dirname, '../src/services/perchanceClient.ts'), 'utf8')
+      // Comments may quote the blocked homepage to explain why it is blocked.
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '');
+    expect(source).not.toContain("'https://perchance.org/'");
+    expect(source).not.toContain('PERCHANCE_WARMUP_URL');
+    expect(source).not.toMatch(/src\s*=\s*['"`]https:\/\/perchance\.org\/['"`]/);
   });
 
   it('refuses to run outside a browser', async () => {

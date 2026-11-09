@@ -193,6 +193,33 @@ No change was needed; the pattern is intentional and the comment in
 
 ---
 
+## 9. `Refused to display 'https://perchance.org/' in a frame because it set 'X-Frame-Options' to 'sameorigin'`
+
+**What it was.** Perchance's Image API v1 sample code "warms Cloudflare up"
+by loading the bare `perchance.org` homepage in a hidden iframe before the
+first image. That homepage answers `X-Frame-Options: SAMEORIGIN`, so the
+browser refused to display it and logged the message — once per session, on
+the first illustration, every time. The warm-up was also redundant: the
+request iframe loads a page on the **same origin**, which is the visit
+Cloudflare actually needs.
+
+**Fix.** `warmUpPerchance()` (`src/services/perchanceClient.ts`) no longer
+creates an iframe at all. It is a memoised, DOM-free capability check that
+resolves `true` in a browser and `false` on the server — the same contract
+(`Promise<boolean>`, never throws) so every existing caller keeps working.
+`PERCHANCE_WARMUP_URL` was deleted, and the framing allow-list in
+`tests/image-providers.test.ts` plus `tests/perchance-client.test.ts` now fail
+CI if any code path points an iframe (or a `fetch`) at the bare homepage
+again.
+
+> Do **not** "fix" this by dropping the `sandbox` attribute, by proxying the
+> homepage through the server, or by re-adding a warm-up frame to a different
+> Perchance page — every generator page sends the same header. Only
+> `perchance.org/perchance-ai-api` (and its `null.perchance.org` mirror) may
+> ever be framed.
+
+---
+
 ## Deploy checklist
 
 ```bash
@@ -209,3 +236,4 @@ this list:
 - [ ] illustrations actually render (image routes reverted to the direct Pollinations proxy — see §4)
 - [ ] `Interventions sync err … Missing or insufficient permissions` (rules deployed)
 - [ ] `Banner not shown: beforeinstallpromptevent.preventDefault()` (expected notice)
+- [ ] `Refused to display 'https://perchance.org/' in a frame …` (no warm-up iframe — see §9)

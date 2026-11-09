@@ -9,8 +9,12 @@
  * via postMessage." Unlimited — no usage caps.
  *
  * CONTRACT (official docs, verified 28 Oct 2026):
- *   1. Warm-up — a hidden iframe visits `https://perchance.org` once per
- *      session so Cloudflare passes this browser.
+ *   1. Preflight — one memoised "may this runtime use the engine?" check per
+ *      session. The docs' sample warms Cloudflare up by framing
+ *      `https://perchance.org`, but that homepage answers
+ *      `X-Frame-Options: SAMEORIGIN` and can never be displayed; the framed
+ *      API page below is itself the visit Cloudflare needs, so nothing else
+ *      is loaded (see `warmUpPerchance()`).
  *   2. Request — hidden iframe at
  *      `…/perchance-ai-api?prompt=…&format=json&id=<random>` plus optional
  *      `resolution` (512x512 | 512x768 | 768x512 | 768x768), `seed`,
@@ -24,10 +28,12 @@
  *      second generation.
  *
  * HARD RULES (guarded by `tests/image-providers.test.ts`):
- *   • ONLY `perchance-ai-api` may ever be framed. The generator pages
- *     (`ai-text-to-image-generator`, `ai-images-generator`) send
- *     `X-Frame-Options: SAMEORIGIN` and can never load — that is what killed
- *     the pre-22-Oct-2026 iframe bridge. Never reintroduce them.
+ *   • ONLY `perchance-ai-api` may ever be framed — never the bare
+ *     `perchance.org` homepage, which answers `X-Frame-Options: SAMEORIGIN`
+ *     and logs "Refused to display … in a frame" on every warm-up. The
+ *     generator pages (`ai-text-to-image-generator`, `ai-images-generator`)
+ *     send the same header; that is what killed the pre-22-Oct-2026 iframe
+ *     bridge. Never reintroduce any of them.
  *   • Never `fetch()` perchance.org from client or server — bare HTTP is
  *     answered by a Cloudflare 403. The hidden iframe IS the transport.
  *   • This module is browser-only. The Express server must never import it.
@@ -43,8 +49,6 @@
 export const PERCHANCE_API_URL = 'https://perchance.org/perchance-ai-api';
 /** Framing mirror documented by Perchance's embed-generator FAQ. */
 export const PERCHANCE_EMBED_API_URL = 'https://null.perchance.org/perchance-ai-api';
-/** Warm-up target from the official sample ("visits perchance.org so Cloudflare passes them"). */
-export const PERCHANCE_WARMUP_URL = 'https://perchance.org/';
 /** `event.data.api` marker from the official postMessage contract. */
 export const PERCHANCE_API_MARKER = 'perchance-image-api';
 
@@ -130,8 +134,8 @@ export const isPerchanceRuntimeAvailable = (): boolean =>
 
 /* ── session state ─────────────────────────────────────────────────────────── */
 
-let warmedUp = false;
-let warmUpPromise: Promise<boolean> | null = null;
+let preflighted = false;
+let preflightPromise: Promise<boolean> | null = null;
 let consecutiveFailures = 0;
 let benchUntil = 0;
 /** Sticky host preference — flips to the embed mirror after a primary failure. */
@@ -143,8 +147,8 @@ const waitQueue: Array<() => void> = [];
 
 /** Clears every memoised decision (tests, "Try Again" debug flows). */
 export const resetPerchanceClient = (): void => {
-  warmedUp = false;
-  warmUpPromise = null;
+  preflighted = false;
+  preflightPromise = null;
   consecutiveFailures = 0;
   benchUntil = 0;
   useEmbedMirror = false;
@@ -197,33 +201,28 @@ const releaseSlot = (): void => {
   if (next) next();
 };
 
-/* ── warm-up ("once per user — visits perchance.org so Cloudflare passes them") */
+/* ── preflight (memoised once per session, no DOM and no network) ──────────── */
 
-/** Never throws: a failed warm-up only means generation may answer slower. */
-export const warmUpPerchance = (timeoutMs = 15_000): Promise<boolean> => {
+/**
+ * Preflight, not a warm-up. The official sample loads the bare homepage in a
+ * hidden iframe "so Cloudflare passes the browser", but that page answers
+ * `X-Frame-Options: SAMEORIGIN`: the browser refuses to display it and logs
+ * `Refused to display 'https://perchance.org/' in a frame …` on the first
+ * image of every session. It is also unnecessary — the request iframe loads a
+ * page on the very same origin, which is what actually earns the Cloudflare
+ * clearance.
+ *
+ * So this is now a frame-free capability check: it resolves `true` in a
+ * browser (and `false` on the server / in Node), memoised per session, and it
+ * never throws. Kept under the old name so existing callers and debug tools
+ * keep working. NEVER put an iframe (or a `fetch`) behind it again.
+ */
+export const warmUpPerchance = (): Promise<boolean> => {
   if (!isPerchanceRuntimeAvailable()) return Promise.resolve(false);
-  if (warmedUp) return Promise.resolve(true);
-  if (warmUpPromise) return warmUpPromise;
-
-  warmUpPromise = new Promise<boolean>((resolve) => {
-    const frame = document.createElement('iframe');
-    frame.setAttribute('aria-hidden', 'true');
-    frame.title = 'Perchance warm-up';
-    frame.style.cssText = HIDDEN_FRAME_STYLE;
-
-    const finish = (ok: boolean) => {
-      clearTimeout(timer);
-      frame.remove();
-      if (ok) warmedUp = true;
-      warmUpPromise = null;
-      resolve(ok);
-    };
-    const timer = setTimeout(() => finish(false), timeoutMs);
-    frame.onload = () => setTimeout(() => finish(true), 500);
-    frame.src = PERCHANCE_WARMUP_URL;
-    document.body.appendChild(frame);
-  });
-  return warmUpPromise;
+  if (preflighted) return Promise.resolve(true);
+  preflighted = true;
+  preflightPromise = Promise.resolve(true);
+  return preflightPromise;
 };
 
 /* ── generation ────────────────────────────────────────────────────────────── */

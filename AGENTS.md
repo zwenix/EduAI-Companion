@@ -460,16 +460,22 @@ explicit user instructions.
   `https://perchance.org/perchance-ai-api`: "Works from any domain … No keys,
   no CORS, no backend. The app loads the API in a hidden iframe and receives
   the result via postMessage." Unlimited, no rate limits. Implementation:
-  `src/services/perchanceClient.ts` (warm-up iframe once per session, one
-  hidden iframe per image, reply matched by request id and Perchance origin,
-  permanent `user.uploads.dev` URLs cached, max 2 concurrent, 60 s timeout,
-  embed-mirror failover to `null.perchance.org`, circuit breaker benches the
-  engine after 2 consecutive failures for 10 min). Rules that are enforced by
-  `tests/image-providers.test.ts`:
+  `src/services/perchanceClient.ts` (memoised frame-free preflight once per
+  session, one hidden iframe per image, reply matched by request id and
+  Perchance origin, permanent `user.uploads.dev` URLs cached, max 2
+  concurrent, 60 s timeout, embed-mirror failover to `null.perchance.org`,
+  circuit breaker benches the engine after 2 consecutive failures for 10 min).
+  Rules that are enforced by `tests/image-providers.test.ts`:
   * ONLY `perchance-ai-api` may ever be framed. The generator pages
     (`ai-text-to-image-generator`, `ai-images-generator`) send
     `X-Frame-Options: SAMEORIGIN` and can never load — that dead bridge must
     not come back.
+  * **Never frame the bare `perchance.org` homepage.** The docs' sample
+    "warm-up" iframe does exactly that and the browser logs
+    `Refused to display 'https://perchance.org/' in a frame because it set
+    'X-Frame-Options' to 'sameorigin'` on the first image of every session.
+    The framed API page is the Cloudflare visit; `warmUpPerchance()` is now a
+    memoised, DOM-free capability check and must stay that way.
   * Never `fetch()` `perchance.org` from any layer (client or server): bare
     HTTP is answered by a Cloudflare 403. The hidden iframe IS the transport.
   * The engine is browser-only; server-side callers that ask for `perchance`
