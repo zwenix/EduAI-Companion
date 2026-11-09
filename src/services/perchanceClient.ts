@@ -54,14 +54,42 @@ export const PERCHANCE_API_MARKER = 'perchance-image-api';
 
 const PERCHANCE_ORIGINS = ['https://perchance.org', 'https://null.perchance.org'];
 
-/** Per-image budget before the chain moves on (docs sample waits 180 s; the classroom does not). */
-export const PERCHANCE_TIMEOUT_MS = 60_000;
-/** How many hidden iframes may generate at once. */
+/**
+ * Per-image budget before the chain moves on.
+ *
+ * The docs sample waits **180 s**, because the generation runs inside the
+ * framed page on the caller's own device. 60 s was too short on the hardware
+ * this product ships to (school laptops, low-end Android in the APK): the
+ * engine timed out, the chain fell through to FLUX/Pollinations — which
+ * usually have no key — and the teacher got the placeholder. That read as
+ * "Perchance does not work". Matches the documented 180 s now.
+ */
+export const PERCHANCE_TIMEOUT_MS = 180_000;
+/**
+ * How many hidden iframes may generate at once.
+ *
+ * Kept at 2: each one is a real page running a diffusion model on the user's
+ * device, and browsers throttle background tabs hard. More would make every
+ * request slower rather than more parallel.
+ */
 export const PERCHANCE_MAX_CONCURRENT = 2;
-/** After this many consecutive failures the engine is benched… */
-export const PERCHANCE_BENCH_AFTER_FAILURES = 2;
+/**
+ * After this many consecutive failures the engine is benched…
+ *
+ * Deliberately higher than it used to be (2). The frame's own load plus the
+ * model's first run is slow and flaky on a cold cache, and two unlucky
+ * timeouts used to bench Perchance for ten minutes — which is exactly the
+ * "it worked yesterday, today there are no images" report.
+ */
+export const PERCHANCE_BENCH_AFTER_FAILURES = 3;
 /** …for this long, so one dead endpoint cannot stall a whole illustration batch. */
 export const PERCHANCE_BENCH_MS = 10 * 60_000;
+/**
+ * Failures closer together than this count towards the breaker; a success or
+ * a long gap resets the streak. Without it, two unrelated hiccups hours apart
+ * would bench the engine.
+ */
+export const PERCHANCE_FAILURE_WINDOW_MS = 10 * 60_000;
 
 /**
  * Safety net for a school product: the API's own default negative prompt is
@@ -72,8 +100,29 @@ export const PERCHANCE_BENCH_MS = 10 * 60_000;
 export const PERCHANCE_NEGATIVE_PROMPT =
   'NSFW, nudity, violence, gore, scary, blood, blurry, low quality, watermark';
 
+/**
+ * Style for the generation iframe.
+ *
+ * This used to be `width:1px;height:1px;opacity:0;top:-9999px`, copied from the
+ * docs sample. It is the single most important thing to get right here:
+ * **the framed page runs the diffusion model in the browser**, so it needs a
+ * running rendering pipeline. A 1×1, fully transparent, far-offscreen frame is
+ * exactly what browsers classify as a throttled/occluded renderer — Chrome
+ * then clamps `requestAnimationFrame` (and the timers the generator polls
+ * with) to a crawl, and the generation silently never completes. The symptom
+ * is a timeout with no error, which is why "Perchance does not work" had no
+ * useful console message.
+ *
+ * It must stay: a real (if tiny) layout box, inside the viewport, and NOT
+ * `opacity: 0` / `visibility: hidden` / `display: none` — those all trigger
+ * the same throttling. `clip-path` + `pointer-events: none` hides it visually
+ * while keeping the renderer live. `transform` keeps it out of the way of the
+ * document layout.
+ */
 const HIDDEN_FRAME_STYLE =
-  'width:1px;height:1px;border:0;position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;';
+  'width:320px;height:320px;border:0;position:fixed;left:0;bottom:0;' +
+  'opacity:0.01;pointer-events:none;z-index:-1;clip-path:inset(100%);' +
+  'transform:translateZ(0);';
 
 export interface PerchanceImageRequest {
   prompt: string;
@@ -137,6 +186,8 @@ export const isPerchanceRuntimeAvailable = (): boolean =>
 let preflighted = false;
 let preflightPromise: Promise<boolean> | null = null;
 let consecutiveFailures = 0;
+/** When the current failure streak started — the breaker only counts one window. */
+let failureStreakStartedAt = 0;
 let benchUntil = 0;
 /** Sticky host preference — flips to the embed mirror after a primary failure. */
 let useEmbedMirror = false;
@@ -150,6 +201,7 @@ export const resetPerchanceClient = (): void => {
   preflighted = false;
   preflightPromise = null;
   consecutiveFailures = 0;
+  failureStreakStartedAt = 0;
   benchUntil = 0;
   useEmbedMirror = false;
   resultCache.clear();
@@ -165,10 +217,20 @@ export const isPerchanceAvailable = (): boolean =>
   isPerchanceRuntimeAvailable() && !isPerchanceBenching();
 
 const markFailure = (): void => {
+  const now = Date.now();
+  // Only failures inside one window form a streak: two unrelated hiccups an
+  // hour apart must never add up to a bench.
+  if (!failureStreakStartedAt || now - failureStreakStartedAt > PERCHANCE_FAILURE_WINDOW_MS) {
+    failureStreakStartedAt = now;
+    consecutiveFailures = 0;
+  }
   consecutiveFailures += 1;
-  useEmbedMirror = !useEmbedMirror;
+  // Only flip the host when the CURRENT host is failing repeatedly. Flipping on
+  // every single failure meant one flaky request sent the next image to the
+  // mirror even though the primary was healthy.
+  if (consecutiveFailures > 1) useEmbedMirror = !useEmbedMirror;
   if (consecutiveFailures >= PERCHANCE_BENCH_AFTER_FAILURES) {
-    benchUntil = Date.now() + PERCHANCE_BENCH_MS;
+    benchUntil = now + PERCHANCE_BENCH_MS;
     console.warn(
       `[Perchance AI] ${consecutiveFailures} consecutive failures — benched for ${PERCHANCE_BENCH_MS / 60000} min.`
     );
@@ -177,6 +239,7 @@ const markFailure = (): void => {
 
 const markSuccess = (): void => {
   consecutiveFailures = 0;
+  failureStreakStartedAt = 0;
   benchUntil = 0;
 };
 
@@ -227,6 +290,9 @@ export const warmUpPerchance = (): Promise<boolean> => {
 
 /* ── generation ────────────────────────────────────────────────────────────── */
 
+/** True for the per-request budget expiring (as opposed to a real failure). */
+const isTimeoutError = (error: Error): boolean => /timed out/i.test(error.message);
+
 const cacheKeyFor = (request: PerchanceImageRequest, resolution: string): string =>
   [request.prompt, resolution, request.seed ?? '', request.guidanceScale ?? '', request.negativePrompt ?? ''].join('|');
 
@@ -274,6 +340,24 @@ const generateOnce = async (
           else resolve(url as string);
         };
 
+        // Diagnostics: the framed page is a third-party document, so when it is
+        // blocked (Cloudflare challenge, CSP, an offline school network) there is
+        // NO postMessage and NO exception — only a silent timeout. `onload`
+        // proves the document was actually served; a load followed by silence
+        // means the renderer is working, a *missing* load means it was blocked.
+        let frameLoaded = false;
+        frame.onload = () => {
+          frameLoaded = true;
+        };
+        frame.onerror = () => {
+          finish(
+            new Error(
+              `Perchance could not load the framed API page (host ${new URL(apiBase).host}). ` +
+                'A network filter, CSP frame-src rule or offline device is blocking it.'
+            )
+          );
+        };
+
         const onMessage = (event: MessageEvent) => {
           // Origin AND request-id are both checked: a hostile page must never
           // be able to inject an image URL into the lesson content pipeline.
@@ -292,7 +376,19 @@ const generateOnce = async (
         };
 
         const timeoutId = setTimeout(() => {
-          finish(new Error('Perchance image generation timed out'));
+          // Say WHERE it stopped — "timed out" alone gave no way to tell a
+          // Cloudflare challenge from a slow render from a blocked frame.
+          finish(
+            new Error(
+              frameLoaded
+                ? `Perchance image generation timed out after ${Math.round(timeoutMs / 1000)}s ` +
+                    `(host ${new URL(apiBase).host}). The framed page loaded and is still ` +
+                    'rendering — this device is slower than the generation budget.'
+                : `Perchance never loaded the framed API page after ${Math.round(timeoutMs / 1000)}s ` +
+                    `(host ${new URL(apiBase).host}). The iframe is blocked before it can run: ` +
+                    'check the network filter / CSP / whether perchance.org is reachable.'
+            )
+          );
         }, timeoutMs);
 
         window.addEventListener('message', onMessage);
@@ -312,8 +408,14 @@ const generateOnce = async (
   try {
     return await run;
   } catch (err) {
-    markFailure();
-    throw err instanceof Error ? err : new Error(String(err));
+    const error = err instanceof Error ? err : new Error(String(err));
+    // A timeout is NOT proof the engine is broken — it usually means this
+    // device is still rendering. Counting it towards the breaker is what made
+    // a slow school laptop bench Perchance for ten minutes. Timeouts still
+    // reject, so the provider chain moves on immediately.
+    if (!isTimeoutError(error)) markFailure();
+    else console.warn(`[Perchance AI] ${error.message} — not counted against the circuit breaker.`);
+    throw error;
   } finally {
     inFlight.delete(key);
   }
@@ -342,4 +444,81 @@ export const generatePerchanceImageClient = async (
     { prompt, width, height, seed, negativePrompt },
     timeoutMs
   );
+};
+
+/* ── diagnostics ───────────────────────────────────────────────────────────── */
+
+export interface PerchanceDiagnostics {
+  /** Is this a browser where the iframe transport can run at all? */
+  runtimeAvailable: boolean;
+  /** Is the circuit breaker currently holding the engine back? */
+  benched: boolean;
+  /** Milliseconds until the bench lifts (0 when not benched). */
+  benchRemainingMs: number;
+  /** Which host would the next request use? */
+  host: 'perchance.org' | 'null.perchance.org';
+  /** How the framed page is laid out — must never be 1×1 / hidden. */
+  frameStyle: string;
+  /** Per-image budget currently in force. */
+  timeoutMs: number;
+  /** Consecutive failures that count towards the breaker right now. */
+  consecutiveFailures: number;
+}
+
+/**
+ * Snapshot of the engine's state, for the Settings → Diagnostics panel and for
+ * "images don't work" reports. Pure read: it never touches the network and
+ * never changes the breaker, which is why a health check can be shown to a
+ * teacher safely.
+ */
+export const getPerchanceDiagnostics = (): PerchanceDiagnostics => {
+  const now = Date.now();
+  return {
+    runtimeAvailable: isPerchanceRuntimeAvailable(),
+    benched: isPerchanceBenching(now),
+    benchRemainingMs: Math.max(0, benchUntil - now),
+    host: useEmbedMirror ? 'null.perchance.org' : 'perchance.org',
+    frameStyle: HIDDEN_FRAME_STYLE,
+    timeoutMs: PERCHANCE_TIMEOUT_MS,
+    consecutiveFailures
+  };
+};
+
+/**
+ * End-to-end probe: actually renders one small image through the API and
+ * reports how long it took. This is the only honest answer to "does Perchance
+ * work on this device?" — every cheaper check (runtime, DNS, frame load) can
+ * pass while generation still fails.
+ *
+ * It is deliberately small (512×512) and uses a throwaway prompt, and it does
+ * NOT count towards the circuit breaker: a teacher pressing "Test" must never
+ * bench the engine.
+ */
+export const probePerchance = async (
+  timeoutMs: number = PERCHANCE_TIMEOUT_MS
+): Promise<{ ok: boolean; url?: string; elapsedMs: number; error?: string }> => {
+  const started = Date.now();
+  try {
+    const url = await generatePerchanceImageClient(
+      'a simple smiling sun, flat vector icon',
+      512,
+      512,
+      undefined,
+      timeoutMs
+    );
+    // The probe result must not poison the cache used by real illustrations.
+    resultCache.delete(
+      cacheKeyFor(
+        { prompt: 'a simple smiling sun, flat vector icon', width: 512, height: 512 },
+        pickPerchanceResolution(512, 512)
+      )
+    );
+    return { ok: true, url, elapsedMs: Date.now() - started };
+  } catch (err) {
+    return {
+      ok: false,
+      elapsedMs: Date.now() - started,
+      error: err instanceof Error ? err.message : String(err)
+    };
+  }
 };

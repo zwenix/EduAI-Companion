@@ -2159,6 +2159,70 @@ const masterPromptFor = (input: any = {}): string =>
     }
   });
 
+  // --- Image relay (CORS-safe pass-through for generated artwork) ------------
+  //
+  // Perchance returns permanent `user.uploads.dev` URLs. Those responses carry
+  // no `Access-Control-Allow-Origin`, so:
+  //   • the browser renders them fine in an <img>, but
+  //   • html2canvas/html2pdf cannot read the pixels (with `allowTaint: false`
+  //     the image is skipped; with it, the canvas taints and toDataURL throws),
+  //     so every exported PDF loses its illustrations or comes out blank.
+  //
+  // This relay fetches the bytes server-side and re-serves them from OUR origin,
+  // which makes the image same-origin for the exporter and adds an explicit CORS
+  // header for good measure. Strict allow-list on purpose: this must never become
+  // an open proxy.
+  const RELAY_ALLOWED_IMAGE_HOSTS = new Set([
+    "user.uploads.dev",           // Perchance's permanent file host
+    "image.pollinations.ai",      // keyless fallback engine
+  ]);
+
+  app.get("/api/image-relay", async (req, res) => {
+    const raw = String(req.query.url || "");
+    let target: URL;
+    try {
+      target = new URL(raw);
+    } catch {
+      return res.status(400).json({ error: "url must be an absolute https URL" });
+    }
+    if (target.protocol !== "https:" || !RELAY_ALLOWED_IMAGE_HOSTS.has(target.hostname)) {
+      return res.status(403).json({
+        error: "host not allowed",
+        allowed: Array.from(RELAY_ALLOWED_IMAGE_HOSTS),
+      });
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 25000);
+    try {
+      const upstream = await fetch(target.toString(), {
+        method: "GET",
+        headers: { Accept: "image/*" },
+        signal: controller.signal,
+      });
+      if (!upstream.ok) {
+        return res.status(502).json({ error: `upstream answered HTTP ${upstream.status}` });
+      }
+      const contentType = (upstream.headers.get("content-type") || "").split(";")[0].trim();
+      if (!contentType.startsWith("image/")) {
+        return res.status(502).json({ error: `upstream returned ${contentType || "no content-type"}` });
+      }
+      const buffer = Buffer.from(await upstream.arrayBuffer());
+      res.setHeader("Content-Type", contentType);
+      // Generated images are permanent, so cache hard on our side too.
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+      return res.send(buffer);
+    } catch (error: any) {
+      const aborted = error?.name === "AbortError";
+      console.warn(`[IMAGE RELAY] ${aborted ? "timed out" : "failed"}: ${error?.message || error}`);
+      return res.status(aborted ? 504 : 502).json({ error: aborted ? "upstream timeout" : "relay failed" });
+    } finally {
+      clearTimeout(timer);
+    }
+  });
+
   // --- Image Proxy Route for src tags ---
   app.get("/api/image-proxy", async (req, res) => {
     const prompt = req.query.prompt as string;

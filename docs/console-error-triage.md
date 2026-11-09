@@ -383,6 +383,116 @@ upstream hosts are reachable from that deployment.
 
 ---
 
+## 16. Perchance generates nothing — no error, only a timeout
+
+**What it was — three compounding defects.**
+
+1. **The generation iframe was throttled.** `HIDDEN_FRAME_STYLE` copied the docs
+   sample: `width:1px;height:1px;opacity:0;top:-9999px`. But the framed page is
+   not a passive widget — **it runs the diffusion model in the browser**, so it
+   needs a live rendering pipeline. Chromium throttles exactly that geometry
+   (tiny, fully transparent, offscreen), clamping `requestAnimationFrame` and
+   the timers the in-page generator polls with. Generation therefore never
+   completed, and the only symptom was a timeout with no message.
+2. **The budget was too short.** 60 s per image against the docs' own 180 s.
+   Slow school laptops and low-end Android could not finish in time, the chain
+   fell through to FLUX/Pollinations (usually keyless), and the teacher got the
+   placeholder.
+3. **Timeouts benched the engine.** `markFailure()` counted *every* rejection,
+   so two slow renders put Perchance on a 10-minute circuit break — the "it
+   worked yesterday, today there are no images" report.
+
+**Fix.**
+
+* `HIDDEN_FRAME_STYLE` is now a real 320×320 box inside the viewport,
+  visually hidden with `clip-path: inset(100%)` and `pointer-events: none`.
+  It is never `opacity: 0`, `visibility: hidden`, `display: none`, 1×1, or
+  offscreen. `tests/perchance-client.test.ts` asserts all of that.
+* `PERCHANCE_TIMEOUT_MS` is **180 s**.
+* A timeout no longer counts towards the breaker
+  (`isTimeoutError()`), and the breaker now needs **3** real failures inside
+  `PERCHANCE_FAILURE_WINDOW_MS`, so isolated hiccups hours apart never add up.
+  Host failover (primary → `null.perchance.org`) also only flips after the
+  *current* host fails repeatedly.
+* Failures are now diagnosable: the timeout message says whether the framed
+  page **loaded** (`still rendering — this device is slower than the budget`)
+  or **never loaded** (`blocked before it can run`), and `frame.onerror` fails
+  immediately instead of waiting out the full budget.
+* `getPerchanceDiagnostics()` and `probePerchance()` back a Settings →
+  Diagnostics panel and a one-click end-to-end test that renders a real image.
+
+---
+
+## 17. Exported PDFs lose their illustrations (blank or missing artwork)
+
+**What it was.** Two independent canvas problems:
+
+* `allowTaint: true` was set alongside `useCORS: true` on every html2canvas
+  call. They are opposites: tainting lets an image in *without* CORS, which
+  makes the canvas unreadable, so the following `toDataURL()` throws and the
+  export is blank.
+* Perchance's permanent `user.uploads.dev` URLs (and Pollinations' output) send
+  **no** `Access-Control-Allow-Origin`. They render in an `<img>`, but with
+  `allowTaint: false` the exporter simply skips them — so illustrations vanish
+  from the PDF.
+
+**Fix.**
+
+* `allowTaint: false` everywhere (`printUtils`, `pdfPaginate`,
+  `ProgressReports`) — always `useCORS: true`.
+* New `/api/image-relay` re-serves those images from our own origin with an
+  explicit CORS header. It is a strict allow-list (`user.uploads.dev`,
+  `image.pollinations.ai`), `image/*` only, https only, rate-limited like any
+  other `/api` route — never a general proxy.
+* `toExportableImageUrl()` rewrites document images through the relay during
+  export, so generated artwork survives the PDF.
+
+---
+
+---
+
+## 18. Why there is no Cloudflare Worker proxy for Perchance
+
+A patch script (`patch-eduai.sh`) proposed fixing Perchance with a
+**Cloudflare Worker** that fetches `https://perchance.org<encoded-prompt>` and
+returns the JSON. It cannot work, and adopting any part of it would break the
+engine:
+
+* **The URL has no path.** It builds `https://perchance.org{encodeURIComponent(prompt)}`
+  — i.e. `https://perchance.orga%20cat…`. The API lives at
+  `/perchance-ai-api`, so every request would 404 (or be blocked by Cloudflare).
+* **Server-side fetching is blocked and forbidden.** Bare HTTP to
+  `perchance.org` is answered by a Cloudflare challenge from data-centre IPs
+  (`AGENTS.md` §7.3d, enforced by `tests/image-providers.test.ts`). The API is
+  designed for a *browser*: the caller's browser runs the model, which is why
+  the response also arrives by `postMessage`, not as a JSON body.
+* **There is nothing to proxy.** Results are already permanent, publicly
+  cacheable `user.uploads.dev` URLs. A byte relay is only needed so the PDF
+  exporter can read their pixels — that is `/api/image-relay`, on our own
+  Express app, with no new infrastructure. (§17)
+* **The script targets a different repository.** It writes into
+  `worker-proxy/`, `eduai-companion/utils/`, `eduai-companion/__tests__/` and a
+  `NEXT_PUBLIC_*` env var. This repo is Vite + React + Express on Vercel; there
+  is no Next.js and no `worker` target, so the files would be dead code.
+* **Its tests encode the wrong contract.** `canvasStaining.test.js` asserts
+  `allowTaint` is *enabled* (`Image.prototype.crossOrigin` checks against a
+  fake), and `envRouting.test.js` asserts a proxy env var — both the opposite of
+  what actually fixes blank exports. The real invariants are covered by
+  `tests/image-relay.test.ts`.
+
+What *was* adopted from the script's intent:
+
+* preloading images before rasterising — already present as `waitForImages()` in
+  `src/lib/printUtils.ts`, now guaranteed to *succeed* because §17 makes the
+  artwork CORS-readable;
+* keeping the canvas unstained — fixed properly by removing `allowTaint`;
+* device-pixel-ratio aware layout — already handled by html2canvas `scale` and
+  the paginated renderer.
+
+---
+
+---
+
 ## Deploy checklist
 
 ```bash
@@ -409,3 +519,5 @@ Expected, and **not** fixable in this repo:
 - [ ] five `Permissions-Policy … Unrecognized feature` lines — preview-protection layer on protected Vercel previews only (§11)
 - [ ] `net::ERR_BLOCKED_BY_CLIENT` on a Firestore `TYPE=terminate` frame — a client-side blocker (§14)
 - [ ] a `503`/`402` from `image.pollinations.ai/…` — upstream throttling; key or fallback handles it (§15)
+- [ ] Perchance: Settings → Diagnostics shows `runtime · browser`, `circuit · healthy`, and Test renders an image (§16)
+- [ ] Exporting a lesson plan **keeps** its illustrations in the PDF (§17)

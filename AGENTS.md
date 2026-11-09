@@ -485,6 +485,38 @@ explicit user instructions.
     are routed to FLUX (`/api/images/generate`).
   * Always send `PERCHANCE_NEGATIVE_PROMPT` (child-safety floor for a school
     product); callers may extend it, never replace it.
+* **Perchance runs on the user's device — treat the iframe as a renderer.**
+  The framed API page executes the diffusion model itself, so anything that
+  throttles a renderer starves it and the generation silently never finishes
+  (the only symptom is a timeout).
+  * The generation iframe must keep a real layout box **inside the viewport**.
+    Never `width:1px`/`height:1px`, `opacity: 0`, `visibility: hidden`,
+    `display: none`, or `top/left: -9999px` — all of those are
+    render-throttling triggers in Chromium. `clip-path: inset(100%)` +
+    `pointer-events: none` hides it from the teacher while keeping the
+    pipeline live (`HIDDEN_FRAME_STYLE`).
+  * The per-image budget is **180 s** (the docs' own figure). 60 s timed out
+    on school laptops and low-end Android, which read as "Perchance is broken".
+  * **A timeout is not a failure.** It must never count towards the circuit
+    breaker — two slow renders used to bench the engine for 10 minutes. The
+    breaker now needs 3 *real* failures inside `PERCHANCE_FAILURE_WINDOW_MS`.
+  * Timeouts must say **whether the framed page loaded**: loaded = still
+    rendering (slow device), never loaded = blocked (network filter, CSP,
+    offline). `frame.onerror` fails fast instead of burning the whole budget.
+  * `getPerchanceDiagnostics()` + `probePerchance()` drive Settings →
+    Diagnostics. The probe renders one 512×512 image end to end and never
+    touches the breaker or the result cache.
+* **Generated artwork must be CORS-readable for export.** Perchance's
+  `user.uploads.dev` and Pollinations' `image.pollinations.ai` responses carry
+  no `Access-Control-Allow-Origin`. They display fine but the PDF exporter
+  cannot read their pixels. `toExportableImageUrl()` routes them through the
+  same-origin `/api/image-relay` (strict host allow-list, `image/*` only,
+  rate-limited like any `/api` route). Never widen that allow-list into a
+  general proxy.
+* **Never set `allowTaint: true` on an html2canvas call.** It and `useCORS` are
+  opposites: tainting makes the canvas unreadable, so the following
+  `toDataURL()`/`toBlob()` throws and the export comes out blank.
+  `tests/image-relay.test.ts` guards both rules.
 * The image **model list is frozen** — FLUX.1-schnell, Pollinations `flux`
   and the three Gemini image models are the approved image models. Changing
   them is a separate, explicit decision (`tests/image-providers.test.ts`

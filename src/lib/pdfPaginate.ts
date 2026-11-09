@@ -256,7 +256,9 @@ const renderSlice = async (
     scale,
     backgroundColor: options.backgroundColor,
     useCORS: true,
-    allowTaint: true,
+    // Never taint: the slice is exported with canvas.toBlob(), which throws on a
+    // tainted canvas (generated PDF would be blank).
+    allowTaint: false,
     logging: false,
     imageTimeout: 10_000,
     removeContainer: true,
