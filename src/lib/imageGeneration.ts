@@ -5,7 +5,7 @@
  *   1. Perchance Image API v1 — unlimited, keyless, browser-side
  *      (hidden iframe + postMessage; `src/services/perchanceClient.ts`)
  *   2. FLUX.1-schnell (Hugging Face Inference) — free, open-weights model
- *   3. Google Imagen / Gemini                  — secondary, own API key
+ *   3. Gemini Developer API image models       — secondary, own API key
  *   4. Pollinations AI                          — keyless, always-on fallback
  *
  * A deliberate provider choice in Settings can make FLUX, Pollinations or
@@ -158,14 +158,24 @@ export const buildDirectImageUrl = (
   return `/api/image-proxy?prompt=${encodeURIComponent(prompt)}&width=${width}&height=${height}&seed=${seed}`;
 };
 
+export interface GeminiImageResult {
+  imageUrl: string;
+  model: string;
+}
+
+const asGeminiImageResult = (data: any): GeminiImageResult => ({
+  imageUrl: String(data.imageUrl),
+  model: typeof data.model === 'string' && data.model.trim() ? data.model : 'Gemini image model',
+});
+
 export const generateImageGemini = async (
   prompt: string,
   width: number = 1024,
   height: number = 1024
-): Promise<string> => {
+): Promise<GeminiImageResult> => {
   if (isNativeApp()) {
     const data = await callGeminiClientDirect('generate-image', { prompt, width, height });
-    if (data?.imageUrl) return data.imageUrl;
+    if (data?.imageUrl) return asGeminiImageResult(data);
     throw new Error('No image URL returned from client-side Gemini engine');
   }
 
@@ -175,7 +185,7 @@ export const generateImageGemini = async (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'generate-image',
-        input: { prompt, width, height, model: 'imagen-3' }
+        input: { prompt, width, height }
       })
     });
 
@@ -190,12 +200,12 @@ export const generateImageGemini = async (
     if (data.isFallback || (data.provider && data.provider !== 'gemini')) {
       throw new Error(data.error || 'Gemini returned a fallback URL instead of an image');
     }
-    return data.imageUrl;
+    return asGeminiImageResult(data);
   } catch (error) {
     console.error('Gemini image generation failed (backend), trying client-side engine:', error);
     try {
       const data = await callGeminiClientDirect('generate-image', { prompt, width, height });
-      if (data?.imageUrl && !data.isFallback) return data.imageUrl;
+      if (data?.imageUrl && !data.isFallback) return asGeminiImageResult(data);
     } catch (clientErr) {
       console.error('Client-side Gemini image generation failed:', clientErr);
     }
@@ -948,11 +958,11 @@ export const generateImageWithFallback = async (
     } else if (prov === 'gemini') {
       try {
         const role = preferred === 'gemini' ? 'Secondary' : 'Recovery';
-        console.log(`[Image Gen] Attempting Gemini/Imagen (${role})...`);
-        const imageUrl = await generateImageGemini(styledPrompt, width, height);
-        return { url: imageUrl, provider: 'gemini', prompt: styledPrompt, width, height, model: 'imagen-3' };
+        console.log(`[Image Gen] Attempting Gemini image models (${role})...`);
+        const result = await generateImageGemini(styledPrompt, width, height);
+        return { url: result.imageUrl, provider: 'gemini', prompt: styledPrompt, width, height, model: result.model };
       } catch (error: any) {
-        console.warn('[Image Gen] Gemini/Imagen failed; continuing...', error?.message || error);
+        console.warn('[Image Gen] Gemini image generation failed; continuing...', error?.message || error);
       }
     } else if (prov === 'pollinations') {
       try {

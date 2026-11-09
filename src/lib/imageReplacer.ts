@@ -135,7 +135,7 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
 
     // Fallback/First-generation flow. Perchance Image API v1 is the primary
     // generator on every platform (web and native WebView); FLUX.1-schnell,
-    // Google Imagen and keyless Pollinations form the fallback chain. Qwen is
+    // Gemini image models and keyless Pollinations form the fallback chain. Qwen is
     // a retired engine id.
     const defaultProvider = 'perchance';
     const storedProvider = typeof window !== 'undefined'
@@ -143,12 +143,12 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
       : defaultProvider;
     const provider = normaliseImageProviderId(storedProvider);
     const providerChain = provider === 'gemini'
-      ? 'Google Imagen (Secondary) → Perchance → FLUX.1-schnell → Pollinations'
+      ? 'Gemini image models (Secondary) → Perchance → FLUX.1-schnell → Pollinations'
       : provider === 'pollinations'
-        ? 'Pollinations (Keyless) → Perchance → Google Imagen → FLUX.1-schnell'
+        ? 'Pollinations (Keyless) → Perchance → Gemini image models → FLUX.1-schnell'
         : provider === 'flux'
-          ? 'FLUX.1-schnell → Perchance → Google Imagen → Pollinations'
-          : 'Perchance Image API (Primary) → FLUX.1-schnell → Google Imagen → Pollinations';
+          ? 'FLUX.1-schnell → Perchance → Gemini image models → Pollinations'
+          : 'Perchance Image API (Primary) → FLUX.1-schnell → Gemini image models → Pollinations';
 
     const isLogoOrStamp = /logo|stamp|seal|crest|badge|signature|certificate|emblem/i.test(cleanPrompt);
     const styleDirective = `, ${EDUCATIONAL_IMAGE_STYLE}, educational, high quality, vibrant colours`;

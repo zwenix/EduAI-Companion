@@ -2867,13 +2867,13 @@ export default function App() {
                         Perchance Image API v1 (Primary · unlimited, no key)
                       </option>
                       <option value="flux">
-                        FLUX.1-schnell · Hugging Face (Fallback → Imagen / Pollinations)
+                        FLUX.1-schnell · Hugging Face (Fallback → Gemini / Pollinations)
                       </option>
                       <option value="pollinations">
-                        Pollinations AI · FLUX (Keyless → Perchance / Imagen fallback)
+                        Pollinations AI · FLUX (Keyless → Perchance / Gemini image fallback)
                       </option>
                       <option value="gemini-imagen">
-                        Google Imagen 3 (Secondary → Perchance / FLUX fallback)
+                        Gemini image models (Secondary → Perchance / FLUX fallback)
                       </option>
                     </select>
                   </div>
@@ -3322,7 +3322,7 @@ export default function App() {
                   <span className={`font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Recommended Solutions:</span>
                   {apiBlockedAlert.isServerError ? (
                     <ul className={`list-disc list-inside space-y-1.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      <li>Verify your <b>GEMINI_API_KEY</b>, <b>HUGGINGFACE_API_KEY</b>, or <b>ALIBABA_API_KEY</b> (Alibaba Model Studio / Qwen 3.8) is correctly declared in settings or server config.</li>
+                      <li>Verify your <b>GOOGLE_API_KEY</b> (or legacy <b>GEMINI_API_KEY</b>), <b>HUGGINGFACE_API_KEY</b>, or <b>ALIBABA_API_KEY</b> (Alibaba Model Studio / Qwen 3.8) is correctly declared in settings or server config.</li>
                       <li>Consult the <b>Debug Console</b> in the Admin Dashboard to review real-time network request payloads.</li>
                       <li>Confirm that the server is not throttled, and that the specified AI model is supported.</li>
                     </ul>

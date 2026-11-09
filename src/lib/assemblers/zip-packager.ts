@@ -142,7 +142,7 @@ The rendered HTML/PDF/DOCX carries one host-owned compliance banner with the app
 This package may contain images from:
 - FLUX.1-schnell (Hugging Face — primary, free open-weights model)
 - Pollinations AI (Keyless fallback — FLUX model)
-- Gemini/Imagen (Google — secondary)
+- Gemini Developer API image models via generateContent (Google — secondary)
 
 All images: Disney 3D Animation Character & 3D Icon style, 300 DPI, SA context
 

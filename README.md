@@ -107,7 +107,7 @@ Key characteristics of the product as it exists in this repository:
 | **Testing & CI** | [Vitest](https://vitest.dev/) 3 (+ `@vitest/coverage-v8`), `scripts/ci.sh`, `scripts/scan-secrets.mjs` | `npm run ci` mirrors the GitHub Actions pipeline; tests live in `tests/`. |
 | **Database & auth** | [Firebase](https://firebase.google.com/) 12 — Authentication + Cloud Firestore | Email/password, Google and anonymous sign-in. Firestore uses a persistent local cache with multi-tab support. Attribute-based access control lives in `firestore.rules`. |
 | **Text AI** | Google Gemini (**primary**, `gemini-3.8-flash` with a fallback chain), Alibaba Cloud Model Studio `qwen3.8-max`, NVIDIA NIM Nemotron (Nano Omni 30B, Ultra 550B, 3.5 Lightning 30B) | Client-selectable in Settings; every alternative engine falls back to Gemini on failure. |
-| **Image AI** | Perchance Image API v1 (free, unlimited: hidden iframe + postMessage) → FLUX.1-schnell (Hugging Face Inference Providers → Cloudflare Workers AI) → Gemini image / Imagen 3 → Pollinations AI (keyless, last resort) → printable placeholder | Provider fallback graph is fixed in `src/lib/imageGeneration.ts`. Perchance speaks its documented Image API v1 (`perchance.org/perchance-ai-api`, browser-only). Qwen-Image (NVIDIA 404) remains retired. |
+| **Image AI** | Perchance Image API v1 (free, unlimited: hidden iframe + postMessage) → FLUX.1-schnell (Hugging Face Inference Providers → Cloudflare Workers AI) → Gemini image models via generateContent → Pollinations AI (keyless, last resort) → printable placeholder | Provider fallback graph is fixed in `src/lib/imageGeneration.ts`. Perchance speaks its documented Image API v1 (`perchance.org/perchance-ai-api`, browser-only). Qwen-Image (NVIDIA 404) remains retired. |
 | **OCR / grading** | Gemini vision (primary), OCR.space (secondary), `mammoth` for DOCX text extraction | Used by the Autograder and worksheet scanning flows. |
 | **Voice / TTS** | Browser SpeechSynthesis, Hugging Face TTS, Google TTS proxy, Groq `whisper` (falls back to browser synthesis) | Selectable TTS provider in Settings. |
 | **Video generation** | [OmniHuman-1](https://huggingface.co/spaces/multimodalart/self-forcing) over Hugging Face Gradio (`@gradio/client`); optional Replicate (`minimax/video-01`, `luma/ray`) | Falls back gracefully to bundled educational MP4 clips. |
@@ -159,18 +159,18 @@ Key characteristics of the product as it exists in this repository:
 
 ### Prerequisites
 
-- **Node.js 20+** (CI builds with Node 22)
+- **Node.js 22+** (required by `@google/genai` 3.x; CI builds with Node 22)
 - **npm** (the lockfile and CI use `npm ci`; a `bun.lock` is also present)
 - A **Firebase project** with Authentication and Cloud Firestore enabled
-- At least one AI API key — **`GEMINI_API_KEY` is required** for the primary engine
+- At least one AI API key — **`GOOGLE_API_KEY`** (Google AI Studio) is the canonical Gemini key; `GEMINI_API_KEY` remains supported as a compatibility alias
 
 ### 1. Configure environment variables
 
-Copy `.env.example` to `.env` and fill in what you need. Only `GEMINI_API_KEY` is required for the core experience; every other key unlocks an optional provider.
+Copy `.env.example` to `.env` and fill in what you need. Only `GOOGLE_API_KEY` is required for the core experience; `GEMINI_API_KEY` is still accepted for existing deployments. Gemini calls are pinned to the stable Developer API `v1` endpoint.
 
 | Variable | Purpose |
 | :--- | :--- |
-| `GEMINI_API_KEY` | **Required.** Google Gemini text, vision/OCR and image models. |
+| `GOOGLE_API_KEY` (`GEMINI_API_KEY` compatibility alias) | **Required.** Google Gemini text, vision/OCR and image models via the stable `v1` API. |
 | `ALIBABA_API_KEY` / `ALIBABA_API_BASE` | Alibaba Cloud Model Studio — Qwen 3.8 Max (OpenAI-compatible endpoint). |
 | `NVIDIA_API_KEY` | NVIDIA NIM — Nemotron text models (image generation no longer uses NIM). |
 | `OCR_SPACE_API_KEY` | Optional secondary OCR engine. |

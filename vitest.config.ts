@@ -4,8 +4,8 @@ import { defineConfig } from 'vitest/config';
  * Dedicated test configuration.
  *
  * Deliberately does NOT load `vite.config.ts`: the app config pulls in the PWA
- * plugin (which builds a web manifest/service worker) and injects
- * `process.env.GEMINI_API_KEY`. Tests are pure logic — no bundling side effects
+ * plugin (which builds a web manifest/service worker). Tests are pure logic —
+ * no bundling side effects
  * needed — so a minimal config keeps runs fast and offline-safe.
  */
 export default defineConfig({

@@ -3,7 +3,6 @@ import { patchOklchForHtml2canvas } from './pdfHelper';
 import { isAndroidDevice, isNativeApp, supportsSystemPrint } from './platform';
 import { deliverFile, notify, triggerWebDownload } from './nativeExport';
 import { wrapWithTemplate, metaFromPrintOptions, ContentTemplateMeta } from './contentTemplate';
-import { resolveContentDesignStyle, type ContentDesignStyle } from './contentStyle';
 import { EDUAI_DOC_TAILWIND_CSS } from './docTailwindCompat';
 import {
   beginExport,
@@ -48,36 +47,9 @@ const EXPORT_LAYOUT_CSS = `
   }
 `;
 
-export interface PrintOptions {
-    subject?: string;
-    grade?: string;
-    contentType?: string;
-    date?: string;
-    title?: string;
-    /** School term, e.g. "Term 2" — rendered in the template header. */
-    term?: string;
-    /** Optional school name for the template footer. */
-    school?: string;
-    /** Optional teacher name — rendered as a pill in the single banner. */
-    teacher?: string;
-    /** Optional learner name — rendered as a pill in the single banner. */
-    learner?: string;
-    /** Optional class name — rendered as a "Class: …" pill in the banner. */
+export interface PrintOptions extends Partial<ContentTemplateMeta> {
+    /** Optional class name — rendered as an additional pill in the banner. */
     className?: string;
-    /** Optional extra banner pills. */
-    extraPills?: string[];
-    /**
-     * The design doctrine the content was generated under. `'classic'` means the
-     * model designed the whole page, so the export must not re-wrap it in the
-     * LIGHT chrome. See `src/lib/contentStyle.ts`.
-     */
-    designStyle?: ContentDesignStyle;
-    /**
-     * Whether the closing metadata banner is added to the export. Keep in sync
-     * with the Content Factory's "Closing Metadata Banner" toggle so print/PDF
-     * match the on-screen preview; omit to fall back to the saved preference.
-     */
-    closingMeta?: boolean;
 }
 
 /**
@@ -109,12 +81,9 @@ function extractIframeHTML(iframe: HTMLIFrameElement | null | undefined): string
 }
 
 /**
- * Wrap generated content in the official EduAI Companion LIGHT Template v5 —
- * the very light blue translucent page header (70% transparent), the ONE
- * full-width two-colour vertical gradient document banner (title + every
- * label + compliance), the watermark body with a centred 800px page and the
- * navy footer — used identically by print, PDF and HTML exports so every
- * exported document carries the same branding.
+ * Wrap generated content in the canonical EduAI document chrome — brand
+ * header, one merged metadata/compliance banner, watermark, page and footer —
+ * used identically by print, PDF and HTML exports.
  */
 const wrapWithBrandedTemplate = (html: string, options?: PrintOptions, title?: string): string => {
     const meta: ContentTemplateMeta = metaFromPrintOptions(options, title);

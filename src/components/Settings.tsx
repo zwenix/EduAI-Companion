@@ -1031,7 +1031,7 @@ export default function Settings({
                             {[
                               { id: 'perchance', name: 'Perchance Image API', tag: 'Primary', dotBg: 'bg-violet-500/20', dotText: 'text-violet-400', activeBorder: 'border-violet-500/40 bg-violet-500/10', desc: 'Free & unlimited · no API key · Image API v1 (hidden iframe + postMessage)' },
                               { id: 'flux', name: 'FLUX.1-schnell', tag: 'Fallback', dotBg: 'bg-emerald-500/20', dotText: 'text-emerald-400', activeBorder: 'border-emerald-500/40 bg-emerald-500/10', desc: 'Free Hugging Face FLUX model · SA-context, crisp text rendering' },
-                              { id: 'gemini-imagen', name: 'Google Imagen 3', tag: 'Secondary', dotBg: 'bg-sky-500/20', dotText: 'text-sky-400', activeBorder: 'border-sky-500/40 bg-sky-500/10', desc: 'Google Imagen / Gemini image models · own API key' },
+                              { id: 'gemini-imagen', name: 'Gemini Image Models', tag: 'Secondary', dotBg: 'bg-sky-500/20', dotText: 'text-sky-400', activeBorder: 'border-sky-500/40 bg-sky-500/10', desc: 'Gemini Developer API image models via generateContent · Gemini API key' },
                               { id: 'pollinations', name: 'Pollinations AI', tag: 'Last resort', dotBg: 'bg-pink-500/20', dotText: 'text-pink-400', activeBorder: 'border-pink-500/40 bg-pink-500/10', desc: 'No API key · anonymous tier allows ~1 image every 45 s per IP' },
                             ].map((opt: any) => {
                               const isSel = imageProvider === opt.id;

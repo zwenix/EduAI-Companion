@@ -9,7 +9,7 @@
  *                       in the teacher's browser (see `src/services/perchanceClient.ts`).
  *   2. `flux`         — FLUX.1-schnell via Hugging Face Inference Providers
  *                       (or Cloudflare Workers AI). Free, Apache-2.0.
- *   3. `gemini`       — Google Imagen / Gemini image models (own key).
+ *   3. `gemini`       — Gemini Developer API image models via generateContent (own key).
  *   4. `pollinations` — keyless, but throttled to ~1 image / 45 s per IP
  *                       (HTTP 402 `FREE_LIMIT`) unless `POLLINATIONS_API_KEY`
  *                       is set. Always the last resort.
@@ -33,7 +33,7 @@
 
 export type ImageProviderId = 'perchance' | 'flux' | 'pollinations' | 'gemini';
 
-/** Settings value → engine id. `gemini-imagen` is kept for stored settings. */
+/** Settings value → engine id. `gemini-imagen` is retained as a legacy stored value. */
 export type ImageProviderSetting = 'perchance' | 'flux' | 'pollinations' | 'gemini-imagen';
 
 export const DEFAULT_IMAGE_PROVIDER: ImageProviderId = 'perchance';
@@ -105,7 +105,7 @@ export const IMAGE_PROVIDER_ALIASES: Record<string, ImageProviderId> = {
   'pollinations-turbo': 'pollinations',
   turbo: 'pollinations',
 
-  // Google Imagen / Gemini image models
+  // Gemini Developer API image models (generateContent); Imagen aliases stay backward-compatible.
   gemini: 'gemini',
   'gemini-imagen': 'gemini',
   'google-imagen': 'gemini',

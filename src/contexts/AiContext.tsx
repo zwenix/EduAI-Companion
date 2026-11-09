@@ -80,7 +80,7 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [imageProvider, setImageProvider] = useState<ImageProvider>(() => {
     // Perchance Image API v1 is the primary engine on every platform
-    // (unlimited, keyless); FLUX.1-schnell, Imagen and keyless Pollinations
+    // (unlimited, keyless); FLUX.1-schnell, Gemini image models and keyless Pollinations
     // form the automatic fallback chain.
     const fallback: ImageProvider = 'perchance';
     try {

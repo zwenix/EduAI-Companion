@@ -13,7 +13,7 @@
  *    `qwen/qwen-image-2512` both 404 at the gateway.
  *  • FLUX.1-schnell (Hugging Face Inference Providers) is the free
  *    server-side engine, with keyless Pollinations as the guaranteed fallback
- *    and Google Imagen as the secondary engine.
+ *    and Gemini image models as the secondary engine.
  *
  * The tests import the real module (no network) and re-read the files that
  * own the wiring so a reintroduced generator-page embed or a server-side

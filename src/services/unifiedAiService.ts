@@ -118,13 +118,14 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
 
   const { system, user } = EduAIPromptEngine.assemblePrompt({
     contentType: contentTypeEng,
+    artifactType: input.contentType,
     grade: input.grade || "4",
     subject: input.subject || "Mathematics",
     topic: input.topic || "Addition",
     language: input.language || 'English',
     learnerProfile: input.learnerProfile || 'General Class',
     additionalInstructions: input.additionalInstructions || '',
-    term: input.term || '1',
+    term: input.term,
     week: input.week ? parseInt(input.week) : undefined,
     duration: input.duration || '2 hours',
     capsReference: input.capsReference || '',
@@ -142,8 +143,10 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
     questionCount: input.questionCount,
     containsLearnerData: !!input.containsLearnerData,
     totalMarks: input.totalMarks,
+    generateImage: !!input.generateImage,
+    teacherName: input.teacherName,
+    schoolName: input.schoolName,
     studentName: input.studentName,
-    teacherName: input.teacherName
   } as any);
 
   const messages = [

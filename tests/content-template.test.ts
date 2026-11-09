@@ -290,6 +290,23 @@ describe('collapseLeadingChrome — every top band folds into the ONE banner', (
     expect(wrapped).toContain('Count the tally marks and complete the table');
   });
 
+  it('preserves harvested marks and duration when caller metadata adds banner pills', () => {
+    const withCallerPills = wrapWithTemplate(multiBandModelOutput, {
+      title: 'Data Handling',
+      subject: 'Mathematics',
+      grade: '5',
+      term: 'Term 2',
+      contentType: 'Worksheet',
+      date: '04/10/2026',
+      extraPills: ['Class: 5A'],
+    });
+    const banner = withCallerPills.slice(withCallerPills.indexOf('class="eduai-compliance-banner'), withCallerPills.indexOf('</section>'));
+    expect(banner).toContain('Total: 20 marks');
+    expect(banner).toContain('45 minutes');
+    expect(banner).toContain('Class: 5A');
+    expect((banner.match(/45 minutes/g) || []).length).toBe(1);
+  });
+
   it('never eats a hero illustration or a genuine section heading', () => {
     const poster = wrapWithTemplate(
       `<div class="poster-container"><div class="hero-section"><p>Big illustration here</p></div><div class="content-card"><h3>Save water</h3></div></div>`,
