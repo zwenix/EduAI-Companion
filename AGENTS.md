@@ -442,6 +442,9 @@ explicit user instructions.
     does not imply the other is.
   * `POLLINATIONS_API_KEY` removes the throttle (`sk_` keys have no IP limit).
     This is the documented fix for "free limit reached" reports.
+  * A **503** from `image.pollinations.ai/prompt/…` is upstream capacity, not
+    our route — the chain falls through and the placeholder renders. Never
+    "fix" a 503 by retrying the same seed in a loop (§4 prohibition).
 * **Every engine may fail — the result must still render.** The final fallback
   is `buildPlaceholderImageUrl()`: a self-contained SVG data URL (no network,
   deterministic, escaped) carrying the prompt and a reason. Never return a
@@ -486,6 +489,37 @@ explicit user instructions.
   and the three Gemini image models are the approved image models. Changing
   them is a separate, explicit decision (`tests/image-providers.test.ts`
   guards the graph and the retired integrations).
+
+### 7.3e Deployment headers & console hygiene
+* **The web manifest must be fetched with credentials.**
+  `vite.config.ts` sets `useCredentials: true` on `VitePWA`, which emits
+  `<link rel="manifest" … crossorigin="use-credentials">`. Browsers request a
+  manifest WITHOUT credentials even same-origin; on a Vercel deployment behind
+  Deployment Protection that request is unauthenticated, gets redirected to
+  `vercel.com/sso-api`, and the browser logs
+  `Access to manifest … blocked by CORS policy`. `tests/deployment-headers.test.ts`
+  fails CI if the flag is removed.
+* **Do not hand-roll a `Permissions-Policy` header.** The five
+  `Error with Permissions-Policy header: Unrecognized feature …` lines
+  (`attribution-reporting`, `private-aggregation`, `join-ad-interest-group`,
+  `run-ad-auction`, `browsing-topics`) are emitted by Vercel's
+  preview-protection layer on **protected preview URLs only** — production
+  sends no such header at all. Adding one in `vercel.json` collides with theirs
+  and makes the whole policy unparseable. Camera and microphone must never be
+  denied (OCR, QR scanning, avatar capture).
+* **Expected authentication outcomes are not console errors.** Use
+  `logAuthFailure()` from `src/lib/consoleDiagnostics.ts`: a wrong password or
+  a closed Google popup logs one `console.info` line, while real
+  misconfiguration (`auth/unauthorized-domain`, `auth/invalid-api-key`) stays a
+  `console.error`. Never `console.error(err)` directly from an auth `catch`.
+* **Conditions that persist across remounts warn once per session** via
+  `warnOnce(key, message, detail)` — never once per listener restart. A stale
+  Firestore rule otherwise prints dozens of identical warnings.
+* A `503`/`402` from `image.pollinations.ai/prompt/<encoded prompt>` is upstream
+  throttling, not our route; the provider chain and the SVG placeholder already
+  handle it. `POLLINATIONS_API_KEY` removes the throttle.
+* `net::ERR_BLOCKED_BY_CLIENT` is always a client-side blocker — no server can
+  produce it; never chase it in app code.
 
 ### 7.4 API abuse protection
 * `src/lib/rateLimit.ts` is mounted on `/api` in `server.ts` before every route

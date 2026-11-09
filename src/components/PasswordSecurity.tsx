@@ -14,6 +14,7 @@ import {
   Info,
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
+import { logAuthFailure } from '../lib/consoleDiagnostics';
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
@@ -152,7 +153,7 @@ export default function PasswordSecurity({ isDarkMode }: PasswordSecurityProps) 
     } catch (err: any) {
       const code = String(err?.code || '');
       const msg = String(err?.message || '');
-      console.error('[EduAI] sendPasswordResetEmail failed', { code, msg, email });
+      logAuthFailure('sendPasswordResetEmail failed', err);
       if (code === 'auth/user-not-found') {
         setResetSuccess(`If ${email} is registered on EduAI, a password reset link is on its way. Check your inbox (and spam folder).`);
       } else if (code === 'auth/invalid-email' || /invalid-email/i.test(msg)) {

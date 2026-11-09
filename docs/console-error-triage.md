@@ -220,6 +220,169 @@ again.
 
 ---
 
+## 10. `Access to manifest at 'https://vercel.com/sso-api?…' … blocked by CORS policy`
+
+**What it was.** A real defect, and the only one in the batch that the app owns.
+Browsers fetch `<link rel="manifest">` **without credentials even when the
+manifest is same-origin** (that is what the HTML spec says for a manifest link
+without a `crossorigin` attribute). On a Vercel deployment behind **Deployment
+Protection**, the unauthenticated request for `/manifest.webmanifest` is
+redirected to `vercel.com/sso-api?url=…`, and the browser then refuses the
+cross-origin redirect:
+
+```
+Access to manifest at 'https://vercel.com/sso-api?url=…manifest.webmanifest…'
+from origin 'https://…vercel.app' has been blocked by CORS policy:
+No 'Access-Control-Allow-Origin' header is present on the requested resource.
+```
+
+The visible symptom beyond the console is that the PWA manifest never loads on a
+protected preview (no install prompt, no icons/theme in DevTools → Application →
+Manifest).
+
+**Fix.** `vite.config.ts` now sets `useCredentials: true` on the `VitePWA`
+plugin, so the generated tag is:
+
+```html
+<link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials">
+```
+
+The browser then sends the deployment's protection cookie with the manifest
+request and Vercel serves it like any other asset. Harmless on unprotected
+deployments (same-origin with cookies allowed). `tests/deployment-headers.test.ts`
+fails CI if the flag is removed and checks the built tag when `dist/` exists.
+
+> This is a preview-only artefact in practice: production (`eduai-companion.vercel.app`)
+> is not behind Deployment Protection, which is why the error shows up on the
+> PR preview URL and not on the live domain.
+
+---
+
+## 11. `Error with Permissions-Policy header: Unrecognized feature: 'attribution-reporting'` (×5)
+
+**What it was.** Five lines, one per deprecated/unrecognised feature —
+`attribution-reporting`, `private-aggregation`, `join-ad-interest-group`,
+`run-ad-auction`, `browsing-topics`. They are **not** produced by this app:
+production sends **no `Permissions-Policy` header at all** (verified against the
+live deployment's response headers), and neither `vercel.json`, `server.ts`,
+`index.html` nor any dependency emits one.
+
+They come from the **preview-protection layer** in front of a protected Vercel
+preview URL: that layer serves its own hard-coded policy listing the
+Privacy-Sandbox era features, and current Chromium no longer recognises those
+names, so it logs one "Unrecognized feature" line per entry — before our bundle
+has even run.
+
+**Decision — do not "fix" this by adding our own header.** Setting a
+`Permissions-Policy` in `vercel.json` would emit a **second** copy of the same
+header alongside the protection layer's; duplicate dictionary keys make the
+whole policy fail to parse, which is strictly worse than the existing warnings.
+`tests/deployment-headers.test.ts` pins that we stay out of it (and that camera
+and microphone are never denied — OCR scanning, QR scanning and avatar capture
+depend on them).
+
+**Expected:** these five lines appear on **protected preview URLs only**, and
+they disappear on production and on any preview with Deployment Protection
+turned off (Vercel project → Settings → Deployment Protection → *Vercel
+Authentication* **off**, or use the bypass/automation token).
+
+---
+
+## 12. `identitytoolkit.googleapis.com/v1/accounts:signInWithPassword … 400` + `FirebaseError: Firebase: Error (auth/invalid-credential)`
+
+**What it was.** Not a defect in the app — a wrong email/password (or an account
+that does not exist yet). Firebase answers HTTP 400 with
+`auth/invalid-credential`; the login form already shows "Invalid email or
+password. Please try again!".
+
+The console problem was the **volume**: the form called
+`console.error(err)` on every failed attempt, so each typo dumped a full
+`FirebaseError` stack trace. On a page with several auth entry points this is
+what buries the messages that actually matter.
+
+**Fix.** New `src/lib/consoleDiagnostics.ts`:
+
+* `isExpectedAuthFailure(err)` — recognises the codes a login form explains
+  itself (`invalid-credential`, `wrong-password`, `user-not-found`,
+  `email-already-in-use`, `weak-password`, `invalid-email`, `missing-email`,
+  `too-many-requests`, `popup-closed-by-user`, `cancelled-popup-request`,
+  `network-request-failed`), from `code` **or** from the message (older SDKs).
+* `logAuthFailure(context, err)` — expected outcome → **one
+  `console.info` line** naming the code, no stack; anything else (e.g.
+  `auth/unauthorized-domain`, `auth/invalid-api-key`) stays a `console.error`.
+
+Wired into `LoginPage.tsx` (email sign-in, Google sign-in, password reset) and
+`PasswordSecurity.tsx`. `tests/console-diagnostics.test.ts` pins both
+directions — a wrong password must not log an error, a misconfiguration must.
+
+> If you are testing on a preview and have no account yet, use **Demo login**
+> (anonymous auth) or Sign Up — a 400 on `signInWithPassword` just means the
+> password does not match an existing user.
+
+---
+
+## 13. `Interventions sync err (falling back to local mirror): FirebaseError: Missing or insufficient permissions.`
+
+Same root cause as §5 (deployed Firestore rules older than this repo's
+`firestore.rules`) — but the **repetition** was a second defect. The Teacher
+Dashboard's `onSnapshot` listener is recreated on every mount, so a persistent
+rule problem printed the identical warning dozens of times per session.
+
+**Fix.** `warnOnce(key, message, detail)` from `src/lib/consoleDiagnostics.ts`
+now gates that specific warning: one line per page load, with the error object
+still attached for diagnosis. The local-mirror fallback is unchanged.
+
+**Action:** deploy the rules to make the message disappear entirely:
+
+```bash
+bash scripts/deploy-firestore-rules.sh
+```
+
+---
+
+## 14. `POST https://firestore.googleapis.com/…/channel… TYPE=terminate … net::ERR_BLOCKED_BY_CLIENT`
+
+**What it was.** `ERR_BLOCKED_BY_CLIENT` is the browser reporting that a
+**client-side blocker** (an ad/tracker blocker extension, a school content
+filter, a corporate proxy extension, or Brave Shields) cancelled the request —
+it is not an HTTP status and no server can produce it. Here it hit the
+Firestore Listen channel's `TYPE=terminate` teardown at page unload, which is
+already best-effort and has no bearing on the app's data (the `onSnapshot`
+listeners teardown locally either way).
+
+**No code change is possible or needed.** If live sync itself is blocked
+(not just the terminate frame), allow `firestore.googleapis.com` (and
+`*.googleapis.com`, `identitytoolkit.googleapis.com`) for the site in the
+blocker. Firestore already prefers the WebSocket transport and falls back to
+long-polling — see §6.
+
+---
+
+## 15. `Ultra-detailed%20digital%20children's…:1  Failed to load resource: the server responded with a status of 503`
+
+**What it was.** A **Pollinations** image request
+(`image.pollinations.ai/prompt/<the encoded prompt>`) answered **503**. The long,
+pre-encoded path is the giveaway that it is a direct Pollinations URL, not one of
+our own routes — the prompt is the SA-enhanced illustration prompt from
+`contentStyle.ts` (`"Ultra-detailed digital illustration, …"`).
+
+Pollinations' anonymous tier is heavily throttled and answers 402
+`FREE_LIMIT` when spent, and 5xx when its own GPU workers are saturated. The
+app **already handles this**: a 402/429 puts the engine on cooldown
+(`POLLINATIONS_COOLDOWN_MS`), any other failure moves to the next provider, and
+if everything fails the teacher still gets the built-in SVG placeholder — never a
+broken image (§4 / `AGENTS.md` §7.3d).
+
+**Action:** optional, but the documented cure for repeated 503/402 from
+Pollinations is a free key — set `POLLINATIONS_API_KEY` (from
+`enter.pollinations.ai`) on the deployment. It removes the per-IP throttle.
+`GET /api/images/status` reports whether the key is configured and whether the
+upstream hosts are reachable from that deployment.
+
+---
+
+---
+
 ## Deploy checklist
 
 ```bash
@@ -237,3 +400,12 @@ this list:
 - [ ] `Interventions sync err … Missing or insufficient permissions` (rules deployed)
 - [ ] `Banner not shown: beforeinstallpromptevent.preventDefault()` (expected notice)
 - [ ] `Refused to display 'https://perchance.org/' in a frame …` (no warm-up iframe — see §9)
+- [ ] `Access to manifest at 'https://vercel.com/sso-api…' … CORS policy` (manifest fetched with credentials — see §10)
+- [ ] `auth/invalid-credential` stack after a typo (now one info line — see §12)
+- [ ] `Interventions sync err …` repeated on every mount (now once per session — see §13)
+
+Expected, and **not** fixable in this repo:
+
+- [ ] five `Permissions-Policy … Unrecognized feature` lines — preview-protection layer on protected Vercel previews only (§11)
+- [ ] `net::ERR_BLOCKED_BY_CLIENT` on a Firestore `TYPE=terminate` frame — a client-side blocker (§14)
+- [ ] a `503`/`402` from `image.pollinations.ai/…` — upstream throttling; key or fallback handles it (§15)

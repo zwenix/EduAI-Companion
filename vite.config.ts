@@ -15,6 +15,17 @@ export default defineConfig(({mode}) => {
         strategies: 'injectManifest',
         srcDir: 'src',
         filename: 'sw.js',
+        // Browsers fetch `<link rel="manifest">` WITHOUT credentials even from
+        // the same origin. On a Vercel deployment protected by Deployment
+        // Protection that means the request arrives unauthenticated, Vercel
+        // redirects /manifest.webmanifest to vercel.com/sso-api, and the
+        // browser refuses the cross-origin redirect:
+        //   "Access to manifest at 'https://vercel.com/sso-api?…' … blocked by
+        //    CORS policy: No 'Access-Control-Allow-Origin' header"
+        // `crossorigin="use-credentials"` makes the browser send the
+        // protection cookie, so the manifest is served like every other asset.
+        // Harmless on unprotected deployments (same-origin, cookies allowed).
+        useCredentials: true,
         injectManifest: {
           // Video is deliberately excluded: the splash mp4 ships as two ~3 MB
           // copies (hashed asset + /splash.mp4), and precaching them forced a
