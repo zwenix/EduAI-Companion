@@ -77,10 +77,7 @@ import {
     isLearnerFillInContentType,
     sanitiseLearnerFillInBody,
 } from './learnerFillIn';
-import {
-    isExplicitClassicStyle,
-    type ContentDesignStyle,
-} from './contentStyle';
+import { type ContentDesignStyle } from './contentStyle';
 
 export {
     BANNER_PALETTES,
@@ -157,11 +154,10 @@ export interface ContentTemplateMeta {
     /**
      * Which design doctrine produced this content.
      *
-     * `'classic'` (the default) means the MODEL designed the whole page — its
-     * own full-width banner, grade badge, name/date/score row and footer — so
-     * the host must NOT wrap it in the LIGHT chrome or strip its leading band.
-     * `'light-v5'` keeps the host-owned single banner and the full chrome
-     * pipeline. See `contentStyle.ts`.
+     * `'classic'` and `'light-v5'` select body styling only. Both use the
+     * host-owned single merged title/metadata/compliance banner and page
+     * chrome; model-authored leading bands are harvested and deduplicated.
+     * See `contentStyle.ts`.
      */
     designStyle?: ContentDesignStyle;
     /**
@@ -1278,9 +1274,21 @@ export const mergeMeta = (base: ContentTemplateMeta, override: ContentTemplateMe
     (Object.keys(override) as (keyof ContentTemplateMeta)[]).forEach((key) => {
         const value = override[key];
         if (value === undefined) return;
-        // List-valued slots (extraPills / extraNotes) are copied verbatim.
+        // Banner pills/notes are additive: a caller may add current values
+        // (for example duration) after the host harvests marks or an ATP week
+        // from a legacy/model header. Replacing the arrays here silently lost
+        // that harvested information during preview/print re-wrapping.
         if (Array.isArray(value)) {
-            if (value.length) merged[key] = value;
+            const current = Array.isArray(merged[key]) ? merged[key] as unknown[] : [];
+            const seen = new Set<string>();
+            merged[key] = [...current, ...value].filter((item) => {
+                const text = String(item ?? '').replace(/\s+/g, ' ').trim();
+                if (!text) return false;
+                const identity = text.toLocaleLowerCase();
+                if (seen.has(identity)) return false;
+                seen.add(identity);
+                return true;
+            });
             return;
         }
         if (String(value).trim() !== '') merged[key] = value;
@@ -1543,6 +1551,9 @@ const isChromeBand = (markup: string, element: LeadingElement, meta: ContentTemp
     const strong = tokens.some((token) => CHROME_TOKENS.has(token));
     const headerTag = /^header$/i.test(element.tag);
     const headingTag = /^h[1-2]$/i.test(element.tag);
+    const className = element.attrs.match(/class\s*=\s*["']([^"']*)["']/i)?.[1] ?? '';
+    const painted = /background(?:-color|-image)?\s*:/i.test(element.attrs)
+        || /(?:^|\s)bg-(?:gradient(?:-to-[a-z]+)?|[a-z]+-\d{2,3})(?:\s|$)/i.test(className);
 
     // A pure logo / crest / flag image is branding; a hero illustration is not.
     if (!text && /<img\b/i.test(markup)) return tokens.some((token) => BRAND_ART_TOKENS.has(token));
@@ -1556,7 +1567,7 @@ const isChromeBand = (markup: string, element: LeadingElement, meta: ContentTemp
     const ambiguousToken = tokens.some((token) => CHROME_EVIDENCE_TOKENS.has(token));
     const evidenced = repeatsTitle || metadataBand || metadataStrip;
     if (ambiguousToken && !evidenced) return false;
-    if (!strong && !headerTag && !headingTag && !metadataStrip) return false;
+    if (!strong && !headerTag && !headingTag && !metadataStrip && !(painted && repeatsTitle)) return false;
 
     const score =
         (strong ? 2 : 0)
@@ -1579,11 +1590,19 @@ const harvestMetaFromBand = (markup: string, meta: ContentTemplateMeta): void =>
     const text = bandText(markup);
     if (!text) return;
     const grab = (pattern: RegExp): string => (text.match(pattern)?.[1] || '').replace(/\s+/g, ' ').trim();
-    const set = (key: 'grade' | 'term' | 'subject' | 'contentType' | 'date' | 'capsCode' | 'capsReference' | 'atpWeek' | 'school' | 'teacher' | 'learner', value: string): void => {
+    const set = (key: 'title' | 'grade' | 'term' | 'subject' | 'contentType' | 'date' | 'capsCode' | 'capsReference' | 'atpWeek' | 'school' | 'teacher' | 'learner', value: string): void => {
         if (!value) return;
         if (String((meta as Record<string, unknown>)[key] ?? '').trim()) return;
         (meta as Record<string, unknown>)[key] = value;
     };
+
+    const heading = markup.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1]
+        || markup.match(/<h2\b[^>]*>([\s\S]*?)<\/h2>/i)?.[1]
+        || '';
+    const headingText = decodeEntities(heading.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+    if (headingText && !/^(?:grade|graad|term|subject|vak|date|datum|marks?|score)\b/i.test(headingText)) {
+        set('title', headingText);
+    }
 
     set('grade', grab(/\bgrade\s*([rR]|\d{1,2})\b/i));
     const term = grab(/\bterm\s*([1-4])\b/i);
@@ -1763,27 +1782,11 @@ const stripMarkdownFences = (html: string): string =>
         .trim();
 
 /**
- * Prepare a CLASSIC-doctrine document for preview, print and export.
- *
- * The model owns this page: its full-width banner, circular grade badge,
- * name/date/score row, hero illustration block, motivational banner and the
- * "EduAI Companion | CAPS Aligned" footer are all part of the design and must
- * survive untouched. The only edits made here are hygiene ones that cannot
- * change the look:
- *
- *   • unwrap a stray `<html>`/`<head>`/`<body>` shell (the app already supplies
- *     one, and a nested shell breaks print pagination);
- *   • drop markdown fences;
- *   • drop an injected Tailwind CDN `<script>` — the app ships Tailwind, and a
- *     second runtime copy repaints the page and breaks offline/native builds.
- *
- * Unlike {@link cleanGeneratedBodyHTML}, this deliberately keeps `<footer>`
- * elements and never touches a leading banner.
+ * Remove unsafe/redundant wrappers from classic model output. The actual
+ * generated document is subsequently passed through `wrapWithTemplate`, which
+ * merges the model's current header values into the canonical host banner.
  */
 export const prepareClassicDocument = (html: string): string => {
-    // The one-date rule applies in classic mode too: the model designed the
-    // page, but it must not pre-fill a date field — those are written in by
-    // hand. Teaching-content dates are left alone (see `blankFillInDates`).
     let cleaned = blankFillInDates(stripMarkdownFences(extractGeneratedBodyHTML(html)));
     cleaned = cleaned
         .replace(/<script\b[^>]*cdn\.tailwindcss\.com[^>]*>\s*<\/script>/gi, '')
@@ -1844,42 +1847,32 @@ export const wrapWithTemplate = (bodyHtml: string, meta: ContentTemplateMeta = {
     if (!original.trim()) return original;
     if (isCurrentTemplateOutput(original)) return original;
 
-    // CLASSIC doctrine: the MODEL designed the whole page — its own full-width
-    // banner, circular grade badge, name/date/score row, hero illustration and
-    // footer. Wrapping that in the LIGHT chrome (or absorbing its leading band
-    // into a second banner) is exactly what destroyed the original look, so the
-    // host hands the document back untouched apart from markdown-fence and
-    // Tailwind-CDN hygiene.
-    //
-    // This is opt-IN, never the default: hand-built documents (learner
-    // portfolios, Foundation Phase packs, progress reports, student notes) are
-    // not AI-generated and rely on the LIGHT chrome, so they must keep it. Only
-    // content actually generated under the classic doctrine says so.
-    if (isExplicitClassicStyle(meta.designStyle)) {
-        // The model's own design is preserved; the closing metadata block is
-        // still appended so a classic document carries the same end-of-page
-        // summary (title, grade, term, subject, today's real date) as a LIGHT
-        // one — unless the caller opts out.
-        const classicDoc = prepareClassicDocument(original);
-        return (meta.closingMeta ?? isClosingMetaBannerEnabled()) === false
-            ? classicDoc
-            : `${classicDoc}\n${buildTemplateClosingMetaHTML(meta)}`;
-    }
+    // Both doctrines share the same host-owned banner and document chrome.
+    // Classic controls the generated body styling only; its model-authored
+    // title bands and metadata are harvested below and folded into this one
+    // canonical opening banner instead of being preserved as duplicates.
 
     // Values are harvested from the ORIGINAL body as well: legacy host title
     // blocks (`.lesson-meta`, `.doc-meta`, `.lesson-title`) are deleted by
     // stripTemplateChrome, and anything they displayed (marks, duration, CAPS
     // reference, school …) must survive inside the ONE banner.
-    const beforeStrip = collapseLeadingChrome(cleanGeneratedBodyHTML(original));
+    const originalMeta = harvestMetaFromChrome(original);
+    const beforeStrip = collapseLeadingChrome(
+        cleanGeneratedBodyHTML(original),
+        mergeMeta(originalMeta, meta),
+    );
     const stripped = stripTemplateChrome(original);
     // ONE banner: absorb EVERY band the model opened the document with — its own
     // banner, school header, CAPS reference bar, formal assessment header, meta
     // pill row, logo strip — into the banner's metadata, then delete the bands
     // themselves. This is what guarantees the labels, the compliance data and
     // the document details appear exactly once at the top of the page.
-    const collapsed = collapseLeadingChrome(cleanGeneratedBodyHTML(stripped));
+    const collapsed = collapseLeadingChrome(
+        cleanGeneratedBodyHTML(stripped),
+        mergeMeta(mergeMeta(originalMeta, beforeStrip.meta), meta),
+    );
     const effectiveMeta = mergeMeta(
-        mergeMeta(mergeMeta(harvestMetaFromChrome(original), beforeStrip.meta), collapsed.meta),
+        mergeMeta(mergeMeta(originalMeta, beforeStrip.meta), collapsed.meta),
         meta,
     );
     // Is this a document a LEARNER writes on? When it is, the Name / Grade /
@@ -1942,34 +1935,26 @@ ${buildTemplateFooterHTML(effectiveMeta)}`.trim();
 
 /** Map the print/export options onto the template metadata. */
 export const metaFromPrintOptions = (
-    options?: { subject?: string; grade?: string; contentType?: string; date?: string; term?: string; school?: string; teacher?: string; learner?: string; title?: string; className?: string; extraPills?: string[]; leaveDateBlank?: boolean; leaveLearnerFieldsBlank?: boolean; designStyle?: ContentDesignStyle; closingMeta?: boolean },
+    options?: Partial<ContentTemplateMeta> & { className?: string },
     title?: string,
 ): ContentTemplateMeta => {
-    const pills: string[] = [];
-    if (options?.className) pills.push(`Class: ${options.className}`);
-    if (options?.extraPills) pills.push(...options.extraPills);
+    const { className, ...templateMeta } = options || {};
+    const pills: string[] = [...(templateMeta.extraPills || [])];
+    if (className) pills.push(`Class: ${className}`);
     return {
-        title: title || options?.title,
-        subject: options?.subject,
-        grade: options?.grade,
-        term: options?.term,
-        contentType: options?.contentType,
-        date: options?.date,
-        school: options?.school,
-        teacher: options?.teacher,
-        learner: options?.learner,
+        ...templateMeta,
+        title: title || templateMeta.title,
         extraPills: pills.length ? pills : undefined,
         // Pass the fill-in flags straight through: print, print-preview and the
         // PDF export must blank the learner's Name / Grade / Date exactly like
         // the on-screen preview does.
-        leaveDateBlank: options?.leaveDateBlank,
-        leaveLearnerFieldsBlank: options?.leaveLearnerFieldsBlank,
-        // The doctrine the content was generated under, so a classic document
-        // is exported exactly as the model designed it instead of being
-        // re-wrapped in the LIGHT chrome.
-        designStyle: options?.designStyle,
+        leaveDateBlank: templateMeta.leaveDateBlank,
+        leaveLearnerFieldsBlank: templateMeta.leaveLearnerFieldsBlank,
+        // The visual doctrine controls body styling; all documents use the
+        // same host-owned merged banner and chrome.
+        designStyle: templateMeta.designStyle,
         // Print, print-preview and PDF export keep the same closing metadata
         // block the on-screen preview shows.
-        closingMeta: options?.closingMeta,
+        closingMeta: templateMeta.closingMeta,
     };
 };

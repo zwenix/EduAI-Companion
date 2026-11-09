@@ -211,22 +211,18 @@ export default function FoundationPhaseArchitect({
 
   const generatedMarkup = teachingResult?.content
     ? wrapWithTemplate(sanitizeFoundationBody(teachingResult.content), {
-        title: 'Foundation Phase Learning Pack',
+        ...bannerMeta,
+        title: bannerMeta?.title || 'Foundation Phase Learning Pack',
         subject: language,
         grade,
         term: activeTerm,
         contentType: 'Interactive Foundation Learning Pack',
-        // Teacher / school / class are threaded in from the Content Creator's
-        // Document Banner Identity panel when the teacher opted in.
+        // The host keeps today's date in the banner; the learner's separate
+        // Name / Grade / Date response row remains blank in the body.
         teacher: bannerMeta?.teacher,
         school: bannerMeta?.school,
         extraPills: bannerMeta?.extraPills,
-        // Foundation Phase worksheets are learner-facing: render blank Name
-        // and Date fill-in lines in the banner; never pre-fill a learner name
-        // or hallucinate a hardcoded date. If the teacher explicitly supplied
-        // a learner name via the banner settings, use it instead of the blank.
         learner: bannerMeta?.learner,
-        leaveDateBlank: true,
       })
     : '';
 

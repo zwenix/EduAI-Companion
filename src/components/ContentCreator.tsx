@@ -24,6 +24,7 @@ import { printContent, downloadAsHTML, downloadAsPDF } from '../lib/printUtils';
 import { replaceImagePlaceholders } from '../lib/imageReplacer';
 import { wrapWithTemplate, EDUAI_LIGHT_CSS, isClosingMetaBannerEnabled, setClosingMetaBannerEnabled, type ContentTemplateMeta } from '../lib/contentTemplate';
 import { resolveContentDesignStyle } from '../lib/contentStyle';
+import { saToday } from '../lib/saDates';
 import { EDUAI_DOC_TAILWIND_CSS } from '../lib/docTailwindCompat';
 import PrintPreviewModal from './PrintPreviewModal';
 import { PosterPreview } from './PosterPreview';
@@ -721,35 +722,41 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
    * stamped into the banner; when a learner name has been typed it is always
    * rendered in the banner (per requirement).
    */
-  const buildBannerMeta = (overrides: {
-    subject?: string;
-    grade?: string;
-    term?: string;
-    contentType?: string;
-    title?: string;
-    school?: string;
-  } = {}) => {
-    const meta: ContentTemplateMeta = { ...overrides };
-    // Stamp the resolved design doctrine onto every banner meta object. Under
-    // `classic` (the default) the model designed the whole page — its own
-    // full-width banner, grade badge, name/date/score row and footer — so the
-    // host template must hand it back untouched instead of absorbing its
-    // leading band into a second banner. See `src/lib/contentStyle.ts`.
+  const buildBannerMeta = (
+    overrides: Partial<ContentTemplateMeta> & {
+      duration?: string;
+      totalMarks?: number | string;
+    } = {},
+  ): ContentTemplateMeta => {
+    const { duration: requestedDuration, totalMarks, ...bannerOverrides } = overrides;
+    const meta: ContentTemplateMeta = {
+      ...bannerOverrides,
+      term: bannerOverrides.term || getCurrentTerm(),
+      date: bannerOverrides.date || saToday(),
+    };
+    // Classic and LIGHT vary the body design only: both pass through the host's
+    // canonical merged title/metadata/compliance banner.
     meta.designStyle = resolveContentDesignStyle({});
-    // The closing metadata banner is a teacher toggle — stamping it keeps the
-    // preview, print and PDF exports in exact agreement.
+    // Keep the optional closing summary in sync with the teacher's preference.
     meta.closingMeta = includeClosingMeta;
+
+    const duration = requestedDuration || (activeTab === 'teaching' ? t_duration : activeTab === 'grade1' ? '30 minutes' : '');
+    const marks = totalMarks ?? (activeTab === 'teaching' ? teachingResult?.totalMarks : undefined);
+    const extraPills = [...(meta.extraPills || [])];
+    if (duration) extraPills.push(`Duration: ${duration}`);
+    if (marks !== undefined && String(marks).trim()) {
+      extraPills.push(`Total: ${marks} marks`);
+    }
     if (includeTeacherInfo) {
       const tName = bannerTeacherName || userName;
       if (tName) meta.teacher = tName;
-      if (bannerSchoolName) meta.school = bannerSchoolName;
-      if (bannerClassName) {
-        meta.extraPills = [`Class: ${bannerClassName}`];
-      }
+      if (bannerSchoolName || overrides.school) meta.school = bannerSchoolName || overrides.school;
+      if (bannerClassName) extraPills.push(`Class: ${bannerClassName}`);
     } else if (overrides.school) {
       // Admin tab always passes its own school.
       meta.school = overrides.school;
     }
+    if (extraPills.length) meta.extraPills = [...new Set(extraPills)];
     if (learnerName.trim()) meta.learner = learnerName.trim();
     return meta;
   };
@@ -994,6 +1001,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
         style: v_visualStyle,
         dimensions: v_dimensions,
         language: 'English',
+        term: getCurrentTerm(),
         additionalInstructions: v_customPrompt,
         generateImage: v_generateImage
       }, provider, (partial) => {
@@ -1050,6 +1058,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
         subject: a_subject === 'Other' ? a_customSubject : a_subject,
         documentType: a_type,
         purpose: a_topic,
+        term: getCurrentTerm(),
         keyPoints: a_customPrompt,
         schoolName: a_school,
         tone: a_tone,
@@ -1360,15 +1369,58 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
     return adminResult?.content || '';
   };
 
-  const handlePrint = async () => {
-    const docTitle = activeTab === 'teaching'
+  const getActiveDocumentMeta = (): { title: string; meta: ContentTemplateMeta } => {
+    const title = activeTab === 'teaching'
       ? (t_topic || t_type || 'Lesson Material')
       : activeTab === 'grade1'
       ? (f_topic || 'Foundation Phase Activity')
-      : activeTab === 'visual' ? (v_topic || v_type || 'Visual Aid') : (a_topic || 'EduAI Content');
-    const activeSubject = activeTab === 'teaching' ? t_subject : activeTab === 'grade1' ? f_language : activeTab === 'visual' ? v_subject : a_subject;
-    const activeGrade = activeTab === 'teaching' ? t_grade : activeTab === 'grade1' ? f_grade : activeTab === 'visual' ? v_grade : a_grade;
-    const activeTerm = activeTab === 'teaching' || activeTab === 'grade1' ? t_term : getCurrentTerm();
+      : activeTab === 'visual'
+      ? (v_topic || v_type || 'Visual Aid')
+      : (a_topic || 'EduAI Content');
+    const rawSubject = activeTab === 'teaching'
+      ? t_subject
+      : activeTab === 'grade1'
+      ? f_language
+      : activeTab === 'visual'
+      ? v_subject
+      : a_subject;
+    const subject = rawSubject === 'Other'
+      ? (activeTab === 'teaching' ? t_customSubject : activeTab === 'visual' ? v_customSubject : a_customSubject)
+      : rawSubject;
+    const grade = activeTab === 'teaching'
+      ? t_grade
+      : activeTab === 'grade1'
+      ? f_grade
+      : activeTab === 'visual'
+      ? v_grade
+      : a_grade;
+    const contentType = activeTab === 'teaching'
+      ? activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : t_type
+      : activeTab === 'grade1'
+      ? 'Interactive Foundation Learning Pack'
+      : activeTab === 'visual'
+      ? v_type
+      : a_type || 'Notice';
+    const term = activeTab === 'teaching' ? t_term : getCurrentTerm();
+    const duration = activeTab === 'teaching' ? t_duration : activeTab === 'grade1' ? '30 minutes' : undefined;
+
+    return {
+      title,
+      meta: buildBannerMeta({
+        title,
+        subject: subject || (activeTab === 'admin' ? 'Administration' : undefined),
+        grade,
+        term,
+        contentType,
+        school: activeTab === 'admin' ? a_school : undefined,
+        duration,
+        totalMarks: activeTab === 'teaching' ? teachingResult?.totalMarks : undefined,
+      }),
+    };
+  };
+
+  const handlePrint = async () => {
+    const { title: docTitle, meta } = getActiveDocumentMeta();
     const rawHtml = getActiveSectionHTML();
 
     if (!rawHtml) {
@@ -1381,34 +1433,12 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
     }
     // Strip outer <html>/<body> wrappers so printContent can inject its own header.
     const bodyOnly = rawHtml.replace(/^[\s\S]*<body[^>]*>/i, '').replace(/<\/body>[\s\S]*$/i, '').replace(/<\/html>[\s\S]*$/i, '');
-    const contentTypeOverride = activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : (activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : a_type);
-    // Honour banner toggles in print/PDF: same data the on-screen preview uses.
-    const printTeacher = includeTeacherInfo ? (bannerTeacherName || userName) : undefined;
-    const printSchool = includeTeacherInfo ? (bannerSchoolName || a_school) : a_school;
-    const printClass = includeTeacherInfo ? bannerClassName : undefined;
-    const printLearner = learnerName.trim() || undefined;
 
     setIsExporting(true);
     try {
       // On Android this produces a real PDF file (device storage + share sheet,
       // which offers Print) instead of a popup the WebView cannot handle.
-      await printContent(bodyOnly || rawHtml, docTitle, {
-        subject: activeSubject === 'Other' ? (activeTab === 'teaching' ? t_customSubject : v_customSubject || a_customSubject) : activeSubject,
-        grade: activeGrade,
-        title: docTitle,
-        term: activeTerm,
-        teacher: printTeacher,
-        school: printSchool,
-        className: printClass,
-        learner: printLearner,
-        contentType: contentTypeOverride,
-        // Export the document under the doctrine it was generated with, so a
-        // classic page keeps the banner, grade badge and score card the model
-        // built instead of being re-wrapped in the LIGHT chrome.
-        designStyle: resolveContentDesignStyle({}),
-        // Keep the closing metadata banner in step with the on-screen toggle.
-        closingMeta: includeClosingMeta
-      });
+      await printContent(bodyOnly || rawHtml, docTitle, meta);
     } catch (error) {
       console.error('Print/export failed:', error);
       triggerToast('Could not send this document to print. Try "PDF Download".', 'error');
@@ -1418,16 +1448,9 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
   };
 
   const handleDownloadPDF = async () => {
-    const docTitle = activeTab === 'teaching'
-      ? (t_topic || t_type || 'Lesson Material')
-      : activeTab === 'grade1'
-      ? (f_topic || 'Foundation Phase Activity')
-      : activeTab === 'visual' ? (v_topic || v_type || 'Visual Aid') : (a_topic || 'EduAI Content');
+    const { title: docTitle, meta } = getActiveDocumentMeta();
     const safeSlug = docTitle.toLowerCase().replace(/[^a-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'eduai';
     const filename = `${safeSlug}_${Date.now()}.pdf`;
-    const activeSubject = activeTab === 'teaching' ? t_subject : activeTab === 'grade1' ? f_language : activeTab === 'visual' ? v_subject : a_subject;
-    const activeGrade = activeTab === 'teaching' ? t_grade : activeTab === 'grade1' ? f_grade : activeTab === 'visual' ? v_grade : a_grade;
-    const activeTerm = activeTab === 'teaching' || activeTab === 'grade1' ? t_term : getCurrentTerm();
     const rawHtml = getActiveSectionHTML();
 
     if (!rawHtml) {
@@ -1439,28 +1462,10 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
       return;
     }
     const bodyOnly = rawHtml.replace(/^[\s\S]*<body[^>]*>/i, '').replace(/<\/body>[\s\S]*$/i, '').replace(/<\/html>[\s\S]*$/i, '');
-    const pdfContentType = activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : (activeTab === 'teaching' ? t_type : activeTab === 'visual' ? v_type : a_type);
-    const pdfTeacher = includeTeacherInfo ? (bannerTeacherName || userName) : undefined;
-    const pdfSchool = includeTeacherInfo ? (bannerSchoolName || a_school) : a_school;
-    const pdfClass = includeTeacherInfo ? bannerClassName : undefined;
-    const pdfLearner = learnerName.trim() || undefined;
 
     setIsExporting(true);
     try {
-      await downloadAsPDF(bodyOnly || rawHtml, filename, {
-        subject: activeSubject === 'Other' ? (activeTab === 'teaching' ? t_customSubject : v_customSubject || a_customSubject) : activeSubject,
-        grade: activeGrade, title: docTitle,
-        term: activeTerm, teacher: pdfTeacher,
-        school: pdfSchool,
-        className: pdfClass,
-        learner: pdfLearner,
-        contentType: pdfContentType,
-        // Same rule as print: export under the doctrine the content was
-        // generated with.
-        designStyle: resolveContentDesignStyle({}),
-        // Keep the closing metadata banner in step with the on-screen toggle.
-        closingMeta: includeClosingMeta
-      });
+      await downloadAsPDF(bodyOnly || rawHtml, filename, meta);
     } catch (error) {
       console.error('PDF export failed:', error);
       triggerToast('PDF export failed. Your content is still on screen — use Archive to keep it.', 'error');
@@ -1942,8 +1947,12 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                 onBack={() => setActiveTab('teaching')}
                 onClose={onClose}
                 bannerMeta={buildBannerMeta({
+                  title: f_topic || 'Foundation Phase Learning Pack',
                   subject: f_language,
                   grade: f_grade,
+                  term: getCurrentTerm(),
+                  contentType: 'Interactive Foundation Learning Pack',
+                  duration: '30 minutes',
                 })}
               />
             </div>
@@ -2852,8 +2861,8 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                                     activeTab === 'teaching'
                                       ? { subject: t_subject === 'Other' ? t_customSubject : t_subject, grade: t_grade, term: t_term, contentType: t_type, title: t_topic }
                                       : activeTab === 'visual'
-                                        ? { subject: v_subject === 'Other' ? v_customSubject : v_subject, grade: v_grade, contentType: v_type, title: v_topic }
-                                        : { subject: 'Administration', contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school }
+                                        ? { subject: v_subject === 'Other' ? v_customSubject : v_subject, grade: v_grade, term: getCurrentTerm(), contentType: v_type, title: v_topic }
+                                        : { subject: 'Administration', grade: a_grade, term: getCurrentTerm(), contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school }
                                   )
                                 ) }}
                               />
@@ -3187,8 +3196,8 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                                 activeTab === 'teaching'
                                   ? { subject: t_subject === 'Other' ? t_customSubject : t_subject, grade: t_grade, term: t_term, contentType: t_type, title: t_topic }
                                   : activeTab === 'visual'
-                                    ? { subject: v_subject === 'Other' ? v_customSubject : v_subject, grade: v_grade, term: t_term, contentType: v_type, title: v_topic }
-                                    : { subject: 'Administration', grade: a_grade, contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school }
+                                    ? { subject: v_subject === 'Other' ? v_customSubject : v_subject, grade: v_grade, term: getCurrentTerm(), contentType: v_type, title: v_topic }
+                                    : { subject: 'Administration', grade: a_grade, term: getCurrentTerm(), contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school }
                               )}
                             />
                           </div>
@@ -3352,8 +3361,8 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
                       activeTab === 'teaching'
                         ? { subject: t_subject === 'Other' ? t_customSubject : t_subject, grade: t_grade, term: t_term, contentType: activePreviewTab === 'memo' ? 'Memorandum Key' : activePreviewTab === 'rubric' ? 'Assessment Rubric' : t_type, title: t_topic }
                         : activeTab === 'visual'
-                          ? { subject: v_subject === 'Other' ? v_customSubject : v_subject, grade: v_grade, contentType: v_type, title: v_topic }
-                          : { subject: 'Administration', grade: a_grade, contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school }
+                          ? { subject: v_subject === 'Other' ? v_customSubject : v_subject, grade: v_grade, term: getCurrentTerm(), contentType: v_type, title: v_topic }
+                          : { subject: 'Administration', grade: a_grade, term: getCurrentTerm(), contentType: a_type || 'Notice', title: a_topic || 'Administrative Document', school: a_school }
                     )}
                   />
                 </div>
@@ -3747,15 +3756,7 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
       <PrintPreviewModal
         isOpen={showPrintPreviewModal}
         onClose={() => setShowPrintPreviewModal(false)}
-        title={
-          activeTab === 'teaching'
-            ? (t_topic || t_type || 'Lesson Material')
-            : activeTab === 'grade1'
-            ? (f_topic || 'Foundation Phase Activity')
-            : activeTab === 'visual'
-            ? (v_topic || v_type || 'Visual Concept')
-            : 'Administrative Doc'
-        }
+        title={getActiveDocumentMeta().title}
         content={
           (activeTab === 'teaching' || activeTab === 'grade1') ? (teachingResult?.content || '') :
           activeTab === 'visual' ? (visualResult?.content || '') :
@@ -3763,24 +3764,7 @@ Use friendly Foundation Phase styling (Patrick Hand font classes, high contrast,
         }
         memo={(activeTab === 'teaching' || activeTab === 'grade1') ? teachingResult?.memo : undefined}
         rubric={(activeTab === 'teaching' || activeTab === 'grade1') ? teachingResult?.rubric : undefined}
-        options={(() => {
-          const previewSubject = activeTab === 'teaching'
-            ? (t_subject === 'Other' ? t_customSubject : t_subject)
-            : activeTab === 'grade1' ? f_language
-            : activeTab === 'visual' ? (v_subject === 'Other' ? v_customSubject : v_subject)
-            : 'Administration';
-          return {
-            subject: previewSubject || 'General',
-            grade: (activeTab === 'teaching' ? t_grade : activeTab === 'grade1' ? f_grade : activeTab === 'visual' ? v_grade : 'All') || 'N/A',
-            contentType: (activeTab === 'teaching' ? t_type : activeTab === 'grade1' ? 'Foundation Phase Activity' : activeTab === 'visual' ? v_type : 'Notice') || 'Document',
-            title: (activeTab === 'teaching' ? t_topic || t_type : activeTab === 'grade1' ? (f_topic || 'Foundation Phase Activity') : activeTab === 'visual' ? v_topic || v_type : 'Administrative Doc') || 'Untitled Generation',
-            term: (activeTab === 'teaching' || activeTab === 'grade1' ? t_term : getCurrentTerm()),
-            teacher: includeTeacherInfo ? (bannerTeacherName || userName) : undefined,
-            school: includeTeacherInfo ? (bannerSchoolName || a_school) : a_school,
-            className: includeTeacherInfo ? bannerClassName : undefined,
-            learner: learnerName.trim() || undefined,
-          };
-        })()}
+        options={getActiveDocumentMeta().meta}
         isDarkMode={isDarkMode}
         fontStyle={fontStyle}
       />

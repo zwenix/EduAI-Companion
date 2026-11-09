@@ -68,15 +68,24 @@ export const currentSATerm = (now: Date = new Date()): string => {
  * Tells the model two things that must never drift: what today actually is, and
  * that it must not write dates into the document body — those are hand-filled.
  */
-export const dateMandate = (now: Date = new Date()): string => `
+export const dateMandate = (
+    now: Date = new Date(),
+    bannerOwner: 'host' | 'model' = 'host',
+): string => {
+    const bannerRule = bannerOwner === 'model'
+        ? '- The single opening content banner is the ONLY place a real date appears. You are generating the document fragment that the host will merge into that banner: include today’s supplied date there only when the banner is part of your requested output; otherwise leave it to the host. Do NOT write a document date, issue date, signature date or completion date anywhere in the body.'
+        : '- The host banner is the ONLY place a real date appears on the document — the app stamps today’s date there automatically. Do NOT write a document date, an issue date, a signature date, or a completion date anywhere in the content.';
+
+    return `
 📅 DATE RULES (MANDATORY — COMPUTED, NOT ASSUMED):
 - TODAY IS ${saTodayLong(now)} (${saToday(now)}). The current year is ${currentYear(now)}.
 - NEVER invent, guess or reuse a date. Do not write any date you were not given.
-- The host banner is the ONLY place a real date appears on the document — the app stamps today's date there automatically. Do NOT write a document date, an issue date, a signature date, or a completion date anywhere in the content.
+${bannerRule}
 - EVERY other date on the document is filled in by hand by the learner or teacher. Render those as an EMPTY blank line, e.g. "Date: __________" / "Datum: __________". Never pre-fill them.
 - A date that IS the teaching content (for example a historical date in a History timeline, or a date used in a Mathematics problem) is part of the lesson and must stay exactly as the curriculum requires. This rule targets document metadata dates only.
 - South African format when a date is unavoidable: DD/MM/YYYY (e.g. ${saToday(now)}) or "D Month YYYY".
 `;
+};
 
 export default {
     saToday,

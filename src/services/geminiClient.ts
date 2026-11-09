@@ -8,6 +8,7 @@
 
 import { GoogleGenAI } from '@google/genai';
 import { AI_SECRETS } from '../lib/aiSecrets';
+import { GEMINI_API_VERSION } from '../lib/geminiApiConfig';
 import { LIGHT_MASTER_SYSTEM_PROMPT, safeJsonParse } from './geminiService';
 import { EduAIPromptEngine } from '../lib/prompt-engine';
 import { GEMINI_CONTENT_OUTPUT_TOKENS } from '../lib/aiOutputBudget';
@@ -28,7 +29,7 @@ const GEMINI_MODELS = [
 let _client: GoogleGenAI | null = null;
 function getClient(): GoogleGenAI {
   if (!_client) {
-    _client = new GoogleGenAI({ apiKey: AI_SECRETS.GEMINI_API_KEY });
+    _client = new GoogleGenAI({ apiKey: AI_SECRETS.GEMINI_API_KEY, apiVersion: GEMINI_API_VERSION });
   }
   return _client;
 }
@@ -78,17 +79,23 @@ export const buildCapsGenerationPrompts = (input: any): { system: string; user: 
 
   const { system, user } = EduAIPromptEngine.assemblePrompt({
     contentType: contentTypeEng,
+    artifactType: input.contentType,
     grade: input.grade || '4',
     subject: input.subject || 'Mathematics',
     topic: input.topic || 'Addition',
     language: input.language || 'English',
     learnerProfile: input.learnerProfile || 'General Class',
     additionalInstructions: input.additionalInstructions || '',
-    term: input.term || '1',
+    term: input.term,
     week: input.week ? parseInt(input.week) : undefined,
     duration: input.duration || '2 hours',
     capsReference: input.capsReference || '',
     includeWorksheet: !!input.includeWorksheet,
+    totalMarks: input.totalMarks,
+    generateImage: !!input.generateImage,
+    teacherName: input.teacherName,
+    schoolName: input.schoolName,
+    studentName: input.studentName,
     // The caller's design doctrine wins; `classic` is the default and restores
     // the original vibrant EduAI prompt engineering.
     designStyle: resolveContentDesignStyle({ designStyle: input.designStyle }),

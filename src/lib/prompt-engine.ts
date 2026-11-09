@@ -5,7 +5,7 @@
  */
 
 import { resolveMasterPrompt } from './prompts/master-prompt';
-import { currentYear, dateMandate } from './saDates';
+import { currentSATerm, currentYear, dateMandate } from './saDates';
 import { 
   WORKSHEET_PROMPT_TEMPLATE, 
   VISUAL_AID_PROMPT_TEMPLATE, 
@@ -31,6 +31,11 @@ import {
   type IllustrationStyle,
 } from './contentStyle';
 import { buildClassicCapsPrompts } from './prompts/classic-templates';
+import {
+  buildDocumentBannerPromptData,
+  builtInContentTypePrompt,
+  SINGLE_MERGED_BANNER_SYSTEM_PROMPT,
+} from './prompts/template-derived-prompts';
 
 // SA Compliance imports — new from CAPS document
 import {
@@ -52,6 +57,8 @@ export interface PromptContext {
                'rubric' | 'test' | 'progress-tracker' |
                // Extended types from SA document
                'individual_support_plan' | 'annual_teaching_plan' | 'admin_document' | 'assessment' | 'diagram' | 'mind-map' | 'flashcard' | 'homework' | 'classroom-exercise' | 'revision-pack';
+  /** Exact user-selected label, preserved alongside the broad legacy route. */
+  artifactType?: string;
   grade: string;
   subject: string;
   topic: string;
@@ -68,6 +75,7 @@ export interface PromptContext {
   week?: number;
   studentName?: string;
   teacherName?: string;
+  schoolName?: string;
   includeWorksheet?: boolean;
   isGroq?: boolean;
   // SA Compliance extensions
@@ -89,6 +97,7 @@ export interface PromptContext {
   designStyle?: ContentDesignStyle;
   /** Illustration style for the generated image prompt. Defaults to `'book'`. */
   illustrationStyle?: IllustrationStyle;
+  generateImage?: boolean;
 }
 
 export class EduAIPromptEngine {
@@ -118,14 +127,15 @@ CRITICAL MANDATORY INSTRUCTIONS FOR ${langUpper} OUTPUT:
   public static buildSAComplianceMandate(context: PromptContext): string {
     try {
       const phaseConfig = getPhaseConfig(context.grade || "4");
-      const capsRef = generateCAPSReference(context.subject, context.grade, parseInt((context.term || "Term 1").replace(/\D/g, "")) || 1, context.topic);
+      const activeTerm = context.term || currentSATerm();
+      const capsRef = generateCAPSReference(context.subject, context.grade, parseInt(activeTerm.replace(/\D/g, "")) || 1, context.topic);
       const blooms = phaseConfig.bloomsDistribution;
       const npaWeight = phaseConfig.assessmentWeights;
 
       return `
 🇿🇦 SA COMPLIANCE MANDATE — CAPS · NPA · SIAS · WP6 · POPIA (${currentYear()}):
 
-CAPS PHASE: ${phaseConfig.displayName} | Grade: ${context.grade} | Subject: ${context.subject} | Term: ${context.term || "Term 1"}
+CAPS PHASE: ${phaseConfig.displayName} | Grade: ${context.grade} | Subject: ${context.subject} | Term: ${activeTerm}
 CAPS Reference: ${capsRef}
 Time Allocation: ${phaseConfig.timeAllocation}
 Cognitive Demand: ${phaseConfig.cognitiveDemand}
@@ -203,6 +213,34 @@ SA CONTEXT:
 
     const langMandate = this.buildLanguageMandate(effectiveLanguage, context.subject);
     const saMandate = this.buildSAComplianceMandate(context);
+    const artifactType = context.artifactType || context.contentType;
+    const typeSystemPrompt = builtInContentTypePrompt(artifactType, {
+      grade: context.grade,
+      subject: context.subject,
+      topic: context.topic,
+      term: context.term || currentSATerm(),
+      duration: context.duration,
+      totalMarks: context.totalMarks,
+      atpWeek: context.week,
+      capsReference: context.capsReference,
+      school: context.schoolName,
+      teacher: context.teacherName,
+      generateImage: context.generateImage,
+    });
+    const bannerSourceData = buildDocumentBannerPromptData({
+      contentType: artifactType,
+      grade: context.grade,
+      subject: context.subject,
+      topic: context.topic,
+      term: context.term || currentSATerm(),
+      duration: context.duration,
+      totalMarks: context.totalMarks,
+      atpWeek: context.week,
+      capsReference: context.capsReference,
+      school: context.schoolName,
+      teacher: context.teacherName,
+      learner: context.studentName,
+    });
 
     // Which design doctrine this request uses. `'classic'` is the default and
     // restores the original vibrant EduAI look; `'light-v5'` keeps the
@@ -272,7 +310,7 @@ You MUST ALSO generate:
       subtitle: context.additionalInstructions || `Comprehensive overview and exercises for ${context.topic}`,
       imagePrompt: enhancedImagePrompt,
       phase,
-      term: context.term || 'Term 1',
+      term: context.term || currentSATerm(),
       grade: context.grade,
       subject: context.subject,
       topic: context.topic,
@@ -280,7 +318,7 @@ You MUST ALSO generate:
     });
     
     // Add SA compliance context to user prompt
-    userPrompt = `${saMandate}\n\n${userPrompt}`;
+    userPrompt = `${saMandate}\n\n${isClassic ? '' : bannerSourceData}\n\n${userPrompt}`;
 
     if (instructorPriority) {
       userPrompt = `${instructorPriority}\n\n${userPrompt}\n\n${instructorPriority}`;
@@ -304,18 +342,15 @@ You MUST ALSO generate:
       .replace(/\$\{dateMandate\}/g, resolvedDateMandate);
     
     // Add SA compliance to system prompt
-    systemPrompt = `${resolvedDateMandate}\n${saMandate}\n\n${systemPrompt}`;
+    systemPrompt = `${SINGLE_MERGED_BANNER_SYSTEM_PROMPT}\n\n${typeSystemPrompt}\n\n${resolvedDateMandate}\n${saMandate}\n\n${systemPrompt}`;
 
-    // Rules 6 and 7 are doctrine-specific: classic mode MUST build the banner,
-    // grade badge, name/date/score row and footer itself, so the LIGHT v5
-    // "do not emit a header band" wording would directly contradict it.
-    const designRule = isClassic
-      ? `6. CLASSIC EDUAI VISUAL SYSTEM (MANDATORY): Build the complete page yourself, exactly as the VISUAL STYLING DOCTRINE above requires — a full-width subject-coloured header banner first, a large circular Grade badge in the top right, the "NAME: ____  DATE: ____  TOTAL __ / ${context.totalMarks || 30}" row directly below the banner, pill-shaped coloured section headers, numbered question circles with white text, pill/capsule answer options, thick playful 2–4px borders on rounded-[2.5rem] cards, a 25–30% hero illustration block, differentiation boxes (Core/Extended/Simplified), SIAS support boxes, an NPA 7-point table, Bloom's tags, a motivational closing banner and the "EduAI Companion | CAPS Aligned" footer. Never omit the banner or the score card.`
-      : `6. SA COMPLIANCE VISUALS: Start straight into content cards. Include differentiation boxes (Core/Extended/Simplified), SIAS support boxes, an NPA 7-point table and Bloom's tags. Do NOT emit a school/DBE header band, a CAPS reference bar, a formal assessment header, a meta/name-date row, an SA flag-stripe header or any other band at the top of the document — the host's ONE two-colour vertical gradient banner already carries the school context, the grade/subject/term/type/date labels and the CAPS reference. Do not emit compliance labels or a footer either; the host adds one compliance banner and the exact footer.`;
+    // Both visual doctrines share the same host-owned merged opening banner;
+    // Classic changes body styling only, never ownership of metadata chrome.
+    const designRule = `6. SINGLE MERGED BANNER (MANDATORY): The host renders exactly one opening banner containing the current document title/header, grade, subject, selected content type, term, today's date, any supplied school/teacher/learner details, CAPS reference and compliance labels. Do not generate a second page title, banner, grade badge, metadata strip, CAPS/compliance row, or duplicate footer copy. Begin the body with substantive content. For learner-facing work, the host inserts one empty Name / Grade / Date row below the banner; do not repeat or pre-fill it. Add a score box in the activity body only when marks apply. Keep the selected ${isClassic ? 'vibrant Classic' : 'restrained LIGHT'} visual style in body sections, cards, answer spaces and section headers.`;
 
-    const illustrationRule = isClassic
-      ? `7. ILLUSTRATION INTEGRATION: All [Illustration: ...] placeholders are replaced with generated artwork. Keep every placeholder ultra-detailed and SA-specific, with no text overlays, 300 DPI, in the ${illustrationStyle === 'disney3d' ? 'Disney 3D Animation Character & 3D Cute Icon' : "semi-realistic children's non-fiction book"} style.`
-      : `7. ILLUSTRATION INTEGRATION: All [Illustration: ...] placeholders will be replaced by FLUX.1-schnell (black-forest-labs/FLUX.1-schnell) via Hugging Face with SA context enhancement — ensure prompts are ultra-detailed, SA-specific, no text overlays, 300 DPI, ${illustrationStyle === 'disney3d' ? 'Disney 3D style' : "children's non-fiction book style"}.`;
+    const illustrationRule = context.generateImage
+      ? `7. ILLUSTRATION INTEGRATION: Include only the requested, topic-relevant [Illustration: ...] placeholders. Keep every description self-contained, age-appropriate, factually safe, without text overlays, and in the ${illustrationStyle === 'disney3d' ? 'Disney 3D Animation Character & 3D Cute Icon' : "semi-realistic children's non-fiction book"} style.`
+      : `7. ILLUSTRATION INTEGRATION: Do not add illustration placeholders or artwork requirements unless the selected artifact type inherently requires a diagram; use accurate, accessible HTML for diagrams.`;
 
     const antiSummaryMandate = `\n\n🚨 CRITICAL ANTI-TRUNCATION & ANTI-SUMMARY MANDATE:
 1. ZERO PLACEHOLDERS OR SUMMARIES: You are STRICTLY FORBIDDEN from outputting summaries, placeholder comments, or sentences such as "Summarized HTML below for brevity", "Full HTML available upon request", "etc.", "more questions here", or "insert content here".
@@ -456,7 +491,7 @@ SA Context: Rand (R), SA places (Table Mountain, Kruger, Drakensberg), SA names 
     illustrationStyle: IllustrationStyle,
   ): string {
     const { user } = buildClassicCapsPrompts({
-      contentType: context.contentType,
+      contentType: context.artifactType || context.contentType,
       grade: context.grade,
       subject: context.subject,
       topic: context.topic,
@@ -464,6 +499,13 @@ SA Context: Rand (R), SA places (Table Mountain, Kruger, Drakensberg), SA names 
       learnerProfile: context.learnerProfile,
       additionalInstructions: context.additionalInstructions,
       totalMarks: context.totalMarks,
+      term: context.term || currentSATerm(),
+      duration: context.duration,
+      capsReference: context.capsReference,
+      atpWeek: context.week,
+      teacher: context.teacherName,
+      school: context.schoolName,
+      learner: context.studentName,
       illustrationStyle,
     });
     return user;

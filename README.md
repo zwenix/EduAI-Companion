@@ -159,18 +159,18 @@ Key characteristics of the product as it exists in this repository:
 
 ### Prerequisites
 
-- **Node.js 20+** (CI builds with Node 22)
+- **Node.js 22+** (required by `@google/genai` 3.x; CI builds with Node 22)
 - **npm** (the lockfile and CI use `npm ci`; a `bun.lock` is also present)
 - A **Firebase project** with Authentication and Cloud Firestore enabled
-- At least one AI API key — **`GEMINI_API_KEY` is required** for the primary engine
+- At least one AI API key — **`GOOGLE_API_KEY`** (Google AI Studio) is the canonical Gemini key; `GEMINI_API_KEY` remains supported as a compatibility alias
 
 ### 1. Configure environment variables
 
-Copy `.env.example` to `.env` and fill in what you need. Only `GEMINI_API_KEY` is required for the core experience; every other key unlocks an optional provider.
+Copy `.env.example` to `.env` and fill in what you need. Only `GOOGLE_API_KEY` is required for the core experience; `GEMINI_API_KEY` is still accepted for existing deployments. Gemini calls are pinned to the stable Developer API `v1` endpoint.
 
 | Variable | Purpose |
 | :--- | :--- |
-| `GEMINI_API_KEY` | **Required.** Google Gemini text, vision/OCR and image models. |
+| `GOOGLE_API_KEY` (`GEMINI_API_KEY` compatibility alias) | **Required.** Google Gemini text, vision/OCR and image models via the stable `v1` API. |
 | `ALIBABA_API_KEY` / `ALIBABA_API_BASE` | Alibaba Cloud Model Studio — Qwen 3.8 Max (OpenAI-compatible endpoint). |
 | `NVIDIA_API_KEY` | NVIDIA NIM — Nemotron text models (image generation no longer uses NIM). |
 | `OCR_SPACE_API_KEY` | Optional secondary OCR engine. |

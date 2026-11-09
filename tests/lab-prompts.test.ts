@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   ADMIN_LAB_SYSTEM_PROMPT,
-  VISUAL_LAB_SYSTEM_PROMPT,
   buildAdminLabPrompts,
   buildVisualLabPrompts,
 } from '../src/lib/prompts/lab-prompts';
@@ -97,7 +96,9 @@ describe('Admin Lab prompt builder', () => {
       generateImage: true,
     });
 
-    expect(system).toBe(ADMIN_LAB_SYSTEM_PROMPT);
+    expect(system).toContain(ADMIN_LAB_SYSTEM_PROMPT);
+    expect(system).toContain('SINGLE MERGED DOCUMENT BANNER (MANDATORY)');
+    expect(system).toContain('BUILT-IN CONTENT-TYPE SYSTEM PROMPT — Letter to Parents');
     expect(user).toContain('"schoolName": "Mhlabeni Primary"');
     expect(user).toContain('"grade": "Grade 4"');
     expect(user).toContain('"subject": "Natural Sciences"');

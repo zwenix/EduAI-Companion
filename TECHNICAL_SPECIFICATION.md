@@ -236,7 +236,7 @@ Express API server (server.ts)        Firebase project
 
 | Concern | Packages / services |
 | :--- | :--- |
-| Gemini | `@google/genai` `^1.29.0`; plain REST for the fallback chain. |
+| Gemini | `@google/genai` `^3.0.0`, pinned to stable Developer API `v1`; plain REST for the frozen fallback chain. |
 | OpenAI-compatible providers | `openai` `^6.34.0` (Alibaba Model Studio, NVIDIA NIM) and `axios`. |
 | Hugging Face | `@huggingface/inference` `^4.13.15`, `@gradio/client` `^2.2.1` (OmniHuman-1). |
 | Replicate | `replicate` `^1.4.0` (optional video). |
@@ -625,7 +625,7 @@ South African English, ZAR currency, DD/MM/YYYY dates, local names/context. Foun
 - Modern evergreen browsers (Chromium, Firefox, WebKit) on desktop and mobile.
 - PWA install on Android and desktop; iOS is **not** a packaged Capacitor target (no `@capacitor/ios` dependency), and iOS PWA use is subject to Safari's platform limitations.
 - Android WebView via Capacitor 6; CI builds with Android SDK 34 / Java 17. Android-specific export and download paths are handled by the native bridge.
-- Node.js 20+ for local development (CI uses Node 22).
+- Node.js 22+ for local development and deployment (`@google/genai` 3.x requirement; CI uses Node 22).
 
 ### 10.8 Scale and capacity
 
@@ -641,7 +641,7 @@ South African English, ZAR currency, DD/MM/YYYY dates, local names/context. Foun
 
 | Variable | Required | Used by | Notes |
 | :--- | :---: | :--- | :--- |
-| `GEMINI_API_KEY` (aliases `GOOGLE_AI_API_KEY`, `GOOGLE_GENAI_API_KEY`, `VITE_GEMINI_API_KEY`) | ✅ | Server + client | Primary text/vision/image engine. |
+| `GOOGLE_API_KEY` (compatibility aliases `GEMINI_API_KEY`, `GOOGLE_AI_API_KEY`, `GOOGLE_GENAI_API_KEY`, `VITE_GEMINI_API_KEY`) | ✅ | Server | Primary text/vision/image engine; stable Developer API `v1`. |
 | `ALIBABA_API_KEY`, `ALIBABA_API_BASE` (aliases `DASHSCOPE_*`) | optional | Server + native | Qwen 3.8 Max via Model Studio. |
 | `NVIDIA_API_KEY` (alias `NVIDIA_API_TOKEN`) | optional | Server + native | Nemotron text models. |
 | `OCR_SPACE_API_KEY` | optional | Server/native | Secondary OCR. |
@@ -808,7 +808,7 @@ The right-hand column records what was done, on which date, and what remains.
 | 3 | `server.ts` is a 2.4k-LOC monolith | 🟡 | **Partially addressed 2 Oct 2026:** the frozen model list, endpoints, slugs, legacy aliases and fallback graph now live in one registry, `src/lib/aiModels.ts`, consumed by `server.ts`, `multiAiService.ts`, `AiContext.tsx` and `App.tsx`. *Remaining:* extract `/api/ai`, `/api/media` and `/api/notifications` into Express routers. |
 | 4 | In-memory job/subscription state | ⬜ | Video jobs (`omniJobs`) and push subscriptions remain process-local: lost on restart and not shared between serverless instances. Persisting them requires care around the protected video pipeline (`AGENTS.md` §6) — plan as a dedicated change. |
 | 5 | Legacy/scratch artefacts in repo root | ✅ | **Fixed 2 Oct 2026.** 102 one-off files (`fix_*`, `patch_*`, `update_*`, `test-*`, `fixes.patch`, env probes…) moved to `archive/legacy-scripts/` with a manifest in `archive/README.md`; `tsconfig.json` excludes the folder. |
-| 6 | `package.json` name is `react-example` | ✅ | **Fixed 2 Oct 2026.** Renamed to `eduai-companion`, version set to `1.0.0`, a description added, `engines.node >= 20` declared, and both lockfiles refreshed/updated. |
+| 6 | `package.json` name is `react-example` | ✅ | **Fixed 2 Oct 2026.** Renamed to `eduai-companion`, version set to `1.0.0`, a description added, `engines.node >= 20` declared, and both lockfiles refreshed/updated. **Updated 9 Nov 2026:** minimum Node version raised to `>=22` for `@google/genai` 3.x. |
 | 7 | Optional server assemblers (`docx`, `puppeteer`, `jszip`) are not dependencies | ⬜ | Server-side DOCX/PDF/ZIP still degrade to the client-side renderer. Either declare them or document the intended deployment subset. |
 | 8 | Provider costs depend on external free tiers | ⬜ | NIM / Gradio / Hugging Face / Pollinations endpoints can rate-limit or change without notice. The documented fallback graphs and the new rate limiter reduce exposure; production SLAs need paid tiers. |
 | 9 | Frozen model list required coordinated edits in four files | ✅ | **Fixed 2 Oct 2026.** `src/lib/aiModels.ts` is now the single source of truth and `tests/ai-models.test.ts` fails CI on any drift from `AGENTS.md` §1. `AGENTS.md` §1 now documents the registry as the single source of truth and names `src/lib/aiModels.ts` in its file list; a new `AGENTS.md` §7 ("Repository Guardrails") records the CI gate, secret-scanning, rules-deployment and rate-limit obligations. |

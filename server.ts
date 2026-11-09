@@ -4,6 +4,7 @@ import { buildAdminLabPrompts, buildVisualLabPrompts } from "./src/lib/prompts/l
 import { buildClassicEducationalPrompts } from "./src/lib/prompts/classic-templates";
 import { CLASSIC_MASTER_SYSTEM_PROMPT, resolveContentDesignStyle, resolveIllustrationStyle } from "./src/lib/contentStyle";
 import { dateMandate } from "./src/lib/saDates";
+import { GEMINI_API_VERSION, resolveGeminiApiKeyFromEnv } from "./src/lib/geminiApiConfig";
 import { clientKeyFrom, createRateLimiter, ruleForPath } from "./src/lib/rateLimit";
 import { GEMINI_CONTENT_OUTPUT_TOKENS, GEMINI_DEFAULT_OUTPUT_TOKENS } from "./src/lib/aiOutputBudget";
 import {
@@ -121,21 +122,11 @@ function resolveAlibabaKey(): string {
 }
 
 function resolveGeminiKey(): string {
-  const keys = [
-    process.env.GEMINI_API_KEY,
-    process.env.VITE_GEMINI_API_KEY,
-    process.env.GOOGLE_GENAI_API_KEY,
-    process.env.GOOGLE_AI_API_KEY,
-  ];
-  for (const key of keys) {
-    if (key && key !== "dummy" && key !== "undefined" && key.trim() !== "") {
-      return key.trim().replace(/^['"\s]+|['"\s]+$/g, "");
-    }
-  }
-  // Final fallback: the same baked-in key that already ships inside the client
-  // bundle / APK (see src/lib/aiSecrets.ts — stored reversed so the repo passes
-  // secret scanning). This keeps AI generation working on deployments where no
-  // GEMINI_API_KEY env var has been configured, instead of replying HTTP 400.
+  const configuredKey = resolveGeminiApiKeyFromEnv(process.env);
+  if (configuredKey) return configuredKey;
+  // Final fallback: the same baked-in key used by the standalone APK. Server
+  // deployments should configure GOOGLE_API_KEY (GEMINI_API_KEY remains an
+  // accepted compatibility alias) rather than relying on this fallback.
   return "07m0quM9DBiExKxhgEqPAwn1Qm-_inBPAySazIA".split("").reverse().join("");
 }
 
@@ -628,6 +619,7 @@ function getGeminiClient(): GoogleGenAI {
   cachedApiKeyUsed = currentKey;
   cachedGeminiClient = new GoogleGenAI({
     apiKey: currentKey || "dummy",
+    apiVersion: GEMINI_API_VERSION,
     httpOptions: {
       headers: {
         'User-Agent': 'aistudio-build',
@@ -2637,7 +2629,7 @@ const masterPromptFor = (input: any = {}): string =>
     const { action, input, stream } = req.body || {};
     const apiKey = resolveGeminiKey();
     if (!apiKey || apiKey === "" || apiKey === "dummy" || apiKey === "undefined") {
-      return res.status(400).json({ error: "GEMINI_API_KEY is not configured in settings." });
+      return res.status(400).json({ error: "GOOGLE_API_KEY (or GEMINI_API_KEY) is not configured in server settings." });
     }
 
     try {
@@ -2716,7 +2708,7 @@ const masterPromptFor = (input: any = {}): string =>
 
           const geminiKey = resolveGeminiKey();
           if (!geminiKey || geminiKey === "" || geminiKey === "dummy" || geminiKey === "undefined") {
-            return res.status(501).json({ error: "GEMINI_API_KEY is not configured.", provider: "gemini", configured: false });
+            return res.status(501).json({ error: "GOOGLE_API_KEY (or GEMINI_API_KEY) is not configured.", provider: "gemini", configured: false });
           }
 
           // Gemini image models return inlineData from `generateContent`.
@@ -2817,17 +2809,23 @@ const masterPromptFor = (input: any = {}): string =>
 
           const { system, user } = EduAIPromptEngine.assemblePrompt({
             contentType: contentTypeEng,
+            artifactType: input.contentType,
             grade: input.grade || "4",
             subject: input.subject || "Mathematics",
             topic: input.topic || "Addition",
             language: input.language || 'English',
             learnerProfile: input.learnerProfile || 'General Class',
             additionalInstructions: input.additionalInstructions || '',
-            term: input.term || '1',
+            term: input.term,
             week: input.week ? parseInt(input.week) : undefined,
             duration: input.duration || '2 hours',
             capsReference: input.capsReference || '',
             includeWorksheet: !!input.includeWorksheet,
+            totalMarks: input.totalMarks,
+            generateImage: !!input.generateImage,
+            teacherName: input.teacherName,
+            schoolName: input.schoolName,
+            studentName: input.studentName,
             // The caller's design doctrine wins; `classic` is the default and
             // restores the original vibrant EduAI prompt engineering.
             designStyle: resolveContentDesignStyle({ designStyle: input.designStyle }),

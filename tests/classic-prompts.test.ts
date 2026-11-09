@@ -1,10 +1,9 @@
 /**
- * Tests for the restored Classic content prompt engineering (commit 6d3f1d2).
+ * Tests for Classic content prompting and the single host-owned banner contract.
  *
- * These assert that the original "VISUAL STYLING DOCTRINE" is back as the
- * default, that every generator routes through it, and that the host template
- * no longer strips the model's own banner — which is what had flattened the
- * original design.
+ * These assert that the Classic visual doctrine remains the default, that each
+ * generator includes selected-type guidance, and that generated chrome is
+ * folded into the single host-owned banner without losing document metadata.
  */
 
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
@@ -91,14 +90,15 @@ describe('content design style resolution', () => {
 });
 
 describe('restored classic master doctrine', () => {
-  it('carries the full VISUAL STYLING DOCTRINE verbatim', () => {
+  it('keeps the vibrant body styling while assigning the merged banner to the host', () => {
     expect(CLASSIC_MASTER_SYSTEM_PROMPT).toContain('VISUAL STYLING DOCTRINE (Follow these for all HTML output):');
-    expect(CLASSIC_MASTER_SYSTEM_PROMPT).toContain('Full-Width Banners & Section Colors');
+    expect(CLASSIC_MASTER_SYSTEM_PROMPT).toContain('Single Full-Width Document Banner & Section Colors');
     expect(CLASSIC_MASTER_SYSTEM_PROMPT).toContain('rounded-[2.5rem]');
     expect(CLASSIC_MASTER_SYSTEM_PROMPT).toContain('thick playful borders (2px to 4px)');
-    expect(CLASSIC_MASTER_SYSTEM_PROMPT).toContain('pill-shaped colored borders');
-    expect(CLASSIC_MASTER_SYSTEM_PROMPT).toContain('Hero Illustrations / Space for Visuals');
-    expect(CLASSIC_MASTER_SYSTEM_PROMPT).toContain('Amazing job! Keep shining!');
+    expect(CLASSIC_MASTER_SYSTEM_PROMPT).toContain('pill-shaped coloured borders');
+    expect(CLASSIC_MASTER_SYSTEM_PROMPT).toContain('Do not generate a second page header');
+    expect(CLASSIC_MASTER_SYSTEM_PROMPT).toContain("do not repeat the host's empty Name / Grade / Date row");
+    expect(CLASSIC_MASTER_SYSTEM_PROMPT).not.toContain('Build the complete page yourself');
   });
 
   it('keeps the subject colour gradients', () => {
@@ -107,34 +107,33 @@ describe('restored classic master doctrine', () => {
     expect(CLASSIC_MASTER_SYSTEM_PROMPT).toContain('from-purple-500 to-indigo-600');
     expect(CLASSIC_MASTER_SYSTEM_PROMPT).toContain('from-amber-500 to-red-600');
   });
-
-  it('never tells the model to suppress its own banner', () => {
-    // This instruction is what flattened the original design.
-    expect(CLASSIC_MASTER_SYSTEM_PROMPT).not.toContain('Do not generate a page-level header/footer');
-    expect(CLASSIC_MASTER_SYSTEM_PROMPT).not.toContain('start straight into content cards');
-  });
 });
 
 describe('restored CAPS content prompts', () => {
-  it('restores the hero illustration, grade badge, score row and footer', () => {
+  it('adds a dedicated content-type system prompt and authoritative merged-banner data', () => {
     const { system, user } = buildClassicCapsPrompts({
       contentType: 'Worksheet',
       grade: '4',
       subject: 'Mathematics',
       topic: 'Fractions',
+      term: 'Term 2',
+      duration: '45 minutes',
       totalMarks: 30,
     });
 
     expect(system).toContain(CLASSIC_MASTER_SYSTEM_PROMPT);
-    expect(system).toContain('award winning');
-    expect(user).toContain('ONE stunning hero illustration at the top that occupies 25–30% of the page');
-    expect(user).toContain('Semi-realistic digital painting style (like children’s non-fiction books)');
-    expect(user).toContain('Include full-width colored banners');
-    expect(user).toContain('large circular badge in the top right for the Grade');
-    expect(user).toContain('"Name: ____ Date: _____ Total __ / 30"');
-    expect(user).toContain('pill-shaped boxes with a colored border');
-    expect(user).toContain('EduAI Companion | CAPS Aligned | eduai-companion.github.io');
-    expect(user).toContain(CLASSIC_IMAGE_PROMPT_GOLDEN_RULE.trim());
+    expect(system).toContain('SINGLE MERGED DOCUMENT BANNER (MANDATORY)');
+    expect(system).toContain('BUILT-IN CONTENT-TYPE SYSTEM PROMPT — Worksheet');
+    expect(system).toContain('Create a complete learner worksheet');
+    expect(user).toContain('HOST BANNER SOURCE DATA');
+    expect(user).toContain('"title": "Fractions"');
+    expect(user).toContain('"grade": "4"');
+    expect(user).toContain('"term": "Term 2"');
+    expect(user).toContain('"contentType": "Worksheet"');
+    expect(user).toContain('"totalMarks": 30');
+    expect(user).toContain('the host merges this current title/header');
+    expect(user).not.toContain('large circular badge in the top right');
+    expect(user).not.toContain('EduAI Companion | CAPS Aligned | eduai-companion.github.io');
   });
 
   it('adds the study-guide mandate only for study notes', () => {
@@ -149,9 +148,10 @@ describe('restored CAPS content prompts', () => {
     expect(worksheet.user).not.toContain('CRITICAL STUDY GUIDE REQUIREMENTS');
   });
 
-  it('routes EduAIPromptEngine through the classic doctrine by default', () => {
+  it('routes the exact artifact type through EduAIPromptEngine', () => {
     const { system, user } = EduAIPromptEngine.assemblePrompt({
       contentType: 'worksheet',
+      artifactType: 'Reading Comprehension',
       grade: '5',
       subject: 'Natural Sciences',
       topic: 'The water cycle',
@@ -159,16 +159,17 @@ describe('restored CAPS content prompts', () => {
     });
 
     expect(system).toContain('VISUAL STYLING DOCTRINE');
-    expect(system).toContain('CLASSIC EDUAI VISUAL SYSTEM (MANDATORY)');
-    expect(user).toContain('ONE stunning hero illustration');
-    expect(user).toContain('circular Grade badge in the top right');
-    // The LIGHT v5 suppression wording must not leak into classic output.
-    expect(system).not.toContain('Do NOT emit a school/DBE header band');
+    expect(system).toContain('SINGLE MERGED DOCUMENT BANNER (MANDATORY)');
+    expect(system).toContain('BUILT-IN CONTENT-TYPE SYSTEM PROMPT — Reading Comprehension');
+    expect(system).toContain('literal, inferential and vocabulary questions');
+    expect(user).toContain('Type: Reading Comprehension');
+    expect(user).toContain('one empty Name / Grade / Date row');
   });
 
-  it('still assembles the LIGHT v5 doctrine on request', () => {
+  it('still assembles the LIGHT v5 doctrine with the shared merged banner', () => {
     const { system } = EduAIPromptEngine.assemblePrompt({
       contentType: 'worksheet',
+      artifactType: 'Worksheet',
       grade: '5',
       subject: 'Natural Sciences',
       topic: 'The water cycle',
@@ -176,14 +177,14 @@ describe('restored CAPS content prompts', () => {
       designStyle: 'light-v5',
     });
 
-    expect(system).toContain('SA COMPLIANCE VISUALS');
-    expect(system).toContain('Do NOT emit a school/DBE header band');
+    expect(system).toContain('SINGLE MERGED DOCUMENT BANNER (MANDATORY)');
+    expect(system).toContain('creates exactly ONE opening document banner');
     expect(system).not.toContain('CLASSIC EDUAI VISUAL SYSTEM');
   });
 });
 
 describe('restored Visual Lab prompts', () => {
-  it('restores the poster blueprint — bubble letters and floating fact boxes', () => {
+  it('uses a type-specific poster brief without duplicating the host title banner', () => {
     const { system, user } = buildVisualLabPrompts({
       visualType: 'Educational Poster',
       topic: 'The water cycle',
@@ -192,48 +193,47 @@ describe('restored Visual Lab prompts', () => {
     });
 
     expect(system).toContain(CLASSIC_MASTER_SYSTEM_PROMPT);
-    expect(user).toContain('multi-colored bubble-letter style title');
-    expect(user).toContain('Floating Fact Boxes: 4-6 small floating fact boxes');
-    expect(user).toContain('solid 4px red, green, blue border');
-    expect(user).toContain('Make it look like an adventure map');
-    expect(user).toContain('Sky blue background');
-    expect(user).toContain('Make it vibrant, instantly engaging, and child-friendly');
+    expect(system).toContain('BUILT-IN CONTENT-TYPE SYSTEM PROMPT — Educational Poster');
+    expect(user).toContain('clear central visual/illustration');
+    expect(user).toContain('Floating Fact Boxes');
+    expect(user).toContain('The host supplies the only title/banner');
+    expect(user).toContain('HOST BANNER SOURCE DATA');
+    expect(user).not.toContain('bubble-letter style title');
   });
 
-  it('restores the double-sided flashcard grid', () => {
+  it('uses a two-sided, numbered flashcard blueprint', () => {
     const { user } = buildVisualLabPrompts({
-      visualType: 'Flashcards',
+      visualType: 'Flashcards (Term + Definition)',
       topic: 'Times tables',
       grade: '4',
       subject: 'Mathematics',
     });
 
     expect(user).toContain('double-sided educational flashcards');
-    expect(user).toContain('Show multiple cards in a grid (2 or 3 per row)');
-    expect(user).toContain('rounded-3xl corners, thick colored borders (2px)');
-    expect(user).toContain('Use vibrant colors that change per card');
+    expect(user).toContain('print-ready grid (2 or 3 per row)');
+    expect(user).toContain('clear front/back numbering system');
+    expect(user).toContain('No page-level title, duplicate banner');
   });
 
-  it('restores the radiating infographic and SA-landscape diagram', () => {
+  it('restores the infographic and diagram blueprints without forced landmarks', () => {
     const infographic = buildVisualLabPrompts({ visualType: 'Infographic', topic: 'Food chains', grade: '6' });
     expect(infographic.user).toContain('Central concept in the middle with radiating branches');
     expect(infographic.user).toContain('Modern flat design with subtle textures and depth');
 
-    const diagram = buildVisualLabPrompts({ visualType: 'Diagram', topic: 'The water cycle', grade: '5' });
-    expect(diagram.user).toContain('Include Table Mountain, Drakensberg, or Karoo');
-    expect(diagram.user).toContain('Use indigenous animals (lion, impala, acacia tree, vulture, etc.)');
-    expect(diagram.user).toContain('National Geographic kids magazine quality');
+    const diagram = buildVisualLabPrompts({ visualType: 'Educational Diagram', topic: 'The water cycle', grade: '5' });
+    expect(diagram.user).toContain('correctly labelled educational diagram');
+    expect(diagram.user).toContain('do not force an unrelated landmark');
   });
 
-  it('matches the original blueprint selection rules', () => {
-    expect(classicVisualBlueprint({ visualType: 'Anchor Chart Poster' })).toContain('bubble-letter');
+  it('matches the artifact-specific blueprint selection rules', () => {
+    expect(classicVisualBlueprint({ visualType: 'Anchor Chart Poster' })).toContain('central visual');
     expect(classicVisualBlueprint({ visualType: 'Learning Card Set' })).toContain('double-sided');
     expect(classicVisualBlueprint({ visualType: 'Mind Map' })).toContain('radiating branches');
-    expect(classicVisualBlueprint({ visualType: 'Process Diagram' })).toContain('Table Mountain');
-    expect(classicVisualBlueprint({ visualType: 'Word Wall' })).toContain('Create a highly visual');
+    expect(classicVisualBlueprint({ visualType: 'Process Diagram' })).toContain('correctly labelled educational diagram');
+    expect(classicVisualBlueprint({ visualType: 'Word Wall' })).toContain('highly visual');
   });
 
-  it('continues a truncated classic fragment instead of rebuilding it', () => {
+  it('continues a truncated classic fragment without restoring a duplicate banner', () => {
     const { user } = buildVisualLabPrompts({
       visualType: 'Educational Poster',
       topic: 'Photosynthesis',
@@ -242,7 +242,7 @@ describe('restored Visual Lab prompts', () => {
 
     expect(user).toContain('Continue the same Visual Lab response');
     expect(user).toContain('<div class="rounded-[2.5rem]">Already written');
-    expect(user).toContain('the full-width banner, the grade badge and every fact box already written');
+    expect(user).toContain('do not add a second banner');
   });
 });
 
@@ -294,51 +294,71 @@ describe('restored generate-educational prompt', () => {
     });
 
     expect(system).toContain(CLASSIC_MASTER_SYSTEM_PROMPT);
-    expect(system).toContain('DO NOT USE MARKDOWN.');
-    expect(user).toContain('Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design)');
+    expect(system).toContain('BUILT-IN CONTENT-TYPE SYSTEM PROMPT — class activity');
+    expect(system).toContain('Do not create a second title banner');
+    expect(user).toContain('vivid section headers, pill-shaped blocks');
+    expect(user).toContain('HOST BANNER SOURCE DATA');
   });
 });
 
 describe('host template in classic mode', () => {
-  it('preserves the model banner, grade badge and footer', () => {
+  it('absorbs a model-authored header into one host banner with all current metadata', () => {
     const generated = `
 <div class="w-full bg-gradient-to-r from-teal-500 to-blue-600 p-8">
   <h1 class="text-white text-4xl font-black">Fractions</h1>
   <span class="rounded-full bg-white text-blue-700 px-4 py-2">Grade 4</span>
+  <span>Subject: Mathematics · Term: 2 · Content Type: Worksheet · Date: 08/11/2026</span>
+  <span>CAPS Reference: Number Fractions</span>
 </div>
-<section class="rounded-[2.5rem] border-4 border-amber-400 p-6">NAME: ______ DATE: ______</section>
+<section class="rounded-[2.5rem] border-4 border-amber-400 p-6">Question 1</section>
 <footer class="text-center text-xs">EduAI Companion | CAPS Aligned | eduai-companion.github.io</footer>
 `.trim();
 
     const wrapped = wrapWithTemplate(generated, {
       title: 'Fractions',
       grade: '4',
+      subject: 'Mathematics',
+      term: 'Term 2',
+      contentType: 'Worksheet',
+      date: '08/11/2026',
+      capsReference: 'Number Fractions',
       designStyle: 'classic',
+      closingMeta: false,
     });
 
-    // The banner, grade badge and footer survive — nothing is absorbed into a
-    // second host banner.
-    expect(wrapped).toContain('from-teal-500 to-blue-600');
+    expect(wrapped.match(/class="eduai-compliance-banner"/g)).toHaveLength(1);
+    expect(wrapped).toContain('Fractions');
     expect(wrapped).toContain('Grade 4');
-    expect(wrapped).toContain('rounded-[2.5rem]');
-    expect(wrapped).toContain('EduAI Companion | CAPS Aligned | eduai-companion.github.io');
-    // And the LIGHT chrome is not injected on top of it.
-    expect(wrapped).not.toContain('eduai-compliance-banner');
-    expect(wrapped).not.toContain('site-header');
-  });
-
-  it('still applies the full LIGHT chrome when light-v5 is selected', () => {
-    const wrapped = wrapWithTemplate('<p>Some content</p>', {
-      title: 'Fractions',
-      grade: '4',
-      designStyle: 'light-v5',
-    });
-
-    expect(wrapped).toContain('eduai-compliance-banner');
+    expect(wrapped).toContain('Mathematics');
+    expect(wrapped).toContain('Term 2');
+    expect(wrapped).toContain('Worksheet');
+    expect(wrapped).toContain('08/11/2026');
+    expect(wrapped).toContain('Number Fractions');
+    expect(wrapped).toContain('NPA');
+    expect(wrapped).toContain('POPIA');
+    expect(wrapped).toContain('SIAS');
+    expect(wrapped).toContain('WP6');
+    expect(wrapped).toContain('Question 1');
+    expect(wrapped).not.toContain('rounded-full bg-white text-blue-700');
+    expect(wrapped).not.toContain('EduAI Companion | CAPS Aligned | eduai-companion.github.io');
     expect(wrapped).toContain('site-header');
   });
 
-  it('strips only hygiene problems, never the design', () => {
+  it('uses the same host banner for classic and LIGHT body styles', () => {
+    const classic = wrapWithTemplate('<p>Classic content</p>', {
+      title: 'Fractions', grade: '4', contentType: 'Worksheet', designStyle: 'classic', closingMeta: false,
+    });
+    const light = wrapWithTemplate('<p>LIGHT content</p>', {
+      title: 'Fractions', grade: '4', contentType: 'Worksheet', designStyle: 'light-v5', closingMeta: false,
+    });
+
+    expect(classic).toContain('eduai-compliance-banner');
+    expect(light).toContain('eduai-compliance-banner');
+    expect(classic).toContain('site-header');
+    expect(light).toContain('site-header');
+  });
+
+  it('strips only standalone hygiene problems in prepareClassicDocument', () => {
     const messy = '```html\n<div class="banner">Hi</div>\n<script src="https://cdn.tailwindcss.com"></script>\n<footer>F</footer>\n```';
     const cleaned = prepareClassicDocument(messy);
 

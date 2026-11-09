@@ -111,7 +111,7 @@ const isBackendUnavailable = (error: any): boolean => {
   // to throw `HTTP error! status: …`, which matched none of the branches below
   // and silently killed every generation.)
   if (typeof status === 'number' && status >= 400) return true;
-  // Backend replies 400 with this body when no GEMINI_API_KEY is configured on
+  // Backend replies 400 with this body when no Google Gemini API key is configured on
   // the server — the client-side engine has its own baked-in key, so treat it
   // as "backend unavailable" and fall back instead of failing the generation.
   const dataMsg = String(error.response?.data?.error || '').toLowerCase();
@@ -590,7 +590,7 @@ export const generateEducationalContent = async (type: string, details: string) 
     
     return resultText;
   } catch (error: any) {
-    // ANY backend failure (missing/invalid GEMINI_API_KEY → HTTP 400, serverless
+    // ANY backend failure (missing/invalid Google Gemini API key → HTTP 400, serverless
     // timeouts, 5xx, network drop, ...) must not kill generation: the app ships
     // with a built-in client-side Gemini engine, so always try it before failing.
     const backendMsg = error?.response?.data?.error || error?.message || error;
