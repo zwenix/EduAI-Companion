@@ -337,7 +337,7 @@ There is no authentication middleware, rate limiting, CSRF layer or CORS configu
 | POST | `/api/tts/google` | Google Translate TTS URL builder (returns proxied URLs). | `text`, `lang` |
 | GET | `/api/tts/proxy` | Streams Google TTS audio to bypass CORS/referrer restrictions. | `url` |
 | POST | `/api/tts/hf` | Hugging Face TTS inference (returns base64 FLAC). | `text`, `model` |
-| POST | `/api/images/generate` | Image generation (Gemini/Imagen path) with educational style augmentation. | `prompt`, `provider?` |
+| POST | `/api/images/generate` | Image generation via Gemini Developer API image models with educational style augmentation. | `prompt`, `provider?` |
 | POST | `/api/images/flux-generate` | FLUX.1-schnell via Hugging Face Inference Providers, then Cloudflare Workers AI (when configured). Answers 501 + `{configured:false}` when neither backend is configured so the client can skip straight to Pollinations. | `prompt`, `placement?`, `size?`, `width?`, `height?`, `grade?`, `subject?` |
 | GET | `/api/image-proxy` | Pollinations image proxy used by `<img>` tags (avoids client-side blocking). Forwards `402 FREE_LIMIT` with `Retry-After`. | `prompt`, `seed?`, `width?`, `height?`, `model?` |
 | POST | `/api/images/pollinations-generate` | Same-origin Pollinations render (carries `POLLINATIONS_API_KEY` and the deployment IP). `402` + `retryAfter` when the quota is spent. | `prompt`, `width?`, `height?`, `seed?`, `model?` |
@@ -436,7 +436,7 @@ Content is generated as **HTML styled with Tailwind classes**, not Markdown. Tru
 
 `src/lib/imageGeneration.ts` implements a fixed fallback graph:
 
-- **Priority**: FLUX.1-schnell (free: Hugging Face `black-forest-labs/FLUX.1-schnell` → Cloudflare Workers AI `@cf/black-forest-labs/flux-1-schnell`) → Gemini image models / Imagen → Pollinations (keyless last resort, ~1 image / 45 s per IP) → inline SVG placeholder (never a broken `<img>`) (`gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`, `imagen-3.0-generate-002`).
+- **Priority**: FLUX.1-schnell (free: Hugging Face `black-forest-labs/FLUX.1-schnell` → Cloudflare Workers AI `@cf/black-forest-labs/flux-1-schnell`) → Gemini Developer API image models via `generateContent` (`gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`, `gemini-2.5-flash-image`) → Pollinations (keyless last resort, ~1 image / 45 s per IP) → inline SVG placeholder (never a broken `<img>`). Imagen `generateImages` is Vertex-only and is not used by this API-key client.
 - Placement-aware sizes (`header`, `inline`, `full_width`, `sidebar`) are defined in `FLUX_CONFIG`; batch generation runs with concurrency 2 and a 2-second pause between batches.
 - **Reinstated 28 Oct 2026**: Perchance, via its purpose-built **Image API v1** (`perchance.org/perchance-ai-api` — hidden iframe + postMessage, no keys, no CORS, unlimited). The old generator-page bridge stays dead (`ai-text-to-image-generator` sends `X-Frame-Options: SAMEORIGIN`); only the API endpoint may be framed, and nothing server-side may fetch perchance.org. Browser-only engine in `src/services/perchanceClient.ts`.
 - **Retired 22 Oct 2026**: Qwen-Image on NVIDIA NIM (`qwen/qwen-image` and `qwen/qwen-image-2512` both 404). Its id remains an alias that resolves to FLUX.

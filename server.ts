@@ -4,7 +4,7 @@ import { buildAdminLabPrompts, buildVisualLabPrompts } from "./src/lib/prompts/l
 import { buildClassicEducationalPrompts } from "./src/lib/prompts/classic-templates";
 import { CLASSIC_MASTER_SYSTEM_PROMPT, resolveContentDesignStyle, resolveIllustrationStyle } from "./src/lib/contentStyle";
 import { dateMandate } from "./src/lib/saDates";
-import { GEMINI_API_VERSION, resolveGeminiApiKeyFromEnv } from "./src/lib/geminiApiConfig";
+import { GEMINI_API_VERSION, GEMINI_IMAGE_MODELS, resolveGeminiApiKeyFromEnv } from "./src/lib/geminiApiConfig";
 import { clientKeyFrom, createRateLimiter, ruleForPath } from "./src/lib/rateLimit";
 import { GEMINI_CONTENT_OUTPUT_TOKENS, GEMINI_DEFAULT_OUTPUT_TOKENS } from "./src/lib/aiOutputBudget";
 import {
@@ -2218,8 +2218,7 @@ const masterPromptFor = (input: any = {}): string =>
     if (serverProvider === "gemini") {
       const apiKey = resolveGeminiKey();
       if (apiKey && apiKey !== "dummy" && apiKey !== "undefined") {
-        const modelsToTry = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'imagen-3.0-generate-002'];
-        for (const m of modelsToTry) {
+        for (const m of GEMINI_IMAGE_MODELS) {
           try {
             console.log(`[IMAGE GEN LOG] Attempting primary image generation with Gemini (${m})...`);
             const response = await geminiAi.models.generateContent({
@@ -2714,7 +2713,7 @@ const masterPromptFor = (input: any = {}): string =>
           // Gemini image models return inlineData from `generateContent`.
           // `gemini-2.5-flash-image` is the long-lived GA id and stays last, so
           // a renamed 3.x alias cannot take the whole engine down.
-          for (const m of ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'gemini-2.5-flash-image']) {
+          for (const m of GEMINI_IMAGE_MODELS) {
             try {
               console.log(`[IMAGE GEN LOG] Gemini image attempt: ${m} (${aspect})`);
               const response = await geminiAi.models.generateContent({
@@ -2742,38 +2741,15 @@ const masterPromptFor = (input: any = {}): string =>
             }
           }
 
-          // Imagen models are NOT chat models — they need `generateImages`.
-          for (const m of ['imagen-3.0-generate-002', 'imagen-4.0-generate-001']) {
-            try {
-              console.log(`[IMAGE GEN LOG] Imagen attempt: ${m}`);
-              const response: any = await (geminiAi.models as any).generateImages({
-                model: m,
-                prompt: styledPrompt,
-                config: { numberOfImages: 1, aspectRatio: aspect }
-              });
-              const generated = response?.generatedImages?.[0]?.image?.imageBytes
-                || response?.generatedImages?.[0]?.imageBytes;
-              if (generated) {
-                console.log(`[IMAGE GEN LOG] Imagen success: ${m}`);
-                return res.json({
-                  imageUrl: `data:image/png;base64,${generated}`,
-                  url: `data:image/png;base64,${generated}`,
-                  provider: "gemini",
-                  model: m
-                });
-              }
-              attempts.push(`${m}: no image bytes`);
-            } catch (modelErr: any) {
-              attempts.push(`${m}: ${modelErr?.message || modelErr}`);
-              console.warn(`[IMAGE GEN LOG] ${m} failed: ${modelErr?.message || modelErr}`);
-            }
-          }
+          // This client uses the Gemini Developer API with an API key. Image
+          // output is supported through generateContent with Gemini image
+          // models; Imagen generateImages is a Vertex-only endpoint.
 
           // Honest failure: the client's provider chain decides what comes next.
           // Returning a dead Pollinations URL here used to masquerade as success.
-          console.warn(`[IMAGE GEN LOG] Gemini/Imagen exhausted: ${attempts.join(" | ")}`);
+          console.warn(`[IMAGE GEN LOG] Gemini image models exhausted: ${attempts.join(" | ")}`);
           return res.status(502).json({
-            error: "All Gemini/Imagen image models failed",
+            error: "All Gemini image models failed",
             provider: "gemini",
             configured: true,
             attempts

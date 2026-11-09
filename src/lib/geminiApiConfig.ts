@@ -7,6 +7,13 @@
  */
 export const GEMINI_API_VERSION = 'v1' as const;
 
+/** Gemini Developer API image models; use models.generateContent, not Imagen's Vertex-only generateImages endpoint. */
+export const GEMINI_IMAGE_MODELS = [
+  'gemini-3.1-flash-image',
+  'gemini-3.1-flash-lite-image',
+  'gemini-2.5-flash-image',
+] as const;
+
 /**
  * Canonical Google Gen AI environment key first, followed by older app/deploy
  * aliases so existing installations continue working during the migration.

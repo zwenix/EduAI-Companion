@@ -55,9 +55,11 @@ specified below.
   content generation.
 * Outdated Gemini defaults (`gemini-2.0-flash`, `gemini-1.5-flash`,
   `gemini-2.1`) MUST NOT be used as primary defaults.
-* Image generation (FLUX.1-schnell on Hugging Face / Pollinations /
-  Google Imagen 3), OCR engines and TTS/voice engines are separate pipelines —
-  leave them exactly as configured.
+* Image generation is separate from the frozen text-model registry. Gemini
+  Developer API image generation must use `GEMINI_IMAGE_MODELS` with
+  `models.generateContent`; do not call Imagen's Vertex-only
+  `models.generateImages` endpoint from an API-key client. FLUX.1-schnell,
+  Pollinations, OCR and TTS/voice remain separate pipelines.
 
 ### The frozen registry — single source of truth (added 2 Oct 2026)
 All five provider ids, their exact model slugs, the Gemini fallback chain, both
@@ -395,11 +397,11 @@ explicit user instructions.
 * `/api/image-proxy` fetches `https://image.pollinations.ai/prompt/…`
   (`model=flux&enhance=true&nologo=true`) and streams the bytes straight
   back. No API key, no chain, no budget wrapper.
-* `/api/images/generate` tries the Gemini image models
-  (`gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`,
-  `imagen-3.0-generate-002`) and otherwise hands back a **direct
-  Pollinations URL** (`model=flux`). The `generate-image` content action does
-  the same.
+* `/api/images/generate` and the `generate-image` content action try the
+  shared `GEMINI_IMAGE_MODELS` through `models.generateContent`, then hand back
+  a **direct Pollinations URL** (`model=flux`). Do not add Imagen models to this
+  Gemini Developer API key path: `models.generateImages` is Vertex-only and
+  unavailable to this API-key client.
 * `/api/images/flux-generate` renders **FLUX.1-schnell** with up to two free
   backends, in order:
   1. **Hugging Face Inference Providers** (`black-forest-labs/FLUX.1-schnell`,

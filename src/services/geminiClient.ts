@@ -8,7 +8,7 @@
 
 import { GoogleGenAI } from '@google/genai';
 import { AI_SECRETS } from '../lib/aiSecrets';
-import { GEMINI_API_VERSION } from '../lib/geminiApiConfig';
+import { GEMINI_API_VERSION, GEMINI_IMAGE_MODELS } from '../lib/geminiApiConfig';
 import { LIGHT_MASTER_SYSTEM_PROMPT, safeJsonParse } from './geminiService';
 import { EduAIPromptEngine } from '../lib/prompt-engine';
 import { GEMINI_CONTENT_OUTPUT_TOKENS } from '../lib/aiOutputBudget';
@@ -265,9 +265,8 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
         styledPrompt += styleSuffix;
       }
       const aspectRatio = (width || 1024) > (height || 1024) ? '16:9' : (width || 1024) < (height || 1024) ? '9:16' : '1:1';
-      const imageModels = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'gemini-2.5-flash-image'];
       const attempts: string[] = [];
-      for (const m of imageModels) {
+      for (const m of GEMINI_IMAGE_MODELS) {
         try {
           const response = await getClient().models.generateContent({
             model: m,
@@ -287,22 +286,8 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
         }
       }
 
-      // Imagen models are not chat models — they need their own endpoint.
-      for (const m of ['imagen-3.0-generate-002', 'imagen-4.0-generate-001']) {
-        try {
-          const response: any = await (getClient().models as any).generateImages({
-            model: m,
-            prompt: styledPrompt,
-            config: { numberOfImages: 1, aspectRatio },
-          });
-          const bytes =
-            response?.generatedImages?.[0]?.image?.imageBytes || response?.generatedImages?.[0]?.imageBytes;
-          if (bytes) return { imageUrl: `data:image/png;base64,${bytes}`, provider: 'gemini', model: m };
-          attempts.push(`${m}: no image bytes`);
-        } catch (e: any) {
-          attempts.push(`${m}: ${e?.message || e}`);
-        }
-      }
+      // Gemini Developer API image generation is handled through
+      // generateContent above. Imagen's generateImages endpoint is Vertex-only.
 
       // IMPORTANT: throw rather than returning an `/api/image-proxy` URL.
       // That URL used to be reported as a Gemini success even when no image was
@@ -310,7 +295,7 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
       // caller got a URL that later answered 402 — i.e. a broken image with no
       // fallback left to try. Letting the error bubble up keeps the provider
       // chain honest.
-      throw new Error(`Gemini/Imagen produced no image — ${attempts.join(' | ') || 'no models available'}`);
+      throw new Error(`Gemini image models produced no image — ${attempts.join(' | ') || 'no models available'}`);
     }
 
     default:

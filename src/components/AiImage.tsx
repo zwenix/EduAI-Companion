@@ -168,7 +168,7 @@ export default function AiImage({
               : provider === 'flux'
               ? (model || 'FLUX.1-schnell')
               : provider === 'gemini'
-                ? 'Gemini Imagen-3'
+                ? (model || 'Gemini image models')
                 : provider === 'placeholder'
                   ? 'Offline placeholder'
                   : 'Pollinations AI · FLUX'
