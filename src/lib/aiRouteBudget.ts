@@ -3,11 +3,11 @@
  *
  * WHY THIS EXISTS
  * ---------------
- * The AI proxy walks up to three engines for one request:
+ * The AI proxy walks the ordered reasoning fallback chain for one request:
  *
- *   1. the requested provider (NVIDIA NIM / Alibaba Model Studio)
- *   2. one sibling engine (`alternativeProviderFor`)
- *   3. the Gemini fallback
+ *   1. the requested provider (NVIDIA NIM — Nemotron / DeepSeek)
+ *   2. its rotated siblings (`reasoningFallbacksFor`)
+ *   3. the Gemini fallback and the remaining NVIDIA NIM engines
  *
  * On Vercel the whole API is one serverless function whose `maxDuration` is
  * 60s (`vercel.json`). When the chain ran past that limit the platform killed

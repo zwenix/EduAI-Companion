@@ -74,11 +74,11 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Only retired legacy ids (old non-NIM Nemotron / Groq-era aliases) group
-  // under the Qwen 3.8 engine. The three ACTIVE NVIDIA NIM Nemotron providers
-  // keep their own identity — they are never the Qwen engine.
+  // Retired legacy ids (old non-NIM Nemotron / Groq-era aliases) group under
+  // the primary reasoning engine (Nemotron 3 Ultra). The ACTIVE NVIDIA NIM
+  // Nemotron providers keep their own identity, and DeepSeek groups separately.
   const normalizeProvider = (p: string) =>
-    (p === 'nvidia-nemotron' || p === 'nvidia-nemotron-ultra-legacy' || p === 'groq-qwen') ? 'alibaba-qwen'
+    (p === 'nvidia-nemotron' || p === 'nvidia-nemotron-ultra-legacy' || p === 'groq-qwen' || p === 'alibaba-qwen') ? 'nvidia-nemotron'
     : (p === 'nvidia-nemotron-nano' || p === 'nvidia-nemotron-ultra' || p === 'nvidia-nemotron-lightning') ? 'nvidia-nemotron'
     : p;
 
@@ -91,7 +91,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
     switch (provider) {
       case 'gemini':
         return 'bg-violet-500/10 text-violet-400 border-violet-500/25';
-      case 'alibaba-qwen':
+      case 'nvidia-deepseek':
         return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25';
       case 'nvidia-nemotron':
       case 'nvidia-nemotron-nano':
@@ -383,7 +383,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
 
           {/* Filtering Tab Pills */}
           <div className="flex flex-wrap gap-2 pb-2">
-            {['all', 'gemini', 'alibaba-qwen', 'nvidia-nemotron'].map((prov) => {
+            {['all', 'gemini', 'nvidia-nemotron', 'nvidia-deepseek'].map((prov) => {
               const count = prov === 'all' 
                 ? errors.length 
                 : errors.filter(e => normalizeProvider(e.provider) === prov).length;
@@ -399,7 +399,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  {prov === 'all' ? 'ALL' : prov === 'gemini' ? 'GEMINI 3.8' : prov === 'alibaba-qwen' ? 'QWEN 3.8' : 'NEMOTRON (NIM)'} ({count})
+                  {prov === 'all' ? 'ALL' : prov === 'gemini' ? 'GEMINI 3.8' : prov === 'nvidia-deepseek' ? 'DEEPSEEK 4.1' : 'NEMOTRON (NIM)'} ({count})
                 </button>
               );
             })}

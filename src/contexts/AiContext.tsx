@@ -1,11 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AI_PROVIDERS, AIProvider, isLegacyProvider } from '../lib/aiModels';
+import { AI_PROVIDERS, AIProvider, PRIMARY_REASONING_PROVIDER, isLegacyProvider } from '../lib/aiModels';
 
 // The five frozen provider ids live in exactly one place — `src/lib/aiModels.ts`
 // (see AGENTS.md §1). Do not inline them here.
 export type { AIProvider } from '../lib/aiModels';
 export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
-export type OCRProvider = 'gemini' | 'ocrspace';
+// OCR/Vision engine options: `nvidia-vision` (NVIDIA NIM Vision/OCR chain —
+// Nemotron 3.5 Super-VL → Llama 3.2 90B Vision), `gemini` (Google Gemini
+// multimodal OCR/Imaging) and `ocrspace` (OCR.space). `gemini` previously
+// meant the vision engine; that value migrates to `nvidia-vision` on read so
+// existing users keep their current engine.
+export type OCRProvider = 'nvidia-vision' | 'gemini' | 'ocrspace';
 // Image engines. `perchance` is the Perchance Image API v1 browser engine
 // (see src/services/perchanceClient.ts). `qwen`/`qwen-image` are RETIRED and
 // migrate on read — never offered again.
@@ -26,7 +31,7 @@ const AiContext = createContext<AiContextType | undefined>(undefined);
 
 const VALID_PROVIDERS: readonly AIProvider[] = AI_PROVIDERS;
 const VALID_TTS: TTSProvider[] = ['browser', 'groq-whisper', 'huggingface', 'google-tts'];
-const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace'];
+const VALID_OCR: OCRProvider[] = ['nvidia-vision', 'gemini', 'ocrspace'];
 const VALID_IMAGE: ImageProvider[] = ['perchance', 'flux', 'pollinations', 'gemini-imagen'];
 // Stored values from retired/renamed engines. `flux` (FLUX.1-schnell on Hugging
 // Face) is the free replacement for the retired Qwen-Image.
@@ -44,19 +49,20 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_provider');
-      // Migrate only provider ids that are NOT active NIM models anymore.
-      // `nvidia-nemotron-ultra` (and the nano/lightning ids) are ACTIVE NVIDIA
-      // NIM providers again — they must never be remapped away from NVIDIA NIM.
+      // Migrate retired provider ids to the primary reasoning engine
+      // (Nemotron 3 Ultra). `nvidia-nemotron-ultra` (and the nano/lightning
+      // ids) are ACTIVE NVIDIA NIM providers — they must never be remapped
+      // away from NVIDIA NIM.
       if (isLegacyProvider(saved)) {
-        localStorage.setItem('eduai_provider', 'alibaba-qwen');
-        return 'alibaba-qwen';
+        localStorage.setItem('eduai_provider', PRIMARY_REASONING_PROVIDER);
+        return PRIMARY_REASONING_PROVIDER;
       }
       if (saved && VALID_PROVIDERS.includes(saved as AIProvider)) {
         return saved as AIProvider;
       }
-      return 'gemini';
+      return PRIMARY_REASONING_PROVIDER;
     } catch (e) {
-      return 'gemini';
+      return PRIMARY_REASONING_PROVIDER;
     }
   });
 
@@ -72,9 +78,16 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [ocrProvider, setOcrProvider] = useState<OCRProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_ocr_provider') as OCRProvider;
-      return saved && VALID_OCR.includes(saved) ? saved : 'gemini';
+      // Migrate the pre-migration `gemini` value (which meant the NVIDIA
+      // Vision/OCR engine) to `nvidia-vision` so existing users keep the same
+      // engine; `gemini` now explicitly selects Google Gemini OCR/Imaging.
+      if (saved === 'gemini') {
+        localStorage.setItem('eduai_ocr_provider', 'nvidia-vision');
+        return 'nvidia-vision';
+      }
+      return saved && VALID_OCR.includes(saved) ? saved : 'nvidia-vision';
     } catch {
-      return 'gemini';
+      return 'nvidia-vision';
     }
   });
 

@@ -9,8 +9,6 @@ const rev = (s: string): string => s.split('').reverse().join('');
 
 export const AI_SECRETS = {
   GEMINI_API_KEY: rev('07m0quM9DBiExKxhgEqPAwn1Qm-_inBPAySazIA'),
-  // Alibaba Cloud Model Studio (Qwen 3.8) — OpenAI-compatible workspace endpoint.
-  ALIBABA_API_KEY: rev('wCtYdQVHIFSLbTozGFwd2Y-uwWrZ45WYxS2uDeDZ8VagIwTpc9WRUYD83BWG4dMcH_e7OSP-T2kwz2rdt1NKx0OZCQICUEM.38xk.MLMYLDD.H-sw-ks'),
   NVIDIA_API_KEY: rev('m9NrbqtXvcDW8q-8SI11X4Gd-CDZKm70pq1-qPGy6V2wrOnpUHOWBiNMQUlkJMPy-ipavn'),
   // Hugging Face Inference Providers — powers FLUX.1-schnell image generation
   // inside the standalone APK, where there is no backend to proxy through.

@@ -18,23 +18,22 @@ import {
   AI_PROVIDER_LABELS,
   NVIDIA_BASE_URL,
   NVIDIA_MODELS,
-  QWEN_BASE_URL,
-  QWEN_DEFAULT_MODEL,
 } from "../lib/aiModels";
 
 // ─── Browser-side LAST RESORT ───────────────────────────────────────────────
 // If both the backend AND the direct Gemini engine fail (e.g. the shared
 // Gemini key is quota-exhausted or blocked), make one final attempt through
-// the alternative engines whose keys are baked into the app — Qwen 3.8 Max
-// first, then the Nemotron siblings named by the frozen sibling-engine graph
-// (`alternativeProviderFor`). Endpoints and slugs come from the frozen registry
-// in `src/lib/aiModels.ts` (AGENTS.md §1) — never inline them here.
+// the alternative engines whose keys are baked into the app — DeepSeek v4.1
+// Flash first, then the Nemotron siblings, following the frozen reasoning
+// fallback chain (`REASONING_FALLBACK_CHAIN`). Endpoints and slugs come from the
+// frozen registry in `src/lib/aiModels.ts` (AGENTS.md §1) — never inline them
+// here.
 const LAST_RESORT_PROVIDERS: { name: string; url: string; key: () => string; models: string[] }[] = [
   {
-    name: AI_PROVIDER_LABELS['alibaba-qwen'],
-    url: `${QWEN_BASE_URL}/chat/completions`,
-    key: () => AI_SECRETS.ALIBABA_API_KEY,
-    models: [QWEN_DEFAULT_MODEL]
+    name: AI_PROVIDER_LABELS['nvidia-deepseek'],
+    url: `${NVIDIA_BASE_URL}/chat/completions`,
+    key: () => AI_SECRETS.NVIDIA_API_KEY,
+    models: [NVIDIA_MODELS['nvidia-deepseek']]
   },
   {
     name: AI_PROVIDER_LABELS['nvidia-nemotron-lightning'],
@@ -864,19 +863,19 @@ export const generateVisualAid = async (input: any, onProgress?: (partial: any) 
 export const generateAdminDoc = async (input: any, onProgress?: (partial: any) => void) =>
   withLastResort("generate-admin", input, onProgress, () => buildAdminLabPrompts(input));
 
-export const runOCRScan = async (imageData: string | string[], language: string = 'English', isHandwritten: boolean = true) => {
+export const runOCRScan = async (imageData: string | string[], language: string = 'English', isHandwritten: boolean = true, visionEngine: 'nvidia' | 'google' = 'nvidia') => {
   if (isNativeApp()) {
-    return await callGeminiClientDirect("ocr-scan", { imageData, language, isHandwritten });
+    return await callGeminiClientDirect("ocr-scan", { imageData, language, isHandwritten, visionEngine });
   }
   try {
     const response = await axios.post("/api/gemini/action", {
       action: "ocr-scan",
-      input: { imageData, language, isHandwritten }
+      input: { imageData, language, isHandwritten, visionEngine }
     });
     return response.data;
   } catch (error: any) {
     if (isBackendUnavailable(error)) {
-      return await callGeminiClientDirect("ocr-scan", { imageData, language, isHandwritten });
+      return await callGeminiClientDirect("ocr-scan", { imageData, language, isHandwritten, visionEngine });
     }
     console.error("Express /api/gemini/action failed:", error.message || error);
     checkAndReportApiError(error, "Gemini");
@@ -884,19 +883,19 @@ export const runOCRScan = async (imageData: string | string[], language: string 
   }
 };
 
-export const runOCRAndGrade = async (imageData: string | string[], rubric: string, language: string = 'English', isHandwritten: boolean = true, behavioralAspects?: string[], adjustLateSubmission?: boolean) => {
+export const runOCRAndGrade = async (imageData: string | string[], rubric: string, language: string = 'English', isHandwritten: boolean = true, behavioralAspects?: string[], adjustLateSubmission?: boolean, visionEngine: 'nvidia' | 'google' = 'nvidia') => {
   if (isNativeApp()) {
-    return await callGeminiClientDirect("ocr-grade", { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission });
+    return await callGeminiClientDirect("ocr-grade", { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission, visionEngine });
   }
   try {
     const response = await axios.post("/api/gemini/action", {
       action: "ocr-grade",
-      input: { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission }
+      input: { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission, visionEngine }
     });
     return response.data;
   } catch (error: any) {
     if (isBackendUnavailable(error)) {
-      return await callGeminiClientDirect("ocr-grade", { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission });
+      return await callGeminiClientDirect("ocr-grade", { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission, visionEngine });
     }
     console.error("Express /api/gemini/action failed:", error.message || error);
     checkAndReportApiError(error, "Gemini");

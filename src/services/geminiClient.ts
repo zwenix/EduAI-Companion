@@ -7,10 +7,12 @@
 // `server.ts`.
 
 import { GoogleGenAI } from '@google/genai';
+import axios from 'axios';
 import { AI_SECRETS } from '../lib/aiSecrets';
 import { LIGHT_MASTER_SYSTEM_PROMPT, safeJsonParse } from './geminiService';
 import { EduAIPromptEngine } from '../lib/prompt-engine';
 import { GEMINI_CONTENT_OUTPUT_TOKENS } from '../lib/aiOutputBudget';
+import { NVIDIA_BASE_URL, VISION_OCR_MODELS } from '../lib/aiModels';
 import { buildAdminLabPrompts, buildVisualLabPrompts } from '../lib/prompts/lab-prompts';
 import { buildClassicEducationalPrompts } from '../lib/prompts/classic-templates';
 import { resolveContentDesignStyle, resolveIllustrationStyle } from '../lib/contentStyle';
@@ -49,6 +51,67 @@ async function generateWithFallback(options: any): Promise<any> {
     }
   }
   throw lastError || new Error('All Gemini models unavailable');
+}
+
+/**
+ * Vision/OCR generation for the native (APK) client. Reads the image through
+ * the NVIDIA NIM Vision/OCR chain (Nemotron 3.5 Super-VL primary, Llama 3.2
+ * 90B Vision fallback) using the baked NVIDIA key, then rescues with the
+ * on-device Gemini multimodal engine if every NIM vision model fails.
+ */
+async function visionGenerateWithFallback(options: any): Promise<any> {
+  const messages = (options.contents as any[]).map((c: any) => {
+    const role = c.role === 'model' ? 'assistant' : 'user';
+    const content: any[] = [];
+    for (const part of c.parts || []) {
+      if (part.text) {
+        content.push({ type: 'text', text: part.text });
+      } else if (part.inlineData) {
+        content.push({
+          type: 'image_url',
+          image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` },
+        });
+      }
+    }
+    return { role, content };
+  });
+
+  const apiKey = String(
+    (import.meta as any).env?.VITE_NVIDIA_API_KEY || AI_SECRETS.NVIDIA_API_KEY || '',
+  ).trim().replace(/^['"\s]+|['"\s]+$/g, '');
+
+  if (apiKey) {
+    let lastErr: any = null;
+    const wantsJson = options.config?.responseMimeType === 'application/json';
+    for (const model of VISION_OCR_MODELS) {
+      try {
+        console.warn(`[client-vision] NVIDIA NIM vision attempt via ${model}...`);
+        const resp: any = await axios.post(
+          `${NVIDIA_BASE_URL}/chat/completions`,
+          {
+            model,
+            messages,
+            temperature: 0.7,
+            max_tokens: 8192,
+            ...(wantsJson ? { response_format: { type: 'json_object' } } : {}),
+          },
+          {
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+            timeout: 90000,
+          },
+        );
+        const text = resp.data?.choices?.[0]?.message?.content || '';
+        if (text && String(text).trim()) return { text };
+        lastErr = new Error(`Vision model ${model} returned empty text`);
+      } catch (e: any) {
+        lastErr = e;
+        console.warn(`[client-vision] NVIDIA NIM model ${model} unavailable:`, e?.message || e);
+      }
+    }
+    console.warn('[client-vision] NVIDIA NIM vision chain failed, falling back to Gemini vision.');
+  }
+
+  return await generateWithFallback(options);
 }
 
 const stripDataUrl = (item: string) => {
@@ -179,7 +242,7 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
     }
 
     case 'ocr-scan': {
-      const { imageData, language, isHandwritten } = input;
+      const { imageData, language, isHandwritten, visionEngine } = input;
       const items = Array.isArray(imageData) ? imageData : [imageData];
       const partsToProcess: any[] = [];
       for (const item of items) {
@@ -193,14 +256,17 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
         return { extractedText: '' };
       }
       const prompt = `Extract all text from the attached ${partsToProcess.length} page/s or document accurately, assuming the text is in ${language}.\n${isHandwritten ? 'The image/document contains handwritten notes, assessments, or drawings. Use professional Multimodal Handwriting Recognition to transcribe printed text, cursive handwriting, math symbols, annotations, and notes precisely.' : ''}\nFormat it cleanly. Make no other comments.`;
-      const response = await generateWithFallback({
-        contents: [{ role: 'user', parts: [{ text: prompt }, ...partsToProcess] }],
-      });
+      const ocrContents = [{ role: 'user', parts: [{ text: prompt }, ...partsToProcess] }];
+      // `google` selects Google Gemini multimodal OCR/Imaging directly;
+      // `nvidia` uses the NVIDIA NIM Vision/OCR chain and rescues with Gemini.
+      const response = visionEngine === 'google'
+        ? await generateWithFallback({ contents: ocrContents })
+        : await visionGenerateWithFallback({ contents: ocrContents });
       return { extractedText: response.text || '' };
     }
 
     case 'ocr-grade': {
-      const { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission } = input;
+      const { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission, visionEngine } = input;
       const items = Array.isArray(imageData) ? imageData : [imageData];
       const partsToProcess: any[] = [];
       for (const item of items) {
@@ -221,10 +287,13 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
 
       const prompt = `You are an AI Grader and South African CAPS Curriculum Specialist.\nAnalyze these student assessment page/s.\n\nTASK 1: MEMORANDUM & RUBRIC QUALITY CHECK & AUTO-GENERATION\n- You are supplied with this Teacher's Memorandum/Rubric: "${rubric || ''}".\n- IF the supplied Memorandum/Rubric is missing, blank, or extremely brief:\n  * You MUST automatically generate a highly comprehensive, detailed Memorandum and grading rubric mapped to CAPS criteria based on the student's work.\n  * Describe this generation in 'memoCorrectionReport' and set 'originalMemoCorrected' to true. Produce the newly generated Memorandum/Rubric in 'correctedMemo'.\n- IF a Memorandum/Rubric IS supplied by the teacher: review it for correctness, spelling, factual errors, marks allotment problems, CAPS misalignments, or lack of clarity. Correct issues, describe them in 'memoCorrectionReport', set 'originalMemoCorrected' accordingly, and return the (corrected) memo in 'correctedMemo'.\n\nTASK 2: EVALUATION AND GRADING\n- Extract all text answers from the student's submission pages and return it in 'extractedText'.\n- Evaluate each question's answer accurately according to the verified/generated memorandum/rubric.${behaviorPrompt}\n- ${isHandwritten ? "The student's inputs may be handwritten. Apply deep Handwriting Recognition (HWR) and optical reading on the student answers. Be forgiving on cursive forms, crossed-out errors, printed text, mathematical symbols, and structural layout answers." : ''}\n- Sum and return the total obtained score as a string in 'totalScore' (e.g., "18/25" or "72%").\n- List marks and reasoning for each question individually in the array 'marksPerQuestion'.\n- Provide highly constructive, encouraging feedback for the learner in 'feedback' (use encouraging South African educational tone).\n\nReturn a valid JSON object with keys: extractedText (string), marksPerQuestion (array of strings), feedback (string), totalScore (string), originalMemoCorrected (boolean), memoCorrectionReport (string), correctedMemo (string).`;
 
-      const response = await generateWithFallback({
-        contents: [{ role: 'user', parts: [{ text: prompt }, ...partsToProcess] }],
-        config: { responseMimeType: 'application/json' },
-      });
+      const gradeContents = [{ role: 'user', parts: [{ text: prompt }, ...partsToProcess] }];
+      const gradeConfig = { responseMimeType: 'application/json' };
+      // `google` selects Google Gemini multimodal OCR/Imaging directly;
+      // `nvidia` uses the NVIDIA NIM Vision/OCR chain and rescues with Gemini.
+      const response = visionEngine === 'google'
+        ? await generateWithFallback({ contents: gradeContents, config: gradeConfig })
+        : await visionGenerateWithFallback({ contents: gradeContents, config: gradeConfig });
       return safeJsonParse(response.text);
     }
 
