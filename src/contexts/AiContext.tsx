@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AI_PROVIDERS, AIProvider, isLegacyProvider } from '../lib/aiModels';
+import { AI_PROVIDERS, AIProvider, PRIMARY_REASONING_PROVIDER, isLegacyProvider } from '../lib/aiModels';
 
 // The five frozen provider ids live in exactly one place — `src/lib/aiModels.ts`
 // (see AGENTS.md §1). Do not inline them here.
@@ -44,19 +44,20 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_provider');
-      // Migrate only provider ids that are NOT active NIM models anymore.
-      // `nvidia-nemotron-ultra` (and the nano/lightning ids) are ACTIVE NVIDIA
-      // NIM providers again — they must never be remapped away from NVIDIA NIM.
+      // Migrate retired provider ids to the primary reasoning engine
+      // (Nemotron 3 Ultra). `nvidia-nemotron-ultra` (and the nano/lightning
+      // ids) are ACTIVE NVIDIA NIM providers — they must never be remapped
+      // away from NVIDIA NIM.
       if (isLegacyProvider(saved)) {
-        localStorage.setItem('eduai_provider', 'alibaba-qwen');
-        return 'alibaba-qwen';
+        localStorage.setItem('eduai_provider', PRIMARY_REASONING_PROVIDER);
+        return PRIMARY_REASONING_PROVIDER;
       }
       if (saved && VALID_PROVIDERS.includes(saved as AIProvider)) {
         return saved as AIProvider;
       }
-      return 'gemini';
+      return PRIMARY_REASONING_PROVIDER;
     } catch (e) {
-      return 'gemini';
+      return PRIMARY_REASONING_PROVIDER;
     }
   });
 

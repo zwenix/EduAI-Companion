@@ -28,11 +28,11 @@ import {
 import {
   GEMINI_MODEL_CHAIN,
   NVIDIA_BASE_URL,
-  QWEN_BASE_URL,
-  QWEN_DEFAULT_MODEL,
-  alternativeProviderFor,
+  PRIMARY_REASONING_PROVIDER,
+  VISION_OCR_MODELS,
   isLegacyProvider,
-  isNemotronProvider,
+  isNvidiaNimProvider,
+  reasoningFallbacksFor,
   resolveProviderModel,
 } from "./src/lib/aiModels";
 import express from "express";
@@ -90,34 +90,6 @@ function resolveNvidiaKey(): string {
   // repo passes secret scanning). Keeps the Nemotron free NIM models working on
   // deployments where no NVIDIA_API_KEY env var has been configured.
   return "m9NrbqtXvcDW8q-8SI11X4Gd-CDZKm70pq1-qPGy6V2wrOnpUHOWBiNMQUlkJMPy-ipavn".split("").reverse().join("");
-}
-
-// Alibaba Cloud Model Studio (Qwen 3.8) — OpenAI-compatible workspace endpoint.
-// The default is the workspace-scoped host from the Model Studio API key dialog;
-// override with ALIBABA_API_BASE if the workspace/region changes.
-const ALIBABA_DEFAULT_BASE_URL = QWEN_BASE_URL;
-
-function resolveAlibabaBaseURL(): string {
-  const base = (process.env.ALIBABA_API_BASE || process.env.DASHSCOPE_BASE_URL || ALIBABA_DEFAULT_BASE_URL).trim().replace(/\/+$/, "");
-  return base;
-}
-
-function resolveAlibabaKey(): string {
-  const keys = [
-    process.env.ALIBABA_API_KEY,
-    process.env.VITE_ALIBABA_API_KEY,
-    process.env.DASHSCOPE_API_KEY,
-  ];
-  for (const key of keys) {
-    if (key && key !== "dummy" && key !== "undefined" && key.trim() !== "") {
-      return key.trim().replace(/^['"\s]+|['"\s]+$/g, "");
-    }
-  }
-  // Final fallback: the same baked-in Model Studio key that already ships inside
-  // the client bundle / APK (see src/lib/aiSecrets.ts — stored reversed so the
-  // repo passes secret scanning). Keeps Qwen 3.8 working on deployments where
-  // no ALIBABA_API_KEY env var has been configured.
-  return "wCtYdQVHIFSLbTozGFwd2Y-uwWrZ45WYxS2uDeDZ8VagIwTpc9WRUYD83BWG4dMcH_e7OSP-T2kwz2rdt1NKx0OZCQICUEM.38xk.MLMYLDD.H-sw-ks".split("").reverse().join("");
 }
 
 function resolveGeminiKey(): string {
@@ -1090,40 +1062,6 @@ const masterPromptFor = (input: any = {}): string =>
 
   // --- AI Provider Clients ---
 
-  let cachedAlibabaClient: OpenAI | null = null;
-  let cachedAlibabaKey: string | null = null;
-
-  function getAlibabaClient(): OpenAI {
-    const currentKey = resolveAlibabaKey();
-    if (cachedAlibabaClient && cachedAlibabaKey === currentKey) {
-      return cachedAlibabaClient;
-    }
-    cachedAlibabaKey = currentKey;
-    cachedAlibabaClient = new OpenAI({
-      apiKey: currentKey || "dummy",
-      baseURL: resolveAlibabaBaseURL(),
-      // Fail fast when the upstream gateway hangs (connection errors / 504s).
-      // Serverless hosts (e.g. Vercel, 60s cap) kill the whole function if we
-      // wait on a stuck upstream, which prevented the built-in Gemini fallback
-      // from ever running. The timer is cleared once response headers arrive,
-      // so legitimate long generations and streaming are unaffected.
-      timeout: AI_ROUTE_PROVIDER_TIMEOUT_MS,
-      maxRetries: 0,
-    });
-    return cachedAlibabaClient;
-  }
-
-  const alibaba = new Proxy({} as OpenAI, {
-    get(target, prop) {
-      const client = getAlibabaClient();
-      const value = Reflect.get(client, prop);
-      if (typeof value === 'function') {
-        return value.bind(client);
-      }
-      return value;
-    }
-  });
-
   let cachedNvidiaClient: OpenAI | null = null;
   let cachedNvidiaKey: string | null = null;
 
@@ -1160,6 +1098,65 @@ const masterPromptFor = (input: any = {}): string =>
       return value;
     }
   });
+
+  /**
+   * Vision/OCR generation through the NVIDIA NIM Vision/OCR model chain
+   * (`VISION_OCR_MODELS` — Nemotron 3.5 Super-VL primary, Llama 3.2 90B Vision
+   * fallback). Used by the `ocr-scan` / `ocr-grade` actions so scanned
+   * worksheets, diagrams and handwritten work are read by the configured
+   * Vision/OCR models. Throws if every NIM vision model fails, so the caller
+   * can hand off to the Gemini multimodal rescue.
+   */
+  const nvidiaVisionWithFallback = async (
+    messages: any[],
+    config?: any,
+  ): Promise<{ text: string; model: string }> => {
+    const nvidiaKey = resolveNvidiaKey();
+    if (!nvidiaKey || nvidiaKey === "dummy" || nvidiaKey === "undefined") {
+      throw new Error("NVIDIA_API_KEY is not configured for the Vision/OCR engine");
+    }
+    const client = getNvidiaClient();
+    let lastErr: any = null;
+    for (const model of VISION_OCR_MODELS) {
+      try {
+        const resp: any = await client.chat.completions.create({
+          model,
+          messages,
+          ...(config || {}),
+        } as any);
+        const text = resp.choices?.[0]?.message?.content || "";
+        if (text && String(text).trim()) return { text, model };
+        lastErr = new Error(`Vision/OCR model ${model} returned empty text`);
+      } catch (e: any) {
+        lastErr = e;
+        console.warn(`[Vision/OCR] NVIDIA NIM model ${model} unavailable:`, e?.message || e);
+      }
+    }
+    throw lastErr || new Error("All Vision/OCR models unavailable");
+  };
+
+  /**
+   * Try the NVIDIA NIM Vision/OCR chain first; if every vision model fails,
+   * rescue with the Gemini multimodal engine (the same `generateContentWithFallback`
+   * the OCR actions used before).
+   */
+  const visionGenerateWithFallback = async (
+    geminiOptions: any,
+    openAiMessages: any[],
+    openAiConfig?: any,
+  ): Promise<{ text: string }> => {
+    try {
+      const result = await nvidiaVisionWithFallback(openAiMessages, openAiConfig);
+      return { text: result.text };
+    } catch (err: any) {
+      console.warn(
+        "[Vision/OCR] NVIDIA NIM vision chain failed, falling back to Gemini vision:",
+        err?.message || err,
+      );
+      const response = await geminiGenerateWithFallback(geminiOptions);
+      return { text: response.text || "" };
+    }
+  };
 
   // --- API Routes ---
 
@@ -1612,10 +1609,11 @@ const masterPromptFor = (input: any = {}): string =>
       clearTimeout(routeDeadlineTimer);
     });
 
-    const executeGeminiFallback = async (reason: string) => {
-      console.log(`[AI Routing] Seamlessly routing request from ${provider} to primary Gemini engine.`);
-      try {
-        const contentsList: any[] = [];
+    // Core Gemini hop: writes the response on success and THROWS on failure so
+    // the reasoning fallback chain can roll on to the next engine.
+    const attemptGeminiFallback = async (reason: string) => {
+      console.log(`[AI Routing] Seamlessly routing request from ${provider} to the Gemini engine (${reason}).`);
+      const contentsList: any[] = [];
         
         for (const msg of messages || []) {
           const role = msg.role === 'assistant' ? 'model' : msg.role === 'system' ? 'system' : 'user';
@@ -1704,6 +1702,15 @@ const masterPromptFor = (input: any = {}): string =>
             }
           ]
         });
+    };
+
+    // Terminal wrapper: when Gemini is the LAST resort (a direct Gemini request
+    // or a missing key), a Gemini failure surfaces as a 500. Inside the
+    // fallback loop the chain calls `attemptGeminiFallback` directly so a
+    // Gemini failure rolls on to the next engine (Lightning → Nano).
+    const executeGeminiFallback = async (reason: string) => {
+      try {
+        return await attemptGeminiFallback(reason);
       } catch (err: any) {
         console.error("Gemini fallback also failed:", err);
         return res.status(500).json({ error: { message: `Both ${provider} and Gemini fallback failed: ${err.message}` } });
@@ -1721,26 +1728,23 @@ const masterPromptFor = (input: any = {}): string =>
       case "nvidia-nemotron-nano":
       case "nvidia-nemotron-ultra":
       case "nvidia-nemotron-lightning":
-        // New NVIDIA NIM Nemotron models — route to NVIDIA endpoint
+      case "nvidia-deepseek":
+        // NVIDIA NIM models (Nemotron + DeepSeek) — route to the NVIDIA endpoint.
         client = nvidia;
         apiKey = resolveNvidiaKey();
         break;
       case "nvidia-nemotron":
       case "nvidia-nemotron-ultra-legacy":
       case "groq-qwen":
-        // Legacy ids: the NVIDIA Nemotron LLMs were replaced by Qwen 3.8 Max
-        // (Alibaba Model Studio) — route them to the same engine.
-      case "alibaba-qwen":
-        client = alibaba;
-        apiKey = resolveAlibabaKey();
+        // Legacy ids resolve to the primary reasoning engine (Nemotron 3 Ultra).
+        client = nvidia;
+        apiKey = resolveNvidiaKey();
         break;
     }
 
     if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-      const neededKey = isNemotronProvider(provider)
+      const neededKey = isNvidiaNimProvider(provider) || isLegacyProvider(provider)
         ? 'NVIDIA_API_KEY'
-        : (isLegacyProvider(provider) || provider.startsWith('alibaba'))
-        ? 'ALIBABA_API_KEY'
         : 'API_KEY';
       return await executeGeminiFallback(`${neededKey} is not configured.`);
     }
@@ -1756,14 +1760,11 @@ const masterPromptFor = (input: any = {}): string =>
     // the shared frozen registry in src/lib/aiModels.ts).
     const defaultModelFor = (p: string) => resolveProviderModel(p);
 
-    // When one alternative engine is down (gateway timeout / 5xx / rate
-    // limit), the helper `alternativeProviderFor` (src/lib/aiModels.ts) names
-    // the sibling engine to try once before spending the remaining time budget
-    // on the Gemini fallback.
-
-    const clientFor = (p: string): OpenAI => (
-      isNemotronProvider(p) ? nvidia : alibaba
-    );
+    // When a provider is down, the ordered reasoning fallback chain
+    // (`reasoningFallbacksFor`, src/lib/aiModels.ts) names the next engine to
+    // try, ending in the Gemini rescue. Every non-Gemini provider here is an
+    // NVIDIA NIM model, so they all share the NVIDIA client.
+    const clientFor = (_p: string): OpenAI => nvidia;
 
     // Sends the request to one alternative provider and writes the response
     // (streaming or JSON) to `res`. Throws on failure.
@@ -1796,19 +1797,12 @@ const masterPromptFor = (input: any = {}): string =>
 
       // JSON mode is handled by prompt instruction
 
-      // Set max_tokens sensibly per provider to avoid credit limit 402s / truncation
+      // NVIDIA NIM models (Nemotron + DeepSeek): sensible token budget to avoid
+      // credit limit 402s / truncation.
       const requestedMaxTokens = max_tokens || max_completion_tokens;
-      if (targetProvider === "nvidia-nemotron-nano" || targetProvider === "nvidia-nemotron-ultra" || targetProvider === "nvidia-nemotron-lightning") {
-        // NVIDIA NIM Nemotron models
-        payload.max_tokens = requestedMaxTokens || 16384;
-        payload.temperature = 0.7;
-        payload.top_p = 0.95;
-      } else {
-        // Qwen 3.8 Max (Alibaba Model Studio) / legacy ids
-        payload.max_tokens = requestedMaxTokens || 16384;
-        payload.temperature = 0.7;
-        payload.top_p = 0.95;
-      }
+      payload.max_tokens = requestedMaxTokens || 16384;
+      payload.temperature = 0.7;
+      payload.top_p = 0.95;
 
       // Per-request timeout + no SDK retries: a hung upstream must fail fast so
       // the routing chain can still reach the Gemini fallback.
@@ -1843,35 +1837,46 @@ const masterPromptFor = (input: any = {}): string =>
     } catch (error: any) {
       const status = error.status || 500;
       if (status === 402 || (error.message && String(error.message).includes("afford"))) {
-        console.log(`[AI Routing] Provider ${provider} credit budget reached. Automatically routing to Gemini.`);
+        console.log(`[AI Routing] Provider ${provider} credit budget reached. Rolling to the next fallback engine.`);
       } else if (status !== 500) {
-        console.log(`[AI Routing] ${provider} API returned status ${status}, routing to fallback engine.`);
+        console.log(`[AI Routing] ${provider} API returned status ${status}, rolling to the next fallback engine.`);
       } else {
-        console.log(`[AI Routing] ${provider} encountered an issue, routing to fallback engine.`);
+        console.log(`[AI Routing] ${provider} encountered an issue, rolling to the next fallback engine.`);
       }
 
-      // Gateway-style failures (upstream 5xx, rate limits, DNS / connection
-      // errors) are often isolated to one engine. If the first attempt failed
-      // fast enough that the shared route budget can still fit another
-      // attempt AND still leave the Gemini reserve intact, try one sibling
-      // engine before Gemini.
-      const elapsedMs = Date.now() - upstreamStartedAt;
-      const rawErrMsg = String(error.message || "");
-      const isGatewayFailure = [500, 502, 503, 504, 522, 524, 429].includes(status) ||
-        /timeout|eai_again|enotfound|econn(reset|refused|aborted)|fetch failed|connection error|connection closed|socket disconnected|network/i.test(rawErrMsg);
-      const alternative = alternativeProviderFor(provider);
-      if (alternative && isGatewayFailure && budget.canTryAlternative(AI_ROUTE_ALTERNATIVE_MIN_MS)) {
-        try {
-          console.log(`[AI Routing] ${provider} unavailable (${status}) after ${elapsedMs}ms — trying alternative engine ${alternative} before Gemini.`);
-          return await runUpstreamProvider(alternative);
-        } catch (altError: any) {
-          console.log(`[AI Routing] Alternative engine ${alternative} also unavailable (${altError.status || 500}) — routing to Gemini.`);
+      // Roll through the ordered reasoning fallback chain
+      // (`reasoningFallbacksFor`, src/lib/aiModels.ts): Primary → Secondary →
+      // Tertiary → Quaternary → safety net. Gemini is one hop in the chain and
+      // also the terminal rescue when every upstream engine is unreachable.
+      const fallbackChain = reasoningFallbacksFor(provider);
+      for (const target of fallbackChain) {
+        if (target === "gemini") {
+          console.log(`[AI Routing] ${provider} chain reached Gemini after ${Date.now() - upstreamStartedAt}ms.`);
+          try {
+            return await attemptGeminiFallback(`${provider} chain → Gemini`);
+          } catch (geminiErr: any) {
+            console.log(`[AI Routing] Gemini hop failed (${geminiErr.status || 500}) — continuing the reasoning fallback chain.`);
+            if (res.headersSent) {
+              // Gemini began streaming then died — no later hop can write.
+              return;
+            }
+            continue;
+          }
         }
-      } else if (alternative && isGatewayFailure) {
-        console.log(`[AI Routing] ${provider} unavailable (${status}) after ${elapsedMs}ms — no route budget left for ${alternative}, going straight to Gemini.`);
+        try {
+          console.log(`[AI Routing] ${provider} unavailable (${status}) — trying fallback engine ${target}.`);
+          return await runUpstreamProvider(target);
+        } catch (altError: any) {
+          const altStatus = altError.status || 500;
+          console.log(`[AI Routing] Fallback engine ${target} also unavailable (${altStatus}) — trying the next one.`);
+          if (!budget.canTryAlternative(AI_ROUTE_ALTERNATIVE_MIN_MS)) {
+            console.log(`[AI Routing] No route budget left — going straight to Gemini.`);
+            return await executeGeminiFallback(`${provider} fallback chain budget exhausted`);
+          }
+        }
       }
 
-      return await executeGeminiFallback(`${provider} API status ${status}`);
+      return await executeGeminiFallback(`${provider} fallback chain exhausted`);
     }
   });
 
@@ -2441,7 +2446,7 @@ const masterPromptFor = (input: any = {}): string =>
 
   // --- SA-Compliant Full Package Generation (new) ---
   app.post("/api/sa/generate-package", async (req, res) => {
-    const { request: saRequest, provider = "alibaba-qwen", generateImages = true } = req.body;
+    const { request: saRequest, provider = PRIMARY_REASONING_PROVIDER, generateImages = true } = req.body;
     if (!saRequest) return res.status(400).json({ error: "SAContentRequest required" });
 
     try {
@@ -2456,43 +2461,57 @@ const masterPromptFor = (input: any = {}): string =>
       const systemPrompt = buildSASystemPrompt(saRequest);
       const userPrompt = buildSAUserPrompt(saRequest);
 
-      // Try Qwen 3.8 (Alibaba Model Studio) first, then Gemini fallback
+      // Generate text via the primary NVIDIA NIM reasoning engine, rolling
+      // through the ordered reasoning fallback chain (Nemotron 3 Ultra →
+      // DeepSeek → Gemini → Lightning → Nano) on any error.
+      const effectiveProvider = provider || PRIMARY_REASONING_PROVIDER;
       let rawResponse = "";
-      let usedProvider = provider;
-      try {
-        const alibabaKey = resolveAlibabaKey();
-        if (alibabaKey) {
-          const client = new OpenAI({
-            apiKey: alibabaKey,
-            baseURL: resolveAlibabaBaseURL()
-          });
-          const model = QWEN_DEFAULT_MODEL;
-          const completion = await client.chat.completions.create({
-            model,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt }
-            ],
-            temperature: 0.7,
-            max_tokens: 16384
-          } as any);
-          rawResponse = (completion as any).choices?.[0]?.message?.content || "";
-        } else {
-          throw new Error("No ALIBABA_API_KEY (Model Studio) configured");
-        }
-      } catch (err: any) {
-        console.warn(`SA package text generation via ${provider} failed (${err.message}), falling back to Gemini...`);
-        usedProvider = "gemini";
-        const geminiResponse = await geminiGenerateWithFallback({
-          contents: [
-            { role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }
-          ],
-          config: {
-            responseMimeType: "application/json",
-            maxOutputTokens: GEMINI_CONTENT_OUTPUT_TOKENS
+      let usedProvider = effectiveProvider;
+      const nvidiaKey = resolveNvidiaKey();
+      const nvidiaReady = nvidiaKey && nvidiaKey !== "dummy" && nvidiaKey !== "undefined";
+      const nvidiaClient = nvidiaReady ? getNvidiaClient() : null;
+      const saMessages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ];
+      const saChain = [effectiveProvider, ...reasoningFallbacksFor(effectiveProvider)];
+      for (const target of saChain) {
+        if (target === "gemini") {
+          usedProvider = "gemini";
+          try {
+            const geminiResponse = await geminiGenerateWithFallback({
+              contents: [
+                { role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }
+              ],
+              config: {
+                responseMimeType: "application/json",
+                maxOutputTokens: GEMINI_CONTENT_OUTPUT_TOKENS
+              }
+            });
+            rawResponse = geminiResponse.text || "";
+            if (rawResponse) break;
+          } catch (err: any) {
+            console.warn(`SA package text generation via Gemini failed (${err.message}), rolling to next fallback...`);
           }
-        });
-        rawResponse = geminiResponse.text || "";
+          continue;
+        }
+        if (!nvidiaClient) {
+          console.warn(`SA package text generation: NVIDIA key not configured, skipping ${target}.`);
+          continue;
+        }
+        usedProvider = target;
+        try {
+          const completion: any = await nvidiaClient.chat.completions.create({
+            model: resolveProviderModel(target),
+            messages: saMessages,
+            temperature: 0.7,
+            max_tokens: 16384,
+          } as any);
+          rawResponse = completion.choices?.[0]?.message?.content || "";
+          if (rawResponse) break;
+        } catch (err: any) {
+          console.warn(`SA package text generation via ${target} failed (${err.message}), rolling to next fallback...`);
+        }
       }
 
       const parsed = safeJsonParse(rawResponse);
@@ -2636,8 +2655,15 @@ const masterPromptFor = (input: any = {}): string =>
   app.post("/api/gemini/action", async (req, res) => {
     const { action, input, stream } = req.body || {};
     const apiKey = resolveGeminiKey();
+    // The Vision/OCR actions (ocr-scan / ocr-grade) read images through the
+    // NVIDIA NIM Vision/OCR chain first, so they must work with only an
+    // NVIDIA key. Every other action needs the Gemini key.
+    const isVisionAction = action === "ocr-scan" || action === "ocr-grade";
+    const nvidiaKey = resolveNvidiaKey();
     if (!apiKey || apiKey === "" || apiKey === "dummy" || apiKey === "undefined") {
-      return res.status(400).json({ error: "GEMINI_API_KEY is not configured in settings." });
+      if (!isVisionAction || !nvidiaKey || nvidiaKey === "dummy" || nvidiaKey === "undefined") {
+        return res.status(400).json({ error: "GEMINI_API_KEY is not configured in settings." });
+      }
     }
 
     try {
@@ -2958,15 +2984,30 @@ const masterPromptFor = (input: any = {}): string =>
             ${isHandwritten ? "The image/document contains handwritten notes, assessments, or drawings. Use professional Multimodal Handwriting Recognition to transcribe printed text, cursive handwriting, math symbols, annotations, and notes precisely." : ""}
             Format it cleanly. Make no other comments.`;
             
-            const response = await generateContentWithFallback({
-              model,
-              contents: [
-                { role: 'user', parts: [
-                  { text: prompt },
-                  ...partsToProcess
-                ]}
+            // Read the image with the Vision/OCR chain (NVIDIA NIM Nemotron
+            // 3.5 Super-VL → Llama 3.2 90B Vision), rescuing with Gemini.
+            const openAiMessages = [{
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                ...partsToProcess.map((p: any) => ({
+                  type: "image_url",
+                  image_url: { url: `data:${p.inlineData.mimeType};base64,${p.inlineData.data}` }
+                }))
               ]
-            });
+            }];
+            const response = await visionGenerateWithFallback(
+              {
+                model,
+                contents: [
+                  { role: 'user', parts: [
+                    { text: prompt },
+                    ...partsToProcess
+                  ]}
+                ]
+              },
+              openAiMessages
+            );
             resultText = response.text || "";
           }
           
@@ -3057,28 +3098,44 @@ const masterPromptFor = (input: any = {}): string =>
             contentsToUse.push(part);
           }
           
-          const response = await generateContentWithFallback({
-            model,
-            contents: [
-              { role: 'user', parts: contentsToUse }
-            ],
-            config: {
-              responseMimeType: "application/json",
-              responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                  extractedText: { type: Type.STRING },
-                  marksPerQuestion: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  feedback: { type: Type.STRING },
-                  totalScore: { type: Type.STRING },
-                  originalMemoCorrected: { type: Type.BOOLEAN },
-                  memoCorrectionReport: { type: Type.STRING },
-                  correctedMemo: { type: Type.STRING }
-                },
-                required: ["extractedText", "marksPerQuestion", "feedback", "totalScore", "originalMemoCorrected", "memoCorrectionReport", "correctedMemo"]
+          // Grade with the Vision/OCR chain (NVIDIA NIM Nemotron 3.5 Super-VL
+          // → Llama 3.2 90B Vision), rescuing with Gemini.
+          const openAiMessages = [{
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              ...partsToProcess.map((p: any) => ({
+                type: "image_url",
+                image_url: { url: `data:${p.inlineData.mimeType};base64,${p.inlineData.data}` }
+              }))
+            ]
+          }];
+          const response = await visionGenerateWithFallback(
+            {
+              model,
+              contents: [
+                { role: 'user', parts: contentsToUse }
+              ],
+              config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                  type: Type.OBJECT,
+                  properties: {
+                    extractedText: { type: Type.STRING },
+                    marksPerQuestion: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    feedback: { type: Type.STRING },
+                    totalScore: { type: Type.STRING },
+                    originalMemoCorrected: { type: Type.BOOLEAN },
+                    memoCorrectionReport: { type: Type.STRING },
+                    correctedMemo: { type: Type.STRING }
+                  },
+                  required: ["extractedText", "marksPerQuestion", "feedback", "totalScore", "originalMemoCorrected", "memoCorrectionReport", "correctedMemo"]
+                }
               }
-            }
-          });
+            },
+            openAiMessages,
+            { response_format: { type: "json_object" } }
+          );
           return res.json(safeJsonParse(response.text));
         }
 

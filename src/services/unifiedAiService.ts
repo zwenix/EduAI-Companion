@@ -16,6 +16,7 @@ import { EduAIPromptEngine } from '../lib/prompt-engine';
 import { buildAdminLabPrompts, buildVisualLabPrompts } from '../lib/prompts/lab-prompts';
 import { buildClassicEducationalPrompts } from '../lib/prompts/classic-templates';
 import { resolveContentDesignStyle } from '../lib/contentStyle';
+import { PRIMARY_REASONING_PROVIDER, reasoningFallbacksFor } from '../lib/aiModels';
 
 const isProviderFailure = (error: any): boolean => {
   const status = error.response?.status || error.status;
@@ -28,44 +29,67 @@ const isProviderFailure = (error: any): boolean => {
     : responseObj?.message || JSON.stringify(responseObj);
   const combinedMessage = `${rawMessage} ${responseMessage}`.toLowerCase();
   
-  // Any provider failure (status, network, quota, credentials, etc.) should fall back to Gemini
+  // Any provider failure (status, network, quota, credentials, etc.) should roll
+  // to the next engine in the ordered reasoning fallback chain.
   const isTransient = 
     status === 401 || status === 402 || status === 403 || status === 404 || status === 429 ||
     status === 500 || status === 502 || status === 503 || status === 504 ||
     combinedMessage.includes('quota') || 
-    combinedMessage.includes('timeout') ||
-    combinedMessage.includes('network') ||
-    combinedMessage.includes('not configured') ||
-    combinedMessage.includes('api key') ||
-    combinedMessage.includes('unauthorized') ||
-    combinedMessage.includes('unavailable') ||
-    combinedMessage.includes('transitioning') ||
-    combinedMessage.includes('fallback') ||
+    combinedMessage.includes('timeout') || 
+    combinedMessage.includes('network') || 
+    combinedMessage.includes('not configured') || 
+    combinedMessage.includes('api key') || 
+    combinedMessage.includes('unauthorized') || 
+    combinedMessage.includes('unavailable') || 
+    combinedMessage.includes('transitioning') || 
+    combinedMessage.includes('fallback') || 
     combinedMessage.includes('invalid key');
 
   if (isTransient) {
-    console.log(`[AI Routing] Alternative model requested fallback (${status || 'N/A'}). Seamlessly routing to Gemini.`);
+    console.log(`[AI Routing] Alternative model requested fallback (${status || 'N/A'}). Rolling to the next engine in the reasoning chain.`);
   } else {
-    console.log(`[AI Routing] Routing request to primary Gemini fallback.`);
+    console.log(`[AI Routing] Routing request to the next engine in the reasoning fallback chain.`);
   }
   
   return true;
 };
 
-export const generateEducationalContent = async (type: string, details: string, provider: string = 'gemini') => {
-  if (provider === 'gemini') {
-    try {
-      return await geminiGenerateContent(type, details);
-    } catch (err: any) {
-      if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8)...");
-        provider = 'alibaba-qwen';
-      } else {
-        throw err;
+/**
+ * Run a reasoning request and roll through the ordered fallback chain on any
+ * error: the requested provider first, then every provider named by
+ * `reasoningFallbacksFor` (Nemotron 3 Ultra → DeepSeek → Gemini → Lightning →
+ * Nano). Gemini is dispatched through `geminiFallback`; every other hop goes
+ * through `callMultiAi`.
+ */
+const callWithReasoningFallback = async (
+  provider: string,
+  messages: any[],
+  geminiFallback: () => Promise<any>,
+): Promise<any> => {
+  const chain = [provider, ...reasoningFallbacksFor(provider)];
+  let lastErr: any = null;
+  for (const target of chain) {
+    if (target === 'gemini') {
+      try {
+        return await geminiFallback();
+      } catch (e: any) {
+        lastErr = e;
+        console.log(`[AI Routing] Gemini hop failed, continuing the reasoning fallback chain.`);
+        continue;
       }
     }
+    try {
+      return await callMultiAi(target as AIProvider, messages);
+    } catch (e: any) {
+      lastErr = e;
+      if (!isProviderFailure(e)) throw e;
+      continue;
+    }
   }
-  
+  throw lastErr || new Error('All reasoning fallback providers failed');
+};
+
+export const generateEducationalContent = async (type: string, details: string, provider: string = PRIMARY_REASONING_PROVIDER) => {
   // `classic` (the default) restores the original commit 6d3f1d2 brief so the
   // alternative engines ask for the same design as the Gemini path.
   const classicPair = buildClassicEducationalPrompts({ type, details });
@@ -84,31 +108,10 @@ export const generateEducationalContent = async (type: string, details: string, 
         : `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design).` 
     }
   ];
-  try {
-    return await callMultiAi(provider as AIProvider, messages);
-  } catch (error: any) {
-    if (isProviderFailure(error)) {
-      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
-      return await geminiGenerateContent(type, details);
-    }
-    throw error;
-  }
+  return await callWithReasoningFallback(provider, messages, () => geminiGenerateContent(type, details));
 };
 
-export const generateCAPSContent = async (input: any, provider: string = 'gemini', onProgress?: (partial: any) => void) => {
-  if (provider === 'gemini') {
-    try {
-      return await geminiGenerateCAPS(input, onProgress);
-    } catch (err: any) {
-      if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8)...");
-        provider = 'alibaba-qwen';
-      } else {
-        throw err;
-      }
-    }
-  }
-  
+export const generateCAPSContent = async (input: any, provider: string = PRIMARY_REASONING_PROVIDER, onProgress?: (partial: any) => void) => {
   const isLessonPlan = ['Lesson Plan', 'Weekly Lesson Plan', 'Unit Plan', 'lesson-plan'].includes(input.contentType);
   const isStudyGuide = ['Study Guide / Learning Notes', 'Revision Pack', 'Daily Lesson Notes', 'Learning Activity'].includes(input.contentType);
 
@@ -150,101 +153,25 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
     { role: 'system', content: system },
     { role: 'user', content: user }
   ];
-  try {
-    const response = await callMultiAi(provider as AIProvider, messages);
-    const parsed = safeJsonParse(response);
-    if (Object.keys(parsed).length === 0) {
-      console.warn("safeJsonParse returned empty object for response:", response);
-      return { content: response, imagePrompt: "Educational classroom scene" };
-    }
-    return parsed;
-  } catch (error: any) {
-    if (isProviderFailure(error)) {
-      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
-      return await geminiGenerateCAPS(input, onProgress);
-    }
-    throw error;
-  }
+  return await callWithReasoningFallback(provider, messages, () => geminiGenerateCAPS(input, onProgress));
 };
 
-export const generateVisualAid = async (input: any, provider: string = 'gemini', onProgress?: (partial: any) => void) => {
-  if (provider === 'gemini') {
-    try {
-      return await geminiGenerateVisual(input, onProgress);
-    } catch (err: any) {
-      if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8)...");
-        provider = 'alibaba-qwen';
-      } else {
-        throw err;
-      }
-    }
-  }
-
+export const generateVisualAid = async (input: any, provider: string = PRIMARY_REASONING_PROVIDER, onProgress?: (partial: any) => void) => {
   const { system, user } = buildVisualLabPrompts(input);
   const messages = [
     { role: 'system', content: system },
     { role: 'user', content: user }
   ];
-  try {
-    const response = await callMultiAi(provider as AIProvider, messages);
-    const parsed = safeJsonParse(response);
-    if (Object.keys(parsed).length === 0) {
-      return {
-        content: response,
-        description: 'Visual aid generated',
-        printInstructions: input.dimensions || 'A4 Portrait',
-        imagePrompt: ''
-      };
-    }
-    return parsed;
-  } catch (error: any) {
-    if (isProviderFailure(error)) {
-      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
-      return await geminiGenerateVisual(input, onProgress);
-    }
-    throw error;
-  }
+  return await callWithReasoningFallback(provider, messages, () => geminiGenerateVisual(input, onProgress));
 };
 
-export const generateAdminDoc = async (input: any, provider: string = 'gemini', onProgress?: (partial: any) => void) => {
-  if (provider === 'gemini') {
-    try {
-      return await geminiGenerateAdmin(input, onProgress);
-    } catch (err: any) {
-      if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8)...");
-        provider = 'alibaba-qwen';
-      } else {
-        throw err;
-      }
-    }
-  }
-
+export const generateAdminDoc = async (input: any, provider: string = PRIMARY_REASONING_PROVIDER, onProgress?: (partial: any) => void) => {
   const { system, user } = buildAdminLabPrompts(input);
   const messages = [
     { role: 'system', content: system },
     { role: 'user', content: user }
   ];
-  try {
-    const response = await callMultiAi(provider as AIProvider, messages);
-    const parsed = safeJsonParse(response);
-    if (Object.keys(parsed).length === 0) {
-      return {
-        content: response,
-        notes: 'Please review before sending.',
-        documentType: input.documentType || 'School Document',
-        imagePrompt: ''
-      };
-    }
-    return parsed;
-  } catch (error: any) {
-    if (isProviderFailure(error)) {
-      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
-      return await geminiGenerateAdmin(input, onProgress);
-    }
-    throw error;
-  }
+  return await callWithReasoningFallback(provider, messages, () => geminiGenerateAdmin(input, onProgress));
 };
 
 const getOcrSpaceLangCode = (lang: string) => {
@@ -264,7 +191,7 @@ export const runOCRScan = async (imageData: string | string[], provider: string 
       return await geminiOCRScan(imageData, language, isHandwritten);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to ocrspace...");
+        console.warn("Vision/OCR limit hit, auto-falling back to ocrspace...");
         ocrProvider = 'ocrspace';
       } else {
         throw err;
@@ -286,14 +213,14 @@ export const runTextGrade = async (studentAnswers: string, memo: string, rubric:
   return await geminiTextGrade(studentAnswers, memo, rubric, language);
 };
 
-export const runOCRAndGrade = async (imageData: string | string[], rubric: string, provider: string = 'gemini', ocrProvider: string = 'gemini', language: string = 'English', isHandwritten: boolean = true, behavioralAspects?: string[], adjustLateSubmission?: boolean) => {
+export const runOCRAndGrade = async (imageData: string | string[], rubric: string, provider: string = PRIMARY_REASONING_PROVIDER, ocrProvider: string = 'gemini', language: string = 'English', isHandwritten: boolean = true, behavioralAspects?: string[], adjustLateSubmission?: boolean) => {
   if (provider === 'gemini' && ocrProvider === 'gemini') {
     try {
       return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8) for grading and ocrspace for scanning...");
-        provider = 'alibaba-qwen';
+        // Roll the reasoning side to the next engine; the scan side falls to ocrspace.
+        provider = reasoningFallbacksFor('gemini')[0];
         ocrProvider = 'ocrspace';
       } else {
         throw err;
@@ -323,7 +250,7 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
       return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
     } catch(err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        provider = 'alibaba-qwen';
+        provider = reasoningFallbacksFor('gemini')[0];
       } else {
         throw err;
       }
@@ -331,9 +258,9 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
   }
 
   try {
-    let model = 'qwen3.8-max';
-    
-    const grading = await callMultiAi(provider as AIProvider, messages, model);
+    const grading = await callWithReasoningFallback(provider, messages, () =>
+      geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission)
+    );
     
     try {
       if (typeof grading === 'string') {
@@ -346,14 +273,14 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
     }
   } catch (error: any) {
     if (isProviderFailure(error)) {
-      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
+      console.log(`[AI Routing] Seamlessly transitioning from ${provider} through the reasoning fallback chain.`);
       return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
     }
     throw error;
   }
 };
 
-export const chatWithTutor = async (messages: any[], provider: string = 'gemini') => {
+export const chatWithTutor = async (messages: any[], provider: string = PRIMARY_REASONING_PROVIDER) => {
   const hasImage = messages.some(m => m.parts?.some((p: any) => p.inlineData));
   
   if (provider === 'gemini' || hasImage) {
@@ -365,7 +292,7 @@ export const chatWithTutor = async (messages: any[], provider: string = 'gemini'
          if (hasImage) {
            throw new Error("Cannot fallback, Image context requires Gemini API, but quota is exceeded.");
          }
-         provider = 'alibaba-qwen';
+         // Fall through to the reasoning fallback chain.
        } else {
          throw err;
        }
@@ -414,13 +341,5 @@ export const chatWithTutor = async (messages: any[], provider: string = 'gemini'
     formattedMessages.shift();
   }
 
-  try {
-    return await callMultiAi(provider as AIProvider, formattedMessages);
-  } catch (error: any) {
-    if (isProviderFailure(error)) {
-      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
-      return await geminiChat(messages);
-    }
-    throw error;
-  }
+  return await callWithReasoningFallback(provider, formattedMessages, () => geminiChat(messages));
 };

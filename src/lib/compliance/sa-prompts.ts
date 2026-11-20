@@ -1,6 +1,6 @@
 // ============================================================
 // sa-prompts.ts
-// SA-Compliant Prompt Engineering for Qwen 3.8 (Alibaba Model Studio) & Gemini
+// SA-Compliant Prompt Engineering for the NVIDIA Nemotron / DeepSeek v4.1 & Gemini engine chain
 // Enhanced integration for EduAI Companion
 // ============================================================
 

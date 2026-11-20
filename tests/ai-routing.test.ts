@@ -2,12 +2,13 @@
  * Provider routing & fallback behaviour (`src/services/unifiedAiService.ts`).
  *
  * The product promise is that a provider outage is invisible to the classroom:
- * an alternative engine that fails is re-routed to Gemini, and Gemini that runs
- * out of quota drops through to Qwen — without surfacing raw provider errors.
+ * a failing engine is rolled through the ordered reasoning fallback chain
+ * (Nemotron 3 Ultra → DeepSeek v4.1 Flash → Gemini → Lightning → Nano) without
+ * surfacing raw provider errors.
  *
  * These tests encode the ACTUAL trigger conditions, including the deliberate
- * ones: quota/429 exhaustion cascades, while an unexpected (non-quota) Gemini
- * error is surfaced rather than masked by a second provider attempt.
+ * ones: quota/429 exhaustion cascades down the chain, while every hop is
+ * attempted before the request is given up on.
  *
  * All network calls are mocked; nothing here touches a real API.
  */
@@ -83,13 +84,13 @@ beforeEach(() => {
 
 describe('generateEducationalContent', () => {
   it('uses the selected alternative engine when it succeeds', async () => {
-    multiAiMocks.callMultiAi.mockResolvedValue('<section>Qwen content</section>');
+    multiAiMocks.callMultiAi.mockResolvedValue('<section>Nemotron content</section>');
 
-    const result = await generateEducationalContent('Worksheet', 'Grade 2 maths', 'alibaba-qwen');
+    const result = await generateEducationalContent('Worksheet', 'Grade 2 maths', 'nvidia-deepseek');
 
-    expect(result).toBe('<section>Qwen content</section>');
+    expect(result).toBe('<section>Nemotron content</section>');
     expect(multiAiMocks.callMultiAi).toHaveBeenCalledTimes(1);
-    expect(multiAiMocks.callMultiAi.mock.calls[0][0]).toBe('alibaba-qwen');
+    expect(multiAiMocks.callMultiAi.mock.calls[0][0]).toBe('nvidia-deepseek');
     expect(geminiMocks.generateEducationalContent).not.toHaveBeenCalled();
   });
 
@@ -97,21 +98,21 @@ describe('generateEducationalContent', () => {
     multiAiMocks.callMultiAi.mockRejectedValue(gatewayError());
     geminiMocks.generateEducationalContent.mockResolvedValue('<section>Gemini content</section>');
 
-    const result = await generateEducationalContent('Worksheet', 'Grade 2 maths', 'alibaba-qwen');
+    const result = await generateEducationalContent('Worksheet', 'Grade 2 maths', 'nvidia-deepseek');
 
     expect(geminiMocks.generateEducationalContent).toHaveBeenCalledTimes(1);
     expect(result).toBe('<section>Gemini content</section>');
   });
 
-  it('drops from Gemini to Qwen when Gemini reports quota exhaustion', async () => {
+  it('drops from Gemini to the next reasoning engine when Gemini reports quota exhaustion', async () => {
     geminiMocks.generateEducationalContent.mockRejectedValue(quotaError());
-    multiAiMocks.callMultiAi.mockResolvedValue('<section>Qwen rescue</section>');
+    multiAiMocks.callMultiAi.mockResolvedValue('<section>DeepSeek rescue</section>');
 
     const result = await generateEducationalContent('Worksheet', 'Grade 2 maths', 'gemini');
 
     expect(multiAiMocks.callMultiAi).toHaveBeenCalledTimes(1);
-    expect(multiAiMocks.callMultiAi.mock.calls[0][0]).toBe('alibaba-qwen');
-    expect(result).toBe('<section>Qwen rescue</section>');
+    expect(multiAiMocks.callMultiAi.mock.calls[0][0]).toBe('nvidia-nemotron-lightning');
+    expect(result).toBe('<section>DeepSeek rescue</section>');
   });
 
   it('sends a well-formed system + user message pair to the alternative engine', async () => {
@@ -136,31 +137,32 @@ describe('generateEducationalContent', () => {
     multiAiMocks.callMultiAi.mockResolvedValue('ok');
     window.localStorage.setItem('eduai.contentDesignStyle', 'light-v5');
 
-    await generateEducationalContent('Lesson Plan', 'Grade 5 fractions', 'alibaba-qwen');
+    await generateEducationalContent('Lesson Plan', 'Grade 5 fractions', 'nvidia-deepseek');
 
     const [, messages] = multiAiMocks.callMultiAi.mock.calls[0];
     expect(messages[0].content).toContain('LIGHT MASTER SYSTEM PROMPT');
     expect(messages[0].content).not.toContain('VISUAL STYLING DOCTRINE');
   });
 
-  it('still rejects when both the alternative engine and Gemini fail', async () => {
+  it('still rejects when the whole reasoning fallback chain fails', async () => {
     multiAiMocks.callMultiAi.mockRejectedValue(gatewayError());
     geminiMocks.generateEducationalContent.mockRejectedValue(gatewayError());
 
     await expect(
-      generateEducationalContent('Worksheet', 'Grade 2 maths', 'alibaba-qwen'),
+      generateEducationalContent('Worksheet', 'Grade 2 maths', 'nvidia-deepseek'),
     ).rejects.toBeInstanceOf(Error);
   });
 
-  it('surfaces an unexpected Gemini error instead of masking it with a second provider', async () => {
+  it('rolls a non-quota Gemini error to the next engine in the chain', async () => {
     geminiMocks.generateEducationalContent.mockRejectedValue(
       new Error('Unexpected token in JSON at position 0'),
     );
+    multiAiMocks.callMultiAi.mockResolvedValue('<section>rolled content</section>');
 
-    await expect(
-      generateEducationalContent('Worksheet', 'Grade 2 maths', 'gemini'),
-    ).rejects.toThrow(/Unexpected token/);
-    expect(multiAiMocks.callMultiAi).not.toHaveBeenCalled();
+    const result = await generateEducationalContent('Worksheet', 'Grade 2 maths', 'gemini');
+
+    expect(multiAiMocks.callMultiAi).toHaveBeenCalled();
+    expect(result).toBe('<section>rolled content</section>');
   });
 });
 
@@ -175,13 +177,15 @@ describe('chatWithTutor', () => {
     expect(geminiMocks.chatWithTutor).toHaveBeenCalledTimes(1);
   });
 
-  it('drops from Gemini to Qwen when the tutor hits quota', async () => {
+  it('drops from Gemini to the next reasoning engine when the tutor hits quota', async () => {
     geminiMocks.chatWithTutor.mockRejectedValue(quotaError());
-    multiAiMocks.callMultiAi.mockResolvedValue('Qwen tutor reply');
+    multiAiMocks.callMultiAi.mockResolvedValue('Nemotron tutor reply');
 
     const result = await chatWithTutor(tutorTurn('Hi'), 'gemini');
 
-    expect(result).toBe('Qwen tutor reply');
+    expect(multiAiMocks.callMultiAi).toHaveBeenCalled();
+    expect(multiAiMocks.callMultiAi.mock.calls[0][0]).toBe('nvidia-nemotron-lightning');
+    expect(result).toBe('Nemotron tutor reply');
   });
 
   it('refuses to fall back when the turn carries an image (text models cannot read it)', async () => {
@@ -197,7 +201,7 @@ describe('chatWithTutor', () => {
   it('always starts the OpenAI-style conversation with a system + user turn', async () => {
     multiAiMocks.callMultiAi.mockResolvedValue('ok');
 
-    await chatWithTutor(tutorTurn('Explain photosynthesis'), 'alibaba-qwen');
+    await chatWithTutor(tutorTurn('Explain photosynthesis'), 'nvidia-deepseek');
 
     const [, messages] = multiAiMocks.callMultiAi.mock.calls[0];
     expect(messages[0].role).toBe('system');
@@ -207,7 +211,7 @@ describe('chatWithTutor', () => {
 });
 
 describe('runOCRScan', () => {
-  it('uses Gemini vision when it is the selected OCR engine', async () => {
+  it('uses the multimodal Vision/OCR engine when it is the selected OCR engine', async () => {
     geminiMocks.runOCRScan.mockResolvedValue({ extractedText: 'handwritten answer' });
 
     const result = await runOCRScan('data:image/png;base64,AAA', 'gemini', 'gemini');
@@ -216,7 +220,7 @@ describe('runOCRScan', () => {
     expect(multiAiMocks.performOCR).not.toHaveBeenCalled();
   });
 
-  it('falls back to OCR.space when Gemini vision hits quota', async () => {
+  it('falls back to OCR.space when the Vision/OCR engine hits quota', async () => {
     geminiMocks.runOCRScan.mockRejectedValue(quotaError());
     multiAiMocks.performOCR.mockResolvedValue('ocr space text');
 
@@ -226,12 +230,12 @@ describe('runOCRScan', () => {
     expect(result).toEqual({ extractedText: 'ocr space text' });
   });
 
-  it('falls back to Gemini vision when OCR.space fails', async () => {
+  it('falls back to the Vision/OCR engine when OCR.space fails', async () => {
     multiAiMocks.performOCR.mockRejectedValue(new Error('ocr.space down'));
-    geminiMocks.runOCRScan.mockResolvedValue({ extractedText: 'gemini rescue text' });
+    geminiMocks.runOCRScan.mockResolvedValue({ extractedText: 'vision rescue text' });
 
     const result = await runOCRScan('data:image/png;base64,AAA', 'gemini', 'ocrspace');
 
-    expect(result).toEqual({ extractedText: 'gemini rescue text' });
+    expect(result).toEqual({ extractedText: 'vision rescue text' });
   });
 });
