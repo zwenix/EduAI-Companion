@@ -12,6 +12,9 @@ import {
   FLUX_SIZE_MAP,
   IMAGE_PROVIDER_ALIASES,
   PERCHANCE_API_URL,
+  PERCHANCE_NEGATIVE_PROMPT,
+  PERCHANCE_PROXY_PATH,
+  pickPerchanceResolution,
   fluxModels,
   normaliseFluxSize,
 } from "./src/lib/imageProviders";
@@ -2346,6 +2349,92 @@ const masterPromptFor = (input: any = {}): string =>
     }
   });
 
+  // --- Perchance Image API v1 proxy ----------------------------------------
+  // The browser normally drives Perchance through a hidden iframe + postMessage
+  // (see src/services/perchanceClient.ts). When that iframe bridge is blocked
+  // (Cloudflare bot challenge / frame restrictions) the DOM client calls this
+  // same-origin route; the server fetches perchance-ai-api server-side and
+  // returns the result, so the browser never hits a CORS or framing wall. The
+  // DOM client falls back to the iframe transport when this proxy is unreachable.
+  app.post(PERCHANCE_PROXY_PATH, async (req, res) => {
+    const { prompt, width, height, seed, negativePrompt, guidanceScale } = req.body || {};
+    if (!prompt || typeof prompt !== 'string') {
+      return res.status(400).json({ error: "Prompt required" });
+    }
+
+    const w = Number(width) || 1024;
+    const h = Number(height) || 1024;
+    const requestId = `eduai-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    const resolution = pickPerchanceResolution(w, h);
+
+    const params = new URLSearchParams({
+      prompt,
+      format: 'json',
+      id: requestId,
+      resolution,
+      negativePrompt: negativePrompt
+        ? `${PERCHANCE_NEGATIVE_PROMPT}, ${String(negativePrompt).trim()}`
+        : PERCHANCE_NEGATIVE_PROMPT,
+    });
+    if (typeof seed === 'number' && Number.isFinite(seed)) {
+      params.set('seed', String(Math.trunc(seed)));
+    }
+    if (typeof guidanceScale === 'number' && Number.isFinite(guidanceScale)) {
+      params.set('guidanceScale', String(Math.min(30, Math.max(1, guidanceScale))));
+    }
+    const target = `${PERCHANCE_API_URL}?${params.toString()}`;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 90000);
+    try {
+      const response = await fetch(target, {
+        method: 'GET',
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        return res.status(502).json({
+          error: `Perchance engine responded with status ${response.status}`,
+          provider: 'perchance',
+        });
+      }
+      const text = await response.text();
+      let payload: any = null;
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        payload = null;
+      }
+      // The API may return the postMessage envelope `{ result: {...} }` or the
+      // bare result object — accept either shape.
+      const result =
+        payload && typeof payload === 'object' && payload.result && typeof payload.result === 'object'
+          ? payload.result
+          : payload;
+      const url = result?.url || result?.dataUrl || null;
+      if (result?.ok && url) {
+        return res.json({ url, provider: 'perchance', model: 'perchance-image-api', resolution, requestId });
+      }
+      return res.status(502).json({
+        error: result?.error || 'Perchance generation failed',
+        provider: 'perchance',
+      });
+    } catch (error: any) {
+      console.warn(`[PERCHANCE PROXY] Fetch failed: ${error?.message || error}`);
+      return res.status(502).json({
+        error: error?.message || 'Perchance proxy fetch failed',
+        provider: 'perchance',
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  });
+
   // --- Diagnostics -----------------------------------------------------------
   // One URL that explains exactly why images are (not) rendering, without
   // leaking any key: which engines are configured and whether each upstream
@@ -2377,9 +2466,11 @@ const masterPromptFor = (input: any = {}): string =>
     return res.json({
       engines: {
         perchance: {
-          mode: "browser-iframe",
+          mode: "browser-iframe + server-proxy",
           api: PERCHANCE_API_URL,
-          note: "Image API v1 — hidden iframe + postMessage, unlimited, no key. Runs in the teacher's browser; nothing to configure server-side.",
+          proxy: PERCHANCE_PROXY_PATH,
+          note:
+            "Image API v1 — hidden iframe + postMessage, unlimited, no key. The DOM client tries the same-origin server proxy first and falls back to the iframe transport; runs in the teacher's browser, nothing to configure server-side.",
         },
         flux: {
           backends: configuredFluxBackends(),
@@ -2947,7 +3038,7 @@ const masterPromptFor = (input: any = {}): string =>
         }
 
         case "ocr-scan": {
-          const { imageData, language, isHandwritten } = input;
+          const { imageData, language, isHandwritten, visionEngine = "nvidia" } = input;
           const items = Array.isArray(imageData) ? imageData : [imageData];
           const textContents: string[] = [];
           const partsToProcess: any[] = [];
@@ -2985,7 +3076,9 @@ const masterPromptFor = (input: any = {}): string =>
             Format it cleanly. Make no other comments.`;
             
             // Read the image with the Vision/OCR chain (NVIDIA NIM Nemotron
-            // 3.5 Super-VL → Llama 3.2 90B Vision), rescuing with Gemini.
+            // 3.5 Super-VL → Llama 3.2 90B Vision), rescuing with Gemini. When
+            // `visionEngine === "google"` the NVIDIA hop is skipped and Google
+            // Gemini multimodal OCR/Imaging is used directly.
             const openAiMessages = [{
               role: "user",
               content: [
@@ -2996,18 +3089,18 @@ const masterPromptFor = (input: any = {}): string =>
                 }))
               ]
             }];
-            const response = await visionGenerateWithFallback(
-              {
-                model,
-                contents: [
-                  { role: 'user', parts: [
-                    { text: prompt },
-                    ...partsToProcess
-                  ]}
-                ]
-              },
-              openAiMessages
-            );
+            const geminiScanOptions = {
+              model,
+              contents: [
+                { role: 'user', parts: [
+                  { text: prompt },
+                  ...partsToProcess
+                ]}
+              ]
+            };
+            const response = visionEngine === "google"
+              ? await geminiGenerateWithFallback(geminiScanOptions)
+              : await visionGenerateWithFallback(geminiScanOptions, openAiMessages);
             resultText = response.text || "";
           }
           
@@ -3023,7 +3116,7 @@ const masterPromptFor = (input: any = {}): string =>
         }
 
         case "ocr-grade": {
-          const { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission } = input;
+          const { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission, visionEngine = "nvidia" } = input;
           const items = Array.isArray(imageData) ? imageData : [imageData];
           const textContents: string[] = [];
           const partsToProcess: any[] = [];
@@ -3110,32 +3203,35 @@ const masterPromptFor = (input: any = {}): string =>
               }))
             ]
           }];
-          const response = await visionGenerateWithFallback(
-            {
-              model,
-              contents: [
-                { role: 'user', parts: contentsToUse }
-              ],
-              config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                  type: Type.OBJECT,
-                  properties: {
-                    extractedText: { type: Type.STRING },
-                    marksPerQuestion: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    feedback: { type: Type.STRING },
-                    totalScore: { type: Type.STRING },
-                    originalMemoCorrected: { type: Type.BOOLEAN },
-                    memoCorrectionReport: { type: Type.STRING },
-                    correctedMemo: { type: Type.STRING }
-                  },
-                  required: ["extractedText", "marksPerQuestion", "feedback", "totalScore", "originalMemoCorrected", "memoCorrectionReport", "correctedMemo"]
-                }
+          const geminiGradeOptions = {
+            model,
+            contents: [
+              { role: 'user', parts: contentsToUse }
+            ],
+            config: {
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  extractedText: { type: Type.STRING },
+                  marksPerQuestion: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  feedback: { type: Type.STRING },
+                  totalScore: { type: Type.STRING },
+                  originalMemoCorrected: { type: Type.BOOLEAN },
+                  memoCorrectionReport: { type: Type.STRING },
+                  correctedMemo: { type: Type.STRING }
+                },
+                required: ["extractedText", "marksPerQuestion", "feedback", "totalScore", "originalMemoCorrected", "memoCorrectionReport", "correctedMemo"]
               }
-            },
-            openAiMessages,
-            { response_format: { type: "json_object" } }
-          );
+            }
+          };
+          // Grade with the Vision/OCR chain (NVIDIA NIM Nemotron 3.5 Super-VL
+          // → Llama 3.2 90B Vision), rescuing with Gemini. When
+          // `visionEngine === "google"` the NVIDIA hop is skipped and Google
+          // Gemini multimodal OCR/Imaging is used directly.
+          const response = visionEngine === "google"
+            ? await geminiGenerateWithFallback(geminiGradeOptions)
+            : await visionGenerateWithFallback(geminiGradeOptions, openAiMessages, { response_format: { type: "json_object" } });
           return res.json(safeJsonParse(response.text));
         }
 

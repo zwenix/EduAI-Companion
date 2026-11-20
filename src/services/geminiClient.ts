@@ -242,7 +242,7 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
     }
 
     case 'ocr-scan': {
-      const { imageData, language, isHandwritten } = input;
+      const { imageData, language, isHandwritten, visionEngine } = input;
       const items = Array.isArray(imageData) ? imageData : [imageData];
       const partsToProcess: any[] = [];
       for (const item of items) {
@@ -256,14 +256,17 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
         return { extractedText: '' };
       }
       const prompt = `Extract all text from the attached ${partsToProcess.length} page/s or document accurately, assuming the text is in ${language}.\n${isHandwritten ? 'The image/document contains handwritten notes, assessments, or drawings. Use professional Multimodal Handwriting Recognition to transcribe printed text, cursive handwriting, math symbols, annotations, and notes precisely.' : ''}\nFormat it cleanly. Make no other comments.`;
-      const response = await visionGenerateWithFallback({
-        contents: [{ role: 'user', parts: [{ text: prompt }, ...partsToProcess] }],
-      });
+      const ocrContents = [{ role: 'user', parts: [{ text: prompt }, ...partsToProcess] }];
+      // `google` selects Google Gemini multimodal OCR/Imaging directly;
+      // `nvidia` uses the NVIDIA NIM Vision/OCR chain and rescues with Gemini.
+      const response = visionEngine === 'google'
+        ? await generateWithFallback({ contents: ocrContents })
+        : await visionGenerateWithFallback({ contents: ocrContents });
       return { extractedText: response.text || '' };
     }
 
     case 'ocr-grade': {
-      const { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission } = input;
+      const { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission, visionEngine } = input;
       const items = Array.isArray(imageData) ? imageData : [imageData];
       const partsToProcess: any[] = [];
       for (const item of items) {
@@ -284,10 +287,13 @@ export async function callGeminiClientDirect(action: string, input: any): Promis
 
       const prompt = `You are an AI Grader and South African CAPS Curriculum Specialist.\nAnalyze these student assessment page/s.\n\nTASK 1: MEMORANDUM & RUBRIC QUALITY CHECK & AUTO-GENERATION\n- You are supplied with this Teacher's Memorandum/Rubric: "${rubric || ''}".\n- IF the supplied Memorandum/Rubric is missing, blank, or extremely brief:\n  * You MUST automatically generate a highly comprehensive, detailed Memorandum and grading rubric mapped to CAPS criteria based on the student's work.\n  * Describe this generation in 'memoCorrectionReport' and set 'originalMemoCorrected' to true. Produce the newly generated Memorandum/Rubric in 'correctedMemo'.\n- IF a Memorandum/Rubric IS supplied by the teacher: review it for correctness, spelling, factual errors, marks allotment problems, CAPS misalignments, or lack of clarity. Correct issues, describe them in 'memoCorrectionReport', set 'originalMemoCorrected' accordingly, and return the (corrected) memo in 'correctedMemo'.\n\nTASK 2: EVALUATION AND GRADING\n- Extract all text answers from the student's submission pages and return it in 'extractedText'.\n- Evaluate each question's answer accurately according to the verified/generated memorandum/rubric.${behaviorPrompt}\n- ${isHandwritten ? "The student's inputs may be handwritten. Apply deep Handwriting Recognition (HWR) and optical reading on the student answers. Be forgiving on cursive forms, crossed-out errors, printed text, mathematical symbols, and structural layout answers." : ''}\n- Sum and return the total obtained score as a string in 'totalScore' (e.g., "18/25" or "72%").\n- List marks and reasoning for each question individually in the array 'marksPerQuestion'.\n- Provide highly constructive, encouraging feedback for the learner in 'feedback' (use encouraging South African educational tone).\n\nReturn a valid JSON object with keys: extractedText (string), marksPerQuestion (array of strings), feedback (string), totalScore (string), originalMemoCorrected (boolean), memoCorrectionReport (string), correctedMemo (string).`;
 
-      const response = await visionGenerateWithFallback({
-        contents: [{ role: 'user', parts: [{ text: prompt }, ...partsToProcess] }],
-        config: { responseMimeType: 'application/json' },
-      });
+      const gradeContents = [{ role: 'user', parts: [{ text: prompt }, ...partsToProcess] }];
+      const gradeConfig = { responseMimeType: 'application/json' };
+      // `google` selects Google Gemini multimodal OCR/Imaging directly;
+      // `nvidia` uses the NVIDIA NIM Vision/OCR chain and rescues with Gemini.
+      const response = visionEngine === 'google'
+        ? await generateWithFallback({ contents: gradeContents, config: gradeConfig })
+        : await visionGenerateWithFallback({ contents: gradeContents, config: gradeConfig });
       return safeJsonParse(response.text);
     }
 

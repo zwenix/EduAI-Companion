@@ -17,9 +17,13 @@ import {
   PERCHANCE_WARMUP_URL,
   buildPerchanceRequestUrl,
   generatePerchanceImageClient,
+  generatePerchanceImageViaProxy,
   isPerchanceBenching,
   pickPerchanceResolution,
+  preloadImageElement,
   resetPerchanceClient,
+  resolvePerchanceProxyEndpoint,
+  setPerchanceProxyEnabled,
   warmUpPerchance,
 } from '../src/services/perchanceClient';
 
@@ -203,5 +207,93 @@ describe('generatePerchanceImageClient', () => {
     // Node has no window/document — the engine must fail fast (the chain
     // treats it as "skip to the next provider").
     await expect(generatePerchanceImageClient('a cat')).rejects.toThrow(/browser/i);
+  });
+});
+
+describe('Perchance server-proxy transport', () => {
+  beforeEach(() => {
+    resetPerchanceClient();
+    setPerchanceProxyEnabled(false);
+  });
+  afterEach(() => {
+    setPerchanceProxyEnabled(false);
+    vi.unstubAllGlobals();
+  });
+
+  it('resolves the same-origin proxy endpoint', () => {
+    expect(resolvePerchanceProxyEndpoint()).toBe('/api/images/perchance');
+  });
+
+  it('generatePerchanceImageViaProxy returns the URL from a successful proxy response', async () => {
+    const fetchMock = vi.fn(async (_endpoint: string, _init?: RequestInit) => ({
+      ok: true,
+      json: async () => ({ url: 'https://user.uploads.dev/proxy.jpeg' }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const url = await generatePerchanceImageViaProxy(
+      { prompt: 'a lion', width: 512, height: 512 },
+      5000
+    );
+
+    expect(url).toBe('https://user.uploads.dev/proxy.jpeg');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [endpoint, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(endpoint).toBe('/api/images/perchance');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(String(init.body)).prompt).toBe('a lion');
+  });
+
+  it('prefers the proxy and skips the iframe when the proxy succeeds', async () => {
+    setPerchanceProxyEnabled(true);
+    const fetchMock = vi.fn(async (_endpoint: string, _init?: RequestInit) => ({
+      ok: true,
+      json: async () => ({ url: 'https://user.uploads.dev/proxy.jpeg' }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const env = installFakeBrowser(() => { /* never answers */ });
+
+    const url = await generatePerchanceImageClient('a lion', 512, 512, undefined, 5000);
+
+    expect(url).toBe('https://user.uploads.dev/proxy.jpeg');
+    // Only the warm-up frame was created — no API iframe.
+    expect(apiFrames(env.frames).length).toBe(0);
+  });
+
+  it('falls back to the iframe transport when the proxy fails', async () => {
+    setPerchanceProxyEnabled(true);
+    const fetchMock = vi.fn(async (_endpoint: string, _init?: RequestInit) => {
+      throw new Error('proxy down');
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    installFakeBrowser((src, post) => {
+      post({
+        api: PERCHANCE_API_MARKER,
+        result: { id: src.searchParams.get('id'), ok: true, url: 'https://user.uploads.dev/iframe.jpeg' },
+      });
+    });
+
+    const url = await generatePerchanceImageClient('a lion', 512, 512, undefined, 5000);
+
+    expect(url).toBe('https://user.uploads.dev/iframe.jpeg');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('preloadImageElement sets an anonymous crossOrigin for canvas-safe export', async () => {
+    const created: any[] = [];
+    class FakeImage {
+      crossOrigin: string | null = null;
+      src = '';
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      constructor() { created.push(this); }
+    }
+    vi.stubGlobal('Image', FakeImage);
+
+    const pending = preloadImageElement('https://user.uploads.dev/x.jpeg');
+    const img = created[0];
+    expect(img.crossOrigin).toBe('anonymous');
+    img.onload?.();
+    await pending;
   });
 });

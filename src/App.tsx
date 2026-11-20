@@ -2844,7 +2844,8 @@ export default function App() {
                             : 'bg-slate-50 border border-slate-205 text-slate-705 focus:border-emerald-500 shadow-sm'
                       }`}
                     >
-                      <option value="gemini">Nemotron VL Vision (Multimodal — scanned worksheets, diagrams, handwriting)</option>
+                      <option value="nvidia-vision">NVIDIA Nemotron VL Vision (Multimodal — scanned worksheets, diagrams, handwriting)</option>
+                      <option value="gemini">Google OCR / Imaging (Gemini multimodal vision)</option>
                       <option value="ocrspace">OCR Space Engine</option>
                     </select>
                   </div>

@@ -863,19 +863,19 @@ export const generateVisualAid = async (input: any, onProgress?: (partial: any) 
 export const generateAdminDoc = async (input: any, onProgress?: (partial: any) => void) =>
   withLastResort("generate-admin", input, onProgress, () => buildAdminLabPrompts(input));
 
-export const runOCRScan = async (imageData: string | string[], language: string = 'English', isHandwritten: boolean = true) => {
+export const runOCRScan = async (imageData: string | string[], language: string = 'English', isHandwritten: boolean = true, visionEngine: 'nvidia' | 'google' = 'nvidia') => {
   if (isNativeApp()) {
-    return await callGeminiClientDirect("ocr-scan", { imageData, language, isHandwritten });
+    return await callGeminiClientDirect("ocr-scan", { imageData, language, isHandwritten, visionEngine });
   }
   try {
     const response = await axios.post("/api/gemini/action", {
       action: "ocr-scan",
-      input: { imageData, language, isHandwritten }
+      input: { imageData, language, isHandwritten, visionEngine }
     });
     return response.data;
   } catch (error: any) {
     if (isBackendUnavailable(error)) {
-      return await callGeminiClientDirect("ocr-scan", { imageData, language, isHandwritten });
+      return await callGeminiClientDirect("ocr-scan", { imageData, language, isHandwritten, visionEngine });
     }
     console.error("Express /api/gemini/action failed:", error.message || error);
     checkAndReportApiError(error, "Gemini");
@@ -883,19 +883,19 @@ export const runOCRScan = async (imageData: string | string[], language: string 
   }
 };
 
-export const runOCRAndGrade = async (imageData: string | string[], rubric: string, language: string = 'English', isHandwritten: boolean = true, behavioralAspects?: string[], adjustLateSubmission?: boolean) => {
+export const runOCRAndGrade = async (imageData: string | string[], rubric: string, language: string = 'English', isHandwritten: boolean = true, behavioralAspects?: string[], adjustLateSubmission?: boolean, visionEngine: 'nvidia' | 'google' = 'nvidia') => {
   if (isNativeApp()) {
-    return await callGeminiClientDirect("ocr-grade", { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission });
+    return await callGeminiClientDirect("ocr-grade", { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission, visionEngine });
   }
   try {
     const response = await axios.post("/api/gemini/action", {
       action: "ocr-grade",
-      input: { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission }
+      input: { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission, visionEngine }
     });
     return response.data;
   } catch (error: any) {
     if (isBackendUnavailable(error)) {
-      return await callGeminiClientDirect("ocr-grade", { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission });
+      return await callGeminiClientDirect("ocr-grade", { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission, visionEngine });
     }
     console.error("Express /api/gemini/action failed:", error.message || error);
     checkAndReportApiError(error, "Gemini");

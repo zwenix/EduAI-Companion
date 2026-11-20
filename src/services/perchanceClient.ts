@@ -39,6 +39,8 @@
  * through to the next provider in the chain (FLUX → Gemini → Pollinations).
  */
 
+import { PERCHANCE_PROXY_PATH } from '../lib/imageProviders';
+
 /** The documented API endpoint. This exact URL is what the product uses. */
 export const PERCHANCE_API_URL = 'https://perchance.org/perchance-ai-api';
 /** Framing mirror documented by Perchance's embed-generator FAQ. */
@@ -127,6 +129,87 @@ const isUsableImageUrl = (value: unknown): value is string =>
 /** True when the module is running inside a browser (the APK WebView counts). */
 export const isPerchanceRuntimeAvailable = (): boolean =>
   typeof window !== 'undefined' && typeof document !== 'undefined' && typeof document.createElement === 'function';
+
+/* ── server-proxy transport (opt-in) ─────────────────────────────────────────
+ *
+ * When the hidden-iframe bridge is blocked (Cloudflare bot challenge / frame
+ * restrictions) the engine can instead fetch the same-origin server proxy
+ * `PERCHANCE_PROXY_PATH` (see `server.ts`), which fetches `perchance-ai-api`
+ * server-side and returns the result. The app enables this in a browser with a
+ * backend (`setPerchanceProxyEnabled(!isNativeApp())`); the APK WebView leaves
+ * it off and uses the iframe transport. Every proxy failure falls back to the
+ * iframe + postMessage transport, so the engine never breaks the chain.
+ */
+
+/** Whether the server-proxy transport is attempted before the iframe. */
+let perchanceProxyEnabled = false;
+/** Enable/disable the server-proxy transport (the app toggles this at init). */
+export const setPerchanceProxyEnabled = (enabled: boolean): void => {
+  perchanceProxyEnabled = enabled;
+};
+
+/** The same-origin server proxy endpoint the DOM client POSTs to. */
+export const resolvePerchanceProxyEndpoint = (): string => PERCHANCE_PROXY_PATH;
+
+/**
+ * Generates one image through the server proxy and resolves to the hosted URL
+ * (or `data:` URL). Throws on any failure so the caller can fall back to the
+ * iframe transport. Mirrors the documented Image API v1 request shape.
+ */
+export const generatePerchanceImageViaProxy = async (
+  request: PerchanceImageRequest,
+  timeoutMs: number = PERCHANCE_TIMEOUT_MS
+): Promise<string> => {
+  const endpoint = resolvePerchanceProxyEndpoint();
+  const controller =
+    typeof AbortController !== 'undefined' ? new AbortController() : undefined;
+  const timer = controller
+    ? setTimeout(() => controller.abort(), timeoutMs)
+    : undefined;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: request.prompt,
+        width: request.width ?? 1024,
+        height: request.height ?? 1024,
+        seed: request.seed,
+        negativePrompt: request.negativePrompt,
+        guidanceScale: request.guidanceScale,
+      }),
+      ...(controller ? { signal: controller.signal } : {}),
+    });
+    if (!response.ok) {
+      throw new Error(`Perchance proxy responded with status ${response.status}`);
+    }
+    const data: any = await response.json();
+    const url = data?.url;
+    if (!url || typeof url !== 'string') {
+      throw new Error(data?.error || 'Perchance proxy returned no image URL');
+    }
+    return url;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+};
+
+/**
+ * Guarantees an image string is fully downloaded, verified and parsed in memory
+ * before it is drawn onto a canvas. `crossOrigin = "anonymous"` keeps the
+ * canvas un-tainted so multi-page PDF/print exports (html2canvas → html2pdf)
+ * do not throw a security error when the asset comes from a third-party host.
+ */
+export const preloadImageElement = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () =>
+      reject(new Error(`Asset failed to render before export deadline: ${url}`));
+    img.src = url;
+  });
 
 /* ── session state ─────────────────────────────────────────────────────────── */
 
@@ -255,6 +338,23 @@ const generateOnce = async (
     );
 
     try {
+      // Try the same-origin server proxy first when enabled — it bypasses the
+      // iframe/CORS/Cloudflare-frame restrictions that can block the hidden
+      // iframe bridge. Any failure rolls back to the iframe + postMessage
+      // transport below, so the engine never breaks the chain.
+      if (perchanceProxyEnabled && typeof fetch === 'function') {
+        try {
+          const proxyUrl = await generatePerchanceImageViaProxy(request, timeoutMs);
+          resultCache.set(key, proxyUrl);
+          markSuccess();
+          return proxyUrl;
+        } catch (proxyErr: any) {
+          console.warn(
+            '[Perchance AI] Server proxy failed, falling back to iframe:',
+            proxyErr?.message || proxyErr
+          );
+        }
+      }
       return await new Promise<string>((resolve, reject) => {
         const frame = document.createElement('iframe');
         frame.setAttribute('aria-hidden', 'true');

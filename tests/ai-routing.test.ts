@@ -211,12 +211,23 @@ describe('chatWithTutor', () => {
 });
 
 describe('runOCRScan', () => {
-  it('uses the multimodal Vision/OCR engine when it is the selected OCR engine', async () => {
+  it('uses the NVIDIA Vision/OCR engine and forwards visionEngine=nvidia', async () => {
     geminiMocks.runOCRScan.mockResolvedValue({ extractedText: 'handwritten answer' });
 
-    const result = await runOCRScan('data:image/png;base64,AAA', 'gemini', 'gemini');
+    const result = await runOCRScan('data:image/png;base64,AAA', 'nvidia-nemotron-ultra', 'nvidia-vision');
 
     expect(result).toEqual({ extractedText: 'handwritten answer' });
+    expect(geminiMocks.runOCRScan).toHaveBeenCalledWith('data:image/png;base64,AAA', 'English', true, 'nvidia');
+    expect(multiAiMocks.performOCR).not.toHaveBeenCalled();
+  });
+
+  it('uses Google OCR/Imaging and forwards visionEngine=google', async () => {
+    geminiMocks.runOCRScan.mockResolvedValue({ extractedText: 'google vision text' });
+
+    const result = await runOCRScan('data:image/png;base64,AAA', 'nvidia-nemotron-ultra', 'gemini');
+
+    expect(result).toEqual({ extractedText: 'google vision text' });
+    expect(geminiMocks.runOCRScan).toHaveBeenCalledWith('data:image/png;base64,AAA', 'English', true, 'google');
     expect(multiAiMocks.performOCR).not.toHaveBeenCalled();
   });
 
@@ -224,7 +235,7 @@ describe('runOCRScan', () => {
     geminiMocks.runOCRScan.mockRejectedValue(quotaError());
     multiAiMocks.performOCR.mockResolvedValue('ocr space text');
 
-    const result = await runOCRScan('data:image/png;base64,AAA', 'gemini', 'gemini');
+    const result = await runOCRScan('data:image/png;base64,AAA', 'nvidia-nemotron-ultra', 'nvidia-vision');
 
     expect(multiAiMocks.performOCR).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ extractedText: 'ocr space text' });
@@ -234,7 +245,7 @@ describe('runOCRScan', () => {
     multiAiMocks.performOCR.mockRejectedValue(new Error('ocr.space down'));
     geminiMocks.runOCRScan.mockResolvedValue({ extractedText: 'vision rescue text' });
 
-    const result = await runOCRScan('data:image/png;base64,AAA', 'gemini', 'ocrspace');
+    const result = await runOCRScan('data:image/png;base64,AAA', 'nvidia-nemotron-ultra', 'ocrspace');
 
     expect(result).toEqual({ extractedText: 'vision rescue text' });
   });

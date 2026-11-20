@@ -32,6 +32,7 @@ import {
   isPerchanceBenching,
   isPerchanceRuntimeAvailable,
   resetPerchanceClient,
+  setPerchanceProxyEnabled,
   warmUpPerchance
 } from '../services/perchanceClient';
 import { isNativeApp } from './platform';
@@ -228,6 +229,11 @@ export const generateImagePerchance = async (
   if (isPerchanceBenching()) {
     throw providerUnavailable('Perchance Image API benched after repeated failures');
   }
+
+  // Enable the same-origin server-proxy transport in any environment with a
+  // backend (web/desktop). The native APK has no Node server, so it stays on
+  // the iframe + postMessage transport. Either path falls back to the other.
+  setPerchanceProxyEnabled(!isNativeApp());
 
   const { grade, subject, saContext = true, seed, negativePrompt } = options;
   // Same SA treatment as FLUX. Trimmed to a URL-friendly budget: the request

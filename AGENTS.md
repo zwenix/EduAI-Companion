@@ -72,9 +72,12 @@ specified below.
 * Image generation (FLUX.1-schnell on Hugging Face / Pollinations /
   Google Imagen 3) and TTS/voice engines are separate pipelines — leave them
   exactly as configured. The **Vision/OCR** pipeline (scanned worksheets,
-  diagrams, handwritten work) uses the NVIDIA NIM Vision/OCR chain:
+  diagrams, handwritten work) defaults to the NVIDIA NIM Vision/OCR chain:
   `nemotron-3.5-super-vl-120b-a12b` (primary) → `llama-3.2-90b-vision`
-  (fallback), with the Gemini multimodal engine as the final rescue.
+  (fallback), with the Gemini multimodal engine as the final rescue. The OCR
+  engine is selectable: **`nvidia-vision`** (the NVIDIA NIM chain above),
+  **`gemini`** (Google Gemini multimodal OCR/Imaging, used directly) and
+  **`ocrspace`** (OCR.space). See `src/contexts/AiContext.tsx` `OCRProvider`.
 
 ### The frozen registry — single source of truth (added 2 Oct 2026)
 All five provider ids, their exact model slugs, the Gemini fallback chain, the
@@ -108,10 +111,12 @@ update to the table above.
   endpoint, and roll through the ordered reasoning fallback chain
   (`REASONING_FALLBACK_CHAIN`) on any error. Its `ocr-scan` / `ocr-grade`
   actions must call the Vision/OCR chain (`VISION_OCR_MODELS`) through NVIDIA
-  NIM, with Gemini as the final vision rescue. It contains NO Groq or
-  OpenRouter clients. It imports the ids, slugs, endpoints, legacy aliases,
-  reasoning chain and Vision/OCR chain from `src/lib/aiModels.ts` — do not
-  re-inline them.
+  NIM, with Gemini as the final vision rescue — unless the request selects
+  Google OCR (`visionEngine === "google"`), in which case the NVIDIA hop is
+  skipped and Gemini multimodal OCR/Imaging is used directly. It contains NO
+  Groq or OpenRouter clients. It imports the ids, slugs, endpoints, legacy
+  aliases, reasoning chain and Vision/OCR chain from `src/lib/aiModels.ts` —
+  do not re-inline them.
 * **`src/contexts/AiContext.tsx`**: `AIProvider` is re-exported from, and
   `VALID_PROVIDERS` derived from, `AI_PROVIDERS` in `src/lib/aiModels.ts`. The
   resolved list must still be exactly `nvidia-nemotron-ultra`,
@@ -481,16 +486,25 @@ explicit user instructions.
   hidden iframe per image, reply matched by request id and Perchance origin,
   permanent `user.uploads.dev` URLs cached, max 2 concurrent, 60 s timeout,
   embed-mirror failover to `null.perchance.org`, circuit breaker benches the
-  engine after 2 consecutive failures for 10 min). Rules that are enforced by
-  `tests/image-providers.test.ts`:
+  engine after 2 consecutive failures for 10 min). A **server-proxy transport**
+  is also available: the DOM client (when a backend is present) first POSTs to
+  the same-origin `/api/images/perchance` route (`server.ts`), which fetches
+  `perchance-ai-api` server-side and returns the result; any proxy failure
+  falls back to the iframe + postMessage transport. The native APK leaves the
+  proxy off (`setPerchanceProxyEnabled(!isNativeApp())`). Rules that are
+  enforced by `tests/image-providers.test.ts`:
   * ONLY `perchance-ai-api` may ever be framed. The generator pages
     (`ai-text-to-image-generator`, `ai-images-generator`) send
     `X-Frame-Options: SAMEORIGIN` and can never load — that dead bridge must
     not come back.
-  * Never `fetch()` `perchance.org` from any layer (client or server): bare
-    HTTP is answered by a Cloudflare 403. The hidden iframe IS the transport.
+  * The **DOM client must never `fetch()` `perchance.org` directly** — bare
+    HTTP from the browser is answered by a Cloudflare 403. The hidden iframe
+    (or the same-origin server proxy) IS the transport. The server proxy route
+    is the only place allowed to fetch `perchance.org` server-side, and it
+    sends a browser `User-Agent`.
   * The engine is browser-only; server-side callers that ask for `perchance`
-    are routed to FLUX (`/api/images/generate`).
+    are routed to FLUX (`/api/images/generate`) — except the dedicated
+    `/api/images/perchance` proxy route itself.
   * Always send `PERCHANCE_NEGATIVE_PROMPT` (child-safety floor for a school
     product); callers may extend it, never replace it.
 * The image **model list is frozen** — FLUX.1-schnell, Pollinations `flux`

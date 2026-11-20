@@ -185,10 +185,14 @@ const getOcrSpaceLangCode = (lang: string) => {
   return map[lang] || 'eng';
 };
 
-export const runOCRScan = async (imageData: string | string[], provider: string = 'gemini', ocrProvider: string = 'gemini', language: string = 'English', isHandwritten: boolean = true) => {
-  if (ocrProvider === 'gemini') {
+export const runOCRScan = async (imageData: string | string[], provider: string = 'gemini', ocrProvider: string = 'nvidia-vision', language: string = 'English', isHandwritten: boolean = true) => {
+  // `nvidia-vision` uses the NVIDIA NIM Vision/OCR chain; `gemini` selects
+  // Google Gemini multimodal OCR/Imaging directly. Both are vision engines;
+  // `ocrspace` is the OCR.space fallback.
+  const visionEngine = ocrProvider === 'gemini' ? 'google' : 'nvidia';
+  if (ocrProvider === 'nvidia-vision' || ocrProvider === 'gemini') {
     try {
-      return await geminiOCRScan(imageData, language, isHandwritten);
+      return await geminiOCRScan(imageData, language, isHandwritten, visionEngine);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
         console.warn("Vision/OCR limit hit, auto-falling back to ocrspace...");
@@ -197,7 +201,7 @@ export const runOCRScan = async (imageData: string | string[], provider: string 
         throw err;
       }
     }
-  }
+  } 
   
   const firstImage = Array.isArray(imageData) ? imageData[0] || '' : imageData;
   
@@ -213,10 +217,11 @@ export const runTextGrade = async (studentAnswers: string, memo: string, rubric:
   return await geminiTextGrade(studentAnswers, memo, rubric, language);
 };
 
-export const runOCRAndGrade = async (imageData: string | string[], rubric: string, provider: string = PRIMARY_REASONING_PROVIDER, ocrProvider: string = 'gemini', language: string = 'English', isHandwritten: boolean = true, behavioralAspects?: string[], adjustLateSubmission?: boolean) => {
-  if (provider === 'gemini' && ocrProvider === 'gemini') {
+export const runOCRAndGrade = async (imageData: string | string[], rubric: string, provider: string = PRIMARY_REASONING_PROVIDER, ocrProvider: string = 'nvidia-vision', language: string = 'English', isHandwritten: boolean = true, behavioralAspects?: string[], adjustLateSubmission?: boolean) => {
+  const visionEngine = ocrProvider === 'gemini' ? 'google' : 'nvidia';
+  if (provider === 'gemini' && (ocrProvider === 'nvidia-vision' || ocrProvider === 'gemini')) {
     try {
-      return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
+      return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission, visionEngine);
     } catch (err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
         // Roll the reasoning side to the next engine; the scan side falls to ocrspace.
@@ -226,7 +231,7 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
         throw err;
       }
     }
-  }
+  } 
   
   const scanRef = await runOCRScan(imageData, provider, ocrProvider, language, isHandwritten);
   const extractedText = scanRef.extractedText;
@@ -247,7 +252,7 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
   if (provider === 'gemini') {
     // Gemini can process text grading
     try {
-      return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
+      return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission, visionEngine);
     } catch(err: any) {
       if (err.message?.includes('Quota') || err.message?.includes('429')) {
         provider = reasoningFallbacksFor('gemini')[0];
@@ -259,7 +264,7 @@ export const runOCRAndGrade = async (imageData: string | string[], rubric: strin
 
   try {
     const grading = await callWithReasoningFallback(provider, messages, () =>
-      geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission)
+      geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission, visionEngine)
     );
     
     try {
