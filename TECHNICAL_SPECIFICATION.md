@@ -141,7 +141,7 @@ Express API server (server.ts)        Firebase project
 | :--- | :--- | :--- |
 | **Web/PWA client** | React 19 + Vite 6 (`src/`) | All UI, role-based navigation, content rendering, prompt composition, exports, offline caches, service worker registration. |
 | **API server** | Express 4 (`server.ts`, ~2.4k LOC) | AI provider routing + fallback, OCR/TTS/image/video endpoints, web push, compliance package generation, ILDP reports, static hosting and SPA fallback. |
-| **Serverless adapter** | `api/index.ts` + `vercel.json` | Wraps the esbuild bundle `dist/server.cjs` as a Vercel function (`maxDuration: 60`) and rewrites `/api/*`; all other routes serve the SPA. |
+| **Serverless adapter** | `api/index.ts` + `vercel.json` | Wraps the esbuild bundle `dist/server.cjs` as a Vercel function (`maxDuration: 120`) and rewrites `/api/*`; all other routes serve the SPA. |
 | **Android shell** | Capacitor 6 (`capacitor.config.ts`, `android/` generated in CI) | Native WebView, Google Sign-In plugin, filesystem/share export bridge, hardware back-button handling, icons and splash. |
 | **Data platform** | Firebase 12 | Email/password, Google and anonymous auth; Firestore with persistent local cache. Rules in `firestore.rules`. |
 | **Static assets** | `public/`, `src/assets/`, `dist/` | Icons, overlays, illustration library, Foundation Phase template packs, splash video, PWA icons. |
@@ -161,7 +161,7 @@ Express API server (server.ts)        Firebase project
 - `npm run build` produces `dist/` (client) and `dist/server.cjs` (bundled server, `--packages=external`).
 - `vercel.json` maps `/api/(.*)` → `api/index.ts`, which imports `dist/server.cjs`; non-API paths rewrite to `index.html`.
 - The server detects `process.env.VERCEL` and **does not call `app.listen`**; the platform invokes the exported Express app per request.
-- Function limit: 60 seconds (`maxDuration`). Long AI generations must complete within this window; the video pipeline deliberately returns a job id immediately and is polled.
+- Function limit: 120 seconds (`maxDuration`). Long AI generations (the Nemotron 3 Ultra 550B reasoning model can take 60s+) must complete within this window; the video pipeline deliberately returns a job id immediately and is polled.
 - The native client uses `https://eduai-companion.vercel.app` as its backend base (`src/lib/imageGeneration.ts`).
 
 #### 3.4.3 Android (Capacitor)

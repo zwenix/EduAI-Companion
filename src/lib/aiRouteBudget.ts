@@ -10,7 +10,7 @@
  *   3. the Gemini fallback and the remaining NVIDIA NIM engines
  *
  * On Vercel the whole API is one serverless function whose `maxDuration` is
- * 60s (`vercel.json`). When the chain ran past that limit the platform killed
+ * 120s (`vercel.json`). When the chain ran past that limit the platform killed
  * the function and answered the browser with a bare **HTTP 504** — the client
  * then gave up on the request entirely and the built-in Gemini fallback never
  * ran. The upstream clients also had no per-request timeout, so a single hung
@@ -25,7 +25,7 @@
  */
 
 /** Total wall-clock budget for one `/api/ai/:provider` request. */
-export const AI_ROUTE_BUDGET_MS = 52_000;
+export const AI_ROUTE_BUDGET_MS = 110_000;
 
 /**
  * Time kept aside for the final Gemini fallback. The chain may only spend the
@@ -34,25 +34,27 @@ export const AI_ROUTE_BUDGET_MS = 52_000;
  *
  * Kept deliberately small: Gemini 3.8 Flash is a fast, small model and answers
  * well inside a few seconds, while the primary NVIDIA NIM engine (Nemotron 3
- * Ultra 550B-A55B) is a large reasoning model whose first token can legitimately
- * take longer than the old 15s reserve left for the primary attempt. A large
- * reserve was starving the primary engine and causing it to be cut off by the
- * budget deadline (HTTP 503 at ~52s) before it could finish.
+ * Ultra 550B-A55B) is a large reasoning model that can take a minute or more to
+ * produce a full response. A large reserve would only starve the primary
+ * engine. (The old 52s total budget + 60s Vercel `maxDuration` could not hold
+ * the whole response at all — every NVIDIA call was cut off at ~52s with HTTP
+ * 503. The function ceiling is now 120s and the budget below matches it.)
  */
 export const AI_ROUTE_GEMINI_RESERVE_MS = 10_000;
 
 /**
  * Maximum time a single upstream provider attempt may take.
  *
- * The primary NVIDIA NIM engine is a 550B reasoning model: its response can
- * legitimately take 30-40s+, so the primary attempt gets the bulk of the
- * spendable budget (budget − Gemini reserve ≈ 42s) rather than a 28s cap that
- * cut the call off mid-generation.
+ * The primary NVIDIA NIM engine is a 550B reasoning model whose full response
+ * can legitimately take 60s+. The primary attempt therefore gets the bulk of
+ * the spendable budget (budget − Gemini reserve ≈ 100s), so the model has
+ * room to finish rather than being cut off mid-generation by the budget
+ * deadline.
  */
-export const AI_ROUTE_PROVIDER_TIMEOUT_MS = 42_000;
+export const AI_ROUTE_PROVIDER_TIMEOUT_MS = 100_000;
 
 /** Maximum time for the sibling-engine attempt (usually reached later). */
-export const AI_ROUTE_ALTERNATIVE_TIMEOUT_MS = 24_000;
+export const AI_ROUTE_ALTERNATIVE_TIMEOUT_MS = 40_000;
 
 /**
  * Minimum free time before it is worth trying the sibling engine at all.

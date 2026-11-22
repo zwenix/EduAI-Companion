@@ -3,7 +3,7 @@
  *
  * The `/api/ai/:provider` chain (requested provider → sibling engine →
  * Gemini) used to run without any deadline. On Vercel the function is killed
- * after `maxDuration` (60s) and the browser receives a bare HTTP 504, so the
+ * after `maxDuration` (120s) and the browser receives a bare HTTP 504, so the
  * built-in Gemini fallback never ran.
  *
  * These assertions pin the budget arithmetic: the Gemini reserve is never
@@ -22,7 +22,7 @@ import {
 } from '../src/lib/aiRouteBudget';
 
 /** The Vercel function ceiling — the budget must stay well below it. */
-const VERCEL_MAX_DURATION_MS = 60_000;
+const VERCEL_MAX_DURATION_MS = 120_000;
 
 describe('AI route budget', () => {
   it('stays comfortably below the serverless function ceiling', () => {

@@ -391,13 +391,15 @@ explicit user instructions.
   `bash scripts/deploy-firestore-rules.sh` before the change is live.
 
 ### 7.3b Serverless time budgets
-* The whole API is one Vercel function with a 60 s `maxDuration`
+* The whole API is one Vercel function with a 120 s `maxDuration`
   (`vercel.json`). A request that outlives it is killed by the platform and the
   browser receives a bare **HTTP 504** — the in-app fallback never runs.
 * `src/lib/aiRouteBudget.ts` owns the budget for `/api/ai/:provider`
-  (52 s total, 15 s Gemini reserve, ≤ 28 s per upstream attempt). Every
-  upstream client must carry a `timeout` and `maxRetries: 0`, and every
-  attempt must be capped by the remaining budget.
+  (110 s total, 10 s Gemini reserve, ≤ 100 s per upstream attempt). The
+  generous upstream cap gives the primary Nemotron 3 Ultra 550B reasoning
+  model room to finish; the earlier 60 s ceiling cut every NVIDIA call off at
+  ~52 s with HTTP 503. Every upstream client must carry a `timeout` and
+  `maxRetries: 0`, and every attempt must be capped by the remaining budget.
 * `tests/ai-route-budget.test.ts` pins the arithmetic. Never raise a budget
   above the platform ceiling.
 * The image routes (`/api/image-proxy`, `/api/images/generate`,
