@@ -31,20 +31,34 @@ export const AI_ROUTE_BUDGET_MS = 52_000;
  * Time kept aside for the final Gemini fallback. The chain may only spend the
  * rest of the budget on upstream providers, so a slow provider can never
  * starve the engine that is guaranteed to answer.
+ *
+ * Kept deliberately small: Gemini 3.8 Flash is a fast, small model and answers
+ * well inside a few seconds, while the primary NVIDIA NIM engine (Nemotron 3
+ * Ultra 550B-A55B) is a large reasoning model whose first token can legitimately
+ * take longer than the old 15s reserve left for the primary attempt. A large
+ * reserve was starving the primary engine and causing it to be cut off by the
+ * budget deadline (HTTP 503 at ~52s) before it could finish.
  */
-export const AI_ROUTE_GEMINI_RESERVE_MS = 15_000;
+export const AI_ROUTE_GEMINI_RESERVE_MS = 10_000;
 
-/** Maximum time a single upstream provider attempt may take. */
-export const AI_ROUTE_PROVIDER_TIMEOUT_MS = 28_000;
+/**
+ * Maximum time a single upstream provider attempt may take.
+ *
+ * The primary NVIDIA NIM engine is a 550B reasoning model: its response can
+ * legitimately take 30-40s+, so the primary attempt gets the bulk of the
+ * spendable budget (budget − Gemini reserve ≈ 42s) rather than a 28s cap that
+ * cut the call off mid-generation.
+ */
+export const AI_ROUTE_PROVIDER_TIMEOUT_MS = 42_000;
 
 /** Maximum time for the sibling-engine attempt (usually reached later). */
-export const AI_ROUTE_ALTERNATIVE_TIMEOUT_MS = 20_000;
+export const AI_ROUTE_ALTERNATIVE_TIMEOUT_MS = 24_000;
 
 /**
  * Minimum free time before it is worth trying the sibling engine at all.
  * Below this the request would be better off going straight to Gemini.
  */
-export const AI_ROUTE_ALTERNATIVE_MIN_MS = 10_000;
+export const AI_ROUTE_ALTERNATIVE_MIN_MS = 8_000;
 
 /**
  * Minimum time an attempt needs to be worth starting. A 2-second sliver of
