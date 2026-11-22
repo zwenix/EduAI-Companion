@@ -181,13 +181,15 @@ describe('generatePerchanceImageClient', () => {
     expect(apiCalls[1].startsWith(PERCHANCE_EMBED_API_URL)).toBe(true);
   });
 
-  it('benches the engine after two consecutive failures instead of stalling every image', async () => {
+  it('tracks bench state but still makes a genuine attempt (never skips the engine)', async () => {
     installFakeBrowser(() => { /* never answers */ });
     await expect(generatePerchanceImageClient('one', 512, 512, 1, 40)).rejects.toThrow();
     await expect(generatePerchanceImageClient('two', 512, 512, 2, 40)).rejects.toThrow();
     expect(isPerchanceBenching()).toBe(true);
-    // Third call refuses immediately — no iframe, no timeout stall.
-    await expect(generatePerchanceImageClient('three', 512, 512, 3, 40)).rejects.toThrow(/benched/i);
+    // Even while benched, Perchance is the primary engine and must still be
+    // attempted with a real try — it must never be skipped without a genuine
+    // attempt. The timeout (a real attempt) fires rather than a "benched" refusal.
+    await expect(generatePerchanceImageClient('three', 512, 512, 3, 40)).rejects.toThrow(/timed out/);
     resetPerchanceClient();
     expect(isPerchanceBenching()).toBe(false);
   });

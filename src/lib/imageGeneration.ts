@@ -893,10 +893,12 @@ export const generateImageWithFallback = async (
         console.log('[Image Gen] Perchance Image API needs a browser runtime; skipping.');
         continue;
       }
-      if (isPerchanceBenching()) {
-        console.log('[Image Gen] Perchance Image API is benched after repeated failures; skipping.');
-        continue;
-      }
+      // Perchance is the PRIMARY, unlimited, keyless engine. It is ALWAYS
+      // attempted first with a genuine try — it must never be skipped to
+      // Pollinations (or any other engine) without a real Perchance attempt,
+      // even after prior failures. The server-proxy transport is tried first
+      // and the iframe + postMessage transport is the fallback; only if BOTH
+      // genuinely fail does the chain move on.
       try {
         const role = preferred === 'perchance' ? 'Primary' : 'Fallback';
         console.log(`[Image Gen] Attempting Perchance Image API v1 (${role}) — SA-enhanced...`);

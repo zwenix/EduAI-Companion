@@ -100,7 +100,7 @@ describe('NVIDIA NIM (Nemotron + DeepSeek)', () => {
       'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
     );
     expect(NVIDIA_MODELS['nvidia-nemotron-ultra']).toBe(
-      'nvidia/nemotron-ultra-550b-a55b',
+      'nvidia/nemotron-3-ultra-550b-a55b',
     );
     expect(NVIDIA_MODELS['nvidia-nemotron-lightning']).toBe(
       'nvidia/nemotron-3.5-lightning-30b-a3b',

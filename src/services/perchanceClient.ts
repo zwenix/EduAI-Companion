@@ -240,8 +240,12 @@ export const resetPerchanceClient = (): void => {
 /** Is the engine benched right now (circuit breaker)? */
 export const isPerchanceBenching = (now = Date.now()): boolean => now < benchUntil;
 
-export const isPerchanceAvailable = (): boolean =>
-  isPerchanceRuntimeAvailable() && !isPerchanceBenching();
+/**
+ * Perchance is the primary image engine and is ALWAYS attempted — benching
+ * (a circuit-breaker signal for the embed-mirror failover) never blocks a real
+ * attempt. Availability is therefore just "running in a browser".
+ */
+export const isPerchanceAvailable = (): boolean => isPerchanceRuntimeAvailable();
 
 const markFailure = (): void => {
   consecutiveFailures += 1;
@@ -424,6 +428,11 @@ const generateOnce = async (
  * Generates one illustration through the Perchance Image API and resolves to
  * the permanent hosted URL (or a `data:` URL). Rejects on timeout/failure so
  * the provider chain can move on — this engine never breaks the chain.
+ *
+ * Perchance is the primary engine and is ALWAYS attempted: benching (a
+ * circuit-breaker signal for the embed-mirror failover) never short-circuits
+ * a real generation attempt, so the chain never skips Perchance without a
+ * genuine try.
  */
 export const generatePerchanceImageClient = async (
   prompt: string,
@@ -435,9 +444,6 @@ export const generatePerchanceImageClient = async (
 ): Promise<string> => {
   if (!isPerchanceRuntimeAvailable()) {
     throw new Error('Perchance image client can only run in a browser environment');
-  }
-  if (isPerchanceBenching()) {
-    throw new Error('Perchance Image API is temporarily benched after repeated failures');
   }
   return generateOnce(
     { prompt, width, height, seed, negativePrompt },

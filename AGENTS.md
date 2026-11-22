@@ -25,7 +25,7 @@ specified below.
 
 | App provider id | Model to call (exactly) | Provider / endpoint |
 | --- | --- | --- |
-| `nvidia-nemotron-ultra` | `nvidia/nemotron-ultra-550b-a55b` (Primary reasoning — Nemotron 3 Ultra 550B-A55B) | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
+| `nvidia-nemotron-ultra` | `nvidia/nemotron-3-ultra-550b-a55b` (Primary reasoning — Nemotron 3 Ultra 550B-A55B) | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
 | `nvidia-deepseek` | `deepseek-v4.1-flash` (Secondary reasoning) | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
 | `gemini` | `gemini-3.8-flash` (Tertiary reasoning; chain `gemini-3.7-flash` → `gemini-3.6-flash` → `gemini-3.5-flash` → `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite` → `gemini-2.5-flash` only when 3.8 is unavailable) | Google Gemini API |
 | `nvidia-nemotron-lightning` | `nvidia/nemotron-3.5-lightning-30b-a3b` (Quaternary reasoning) | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |

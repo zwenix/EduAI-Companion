@@ -96,7 +96,7 @@ export const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1';
 /** Exact NVIDIA NIM model slug per provider id (DeepSeek included). */
 export const NVIDIA_MODELS: Record<string, string> = {
   'nvidia-nemotron-nano': 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
-  'nvidia-nemotron-ultra': 'nvidia/nemotron-ultra-550b-a55b',
+  'nvidia-nemotron-ultra': 'nvidia/nemotron-3-ultra-550b-a55b',
   'nvidia-nemotron-lightning': 'nvidia/nemotron-3.5-lightning-30b-a3b',
   'nvidia-deepseek': 'deepseek-v4.1-flash',
 };
