@@ -5,10 +5,7 @@ import { isNativeApp } from '../lib/platform';
 import {
   NVIDIA_BASE_URL,
   NVIDIA_MODELS,
-  QWEN_BASE_URL,
-  QWEN_DEFAULT_MODEL,
-  isNemotronProvider,
-  isLegacyProvider,
+  isNvidiaNimProvider,
   type AlternativeAiProvider,
 } from '../lib/aiModels';
 
@@ -17,33 +14,33 @@ import {
 export type AIProvider = AlternativeAiProvider;
 
 // ─── Endpoints & model slugs ────────────────────────────────────────────────
-// Qwen 3.8 Max → Alibaba Cloud Model Studio (OpenAI-compatible, workspace
-// scoped; override with VITE_ALIBABA_API_BASE / ALIBABA_API_BASE).
-// Nemotron    → NVIDIA NIM ONLY (never Groq/OpenRouter).
+// Nemotron + DeepSeek → NVIDIA NIM ONLY (never Groq/OpenRouter/Alibaba).
 // All values are imported from the frozen registry — do not inline literals.
 
 const executeClientMultiAi = async (provider: AIProvider | string, messages: any[], model?: string) => {
-  // Handle NVIDIA NIM providers
-  if (provider && isNemotronProvider(provider)) {
+  // Handle NVIDIA NIM providers (Nemotron + DeepSeek)
+  if (provider && isNvidiaNimProvider(provider)) {
     const nvidiaModel = NVIDIA_MODELS[provider];
     if (!nvidiaModel) {
-      throw new Error(`Unknown NVIDIA Nemotron model: ${provider}`);
+      throw new Error(`Unknown NVIDIA NIM model: ${provider}`);
     }
-    
-    const baseUrl = NVIDIA_BASE_URL;
-    const url = `${baseUrl}/chat/completions`;
+
+    const url = `${NVIDIA_BASE_URL}/chat/completions`;
     const apiKey = String(
       (process.env as any).NVIDIA_API_KEY ||
       (import.meta as any).env?.VITE_NVIDIA_API_KEY ||
       AI_SECRETS.NVIDIA_API_KEY || ""
     ).trim().replace(/^['"\s]+|['"\s]+$/g, "");
-    
+
     if (!apiKey) {
       throw new Error(`API key (NVIDIA_API_KEY) for NVIDIA NIM is not configured. Please add it.`);
     }
-    
-    const selectedModel = model && !/nemotron|nvidia\//i.test(model) ? model : nvidiaModel;
-    
+
+    // A caller-supplied model is only honoured when it is not another
+    // provider's slug (e.g. a stale Qwen model) — otherwise use the exact
+    // frozen slug for this provider.
+    const selectedModel = model && !/nemotron|nvidia\/|qwen/i.test(model) ? model : nvidiaModel;
+
     const payload: any = {
       model: selectedModel,
       messages,
@@ -51,7 +48,7 @@ const executeClientMultiAi = async (provider: AIProvider | string, messages: any
       top_p: 0.95,
       max_tokens: 16384,
     };
-    
+
     const response = await axios.post(
       url,
       payload,
@@ -65,58 +62,8 @@ const executeClientMultiAi = async (provider: AIProvider | string, messages: any
     const msg = response.data.choices[0]?.message || {};
     return msg.content || msg.reasoning_content || "";
   }
-  
-  // Handle Alibaba Qwen providers
-  const baseUrl = String(
-    (import.meta as any).env?.VITE_ALIBABA_API_BASE ||
-    (process.env as any).ALIBABA_API_BASE ||
-    QWEN_BASE_URL
-  ).trim().replace(/\/+$/, "");
-  const url = `${baseUrl}/chat/completions`;
-  const apiKey = String(
-    (process.env as any).ALIBABA_API_KEY ||
-    (import.meta as any).env?.VITE_ALIBABA_API_KEY ||
-    (process.env as any).DASHSCOPE_API_KEY ||
-    AI_SECRETS.ALIBABA_API_KEY || ""
-  ).trim().replace(/^['"\s]+|['"\s]+$/g, "");
 
-  // Never forward a legacy provider id or NVIDIA model slug to Model Studio.
-  let selectedModel = model;
-  if (
-    !selectedModel ||
-    selectedModel === provider ||
-    isLegacyProvider(selectedModel) ||
-    /nemotron|nvidia\//i.test(selectedModel)
-  ) {
-    selectedModel = QWEN_DEFAULT_MODEL;
-  }
-
-  if (!apiKey) {
-    throw new Error(`API key (ALIBABA_API_KEY / Model Studio) for Qwen 3.8 is not configured in settings or environment. Please add it.`);
-  }
-
-  const payload: any = {
-    model: selectedModel,
-    messages,
-    temperature: 0.7,
-    top_p: 0.95,
-    max_tokens: 16384,
-  };
-
-  // Let the prompt dictate JSON mode, do not force it which causes issues with certain models
-
-  const response = await axios.post(
-    url,
-    payload,
-    {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-    }
-  );
-  const msg = response.data.choices[0]?.message || {};
-  return msg.content || msg.reasoning_content || "";
+  throw new Error(`Unsupported AI provider for the native client: ${provider}`);
 };
 
 const executeClientOCR = async (base64Image: string, language: string = "eng") => {

@@ -532,11 +532,7 @@ export default function FoundationPhaseArchitect({
                    </div>
                  ) : (
                    <div className="w-full max-w-xl aspect-video sm:aspect-auto sm:min-h-[420px] bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/10 relative group flex flex-col justify-center">
-                    <img 
-                      src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1000&auto=format&fit=crop" 
-                      alt="Game Sandbox" 
-                      className="w-full h-full object-cover opacity-35 absolute inset-0"
-                    />
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 via-purple-900/30 to-black/70" />
                     <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/85" />
                     
                     {/* Sandbox UI Interactive View */}

@@ -10,6 +10,7 @@ import { DocumentData, RenderedImage } from "../lib/templates/sa-html-templates"
 import { callMultiAi } from "./multiAiService";
 import { safeJsonParse } from "./geminiService";
 import { generateAllEducationalImages, enhancePromptForSA } from "../lib/imageGeneration";
+import { PRIMARY_REASONING_PROVIDER } from "../lib/aiModels";
 
 export interface PipelineResult {
   content: DocumentData;
@@ -55,7 +56,7 @@ export function preFlightCheck(request: SAContentRequest): ReturnType<typeof val
 // ── Text content generation via existing multi-AI pipeline ──
 export async function generateSATextContent(
   request: SAContentRequest,
-  provider: string = "alibaba-qwen",
+  provider: string = PRIMARY_REASONING_PROVIDER,
   onProgress?: (partial: any) => void
 ): Promise<DocumentData> {
   console.log(`📝 Generating ${request.contentType} via ${provider}...`);
@@ -70,7 +71,7 @@ export async function generateSATextContent(
   ];
 
   try {
-    const rawResponse = await callMultiAi(provider as any, messages, "qwen3.8-max");
+    const rawResponse = await callMultiAi(provider as any, messages);
     const parsed = safeJsonParse(rawResponse);
 
     if (!parsed || Object.keys(parsed).length === 0) {
@@ -229,7 +230,7 @@ export function postAudit(data: DocumentData): { passed: number; total: number; 
 // ── Full pipeline ──
 export async function generateFullSAPackage(
   request: SAContentRequest,
-  provider: string = "alibaba-qwen",
+  provider: string = PRIMARY_REASONING_PROVIDER,
   options: {
     generateImages?: boolean;
     onProgress?: (partial: any) => void;

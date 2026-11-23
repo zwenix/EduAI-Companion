@@ -197,11 +197,7 @@ export default function VideoLabConsole({
                 />
               ) : (
                 <>
-                  <img 
-                    src="https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=1000&auto=format&fit=crop" 
-                    alt="Video Lab Backdrop" 
-                    className="w-full h-full object-cover opacity-60 mix-blend-screen"
-                  />
+                  <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/40 via-blue-900/30 to-black/70" />
                   {/* Overlay HUD Graphics */}
                   <div className="absolute inset-0 pointer-events-none border-[40px] border-black/20" />
                   <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60" />

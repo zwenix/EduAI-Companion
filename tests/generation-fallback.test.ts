@@ -11,8 +11,8 @@
  * content and no explanation.
  *
  * These tests pin the intended chain:
- *   backend → on-device Gemini → alternative engines (Qwen 3.8 Max → Nemotron)
- * and assert that a healthy backend stream still parses as before.
+ *   backend → on-device Gemini → alternative engines (DeepSeek v4.1 Flash →
+ *   Nemotron) and assert that a healthy backend stream still parses as before.
  *
  * All network access is mocked; nothing here touches a real API.
  */
@@ -31,7 +31,7 @@ const GEMINI_ENVELOPE = JSON.stringify({
 });
 
 const RESCUE_ENVELOPE = JSON.stringify({
-  content: '<section>Qwen rescue content</section>',
+  content: '<section>DeepSeek rescue content</section>',
   memo: 'memo',
   rubric: 'rubric',
   assessmentCriteria: 'criteria',
@@ -137,7 +137,7 @@ describe('streaming generation fallback chain', () => {
     },
   );
 
-  it('rescues the generation on Qwen 3.8 Max when both Gemini paths fail', async () => {
+  it('rescues the generation on DeepSeek v4.1 Flash (NVIDIA NIM) when both Gemini paths fail', async () => {
     (globalThis as any).fetch = async () => backendError(503);
     axiosPost.mockResolvedValue({
       data: { choices: [{ message: { content: RESCUE_ENVELOPE } }] },
@@ -149,8 +149,10 @@ describe('streaming generation fallback chain', () => {
     expect(googleAttempts.length).toBeGreaterThan(0);
     expect(axiosPost).toHaveBeenCalled();
     const [url] = axiosPost.mock.calls[0];
-    expect(String(url)).toContain('compatible-mode/v1/chat/completions');
-    expect(result.content).toContain('Qwen rescue content');
+    // Last-resort NVIDIA is reached via the same-origin server proxy — never a
+    // direct browser call to integrate.api.nvidia.com (no CORS headers there).
+    expect(String(url)).toContain('/api/ai/nvidia-deepseek');
+    expect(result.content).toContain('DeepSeek rescue content');
   });
 
   it('only rejects once every engine has been tried', async () => {
@@ -170,7 +172,7 @@ describe('streaming generation fallback chain', () => {
     const { generateCAPSContent } = await loadService();
     const result = await generateCAPSContent(input, () => {});
 
-    expect(result.content).toContain('Qwen rescue content');
+    expect(result.content).toContain('DeepSeek rescue content');
     expect(googleAttempts).toEqual([]);
     expect(axiosPost).not.toHaveBeenCalled();
   });

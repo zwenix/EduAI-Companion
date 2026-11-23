@@ -2740,10 +2740,10 @@ export default function App() {
                                 : 'bg-slate-50 border border-slate-200 text-slate-705 hover:border-brand-cyan/50 focus:border-brand-cyan shadow-sm [&>option]:bg-white'
                           }`}
                         >
-                          <option value="gemini">Gemini 3.8 Flash (Primary - Recommended)</option>
-                          <option value="alibaba-qwen">Qwen 3.8 Max (Alibaba Model Studio)</option>
+                          <option value="nvidia-nemotron-ultra">Nemotron 3 Ultra (550B-A55B) — Primary Reasoning ✅</option>
+                          <option value="nvidia-deepseek">DeepSeek v4.1 Flash — Free NIM ✅</option>
+                          <option value="gemini">Gemini 3.8 Flash (Tertiary Fallback)</option>
                           <option value="nvidia-nemotron-nano">Nemotron 3 Nano (30B) — Free NIM ✅</option>
-                          <option value="nvidia-nemotron-ultra">Nemotron 3 Ultra (550B-A55B) — Free NIM ✅</option>
                           <option value="nvidia-nemotron-lightning">Nemotron 3.5 Lightning (30B) — Fast Text Gen</option>
                         </select>
                       </div>
@@ -2803,9 +2803,9 @@ export default function App() {
                           <span className="text-[9px] font-bold text-amber-500 lowercase">fastest selected</span>
                         </div>
                         <div className="grid grid-cols-2 gap-1.5 text-center font-mono">
-                          {['gemini', 'alibaba-qwen'].map((pId) => {
+                          {['nvidia-nemotron-ultra', 'nvidia-deepseek'].map((pId) => {
                             const lat = optimizationStats[pId];
-                            const name = pId === 'gemini' ? 'Gemini 3.8' : 'Qwen 3.8';
+                            const name = pId === 'nvidia-nemotron-ultra' ? 'Nemotron 3 Ultra' : 'DeepSeek 4.1';
                             const isCurrent = provider === pId;
                             return (
                               <div 
@@ -2844,7 +2844,8 @@ export default function App() {
                             : 'bg-slate-50 border border-slate-205 text-slate-705 focus:border-emerald-500 shadow-sm'
                       }`}
                     >
-                      <option value="gemini">Gemini OCR Vision (Multimodal)</option>
+                      <option value="nvidia-vision">NVIDIA Nemotron VL Vision (Multimodal — scanned worksheets, diagrams, handwriting)</option>
+                      <option value="gemini">Google OCR / Imaging (Gemini multimodal vision)</option>
                       <option value="ocrspace">OCR Space Engine</option>
                     </select>
                   </div>
@@ -3322,7 +3323,7 @@ export default function App() {
                   <span className={`font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Recommended Solutions:</span>
                   {apiBlockedAlert.isServerError ? (
                     <ul className={`list-disc list-inside space-y-1.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      <li>Verify your <b>GEMINI_API_KEY</b>, <b>HUGGINGFACE_API_KEY</b>, or <b>ALIBABA_API_KEY</b> (Alibaba Model Studio / Qwen 3.8) is correctly declared in settings or server config.</li>
+                      <li>Verify your <b>NVIDIA_API_KEY</b> (Nemotron / DeepSeek via NIM), <b>GEMINI_API_KEY</b>, or <b>HUGGINGFACE_API_KEY</b> is correctly declared in settings or server config.</li>
                       <li>Consult the <b>Debug Console</b> in the Admin Dashboard to review real-time network request payloads.</li>
                       <li>Confirm that the server is not throttled, and that the specified AI model is supported.</li>
                     </ul>

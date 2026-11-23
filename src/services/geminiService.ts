@@ -1,7 +1,7 @@
 import axios from "axios";
 import { checkAndReportApiError } from "../lib/apiErrorHelper";
 import { callGeminiClientDirect, buildCapsGenerationPrompts } from "./geminiClient";
-import { AI_SECRETS } from "../lib/aiSecrets";
+import { callMultiAi } from "./multiAiService";
 // True when running inside the Capacitor native app (Android APK), where there
 // is no Node backend to proxy requests — so we call the AI providers directly.
 import { isNativeApp } from "../lib/platform";
@@ -16,73 +16,63 @@ import {
 import { dateMandate } from "../lib/saDates";
 import {
   AI_PROVIDER_LABELS,
-  NVIDIA_BASE_URL,
   NVIDIA_MODELS,
-  QWEN_BASE_URL,
-  QWEN_DEFAULT_MODEL,
+  type AlternativeAiProvider,
 } from "../lib/aiModels";
 
 // ─── Browser-side LAST RESORT ───────────────────────────────────────────────
 // If both the backend AND the direct Gemini engine fail (e.g. the shared
 // Gemini key is quota-exhausted or blocked), make one final attempt through
-// the alternative engines whose keys are baked into the app — Qwen 3.8 Max
-// first, then the Nemotron siblings named by the frozen sibling-engine graph
-// (`alternativeProviderFor`). Endpoints and slugs come from the frozen registry
-// in `src/lib/aiModels.ts` (AGENTS.md §1) — never inline them here.
-const LAST_RESORT_PROVIDERS: { name: string; url: string; key: () => string; models: string[] }[] = [
+// the alternative engines whose keys are baked into the app — DeepSeek v4.1
+// Flash first, then the Nemotron siblings, following the frozen reasoning
+// fallback chain (`REASONING_FALLBACK_CHAIN`). Endpoints and slugs come from the
+// frozen registry in `src/lib/aiModels.ts` (AGENTS.md §1) — never inline them
+// here.
+//
+// IMPORTANT: these providers are reached through `callMultiAi`, which posts to
+// the same-origin server proxy `/api/ai/${provider}` on the web. NVIDIA NIM
+// sends no CORS headers, so a direct browser call to
+// `integrate.api.nvidia.com` is ALWAYS blocked by the Same-Origin Policy — the
+// server must make the upstream call. `callMultiAi` only calls the provider
+// API directly for the Capacitor native app (no backend / no CORS boundary).
+const LAST_RESORT_PROVIDERS: { name: string; provider: AlternativeAiProvider; models: string[] }[] = [
   {
-    name: AI_PROVIDER_LABELS['alibaba-qwen'],
-    url: `${QWEN_BASE_URL}/chat/completions`,
-    key: () => AI_SECRETS.ALIBABA_API_KEY,
-    models: [QWEN_DEFAULT_MODEL]
+    name: AI_PROVIDER_LABELS['nvidia-deepseek'],
+    provider: 'nvidia-deepseek',
+    models: [NVIDIA_MODELS['nvidia-deepseek']]
   },
   {
     name: AI_PROVIDER_LABELS['nvidia-nemotron-lightning'],
-    url: `${NVIDIA_BASE_URL}/chat/completions`,
-    key: () => AI_SECRETS.NVIDIA_API_KEY,
+    provider: 'nvidia-nemotron-lightning',
     models: [NVIDIA_MODELS['nvidia-nemotron-lightning']]
   },
   {
     name: AI_PROVIDER_LABELS['nvidia-nemotron-nano'],
-    url: `${NVIDIA_BASE_URL}/chat/completions`,
-    key: () => AI_SECRETS.NVIDIA_API_KEY,
+    provider: 'nvidia-nemotron-nano',
     models: [NVIDIA_MODELS['nvidia-nemotron-nano']]
   }
 ];
 
 const callLastResortLLM = async (systemPrompt: string, userPrompt: string): Promise<string> => {
   let lastErr: any = null;
+  const messages = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userPrompt }
+  ];
   for (const provider of LAST_RESORT_PROVIDERS) {
-    const apiKey = (provider.key() || "").trim();
-    if (!apiKey) continue;
     for (const model of provider.models) {
       try {
         console.warn(`[AI Routing] Last-resort attempt via ${provider.name} (${model})...`);
-        const resp = await axios.post(
-          provider.url,
-          {
-            model,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt }
-            ],
-            temperature: 0.7,
-            max_tokens: 8192
-          },
-          {
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-            timeout: 90000
-          }
-        );
-        const msg = resp.data?.choices?.[0]?.message || {};
-        const text = msg.content || msg.reasoning_content || "";
+        // Routed through the server proxy on the web (see note above) — never
+        // a direct browser call to NVIDIA.
+        const text = await callMultiAi(provider.provider, messages, model);
         if (text && String(text).trim()) {
           console.warn(`[AI Routing] Last-resort ${provider.name} succeeded.`);
           return text;
         }
       } catch (e: any) {
         lastErr = e;
-        console.warn(`[AI Routing] Last-resort ${provider.name}/${model} failed:`, e?.response?.data?.error?.message || e?.message);
+        console.warn(`[AI Routing] Last-resort ${provider.name}/${model} failed:`, e?.message);
       }
     }
   }
@@ -864,19 +854,19 @@ export const generateVisualAid = async (input: any, onProgress?: (partial: any) 
 export const generateAdminDoc = async (input: any, onProgress?: (partial: any) => void) =>
   withLastResort("generate-admin", input, onProgress, () => buildAdminLabPrompts(input));
 
-export const runOCRScan = async (imageData: string | string[], language: string = 'English', isHandwritten: boolean = true) => {
+export const runOCRScan = async (imageData: string | string[], language: string = 'English', isHandwritten: boolean = true, visionEngine: 'nvidia' | 'google' = 'nvidia') => {
   if (isNativeApp()) {
-    return await callGeminiClientDirect("ocr-scan", { imageData, language, isHandwritten });
+    return await callGeminiClientDirect("ocr-scan", { imageData, language, isHandwritten, visionEngine });
   }
   try {
     const response = await axios.post("/api/gemini/action", {
       action: "ocr-scan",
-      input: { imageData, language, isHandwritten }
+      input: { imageData, language, isHandwritten, visionEngine }
     });
     return response.data;
   } catch (error: any) {
     if (isBackendUnavailable(error)) {
-      return await callGeminiClientDirect("ocr-scan", { imageData, language, isHandwritten });
+      return await callGeminiClientDirect("ocr-scan", { imageData, language, isHandwritten, visionEngine });
     }
     console.error("Express /api/gemini/action failed:", error.message || error);
     checkAndReportApiError(error, "Gemini");
@@ -884,19 +874,19 @@ export const runOCRScan = async (imageData: string | string[], language: string 
   }
 };
 
-export const runOCRAndGrade = async (imageData: string | string[], rubric: string, language: string = 'English', isHandwritten: boolean = true, behavioralAspects?: string[], adjustLateSubmission?: boolean) => {
+export const runOCRAndGrade = async (imageData: string | string[], rubric: string, language: string = 'English', isHandwritten: boolean = true, behavioralAspects?: string[], adjustLateSubmission?: boolean, visionEngine: 'nvidia' | 'google' = 'nvidia') => {
   if (isNativeApp()) {
-    return await callGeminiClientDirect("ocr-grade", { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission });
+    return await callGeminiClientDirect("ocr-grade", { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission, visionEngine });
   }
   try {
     const response = await axios.post("/api/gemini/action", {
       action: "ocr-grade",
-      input: { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission }
+      input: { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission, visionEngine }
     });
     return response.data;
   } catch (error: any) {
     if (isBackendUnavailable(error)) {
-      return await callGeminiClientDirect("ocr-grade", { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission });
+      return await callGeminiClientDirect("ocr-grade", { imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission, visionEngine });
     }
     console.error("Express /api/gemini/action failed:", error.message || error);
     checkAndReportApiError(error, "Gemini");

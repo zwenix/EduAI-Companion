@@ -190,3 +190,28 @@ export const PERCHANCE_API_URL = 'https://perchance.org/perchance-ai-api';
 export const PERCHANCE_EMBED_API_URL = 'https://null.perchance.org/perchance-ai-api';
 /** `event.data.api` marker from the official postMessage contract. */
 export const PERCHANCE_API_MARKER = 'perchance-image-api';
+/**
+ * Server-side proxy route for the Perchance Image API v1. The browser calls
+ * this same-origin route; the server fetches `perchance-ai-api` and returns the
+ * result with CORS headers. It is the transport of choice when the hidden
+ * iframe bridge is blocked (Cloudflare bot challenge / frame restrictions);
+ * the DOM client falls back to the iframe + postMessage transport when this
+ * proxy is unreachable.
+ */
+export const PERCHANCE_PROXY_PATH = '/api/images/perchance';
+
+/** Perchance renders only these four sizes — the server proxy picks the closest. */
+export const pickPerchanceResolution = (width: number, height: number): string => {
+  const ratio = width / Math.max(1, height);
+  if (ratio > 1.15) return '768x512';
+  if (ratio < 0.87) return '512x768';
+  return '768x768';
+};
+
+/**
+ * Child-safety negative prompt (the API's own default strengthened). Sent on
+ * every request; callers may only extend it. Kept server-safe so the proxy
+ * route and the DOM client share one definition.
+ */
+export const PERCHANCE_NEGATIVE_PROMPT =
+  'NSFW, nudity, violence, gore, scary, blood, blurry, low quality, watermark';

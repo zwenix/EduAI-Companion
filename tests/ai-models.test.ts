@@ -19,23 +19,32 @@ import {
   NEMOTRON_PROVIDERS,
   NVIDIA_BASE_URL,
   NVIDIA_MODELS,
-  QWEN_BASE_URL,
-  QWEN_DEFAULT_MODEL,
+  PRIMARY_REASONING_PROVIDER,
+  REASONING_FALLBACK_CHAIN,
+  VISION_OCR_MODELS,
+  VISION_OCR_PRIMARY_MODEL,
   alternativeProviderFor,
   isLegacyProvider,
   isNemotronProvider,
+  isNvidiaNimProvider,
+  reasoningFallbacksFor,
   resolveProviderModel,
 } from '../src/lib/aiModels';
 
 describe('frozen provider list (AGENTS.md §1)', () => {
   it('exposes exactly the five permitted provider ids, in order', () => {
     expect([...AI_PROVIDERS]).toEqual([
-      'gemini',
-      'alibaba-qwen',
-      'nvidia-nemotron-nano',
       'nvidia-nemotron-ultra',
+      'nvidia-deepseek',
+      'gemini',
+      'nvidia-nemotron-nano',
       'nvidia-nemotron-lightning',
     ]);
+  });
+
+  it('names Nemotron 3 Ultra as the primary reasoning provider', () => {
+    expect(PRIMARY_REASONING_PROVIDER).toBe('nvidia-nemotron-ultra');
+    expect(AI_PROVIDERS[0]).toBe(PRIMARY_REASONING_PROVIDER);
   });
 
   it('gives every permitted provider a UI label', () => {
@@ -44,8 +53,11 @@ describe('frozen provider list (AGENTS.md §1)', () => {
     }
   });
 
-  it('does not contain banned / retired engines', () => {
-    const banned = /llama|groq|openrouter|deepseek|gpt-|claude/i;
+  it('does not contain banned / retired engines in the text registry', () => {
+    // DeepSeek is now an allowed text provider; Llama/Groq/OpenRouter remain
+    // banned for text generation (Llama 3.2 90B Vision is vision-only and is
+    // not part of this text registry).
+    const banned = /llama|groq|openrouter|gpt-|claude/i;
     for (const id of AI_PROVIDERS) {
       expect(id).not.toMatch(banned);
     }
@@ -56,7 +68,7 @@ describe('frozen provider list (AGENTS.md §1)', () => {
 });
 
 describe('Gemini', () => {
-  it('uses gemini-3.8-flash as the primary model', () => {
+  it('uses gemini-3.8-flash as the primary Gemini model', () => {
     expect(GEMINI_PRIMARY_MODEL).toBe('gemini-3.8-flash');
     expect(GEMINI_MODEL_CHAIN[0]).toBe('gemini-3.8-flash');
   });
@@ -82,23 +94,18 @@ describe('Gemini', () => {
   });
 });
 
-describe('Alibaba Model Studio (Qwen 3.8)', () => {
-  it('calls qwen3.8-max on the workspace-compatible endpoint', () => {
-    expect(QWEN_DEFAULT_MODEL).toBe('qwen3.8-max');
-    expect(resolveProviderModel('alibaba-qwen')).toBe('qwen3.8-max');
-    expect(QWEN_BASE_URL).toMatch(/^https:\/\/.+\/compatible-mode\/v1$/);
-  });
-});
-
-describe('NVIDIA NIM (Nemotron)', () => {
-  it('routes all three Nemotron ids to the exact NIM slugs', () => {
+describe('NVIDIA NIM (Nemotron + DeepSeek)', () => {
+  it('routes every NIM id to the exact slugs', () => {
     expect(NVIDIA_MODELS['nvidia-nemotron-nano']).toBe(
       'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
     );
-    expect(NVIDIA_MODELS['nvidia-nemotron-ultra']).toBe('nvidia/nemotron-ultra-550b-a55b');
+    expect(NVIDIA_MODELS['nvidia-nemotron-ultra']).toBe(
+      'nvidia/nemotron-3-ultra-550b-a55b',
+    );
     expect(NVIDIA_MODELS['nvidia-nemotron-lightning']).toBe(
       'nvidia/nemotron-3.5-lightning-30b-a3b',
     );
+    expect(NVIDIA_MODELS['nvidia-deepseek']).toBe('deepseek-ai/deepseek-v4.1-flash');
   });
 
   it('always uses the free NVIDIA NIM endpoint — never Groq/OpenRouter/Alibaba', () => {
@@ -106,21 +113,60 @@ describe('NVIDIA NIM (Nemotron)', () => {
     expect(NVIDIA_BASE_URL).not.toMatch(/groq|openrouter|aliyuncs/i);
   });
 
-  it('identifies Nemotron providers and resolves their slugs', () => {
+  it('identifies Nemotron and NIM providers and resolves their slugs', () => {
     for (const id of NEMOTRON_PROVIDERS) {
       expect(isNemotronProvider(id)).toBe(true);
+      expect(isNvidiaNimProvider(id)).toBe(true);
       expect(resolveProviderModel(id)).toBe(NVIDIA_MODELS[id]);
     }
-    expect(isNemotronProvider('alibaba-qwen')).toBe(false);
-    expect(isNemotronProvider('gemini')).toBe(false);
+    expect(isNemotronProvider('nvidia-deepseek')).toBe(false);
+    expect(isNvidiaNimProvider('nvidia-deepseek')).toBe(true);
+    expect(isNvidiaNimProvider('alibaba-qwen')).toBe(false);
+    expect(isNvidiaNimProvider('gemini')).toBe(false);
+    expect(resolveProviderModel('nvidia-deepseek')).toBe('deepseek-ai/deepseek-v4.1-flash');
+  });
+});
+
+describe('reasoning fallback chain', () => {
+  it('rolls Primary → Secondary → Tertiary → Quaternary → safety net', () => {
+    expect([...REASONING_FALLBACK_CHAIN]).toEqual([
+      'nvidia-nemotron-ultra',
+      'nvidia-deepseek',
+      'gemini',
+      'nvidia-nemotron-lightning',
+      'nvidia-nemotron-nano',
+    ]);
+  });
+
+  it('returns every other provider, in priority order, after the given one', () => {
+    expect(reasoningFallbacksFor('nvidia-nemotron-ultra')).toEqual([
+      'nvidia-deepseek',
+      'gemini',
+      'nvidia-nemotron-lightning',
+      'nvidia-nemotron-nano',
+    ]);
+    expect(reasoningFallbacksFor('nvidia-deepseek')).toEqual([
+      'gemini',
+      'nvidia-nemotron-lightning',
+      'nvidia-nemotron-nano',
+      'nvidia-nemotron-ultra',
+    ]);
+  });
+
+  it('gives each provider an immediate sibling fallback', () => {
+    expect(alternativeProviderFor('nvidia-nemotron-ultra')).toBe('nvidia-deepseek');
+    expect(alternativeProviderFor('nvidia-deepseek')).toBe('gemini');
+    expect(alternativeProviderFor('gemini')).toBe('nvidia-nemotron-lightning');
+    expect(alternativeProviderFor('nvidia-nemotron-lightning')).toBe('nvidia-nemotron-nano');
+    expect(alternativeProviderFor('nvidia-nemotron-nano')).toBe('nvidia-nemotron-ultra');
   });
 });
 
 describe('legacy provider ids', () => {
-  it('are recognised but resolve to the Qwen engine (never resurrected)', () => {
+  it('are recognised but resolve to the primary reasoning engine (never resurrected)', () => {
     for (const id of LEGACY_PROVIDER_IDS) {
       expect(isLegacyProvider(id)).toBe(true);
-      expect(resolveProviderModel(id)).toBe('qwen3.8-max');
+      expect(resolveProviderModel(id)).toBe(NVIDIA_MODELS[PRIMARY_REASONING_PROVIDER]);
     }
   });
 
@@ -128,6 +174,16 @@ describe('legacy provider ids', () => {
     for (const id of LEGACY_PROVIDER_IDS) {
       expect(AI_PROVIDERS as readonly string[]).not.toContain(id);
     }
+  });
+});
+
+describe('Vision/OCR model chain', () => {
+  it('uses Nemotron 3.5 Super-VL as the primary and Llama 3.2 90B Vision as fallback', () => {
+    expect([...VISION_OCR_MODELS]).toEqual([
+      'nemotron-3.5-super-vl-120b-a12b',
+      'llama-3.2-90b-vision',
+    ]);
+    expect(VISION_OCR_PRIMARY_MODEL).toBe('nemotron-3.5-super-vl-120b-a12b');
   });
 });
 
@@ -139,23 +195,6 @@ describe('unknown providers', () => {
 
   it('have no sibling fallback engine', () => {
     expect(alternativeProviderFor('not-a-provider')).toBe('');
-  });
-});
-
-describe('alternative-engine fallback graph', () => {
-  it('tries a different engine before spending the Gemini budget', () => {
-    expect(alternativeProviderFor('nvidia-nemotron-ultra')).toBe('nvidia-nemotron-lightning');
-    expect(alternativeProviderFor('nvidia-nemotron-lightning')).toBe('nvidia-nemotron-nano');
-    expect(alternativeProviderFor('nvidia-nemotron-nano')).toBe('alibaba-qwen');
-    expect(alternativeProviderFor('alibaba-qwen')).toBe('nvidia-nemotron-lightning');
-  });
-
-  it('never returns the provider itself or Gemini', () => {
-    for (const id of AI_PROVIDERS) {
-      const sibling = alternativeProviderFor(id);
-      expect(sibling).not.toBe(id);
-      expect(sibling).not.toBe('gemini');
-    }
   });
 });
 
@@ -215,8 +254,9 @@ describe('AGENTS.md parity (the binding document)', () => {
     }
   });
 
-  it('pins every Nemotron row to the free NVIDIA NIM endpoint', () => {
-    for (const id of NEMOTRON_PROVIDERS) {
+  it('pins every Nemotron AND DeepSeek row to the free NVIDIA NIM endpoint', () => {
+    const nimIds = [...NEMOTRON_PROVIDERS, 'nvidia-deepseek'];
+    for (const id of nimIds) {
       const row = frozenRows.get(id)!;
       expect(row.endpointCell).toContain(NVIDIA_BASE_URL);
       expect(row.endpointCell).toMatch(/NVIDIA_API_KEY/);
@@ -224,11 +264,13 @@ describe('AGENTS.md parity (the binding document)', () => {
     }
   });
 
-  it('pins the Qwen row to Model Studio with its workspace endpoint and key', () => {
-    const row = frozenRows.get('alibaba-qwen')!;
-    expect(row.modelCell).toContain(QWEN_DEFAULT_MODEL);
-    expect(row.endpointCell).toContain(QWEN_BASE_URL);
-    expect(row.endpointCell).toContain('ALIBABA_API_KEY');
+  it('documents the ordered reasoning fallback chain', () => {
+    expect(agentsMd).toMatch(/Nemotron 3 Ultra → DeepSeek v4\.1 Flash → Gemini/);
+  });
+
+  it('documents the Vision/OCR chain', () => {
+    expect(agentsMd).toContain('nemotron-3.5-super-vl-120b-a12b');
+    expect(agentsMd).toContain('llama-3.2-90b-vision');
   });
 
   it('keeps the banned-provider and legacy-alias rules written down', () => {

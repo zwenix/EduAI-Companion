@@ -934,23 +934,23 @@ export default function Settings({
                    <div className="p-8 rounded-[40px] border border-white/5 bg-white/5 space-y-6">
                       <div>
                          <h4 className="text-white font-bold text-base mb-1">Text Generation Engine</h4>
-                         <p className="text-slate-400 text-xs mb-4">Primary reasoning and lesson authoring engine. Alternative models fall back to Gemini automatically.</p>
+                         <p className="text-slate-400 text-xs mb-4">Primary reasoning and lesson authoring engine. On any error it rolls Nemotron 3 Ultra → DeepSeek v4.1 Flash → Gemini → Nemotron 3.5 Lightning.</p>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="p-4 rounded-2xl border border-brand-cyan/40 bg-brand-cyan/10 flex items-start gap-3">
                                <div className="w-8 h-8 rounded-xl bg-brand-cyan/20 flex items-center justify-center text-brand-cyan font-black text-xs shrink-0">1</div>
                                <div>
                                   <div className="flex items-center gap-2">
-                                     <span className="text-white font-bold text-xs">Gemini 3.8 Flash</span>
+                                     <span className="text-white font-bold text-xs">Nemotron 3 Ultra (550B)</span>
                                      <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase">Primary</span>
                                   </div>
-                                  <p className="text-[10px] text-slate-400 mt-1">Latest GA Flash model · CAPS Lesson Planning, Auto-Grading & Voice Tutor</p>
+                                  <p className="text-[10px] text-slate-400 mt-1">NVIDIA NIM · CAPS Lesson Planning, Auto-Grading & Voice Tutor</p>
                                </div>
                             </div>
                             <div className="p-4 rounded-2xl border border-white/10 bg-navy-dark/40 flex items-start gap-3">
                                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-black text-xs shrink-0">2</div>
                                <div>
-                                  <span className="text-white font-bold text-xs">Qwen 3.8 Max</span>
-                                  <p className="text-[10px] text-slate-400 mt-1">Alibaba Model Studio (qwen3.8-max) • Fallback: Gemini</p>
+                                  <span className="text-white font-bold text-xs">DeepSeek v4.1 Flash</span>
+                                  <p className="text-[10px] text-slate-400 mt-1">NVIDIA NIM (deepseek-ai/deepseek-v4.1-flash) • Fallback: Gemini → Nemotron 3.5 Lightning</p>
                                </div>
                             </div>
                          </div>
