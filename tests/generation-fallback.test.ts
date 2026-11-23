@@ -149,7 +149,9 @@ describe('streaming generation fallback chain', () => {
     expect(googleAttempts.length).toBeGreaterThan(0);
     expect(axiosPost).toHaveBeenCalled();
     const [url] = axiosPost.mock.calls[0];
-    expect(String(url)).toContain('integrate.api.nvidia.com/v1/chat/completions');
+    // Last-resort NVIDIA is reached via the same-origin server proxy — never a
+    // direct browser call to integrate.api.nvidia.com (no CORS headers there).
+    expect(String(url)).toContain('/api/ai/nvidia-deepseek');
     expect(result.content).toContain('DeepSeek rescue content');
   });
 

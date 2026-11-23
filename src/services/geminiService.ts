@@ -1,7 +1,7 @@
 import axios from "axios";
 import { checkAndReportApiError } from "../lib/apiErrorHelper";
 import { callGeminiClientDirect, buildCapsGenerationPrompts } from "./geminiClient";
-import { AI_SECRETS } from "../lib/aiSecrets";
+import { callMultiAi } from "./multiAiService";
 // True when running inside the Capacitor native app (Android APK), where there
 // is no Node backend to proxy requests — so we call the AI providers directly.
 import { isNativeApp } from "../lib/platform";
@@ -16,8 +16,8 @@ import {
 import { dateMandate } from "../lib/saDates";
 import {
   AI_PROVIDER_LABELS,
-  NVIDIA_BASE_URL,
   NVIDIA_MODELS,
+  type AlternativeAiProvider,
 } from "../lib/aiModels";
 
 // ─── Browser-side LAST RESORT ───────────────────────────────────────────────
@@ -28,60 +28,51 @@ import {
 // fallback chain (`REASONING_FALLBACK_CHAIN`). Endpoints and slugs come from the
 // frozen registry in `src/lib/aiModels.ts` (AGENTS.md §1) — never inline them
 // here.
-const LAST_RESORT_PROVIDERS: { name: string; url: string; key: () => string; models: string[] }[] = [
+//
+// IMPORTANT: these providers are reached through `callMultiAi`, which posts to
+// the same-origin server proxy `/api/ai/${provider}` on the web. NVIDIA NIM
+// sends no CORS headers, so a direct browser call to
+// `integrate.api.nvidia.com` is ALWAYS blocked by the Same-Origin Policy — the
+// server must make the upstream call. `callMultiAi` only calls the provider
+// API directly for the Capacitor native app (no backend / no CORS boundary).
+const LAST_RESORT_PROVIDERS: { name: string; provider: AlternativeAiProvider; models: string[] }[] = [
   {
     name: AI_PROVIDER_LABELS['nvidia-deepseek'],
-    url: `${NVIDIA_BASE_URL}/chat/completions`,
-    key: () => AI_SECRETS.NVIDIA_API_KEY,
+    provider: 'nvidia-deepseek',
     models: [NVIDIA_MODELS['nvidia-deepseek']]
   },
   {
     name: AI_PROVIDER_LABELS['nvidia-nemotron-lightning'],
-    url: `${NVIDIA_BASE_URL}/chat/completions`,
-    key: () => AI_SECRETS.NVIDIA_API_KEY,
+    provider: 'nvidia-nemotron-lightning',
     models: [NVIDIA_MODELS['nvidia-nemotron-lightning']]
   },
   {
     name: AI_PROVIDER_LABELS['nvidia-nemotron-nano'],
-    url: `${NVIDIA_BASE_URL}/chat/completions`,
-    key: () => AI_SECRETS.NVIDIA_API_KEY,
+    provider: 'nvidia-nemotron-nano',
     models: [NVIDIA_MODELS['nvidia-nemotron-nano']]
   }
 ];
 
 const callLastResortLLM = async (systemPrompt: string, userPrompt: string): Promise<string> => {
   let lastErr: any = null;
+  const messages = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userPrompt }
+  ];
   for (const provider of LAST_RESORT_PROVIDERS) {
-    const apiKey = (provider.key() || "").trim();
-    if (!apiKey) continue;
     for (const model of provider.models) {
       try {
         console.warn(`[AI Routing] Last-resort attempt via ${provider.name} (${model})...`);
-        const resp = await axios.post(
-          provider.url,
-          {
-            model,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt }
-            ],
-            temperature: 0.7,
-            max_tokens: 8192
-          },
-          {
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-            timeout: 90000
-          }
-        );
-        const msg = resp.data?.choices?.[0]?.message || {};
-        const text = msg.content || msg.reasoning_content || "";
+        // Routed through the server proxy on the web (see note above) — never
+        // a direct browser call to NVIDIA.
+        const text = await callMultiAi(provider.provider, messages, model);
         if (text && String(text).trim()) {
           console.warn(`[AI Routing] Last-resort ${provider.name} succeeded.`);
           return text;
         }
       } catch (e: any) {
         lastErr = e;
-        console.warn(`[AI Routing] Last-resort ${provider.name}/${model} failed:`, e?.response?.data?.error?.message || e?.message);
+        console.warn(`[AI Routing] Last-resort ${provider.name}/${model} failed:`, e?.message);
       }
     }
   }
