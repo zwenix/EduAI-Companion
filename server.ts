@@ -1723,12 +1723,26 @@ const masterPromptFor = (input: any = {}): string =>
     // or a missing key), a Gemini failure surfaces as a 500. Inside the
     // fallback loop the chain calls `attemptGeminiFallback` directly so a
     // Gemini failure rolls on to the next engine (Lightning → Nano).
-    const executeGeminiFallback = async (reason: string) => {
+    // `upstreamError` carries the real provider failure (status + message) so
+    // the client sees the actual upstream cause, not a generic message.
+    const executeGeminiFallback = async (
+      reason: string,
+      upstreamError?: { status: number; message: string },
+    ) => {
       try {
         return await attemptGeminiFallback(reason);
       } catch (err: any) {
         console.error("Gemini fallback also failed:", err);
-        return res.status(500).json({ error: { message: `Both ${provider} and Gemini fallback failed: ${err.message}` } });
+        const upstream = upstreamError
+          ? ` | upstream ${upstreamError.status}: ${upstreamError.message}`
+          : "";
+        return res.status(500).json({
+          error: {
+            message: `Both ${provider} and Gemini fallback failed: ${err.message}${upstream}`,
+            upstreamStatus: upstreamError?.status,
+            upstreamMessage: upstreamError?.message,
+          },
+        });
       }
     };
 
@@ -1883,6 +1897,14 @@ const masterPromptFor = (input: any = {}): string =>
         console.log(`[AI Routing] ${provider} encountered an issue, rolling to the next fallback engine.`);
       }
 
+      // Capture the real upstream failure so the client can see WHY the
+      // provider failed (e.g. NVIDIA returned 500 "A server error has
+      // occurred") instead of only a generic "Both … and Gemini failed".
+      const upstreamError = {
+        status: status,
+        message: String(error.message || error).slice(0, 500),
+      };
+
       // Roll through the ordered reasoning fallback chain
       // (`reasoningFallbacksFor`, src/lib/aiModels.ts): Primary → Secondary →
       // Tertiary → Quaternary → safety net. Gemini is one hop in the chain and
@@ -1910,12 +1932,12 @@ const masterPromptFor = (input: any = {}): string =>
           console.log(`[AI Routing] Fallback engine ${target} also unavailable (${altStatus}) — trying the next one.`);
           if (!budget.canTryAlternative(AI_ROUTE_ALTERNATIVE_MIN_MS)) {
             console.log(`[AI Routing] No route budget left — going straight to Gemini.`);
-            return await executeGeminiFallback(`${provider} fallback chain budget exhausted`);
+            return await executeGeminiFallback(`${provider} fallback chain budget exhausted`, upstreamError);
           }
         }
       }
 
-      return await executeGeminiFallback(`${provider} fallback chain exhausted`);
+      return await executeGeminiFallback(`${provider} fallback chain exhausted`, upstreamError);
     }
   });
 
@@ -3393,6 +3415,36 @@ const masterPromptFor = (input: any = {}): string =>
     } else {
       return res.status(404).send("Splash video not found");
     }
+  });
+
+  // --- Global error handler ------------------------------------------------
+  // Catches ANY error that escapes a route handler's own try/catch. Without
+  // this, an unhandled exception falls through to Express's default handler,
+  // which returns an HTML 500 page — the client then sees a generic body with
+  // no real error detail. This handler always returns JSON with the actual
+  // error message and status so the client (and the teacher) can see what
+  // really went wrong.
+  app.use((err: any, _req: any, res: any, _next: any) => {
+    const status =
+      typeof err?.status === "number" && err.status >= 400 && err.status < 600
+        ? err.status
+        : 500;
+    const message = String(err?.message || err || "Unhandled server error");
+    // Log the full error so Vercel's server logs carry the real cause.
+    console.error(`[Unhandled] ${message}`);
+    if (res.headersSent) {
+      // Response already started — Express will end it; can't change the body.
+      return;
+    }
+    res.status(status).json({
+      error: message,
+      // Surface the upstream status/code when the error carries them (e.g.
+      // an OpenAI SDK APIError from a provider that returned a 4xx/5xx).
+      ...(err?.status && typeof err.status === "number"
+        ? { upstreamStatus: err.status }
+        : {}),
+      ...(err?.code ? { code: err.code } : {}),
+    });
   });
 
   // --- Vite Middleware ---
