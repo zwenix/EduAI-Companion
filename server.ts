@@ -131,8 +131,19 @@ function resolveGeminiKey(): string {
 // alias table live in the shared registry (`src/lib/imageProviders.ts`) so the
 // client and the API can never drift apart; `HUGGINGFACE_IMAGE_MODEL` overrides
 // the slug at runtime. The budget below stays inside the Vercel function
-// ceiling (vercel.json maxDuration: 60).
+// ceiling (vercel.json maxDuration: 120).
 const FLUX_REQUEST_TIMEOUT_MS = 50000;
+
+/**
+ * Reasoning-token cap for the large Nemotron reasoning models (3 Ultra 550B,
+ * 3 Nano) served through NVIDIA NIM. These "reasoning" models can spend a very
+ * large number of tokens on internal thinking before emitting any answer; on
+ * NVIDIA's free tier that latency alone exceeds the serverless budget, so the
+ * call times out (503) before it ever finishes. Bounding the reasoning tokens
+ * (with thinking still enabled) keeps the model's answer within the window.
+ * Injected via the OpenAI-compatible `extra_body` (`reasoning_budget`).
+ */
+const NVIDIA_REASONING_BUDGET_TOKENS = 1800;
 // The raw PNG budget for one response (base64/JSON overhead and the platform's
 // ~4.5 MB response cap leave this headroom).
 const FLUX_MAX_IMAGE_BYTES = 3_200_000;
@@ -1807,6 +1818,21 @@ const masterPromptFor = (input: any = {}): string =>
       payload.temperature = 0.7;
       payload.top_p = 0.95;
 
+      // Cap the reasoning budget for the large Nemotron reasoning models.
+      // A 550B "reasoning" model can spend an enormous number of tokens on
+      // internal thinking before it emits any answer; on NVIDIA's free tier that
+      // latency alone exceeds the serverless budget, so the call times out (503)
+      // before the model ever finishes. Bounding the reasoning tokens (and
+      // keeping thinking enabled so output quality is preserved) makes the model
+      // answer within the window. Applied only to the Nemotron slugs that
+      // actually reason — DeepSeek and the small Nano keep their defaults.
+      if (/nemotron-3-ultra|nemotron-3-nano/i.test(targetModel)) {
+        payload.extra_body = {
+          chat_template_kwargs: { enable_thinking: true },
+          reasoning_budget: NVIDIA_REASONING_BUDGET_TOKENS,
+        };
+      }
+
       // Per-request timeout + no SDK retries: a hung upstream must fail fast so
       // the routing chain can still reach the Gemini fallback.
       const requestOptions = { timeout: attemptTimeoutMs, maxRetries: 0 };
@@ -1839,6 +1865,15 @@ const masterPromptFor = (input: any = {}): string =>
       return await runUpstreamProvider(provider);
     } catch (error: any) {
       const status = error.status || 500;
+      // Capture the TRUE upstream signal: the browser only ever sees our own
+      // 503/500, so log the real provider status, code and message. This is what
+      // distinguishes an upstream model error (4xx/5xx from NVIDIA) from a
+      // local budget timeout (which has no upstream status).
+      console.warn(
+        `[AI Routing] ${provider} upstream failed after ${Date.now() - upstreamStartedAt}ms ` +
+          `(status=${status} code=${error.code ?? '-'} type=${error.type ?? '-'}): ` +
+          `${String(error.message || error).slice(0, 500)}`
+      );
       if (status === 402 || (error.message && String(error.message).includes("afford"))) {
         console.log(`[AI Routing] Provider ${provider} credit budget reached. Rolling to the next fallback engine.`);
       } else if (status !== 500) {

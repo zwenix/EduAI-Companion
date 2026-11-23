@@ -98,7 +98,7 @@ export const NVIDIA_MODELS: Record<string, string> = {
   'nvidia-nemotron-nano': 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
   'nvidia-nemotron-ultra': 'nvidia/nemotron-3-ultra-550b-a55b',
   'nvidia-nemotron-lightning': 'nvidia/nemotron-3.5-lightning-30b-a3b',
-  'nvidia-deepseek': 'deepseek-v4.1-flash',
+  'nvidia-deepseek': 'deepseek-ai/deepseek-v4.1-flash',
 };
 
 /**

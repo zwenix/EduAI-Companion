@@ -950,7 +950,7 @@ export default function Settings({
                                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-black text-xs shrink-0">2</div>
                                <div>
                                   <span className="text-white font-bold text-xs">DeepSeek v4.1 Flash</span>
-                                  <p className="text-[10px] text-slate-400 mt-1">NVIDIA NIM (deepseek-v4.1-flash) • Fallback: Gemini → Nemotron 3.5 Lightning</p>
+                                  <p className="text-[10px] text-slate-400 mt-1">NVIDIA NIM (deepseek-ai/deepseek-v4.1-flash) • Fallback: Gemini → Nemotron 3.5 Lightning</p>
                                </div>
                             </div>
                          </div>

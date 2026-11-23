@@ -380,7 +380,7 @@ Per `AGENTS.md` §1, only the following models are permitted for text generation
 | Provider id | Model | Endpoint |
 | :--- | :--- | :--- |
 | `nvidia-nemotron-ultra` | `nvidia/nemotron-3-ultra-550b-a55b` (**primary** reasoning) | NVIDIA NIM `https://integrate.api.nvidia.com/v1` (`NVIDIA_API_KEY`) |
-| `nvidia-deepseek` | `deepseek-v4.1-flash` (secondary reasoning) | NVIDIA NIM (`NVIDIA_API_KEY`) |
+| `nvidia-deepseek` | `deepseek-ai/deepseek-v4.1-flash` (secondary reasoning) | NVIDIA NIM (`NVIDIA_API_KEY`) |
 | `gemini` | `gemini-3.8-flash` (tertiary reasoning), with the frozen Gemini fallback chain below | Google Gemini API |
 | `nvidia-nemotron-lightning` | `nvidia/nemotron-3.5-lightning-30b-a3b` (quaternary reasoning) | NVIDIA NIM |
 | `nvidia-nemotron-nano` | `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` (final safety net) | NVIDIA NIM |

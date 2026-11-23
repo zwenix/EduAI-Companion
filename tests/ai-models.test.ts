@@ -105,7 +105,7 @@ describe('NVIDIA NIM (Nemotron + DeepSeek)', () => {
     expect(NVIDIA_MODELS['nvidia-nemotron-lightning']).toBe(
       'nvidia/nemotron-3.5-lightning-30b-a3b',
     );
-    expect(NVIDIA_MODELS['nvidia-deepseek']).toBe('deepseek-v4.1-flash');
+    expect(NVIDIA_MODELS['nvidia-deepseek']).toBe('deepseek-ai/deepseek-v4.1-flash');
   });
 
   it('always uses the free NVIDIA NIM endpoint — never Groq/OpenRouter/Alibaba', () => {
@@ -123,7 +123,7 @@ describe('NVIDIA NIM (Nemotron + DeepSeek)', () => {
     expect(isNvidiaNimProvider('nvidia-deepseek')).toBe(true);
     expect(isNvidiaNimProvider('alibaba-qwen')).toBe(false);
     expect(isNvidiaNimProvider('gemini')).toBe(false);
-    expect(resolveProviderModel('nvidia-deepseek')).toBe('deepseek-v4.1-flash');
+    expect(resolveProviderModel('nvidia-deepseek')).toBe('deepseek-ai/deepseek-v4.1-flash');
   });
 });
 
