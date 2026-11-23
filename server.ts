@@ -38,6 +38,7 @@ import {
   reasoningFallbacksFor,
   resolveProviderModel,
 } from "./src/lib/aiModels";
+import { generateEduContent, StudySetSchema } from "./src/services/eduAiService";
 import express from "express";
 import path from "path";
 import fs from "fs";
@@ -3348,6 +3349,36 @@ const masterPromptFor = (input: any = {}): string =>
 
       console.error(`Gemini server error for action '${action}':`, errMsg);
       return res.status(status).json({ error: errMsg || "Failed to execute server-side action." });
+    }
+  });
+
+  // --- Two-Model NVIDIA NIM Routing (structured JSON + multimodal) ----------
+  // Server-side only: routes text/reasoning to Nemotron Lightning and vision
+  // inputs to Super-VL, with OpenRouter + Gemini as fallback tiers. Enforces a
+  // strict JSON schema and re-validates with Zod so malformed quiz/flashcard
+  // arrays never reach the frontend. Never imported by client components.
+  app.post("/api/edu-ai/generate", async (req, res) => {
+    const { prompt, gradeLevel, imageBase64, enableReasoning } = req.body || {};
+    if (!prompt || typeof prompt !== "string") {
+      return res.status(400).json({ error: "Prompt is required" });
+    }
+    try {
+      const studySet = await generateEduContent({
+        prompt,
+        gradeLevel,
+        imageBase64,
+        enableReasoning,
+      });
+      // Zod has already validated the shape inside generateEduContent; this is
+      // the authoritative server-side gate before anything reaches the UI.
+      const validated = StudySetSchema.parse(studySet);
+      return res.json(validated);
+    } catch (error: any) {
+      const status = error?.status && error.status >= 400 ? error.status : 500;
+      console.error(`[EduAI] /api/edu-ai/generate failed:`, error?.message || error);
+      return res.status(status).json({
+        error: error?.message || "EduAI content generation failed on all tiers.",
+      });
     }
   });
 
