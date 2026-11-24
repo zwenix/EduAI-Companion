@@ -26,14 +26,17 @@ import {
   withDeadline,
 } from "./src/lib/aiRouteBudget";
 import {
+  DEFAULT_AI_PROVIDER,
   GEMINI_MODEL_CHAIN,
   NVIDIA_BASE_URL,
-  QWEN_BASE_URL,
-  QWEN_DEFAULT_MODEL,
-  alternativeProviderFor,
-  isLegacyProvider,
-  isNemotronProvider,
+  VISION_PROVIDERS,
+  fallbackChainFor,
+  isNimProvider,
+  isNimVisionProvider,
+  nimRequestDefaultsFor,
+  normalizeProviderId,
   resolveProviderModel,
+  visionFallbackChainFor,
 } from "./src/lib/aiModels";
 import express from "express";
 import path from "path";
@@ -92,33 +95,10 @@ function resolveNvidiaKey(): string {
   return "m9NrbqtXvcDW8q-8SI11X4Gd-CDZKm70pq1-qPGy6V2wrOnpUHOWBiNMQUlkJMPy-ipavn".split("").reverse().join("");
 }
 
-// Alibaba Cloud Model Studio (Qwen 3.8) — OpenAI-compatible workspace endpoint.
-// The default is the workspace-scoped host from the Model Studio API key dialog;
-// override with ALIBABA_API_BASE if the workspace/region changes.
-const ALIBABA_DEFAULT_BASE_URL = QWEN_BASE_URL;
-
-function resolveAlibabaBaseURL(): string {
-  const base = (process.env.ALIBABA_API_BASE || process.env.DASHSCOPE_BASE_URL || ALIBABA_DEFAULT_BASE_URL).trim().replace(/\/+$/, "");
-  return base;
-}
-
-function resolveAlibabaKey(): string {
-  const keys = [
-    process.env.ALIBABA_API_KEY,
-    process.env.VITE_ALIBABA_API_KEY,
-    process.env.DASHSCOPE_API_KEY,
-  ];
-  for (const key of keys) {
-    if (key && key !== "dummy" && key !== "undefined" && key.trim() !== "") {
-      return key.trim().replace(/^['"\s]+|['"\s]+$/g, "");
-    }
-  }
-  // Final fallback: the same baked-in Model Studio key that already ships inside
-  // the client bundle / APK (see src/lib/aiSecrets.ts — stored reversed so the
-  // repo passes secret scanning). Keeps Qwen 3.8 working on deployments where
-  // no ALIBABA_API_KEY env var has been configured.
-  return "wCtYdQVHIFSLbTozGFwd2Y-uwWrZ45WYxS2uDeDZ8VagIwTpc9WRUYD83BWG4dMcH_e7OSP-T2kwz2rdt1NKx0OZCQICUEM.38xk.MLMYLDD.H-sw-ks".split("").reverse().join("");
-}
+// Alibaba Cloud Model Studio (Qwen 3.8 Max) is REMOVED. Every non-Gemini text
+// model — Nemotron 3 Ultra (primary), DeepSeek V4.1 Flash, Nemotron 3.5
+// Lightning, Nemotron 3 Nano — and both vision models are served by the single
+// NVIDIA NIM client below. There is no Alibaba key, base URL or client anymore.
 
 function resolveGeminiKey(): string {
   const keys = [
@@ -1090,40 +1070,9 @@ const masterPromptFor = (input: any = {}): string =>
 
   // --- AI Provider Clients ---
 
-  let cachedAlibabaClient: OpenAI | null = null;
-  let cachedAlibabaKey: string | null = null;
-
-  function getAlibabaClient(): OpenAI {
-    const currentKey = resolveAlibabaKey();
-    if (cachedAlibabaClient && cachedAlibabaKey === currentKey) {
-      return cachedAlibabaClient;
-    }
-    cachedAlibabaKey = currentKey;
-    cachedAlibabaClient = new OpenAI({
-      apiKey: currentKey || "dummy",
-      baseURL: resolveAlibabaBaseURL(),
-      // Fail fast when the upstream gateway hangs (connection errors / 504s).
-      // Serverless hosts (e.g. Vercel, 60s cap) kill the whole function if we
-      // wait on a stuck upstream, which prevented the built-in Gemini fallback
-      // from ever running. The timer is cleared once response headers arrive,
-      // so legitimate long generations and streaming are unaffected.
-      timeout: AI_ROUTE_PROVIDER_TIMEOUT_MS,
-      maxRetries: 0,
-    });
-    return cachedAlibabaClient;
-  }
-
-  const alibaba = new Proxy({} as OpenAI, {
-    get(target, prop) {
-      const client = getAlibabaClient();
-      const value = Reflect.get(client, prop);
-      if (typeof value === 'function') {
-        return value.bind(client);
-      }
-      return value;
-    }
-  });
-
+  // The one and only alternative-engine client: NVIDIA NIM. It serves the
+  // reasoning chain (Ultra → DeepSeek → Lightning → Nano) and the vision chain
+  // (Super VL → Llama 90B Vision), with exact slugs from the frozen registry.
   let cachedNvidiaClient: OpenAI | null = null;
   let cachedNvidiaKey: string | null = null;
 
@@ -1586,8 +1535,15 @@ const masterPromptFor = (input: any = {}): string =>
 
   // Generic content generation proxy for OpenAI-compatible APIs
   app.post("/api/ai/:provider", async (req, res) => {
-    const { provider } = req.params;
-    const { messages, model, temperature = 0.7, max_tokens, max_completion_tokens, stream } = req.body;
+    const requestedProvider = String(req.params.provider || "");
+    // Vision ids are their own chain; reasoning ids (including retired Qwen-era
+    // aliases) are normalised so a stale caller can never start on Qwen.
+    const provider = (VISION_PROVIDERS as readonly string[]).includes(requestedProvider)
+      ? requestedProvider
+      : requestedProvider === "gemini"
+        ? "gemini"
+        : normalizeProviderId(requestedProvider);
+    const { messages, model, temperature, max_tokens, max_completion_tokens, stream } = req.body;
 
     // One shared budget for the whole routing chain (requested provider →
     // sibling engine → Gemini). Vercel kills the function after 60s and
@@ -1706,74 +1662,39 @@ const masterPromptFor = (input: any = {}): string =>
         });
       } catch (err: any) {
         console.error("Gemini fallback also failed:", err);
-        return res.status(500).json({ error: { message: `Both ${provider} and Gemini fallback failed: ${err.message}` } });
+        // Re-throw so the frozen chain can still try the remaining engines
+        // (e.g. Nemotron 3.5 Lightning) instead of dead-ending on Gemini.
+        throw err;
       }
     };
 
-    if (provider === "gemini") {
-      return await executeGeminiFallback("Direct Gemini Request");
-    }
+    // ── Frozen fallback chain ───────────────────────────────────────────────
+    // Reasoning: Nemotron 3 Ultra → DeepSeek V4.1 Flash → Gemini → Lightning.
+    // Vision:    Super VL → Llama 3.2 90B Vision → Gemini (OCR.space is a
+    //            client-side extractor, not an LLM endpoint).
+    // Every hop is capped by the shared route budget; Gemini keeps its reserve.
+    const chain: string[] = isNimVisionProvider(provider)
+      ? [provider, ...visionFallbackChainFor(provider)]
+      : [provider, ...fallbackChainFor(provider)];
+    const attemptOrder = chain
+      .filter((id) => id !== "ocrspace" && (id === "gemini" || isNimProvider(id)))
+      .filter((id, index, all) => all.indexOf(id) === index);
 
-    let client: OpenAI | null = null;
-    let apiKey = "";
+    const nvidiaKey = resolveNvidiaKey();
+    const hasNvidiaKey = Boolean(nvidiaKey) && nvidiaKey !== "dummy" && nvidiaKey !== "undefined";
 
-    switch (provider) {
-      case "nvidia-nemotron-nano":
-      case "nvidia-nemotron-ultra":
-      case "nvidia-nemotron-lightning":
-        // New NVIDIA NIM Nemotron models — route to NVIDIA endpoint
-        client = nvidia;
-        apiKey = resolveNvidiaKey();
-        break;
-      case "nvidia-nemotron":
-      case "nvidia-nemotron-ultra-legacy":
-      case "groq-qwen":
-        // Legacy ids: the NVIDIA Nemotron LLMs were replaced by Qwen 3.8 Max
-        // (Alibaba Model Studio) — route them to the same engine.
-      case "alibaba-qwen":
-        client = alibaba;
-        apiKey = resolveAlibabaKey();
-        break;
-    }
-
-    if (!apiKey || apiKey === "dummy" || apiKey === "undefined") {
-      const neededKey = isNemotronProvider(provider)
-        ? 'NVIDIA_API_KEY'
-        : (isLegacyProvider(provider) || provider.startsWith('alibaba'))
-        ? 'ALIBABA_API_KEY'
-        : 'API_KEY';
-      return await executeGeminiFallback(`${neededKey} is not configured.`);
-    }
-
-    let finalModel = model;
-
-    // Never forward a legacy provider id or NVIDIA model slug to Model Studio.
-    if (finalModel && (finalModel === provider || /nemotron|nvidia\//i.test(finalModel))) {
-      finalModel = undefined;
-    }
-
-    // Default model slug per provider id (exact models — see AGENTS.md §1 and
-    // the shared frozen registry in src/lib/aiModels.ts).
+    // A caller-supplied model is deliberately ignored: the exact slug always
+    // comes from the frozen registry, so a stale Qwen slug can never be sent.
     const defaultModelFor = (p: string) => resolveProviderModel(p);
 
-    // When one alternative engine is down (gateway timeout / 5xx / rate
-    // limit), the helper `alternativeProviderFor` (src/lib/aiModels.ts) names
-    // the sibling engine to try once before spending the remaining time budget
-    // on the Gemini fallback.
-
-    const clientFor = (p: string): OpenAI => (
-      isNemotronProvider(p) ? nvidia : alibaba
-    );
-
-    // Sends the request to one alternative provider and writes the response
-    // (streaming or JSON) to `res`. Throws on failure.
     const runUpstreamProvider = async (targetProvider: string) => {
-      const targetClient = clientFor(targetProvider);
-      // A caller-supplied model is only forwarded to the originally requested
-      // provider; sibling engines always use their own exact default slug.
-      const targetModel = targetProvider === provider
-        ? (finalModel || defaultModelFor(targetProvider))
-        : defaultModelFor(targetProvider);
+      if (!hasNvidiaKey) {
+        throw Object.assign(new Error("NVIDIA_API_KEY is not configured."), { status: 400 });
+      }
+      const targetModel = defaultModelFor(targetProvider);
+      if (!targetModel) {
+        throw Object.assign(new Error(`No frozen model slug for ${targetProvider}.`), { status: 400 });
+      }
 
       // Every attempt is capped by the shared route budget so the chain can
       // never outlive the serverless function (which ends in a bare HTTP 504).
@@ -1788,91 +1709,88 @@ const masterPromptFor = (input: any = {}): string =>
         );
       }
 
+      // Model-card defaults (temperature / top_p / max_tokens / thinking flags)
+      // come from the frozen registry. A caller may override temperature and
+      // max_tokens, but never the exact model slug or the thinking settings.
+      const requestDefaults = nimRequestDefaultsFor(targetProvider);
       const payload: any = {
+        ...requestDefaults,
         model: targetModel,
         messages,
-        temperature,
       };
-
-      // JSON mode is handled by prompt instruction
-
-      // Set max_tokens sensibly per provider to avoid credit limit 402s / truncation
-      const requestedMaxTokens = max_tokens || max_completion_tokens;
-      if (targetProvider === "nvidia-nemotron-nano" || targetProvider === "nvidia-nemotron-ultra" || targetProvider === "nvidia-nemotron-lightning") {
-        // NVIDIA NIM Nemotron models
-        payload.max_tokens = requestedMaxTokens || 16384;
-        payload.temperature = 0.7;
-        payload.top_p = 0.95;
-      } else {
-        // Qwen 3.8 Max (Alibaba Model Studio) / legacy ids
-        payload.max_tokens = requestedMaxTokens || 16384;
-        payload.temperature = 0.7;
-        payload.top_p = 0.95;
+      if (typeof temperature === "number") payload.temperature = temperature;
+      const requestedMaxTokens = Number(max_tokens || max_completion_tokens);
+      if (Number.isFinite(requestedMaxTokens) && requestedMaxTokens > 0) {
+        // Never exceed the model-card default (e.g. Llama Vision's 4096).
+        payload.max_tokens = Math.min(
+          Math.floor(requestedMaxTokens),
+          requestDefaults.max_tokens,
+        );
       }
-
-      // Per-request timeout + no SDK retries: a hung upstream must fail fast so
-      // the routing chain can still reach the Gemini fallback.
       const requestOptions = { timeout: attemptTimeoutMs, maxRetries: 0 };
 
       if (stream) {
         payload.stream = true;
-        const completion = await targetClient.chat.completions.create(payload, requestOptions);
+        const completion = await nvidia.chat.completions.create(payload, requestOptions);
         res.setHeader("Content-Type", "text/event-stream");
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Connection", "keep-alive");
         if (res.flushHeaders) res.flushHeaders();
         let fullText = "";
+        let reasoningText = "";
         for await (const chunk of completion as any) {
-          const content = chunk.choices?.[0]?.delta?.content || "";
+          const delta = chunk.choices?.[0]?.delta || {};
+          const content = delta.content || "";
           if (content) {
             fullText += content;
             res.write(`data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`);
           }
+          const reasoning = delta.reasoning_content || "";
+          if (reasoning) reasoningText += reasoning;
+        }
+        // Thinking models may put the answer in `reasoning_content` when no
+        // `content` was emitted; use it as a fallback without exposing the
+        // chain-of-thought alongside a normal answer.
+        if (!fullText && reasoningText) {
+          fullText = reasoningText;
+          res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: reasoningText } }] })}\n\n`);
         }
         res.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }], done: true, final: fullText })}\n\n`);
         return res.end();
-      } else {
-        const response = await targetClient.chat.completions.create(payload, requestOptions);
-        return res.json(response);
       }
+
+      const response = await nvidia.chat.completions.create(payload, requestOptions);
+      return res.json(response);
     };
 
-    const upstreamStartedAt = Date.now();
-    try {
-      return await runUpstreamProvider(provider);
-    } catch (error: any) {
-      const status = error.status || 500;
-      if (status === 402 || (error.message && String(error.message).includes("afford"))) {
-        console.log(`[AI Routing] Provider ${provider} credit budget reached. Automatically routing to Gemini.`);
-      } else if (status !== 500) {
-        console.log(`[AI Routing] ${provider} API returned status ${status}, routing to fallback engine.`);
-      } else {
-        console.log(`[AI Routing] ${provider} encountered an issue, routing to fallback engine.`);
-      }
-
-      // Gateway-style failures (upstream 5xx, rate limits, DNS / connection
-      // errors) are often isolated to one engine. If the first attempt failed
-      // fast enough that the shared route budget can still fit another
-      // attempt AND still leave the Gemini reserve intact, try one sibling
-      // engine before Gemini.
-      const elapsedMs = Date.now() - upstreamStartedAt;
-      const rawErrMsg = String(error.message || "");
-      const isGatewayFailure = [500, 502, 503, 504, 522, 524, 429].includes(status) ||
-        /timeout|eai_again|enotfound|econn(reset|refused|aborted)|fetch failed|connection error|connection closed|socket disconnected|network/i.test(rawErrMsg);
-      const alternative = alternativeProviderFor(provider);
-      if (alternative && isGatewayFailure && budget.canTryAlternative(AI_ROUTE_ALTERNATIVE_MIN_MS)) {
+    let lastError: any = null;
+    for (const target of attemptOrder) {
+      // Once a streamed response has begun we cannot switch engines mid-flight.
+      if (res.headersSent) break;
+      if (target === "gemini") {
         try {
-          console.log(`[AI Routing] ${provider} unavailable (${status}) after ${elapsedMs}ms — trying alternative engine ${alternative} before Gemini.`);
-          return await runUpstreamProvider(alternative);
-        } catch (altError: any) {
-          console.log(`[AI Routing] Alternative engine ${alternative} also unavailable (${altError.status || 500}) — routing to Gemini.`);
+          return await executeGeminiFallback(
+            lastError ? `fallback after upstream status ${lastError?.status || 500}` : "Direct Gemini Request",
+          );
+        } catch (err: any) {
+          lastError = err;
+          console.log(`[AI Routing] Gemini tier failed — advancing down the frozen chain.`);
         }
-      } else if (alternative && isGatewayFailure) {
-        console.log(`[AI Routing] ${provider} unavailable (${status}) after ${elapsedMs}ms — no route budget left for ${alternative}, going straight to Gemini.`);
+        continue;
       }
-
-      return await executeGeminiFallback(`${provider} API status ${status}`);
+      try {
+        return await runUpstreamProvider(target);
+      } catch (error: any) {
+        lastError = error;
+        const status = error?.status || 500;
+        console.log(`[AI Routing] ${target} failed (${status}) — advancing down the frozen chain.`);
+      }
     }
+
+    if (res.headersSent) return;
+    return res.status(500).json({
+      error: { message: `All AI engines failed: ${lastError?.message || "no engine available"}` },
+    });
   });
 
   app.post("/api/ocr", async (req, res) => {
@@ -2441,7 +2359,7 @@ const masterPromptFor = (input: any = {}): string =>
 
   // --- SA-Compliant Full Package Generation (new) ---
   app.post("/api/sa/generate-package", async (req, res) => {
-    const { request: saRequest, provider = "alibaba-qwen", generateImages = true } = req.body;
+    const { request: saRequest, provider = DEFAULT_AI_PROVIDER, generateImages = true } = req.body;
     if (!saRequest) return res.status(400).json({ error: "SAContentRequest required" });
 
     try {
@@ -2456,43 +2374,53 @@ const masterPromptFor = (input: any = {}): string =>
       const systemPrompt = buildSASystemPrompt(saRequest);
       const userPrompt = buildSAUserPrompt(saRequest);
 
-      // Try Qwen 3.8 (Alibaba Model Studio) first, then Gemini fallback
+      // Walk the frozen reasoning chain: Nemotron 3 Ultra → DeepSeek V4.1 Flash
+      // → Gemini → Nemotron 3.5 Lightning. Every engine has a fallback, and a
+      // retired Qwen id is normalised to DeepSeek before the first attempt.
+      const saProvider = normalizeProviderId(provider);
+      const saChain: string[] = [saProvider, ...fallbackChainFor(saProvider)];
       let rawResponse = "";
-      let usedProvider = provider;
-      try {
-        const alibabaKey = resolveAlibabaKey();
-        if (alibabaKey) {
-          const client = new OpenAI({
-            apiKey: alibabaKey,
-            baseURL: resolveAlibabaBaseURL()
-          });
-          const model = QWEN_DEFAULT_MODEL;
-          const completion = await client.chat.completions.create({
-            model,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt }
-            ],
-            temperature: 0.7,
-            max_tokens: 16384
-          } as any);
-          rawResponse = (completion as any).choices?.[0]?.message?.content || "";
-        } else {
-          throw new Error("No ALIBABA_API_KEY (Model Studio) configured");
-        }
-      } catch (err: any) {
-        console.warn(`SA package text generation via ${provider} failed (${err.message}), falling back to Gemini...`);
-        usedProvider = "gemini";
-        const geminiResponse = await geminiGenerateWithFallback({
-          contents: [
-            { role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }
-          ],
-          config: {
-            responseMimeType: "application/json",
-            maxOutputTokens: GEMINI_CONTENT_OUTPUT_TOKENS
+      let usedProvider: string = saProvider;
+      let lastError: any = null;
+
+      for (const engine of saChain) {
+        try {
+          if (engine === "gemini") {
+            const geminiResponse = await geminiGenerateWithFallback({
+              contents: [
+                { role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }
+              ],
+              config: {
+                responseMimeType: "application/json",
+                maxOutputTokens: GEMINI_CONTENT_OUTPUT_TOKENS
+              }
+            });
+            rawResponse = geminiResponse.text || "";
+          } else {
+            const completion = await nvidia.chat.completions.create({
+              ...nimRequestDefaultsFor(engine),
+              model: resolveProviderModel(engine),
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt }
+              ]
+            } as any);
+            const completionMessage = (completion as any).choices?.[0]?.message || {};
+            rawResponse = completionMessage.content || completionMessage.reasoning_content || "";
           }
+          if (!rawResponse.trim()) throw new Error(`${engine} returned an empty completion`);
+          usedProvider = engine;
+          break;
+        } catch (err: any) {
+          lastError = err;
+          console.warn(`[SA package] ${engine} failed (${err?.message || err}), advancing down the frozen chain...`);
+        }
+      }
+
+      if (!rawResponse.trim()) {
+        return res.status(500).json({
+          error: `All SA content engines failed: ${lastError?.message || "unknown error"}`,
         });
-        rawResponse = geminiResponse.text || "";
       }
 
       const parsed = safeJsonParse(rawResponse);

@@ -9,6 +9,15 @@ import {
 } from 'lucide-react';
 import { IconSettings, IconLogout } from './LocalIcons';
 import { useAi } from '../contexts/AiContext';
+import {
+  AI_PROVIDER_LABELS,
+  NVIDIA_MODELS,
+  fallbackChainFor,
+  REASONING_CHAIN,
+  VISION_PROVIDER_LABELS,
+  VISION_PROVIDERS,
+  resolveProviderModel,
+} from '../lib/aiModels';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
@@ -934,25 +943,36 @@ export default function Settings({
                    <div className="p-8 rounded-[40px] border border-white/5 bg-white/5 space-y-6">
                       <div>
                          <h4 className="text-white font-bold text-base mb-1">Text Generation Engine</h4>
-                         <p className="text-slate-400 text-xs mb-4">Primary reasoning and lesson authoring engine. Alternative models fall back to Gemini automatically.</p>
+                         <p className="text-slate-400 text-xs mb-4">Nemotron 3 Ultra (NVIDIA NIM) is the primary reasoning engine. On any error the app walks the frozen chain: Ultra → DeepSeek V4.1 Flash → Gemini → Nemotron 3.5 Lightning. Qwen 3.8 Max is removed.</p>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div className="p-4 rounded-2xl border border-brand-cyan/40 bg-brand-cyan/10 flex items-start gap-3">
-                               <div className="w-8 h-8 rounded-xl bg-brand-cyan/20 flex items-center justify-center text-brand-cyan font-black text-xs shrink-0">1</div>
-                               <div>
-                                  <div className="flex items-center gap-2">
-                                     <span className="text-white font-bold text-xs">Gemini 3.8 Flash</span>
-                                     <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase">Primary</span>
+                            {REASONING_CHAIN.map((id, index) => (
+                               <div key={id} className={`p-4 rounded-2xl border flex items-start gap-3 ${index === 0 ? 'border-brand-cyan/40 bg-brand-cyan/10' : 'border-white/10 bg-navy-dark/40'}`}>
+                                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${index === 0 ? 'bg-brand-cyan/20 text-brand-cyan' : 'bg-emerald-500/20 text-emerald-400'}`}>{index + 1}</div>
+                                  <div>
+                                     <div className="flex items-center gap-2">
+                                        <span className="text-white font-bold text-xs">{AI_PROVIDER_LABELS[id]}</span>
+                                        {index === 0 && <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase">Primary</span>}
+                                     </div>
+                                     <p className="text-[10px] text-slate-400 mt-1">{resolveProviderModel(id)} • Fallback: {AI_PROVIDER_LABELS[fallbackChainFor(id)[0] ?? 'gemini']}</p>
                                   </div>
-                                  <p className="text-[10px] text-slate-400 mt-1">Latest GA Flash model · CAPS Lesson Planning, Auto-Grading & Voice Tutor</p>
                                </div>
-                            </div>
-                            <div className="p-4 rounded-2xl border border-white/10 bg-navy-dark/40 flex items-start gap-3">
-                               <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-black text-xs shrink-0">2</div>
-                               <div>
-                                  <span className="text-white font-bold text-xs">Qwen 3.8 Max</span>
-                                  <p className="text-[10px] text-slate-400 mt-1">Alibaba Model Studio (qwen3.8-max) • Fallback: Gemini</p>
+                            ))}
+                         </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-white/5">
+                         <h4 className="text-white font-bold text-base mb-1">Vision / OCR Engine</h4>
+                         <p className="text-slate-400 text-xs mb-4">Nemotron 3.5 Super VL reads scanned worksheets, diagrams and handwriting first. Every tier has a fallback, ending with the keyless OCR.space engine.</p>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {VISION_PROVIDERS.map((id, index) => (
+                               <div key={id} className={`p-4 rounded-2xl border flex items-start gap-3 ${index === 0 ? 'border-brand-cyan/40 bg-brand-cyan/10' : 'border-white/10 bg-navy-dark/40'}`}>
+                                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${index === 0 ? 'bg-brand-cyan/20 text-brand-cyan' : 'bg-emerald-500/20 text-emerald-400'}`}>{index + 1}</div>
+                                  <div>
+                                     <span className="text-white font-bold text-xs">{VISION_PROVIDER_LABELS[id]}</span>
+                                     <p className="text-[10px] text-slate-400 mt-1">{(NVIDIA_MODELS as Record<string, string>)[id] || resolveProviderModel(id)}</p>
+                                  </div>
                                </div>
-                            </div>
+                            ))}
                          </div>
                       </div>
 

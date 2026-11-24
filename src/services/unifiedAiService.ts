@@ -1,4 +1,4 @@
-import { 
+import {
   generateEducationalContent as geminiGenerateContent,
   generateCAPSContent as geminiGenerateCAPS,
   generateVisualAid as geminiGenerateVisual,
@@ -11,28 +11,48 @@ import {
   safeJsonParse
 } from './geminiService';
 
-import { callMultiAi, performOCR, AIProvider } from './multiAiService';
+import { callMultiAi, callVisionAi, performOCR } from './multiAiService';
+import {
+  DEFAULT_AI_PROVIDER,
+  DEFAULT_VISION_PROVIDER,
+  fallbackChainFor,
+  normalizeProviderId,
+  visionAttemptOrder,
+  type AIProvider,
+} from '../lib/aiModels';
 import { EduAIPromptEngine } from '../lib/prompt-engine';
 import { buildAdminLabPrompts, buildVisualLabPrompts } from '../lib/prompts/lab-prompts';
 import { buildClassicEducationalPrompts } from '../lib/prompts/classic-templates';
 import { resolveContentDesignStyle } from '../lib/contentStyle';
 
+/**
+ * Engine router for text generation, grading and OCR.
+ *
+ * Fallback priority is NOT decided here — it comes from the frozen registry
+ * (`fallbackChainFor()` / `visionAttemptOrder()` in src/lib/aiModels.ts), so the
+ * app can never drift from AGENTS.md §1:
+ *
+ *   reasoning: Nemotron 3 Ultra → DeepSeek V4.1 Flash → Gemini → Lightning
+ *   vision:    Super VL → Llama 3.2 90B Vision → Gemini → OCR.space
+ */
 const isProviderFailure = (error: any): boolean => {
-  const status = error.response?.status || error.status;
-  
+  const status = error?.response?.status || error?.status;
+
   // Extract all possible error message locations
-  const rawMessage = error.message || '';
-  const responseObj = error.response?.data?.error || error.response?.data || '';
-  const responseMessage = typeof responseObj === 'string' 
-    ? responseObj 
+  const rawMessage = error?.message || '';
+  const responseObj = error?.response?.data?.error || error?.response?.data || '';
+  const responseMessage = typeof responseObj === 'string'
+    ? responseObj
     : responseObj?.message || JSON.stringify(responseObj);
   const combinedMessage = `${rawMessage} ${responseMessage}`.toLowerCase();
-  
-  // Any provider failure (status, network, quota, credentials, etc.) should fall back to Gemini
-  const isTransient = 
-    status === 401 || status === 402 || status === 403 || status === 404 || status === 429 ||
+
+  // Any provider failure (status, network, quota, credentials, parse error, …)
+  // moves the request to the next engine in the frozen chain.
+  const isTransient =
+    status === 400 || status === 401 || status === 402 || status === 403 || status === 404 ||
+    status === 408 || status === 422 || status === 429 ||
     status === 500 || status === 502 || status === 503 || status === 504 ||
-    combinedMessage.includes('quota') || 
+    combinedMessage.includes('quota') ||
     combinedMessage.includes('timeout') ||
     combinedMessage.includes('network') ||
     combinedMessage.includes('not configured') ||
@@ -41,74 +61,158 @@ const isProviderFailure = (error: any): boolean => {
     combinedMessage.includes('unavailable') ||
     combinedMessage.includes('transitioning') ||
     combinedMessage.includes('fallback') ||
-    combinedMessage.includes('invalid key');
+    combinedMessage.includes('invalid key') ||
+    combinedMessage.includes('unsupported');
 
   if (isTransient) {
-    console.log(`[AI Routing] Alternative model requested fallback (${status || 'N/A'}). Seamlessly routing to Gemini.`);
+    console.log(`[AI Routing] Engine requested fallback (${status || 'N/A'}). Advancing down the frozen chain.`);
   } else {
-    console.log(`[AI Routing] Routing request to primary Gemini fallback.`);
+    console.log(`[AI Routing] Advancing down the frozen chain after an engine error.`);
   }
-  
+
   return true;
 };
 
-export const generateEducationalContent = async (type: string, details: string, provider: string = 'gemini') => {
-  if (provider === 'gemini') {
+/**
+ * Run `attempt` against every engine in the frozen chain, starting at the
+ * selected engine. Guarantees at least one fallback for every model, on ANY
+ * error (including unexpected parse errors).
+ */
+const routeWithFallback = async <T>(
+  provider: string,
+  handlers: {
+    gemini: () => Promise<T>;
+    alternative: (provider: AIProvider) => Promise<T>;
+  },
+): Promise<T> => {
+  const start = normalizeProviderId(provider);
+  const order: string[] = [start, ...fallbackChainFor(start)];
+  let lastError: any;
+
+  for (const engine of order) {
     try {
-      return await geminiGenerateContent(type, details);
-    } catch (err: any) {
-      if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8)...");
-        provider = 'alibaba-qwen';
-      } else {
-        throw err;
-      }
+      return engine === 'gemini'
+        ? await handlers.gemini()
+        : await handlers.alternative(engine as AIProvider);
+    } catch (error: any) {
+      lastError = error;
+      if (!isProviderFailure(error)) throw error;
     }
   }
-  
-  // `classic` (the default) restores the original commit 6d3f1d2 brief so the
-  // alternative engines ask for the same design as the Gemini path.
+
+  throw lastError ?? new Error('Every reasoning engine failed');
+};
+
+/* ── Vision / OCR helpers ──────────────────────────────────────────────────── */
+
+const DATA_URL = /^data:([^;,]+)?(;base64)?,/;
+
+const isDocxItem = (item: string): boolean => {
+  const mime = String(item).match(DATA_URL)?.[1] ?? '';
+  return /wordprocessingml|msword|officedocument|docx/i.test(mime);
+};
+
+/** `data:` URLs pass through; a bare base64 blob becomes a JPEG data URL. */
+const toImageUrl = (item: string): string => {
+  if (item.startsWith('data:')) return item;
+  return `data:image/jpeg;base64,${item}`;
+};
+
+/**
+ * Build an OpenAI-compatible vision message. NIM vision models accept
+ * `image_url` parts exactly like this, on the proxy and in the APK alike.
+ * DOCX uploads cannot be read by a vision model and are handled by the Gemini
+ * path instead, so they are filtered out here.
+ */
+const buildVisionMessages = (imageData: string | string[], prompt: string): any[] | null => {
+  const items = (Array.isArray(imageData) ? imageData : [imageData]).filter(Boolean) as string[];
+  const images = items.filter((item) => !isDocxItem(item) && !/^data:application\//.test(item));
+  if (images.length === 0) return null;
+  return [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: prompt },
+        ...images.map((url) => ({ type: 'image_url', image_url: { url: toImageUrl(url) } })),
+      ],
+    },
+  ];
+};
+
+const ocrScanPrompt = (language: string, isHandwritten: boolean): string =>
+  `Extract all text from the attached page/s or document accurately, assuming the text is in ${language}.\n` +
+  (isHandwritten
+    ? 'The image/document contains handwritten notes, assessments, or drawings. Use professional Multimodal Handwriting Recognition to transcribe printed text, cursive handwriting, math symbols, annotations, and notes precisely.\n'
+    : '') +
+  'Format it cleanly. Make no other comments.';
+
+const ocrGradePrompt = (rubric: string, isHandwritten: boolean, behavioralAspects?: string[], adjustLateSubmission?: boolean): string => {
+  let behaviorPrompt = '';
+  if (behavioralAspects && Array.isArray(behavioralAspects) && behavioralAspects.length > 0) {
+    behaviorPrompt = `\n- Evaluate the student's submission on these behavioral/work habit dimensions: ${behavioralAspects.join(', ')}. Analyze their work layout, structure, and handwriting quality to provide a dedicated, supportive "Learning Behavior & Focus Feedback" section in the overall feedback.`;
+  }
+  if (adjustLateSubmission) {
+    behaviorPrompt += `\n- Special Context: This was submitted late, or as a redo attempt. Maintain rigorous academic scoring standards, but add a supportive, encouraging remark acknowledging their initiative to catch up or refine their work.`;
+  }
+
+  return `You are an AI Grader and South African CAPS Curriculum Specialist. Analyze these student assessment page/s.
+
+TASK 1: MEMORANDUM & RUBRIC QUALITY CHECK & AUTO-GENERATION
+- You are supplied with this Teacher's Memorandum/Rubric: "${rubric || ''}".
+- IF the supplied Memorandum/Rubric is missing, blank, or extremely brief: generate a comprehensive, detailed Memorandum and grading rubric mapped to CAPS criteria, describe this in 'memoCorrectionReport', set 'originalMemoCorrected' to true and return it in 'correctedMemo'.
+- IF a Memorandum/Rubric IS supplied: review it for correctness, spelling, factual errors, marks allotment and CAPS alignment; correct issues, describe them in 'memoCorrectionReport', set 'originalMemoCorrected' accordingly and return it in 'correctedMemo'.
+
+TASK 2: EVALUATION AND GRADING
+- Extract all text answers from the student's submission pages and return them in 'extractedText'.
+- Evaluate each answer against the verified/generated memorandum/rubric.${behaviorPrompt}
+- ${isHandwritten ? "The student's inputs may be handwritten. Apply deep Handwriting Recognition (HWR) and optical reading; be forgiving on cursive forms, crossed-out errors and mathematical symbols." : ''}
+- Sum the total obtained score as a string in 'totalScore' (e.g. "18/25" or "72%").
+- List marks and reasoning per question in 'marksPerQuestion'.
+- Provide constructive, encouraging feedback for the learner in 'feedback'.
+
+Return a valid JSON object with keys: extractedText (string), marksPerQuestion (array of strings), feedback (string), totalScore (string), originalMemoCorrected (boolean), memoCorrectionReport (string), correctedMemo (string).`;
+};
+
+const getOcrSpaceLangCode = (lang: string) => {
+  const map: Record<string, string> = {
+    'English': 'eng',
+    'Spanish': 'spa',
+    'French': 'fre',
+    'German': 'ger',
+    'Afrikaans': 'afr',
+  };
+  return map[lang] || 'eng';
+};
+
+/* ── Text / reasoning generation ───────────────────────────────────────────── */
+
+export const generateEducationalContent = async (type: string, details: string, provider: string = DEFAULT_AI_PROVIDER) => {
+  // `classic` (the default) restores the original commit 6d3f1d2 brief so all
+  // engines ask for the same design.
   const classicPair = buildClassicEducationalPrompts({ type, details });
   const isClassic = resolveContentDesignStyle({}) === 'classic';
   const messages = [
-    { 
-      role: 'system', 
+    {
+      role: 'system',
       content: isClassic
         ? classicPair.system
-        : `${LIGHT_MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN.` 
+        : `${LIGHT_MASTER_SYSTEM_PROMPT}\n\nYour task is to generate high-quality educational materials: ${type}.\nThe content must be strictly CAPS aligned, professionally formatted in HTML with Tailwind CSS, and ready for classroom use. DO NOT USE MARKDOWN.`
     },
-    { 
-      role: 'user', 
+    {
+      role: 'user',
       content: isClassic
         ? classicPair.user
-        : `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design).` 
+        : `Generate a ${type} based on the following details: ${details}. Format as valid HTML with Tailwind CSS classes. Follow the EduAI design style (colored banners, pill-shaped blocks, distinct sections, vibrant design).`
     }
   ];
-  try {
-    return await callMultiAi(provider as AIProvider, messages);
-  } catch (error: any) {
-    if (isProviderFailure(error)) {
-      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
-      return await geminiGenerateContent(type, details);
-    }
-    throw error;
-  }
+
+  return await routeWithFallback<string>(provider, {
+    gemini: () => geminiGenerateContent(type, details),
+    alternative: (engine) => callMultiAi(engine, messages),
+  });
 };
 
-export const generateCAPSContent = async (input: any, provider: string = 'gemini', onProgress?: (partial: any) => void) => {
-  if (provider === 'gemini') {
-    try {
-      return await geminiGenerateCAPS(input, onProgress);
-    } catch (err: any) {
-      if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8)...");
-        provider = 'alibaba-qwen';
-      } else {
-        throw err;
-      }
-    }
-  }
-  
+export const generateCAPSContent = async (input: any, provider: string = DEFAULT_AI_PROVIDER, onProgress?: (partial: any) => void) => {
   const isLessonPlan = ['Lesson Plan', 'Weekly Lesson Plan', 'Unit Plan', 'lesson-plan'].includes(input.contentType);
   const isStudyGuide = ['Study Guide / Learning Notes', 'Revision Pack', 'Daily Lesson Notes', 'Learning Activity'].includes(input.contentType);
 
@@ -129,8 +233,8 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
     duration: input.duration || '2 hours',
     capsReference: input.capsReference || '',
     includeWorksheet: !!input.includeWorksheet,
-    isGroq: provider.startsWith('groq'),
-    // SA Compliance extensions — NEW
+    isGroq: false,
+    // SA Compliance extensions
     assessmentType: input.assessmentType || input.type || 'worksheet',
     isFormal: !!input.isFormal,
     includeInclusiveSupport: !!input.inclusiveEd || !!input.includeInclusiveSupport,
@@ -150,229 +254,200 @@ export const generateCAPSContent = async (input: any, provider: string = 'gemini
     { role: 'system', content: system },
     { role: 'user', content: user }
   ];
-  try {
-    const response = await callMultiAi(provider as AIProvider, messages);
-    const parsed = safeJsonParse(response);
-    if (Object.keys(parsed).length === 0) {
-      console.warn("safeJsonParse returned empty object for response:", response);
-      return { content: response, imagePrompt: "Educational classroom scene" };
-    }
-    return parsed;
-  } catch (error: any) {
-    if (isProviderFailure(error)) {
-      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
-      return await geminiGenerateCAPS(input, onProgress);
-    }
-    throw error;
-  }
+
+  return await routeWithFallback<any>(provider, {
+    gemini: () => geminiGenerateCAPS(input, onProgress),
+    alternative: async (engine) => {
+      const response = await callMultiAi(engine, messages);
+      const parsed = safeJsonParse(response);
+      if (Object.keys(parsed).length === 0) {
+        console.warn("safeJsonParse returned empty object for response:", response);
+        return { content: response, imagePrompt: "Educational classroom scene" };
+      }
+      return parsed;
+    },
+  });
 };
 
-export const generateVisualAid = async (input: any, provider: string = 'gemini', onProgress?: (partial: any) => void) => {
-  if (provider === 'gemini') {
-    try {
-      return await geminiGenerateVisual(input, onProgress);
-    } catch (err: any) {
-      if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8)...");
-        provider = 'alibaba-qwen';
-      } else {
-        throw err;
-      }
-    }
-  }
-
+export const generateVisualAid = async (input: any, provider: string = DEFAULT_AI_PROVIDER, onProgress?: (partial: any) => void) => {
   const { system, user } = buildVisualLabPrompts(input);
   const messages = [
     { role: 'system', content: system },
     { role: 'user', content: user }
   ];
-  try {
-    const response = await callMultiAi(provider as AIProvider, messages);
-    const parsed = safeJsonParse(response);
-    if (Object.keys(parsed).length === 0) {
-      return {
-        content: response,
-        description: 'Visual aid generated',
-        printInstructions: input.dimensions || 'A4 Portrait',
-        imagePrompt: ''
-      };
-    }
-    return parsed;
-  } catch (error: any) {
-    if (isProviderFailure(error)) {
-      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
-      return await geminiGenerateVisual(input, onProgress);
-    }
-    throw error;
-  }
+
+  return await routeWithFallback<any>(provider, {
+    gemini: () => geminiGenerateVisual(input, onProgress),
+    alternative: async (engine) => {
+      const response = await callMultiAi(engine, messages);
+      const parsed = safeJsonParse(response);
+      if (Object.keys(parsed).length === 0) {
+        return {
+          content: response,
+          description: 'Visual aid generated',
+          printInstructions: input.dimensions || 'A4 Portrait',
+          imagePrompt: ''
+        };
+      }
+      return parsed;
+    },
+  });
 };
 
-export const generateAdminDoc = async (input: any, provider: string = 'gemini', onProgress?: (partial: any) => void) => {
-  if (provider === 'gemini') {
-    try {
-      return await geminiGenerateAdmin(input, onProgress);
-    } catch (err: any) {
-      if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8)...");
-        provider = 'alibaba-qwen';
-      } else {
-        throw err;
-      }
-    }
-  }
-
+export const generateAdminDoc = async (input: any, provider: string = DEFAULT_AI_PROVIDER, onProgress?: (partial: any) => void) => {
   const { system, user } = buildAdminLabPrompts(input);
   const messages = [
     { role: 'system', content: system },
     { role: 'user', content: user }
   ];
-  try {
-    const response = await callMultiAi(provider as AIProvider, messages);
-    const parsed = safeJsonParse(response);
-    if (Object.keys(parsed).length === 0) {
-      return {
-        content: response,
-        notes: 'Please review before sending.',
-        documentType: input.documentType || 'School Document',
-        imagePrompt: ''
-      };
-    }
-    return parsed;
-  } catch (error: any) {
-    if (isProviderFailure(error)) {
-      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
-      return await geminiGenerateAdmin(input, onProgress);
-    }
-    throw error;
-  }
-};
 
-const getOcrSpaceLangCode = (lang: string) => {
-  const map: Record<string, string> = {
-    'English': 'eng',
-    'Spanish': 'spa',
-    'French': 'fre',
-    'German': 'ger',
-    'Afrikaans': 'afr',
-  };
-  return map[lang] || 'eng';
-};
-
-export const runOCRScan = async (imageData: string | string[], provider: string = 'gemini', ocrProvider: string = 'gemini', language: string = 'English', isHandwritten: boolean = true) => {
-  if (ocrProvider === 'gemini') {
-    try {
-      return await geminiOCRScan(imageData, language, isHandwritten);
-    } catch (err: any) {
-      if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to ocrspace...");
-        ocrProvider = 'ocrspace';
-      } else {
-        throw err;
+  return await routeWithFallback<any>(provider, {
+    gemini: () => geminiGenerateAdmin(input, onProgress),
+    alternative: async (engine) => {
+      const response = await callMultiAi(engine, messages);
+      const parsed = safeJsonParse(response);
+      if (Object.keys(parsed).length === 0) {
+        return {
+          content: response,
+          notes: 'Please review before sending.',
+          documentType: input.documentType || 'School Document',
+          imagePrompt: ''
+        };
       }
-    }
-  }
-  
-  const firstImage = Array.isArray(imageData) ? imageData[0] || '' : imageData;
-  
-  try {
-    const extractedText = await performOCR(firstImage, getOcrSpaceLangCode(language));
-    return { extractedText };
-  } catch (error: any) {
-    return await geminiOCRScan(imageData, language, isHandwritten);
-  }
+      return parsed;
+    },
+  });
 };
 
-export const runTextGrade = async (studentAnswers: string, memo: string, rubric: string, language: string = 'English') => {
-  return await geminiTextGrade(studentAnswers, memo, rubric, language);
-};
+/* ── Vision / OCR ──────────────────────────────────────────────────────────── */
 
-export const runOCRAndGrade = async (imageData: string | string[], rubric: string, provider: string = 'gemini', ocrProvider: string = 'gemini', language: string = 'English', isHandwritten: boolean = true, behavioralAspects?: string[], adjustLateSubmission?: boolean) => {
-  if (provider === 'gemini' && ocrProvider === 'gemini') {
+/**
+ * OCR / handwriting transcription.
+ *
+ * Vision chain: Nemotron 3.5 Super VL → Llama 3.2 90B Vision → Gemini 3.8
+ * Flash → OCR.space. The first two run on NVIDIA NIM, so a Gemini outage no
+ * longer stops scanning.
+ */
+export const runOCRScan = async (
+  imageData: string | string[],
+  provider: string = DEFAULT_AI_PROVIDER,
+  ocrProvider: string = DEFAULT_VISION_PROVIDER,
+  language: string = 'English',
+  isHandwritten: boolean = true,
+) => {
+  const order = visionAttemptOrder(ocrProvider);
+  const messages = buildVisionMessages(imageData, ocrScanPrompt(language, isHandwritten));
+  let lastError: any;
+
+  for (const engine of order) {
     try {
-      return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
-    } catch (err: any) {
-      if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        console.warn("Gemini limit hit, auto-falling back to alibaba-qwen (Qwen 3.8) for grading and ocrspace for scanning...");
-        provider = 'alibaba-qwen';
-        ocrProvider = 'ocrspace';
-      } else {
-        throw err;
+      if (engine === 'gemini') {
+        return await geminiOCRScan(imageData, language, isHandwritten);
       }
+      if (engine === 'ocrspace') {
+        const firstImage = Array.isArray(imageData) ? imageData[0] || '' : imageData;
+        const extractedText = await performOCR(firstImage, getOcrSpaceLangCode(language));
+        return { extractedText };
+      }
+      if (!messages) {
+        // DOCX-only upload: a vision model cannot read it — skip to Gemini.
+        throw new Error(`No image parts for ${engine}; DOCX uploads need the Gemini path.`);
+      }
+      const text = await callVisionAi(engine, messages);
+      return { extractedText: text };
+    } catch (error: any) {
+      lastError = error;
+      console.warn(`[AI Routing] Vision engine ${engine} failed (${error?.message || error}) — trying the next one.`);
     }
   }
-  
-  const scanRef = await runOCRScan(imageData, provider, ocrProvider, language, isHandwritten);
-  const extractedText = scanRef.extractedText;
 
-  let behaviorNote = "";
-  if (behavioralAspects && behavioralAspects.length > 0) {
-    behaviorNote = `\nEvaluate also behavioral skills: ${behavioralAspects.join(", ")}.`;
-  }
-  if (adjustLateSubmission) {
-    behaviorNote += `\nThis is late or a redo, add supportive, encouraging catch-up remarks.`;
-  }
+  console.error('[AI Routing] Every OCR engine failed:', lastError?.message || lastError);
+  throw lastError ?? new Error('OCR failed on every engine');
+};
 
+export const runTextGrade = async (studentAnswers: string, memo: string, rubric: string, language: string = 'English', provider: string = DEFAULT_AI_PROVIDER) => {
   const messages = [
-    { role: 'system', content: `You are an AI Grader. Use this rubric: ${rubric}${behaviorNote}` },
-    { role: 'user', content: `Grade this text: ${extractedText}. Return JSON with 'totalScore', 'marksPerQuestion[]', 'feedback'.` }
+    {
+      role: 'system',
+      content: `You are an AI Grader. Grade this student's written response in ${language}. Return JSON with keys: marksPerQuestion (array of strings), feedback (string), totalScore (string).`
+    },
+    { role: 'user', content: `Student answers: ${studentAnswers}\nMemorandum / Memo notes: ${memo}\nRubric guidelines: ${rubric}` }
   ];
-  
-  if (provider === 'gemini') {
-    // Gemini can process text grading
-    try {
-      return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
-    } catch(err: any) {
-      if (err.message?.includes('Quota') || err.message?.includes('429')) {
-        provider = 'alibaba-qwen';
-      } else {
-        throw err;
-      }
-    }
-  }
 
-  try {
-    let model = 'qwen3.8-max';
-    
-    const grading = await callMultiAi(provider as AIProvider, messages, model);
-    
-    try {
-      if (typeof grading === 'string') {
-        const parsed = safeJsonParse(grading);
-        return { ...parsed, extractedText };
-      }
-      return { extractedText, feedback: grading, totalScore: "N/A" };
-    } catch (e) {
-      return { extractedText, feedback: grading, totalScore: "N/A" };
-    }
-  } catch (error: any) {
-    if (isProviderFailure(error)) {
-      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
-      return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
-    }
-    throw error;
-  }
+  return await routeWithFallback<any>(provider, {
+    gemini: () => geminiTextGrade(studentAnswers, memo, rubric, language),
+    alternative: async (engine) => safeJsonParse(await callMultiAi(engine, messages)),
+  });
 };
 
-export const chatWithTutor = async (messages: any[], provider: string = 'gemini') => {
-  const hasImage = messages.some(m => m.parts?.some((p: any) => p.inlineData));
-  
-  if (provider === 'gemini' || hasImage) {
-     // Force gemini if there are images, because text-only models throw 400s
-     try {
-       return await geminiChat(messages);
-     } catch(err: any) {
-       if (err.message && (err.message.includes('Quota') || err.message.includes('429'))) {
-         if (hasImage) {
-           throw new Error("Cannot fallback, Image context requires Gemini API, but quota is exceeded.");
-         }
-         provider = 'alibaba-qwen';
-       } else {
-         throw err;
-       }
-     }
+/**
+ * OCR + grading.
+ *
+ * Vision chain first (Super VL → Llama 90B Vision → Gemini). If every vision
+ * model is down, the text is pulled with OCR.space and graded by the reasoning
+ * chain instead of failing the teacher's marking run.
+ */
+export const runOCRAndGrade = async (
+  imageData: string | string[],
+  rubric: string,
+  provider: string = DEFAULT_AI_PROVIDER,
+  ocrProvider: string = DEFAULT_VISION_PROVIDER,
+  language: string = 'English',
+  isHandwritten: boolean = true,
+  behavioralAspects?: string[],
+  adjustLateSubmission?: boolean,
+) => {
+  const order = visionAttemptOrder(ocrProvider);
+  const messages = buildVisionMessages(
+    imageData,
+    ocrGradePrompt(rubric, isHandwritten, behavioralAspects, adjustLateSubmission),
+  );
+  let lastError: any;
+
+  for (const engine of order) {
+    try {
+      if (engine === 'gemini') {
+        return await geminiOCR(imageData, rubric, language, isHandwritten, behavioralAspects, adjustLateSubmission);
+      }
+      if (engine === 'ocrspace') {
+        const firstImage = Array.isArray(imageData) ? imageData[0] || '' : imageData;
+        const extractedText = await performOCR(firstImage, getOcrSpaceLangCode(language));
+        const graded = await runTextGrade(extractedText, rubric, rubric, language, provider);
+        return { ...graded, extractedText };
+      }
+      if (!messages) {
+        throw new Error(`No image parts for ${engine}; DOCX uploads need the Gemini path.`);
+      }
+      const raw = await callVisionAi(engine, messages);
+      const parsed = safeJsonParse(raw);
+      if (Object.keys(parsed).length === 0) {
+        return { extractedText: raw, feedback: raw, totalScore: "N/A" };
+      }
+      return parsed;
+    } catch (error: any) {
+      lastError = error;
+      console.warn(`[AI Routing] Vision grading engine ${engine} failed (${error?.message || error}) — trying the next one.`);
+    }
   }
-  
-  // Format messages for OpenAI/Anthropic
+
+  console.error('[AI Routing] Every vision grading engine failed:', lastError?.message || lastError);
+  throw lastError ?? new Error('OCR grading failed on every engine');
+};
+
+/* ── Tutor chat ────────────────────────────────────────────────────────────── */
+
+export const chatWithTutor = async (messages: any[], provider: string = DEFAULT_AI_PROVIDER) => {
+  const hasImage = messages.some(m =>
+    m.parts?.some((p: any) => p.inlineData) ||
+    (Array.isArray(m.content) && m.content.some((p: any) => p.type === 'image_url')),
+  );
+
+  // Text-only models 400 on image parts: images always take the Gemini path.
+  if (hasImage) {
+    return await geminiChat(messages);
+  }
+
+  // Format messages for the OpenAI-compatible NIM engines.
   let formattedMessages: any[] = [
     { role: 'system', content: "You are a friendly and encouraging South African school tutor for EduAI Companion. You help students understand complex CAPS curriculum concepts in simple terms. Use local South African examples (e.g. using Rands, referring to provinces) and be patient. Keep explanations concise." }
   ];
@@ -381,18 +456,30 @@ export const chatWithTutor = async (messages: any[], provider: string = 'gemini'
   for (const m of messages) {
     const role = m.role === 'model' ? 'assistant' : 'user';
     let contentParts: any[] = [];
-    
-    for (const part of m.parts) {
-      if (part.text) {
+
+    // Gemini-style `parts` turns, OpenAI-style `content` arrays, and plain
+    // `content` strings (used by the auto-optimise speed probe) are all valid.
+    const parts = Array.isArray(m.parts)
+      ? m.parts
+      : Array.isArray(m.content)
+        ? m.content
+        : [{ text: m.content }];
+
+    for (const part of parts) {
+      if (part?.text) {
         contentParts.push({ type: "text", text: part.text });
-      } else if (part.inlineData) {
-        contentParts.push({ 
-          type: "image_url", 
+      } else if (part?.inlineData) {
+        contentParts.push({
+          type: "image_url",
           image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
         });
+      } else if (part?.type === 'image_url') {
+        contentParts.push(part);
+      } else if (typeof part === 'string') {
+        contentParts.push({ type: 'text', text: part });
       }
     }
-    
+
     if (contentParts.length === 0) continue;
 
     if (role === lastRole) {
@@ -408,19 +495,14 @@ export const chatWithTutor = async (messages: any[], provider: string = 'gemini'
       lastRole = role;
     }
   }
-  
-  // Anthropic/OpenAI often requires starting with a user message
+
+  // Chat APIs require the conversation to start with a user message.
   if (formattedMessages.length > 0 && formattedMessages[0].role === 'assistant') {
     formattedMessages.shift();
   }
 
-  try {
-    return await callMultiAi(provider as AIProvider, formattedMessages);
-  } catch (error: any) {
-    if (isProviderFailure(error)) {
-      console.log(`[AI Routing] Seamlessly transitioning from ${provider} to primary Gemini engine.`);
-      return await geminiChat(messages);
-    }
-    throw error;
-  }
+  return await routeWithFallback<string>(provider, {
+    gemini: () => geminiChat(messages),
+    alternative: (engine) => callMultiAi(engine, formattedMessages),
+  });
 };

@@ -506,7 +506,7 @@ const SidebarProfile = ({ expanded, active, userName, role, onClick }: { expande
 // Inline LandingPage removed in favor of imported component from './components/LandingPage'
 
 import { useAi, AIProvider as AIProviderType } from './contexts/AiContext';
-import { AI_PROVIDERS, AI_PROVIDER_LABELS } from './lib/aiModels';
+import { AI_PROVIDERS, AI_PROVIDER_LABELS, REASONING_CHAIN, VISION_PROVIDERS, VISION_PROVIDER_LABELS } from './lib/aiModels';
 
 export default function App() {
   const { provider, setProvider, ttsProvider, setTtsProvider, ocrProvider, setOcrProvider, imageProvider, setImageProvider } = useAi();
@@ -2740,11 +2740,9 @@ export default function App() {
                                 : 'bg-slate-50 border border-slate-200 text-slate-705 hover:border-brand-cyan/50 focus:border-brand-cyan shadow-sm [&>option]:bg-white'
                           }`}
                         >
-                          <option value="gemini">Gemini 3.8 Flash (Primary - Recommended)</option>
-                          <option value="alibaba-qwen">Qwen 3.8 Max (Alibaba Model Studio)</option>
-                          <option value="nvidia-nemotron-nano">Nemotron 3 Nano (30B) — Free NIM ✅</option>
-                          <option value="nvidia-nemotron-ultra">Nemotron 3 Ultra (550B-A55B) — Free NIM ✅</option>
-                          <option value="nvidia-nemotron-lightning">Nemotron 3.5 Lightning (30B) — Fast Text Gen</option>
+                          {AI_PROVIDERS.map((id) => (
+                            <option key={id} value={id}>{AI_PROVIDER_LABELS[id]}</option>
+                          ))}
                         </select>
                       </div>
                       <button
@@ -2803,9 +2801,9 @@ export default function App() {
                           <span className="text-[9px] font-bold text-amber-500 lowercase">fastest selected</span>
                         </div>
                         <div className="grid grid-cols-2 gap-1.5 text-center font-mono">
-                          {['gemini', 'alibaba-qwen'].map((pId) => {
+                          {REASONING_CHAIN.slice(0, 2).map((pId) => {
                             const lat = optimizationStats[pId];
-                            const name = pId === 'gemini' ? 'Gemini 3.8' : 'Qwen 3.8';
+                            const name = AI_PROVIDER_LABELS[pId];
                             const isCurrent = provider === pId;
                             return (
                               <div 
@@ -2844,8 +2842,9 @@ export default function App() {
                             : 'bg-slate-50 border border-slate-205 text-slate-705 focus:border-emerald-500 shadow-sm'
                       }`}
                     >
-                      <option value="gemini">Gemini OCR Vision (Multimodal)</option>
-                      <option value="ocrspace">OCR Space Engine</option>
+                      {VISION_PROVIDERS.map((id) => (
+                        <option key={id} value={id}>{VISION_PROVIDER_LABELS[id]}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -3322,7 +3321,7 @@ export default function App() {
                   <span className={`font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Recommended Solutions:</span>
                   {apiBlockedAlert.isServerError ? (
                     <ul className={`list-disc list-inside space-y-1.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      <li>Verify your <b>GEMINI_API_KEY</b>, <b>HUGGINGFACE_API_KEY</b>, or <b>ALIBABA_API_KEY</b> (Alibaba Model Studio / Qwen 3.8) is correctly declared in settings or server config.</li>
+                      <li>Verify your <b>NVIDIA_API_KEY</b> (primary reasoning + vision), <b>GEMINI_API_KEY</b> or <b>HUGGINGFACE_API_KEY</b> is correctly declared in settings or server config.</li>
                       <li>Consult the <b>Debug Console</b> in the Admin Dashboard to review real-time network request payloads.</li>
                       <li>Confirm that the server is not throttled, and that the specified AI model is supported.</li>
                     </ul>

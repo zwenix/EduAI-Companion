@@ -1,11 +1,22 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AI_PROVIDERS, AIProvider, isLegacyProvider } from '../lib/aiModels';
+import {
+  AI_PROVIDERS,
+  AIProvider,
+  DEFAULT_AI_PROVIDER,
+  DEFAULT_VISION_PROVIDER,
+  VISION_PROVIDERS,
+  VisionProvider,
+  LEGACY_PROVIDER_TARGET,
+  isLegacyProvider,
+  normalizeProviderId,
+} from '../lib/aiModels';
 
-// The five frozen provider ids live in exactly one place — `src/lib/aiModels.ts`
+// The frozen provider ids live in exactly one place — `src/lib/aiModels.ts`
 // (see AGENTS.md §1). Do not inline them here.
 export type { AIProvider } from '../lib/aiModels';
 export type TTSProvider = 'browser' | 'groq-whisper' | 'huggingface' | 'google-tts';
-export type OCRProvider = 'gemini' | 'ocrspace';
+/** Vision/OCR engines (Super VL → Llama Vision → Gemini → OCR.space). */
+export type OCRProvider = VisionProvider;
 // Image engines. `perchance` is the Perchance Image API v1 browser engine
 // (see src/services/perchanceClient.ts). `qwen`/`qwen-image` are RETIRED and
 // migrate on read — never offered again.
@@ -26,7 +37,7 @@ const AiContext = createContext<AiContextType | undefined>(undefined);
 
 const VALID_PROVIDERS: readonly AIProvider[] = AI_PROVIDERS;
 const VALID_TTS: TTSProvider[] = ['browser', 'groq-whisper', 'huggingface', 'google-tts'];
-const VALID_OCR: OCRProvider[] = ['gemini', 'ocrspace'];
+const VALID_OCR: readonly VisionProvider[] = VISION_PROVIDERS;
 const VALID_IMAGE: ImageProvider[] = ['perchance', 'flux', 'pollinations', 'gemini-imagen'];
 // Stored values from retired/renamed engines. `flux` (FLUX.1-schnell on Hugging
 // Face) is the free replacement for the retired Qwen-Image.
@@ -44,19 +55,19 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [provider, setProvider] = useState<AIProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_provider');
-      // Migrate only provider ids that are NOT active NIM models anymore.
-      // `nvidia-nemotron-ultra` (and the nano/lightning ids) are ACTIVE NVIDIA
-      // NIM providers again — they must never be remapped away from NVIDIA NIM.
-      if (isLegacyProvider(saved)) {
-        localStorage.setItem('eduai_provider', 'alibaba-qwen');
-        return 'alibaba-qwen';
+      // Retired Qwen ids migrate to DeepSeek V4.1 Flash so a stale saved
+      // setting can never start a request on the removed engine.
+      if (saved && isLegacyProvider(saved)) {
+        localStorage.setItem('eduai_provider', LEGACY_PROVIDER_TARGET);
+        return LEGACY_PROVIDER_TARGET;
       }
       if (saved && VALID_PROVIDERS.includes(saved as AIProvider)) {
         return saved as AIProvider;
       }
-      return 'gemini';
+      // Fresh installs start on the PRIMARY reasoning engine (Nemotron 3 Ultra).
+      return DEFAULT_AI_PROVIDER;
     } catch (e) {
-      return 'gemini';
+      return DEFAULT_AI_PROVIDER;
     }
   });
 
@@ -72,9 +83,9 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   const [ocrProvider, setOcrProvider] = useState<OCRProvider>(() => {
     try {
       const saved = localStorage.getItem('eduai_ocr_provider') as OCRProvider;
-      return saved && VALID_OCR.includes(saved) ? saved : 'gemini';
+      return saved && VALID_OCR.includes(saved) ? saved : DEFAULT_VISION_PROVIDER;
     } catch {
-      return 'gemini';
+      return DEFAULT_VISION_PROVIDER;
     }
   });
 
@@ -98,6 +109,10 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
     }
   });
 
+  // Guard at the setter boundary too: any old caller passing a Qwen id gets
+  // normalised to DeepSeek rather than storing an unusable provider.
+  const setSafeProvider = (next: AIProvider) => setProvider(normalizeProviderId(next));
+
   useEffect(() => {
     try {
       localStorage.setItem('eduai_provider', provider);
@@ -110,7 +125,7 @@ export const AiProvider = ({ children }: { children: React.ReactNode }) => {
   }, [provider, ttsProvider, ocrProvider, imageProvider]);
 
   return (
-    <AiContext.Provider value={{ provider, setProvider, ttsProvider, setTtsProvider, ocrProvider, setOcrProvider, imageProvider, setImageProvider }}>
+    <AiContext.Provider value={{ provider, setProvider: setSafeProvider, ttsProvider, setTtsProvider, ocrProvider, setOcrProvider, imageProvider, setImageProvider }}>
       {children}
     </AiContext.Provider>
   );

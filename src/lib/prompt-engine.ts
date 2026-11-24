@@ -685,7 +685,7 @@ SA Context: Rand (R), SA places (Table Mountain, Kruger, Drakensberg), SA names 
       capsInfo = `CAPS: ${config.displayName}, SBA ${config.assessmentWeights.schoolBasedAssessment}%/Exam ${config.assessmentWeights.yearEndExam}%, Bloom's: Remembering ${config.bloomsDistribution.remembering}% etc.`;
     } catch {}
 
-    // Include Qwen optimization note
+    // Image-engine optimisation note (the retired Qwen-Image slugs are gone)
     const imageEngineNote = `Optimized for FLUX.1-schnell (black-forest-labs/FLUX.1-schnell) via Hugging Face — clean flat vector, educational poster design, SA context, no text overlays, 300 DPI, white/light background, professional quality, legible text if any, diverse SA learners.`;
     
     return `Professional educational illustration for South African ${phase} (Grade ${grade}) ${subject}: ${topic}. 

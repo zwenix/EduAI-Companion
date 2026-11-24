@@ -8,6 +8,7 @@ import { SAContentRequest, validateCAPSCompliance, getPhaseConfig, SIAS_SUPPORT_
 import { buildSASystemPrompt, buildSAUserPrompt, buildSAQualityChecklist } from "../lib/compliance/sa-prompts";
 import { DocumentData, RenderedImage } from "../lib/templates/sa-html-templates";
 import { callMultiAi } from "./multiAiService";
+import { DEFAULT_AI_PROVIDER, normalizeProviderId } from "../lib/aiModels";
 import { safeJsonParse } from "./geminiService";
 import { generateAllEducationalImages, enhancePromptForSA } from "../lib/imageGeneration";
 
@@ -55,7 +56,7 @@ export function preFlightCheck(request: SAContentRequest): ReturnType<typeof val
 // ── Text content generation via existing multi-AI pipeline ──
 export async function generateSATextContent(
   request: SAContentRequest,
-  provider: string = "alibaba-qwen",
+  provider: string = DEFAULT_AI_PROVIDER,
   onProgress?: (partial: any) => void
 ): Promise<DocumentData> {
   console.log(`📝 Generating ${request.contentType} via ${provider}...`);
@@ -70,7 +71,8 @@ export async function generateSATextContent(
   ];
 
   try {
-    const rawResponse = await callMultiAi(provider as any, messages, "qwen3.8-max");
+    // Model slugs come from the frozen registry; the retired Qwen slug is gone.
+    const rawResponse = await callMultiAi(normalizeProviderId(provider), messages);
     const parsed = safeJsonParse(rawResponse);
 
     if (!parsed || Object.keys(parsed).length === 0) {
@@ -229,7 +231,7 @@ export function postAudit(data: DocumentData): { passed: number; total: number; 
 // ── Full pipeline ──
 export async function generateFullSAPackage(
   request: SAContentRequest,
-  provider: string = "alibaba-qwen",
+  provider: string = DEFAULT_AI_PROVIDER,
   options: {
     generateImages?: boolean;
     onProgress?: (partial: any) => void;
@@ -241,7 +243,7 @@ export async function generateFullSAPackage(
   console.log("\n" + "═".repeat(70));
   console.log("🇿🇦 EduAI Companion — SA-Compliant Content Generation Pipeline (Enhanced)");
   console.log("   Frameworks: CAPS · NPA · NPPPPR · SIAS · WP6 · POPIA · SASA · NCS R-12");
-  console.log("   Models: Qwen 3.8 Max (text) · Perchance Image API v1 + FLUX.1-schnell (visuals)");
+  console.log("   Models: Nemotron 3 Ultra (primary reasoning, NVIDIA NIM) · Perchance Image API v1 + FLUX.1-schnell (visuals)");
   console.log("═".repeat(70) + "\n");
 
   // Step 0: Pre-flight

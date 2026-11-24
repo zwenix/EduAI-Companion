@@ -1,7 +1,7 @@
 /**
  * EduAI Companion — shared AI output-token budgets.
  *
- * The content engines (Gemini / Nemotron / Qwen) all answer with one JSON
+ * The content engines (Nemotron / DeepSeek / Gemini) all answer with one JSON
  * envelope that carries the whole document (`content`, `memo`, `rubric`,
  * `assessmentCriteria`, …). When the budget is too small the JSON is cut off
  * mid-string, the client has to reconstruct it with a regex fallback and the
