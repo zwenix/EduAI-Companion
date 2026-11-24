@@ -10,6 +10,7 @@ import { DocumentData, RenderedImage } from "../lib/templates/sa-html-templates"
 import { callMultiAi } from "./multiAiService";
 import { safeJsonParse } from "./geminiService";
 import { generateAllEducationalImages, enhancePromptForSA } from "../lib/imageGeneration";
+import { PRIMARY_REASONING_PROVIDER, resolveProviderModel } from "../lib/aiModels";
 
 export interface PipelineResult {
   content: DocumentData;
@@ -55,7 +56,7 @@ export function preFlightCheck(request: SAContentRequest): ReturnType<typeof val
 // ── Text content generation via existing multi-AI pipeline ──
 export async function generateSATextContent(
   request: SAContentRequest,
-  provider: string = "alibaba-qwen",
+  provider: string = PRIMARY_REASONING_PROVIDER,
   onProgress?: (partial: any) => void
 ): Promise<DocumentData> {
   console.log(`📝 Generating ${request.contentType} via ${provider}...`);
@@ -70,7 +71,8 @@ export async function generateSATextContent(
   ];
 
   try {
-    const rawResponse = await callMultiAi(provider as any, messages, "qwen3.8-max");
+    // Model slug comes from the frozen registry — never inline a model string.
+    const rawResponse = await callMultiAi(provider as any, messages, resolveProviderModel(provider));
     const parsed = safeJsonParse(rawResponse);
 
     if (!parsed || Object.keys(parsed).length === 0) {
@@ -229,7 +231,7 @@ export function postAudit(data: DocumentData): { passed: number; total: number; 
 // ── Full pipeline ──
 export async function generateFullSAPackage(
   request: SAContentRequest,
-  provider: string = "alibaba-qwen",
+  provider: string = PRIMARY_REASONING_PROVIDER,
   options: {
     generateImages?: boolean;
     onProgress?: (partial: any) => void;
@@ -241,7 +243,7 @@ export async function generateFullSAPackage(
   console.log("\n" + "═".repeat(70));
   console.log("🇿🇦 EduAI Companion — SA-Compliant Content Generation Pipeline (Enhanced)");
   console.log("   Frameworks: CAPS · NPA · NPPPPR · SIAS · WP6 · POPIA · SASA · NCS R-12");
-  console.log("   Models: Qwen 3.8 Max (text) · Perchance Image API v1 + FLUX.1-schnell (visuals)");
+  console.log("   Models: Nemotron 3 Ultra (text, → DeepSeek → Gemini → Lightning) · Perchance Image API v1 + FLUX.1-schnell (visuals)");
   console.log("═".repeat(70) + "\n");
 
   // Step 0: Pre-flight

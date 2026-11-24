@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { IconSettings, IconLogout } from './LocalIcons';
 import { useAi } from '../contexts/AiContext';
+import { AI_PROVIDER_LABELS, REASONING_CHAIN } from '../lib/aiModels';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
@@ -934,26 +935,33 @@ export default function Settings({
                    <div className="p-8 rounded-[40px] border border-white/5 bg-white/5 space-y-6">
                       <div>
                          <h4 className="text-white font-bold text-base mb-1">Text Generation Engine</h4>
-                         <p className="text-slate-400 text-xs mb-4">Primary reasoning and lesson authoring engine. Alternative models fall back to Gemini automatically.</p>
+                         <p className="text-slate-400 text-xs mb-4">Primary reasoning and lesson authoring engine. Every engine has a fallback: <span className="text-white font-bold">Nemotron 3 Ultra → DeepSeek V4.1 Flash → Gemini → Nemotron 3.5 Lightning</span>.</p>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div className="p-4 rounded-2xl border border-brand-cyan/40 bg-brand-cyan/10 flex items-start gap-3">
-                               <div className="w-8 h-8 rounded-xl bg-brand-cyan/20 flex items-center justify-center text-brand-cyan font-black text-xs shrink-0">1</div>
-                               <div>
-                                  <div className="flex items-center gap-2">
-                                     <span className="text-white font-bold text-xs">Gemini 3.8 Flash</span>
-                                     <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase">Primary</span>
-                                  </div>
-                                  <p className="text-[10px] text-slate-400 mt-1">Latest GA Flash model · CAPS Lesson Planning, Auto-Grading & Voice Tutor</p>
-                               </div>
-                            </div>
-                            <div className="p-4 rounded-2xl border border-white/10 bg-navy-dark/40 flex items-start gap-3">
-                               <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-black text-xs shrink-0">2</div>
-                               <div>
-                                  <span className="text-white font-bold text-xs">Qwen 3.8 Max</span>
-                                  <p className="text-[10px] text-slate-400 mt-1">Alibaba Model Studio (qwen3.8-max) • Fallback: Gemini</p>
-                               </div>
-                            </div>
+                            {REASONING_CHAIN.map((engineId, index) => {
+                              const label = AI_PROVIDER_LABELS[engineId as keyof typeof AI_PROVIDER_LABELS];
+                              const roles = ['Primary', 'Secondary', 'Tertiary', 'Final'];
+                              const notes: Record<string, string> = {
+                                'nvidia-nemotron-ultra': 'Nemotron 3 Ultra 550B-A55B · lesson plans, assessments & learner diagnosis',
+                                'nvidia-deepseek': 'DeepSeek V4.1 Flash · NVIDIA NIM (replaces Qwen)',
+                                gemini: 'Gemini 3.8 Flash · guaranteed-answer engine with its own model chain',
+                                'nvidia-nemotron-lightning': 'Nemotron 3.5 Lightning · fast final safety net',
+                              };
+                              const isPrimary = index === 0;
+                              return (
+                                <div key={engineId} className={`p-4 rounded-2xl border flex items-start gap-3 ${isPrimary ? 'border-brand-cyan/40 bg-brand-cyan/10' : 'border-white/10 bg-navy-dark/40'}`}>
+                                   <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${isPrimary ? 'bg-brand-cyan/20 text-brand-cyan' : 'bg-emerald-500/20 text-emerald-400'}`}>{index + 1}</div>
+                                   <div>
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                         <span className="text-white font-bold text-xs">{label}</span>
+                                         <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase ${isPrimary ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-slate-300'}`}>{roles[index]}</span>
+                                      </div>
+                                      <p className="text-[10px] text-slate-400 mt-1">{notes[engineId]}</p>
+                                   </div>
+                                </div>
+                              );
+                            })}
                          </div>
+                         <p className="text-slate-500 text-[10px] mt-3">Vision / OCR (scanned worksheets, diagrams, handwritten work): <span className="text-white font-bold">Nemotron 3.5 Super VL 120B → Gemini multimodal → Llama 3.2 90B Vision → OCR.space</span>.</p>
                       </div>
 
                       <div className="pt-4 border-t border-white/5">

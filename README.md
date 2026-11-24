@@ -22,9 +22,9 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/AI-Nemotron_3_Ultra-76B900?logo=nvidia" alt="NVIDIA Nemotron 3 Ultra">
+  <img src="https://img.shields.io/badge/AI-DeepSeek_V4.1_Flash-4D6BFE" alt="DeepSeek V4.1 Flash">
   <img src="https://img.shields.io/badge/AI-Google_Gemini-4285F4?logo=google" alt="Google Gemini">
-  <img src="https://img.shields.io/badge/AI-Qwen_3.8_Max-FF6A00" alt="Alibaba Qwen">
-  <img src="https://img.shields.io/badge/AI-NVIDIA_Nemotron-76B900?logo=nvidia" alt="NVIDIA Nemotron">
 </p>
 
 ---
@@ -37,7 +37,7 @@ Key characteristics of the product as it exists in this repository:
 
 - **Four roles with tailored workspaces** — Teacher, Learner, Parent and Admin each get their own sidebar, dashboards and permissions.
 - **CAPS-first content generation** — lesson plans, worksheets, study guides, assessments, memos, rubrics, posters and admin documents, tuned to the DBE curriculum and South African context (Rand, local names, provinces, indigenous flora and fauna).
-- **Multi-model AI routing** — Google Gemini is the primary engine, with Alibaba Cloud Qwen 3.8 Max and NVIDIA NIM Nemotron models selectable, plus an automatic "route to Gemini" fallback path.
+- **Multi-model AI routing with a real fallback chain** — NVIDIA Nemotron 3 Ultra is the primary reasoning engine (lesson plans, assessments, learner diagnosis), DeepSeek V4.1 Flash is secondary, Gemini 3.8 Flash is tertiary and Nemotron 3.5 Lightning is the final safety net. Vision/OCR runs its own chain: Nemotron 3.5 Super VL 120B → Gemini multimodal → Llama 3.2 90B Vision → OCR.space. Any provider error — quota, auth, 5xx, timeout, DNS — moves the request to the next engine instead of failing.
 - **Runs on the web, as an installable PWA and as an Android APK** — one React codebase, shipped three ways.
 
 > 📐 For the full architecture, API reference, data model and non-functional requirements, see **[TECHNICAL_SPECIFICATION.md](TECHNICAL_SPECIFICATION.md)**.
@@ -106,9 +106,9 @@ Key characteristics of the product as it exists in this repository:
 | **Server dev/build** | `tsx` (dev), [esbuild](https://esbuild.github.io/) (build) | `npm run dev` → `tsx server.ts`; `npm run build` → Vite `dist/` + bundled `dist/server.cjs`. |
 | **Testing & CI** | [Vitest](https://vitest.dev/) 3 (+ `@vitest/coverage-v8`), `scripts/ci.sh`, `scripts/scan-secrets.mjs` | `npm run ci` mirrors the GitHub Actions pipeline; tests live in `tests/`. |
 | **Database & auth** | [Firebase](https://firebase.google.com/) 12 — Authentication + Cloud Firestore | Email/password, Google and anonymous sign-in. Firestore uses a persistent local cache with multi-tab support. Attribute-based access control lives in `firestore.rules`. |
-| **Text AI** | Google Gemini (**primary**, `gemini-3.8-flash` with a fallback chain), Alibaba Cloud Model Studio `qwen3.8-max`, NVIDIA NIM Nemotron (Nano Omni 30B, Ultra 550B, 3.5 Lightning 30B) | Client-selectable in Settings; every alternative engine falls back to Gemini on failure. |
+| **Text AI** | NVIDIA NIM **Nemotron 3 Ultra** (primary), **DeepSeek V4.1 Flash** (secondary), Google Gemini `gemini-3.8-flash` (tertiary), NVIDIA NIM Nemotron 3.5 Lightning (last), Nemotron 3 Nano Omni 30B | Client-selectable in Settings. Every engine has a fallback: Ultra → DeepSeek → Gemini → Lightning (the frozen `REASONING_CHAIN`). |
 | **Image AI** | Perchance Image API v1 (free, unlimited: hidden iframe + postMessage) → FLUX.1-schnell (Hugging Face Inference Providers → Cloudflare Workers AI) → Gemini image / Imagen 3 → Pollinations AI (keyless, last resort) → printable placeholder | Provider fallback graph is fixed in `src/lib/imageGeneration.ts`. Perchance speaks its documented Image API v1 (`perchance.org/perchance-ai-api`, browser-only). Qwen-Image (NVIDIA 404) remains retired. |
-| **OCR / grading** | Gemini vision (primary), OCR.space (secondary), `mammoth` for DOCX text extraction | Used by the Autograder and worksheet scanning flows. |
+| **OCR / grading / vision** | NVIDIA NIM **Nemotron 3.5 Super VL 120B** (primary), Gemini multimodal, **Llama 3.2 90B Vision**, OCR.space (last), `mammoth` for DOCX text extraction | Used by the Autograder and worksheet scanning flows. Chain: `VISION_PROVIDER_CHAIN`. |
 | **Voice / TTS** | Browser SpeechSynthesis, Hugging Face TTS, Google TTS proxy, Groq `whisper` (falls back to browser synthesis) | Selectable TTS provider in Settings. |
 | **Video generation** | [OmniHuman-1](https://huggingface.co/spaces/multimodalart/self-forcing) over Hugging Face Gradio (`@gradio/client`); optional Replicate (`minimax/video-01`, `luma/ray`) | Falls back gracefully to bundled educational MP4 clips. |
 | **Documents & export** | `html2pdf.js`, `jsPDF`, `html2canvas`, `archiver`, `docx`/`puppeteer` (optional server-side), JSZip | Server-side assemblers degrade to client-side when optional packages are absent. |
@@ -133,7 +133,7 @@ Key characteristics of the product as it exists in this repository:
                                │  HTTPS (same-origin /api/*)
 ┌──────────────────────────────▼────────────────────────────────────────┐
 │  Express server (server.ts)                                           │
-│  • /api/ai/:provider     → Gemini / Qwen / Nemotron routing + fallback│
+│  • /api/ai/:provider     → Nemotron / DeepSeek / Gemini + fallback     │
 │  • /api/ocr, /api/tts/*  → OCR and speech services                    │
 │  • /api/images/*         → image generation providers                 │
 │  • /api/video/*          → OmniHuman-1 / Replicate job orchestration  │
@@ -144,10 +144,11 @@ Key characteristics of the product as it exists in this repository:
        │                               │
 ┌──────▼───────────────┐      ┌────────▼───────────────────────────────┐
 │  AI providers        │      │  Firebase                              │
-│  • Google Gemini     │      │  • Authentication (email, Google, anon)│
-│  • Alibaba Model     │      │  • Cloud Firestore (26 collections,    │
-│    Studio (Qwen 3.8) │      │    ABAC rules, persistent local cache) │
-│  • NVIDIA NIM        │      │  • Web Push subscriptions (server RAM) │
+│  • NVIDIA NIM        │      │  • Authentication (email, Google, anon)│
+│    Nemotron 3 Ultra, │      │  • Cloud Firestore (26 collections,    │
+│    DeepSeek V4.1,    │      │    ABAC rules, persistent local cache) │
+│    vision models     │      │  • Web Push subscriptions (server RAM) │
+│  • Google Gemini     │      │                                        │
 │  • FLUX.1-schnell /  │      └────────────────────────────────────────┘
 │    Pollinations / HF │
 └──────────────────────┘
@@ -171,8 +172,7 @@ Copy `.env.example` to `.env` and fill in what you need. Only `GEMINI_API_KEY` i
 | Variable | Purpose |
 | :--- | :--- |
 | `GEMINI_API_KEY` | **Required.** Google Gemini text, vision/OCR and image models. |
-| `ALIBABA_API_KEY` / `ALIBABA_API_BASE` | Alibaba Cloud Model Studio — Qwen 3.8 Max (OpenAI-compatible endpoint). |
-| `NVIDIA_API_KEY` | NVIDIA NIM — Nemotron text models (image generation no longer uses NIM). |
+| `NVIDIA_API_KEY` | NVIDIA NIM — Nemotron 3 Ultra, DeepSeek V4.1 Flash, Nemotron 3.5 Lightning and the vision models (image generation no longer uses NIM). `ALIBABA_API_KEY` is no longer read: Qwen was removed. |
 | `OCR_SPACE_API_KEY` | Optional secondary OCR engine. |
 | `HUGGINGFACE_API_KEY` / `HF_TOKEN` | Hugging Face TTS **and FLUX.1-schnell image generation** (the primary image engine; without it images fall back to keyless Pollinations). Optional `HUGGINGFACE_IMAGE_MODEL` overrides the FLUX slug. |
 | `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_API_TOKEN` | Optional second free FLUX.1-schnell backend (`@cf/black-forest-labs/flux-1-schnell` on Workers AI, 10k neurons/day ≈ 170 images). Token needs the **Workers AI: Read** permission. Tried only if Hugging Face fails. |

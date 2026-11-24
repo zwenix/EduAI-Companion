@@ -811,7 +811,7 @@ export default function ContentCreator({ isDarkMode, userName, userRole, onClose
   /**
    * Teacher-friendly explanation for a failed generation.
    *
-   * Every engine (backend proxy → on-device Gemini → Qwen/Nemotron rescue) has
+   * Every engine (backend proxy → on-device Gemini → NIM rescue chain) has
    * already been tried by the time this runs, so the only useful thing left is
    * telling the teacher what happened and that retrying is safe — never leaving
    * the screen silently unchanged.

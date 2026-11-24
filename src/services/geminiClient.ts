@@ -67,7 +67,7 @@ const JSON_EDUCATIONAL_HINT = `\nReturn a valid JSON object with the following k
 /**
  * System + user prompt for the `generate-caps` action, shared by the on-device
  * Gemini engine here and the alternative-engine rescue in `geminiService`
- * (Qwen 3.8 Max / Nemotron) so both ask for the identical JSON envelope.
+ * (Nemotron 3 Ultra / DeepSeek) so both ask for the identical JSON envelope.
  */
 export const buildCapsGenerationPrompts = (input: any): { system: string; user: string } => {
   const isLessonPlan = ['Lesson Plan', 'Weekly Lesson Plan', 'Unit Plan', 'lesson-plan'].includes(input.contentType);

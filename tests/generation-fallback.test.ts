@@ -11,7 +11,8 @@
  * content and no explanation.
  *
  * These tests pin the intended chain:
- *   backend → on-device Gemini → alternative engines (Qwen 3.8 Max → Nemotron)
+ *   backend → on-device Gemini → NVIDIA NIM engines, in the frozen reasoning
+ *   order (Nemotron 3 Ultra → DeepSeek V4.1 Flash → Nemotron 3.5 Lightning)
  * and assert that a healthy backend stream still parses as before.
  *
  * All network access is mocked; nothing here touches a real API.
@@ -31,7 +32,7 @@ const GEMINI_ENVELOPE = JSON.stringify({
 });
 
 const RESCUE_ENVELOPE = JSON.stringify({
-  content: '<section>Qwen rescue content</section>',
+  content: '<section>NIM rescue content</section>',
   memo: 'memo',
   rubric: 'rubric',
   assessmentCriteria: 'criteria',
@@ -137,7 +138,7 @@ describe('streaming generation fallback chain', () => {
     },
   );
 
-  it('rescues the generation on Qwen 3.8 Max when both Gemini paths fail', async () => {
+  it('rescues the generation on Nemotron 3.5 Lightning (Gemini\'s own fallback) when both Gemini paths fail', async () => {
     (globalThis as any).fetch = async () => backendError(503);
     axiosPost.mockResolvedValue({
       data: { choices: [{ message: { content: RESCUE_ENVELOPE } }] },
@@ -148,14 +149,39 @@ describe('streaming generation fallback chain', () => {
 
     expect(googleAttempts.length).toBeGreaterThan(0);
     expect(axiosPost).toHaveBeenCalled();
-    const [url] = axiosPost.mock.calls[0];
-    expect(String(url)).toContain('compatible-mode/v1/chat/completions');
-    expect(result.content).toContain('Qwen rescue content');
+    const [url, body] = axiosPost.mock.calls[0];
+    // Every last-resort engine is an NVIDIA NIM model — never Model Studio.
+    expect(String(url)).toContain('integrate.api.nvidia.com/v1/chat/completions');
+    expect(String(url)).not.toContain('aliyuncs');
+    // Gemini is tertiary, so the engine after it in the frozen chain answers first.
+    expect(body.model).toBe('nvidia/nemotron-3.5-lightning-30b-a3b');
+    expect(result.content).toContain('NIM rescue content');
+  });
+
+  it('keeps walking the chain (Ultra, then DeepSeek) when Lightning also fails', async () => {
+    (globalThis as any).fetch = async () => backendError(503);
+    axiosPost
+      .mockRejectedValueOnce(new Error('NIM 503 for lightning'))
+      .mockRejectedValueOnce(new Error('NIM 503 for ultra'))
+      .mockResolvedValue({
+        data: { choices: [{ message: { content: RESCUE_ENVELOPE } }] },
+      });
+
+    const { generateCAPSContent } = await loadService();
+    const result = await generateCAPSContent(input, () => {});
+
+    // After Gemini: Lightning → Ultra → DeepSeek (the chain wraps around).
+    expect(axiosPost.mock.calls.map((c: any[]) => c[1].model)).toEqual([
+      'nvidia/nemotron-3.5-lightning-30b-a3b',
+      'nvidia/nemotron-ultra-550b-a55b',
+      'nvidia/deepseek-v4.1-flash',
+    ]);
+    expect(result.content).toContain('NIM rescue content');
   });
 
   it('only rejects once every engine has been tried', async () => {
     (globalThis as any).fetch = async () => backendError(500);
-    axiosPost.mockRejectedValue(new Error('Model Studio unreachable'));
+    axiosPost.mockRejectedValue(new Error('NVIDIA NIM unreachable'));
 
     const { generateCAPSContent } = await loadService();
 
@@ -170,7 +196,7 @@ describe('streaming generation fallback chain', () => {
     const { generateCAPSContent } = await loadService();
     const result = await generateCAPSContent(input, () => {});
 
-    expect(result.content).toContain('Qwen rescue content');
+    expect(result.content).toContain('NIM rescue content');
     expect(googleAttempts).toEqual([]);
     expect(axiosPost).not.toHaveBeenCalled();
   });
