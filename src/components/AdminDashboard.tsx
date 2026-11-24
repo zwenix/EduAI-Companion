@@ -4,6 +4,7 @@ import {
   Terminal, Bug, RefreshCw, Trash2, AlertTriangle, CheckCircle, Copy, ChevronDown, ChevronUp 
 } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { AI_PROVIDERS, AI_PROVIDER_LABELS, isLegacyProvider, normalizeProviderId } from '../lib/aiModels';
 
 const userGrowthData = [
   { name: 'Jan', students: 1200, teachers: 80 },
@@ -74,13 +75,12 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Only retired legacy ids (old non-NIM Nemotron / Groq-era aliases) group
-  // under the Qwen 3.8 engine. The three ACTIVE NVIDIA NIM Nemotron providers
-  // keep their own identity — they are never the Qwen engine.
+  // Retired Qwen-era ids are grouped under their migration target (DeepSeek
+  // V4.1 Flash); every live engine keeps its own identity. The filter list and
+  // labels are generated from the frozen registry so the dashboard cannot drift.
   const normalizeProvider = (p: string) =>
-    (p === 'nvidia-nemotron' || p === 'nvidia-nemotron-ultra-legacy' || p === 'groq-qwen') ? 'alibaba-qwen'
-    : (p === 'nvidia-nemotron-nano' || p === 'nvidia-nemotron-ultra' || p === 'nvidia-nemotron-lightning') ? 'nvidia-nemotron'
-    : p;
+    isLegacyProvider(p) ? normalizeProviderId(p) : p;
+  const PROVIDER_FILTERS = ['all', ...AI_PROVIDERS] as const;
 
   const filteredErrors = providerFilter === 'all' 
     ? errors 
@@ -91,12 +91,10 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
     switch (provider) {
       case 'gemini':
         return 'bg-violet-500/10 text-violet-400 border-violet-500/25';
-      case 'alibaba-qwen':
-        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25';
-      case 'nvidia-nemotron':
-      case 'nvidia-nemotron-nano':
       case 'nvidia-nemotron-ultra':
+      case 'nvidia-deepseek-flash':
       case 'nvidia-nemotron-lightning':
+      case 'nvidia-nemotron-nano':
         return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/25';
       default:
         return 'bg-slate-500/10 text-slate-400 border-slate-500/25';
@@ -383,7 +381,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
 
           {/* Filtering Tab Pills */}
           <div className="flex flex-wrap gap-2 pb-2">
-            {['all', 'gemini', 'alibaba-qwen', 'nvidia-nemotron'].map((prov) => {
+            {PROVIDER_FILTERS.map((prov) => {
               const count = prov === 'all' 
                 ? errors.length 
                 : errors.filter(e => normalizeProvider(e.provider) === prov).length;
@@ -399,7 +397,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  {prov === 'all' ? 'ALL' : prov === 'gemini' ? 'GEMINI 3.8' : prov === 'alibaba-qwen' ? 'QWEN 3.8' : 'NEMOTRON (NIM)'} ({count})
+                  {prov === 'all' ? 'ALL' : AI_PROVIDER_LABELS[prov].toUpperCase()} ({count})
                 </button>
               );
             })}

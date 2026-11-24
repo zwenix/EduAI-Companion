@@ -5,94 +5,66 @@ import { isNativeApp } from '../lib/platform';
 import {
   NVIDIA_BASE_URL,
   NVIDIA_MODELS,
-  QWEN_BASE_URL,
-  QWEN_DEFAULT_MODEL,
-  isNemotronProvider,
-  isLegacyProvider,
+  isNimProvider,
+  isNimVisionProvider,
+  resolveProviderModel,
   type AlternativeAiProvider,
 } from '../lib/aiModels';
 
 // Provider ids, endpoints and model slugs come from the frozen registry in
 // `src/lib/aiModels.ts` (single source of truth — see AGENTS.md §1).
+//
+// Every non-Gemini engine is served by NVIDIA NIM:
+//   reasoning → nvidia-nemotron-ultra, nvidia-deepseek-flash,
+//               nvidia-nemotron-lightning, nvidia-nemotron-nano
+//   vision    → nvidia-nemotron-super-vl, nvidia-llama-vision
+// Alibaba Model Studio (Qwen) is REMOVED — deepseek-v4.1-flash replaced it.
 export type AIProvider = AlternativeAiProvider;
 
-// ─── Endpoints & model slugs ────────────────────────────────────────────────
-// Qwen 3.8 Max → Alibaba Cloud Model Studio (OpenAI-compatible, workspace
-// scoped; override with VITE_ALIBABA_API_BASE / ALIBABA_API_BASE).
-// Nemotron    → NVIDIA NIM ONLY (never Groq/OpenRouter).
-// All values are imported from the frozen registry — do not inline literals.
+const cleanKey = (raw: unknown): string =>
+  String(raw ?? '').trim().replace(/^['"\s]+|['"\s]+$/g, '');
+
+/** NVIDIA NIM key resolution shared by the text and vision paths. */
+const resolveNimKey = (): string =>
+  cleanKey(
+    (process.env as any).NVIDIA_API_KEY ||
+      (import.meta as any).env?.VITE_NVIDIA_API_KEY ||
+      AI_SECRETS.NVIDIA_API_KEY ||
+      '',
+  );
+
+/**
+ * A caller-supplied `model` is honoured ONLY when it is one of the frozen NIM
+ * slugs. A provider id, a legacy id or a retired Qwen slug is ignored in favour
+ * of the frozen slug for that provider, so no request can reach a removed model.
+ */
+const pickNimModel = (provider: string, requested?: string): string => {
+  const requestedSlug = String(requested ?? '').trim();
+  const frozen = resolveProviderModel(provider);
+  if (!frozen) throw new Error(`Unknown NVIDIA NIM model: ${provider}`);
+  if (
+    requestedSlug &&
+    !/qwen|aliyuncs|model-?studio/i.test(requestedSlug) &&
+    Object.values(NVIDIA_MODELS).includes(requestedSlug)
+  ) {
+    return requestedSlug;
+  }
+  return frozen;
+};
 
 const executeClientMultiAi = async (provider: AIProvider | string, messages: any[], model?: string) => {
-  // Handle NVIDIA NIM providers
-  if (provider && isNemotronProvider(provider)) {
-    const nvidiaModel = NVIDIA_MODELS[provider];
-    if (!nvidiaModel) {
-      throw new Error(`Unknown NVIDIA Nemotron model: ${provider}`);
-    }
-    
-    const baseUrl = NVIDIA_BASE_URL;
-    const url = `${baseUrl}/chat/completions`;
-    const apiKey = String(
-      (process.env as any).NVIDIA_API_KEY ||
-      (import.meta as any).env?.VITE_NVIDIA_API_KEY ||
-      AI_SECRETS.NVIDIA_API_KEY || ""
-    ).trim().replace(/^['"\s]+|['"\s]+$/g, "");
-    
-    if (!apiKey) {
-      throw new Error(`API key (NVIDIA_API_KEY) for NVIDIA NIM is not configured. Please add it.`);
-    }
-    
-    const selectedModel = model && !/nemotron|nvidia\//i.test(model) ? model : nvidiaModel;
-    
-    const payload: any = {
-      model: selectedModel,
-      messages,
-      temperature: 0.7,
-      top_p: 0.95,
-      max_tokens: 16384,
-    };
-    
-    const response = await axios.post(
-      url,
-      payload,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-      }
+  if (!isNimProvider(provider)) {
+    throw new Error(
+      `Provider ${provider} is not served by NVIDIA NIM. Text and vision engines are ` +
+        `nvidia-* ids (see src/lib/aiModels.ts); Gemini has its own client.`,
     );
-    const msg = response.data.choices[0]?.message || {};
-    return msg.content || msg.reasoning_content || "";
   }
-  
-  // Handle Alibaba Qwen providers
-  const baseUrl = String(
-    (import.meta as any).env?.VITE_ALIBABA_API_BASE ||
-    (process.env as any).ALIBABA_API_BASE ||
-    QWEN_BASE_URL
-  ).trim().replace(/\/+$/, "");
-  const url = `${baseUrl}/chat/completions`;
-  const apiKey = String(
-    (process.env as any).ALIBABA_API_KEY ||
-    (import.meta as any).env?.VITE_ALIBABA_API_KEY ||
-    (process.env as any).DASHSCOPE_API_KEY ||
-    AI_SECRETS.ALIBABA_API_KEY || ""
-  ).trim().replace(/^['"\s]+|['"\s]+$/g, "");
 
-  // Never forward a legacy provider id or NVIDIA model slug to Model Studio.
-  let selectedModel = model;
-  if (
-    !selectedModel ||
-    selectedModel === provider ||
-    isLegacyProvider(selectedModel) ||
-    /nemotron|nvidia\//i.test(selectedModel)
-  ) {
-    selectedModel = QWEN_DEFAULT_MODEL;
-  }
+  const selectedModel = pickNimModel(provider, model);
+  const apiKey = resolveNimKey();
 
   if (!apiKey) {
-    throw new Error(`API key (ALIBABA_API_KEY / Model Studio) for Qwen 3.8 is not configured in settings or environment. Please add it.`);
+    throw new Error(`API key (NVIDIA_API_KEY) for NVIDIA NIM is not configured. Please add it.`);
   }
 
   const payload: any = {
@@ -103,20 +75,14 @@ const executeClientMultiAi = async (provider: AIProvider | string, messages: any
     max_tokens: 16384,
   };
 
-  // Let the prompt dictate JSON mode, do not force it which causes issues with certain models
-
-  const response = await axios.post(
-    url,
-    payload,
-    {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-    }
-  );
-  const msg = response.data.choices[0]?.message || {};
-  return msg.content || msg.reasoning_content || "";
+  const response = await axios.post(`${NVIDIA_BASE_URL}/chat/completions`, payload, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+  });
+  const msg = response.data.choices?.[0]?.message || {};
+  return msg.content || msg.reasoning_content || '';
 };
 
 const executeClientOCR = async (base64Image: string, language: string = "eng") => {
@@ -135,13 +101,13 @@ const executeClientOCR = async (base64Image: string, language: string = "eng") =
   return "";
 };
 
-export const callMultiAi = async (provider: AIProvider, messages: any[], model?: string) => {
+export const callMultiAi = async (provider: AIProvider | string, messages: any[], model?: string) => {
   // Native app: no backend — call the provider API directly.
   if (isNativeApp()) {
     try {
       return await executeClientMultiAi(provider, messages, model);
     } catch (clientErr: any) {
-      console.log(`[AI Routing] Native client call for ${provider} failed, transitioning to Gemini fallback.`);
+      console.log(`[AI Routing] Native client call for ${provider} failed, transitioning to the next engine.`);
       throw clientErr;
     }
   }
@@ -155,9 +121,30 @@ export const callMultiAi = async (provider: AIProvider, messages: any[], model?:
     const backendError = error.response?.data?.error || {};
     const errorMsg = typeof backendError === 'string' ? backendError : backendError?.message || error?.message || '';
 
-    console.log(`[AI Routing] Provider ${provider} unavailable or transitioned (Status: ${status || 'Network'}). Seamlessly routing to Gemini.`);
-    throw new Error(`Provider ${provider} unavailable, transitioning to Gemini fallback: ${errorMsg}`);
+    console.log(`[AI Routing] Provider ${provider} unavailable or transitioned (Status: ${status || 'Network'}). Seamlessly routing to the next engine.`);
+    throw new Error(`Provider ${provider} unavailable, transitioning to the next engine: ${errorMsg}`);
   }
+};
+
+/**
+ * Vision/OCR call — scanned worksheets, diagrams, handwritten work.
+ *
+ * Sends the image parts straight to the NIM vision model in the standard
+ * OpenAI `image_url` shape, so the same payload works on the Express proxy and
+ * in the standalone APK (where `callMultiAi` posts to NIM directly).
+ */
+export const callVisionAi = async (
+  provider: AIProvider | string,
+  messages: any[],
+  model?: string,
+) => {
+  if (!isNimVisionProvider(provider)) {
+    throw new Error(
+      `Provider ${provider} is not a NIM vision engine. Use one of the ` +
+        `NIM_VISION_PROVIDERS ids from src/lib/aiModels.ts.`,
+    );
+  }
+  return await callMultiAi(provider as AIProvider, messages, model ?? NVIDIA_MODELS[provider]);
 };
 
 export const performOCR = async (base64Image: string, language: string = 'eng') => {

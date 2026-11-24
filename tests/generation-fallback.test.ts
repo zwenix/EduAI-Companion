@@ -11,8 +11,12 @@
  * content and no explanation.
  *
  * These tests pin the intended chain:
- *   backend → on-device Gemini → alternative engines (Qwen 3.8 Max → Nemotron)
+ *   backend → on-device Gemini → alternative engines (DeepSeek V4.1 Flash →
+ *   Nemotron 3.5 Lightning → Nemotron 3 Nano) on the NVIDIA NIM endpoint
  * and assert that a healthy backend stream still parses as before.
+ *
+ * Alibaba Qwen 3.8 Max is REMOVED: the retired Model Studio endpoint must
+ * never be called by the last-resort path.
  *
  * All network access is mocked; nothing here touches a real API.
  */
@@ -31,7 +35,7 @@ const GEMINI_ENVELOPE = JSON.stringify({
 });
 
 const RESCUE_ENVELOPE = JSON.stringify({
-  content: '<section>Qwen rescue content</section>',
+  content: '<section>DeepSeek rescue content</section>',
   memo: 'memo',
   rubric: 'rubric',
   assessmentCriteria: 'criteria',
@@ -137,7 +141,7 @@ describe('streaming generation fallback chain', () => {
     },
   );
 
-  it('rescues the generation on Qwen 3.8 Max when both Gemini paths fail', async () => {
+  it('rescues the generation on DeepSeek V4.1 Flash (NVIDIA NIM) when both Gemini paths fail', async () => {
     (globalThis as any).fetch = async () => backendError(503);
     axiosPost.mockResolvedValue({
       data: { choices: [{ message: { content: RESCUE_ENVELOPE } }] },
@@ -148,14 +152,19 @@ describe('streaming generation fallback chain', () => {
 
     expect(googleAttempts.length).toBeGreaterThan(0);
     expect(axiosPost).toHaveBeenCalled();
-    const [url] = axiosPost.mock.calls[0];
-    expect(String(url)).toContain('compatible-mode/v1/chat/completions');
-    expect(result.content).toContain('Qwen rescue content');
+    const [url, payload] = axiosPost.mock.calls[0];
+    expect(String(url)).toContain('integrate.api.nvidia.com/v1/chat/completions');
+    expect(payload.model).toBe('deepseek-ai/deepseek-v4.1-flash');
+    // The retired Alibaba Model Studio endpoint must never be called again.
+    for (const call of axiosPost.mock.calls) {
+      expect(String(call[0])).not.toMatch(/aliyuncs|compatible-mode|qwen/i);
+    }
+    expect(result.content).toContain('DeepSeek rescue content');
   });
 
   it('only rejects once every engine has been tried', async () => {
     (globalThis as any).fetch = async () => backendError(500);
-    axiosPost.mockRejectedValue(new Error('Model Studio unreachable'));
+    axiosPost.mockRejectedValue(new Error('NVIDIA NIM unreachable'));
 
     const { generateCAPSContent } = await loadService();
 
@@ -170,7 +179,7 @@ describe('streaming generation fallback chain', () => {
     const { generateCAPSContent } = await loadService();
     const result = await generateCAPSContent(input, () => {});
 
-    expect(result.content).toContain('Qwen rescue content');
+    expect(result.content).toContain('DeepSeek rescue content');
     expect(googleAttempts).toEqual([]);
     expect(axiosPost).not.toHaveBeenCalled();
   });

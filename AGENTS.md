@@ -6,103 +6,164 @@ This file contains strict project-level constraints and instructions that MUST b
 
 ## 🚀 1. STRICT MODEL SELECTION & NO AUTO-MAPPING (CRITICAL)
 
-The five models below are the ONLY models permitted in the app for AI text
-content generation, reasoning, OCR-grading and tutor chat. They are FROZEN:
-no agent, assistant, service or future change may swap, alias, upgrade,
-downgrade, or re-route them to other versions, providers or fallback engines.
-Every one of the allowed models must be called directly and exactly as
-specified below.
+The provider ids and exact model slugs below are the ONLY models permitted for
+AI text content generation, reasoning, vision/OCR and tutor chat. They are
+FROZEN: no agent, assistant, service or future change may swap, alias, upgrade,
+downgrade or re-route them to other versions, providers or fallback engines.
+Every allowed model must be called directly and exactly as specified.
 
-### The ONLY allowed models (FROZEN — do not change)
+Owner instruction, 23 Nov 2026: Nemotron 3 Ultra replaces Google Gemini as the
+PRIMARY reasoning model (lesson plans, assessments, learner diagnosis);
+Qwen 3.8 Max is REMOVED from the app and `deepseek-ai/deepseek-v4.1-flash` on
+NVIDIA NIM takes its place; Nemotron 3.5 Super VL is the PRIMARY vision/OCR
+engine and Llama 3.2 90B Vision is added alongside it.
+
+### The ONLY allowed models
+
+Reasoning / text, in strict fallback-priority order (Primary → Secondary →
+Tertiary → Quaternary). `nvidia-nemotron-nano` stays selectable but sits outside
+the automatic chain; selecting it starts Nano → Ultra → DeepSeek → Gemini →
+Lightning.
 
 | App provider id | Model to call (exactly) | Provider / endpoint |
 | --- | --- | --- |
-| `gemini` | `gemini-3.8-flash` (latest GA; reasoning chain `gemini-3.7-flash` → `gemini-3.6-flash` → `gemini-3.5-flash` → `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite` → `gemini-2.5-flash` only when 3.8 is unavailable) | Google Gemini API |
-| `alibaba-qwen` | `qwen3.8-max` | Alibaba Cloud Model Studio (OpenAI-compatible endpoint `https://ws-8ldb9u90tetxcada.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1`, key `ALIBABA_API_KEY`) |
-| `nvidia-nemotron-nano` | `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
 | `nvidia-nemotron-ultra` | `nvidia/nemotron-ultra-550b-a55b` (Nemotron 3 Ultra 550B-A55B) | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
+| `nvidia-deepseek-flash` | `deepseek-ai/deepseek-v4.1-flash` (replaces the retired Qwen engine) | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
+| `gemini` | `gemini-3.8-flash` (latest GA; reasoning chain `gemini-3.7-flash` → `gemini-3.6-flash` → `gemini-3.5-flash` → `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite` → `gemini-2.5-flash` only when 3.8 is unavailable) | Google Gemini API |
 | `nvidia-nemotron-lightning` | `nvidia/nemotron-3.5-lightning-30b-a3b` | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
+| `nvidia-nemotron-nano` | `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
 
-### NVIDIA NIM is MANDATORY for every Nemotron model
-* ALL Nemotron models MUST use the FREE NVIDIA NIM endpoint
-  (`https://integrate.api.nvidia.com/v1`). NEVER route Nemotron through Groq,
+### Vision / OCR
+
+Scanned worksheets, diagrams and handwritten work. These engines are separate
+from the text chain and from image generation. `ocrspace` is a keyless text
+extractor, not an LLM, and is the last resort.
+
+| App engine id | Model to call (exactly) | Provider / endpoint |
+| --- | --- | --- |
+| `nvidia-nemotron-super-vl` | `nvidia/nemotron-3.5-super-vl-120b-a12b` | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
+| `nvidia-llama-vision` | `meta/llama-3.2-90b-vision-instruct` | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
+| `gemini` | `gemini-3.8-flash` (Gemini vision) | Google Gemini API |
+| `ocrspace` | `ocrspace` (keyless OCR.space engine) | OCR.space API, key `OCR_SPACE_API_KEY` |
+
+### Fallback priority — EVERY model has a fallback
+
+On ANY error (quota, 401/402/403/404, 400/422, 5xx, timeout, network, empty or
+unparseable completion) the request advances to the next engine. No engine may
+dead-end.
+
+* Reasoning: `nvidia-nemotron-ultra` → `nvidia-deepseek-flash` → `gemini` →
+  `nvidia-nemotron-lightning`. Gemini is the tertiary safety net, not the
+  primary. A failure on the terminal Lightning tier wraps back to Gemini, and a
+  Gemini failure falls through to Lightning.
+* Vision / OCR: `nvidia-nemotron-super-vl` → `nvidia-llama-vision` → `gemini` →
+  `ocrspace`. The chain is a rotation, so even OCR.space falls back to Super VL.
+  If every vision engine fails, OCR.space text is graded by the reasoning chain.
+* Browser last resort: `nvidia-deepseek-flash` → `nvidia-nemotron-lightning` →
+  `nvidia-nemotron-nano`, all on NVIDIA NIM.
+* The client router (`src/services/unifiedAiService.ts`), the `/api/ai/:provider`
+  proxy (`server.ts`), the `/api/sa/generate-package` pipeline and the browser
+  last-resort list all import `fallbackChainFor()` / `visionFallbackChainFor()`
+  / `FALLBACK_LAST_RESORT` from the frozen registry. Do not re-inline a chain.
+
+### NVIDIA NIM is MANDATORY for every Nemotron, DeepSeek and vision model
+
+* ALL of them MUST use the FREE NVIDIA NIM endpoint
+  (`https://integrate.api.nvidia.com/v1`). NEVER route them through Groq,
   OpenRouter, Alibaba Model Studio, or any other provider or aggregator.
 * Never fall back to the same request through Groq or OpenRouter when the
   NVIDIA key is missing — the baked `NVIDIA_API_KEY` (same key the client/APK
   ships, see `src/lib/aiSecrets.ts`) is the intended server fallback.
-* The provider switch in `server.ts` (`/api/ai/:provider`) routes the three
-  `nvidia-nemotron-*` ids to the NVIDIA NIM client and maps each id to its
-  exact model slug above. Do not remove, rename or re-map those cases.
+* `NVIDIA_API_KEY` is now the critical key: primary reasoning, DeepSeek, both
+  vision models and every NIM fallback depend on it. The retired Model Studio
+  key is no longer read anywhere in the app.
 
 ### Gemini rules
-* `gemini` is the primary engine and maps to `gemini-3.8-flash` (the current
-  latest GA). DO NOT map it to outdated models like `gemini-2.0-flash`,
-  `gemini-1.5`, `gemini-2.1`, or older 3.x Flash releases as primary defaults.
-  EVER.
+
+* `gemini` is now the TERTIARY reasoning engine (and tertiary vision engine),
+  not the primary. It still maps to `gemini-3.8-flash` (current latest GA). DO
+  NOT map it to `gemini-2.0-flash`, `gemini-1.5`, `gemini-2.1`, or older 3.x
+  Flash releases as a primary default.
+* The on-device Gemini engine keeps its own frozen candidate chain, imported
+  from `GEMINI_MODEL_CHAIN` in the registry — never redeclared.
 
 ### Legacy ids (internal aliases only — not models)
-* `nvidia-nemotron` (old Llama-based Nemotron 49B) and `groq-qwen` /
+
+* `alibaba-qwen`, `groq-qwen`, `nvidia-nemotron` and
   `nvidia-nemotron-ultra-legacy` are retired ids kept ONLY so stale saved
-  settings keep working. They must resolve to the Qwen 3.8 Max engine
-  (`alibaba-qwen`) — never resurrected as their own models.
+  settings keep working. `normalizeProviderId()` maps every one of them to
+  `nvidia-deepseek-flash`; `resolveProviderModel()` returns
+  `deepseek-ai/deepseek-v4.1-flash` for them. They are never selectable, never
+  a chain start and never resurrected as their own models.
 
 ### Strictly Banned / Removed
-* Llama-family models are REMOVED from the app: no Llama model of any version
-  or size, and no Groq-hosted model, may appear anywhere in the app code or UI.
+
+* Llama-family models are REMOVED from text generation. The ONE permitted
+  exception is `meta/llama-3.2-90b-vision-instruct`, allowed ONLY as the
+  secondary vision/OCR engine above. No other Llama model of any version or
+  size, and no Groq-hosted model, may appear anywhere in the app code or UI.
 * Groq and OpenRouter are banned as model providers for text generation — no
   Groq client, no OpenRouter client, no Groq/OpenRouter key fallback.
-* Any other model not listed above (DeepSeek, etc.) is banned from text
+* Qwen 3.8 Max is REMOVED from the app: no Qwen text client, endpoint, key,
+  slug or selectable id. DeepSeek V4.1 Flash replaces it everywhere. Retired
+  Qwen-Image image-generation aliases (which map to FLUX) are a separate image
+  pipeline and are deliberately untouched.
+* Any other model not listed in the two tables above is banned from text
   content generation.
 * Outdated Gemini defaults (`gemini-2.0-flash`, `gemini-1.5-flash`,
   `gemini-2.1`) MUST NOT be used as primary defaults.
 * Image generation (FLUX.1-schnell on Hugging Face / Pollinations /
-  Google Imagen 3), OCR engines and TTS/voice engines are separate pipelines —
-  leave them exactly as configured.
+  Google Imagen 3) and TTS/voice engines are separate pipelines — leave them
+  exactly as configured.
 
-### The frozen registry — single source of truth (added 2 Oct 2026)
-All five provider ids, their exact model slugs, the Gemini fallback chain, both
-provider endpoints, the legacy-id aliases and the sibling-engine fallback graph
-live in EXACTLY ONE module:
+### The frozen registry — single source of truth
 
-* **`src/lib/aiModels.ts`** — exports `AI_PROVIDERS`, `AI_PROVIDER_LABELS`,
-  `GEMINI_MODEL_CHAIN`, `GEMINI_PRIMARY_MODEL`, `QWEN_DEFAULT_MODEL`,
-  `QWEN_BASE_URL`, `NVIDIA_BASE_URL`, `NVIDIA_MODELS`,
-  `resolveProviderModel()`, `alternativeProviderFor()`,
-  `isNemotronProvider()` and `isLegacyProvider()`.
+Every provider id, exact model slug, both fallback chains, the Gemini candidate
+chain, the NIM endpoint, the legacy aliases and the UI labels live in EXACTLY
+ONE module:
+
+* **`src/lib/aiModels.ts`** — exports `AI_PROVIDERS`, `VISION_PROVIDERS`,
+  `AI_PROVIDER_LABELS`, `VISION_PROVIDER_LABELS`, `DEFAULT_AI_PROVIDER`,
+  `DEFAULT_VISION_PROVIDER`, `GEMINI_MODEL_CHAIN`, `GEMINI_PRIMARY_MODEL`,
+  `NVIDIA_BASE_URL`, `NVIDIA_MODELS`, `REASONING_CHAIN`, `VISION_CHAIN`,
+  `FALLBACK_LAST_RESORT`, `resolveProviderModel()`, `normalizeProviderId()`,
+  `fallbackChainFor()`, `visionFallbackChainFor()`, `visionAttemptOrder()`,
+  `alternativeProviderFor()`, `isNimProvider()`, `isNemotronProvider()`,
+  `isNimVisionProvider()` and `isLegacyProvider()`.
 
 Every call site IMPORTs from this registry — no model string, endpoint or
 provider-id list may be written as a literal anywhere else. Editing the registry
-is a model-frozen change: it requires an explicit user instruction **and** an
-update to the table above.
+is a model-frozen change: it requires an explicit user instruction AND an
+update to both tables above.
 
 ### Enforcement (do not weaken)
-* `tests/ai-models.test.ts` asserts every value in this section against
-  `src/lib/aiModels.ts` and fails on any drift — re-map, rename, upgrade,
-  downgrade or re-route. A red test must never be "fixed" by relaxing the test.
-* §7 (Repository Guardrails) defines the CI gate that runs it.
 
-### Application Files Governing Models:
-* **`server.ts`**: The API proxy handling `/api/ai/:provider` must resolve
-  `gemini` to the Gemini chain above, `alibaba-qwen` to `qwen3.8-max` via Model
-  Studio, and the three `nvidia-nemotron-*` ids to their exact NIM model slugs
-  via the NVIDIA NIM endpoint. It contains NO Groq or OpenRouter clients. It
-  imports the ids, slugs, endpoints, legacy aliases and sibling-engine graph from
-  `src/lib/aiModels.ts` — do not re-inline them.
+* `tests/ai-models.test.ts` parses both tables in this section and asserts every
+  value against `src/lib/aiModels.ts`; `tests/ai-routing.test.ts` pins the
+  chain order and Qwen's removal; `tests/generation-fallback.test.ts` pins the
+  NIM last-resort path. A red test must never be "fixed" by relaxing the test.
+* §7 (Repository Guardrails) defines the CI gate (`npm run ci`) that runs them.
+
+### Application Files Governing Models
+
+* **`server.ts`**: `/api/ai/:provider` normalises the id, walks the reasoning
+  chain (or the vision chain for vision ids) and keeps the Gemini tier with its
+  route-budget reserve. `/api/sa/generate-package` walks the same reasoning
+  chain. There is NO Groq, OpenRouter or Alibaba client.
 * **`src/contexts/AiContext.tsx`**: `AIProvider` is re-exported from, and
-  `VALID_PROVIDERS` derived from, `AI_PROVIDERS` in `src/lib/aiModels.ts`. The
-  resolved list must still be exactly `gemini`, `alibaba-qwen`,
-  `nvidia-nemotron-nano`, `nvidia-nemotron-ultra`, `nvidia-nemotron-lightning`.
-* **`src/App.tsx`**: The AI-engine picker and auto-optimize candidates map over
-  `AI_PROVIDERS` + `AI_PROVIDER_LABELS` from `src/lib/aiModels.ts`, so exactly
-  these five providers are exposed (Gemini 3.8 Flash, Qwen 3.8 Max, Nemotron
-  3 Nano, Nemotron 3 Ultra 550B, Nemotron 3.5 Lightning).
-* **`src/services/multiAiService.ts`**: NVIDIA NIM client must call the exact
-  Nemotron slugs above on `https://integrate.api.nvidia.com/v1`; Model Studio
-  calls must use `qwen3.8-max`. Both come from `src/lib/aiModels.ts`
-  (`NVIDIA_BASE_URL`, `NVIDIA_MODELS`, `QWEN_DEFAULT_MODEL`).
-* **`src/services/geminiClient.ts` / `geminiService.ts` /
-  `unifiedAiService.ts`**: Must dispatch OCR grading and fallback logic to
-  these exact model strings only.
+  `VALID_PROVIDERS` / `VALID_OCR` derived from, the frozen registry. Fresh
+  installs default to `DEFAULT_AI_PROVIDER` and `DEFAULT_VISION_PROVIDER`.
+* **`src/App.tsx` / `src/components/Settings.tsx` /
+  `src/components/AdminDashboard.tsx`**: the pickers and filter chips map over
+  `AI_PROVIDERS`, `VISION_PROVIDERS`, `REASONING_CHAIN` and their labels, so the
+  UI can never drift from the registry.
+* **`src/services/multiAiService.ts`**: the native/standalone client calls NIM
+  with the exact frozen slugs; `callVisionAi()` posts OpenAI-style `image_url`
+  parts to Super VL / Llama Vision.
+* **`src/services/unifiedAiService.ts`**: `routeWithFallback()` advances on any
+  error; `runOCRScan()` / `runOCRAndGrade()` walk the vision rotation.
+* **`src/services/geminiClient.ts` / `geminiService.ts`**: import the frozen
+  Gemini chain and `FALLBACK_LAST_RESORT` — no duplicated model strings.
 
 ---
 

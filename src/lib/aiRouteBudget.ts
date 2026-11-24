@@ -5,7 +5,7 @@
  * ---------------
  * The AI proxy walks up to three engines for one request:
  *
- *   1. the requested provider (NVIDIA NIM / Alibaba Model Studio)
+ *   1. the requested provider (NVIDIA NIM)
  *   2. one sibling engine (`alternativeProviderFor`)
  *   3. the Gemini fallback
  *

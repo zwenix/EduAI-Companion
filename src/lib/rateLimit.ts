@@ -5,7 +5,7 @@
  * ---
  * `/api/*` is an unauthenticated provider gateway (see
  * TECHNICAL_SPECIFICATION.md §13.2): anyone who discovers the deployment can
- * consume Gemini / Qwen / NVIDIA quota, and an image or video request costs
+ * consume NVIDIA NIM / Gemini quota, and an image or video request costs
  * real money. Full protection needs Firebase ID-token verification
  * (spec §15 roadmap item 1); this limiter is the zero-configuration, zero-risk
  * layer that blunts accidental and casual abuse today.
@@ -65,7 +65,7 @@ export interface RateLimiter {
 
 /** Preset budgets per endpoint class — tuned to provider cost, not to page views. */
 export const RATE_LIMIT_RULES: Record<string, RateLimitRule> = {
-  // Text generation: cheap-ish but quota-bound (Gemini/Qwen/NIM free tiers).
+  // Text generation: cheap-ish but quota-bound (NIM/Gemini free tiers).
   ai: { name: 'ai', windowMs: 60_000, max: 30 },
   // Image generation: paid/quota-bound providers, slow responses.
   images: { name: 'images', windowMs: 60_000, max: 20 },

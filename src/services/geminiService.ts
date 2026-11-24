@@ -16,39 +16,26 @@ import {
 import { dateMandate } from "../lib/saDates";
 import {
   AI_PROVIDER_LABELS,
+  FALLBACK_LAST_RESORT,
   NVIDIA_BASE_URL,
-  NVIDIA_MODELS,
-  QWEN_BASE_URL,
-  QWEN_DEFAULT_MODEL,
+  resolveProviderModel,
 } from "../lib/aiModels";
 
 // ─── Browser-side LAST RESORT ───────────────────────────────────────────────
 // If both the backend AND the direct Gemini engine fail (e.g. the shared
 // Gemini key is quota-exhausted or blocked), make one final attempt through
-// the alternative engines whose keys are baked into the app — Qwen 3.8 Max
-// first, then the Nemotron siblings named by the frozen sibling-engine graph
-// (`alternativeProviderFor`). Endpoints and slugs come from the frozen registry
-// in `src/lib/aiModels.ts` (AGENTS.md §1) — never inline them here.
-const LAST_RESORT_PROVIDERS: { name: string; url: string; key: () => string; models: string[] }[] = [
-  {
-    name: AI_PROVIDER_LABELS['alibaba-qwen'],
-    url: `${QWEN_BASE_URL}/chat/completions`,
-    key: () => AI_SECRETS.ALIBABA_API_KEY,
-    models: [QWEN_DEFAULT_MODEL]
-  },
-  {
-    name: AI_PROVIDER_LABELS['nvidia-nemotron-lightning'],
+// the alternative engines whose keys are baked into the app — DeepSeek V4.1
+// Flash first, then Nemotron 3.5 Lightning and Nemotron 3 Nano. All three are
+// served by NVIDIA NIM; Alibaba Qwen 3.8 Max is REMOVED. The engine ids,
+// endpoints and slugs come from the frozen registry in `src/lib/aiModels.ts`
+// (AGENTS.md §1) — never inline them here.
+const LAST_RESORT_PROVIDERS: { name: string; url: string; key: () => string; models: string[] }[] =
+  FALLBACK_LAST_RESORT.map((id) => ({
+    name: AI_PROVIDER_LABELS[id],
     url: `${NVIDIA_BASE_URL}/chat/completions`,
     key: () => AI_SECRETS.NVIDIA_API_KEY,
-    models: [NVIDIA_MODELS['nvidia-nemotron-lightning']]
-  },
-  {
-    name: AI_PROVIDER_LABELS['nvidia-nemotron-nano'],
-    url: `${NVIDIA_BASE_URL}/chat/completions`,
-    key: () => AI_SECRETS.NVIDIA_API_KEY,
-    models: [NVIDIA_MODELS['nvidia-nemotron-nano']]
-  }
-];
+    models: [resolveProviderModel(id)],
+  }));
 
 const callLastResortLLM = async (systemPrompt: string, userPrompt: string): Promise<string> => {
   let lastErr: any = null;
@@ -150,7 +137,7 @@ const backendHttpError = async (response: Response, action: string): Promise<Err
 
 /**
  * Final safety net shared by every content action: ask the alternative engines
- * (Qwen 3.8 Max → Nemotron siblings) for the same JSON envelope the Gemini
+ * (DeepSeek V4.1 Flash → Nemotron siblings) for the same JSON envelope the Gemini
  * engine would have produced. Returns the parsed object, or falls back to
  * wrapping the raw text so the UI always has something to render.
  */
@@ -806,7 +793,7 @@ const executeWithContinuation = async (action: string, input: any, onProgress?: 
  *
  * Runs the normal chain (backend → on-device Gemini engine) and, only when that
  * whole chain fails, makes one final attempt on the alternative engines
- * (Qwen 3.8 Max → Nemotron siblings) before surfacing an error. This is the
+ * (DeepSeek V4.1 Flash → Nemotron siblings) before surfacing an error. This is the
  * same promise `generateEducationalContent` has always kept — the classroom
  * must not lose a generation because one provider is having a bad day.
  */

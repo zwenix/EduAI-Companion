@@ -14,16 +14,11 @@ import { GEMINI_CONTENT_OUTPUT_TOKENS } from '../lib/aiOutputBudget';
 import { buildAdminLabPrompts, buildVisualLabPrompts } from '../lib/prompts/lab-prompts';
 import { buildClassicEducationalPrompts } from '../lib/prompts/classic-templates';
 import { resolveContentDesignStyle, resolveIllustrationStyle } from '../lib/contentStyle';
+import { GEMINI_MODEL_CHAIN } from '../lib/aiModels';
 
-const GEMINI_MODELS = [
-  'gemini-3.8-flash',
-  'gemini-3.7-flash',
-  'gemini-3.6-flash',
-  'gemini-3.5-flash',
-  'gemini-3.5-flash-lite',
-  'gemini-3.1-flash-lite',
-  'gemini-2.5-flash',
-];
+// The frozen Gemini candidate chain lives in the single-source-of-truth
+// registry (AGENTS.md §1) — never redeclare model ids here.
+const GEMINI_MODELS: readonly string[] = GEMINI_MODEL_CHAIN;
 
 let _client: GoogleGenAI | null = null;
 function getClient(): GoogleGenAI {
@@ -67,7 +62,7 @@ const JSON_EDUCATIONAL_HINT = `\nReturn a valid JSON object with the following k
 /**
  * System + user prompt for the `generate-caps` action, shared by the on-device
  * Gemini engine here and the alternative-engine rescue in `geminiService`
- * (Qwen 3.8 Max / Nemotron) so both ask for the identical JSON envelope.
+ * (DeepSeek V4.1 Flash / Nemotron) so both ask for the identical JSON envelope.
  */
 export const buildCapsGenerationPrompts = (input: any): { system: string; user: string } => {
   const isLessonPlan = ['Lesson Plan', 'Weekly Lesson Plan', 'Unit Plan', 'lesson-plan'].includes(input.contentType);
