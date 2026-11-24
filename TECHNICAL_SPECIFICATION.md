@@ -379,7 +379,7 @@ Per `AGENTS.md` §1, only the following models are permitted for text generation
 
 | Provider id | Model | Endpoint |
 | :--- | :--- | :--- |
-| `nvidia-nemotron-ultra` | `nvidia/nemotron-ultra-550b-a55b` (**primary**) | NVIDIA NIM `https://integrate.api.nvidia.com/v1` (`NVIDIA_API_KEY`) |
+| `nvidia-nemotron-ultra` | `nvidia/nemotron-3-ultra-550b-a55b` (**primary**) | NVIDIA NIM `https://integrate.api.nvidia.com/v1` (`NVIDIA_API_KEY`) |
 | `nvidia-deepseek-flash` | `deepseek-ai/deepseek-v4.1-flash` (secondary) | NVIDIA NIM |
 | `gemini` | `gemini-3.8-flash` (tertiary), with the frozen fallback chain below | Google Gemini API |
 | `nvidia-nemotron-lightning` | `nvidia/nemotron-3.5-lightning-30b-a3b` (quaternary) | NVIDIA NIM |
@@ -392,6 +392,7 @@ Per `AGENTS.md` §1, only the following models are permitted for text generation
 Additional routing rules:
 
 - All Nemotron traffic must use NVIDIA NIM; Groq, OpenRouter and other aggregators are banned as providers.
+- **Verified 24 Nov 2026:** all six NIM ids are pinned to their `build.nvidia.com` model cards; the callable Ultra id is `nvidia/nemotron-3-ultra-550b-a55b` (the shorter form 404s). `NIM_MODEL_CARDS` / `NIM_REQUEST_DEFAULTS` in `src/lib/aiModels.ts` supply exact slugs, `chat_template_kwargs.enable_thinking`, `reasoning_budget`, Nano's 65536-token budget, Llama Vision's 4096-token default (NIM allows 1–8192), OpenAI-style `image_url` vision parts and `reasoning_content` fallback parsing. Every NIM call site spreads `nimRequestDefaultsFor()`; the proxy clamps caller `max_tokens` overrides. See `AGENTS.md` §1 for the binding table and source links.
 - Llama-family models are removed from text generation; `meta/llama-3.2-90b-vision-instruct` is permitted ONLY as the secondary vision/OCR model.
 - Qwen 3.8 Max is removed. Legacy ids (`alibaba-qwen`, `groq-qwen`, `nvidia-nemotron`, `nvidia-nemotron-ultra-legacy`) resolve to `nvidia-deepseek-flash` so stale saved settings keep working; they are never resurrected as models.
 - A verified working model is cached to cut fallback latency; if the whole chain fails, the cache is invalidated for a 60-second window and requests restart from the top with gentle backoff (503/429 storms).
@@ -730,7 +731,7 @@ no credentials, no emulator.
 
 | Suite | Locks down |
 | :--- | :--- |
-| `ai-models.test.ts` | The FROZEN reasoning and vision tables: Ultra → DeepSeek → Gemini → Lightning, Super VL → Llama Vision → Gemini → OCR.space, the exact NIM slugs, the NVIDIA-only endpoint rule, legacy Qwen ids migrating to DeepSeek and the fallback graph. It also **parses `AGENTS.md` §1** and asserts the document and the registry agree value for value. |
+| `ai-models.test.ts` | The FROZEN reasoning and vision tables: Ultra → DeepSeek → Gemini → Lightning, Super VL → Llama Vision → Gemini → OCR.space, the exact NIM slugs (verified against the model cards), the NVIDIA-only endpoint rule, per-model request defaults/thinking flags, legacy Qwen ids migrating to DeepSeek and the fallback graph. It also **parses `AGENTS.md` §1** and asserts the document and the registry agree value for value. |
 | `ai-routing.test.ts` | Provider fallback behaviour in `unifiedAiService`: Ultra → DeepSeek → Gemini → Lightning on any error, Gemini quota → Lightning, Qwen ids never reaching an engine, NIM vision image parts and the OCR.space ↔ Gemini vision fallback. |
 | `content-template.test.ts` | The ONCE / GRADIENT / FOOTER contract on arbitrary (messy) model output, idempotent wrapping, CAPS-code derivation per phase. |
 | `sa-frameworks.test.ts` | Phase detection, NPA SBA/exam weights per phase, the 7-point rating scale, Bloom's distributions summing to 100%, subject/phase validation, the SIAS levels, and the full `validateCAPSCompliance` checklist. |

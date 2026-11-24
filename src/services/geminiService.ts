@@ -18,6 +18,7 @@ import {
   AI_PROVIDER_LABELS,
   FALLBACK_LAST_RESORT,
   NVIDIA_BASE_URL,
+  nimRequestDefaultsFor,
   resolveProviderModel,
 } from "../lib/aiModels";
 
@@ -29,8 +30,9 @@ import {
 // served by NVIDIA NIM; Alibaba Qwen 3.8 Max is REMOVED. The engine ids,
 // endpoints and slugs come from the frozen registry in `src/lib/aiModels.ts`
 // (AGENTS.md §1) — never inline them here.
-const LAST_RESORT_PROVIDERS: { name: string; url: string; key: () => string; models: string[] }[] =
+const LAST_RESORT_PROVIDERS: { id: string; name: string; url: string; key: () => string; models: string[] }[] =
   FALLBACK_LAST_RESORT.map((id) => ({
+    id,
     name: AI_PROVIDER_LABELS[id],
     url: `${NVIDIA_BASE_URL}/chat/completions`,
     key: () => AI_SECRETS.NVIDIA_API_KEY,
@@ -48,13 +50,12 @@ const callLastResortLLM = async (systemPrompt: string, userPrompt: string): Prom
         const resp = await axios.post(
           provider.url,
           {
+            ...nimRequestDefaultsFor(provider.id),
             model,
             messages: [
               { role: "system", content: systemPrompt },
               { role: "user", content: userPrompt }
-            ],
-            temperature: 0.7,
-            max_tokens: 8192
+            ]
           },
           {
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },

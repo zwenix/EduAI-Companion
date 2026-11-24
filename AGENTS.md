@@ -2,6 +2,8 @@
 
 This file contains strict project-level constraints and instructions that MUST be loaded and respected by any AI Agent or Coding Assistant working on this workspace. Do NOT modify, delete, or override these rules without explicit user instructions.
 
+> **Owner authorisation, 24 Nov 2026:** the owner explicitly authorised correcting the frozen model slugs and the model-invocation contract below after verifying the NVIDIA model cards. The §1 tables and §1 request-parameter rules in this revision are that authorised correction.
+
 ---
 
 ## 🚀 1. STRICT MODEL SELECTION & NO AUTO-MAPPING (CRITICAL)
@@ -27,7 +29,7 @@ Lightning.
 
 | App provider id | Model to call (exactly) | Provider / endpoint |
 | --- | --- | --- |
-| `nvidia-nemotron-ultra` | `nvidia/nemotron-ultra-550b-a55b` (Nemotron 3 Ultra 550B-A55B) | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
+| `nvidia-nemotron-ultra` | `nvidia/nemotron-3-ultra-550b-a55b` (Nemotron 3 Ultra 550B-A55B) | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
 | `nvidia-deepseek-flash` | `deepseek-ai/deepseek-v4.1-flash` (replaces the retired Qwen engine) | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
 | `gemini` | `gemini-3.8-flash` (latest GA; reasoning chain `gemini-3.7-flash` → `gemini-3.6-flash` → `gemini-3.5-flash` → `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite` → `gemini-2.5-flash` only when 3.8 is unavailable) | Google Gemini API |
 | `nvidia-nemotron-lightning` | `nvidia/nemotron-3.5-lightning-30b-a3b` | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
@@ -45,6 +47,54 @@ extractor, not an LLM, and is the last resort.
 | `nvidia-llama-vision` | `meta/llama-3.2-90b-vision-instruct` | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
 | `gemini` | `gemini-3.8-flash` (Gemini vision) | Google Gemini API |
 | `ocrspace` | `ocrspace` (keyless OCR.space engine) | OCR.space API, key `OCR_SPACE_API_KEY` |
+
+### Verified NVIDIA NIM IDs & request parameters (24 Nov 2026)
+
+Every exact id in the two tables above was read from the model's
+`build.nvidia.com` model card (the copy-ready `model="…"` string or its curl
+payload). **The old `nvidia/nemotron-ultra-550b-a55b` form does NOT exist on
+NIM** — its [model card is a 404](https://build.nvidia.com/nvidia/nemotron-ultra-550b-a55b).
+The callable id is `nvidia/nemotron-3-ultra-550b-a55b`. Never "simplify" a slug,
+and re-check these cards before changing any id:
+
+* `nvidia-nemotron-ultra` → `nvidia/nemotron-3-ultra-550b-a55b` — <https://build.nvidia.com/nvidia/nemotron-3-ultra-550b-a55b>
+* `nvidia-nemotron-super-vl` → `nvidia/nemotron-3.5-super-vl-120b-a12b` — <https://build.nvidia.com/nvidia/nemotron-3.5-super-vl-120b-a12b>
+* `nvidia-nemotron-lightning` → `nvidia/nemotron-3.5-lightning-30b-a3b` — <https://build.nvidia.com/nvidia/nemotron-3.5-lightning-30b-a3b>
+* `nvidia-nemotron-nano` → `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` — <https://build.nvidia.com/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning>
+* `nvidia-deepseek-flash` → `deepseek-ai/deepseek-v4.1-flash` — <https://build.nvidia.com/deepseek-ai/deepseek-v4.1-flash>
+* `nvidia-llama-vision` → `meta/llama-3.2-90b-vision-instruct` — <https://build.nvidia.com/meta/llama-3.2-90b-vision-instruct>
+
+The app posts all six to `https://integrate.api.nvidia.com/v1/chat/completions`
+with `Authorization: Bearer $NVIDIA_API_KEY`. Request bodies MUST spread
+`nimRequestDefaultsFor(provider)` / `NIM_REQUEST_DEFAULTS` from
+`src/lib/aiModels.ts`. The four Nemotron model cards make the thinking flags
+and budgets mandatory; the other two entries are conservative app defaults.
+Do NOT hard-code one `temperature` / `max_tokens` pair for every engine:
+
+* Ultra, Super VL, Lightning: `temperature: 1`, `top_p: 0.95`,
+  `max_tokens: 16384`, `chat_template_kwargs: { enable_thinking: true }`.
+* Lightning and Nano additionally take `reasoning_budget: 16384`. Nano uses
+  `temperature: 0.6` and `max_tokens: 65536`.
+* The Python snippets pass these keys through `extra_body`; in raw JSON and the
+  Node OpenAI SDK they are **top-level** body keys (`chat_template_kwargs`,
+  `reasoning_budget`). Do not nest them inside an `extra_body` JSON property.
+* NVIDIA's NIM reference accepts Llama 3.2 90B Vision `max_tokens` in the
+  **1–8192** range (<https://docs.api.nvidia.com/nim/reference/meta-llama-3_2-90b-vision-instruct-infer>).
+  Our frozen default is `max_tokens: 4096`; the proxy clamps caller overrides
+  so 16384 is never sent. DeepSeek V4.1 Flash uses `temperature: 0.7`,
+  `top_p: 0.95`, `max_tokens: 16384`.
+* Thinking models stream `reasoning_content` and `content` on separate
+  channels. Prefer `content`; use `reasoning_content` only when `content` is
+  empty. The server proxy, the native/standalone client and the browser
+  last-resort path MUST read both channels without mixing chain-of-thought
+  into the final answer, or a successful call looks like an empty completion.
+* Vision payloads use OpenAI-style `image_url` parts (text + image array),
+  exactly as the Super VL card demonstrates. A caller-supplied model string is
+  ignored and a caller-supplied `max_tokens` is clamped to the frozen
+  per-model default; the exact slug always comes from the frozen registry.
+
+A change to any id or default requires an update to BOTH tables, this section,
+`src/lib/aiModels.ts` and the CI parity tests — never one without the others.
 
 ### Fallback priority — EVERY model has a fallback
 
@@ -77,6 +127,9 @@ dead-end.
 * `NVIDIA_API_KEY` is now the critical key: primary reasoning, DeepSeek, both
   vision models and every NIM fallback depend on it. The retired Model Studio
   key is no longer read anywhere in the app.
+* Use the per-model request defaults from `nimRequestDefaultsFor()` (see the
+  verified section above). Hard-coding `temperature: 0.7` / `max_tokens: 16384`
+  for every NIM model breaks the thinking models and the 4K Llama vision cap.
 
 ### Gemini rules
 

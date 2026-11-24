@@ -33,6 +33,7 @@ import {
   fallbackChainFor,
   isNimProvider,
   isNimVisionProvider,
+  nimRequestDefaultsFor,
   normalizeProviderId,
   resolveProviderModel,
   visionFallbackChainFor,
@@ -1542,7 +1543,7 @@ const masterPromptFor = (input: any = {}): string =>
       : requestedProvider === "gemini"
         ? "gemini"
         : normalizeProviderId(requestedProvider);
-    const { messages, model, temperature = 0.7, max_tokens, max_completion_tokens, stream } = req.body;
+    const { messages, model, temperature, max_tokens, max_completion_tokens, stream } = req.body;
 
     // One shared budget for the whole routing chain (requested provider →
     // sibling engine → Gemini). Vercel kills the function after 60s and
@@ -1708,13 +1709,24 @@ const masterPromptFor = (input: any = {}): string =>
         );
       }
 
+      // Model-card defaults (temperature / top_p / max_tokens / thinking flags)
+      // come from the frozen registry. A caller may override temperature and
+      // max_tokens, but never the exact model slug or the thinking settings.
+      const requestDefaults = nimRequestDefaultsFor(targetProvider);
       const payload: any = {
+        ...requestDefaults,
         model: targetModel,
         messages,
-        temperature: 0.7,
-        top_p: 0.95,
-        max_tokens: max_tokens || max_completion_tokens || 16384,
       };
+      if (typeof temperature === "number") payload.temperature = temperature;
+      const requestedMaxTokens = Number(max_tokens || max_completion_tokens);
+      if (Number.isFinite(requestedMaxTokens) && requestedMaxTokens > 0) {
+        // Never exceed the model-card default (e.g. Llama Vision's 4096).
+        payload.max_tokens = Math.min(
+          Math.floor(requestedMaxTokens),
+          requestDefaults.max_tokens,
+        );
+      }
       const requestOptions = { timeout: attemptTimeoutMs, maxRetries: 0 };
 
       if (stream) {
@@ -1725,12 +1737,23 @@ const masterPromptFor = (input: any = {}): string =>
         res.setHeader("Connection", "keep-alive");
         if (res.flushHeaders) res.flushHeaders();
         let fullText = "";
+        let reasoningText = "";
         for await (const chunk of completion as any) {
-          const content = chunk.choices?.[0]?.delta?.content || "";
+          const delta = chunk.choices?.[0]?.delta || {};
+          const content = delta.content || "";
           if (content) {
             fullText += content;
             res.write(`data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`);
           }
+          const reasoning = delta.reasoning_content || "";
+          if (reasoning) reasoningText += reasoning;
+        }
+        // Thinking models may put the answer in `reasoning_content` when no
+        // `content` was emitted; use it as a fallback without exposing the
+        // chain-of-thought alongside a normal answer.
+        if (!fullText && reasoningText) {
+          fullText = reasoningText;
+          res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: reasoningText } }] })}\n\n`);
         }
         res.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }], done: true, final: fullText })}\n\n`);
         return res.end();
@@ -2375,15 +2398,15 @@ const masterPromptFor = (input: any = {}): string =>
             rawResponse = geminiResponse.text || "";
           } else {
             const completion = await nvidia.chat.completions.create({
+              ...nimRequestDefaultsFor(engine),
               model: resolveProviderModel(engine),
               messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt }
-              ],
-              temperature: 0.7,
-              max_tokens: 16384
+              ]
             } as any);
-            rawResponse = (completion as any).choices?.[0]?.message?.content || "";
+            const completionMessage = (completion as any).choices?.[0]?.message || {};
+            rawResponse = completionMessage.content || completionMessage.reasoning_content || "";
           }
           if (!rawResponse.trim()) throw new Error(`${engine} returned an empty completion`);
           usedProvider = engine;

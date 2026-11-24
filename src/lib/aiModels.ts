@@ -11,7 +11,7 @@
  * ── MODEL ROLES (owner instruction, 23 Nov 2026) ────────────────────────────
  *
  *   REASONING — lesson plans, assessments, learner diagnosis, tutor chat:
- *     1. Primary     `nvidia-nemotron-ultra`     nvidia/nemotron-ultra-550b-a55b
+ *     1. Primary     `nvidia-nemotron-ultra`     nvidia/nemotron-3-ultra-550b-a55b
  *     2. Secondary   `nvidia-deepseek-flash`     deepseek-ai/deepseek-v4.1-flash
  *     3. Tertiary    `gemini`                    gemini-3.8-flash (+ chain)
  *     4. Quaternary  `nvidia-nemotron-lightning` nvidia/nemotron-3.5-lightning-30b-a3b
@@ -131,7 +131,9 @@ export const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1';
  */
 export const NVIDIA_MODELS: Record<string, string> = {
   // ── Reasoning / text ──────────────────────────────────────────────────────
-  'nvidia-nemotron-ultra': 'nvidia/nemotron-ultra-550b-a55b',
+  // Verified 24 Nov 2026 against the model card: the -3- form is the callable
+  // one; `nvidia/nemotron-ultra-550b-a55b` does NOT exist on NIM (HTTP 404).
+  'nvidia-nemotron-ultra': 'nvidia/nemotron-3-ultra-550b-a55b',
   'nvidia-deepseek-flash': 'deepseek-ai/deepseek-v4.1-flash',
   'nvidia-nemotron-lightning': 'nvidia/nemotron-3.5-lightning-30b-a3b',
   'nvidia-nemotron-nano': 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
@@ -139,6 +141,77 @@ export const NVIDIA_MODELS: Record<string, string> = {
   'nvidia-nemotron-super-vl': 'nvidia/nemotron-3.5-super-vl-120b-a12b',
   'nvidia-llama-vision': 'meta/llama-3.2-90b-vision-instruct',
 };
+
+/**
+ * Authoritative model cards for every frozen NIM id above. Verified on
+ * 24 Nov 2026: each page prints the exact copy-ready `model="…"` string used
+ * in `NVIDIA_MODELS`. These links are the audit trail — re-check them before
+ * changing any slug.
+ */
+export const NIM_MODEL_CARDS: Record<string, string> = {
+  'nvidia-nemotron-ultra': 'https://build.nvidia.com/nvidia/nemotron-3-ultra-550b-a55b',
+  'nvidia-deepseek-flash': 'https://build.nvidia.com/deepseek-ai/deepseek-v4.1-flash',
+  'nvidia-nemotron-lightning':
+    'https://build.nvidia.com/nvidia/nemotron-3.5-lightning-30b-a3b',
+  'nvidia-nemotron-nano':
+    'https://build.nvidia.com/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
+  'nvidia-nemotron-super-vl':
+    'https://build.nvidia.com/nvidia/nemotron-3.5-super-vl-120b-a12b',
+  'nvidia-llama-vision':
+    'https://build.nvidia.com/meta/llama-3.2-90b-vision-instruct',
+};
+
+/**
+ * Per-model request defaults taken from those model cards.
+ *
+ * These are NOT cosmetic tuning: the "thinking" models expect
+ * `chat_template_kwargs.enable_thinking` / `reasoning_budget`, and Llama 3.2
+ * 90B Vision has a 4K output ceiling (16384 is not accepted). Every NIM call
+ * site MUST spread `nimRequestDefaultsFor(provider)` into its payload.
+ */
+export interface NimRequestDefaults {
+  temperature: number;
+  top_p: number;
+  max_tokens: number;
+  reasoning_budget?: number;
+  chat_template_kwargs?: { enable_thinking: boolean };
+}
+
+export const NIM_REQUEST_DEFAULTS: Record<string, NimRequestDefaults> = {
+  'nvidia-nemotron-ultra': {
+    temperature: 1,
+    top_p: 0.95,
+    max_tokens: 16384,
+    chat_template_kwargs: { enable_thinking: true },
+  },
+  'nvidia-deepseek-flash': { temperature: 0.7, top_p: 0.95, max_tokens: 16384 },
+  'nvidia-nemotron-lightning': {
+    temperature: 1,
+    top_p: 0.95,
+    max_tokens: 16384,
+    reasoning_budget: 16384,
+    chat_template_kwargs: { enable_thinking: true },
+  },
+  'nvidia-nemotron-nano': {
+    temperature: 0.6,
+    top_p: 0.95,
+    max_tokens: 65536,
+    reasoning_budget: 16384,
+  },
+  'nvidia-nemotron-super-vl': {
+    temperature: 1,
+    top_p: 0.95,
+    max_tokens: 16384,
+    chat_template_kwargs: { enable_thinking: true },
+  },
+  // NVIDIA's NIM reference accepts 1–8192 max_tokens. 4096 is our safe
+  // frozen default; the proxy clamps caller overrides to this value.
+  'nvidia-llama-vision': { temperature: 0.7, top_p: 0.95, max_tokens: 4096 },
+};
+
+/** Exact payload defaults for a provider id; safe fallback for unknown ids. */
+export const nimRequestDefaultsFor = (provider: string): NimRequestDefaults =>
+  NIM_REQUEST_DEFAULTS[provider] ?? { temperature: 0.7, top_p: 0.95, max_tokens: 16384 };
 
 /**
  * Reasoning fallback chain — ORDER IS THE PRODUCT CONTRACT.

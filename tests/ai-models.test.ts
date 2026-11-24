@@ -25,6 +25,8 @@ import {
   LEGACY_PROVIDER_IDS,
   LEGACY_PROVIDER_TARGET,
   NEMOTRON_PROVIDERS,
+  NIM_MODEL_CARDS,
+  NIM_REQUEST_DEFAULTS,
   NIM_VISION_PROVIDERS,
   NVIDIA_BASE_URL,
   NVIDIA_MODELS,
@@ -38,6 +40,7 @@ import {
   isNemotronProvider,
   isNimProvider,
   isNimVisionProvider,
+  nimRequestDefaultsFor,
   normalizeProviderId,
   resolveProviderModel,
   visionAttemptOrder,
@@ -157,7 +160,7 @@ describe('NVIDIA NIM — DeepSeek V4.1 Flash (replaces Qwen 3.8 Max)', () => {
 
 describe('NVIDIA NIM (Nemotron reasoning)', () => {
   it('routes every Nemotron reasoning id to its exact NIM slug', () => {
-    expect(NVIDIA_MODELS['nvidia-nemotron-ultra']).toBe('nvidia/nemotron-ultra-550b-a55b');
+    expect(NVIDIA_MODELS['nvidia-nemotron-ultra']).toBe('nvidia/nemotron-3-ultra-550b-a55b');
     expect(NVIDIA_MODELS['nvidia-nemotron-lightning']).toBe(
       'nvidia/nemotron-3.5-lightning-30b-a3b',
     );
@@ -322,6 +325,70 @@ describe('unknown providers', () => {
  * AGENTS.md §1 is the binding document for the frozen model list; these blocks
  * exist so the promise made there is enforced by CI rather than trusted.
  */
+describe('NVIDIA NIM model-card request contract (24 Nov 2026)', () => {
+  it('pins the exact NIM slugs verified on the model cards, including the -3- Ultra id', () => {
+    const expected: Record<string, string> = {
+      'nvidia-nemotron-ultra': 'nvidia/nemotron-3-ultra-550b-a55b',
+      'nvidia-deepseek-flash': 'deepseek-ai/deepseek-v4.1-flash',
+      'nvidia-nemotron-lightning': 'nvidia/nemotron-3.5-lightning-30b-a3b',
+      'nvidia-nemotron-nano': 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
+      'nvidia-nemotron-super-vl': 'nvidia/nemotron-3.5-super-vl-120b-a12b',
+      'nvidia-llama-vision': 'meta/llama-3.2-90b-vision-instruct',
+    };
+    expect(Object.keys(NVIDIA_MODELS).sort()).toEqual(Object.keys(expected).sort());
+    for (const [id, slug] of Object.entries(expected)) {
+      expect(NVIDIA_MODELS[id]).toBe(slug);
+      expect(slug).not.toMatch(/\/nemotron-ultra-/); // the old 404 slug is gone
+    }
+  });
+
+  it('keeps an auditable model-card URL for every NIM id', () => {
+    for (const id of Object.keys(NVIDIA_MODELS)) {
+      const card = NIM_MODEL_CARDS[id];
+      expect(card, `missing model card for ${id}`).toMatch(
+        /^https:\/\/build\.nvidia\.com\/[a-z0-9-]+\/[a-z0-9.-]+$/,
+      );
+      expect(card.endsWith(NVIDIA_MODELS[id].split('/')[1])).toBe(true);
+    }
+  });
+
+  it('applies the documented thinking flags and reasoning budgets', () => {
+    expect(NIM_REQUEST_DEFAULTS['nvidia-nemotron-ultra']).toEqual({
+      temperature: 1,
+      top_p: 0.95,
+      max_tokens: 16384,
+      chat_template_kwargs: { enable_thinking: true },
+    });
+    expect(NIM_REQUEST_DEFAULTS['nvidia-nemotron-lightning']).toEqual({
+      temperature: 1,
+      top_p: 0.95,
+      max_tokens: 16384,
+      reasoning_budget: 16384,
+      chat_template_kwargs: { enable_thinking: true },
+    });
+    expect(NIM_REQUEST_DEFAULTS['nvidia-nemotron-nano']).toEqual({
+      temperature: 0.6,
+      top_p: 0.95,
+      max_tokens: 65536,
+      reasoning_budget: 16384,
+    });
+    expect(NIM_REQUEST_DEFAULTS['nvidia-nemotron-super-vl'].chat_template_kwargs)
+      .toEqual({ enable_thinking: true });
+    expect(nimRequestDefaultsFor('nvidia-nemotron-ultra').chat_template_kwargs)
+      .toEqual({ enable_thinking: true });
+  });
+
+  it('keeps Llama Vision within its supported max_tokens range', () => {
+    // NVIDIA's NIM reference allows 1–8192; 4096 is the safe frozen default.
+    expect(NIM_REQUEST_DEFAULTS['nvidia-llama-vision'].max_tokens).toBe(4096);
+    expect(nimRequestDefaultsFor('nvidia-llama-vision').max_tokens).toBe(4096);
+    for (const id of Object.keys(NIM_REQUEST_DEFAULTS)) {
+      expect(nimRequestDefaultsFor(id)).toEqual(NIM_REQUEST_DEFAULTS[id]);
+      expect(nimRequestDefaultsFor(id).max_tokens).toBeGreaterThan(0);
+    }
+  });
+});
+
 describe('AGENTS.md parity (the binding document)', () => {
   const agentsMd = readFileSync(resolve(__dirname, '..', 'AGENTS.md'), 'utf8');
 
@@ -420,6 +487,48 @@ describe('AGENTS.md parity (the binding document)', () => {
     for (const legacy of LEGACY_PROVIDER_IDS) {
       expect(agentsMd, `AGENTS.md must document the retired id ${legacy}`).toContain(legacy);
     }
+  });
+
+  it('documents the verified model cards and the exact NIM request defaults', () => {
+    for (const id of Object.keys(NVIDIA_MODELS)) {
+      expect(agentsMd, `AGENTS.md must link the ${id} model card`).toContain(NIM_MODEL_CARDS[id]);
+      expect(agentsMd).toContain(NVIDIA_MODELS[id]);
+    }
+    expect(agentsMd).toContain('https://integrate.api.nvidia.com/v1/chat/completions');
+    expect(agentsMd).toContain('nimRequestDefaultsFor(provider)');
+    expect(agentsMd).toContain('chat_template_kwargs: { enable_thinking: true }');
+    expect(agentsMd).toContain('reasoning_budget: 16384');
+    expect(agentsMd).toContain('max_tokens: 4096');
+    expect(agentsMd).toContain('1–8192');
+    expect(agentsMd).toContain('extra_body');
+    expect(agentsMd).toContain('top-level');
+    expect(agentsMd).toContain('reasoning_content');
+    expect(agentsMd).toContain('image_url');
+    expect(agentsMd).toContain('nvidia/nemotron-3-ultra-550b-a55b');
+  });
+
+  it('requires every NIM call site to use the shared request defaults', () => {
+    for (const file of [
+      'server.ts',
+      'src/services/multiAiService.ts',
+      'src/services/geminiService.ts',
+    ]) {
+      const source = readFileSync(resolve(__dirname, '..', file), 'utf8');
+      expect(source, `${file} must spread nimRequestDefaultsFor()`).toContain(
+        'nimRequestDefaultsFor',
+      );
+      expect(source, `${file} must spread the defaults into the payload`).toMatch(
+        /\.\.\.nimRequestDefaultsFor\(/,
+      );
+      expect(source, `${file} must read reasoning_content`).toContain(
+        'reasoning_content',
+      );
+    }
+    const serverSource = readFileSync(resolve(__dirname, '..', 'server.ts'), 'utf8');
+    expect(serverSource, 'server must clamp caller max_tokens').toContain('Math.min(');
+    expect(serverSource, 'server stream must keep reasoning separate').toContain(
+      'reasoningText',
+    );
   });
 
   it('documents the CI gate and the guardrails that protect these rules', () => {

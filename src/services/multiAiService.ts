@@ -7,6 +7,7 @@ import {
   NVIDIA_MODELS,
   isNimProvider,
   isNimVisionProvider,
+  nimRequestDefaultsFor,
   resolveProviderModel,
   type AlternativeAiProvider,
 } from '../lib/aiModels';
@@ -68,11 +69,9 @@ const executeClientMultiAi = async (provider: AIProvider | string, messages: any
   }
 
   const payload: any = {
+    ...nimRequestDefaultsFor(provider),
     model: selectedModel,
     messages,
-    temperature: 0.7,
-    top_p: 0.95,
-    max_tokens: 16384,
   };
 
   const response = await axios.post(`${NVIDIA_BASE_URL}/chat/completions`, payload, {
