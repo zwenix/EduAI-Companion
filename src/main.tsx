@@ -6,6 +6,7 @@ import { Analytics } from '@vercel/analytics/react';
 
 import { AiProvider } from './contexts/AiContext.tsx';
 import { installImageRecovery } from './lib/imageRecovery.ts';
+import { warmUpPerchance } from './services/perchanceClient.ts';
 import { installNativeDownloadBridge } from './lib/nativeDownloadBridge.ts';
 import { installExportSafetyNet } from './lib/exportSafetyNet.ts';
 
@@ -27,6 +28,16 @@ import { installExportSafetyNet } from './lib/exportSafetyNet.ts';
     };
   } catch {}
 })();
+
+// Warm the PRIMARY image engine once per session.
+//
+// Perchance's Image API is a hidden-iframe engine: the very first request in a
+// session has to let Cloudflare clear the browser, which can take a few
+// seconds. Doing that during boot means the first illustration in a generated
+// document resolves through Perchance instead of timing out into the fallback
+// chain (which is what made the app look like it "went straight to
+// Pollinations"). Fire-and-forget: it can never delay the app.
+void warmUpPerchance();
 
 // Catch generated illustrations whose direct URL fails (most importantly the
 // backend-only /api/image-proxy route inside the Android APK) and re-resolve

@@ -3,11 +3,12 @@
 // Generated CAPS content is injected with `dangerouslySetInnerHTML` in a dozen
 // places (archive, reader, tutor, auto-grading…), so there is no React error
 // boundary per <img>. This installs one capture-phase listener that catches any
-// illustration whose direct URL failed — typically the backend `/api/image-proxy`
-// route, which does not exist inside the Android APK — and re-resolves it
-// through the configured provider chain.
+// illustration whose source failed and re-resolves it through the DOCUMENT
+// engine (`./documentImageEngine`), which starts with the teacher's selected
+// engine — Perchance Image API v1 — and only then falls back to FLUX, Imagen
+// and keyless Pollinations.
 
-import { generateImageWithFallback } from './imageGeneration';
+import { resolveDocumentIllustration } from './documentImageEngine';
 
 const RETRY_ATTR = 'data-eduai-retry';
 const MAX_RETRIES = 2;
@@ -24,11 +25,14 @@ const recover = async (img: HTMLImageElement) => {
 
   const seed = parseInt(img.getAttribute('data-eduai-seed') || '0', 10) || Math.floor(Math.random() * 100000);
 
-  // Walk the configured provider graph immediately. This preserves the
-  // explicit fallback relationships instead of retrying Pollinations first.
+  // Walk the document engine chain (PRIMARY engine first, Perchance by
+  // default). Pollinations is never retried ahead of a healthy primary.
   try {
-    const result = await generateImageWithFallback({ prompt, width: 800, height: 600, seed: seed + attempts });
-    if (result?.url) img.src = result.url;
+    const result = await resolveDocumentIllustration(prompt, { width: 800, height: 600, seed: seed + attempts });
+    if (result?.url && result.provider !== 'placeholder') {
+      img.src = result.url;
+      img.setAttribute('data-eduai-provider', result.provider);
+    }
   } catch (err) {
     console.warn('[Image Recovery] Could not regenerate illustration:', err);
   }

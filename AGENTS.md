@@ -451,10 +451,37 @@ explicit user instructions.
   answers **HTTP 501 + `{configured:false}`** and the client stops attempting
   FLUX for the rest of the session.
 * On the client, `src/lib/imageGeneration.ts` keeps its fixed provider
-  priority/fallback graph (**FLUX → Gemini → Pollinations → placeholder**) and
-  `buildPollinationsUrl()` / `buildDirectImageUrl()` are the live entry
-  points. `buildDirectImageUrl()` points a native build at Pollinations and
-  a web build at `/api/image-proxy`.
+  priority/fallback graph (**Perchance → FLUX → Gemini → Pollinations →
+  placeholder**) via `generateImageWithFallback()` (interactive images: the
+  "Create Image" button, avatars, `AiImage`).
+  `buildPollinationsUrl()` / `buildDirectImageUrl()` remain for the direct-URL
+  helpers, but they are **not** the document illustration path any more.
+* **Document illustrations must go through `src/lib/documentImageEngine.ts`
+  (added 24 Nov 2026).** This is the "Perchance is the primary generator"
+  rule, and it fixes the report *"the app bypasses Perchance and goes straight
+  to Pollinations"*:
+  * `replaceImagePlaceholders()` (`src/lib/imageReplacer.ts`) used to emit
+    `<img src="/api/image-proxy?…">` for every `[Illustration: …]` — and that
+    route renders with **Pollinations**. The browser-only Perchance engine was
+    never in the path, so the primary engine could not win regardless of the
+    Settings choice.
+  * It now calls `resolveDocumentIllustrationTracked()`, which walks the
+    **selected engine first** (`DEFAULT_IMAGE_PROVIDER` = Perchance) and then
+    the frozen fallback graph. `src` is a seeded, always-renderable URL so the
+    picture paints immediately; the async pass upgrades it to the primary
+    engine's result and records telemetry.
+  * The global recovery net (`src/lib/imageRecovery.ts`) and the print/PDF
+    path (`src/lib/printUtils.ts` → `settlePendingIllustrations()`) use the
+    same chain, so a failed illustration is re-resolved on Perchance rather
+    than re-rolled on Pollinations, and exports wait for the primary result.
+  * `src/main.tsx` warms the Perchance engine at boot (`warmUpPerchance()`):
+    the first hidden-iframe request of a session needs Cloudflare clearance,
+    and without the warm-up that first illustration timed out into the
+    fallback chain.
+  * Never re-add a path that emits a `/api/image-proxy` or bare Pollinations
+    `src` without first attempting the selected engine. Guarded by
+    `tests/document-image-engine.test.ts` and the document-path block in
+    `tests/image-providers.test.ts`.
 * **Pollinations is the LAST resort, and it throttles.** The anonymous tier
   allows roughly one image every 45 s per IP and answers **HTTP 402
   `{error:{code:"FREE_LIMIT", retryAfter}}`** (sometimes a 200 HTML banner)
@@ -502,6 +529,13 @@ explicit user instructions.
     HTTP is answered by a Cloudflare 403. The hidden iframe IS the transport.
   * The engine is browser-only; server-side callers that ask for `perchance`
     are routed to FLUX (`/api/images/generate`).
+  * The circuit breaker benches after **4** consecutive failures
+    (`PERCHANCE_BENCH_AFTER_FAILURES`, raised from 2 on 24 Nov 2026) for 3
+    minutes. A document renders illustrations in batches, and the old 2-failure
+    threshold benched the PRIMARY engine for 10 minutes after one unlucky
+    batch — which is what made later lessons silently use Pollinations. A bench
+    is always clearable: `resetPerchanceBench()` backs the Settings "Try again"
+    button, and `perchanceFailureInfo()` drives the honest status line.
   * Always send `PERCHANCE_NEGATIVE_PROMPT` (child-safety floor for a school
     product); callers may extend it, never replace it.
 * The image **model list is frozen** — FLUX.1-schnell, Pollinations `flux`

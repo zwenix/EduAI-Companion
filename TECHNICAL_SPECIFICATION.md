@@ -445,7 +445,13 @@ Content is generated as **HTML styled with Tailwind classes**, not Markdown. Tru
 - **Reinstated 28 Oct 2026**: Perchance, via its purpose-built **Image API v1** (`perchance.org/perchance-ai-api` — hidden iframe + postMessage, no keys, no CORS, unlimited). The old generator-page bridge stays dead (`ai-text-to-image-generator` sends `X-Frame-Options: SAMEORIGIN`); only the API endpoint may be framed, and nothing server-side may fetch perchance.org. Browser-only engine in `src/services/perchanceClient.ts`.
 - **Retired 22 Oct 2026**: Qwen-Image on NVIDIA NIM (`qwen/qwen-image` and `qwen/qwen-image-2512` both 404). Its id remains an alias that resolves to FLUX.
 - `enhancePromptForSA()` injects rainbow-nation diversity, SA landmarks/flora, flag accents and a 300 DPI, no-text, no-watermark requirement.
-- `/api/image-proxy` exists so `<img>` tags can render provider URLs that would otherwise be blocked client-side.
+- `/api/image-proxy` exists so `<img>` tags can render provider URLs that would otherwise be blocked client-side. It renders with **Pollinations**, so it is a *rendering* helper only — never the chain for a generated document (see below).
+- **Document illustrations (`src/lib/documentImageEngine.ts`, 24 Nov 2026).** Generated CAPS documents emit their `[Illustration: …]` placeholders as `<img>` tags long before, and far away from, any React component that could generate art. `replaceImagePlaceholders()` used to point every one of those tags at `/api/image-proxy` — i.e. straight at Pollinations — so the browser-only Perchance engine was never reached and could never win, whatever Settings said. The document path now resolves through `resolveDocumentIllustration()`:
+  1. the **selected engine first** (`DEFAULT_IMAGE_PROVIDER` = Perchance) inside the browser,
+  2. then the frozen fallback graph (FLUX → Imagen → Pollinations),
+  3. and finally a seeded, always-renderable URL.
+  `src` is the seeded URL so the picture paints instantly; the async pass upgrades it to the primary engine's result, records per-engine telemetry (`documentImageTelemetry()`), and the recovery net + PDF export (`settlePendingIllustrations()`) use the same chain. `src/main.tsx` warms the engine at boot.
+- **Perchance circuit breaker**: 4 consecutive failures → benched for 3 minutes (`PERCHANCE_BENCH_AFTER_FAILURES` / `PERCHANCE_BENCH_MS`), always clearable via `resetPerchanceBench()` (Settings → "Try again"). It reports its state through `perchanceFailureInfo()` so a fallback is never silent.
 
 ### 7.5 OCR and autograding
 

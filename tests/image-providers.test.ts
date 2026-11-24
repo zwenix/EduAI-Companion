@@ -43,6 +43,11 @@ import {
   resetPollinationsCooldown,
 } from '../src/lib/imageGeneration';
 import { fluxModels, normaliseFluxSize } from '../src/lib/imageProviders';
+import {
+  PERCHANCE_BENCH_AFTER_FAILURES,
+  perchanceFailureInfo,
+  resetPerchanceBench,
+} from '../src/services/perchanceClient';
 
 const repoRoot = path.resolve(__dirname, '..');
 const read = (relative: string) => fs.readFileSync(path.join(repoRoot, relative), 'utf8');
@@ -273,6 +278,52 @@ describe('Perchance Image API v1 integration contract', () => {
     expect(client).toContain('NSFW, nudity');
     // Callers may only extend the negatives — never replace them.
     expect(client).toMatch(/extraNegatives \? `\$\{PERCHANCE_NEGATIVE_PROMPT\}/);
+  });
+
+  it('is the FIRST engine for generated documents, never bypassed by the image proxy', () => {
+    // REGRESSION (24 Nov 2026): documents that Perchance never saw.
+    //
+    // `replaceImagePlaceholders()` used to emit `<img src="/api/image-proxy…">`
+    // for every illustration, and that route renders with Pollinations — so the
+    // primary engine could not win regardless of the Settings choice. The
+    // document path must now go through the browser engine chain, PRIMARY FIRST.
+    const replacer = read('src/lib/imageReplacer.ts');
+    expect(replacer).toContain("from './documentImageEngine'");
+    expect(replacer).toContain('resolveDocumentIllustrationTracked');
+    expect(replacer).toContain('selectedImageEngine()');
+    // The old bypass must be gone from the document path.
+    expect(replacer).not.toContain('buildDirectImageUrl');
+
+    // The engine that resolves the chain is Perchance-first by construction.
+    const engine = read('src/lib/documentImageEngine.ts');
+    expect(engine).toContain("from './imageGeneration'");
+    expect(engine).toContain('getImageProviderOrder');
+    expect(engine).toContain('generateImagePerchance');
+    // Perchance is attempted before any other engine inside the loop.
+    const perchanceAt = engine.indexOf("engine === 'perchance'");
+    const fluxAt = engine.indexOf("engine === 'flux'");
+    const pollinationsAt = engine.indexOf("engine === 'pollinations'");
+    expect(perchanceAt).toBeGreaterThan(-1);
+    expect(perchanceAt).toBeLessThan(fluxAt);
+    expect(perchanceAt).toBeLessThan(pollinationsAt);
+
+    // The recovery net and the print path use the same chain.
+    expect(read('src/lib/imageRecovery.ts')).toContain('resolveDocumentIllustration');
+    expect(read('src/lib/printUtils.ts')).toContain('settlePendingIllustrations');
+  });
+
+  it('warms the primary engine at boot so the first document illustration lands on it', () => {
+    // The hidden-iframe engine needs Cloudflare clearance on its first request
+    // of a session; without the boot warm-up that first illustration timed out
+    // and the chain fell through to Pollinations.
+    expect(read('src/main.tsx')).toContain('warmUpPerchance()');
+  });
+
+  it('never benches the primary engine after a single bad document', () => {
+    expect(PERCHANCE_BENCH_AFTER_FAILURES).toBeGreaterThanOrEqual(4);
+    // A bench must always be clearable — otherwise "Try Again" can never win.
+    expect(typeof resetPerchanceBench).toBe('function');
+    expect(typeof perchanceFailureInfo).toBe('function');
   });
 
   it('is wired into the provider chain as a live engine', () => {

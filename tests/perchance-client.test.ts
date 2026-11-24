@@ -18,7 +18,9 @@ import {
   buildPerchanceRequestUrl,
   generatePerchanceImageClient,
   isPerchanceBenching,
+  perchanceFailureInfo,
   pickPerchanceResolution,
+  resetPerchanceBench,
   resetPerchanceClient,
   warmUpPerchance,
 } from '../src/services/perchanceClient';
@@ -177,15 +179,36 @@ describe('generatePerchanceImageClient', () => {
     expect(apiCalls[1].startsWith(PERCHANCE_EMBED_API_URL)).toBe(true);
   });
 
-  it('benches the engine after two consecutive failures instead of stalling every image', async () => {
+  it('stays healthy through a single bad document instead of benching the primary engine', async () => {
+    // The breaker was raised from 2 to 4 failures (24 Nov 2026): a document
+    // renders its illustrations in batches, and benching the PRIMARY engine
+    // after one unlucky batch is what silently pushed every later lesson onto
+    // Pollinations.
     installFakeBrowser(() => { /* never answers */ });
     await expect(generatePerchanceImageClient('one', 512, 512, 1, 40)).rejects.toThrow();
     await expect(generatePerchanceImageClient('two', 512, 512, 2, 40)).rejects.toThrow();
-    expect(isPerchanceBenching()).toBe(true);
-    // Third call refuses immediately — no iframe, no timeout stall.
-    await expect(generatePerchanceImageClient('three', 512, 512, 3, 40)).rejects.toThrow(/benched/i);
-    resetPerchanceClient();
     expect(isPerchanceBenching()).toBe(false);
+    // The breaker reports its state honestly while it is still retrying.
+    expect(perchanceFailureInfo().state).toBe('retrying');
+    expect(perchanceFailureInfo().consecutiveFailures).toBe(2);
+    resetPerchanceClient();
+  });
+
+  it('benches after four consecutive failures and clears it on the teacher retry', async () => {
+    installFakeBrowser(() => { /* never answers */ });
+    for (let i = 1; i <= 4; i++) {
+      await expect(generatePerchanceImageClient(`p${i}`, 512, 512, i, 40)).rejects.toThrow();
+    }
+    expect(isPerchanceBenching()).toBe(true);
+    expect(perchanceFailureInfo().lastError).toBeTruthy();
+    // Benched calls refuse immediately — no iframe, no timeout stall.
+    await expect(generatePerchanceImageClient('five', 512, 512, 5, 40)).rejects.toThrow(/benched/i);
+
+    // "Try Again" always hands the PRIMARY engine a fresh turn.
+    resetPerchanceBench();
+    expect(isPerchanceBenching()).toBe(false);
+    expect(perchanceFailureInfo().state).toBe('idle');
+    resetPerchanceClient();
   });
 
   it('reuses one warm-up per session', async () => {

@@ -54,10 +54,19 @@ const PERCHANCE_ORIGINS = ['https://perchance.org', 'https://null.perchance.org'
 export const PERCHANCE_TIMEOUT_MS = 60_000;
 /** How many hidden iframes may generate at once. */
 export const PERCHANCE_MAX_CONCURRENT = 2;
-/** After this many consecutive failures the engine is benched… */
-export const PERCHANCE_BENCH_AFTER_FAILURES = 2;
+/**
+ * After this many consecutive failures the engine is benched…
+ *
+ * Raised from 2 to 4 (24 Nov 2026): a document renders its illustrations in
+ * batches, and two unlucky batches (a slow first render while Cloudflare
+ * issues its clearance, a blocked hidden iframe) used to bench the PRIMARY
+ * engine for ten minutes — which made the app silently fall through to
+ * Pollinations for the rest of the lesson. Four failures is still a fast
+ * breaker, but it no longer trips on one bad document.
+ */
+export const PERCHANCE_BENCH_AFTER_FAILURES = 4;
 /** …for this long, so one dead endpoint cannot stall a whole illustration batch. */
-export const PERCHANCE_BENCH_MS = 10 * 60_000;
+export const PERCHANCE_BENCH_MS = 3 * 60_000;
 
 /**
  * Safety net for a school product: the API's own default negative prompt is
@@ -147,6 +156,8 @@ export const resetPerchanceClient = (): void => {
   warmUpPromise = null;
   consecutiveFailures = 0;
   benchUntil = 0;
+  lastError = null;
+  lastFailureAt = null;
   useEmbedMirror = false;
   resultCache.clear();
   inFlight.clear();
@@ -160,8 +171,10 @@ export const isPerchanceBenching = (now = Date.now()): boolean => now < benchUnt
 export const isPerchanceAvailable = (): boolean =>
   isPerchanceRuntimeAvailable() && !isPerchanceBenching();
 
-const markFailure = (): void => {
+const markFailure = (reason?: string): void => {
   consecutiveFailures += 1;
+  lastFailureAt = Date.now();
+  if (reason) lastError = reason;
   useEmbedMirror = !useEmbedMirror;
   if (consecutiveFailures >= PERCHANCE_BENCH_AFTER_FAILURES) {
     benchUntil = Date.now() + PERCHANCE_BENCH_MS;
@@ -174,6 +187,8 @@ const markFailure = (): void => {
 const markSuccess = (): void => {
   consecutiveFailures = 0;
   benchUntil = 0;
+  lastError = null;
+  lastFailureAt = null;
 };
 
 /* ── concurrency (max PERCHANCE_MAX_CONCURRENT hidden iframes) ─────────────── */
@@ -313,12 +328,50 @@ const generateOnce = async (
   try {
     return await run;
   } catch (err) {
-    markFailure();
+    markFailure(err instanceof Error ? err.message : String(err));
     throw err instanceof Error ? err : new Error(String(err));
   } finally {
     inFlight.delete(key);
   }
 };
+
+/** Why a Perchance attempt failed, for the UI/debug surface. */
+export interface PerchanceFailureInfo {
+  state: 'idle' | 'retrying' | 'benched';
+  consecutiveFailures: number;
+  /** Epoch ms until which the engine is benched (0 when it is healthy). */
+  benchUntil: number;
+  lastError: string | null;
+  lastFailureAt: number | null;
+}
+
+let lastError: string | null = null;
+let lastFailureAt: number | null = null;
+
+/** Current circuit-breaker state — lets the UI explain a fallback honestly. */
+export const perchanceFailureInfo = (now = Date.now()): PerchanceFailureInfo => ({
+  state: now < benchUntil ? 'benched' : consecutiveFailures > 0 ? 'retrying' : 'idle',
+  consecutiveFailures,
+  benchUntil: now < benchUntil ? benchUntil : 0,
+  lastError,
+  lastFailureAt,
+});
+
+/**
+ * Clear the bench immediately ("Try Again" for illustrations).
+ *
+ * The breaker exists so a dead endpoint cannot stall a whole batch — it must
+ * never be a trap: the teacher's retry always gets the PRIMARY engine first.
+ */
+export const resetPerchanceBench = (): void => {
+  consecutiveFailures = 0;
+  benchUntil = 0;
+  lastError = null;
+  lastFailureAt = null;
+};
+
+/** Test/inspection hook: is a bench currently active, and until when? */
+export const perchanceBenchUntil = (): number => benchUntil;
 
 /**
  * Generates one illustration through the Perchance Image API and resolves to

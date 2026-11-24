@@ -10,6 +10,8 @@ import {
 import { IconSettings, IconLogout } from './LocalIcons';
 import { useAi } from '../contexts/AiContext';
 import { AI_PROVIDER_LABELS, REASONING_CHAIN } from '../lib/aiModels';
+import { documentImageTelemetry, perchanceStatus, retryPerchanceNow } from '../lib/documentImageEngine';
+import { getImageProviderOrder, normaliseImageProviderId } from '../lib/imageProviders';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestoreHelpers';
@@ -1064,6 +1066,58 @@ export default function Settings({
                               );
                             })}
                          </div>
+                         {/* Live engine chain + Perchance health.
+                             A fallback must never be silent: if the PRIMARY
+                             engine is benched, say so and offer a retry. */}
+                         <div className="mt-3 p-3 rounded-2xl border border-white/10 bg-[#0a1226]/60 space-y-2">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                               <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Active chain</span>
+                               <span className="text-[10px] font-mono text-slate-300">
+                                  {getImageProviderOrder(normaliseImageProviderId(imageProvider)).join(' → ')}
+                               </span>
+                            </div>
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                               <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Perchance engine</span>
+                               {(() => {
+                                  const status = perchanceStatus();
+                                  const renders = documentImageTelemetry();
+                                  if (status.state === 'benched') {
+                                     return (
+                                       <span className="flex items-center gap-2">
+                                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-amber-500/20 text-amber-300">
+                                             Benched after {status.consecutiveFailures} failures
+                                          </span>
+                                          <button
+                                            type="button"
+                                            onClick={() => retryPerchanceNow()}
+                                            className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-violet-500/20 text-violet-300 hover:bg-violet-500/30 transition-all"
+                                          >
+                                             Try again
+                                          </button>
+                                       </span>
+                                     );
+                                  }
+                                  if (status.state === 'retrying') {
+                                     return (
+                                       <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-amber-500/20 text-amber-300">
+                                          Recovering ({status.consecutiveFailures} failure{status.consecutiveFailures === 1 ? '' : 's'})
+                                       </span>
+                                     );
+                                  }
+                                  return (
+                                    <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-300">
+                                       Ready{renders.lastEngine ? ` · last image: ${renders.lastEngine}` : ''}
+                                    </span>
+                                  );
+                               })()}
+                            </div>
+                            {perchanceStatus().lastError && (
+                              <p className="text-[9px] font-mono text-amber-300/80 break-all">
+                                 Last error: {perchanceStatus().lastError}
+                              </p>
+                            )}
+                         </div>
+
                          <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
                             <strong className="text-violet-400">Perchance Image API</strong> is unlimited and needs no key — your browser generates the image through Perchance's documented Image API v1 (a hidden iframe replies via <code className="font-mono text-violet-300">postMessage</code>). <strong className="text-emerald-400">FLUX.1-schnell</strong> is served by Hugging Face Inference Providers and needs a free <code className="font-mono text-emerald-300">HUGGINGFACE_API_KEY</code>. Pollinations' free tier throttles anonymous requests to roughly one image every 45 seconds per IP (it answers <code className="font-mono text-pink-300">402 FREE_LIMIT</code> beyond that); add a free key from <span className="text-pink-300">enter.pollinations.ai</span> as <code className="font-mono text-pink-300">POLLINATIONS_API_KEY</code> to remove the throttle. Whichever engine is chosen, the others form an automatic fallback chain and free-tier limits never leave blank images: the app shows a printable EduAI placeholder instead.
                          </p>
