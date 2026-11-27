@@ -740,12 +740,18 @@ export default function App() {
       }
 
       try {
+        // A latency probe, not a generation: ask for a handful of tokens and
+        // cap the wait well under the server's route budget so a cold-starting
+        // engine is reported as "slow" rather than burning the whole chain
+        // (production 24 Nov 2026: every engine showed 503 "did not answer
+        // within the time budget" because each one inherited a generation
+        // sized timeout).
         const res = await axios.post(`/api/ai/${candidate.id}`, {
           messages: testMsg,
           temperature: 0.1,
           max_completion_tokens: 3
-        });
-        
+        }, { timeout: 15_000 });
+
         if (res.data && res.data.choices && res.data.choices[0]?.message?.content) {
           const duration = Math.round(performance.now() - startTime);
           results[candidate.id] = duration;

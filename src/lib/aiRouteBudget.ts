@@ -34,11 +34,35 @@ export const AI_ROUTE_BUDGET_MS = 52_000;
  */
 export const AI_ROUTE_GEMINI_RESERVE_MS = 15_000;
 
-/** Maximum time a single upstream provider attempt may take. */
-export const AI_ROUTE_PROVIDER_TIMEOUT_MS = 28_000;
+/**
+ * Maximum time a single upstream provider attempt may take.
+ *
+ * Tightened from 28s: a reasoning model that has not started streaming within
+ * ~20s is not going to finish inside a 60s serverless function anyway, and the
+ * old cap let ONE slow hop consume the budget for the entire chain.
+ */
+export const AI_ROUTE_PROVIDER_TIMEOUT_MS = 20_000;
 
-/** Maximum time for the sibling-engine attempt (usually reached later). */
-export const AI_ROUTE_ALTERNATIVE_TIMEOUT_MS = 20_000;
+/**
+ * Maximum time for a sibling-engine attempt.
+ *
+ * Tightened from 20s for the same reason: the sibling hops must fit alongside
+ * the Gemini reserve, otherwise the "fallback" never runs.
+ */
+export const AI_ROUTE_ALTERNATIVE_TIMEOUT_MS = 14_000;
+
+/**
+ * Latency probe cap for availability/speed checks (`POST /api/ai/:provider`
+ * with a tiny `max_completion_tokens`, as used by the Settings speed test).
+ *
+ * A probe that waits 20s for a healthy model is a broken probe: it reports the
+ * engine as "did not answer within the time budget" and the UI shows a failure
+ * for an engine that is perfectly fine, just slower than a probe should wait.
+ */
+export const AI_ROUTE_PROBE_TIMEOUT_MS = 9_000;
+
+/** `max_completion_tokens` at or below this makes a request a latency PROBE. */
+export const AI_ROUTE_PROBE_MAX_TOKENS = 64;
 
 /**
  * Minimum free time before it is worth trying the sibling engine at all.

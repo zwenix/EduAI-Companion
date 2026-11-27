@@ -21,6 +21,8 @@ import {
   AI_ROUTE_BUDGET_MS,
   AI_ROUTE_GEMINI_RESERVE_MS,
   AI_ROUTE_MIN_ATTEMPT_MS,
+  AI_ROUTE_PROBE_MAX_TOKENS,
+  AI_ROUTE_PROBE_TIMEOUT_MS,
   AI_ROUTE_PROVIDER_TIMEOUT_MS,
   AiRouteBudget,
   withDeadline,
@@ -1719,11 +1721,20 @@ const masterPromptFor = (input: any = {}): string =>
         ? (finalModel || defaultModelFor(targetProvider))
         : defaultModelFor(targetProvider);
 
+      // A request with a tiny output ceiling is a LATENCY PROBE (Settings →
+      // "Run speed test", connection test). Probes must not be given a full
+      // reasoning budget: a healthy-but-thinking model would blow past it and
+      // the UI would report a working engine as failed.
+      const requestedTokens = max_tokens || max_completion_tokens;
+      const isProbe = !!requestedTokens && Number(requestedTokens) <= AI_ROUTE_PROBE_MAX_TOKENS;
+      const probeCapMs = isProbe ? AI_ROUTE_PROBE_TIMEOUT_MS : 0;
+
       // Every attempt is capped by the shared route budget so the chain can
       // never outlive the serverless function (which ends in a bare HTTP 504).
-      const attemptCapMs = targetProvider === provider
-        ? AI_ROUTE_PROVIDER_TIMEOUT_MS
-        : AI_ROUTE_ALTERNATIVE_TIMEOUT_MS;
+      const attemptCapMs = probeCapMs
+        || (targetProvider === provider
+          ? AI_ROUTE_PROVIDER_TIMEOUT_MS
+          : AI_ROUTE_ALTERNATIVE_TIMEOUT_MS);
       const attemptTimeoutMs = budget.attemptTimeoutMs(attemptCapMs);
       if (attemptTimeoutMs < AI_ROUTE_MIN_ATTEMPT_MS) {
         throw Object.assign(
@@ -1740,9 +1751,10 @@ const masterPromptFor = (input: any = {}): string =>
 
       // JSON mode is handled by prompt instruction
 
-      // Set max_tokens sensibly to avoid credit limit 402s / truncation.
-      const requestedMaxTokens = max_tokens || max_completion_tokens;
-      payload.max_tokens = requestedMaxTokens || 16384;
+      // Set max_tokens sensibly to avoid credit limit 402s / truncation. A
+      // probe's own tiny ceiling is honoured exactly: it is what makes the
+      // probe fast (and why it gets a short timeout above).
+      payload.max_tokens = requestedTokens || 16384;
       payload.temperature = 0.7;
       payload.top_p = 0.95;
 
@@ -1783,11 +1795,42 @@ const masterPromptFor = (input: any = {}): string =>
       return await executeGeminiFallback("Direct Gemini Request");
     }
 
+    // A latency probe (Settings speed test / connection test) is NOT a real
+    // generation: it wants one cheap round-trip, not a 3-engine reasoning
+    // chain. Walking the chain for a probe was the production bug of
+    // 24 Nov 2026 — a 550B reasoning model was given a 28s cap for a 3-token
+    // request, the chain spent the whole 52s budget, and the route deadline
+    // then answered a blanket `503 "<engine> did not answer within the time
+    // budget"` for EVERY engine, on a deployment where they worked fine.
+    const probeTokens = max_tokens || max_completion_tokens;
+    const probeRequest = !!probeTokens && Number(probeTokens) <= AI_ROUTE_PROBE_MAX_TOKENS;
+
     const upstreamStartedAt = Date.now();
     try {
       return await runUpstreamProvider(provider);
     } catch (error: any) {
       const status = error.status || 500;
+
+      if (probeRequest) {
+        // Answer immediately and honestly: which engine, how long, and that
+        // this was a timeout rather than a broken model. The client then
+        // decides on its own whether to fall back.
+        const waited = Date.now() - upstreamStartedAt;
+        console.log(
+          `[AI Routing] Probe for ${provider} failed after ${waited}ms (${status}). ` +
+            `Skipping the chain: a latency probe must never spend the generation budget.`,
+        );
+        return res.status(status >= 400 && status < 600 ? status : 503).json({
+          error: {
+            message:
+              `${provider} did not answer a short latency probe within ${waited}ms. ` +
+              `It may be cold-loading — retry, or pick another engine.`,
+            code: 'probe_timeout',
+            provider,
+            waitedMs: waited,
+          },
+        });
+      }
       if (status === 402 || (error.message && String(error.message).includes("afford"))) {
         console.log(`[AI Routing] Provider ${provider} credit budget reached. Automatically routing to Gemini.`);
       } else if (status !== 500) {

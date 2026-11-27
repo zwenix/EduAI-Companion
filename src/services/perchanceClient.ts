@@ -43,8 +43,20 @@
 export const PERCHANCE_API_URL = 'https://perchance.org/perchance-ai-api';
 /** Framing mirror documented by Perchance's embed-generator FAQ. */
 export const PERCHANCE_EMBED_API_URL = 'https://null.perchance.org/perchance-ai-api';
-/** Warm-up target from the official sample ("visits perchance.org so Cloudflare passes them"). */
-export const PERCHANCE_WARMUP_URL = 'https://perchance.org/';
+/**
+ * Warm-up target.
+ *
+ * This MUST be a page that actually allows framing. The obvious choice — the
+ * site homepage — is answered with `X-Frame-Options: sameorigin` (confirmed in
+ * the console of the Vercel deploy: the browser refused to load the welcome
+ * page in a frame), so it never loaded, never fired `onload`, and only
+ * produced a console error.
+ *
+ * The API page itself is the frame we actually need, so warm THAT: it lets
+ * Cloudflare clear the browser for the exact origin that will generate the
+ * image, and a successful load then also proves the API is frameable.
+ */
+export const PERCHANCE_WARMUP_URL = 'https://perchance.org/perchance-ai-api';
 /** `event.data.api` marker from the official postMessage contract. */
 export const PERCHANCE_API_MARKER = 'perchance-image-api';
 
@@ -212,31 +224,74 @@ const releaseSlot = (): void => {
   if (next) next();
 };
 
-/* ── warm-up ("once per user — visits perchance.org so Cloudflare passes them") */
+/* ── warm-up (once per session, so Cloudflare has already cleared us) ───── */
 
-/** Never throws: a failed warm-up only means generation may answer slower. */
-export const warmUpPerchance = (timeoutMs = 15_000): Promise<boolean> => {
+/** How long the boot warm-up may block an illustration before generation goes ahead anyway. */
+export const PERCHANCE_WARMUP_TIMEOUT_MS = 6_000;
+/** Absolute cap on how long one generation may wait for that warm-up. */
+const WARMUP_WAIT_CAP_MS = 2_500;
+
+/**
+ * Warms the API page in a hidden frame.
+ *
+ * Two rules learned in production (24 Nov 2026):
+ *   1. Never frame `perchance.org/` — it answers `X-Frame-Options: sameorigin`,
+ *      so the frame is denied and the warm-up is pure console noise.
+ *   2. A warm-up is an OPTIMISATION, never a gate. Generation is always
+ *      allowed to proceed; `generateOnce()` only waits for this with a short
+ *      cap so a slow CDN cannot stall a document's illustration batch.
+ *
+ * Never throws: a failed warm-up only means generation may answer slower.
+ */
+export const warmUpPerchance = (timeoutMs = PERCHANCE_WARMUP_TIMEOUT_MS): Promise<boolean> => {
   if (!isPerchanceRuntimeAvailable()) return Promise.resolve(false);
   if (warmedUp) return Promise.resolve(true);
   if (warmUpPromise) return warmUpPromise;
 
   warmUpPromise = new Promise<boolean>((resolve) => {
-    const frame = document.createElement('iframe');
-    frame.setAttribute('aria-hidden', 'true');
-    frame.title = 'Perchance warm-up';
-    frame.style.cssText = HIDDEN_FRAME_STYLE;
+    let settled = false;
+    const frames: HTMLIFrameElement[] = [];
+    const timers: ReturnType<typeof setTimeout>[] = [];
 
     const finish = (ok: boolean) => {
-      clearTimeout(timer);
-      frame.remove();
+      if (settled) return;
+      settled = true;
+      timers.forEach(clearTimeout);
+      frames.forEach((frame) => frame.remove());
       if (ok) warmedUp = true;
       warmUpPromise = null;
       resolve(ok);
     };
-    const timer = setTimeout(() => finish(false), timeoutMs);
-    frame.onload = () => setTimeout(() => finish(true), 500);
-    frame.src = PERCHANCE_WARMUP_URL;
-    document.body.appendChild(frame);
+
+    const load = (src: string) => {
+      try {
+        const frame = document.createElement('iframe');
+        frame.setAttribute('aria-hidden', 'true');
+        frame.title = 'Perchance warm-up';
+        frame.style.cssText = HIDDEN_FRAME_STYLE;
+        // No `sandbox`: this frame only needs Cloudflare clearance for the
+        // Perchance origin, and a sandboxed frame gets a different storage
+        // partition — exactly the clearance we are trying to earn.
+        frame.onload = () => setTimeout(() => finish(true), 300);
+        frame.onerror = () => { /* blocked frame: the timeout below ends it */ };
+        frame.src = src;
+        document.body.appendChild(frame);
+        frames.push(frame);
+      } catch {
+        /* DOM refused the frame — generation proceeds un-warmed */
+      }
+    };
+
+    timers.push(setTimeout(() => finish(false), timeoutMs));
+
+    // Warm the primary host first; the mirror exists for framed embeds, so try
+    // it too when the primary cannot load (blocked iframe, DNS, offline).
+    load(PERCHANCE_API_URL);
+    timers.push(
+      setTimeout(() => {
+        if (!settled) load(PERCHANCE_EMBED_API_URL);
+      }, Math.max(1_000, Math.floor(timeoutMs / 2))),
+    );
   });
   return warmUpPromise;
 };
@@ -250,7 +305,12 @@ const generateOnce = async (
   request: PerchanceImageRequest,
   timeoutMs: number
 ): Promise<string> => {
-  await warmUpPerchance();
+  // Cap the warm-up wait: it is an optimisation, so a slow CDN must cost at
+  // most a couple of seconds, never the whole image budget.
+  await Promise.race([
+    warmUpPerchance(),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), WARMUP_WAIT_CAP_MS)),
+  ]);
 
   const resolution = pickPerchanceResolution(request.width ?? 1024, request.height ?? 1024);
   const key = cacheKeyFor(request, resolution);

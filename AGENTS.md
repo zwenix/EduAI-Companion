@@ -478,6 +478,13 @@ explicit user instructions.
     the first hidden-iframe request of a session needs Cloudflare clearance,
     and without the warm-up that first illustration timed out into the
     fallback chain.
+  * **The warm-up frames the API page, never the Perchance homepage.**
+    `PERCHANCE_WARMUP_URL === PERCHANCE_API_URL`. Confirmed in production
+    (24 Nov 2026): the homepage answers `X-Frame-Options: sameorigin`, so a
+    warm-up frame pointed at it is denied by the browser, never fires
+    `onload`, and only logs a console error. A warm-up is an **optimisation,
+    never a gate**: `generateOnce()` waits at most
+    `WARMUP_WAIT_CAP_MS` (2.5 s) for it and then generates regardless.
   * Never re-add a path that emits a `/api/image-proxy` or bare Pollinations
     `src` without first attempting the selected engine. Guarded by
     `tests/document-image-engine.test.ts` and the document-path block in

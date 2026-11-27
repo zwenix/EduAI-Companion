@@ -39,10 +39,14 @@ const installFakeBrowser = (reply: (src: URL, post: (data: any, origin?: string)
       appendChild: (frame: any) => {
         frames.push(frame);
         const src = String(frame.src);
-        if (src.includes('perchance-ai-api')) {
-          setTimeout(() => reply(new URL(src), post), 0);
+        const url = new URL(src);
+        // A GENERATION frame carries an `id` (the postMessage correlation id);
+        // the warm-up frame is the same API page with no id and only needs to
+        // fire `onload`, which is what "Cloudflare passed the browser" looks
+        // like from the app's side.
+        if (src.includes('perchance-ai-api') && url.searchParams.get('id')) {
+          setTimeout(() => reply(url, post), 0);
         } else if (frame.onload) {
-          // Warm-up frame — the page "loads", Cloudflare passes the browser.
           setTimeout(() => frame.onload(), 0);
         }
       },
@@ -219,6 +223,28 @@ describe('generatePerchanceImageClient', () => {
     await generatePerchanceImageClient('a zebra', 512, 512, undefined, 5000);
     const warmups = env.frames.filter((f) => String(f.src) === PERCHANCE_WARMUP_URL);
     expect(warmups.length).toBe(1);
+  });
+
+  it('never frames a page that refuses framing (X-Frame-Options)', () => {
+    // Production regression (24 Nov 2026): the warm-up framed
+    // `https://perchance.org/`, which answers `X-Frame-Options: sameorigin`.
+    // The browser logged "The loading of https://perchance.org/welcome in a
+    // frame is denied by X-Frame-Options directive set to sameorigin" and the
+    // warm-up was pure noise. Only the API page may ever be framed.
+    expect(PERCHANCE_WARMUP_URL).toBe(PERCHANCE_API_URL);
+    expect(PERCHANCE_WARMUP_URL).toContain('perchance-ai-api');
+    expect(PERCHANCE_WARMUP_URL).not.toBe('https://perchance.org/');
+  });
+
+  it('treats a warm-up as an optimisation: generation proceeds even when it never loads', async () => {
+    // A blocked/slow warm-up frame must never be able to stall a document.
+    const env = installFakeBrowser((src, post) => {
+      post({ api: PERCHANCE_API_MARKER, result: { id: src.searchParams.get('id'), ok: true, url: 'https://user.uploads.dev/x.jpeg' } });
+    });
+    // Keep warm-up frames permanently "loading" (no onload).
+    env.frames.forEach((f) => { f.onload = undefined; });
+    const url = await generatePerchanceImageClient('a warm frog', 512, 512, undefined, 5000);
+    expect(url).toBe('https://user.uploads.dev/x.jpeg');
   });
 
   it('refuses to run outside a browser', async () => {
