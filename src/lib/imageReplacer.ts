@@ -1,6 +1,10 @@
 import { collection, onSnapshot, query, setDoc, doc, Timestamp } from 'firebase/firestore';
 import { db, auth } from './firebase';
-import { buildDirectImageUrl, buildPollinationsUrl, normaliseImageProviderId } from './imageGeneration';
+import {
+  buildSeedIllustrationUrl,
+  resolveDocumentIllustrationTracked,
+  selectedImageEngine,
+} from './documentImageEngine';
 import { isNativeApp } from './platform';
 import { EDUCATIONAL_IMAGE_STYLE } from './prompt-priority';
 
@@ -13,6 +17,32 @@ import { EDUCATIONAL_IMAGE_STYLE } from './prompt-priority';
 class IllustrationCache {
   private static cache: Record<string, string> = {};
   private static initialized = false;
+  /**
+   * Firestore sync health.
+   *
+   * `illustrations` is a shared, cross-teacher library, so the security rules
+   * that allow it are often missing on a fresh deployment ("Missing or
+   * insufficient permissions"). That failure is NON-FATAL — the in-memory cache
+   * and the live engines still work — but it used to print one console error
+   * per illustration, which made a working app look broken. We report it once,
+   * name the cause, and stop retrying the write for this session.
+   */
+  private static syncFailed = false;
+  private static announceSyncFailure(reason: unknown) {
+    if (this.syncFailed) return;
+    this.syncFailed = true;
+    const message = reason instanceof Error ? reason.message : String(reason ?? '');
+    if (/permission|insufficient/i.test(message)) {
+      console.warn(
+        '[Illustration Cache] Firestore rejected the illustration library ' +
+          '(Missing or insufficient permissions). Illustrations still generate and ' +
+          'display normally; only cross-device caching is disabled. To enable it, ' +
+          'publish rules that allow read/write on the `illustrations` collection.',
+      );
+    } else {
+      console.warn('[Illustration Cache] Cross-device caching disabled for this session:', message);
+    }
+  }
 
   public static init() {
     if (this.initialized) return;
@@ -30,7 +60,7 @@ class IllustrationCache {
         });
         this.cache = newCache;
       }, (error) => {
-        console.error("Failed to sync Illustration Library cache:", error);
+        this.announceSyncFailure(error);
       });
     } catch (e) {
       console.error("Failed to initialize Illustration Library cache:", e);
@@ -75,7 +105,8 @@ class IllustrationCache {
       await setDoc(docRef, payload);
       this.cache[lowerPrompt] = imageUrl;
     } catch (e) {
-      console.error("Non-blocking failure: Could not cache illustration in Firestore", e);
+      // Non-blocking: the image is already on screen. Announce the cause once.
+      this.announceSyncFailure(e);
     }
   }
 }
@@ -133,15 +164,19 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
       `;
     }
 
-    // Fallback/First-generation flow. Perchance Image API v1 is the primary
-    // generator on every platform (web and native WebView); FLUX.1-schnell,
-    // Google Imagen and keyless Pollinations form the fallback chain. Qwen is
-    // a retired engine id.
-    const defaultProvider = 'perchance';
-    const storedProvider = typeof window !== 'undefined'
-      ? window.localStorage.getItem('eduai_image_provider') || defaultProvider
-      : defaultProvider;
-    const provider = normaliseImageProviderId(storedProvider);
+    // First-generation flow.
+    //
+    // The engine chain now runs in the BROWSER and starts with the teacher's
+    // selected engine — Perchance Image API v1 by default. Before this, the
+    // chain started at `/api/image-proxy` → Pollinations, so every generated
+    // document silently used the LAST-resort engine even though Perchance was
+    // configured as primary.
+    //
+    // `src` is a seeded URL so the picture paints immediately; the async
+    // resolution below upgrades it to the primary engine's result, and the
+    // `data-eduai-prompt` / `eduai-async-image` wiring lets the global recovery
+    // net re-resolve it if it ever fails to load.
+    const provider = selectedImageEngine();
     const providerChain = provider === 'gemini'
       ? 'Google Imagen (Secondary) → Perchance → FLUX.1-schnell → Pollinations'
       : provider === 'pollinations'
@@ -158,28 +193,42 @@ export function replaceImagePlaceholders(html: any, allowImages: boolean = true)
     const enhancedPrompt = isLogoOrStamp
       ? `${promptWithStyle}, clean professional vector logo, official school crest stamp seal aesthetic, crisp graphic design, high contrast, pure white background, masterpiece 4k vector graphic`
       : `${promptWithStyle}, professional educational illustration, clean aesthetic design, crisp render, sharp focus, vibrant lighting, pure white background, natural beauty, 4k resolution`;
-    
-    // Web: use the backend proxy to bypass school network firewalls blocking
-    // external generation sites. Native app (APK): there is no backend — the
-    // Capacitor server answers /api/* with a 200 HTML page, which is what made
-    // every illustration render as a broken placeholder. Point straight at the
-    // public image API instead.
-    const imageUrl = buildDirectImageUrl(enhancedPrompt, 800, 600, seed);
 
-    // Cache an absolute URL only. A relative `/api/image-proxy?...` URL would be
-    // written to Firestore by the web app and then resolve to nothing when the
-    // same illustration is opened inside the APK.
-    if (!isNativeApp() && imageUrl.startsWith('/')) {
-      IllustrationCache.save(cleanPrompt, buildPollinationsUrl(enhancedPrompt, 800, 600, seed));
-    } else {
-      // Async save to firestore in background (non-blocking)
-      IllustrationCache.save(cleanPrompt, imageUrl);
-    }
+    const imageUrl = buildSeedIllustrationUrl(enhancedPrompt, 800, 600, seed);
+
+    // Kick the real chain off in the browser: Perchance first (when it is the
+    // selected engine), then FLUX → Imagen → Pollinations. The request id is
+    // deterministic so re-rendering the same document does not re-generate the
+    // same illustration.
+    // Deterministic AND attribute-safe: the seed is already a stable hash of
+    // the prompt, so the id carries no quotes, spaces or markup into the HTML.
+    const requestId = `doc-${seed}`;
+    void resolveDocumentIllustrationTracked(requestId, enhancedPrompt, { width: 800, height: 600, seed })
+      .then((resolved) => {
+        if (!resolved || !resolved.url) return;
+        IllustrationCache.save(cleanPrompt, resolved.url);
+        if (typeof document === 'undefined') return;
+        // `requestId` is `doc-<number>`, so it is safe inside a selector even
+        // where CSS.escape is unavailable (older Android WebViews).
+        const nodes = document.querySelectorAll(`img[data-eduai-req="${requestId}"]`);
+        nodes.forEach((node) => {
+          const img = node as HTMLImageElement;
+          if (img.src !== resolved.url) {
+            img.setAttribute('src', resolved.url);
+            img.setAttribute('data-eduai-provider', resolved.provider);
+          }
+        });
+      })
+      .catch(() => {
+        /* the seeded URL is already painted; nothing else to do */
+      });
 
     return `
 <div class="my-6 overflow-hidden rounded-[2rem] border-2 border-dashed border-slate-300 p-2 bg-slate-50/50 hover:bg-slate-100 transition-all duration-300 max-w-full print:break-inside-avoid print:border-none print:p-0 print:m-0 print:shadow-none shadow-sm">
   <img data-eduai-prompt="${encodeURIComponent(enhancedPrompt)}"
        data-eduai-seed="${seed}"
+       data-eduai-req="${requestId}"
+       data-eduai-provider="${provider}"
        src="${imageUrl}"
        loading="lazy"
        alt="${cleanPrompt}" 

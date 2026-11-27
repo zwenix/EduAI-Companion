@@ -3,6 +3,7 @@ import {
   ShieldAlert, Users, School, Activity, Server, FileText, Calendar,
   Terminal, Bug, RefreshCw, Trash2, AlertTriangle, CheckCircle, Copy, ChevronDown, ChevronUp 
 } from 'lucide-react';
+import { isLegacyProvider, isNvidiaNimProvider } from '../lib/aiModels';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const userGrowthData = [
@@ -74,12 +75,11 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Only retired legacy ids (old non-NIM Nemotron / Groq-era aliases) group
-  // under the Qwen 3.8 engine. The three ACTIVE NVIDIA NIM Nemotron providers
-  // keep their own identity — they are never the Qwen engine.
+  // Retired ids (Qwen 3.8 Max, Groq-era aliases) now resolve to the NVIDIA NIM
+  // DeepSeek engine that replaced them. Active NIM ids keep their own identity.
   const normalizeProvider = (p: string) =>
-    (p === 'nvidia-nemotron' || p === 'nvidia-nemotron-ultra-legacy' || p === 'groq-qwen') ? 'alibaba-qwen'
-    : (p === 'nvidia-nemotron-nano' || p === 'nvidia-nemotron-ultra' || p === 'nvidia-nemotron-lightning') ? 'nvidia-nemotron'
+    isLegacyProvider(p) ? 'nvidia-deepseek'
+    : isNvidiaNimProvider(p) ? 'nvidia-nemotron'
     : p;
 
   const filteredErrors = providerFilter === 'all' 
@@ -91,12 +91,14 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
     switch (provider) {
       case 'gemini':
         return 'bg-violet-500/10 text-violet-400 border-violet-500/25';
-      case 'alibaba-qwen':
+      case 'nvidia-deepseek':
         return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25';
       case 'nvidia-nemotron':
       case 'nvidia-nemotron-nano':
       case 'nvidia-nemotron-ultra':
       case 'nvidia-nemotron-lightning':
+      case 'nvidia-nemotron-vl':
+      case 'nvidia-llama-vision':
         return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/25';
       default:
         return 'bg-slate-500/10 text-slate-400 border-slate-500/25';
@@ -383,7 +385,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
 
           {/* Filtering Tab Pills */}
           <div className="flex flex-wrap gap-2 pb-2">
-            {['all', 'gemini', 'alibaba-qwen', 'nvidia-nemotron'].map((prov) => {
+            {['all', 'nvidia-nemotron', 'nvidia-deepseek', 'gemini'].map((prov) => {
               const count = prov === 'all' 
                 ? errors.length 
                 : errors.filter(e => normalizeProvider(e.provider) === prov).length;
@@ -399,7 +401,7 @@ export default function AdminDashboard({ isDarkMode }: { isDarkMode: boolean }) 
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  {prov === 'all' ? 'ALL' : prov === 'gemini' ? 'GEMINI 3.8' : prov === 'alibaba-qwen' ? 'QWEN 3.8' : 'NEMOTRON (NIM)'} ({count})
+                  {prov === 'all' ? 'ALL' : prov === 'gemini' ? 'GEMINI 3.8' : prov === 'nvidia-deepseek' ? 'DEEPSEEK FLASH' : 'NEMOTRON (NIM)'} ({count})
                 </button>
               );
             })}

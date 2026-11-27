@@ -1,4 +1,5 @@
 import { replaceImagePlaceholders } from './imageReplacer';
+import { settlePendingIllustrations } from './documentImageEngine';
 import { patchOklchForHtml2canvas } from './pdfHelper';
 import { isAndroidDevice, isNativeApp, supportsSystemPrint } from './platform';
 import { deliverFile, notify, triggerWebDownload } from './nativeExport';
@@ -569,6 +570,11 @@ export const downloadAsPDF = async (
             } catch {}
         });
 
+        // Give the illustration engine a chance to deliver the PRIMARY engine's
+        // artwork (Perchance, by default) before rasterising — otherwise the
+        // seeded URL would be baked into the PDF instead of the teacher's
+        // selected engine result. Bounded, so an offline export never hangs.
+        await settlePendingIllustrations(12000);
         await waitForImages(container);
         updateExport('Building PDF pages…');
 

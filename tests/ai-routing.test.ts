@@ -1,13 +1,18 @@
 /**
  * Provider routing & fallback behaviour (`src/services/unifiedAiService.ts`).
  *
- * The product promise is that a provider outage is invisible to the classroom:
- * an alternative engine that fails is re-routed to Gemini, and Gemini that runs
- * out of quota drops through to Qwen — without surfacing raw provider errors.
+ * The product promise is that a provider outage is invisible to the classroom.
+ * Every failure walks the frozen reasoning chain from the selected engine:
+ *
+ *   Nemotron 3 Ultra → DeepSeek V4.1 Flash → Gemini → Nemotron 3.5 Lightning
+ *
+ * and the vision/OCR pipeline walks its own frozen chain:
+ *
+ *   Nemotron 3.5 Super VL → Gemini multimodal → Llama 3.2 90B Vision → OCR.space
  *
  * These tests encode the ACTUAL trigger conditions, including the deliberate
- * ones: quota/429 exhaustion cascades, while an unexpected (non-quota) Gemini
- * error is surfaced rather than masked by a second provider attempt.
+ * ones: quota/429 exhaustion and unexpected errors both cascade to the next
+ * engine instead of surfacing a raw provider error.
  *
  * All network calls are mocked; nothing here touches a real API.
  */
@@ -82,42 +87,62 @@ beforeEach(() => {
 });
 
 describe('generateEducationalContent', () => {
-  it('uses the selected alternative engine when it succeeds', async () => {
-    multiAiMocks.callMultiAi.mockResolvedValue('<section>Qwen content</section>');
+  it('uses the selected engine (Nemotron 3 Ultra is the default primary) when it succeeds', async () => {
+    multiAiMocks.callMultiAi.mockResolvedValue('<section>Nemotron content</section>');
 
-    const result = await generateEducationalContent('Worksheet', 'Grade 2 maths', 'alibaba-qwen');
+    const result = await generateEducationalContent('Worksheet', 'Grade 2 maths', 'nvidia-nemotron-ultra');
 
-    expect(result).toBe('<section>Qwen content</section>');
+    expect(result).toBe('<section>Nemotron content</section>');
     expect(multiAiMocks.callMultiAi).toHaveBeenCalledTimes(1);
-    expect(multiAiMocks.callMultiAi.mock.calls[0][0]).toBe('alibaba-qwen');
+    expect(multiAiMocks.callMultiAi.mock.calls[0][0]).toBe('nvidia-nemotron-ultra');
     expect(geminiMocks.generateEducationalContent).not.toHaveBeenCalled();
   });
 
-  it('re-routes to Gemini when the alternative engine fails', async () => {
+  it('falls from Nemotron 3 Ultra to DeepSeek before Gemini', async () => {
+    multiAiMocks.callMultiAi
+      .mockRejectedValueOnce(gatewayError())
+      .mockResolvedValueOnce('<section>DeepSeek content</section>');
+
+    const result = await generateEducationalContent('Worksheet', 'Grade 2 maths', 'nvidia-nemotron-ultra');
+
+    expect(multiAiMocks.callMultiAi.mock.calls.map((c: any[]) => c[0])).toEqual([
+      'nvidia-nemotron-ultra',
+      'nvidia-deepseek',
+    ]);
+    expect(geminiMocks.generateEducationalContent).not.toHaveBeenCalled();
+    expect(result).toBe('<section>DeepSeek content</section>');
+  });
+
+  it('reaches Gemini (tertiary) when both NVIDIA text engines fail', async () => {
     multiAiMocks.callMultiAi.mockRejectedValue(gatewayError());
     geminiMocks.generateEducationalContent.mockResolvedValue('<section>Gemini content</section>');
 
-    const result = await generateEducationalContent('Worksheet', 'Grade 2 maths', 'alibaba-qwen');
+    const result = await generateEducationalContent('Worksheet', 'Grade 2 maths', 'nvidia-nemotron-ultra');
 
+    // Ultra → DeepSeek → Gemini. Gemini answers, so Lightning is never needed.
+    expect(multiAiMocks.callMultiAi.mock.calls.map((c: any[]) => c[0])).toEqual([
+      'nvidia-nemotron-ultra',
+      'nvidia-deepseek',
+    ]);
     expect(geminiMocks.generateEducationalContent).toHaveBeenCalledTimes(1);
     expect(result).toBe('<section>Gemini content</section>');
   });
 
-  it('drops from Gemini to Qwen when Gemini reports quota exhaustion', async () => {
+  it('drops from Gemini to Nemotron 3.5 Lightning when Gemini reports quota exhaustion', async () => {
     geminiMocks.generateEducationalContent.mockRejectedValue(quotaError());
-    multiAiMocks.callMultiAi.mockResolvedValue('<section>Qwen rescue</section>');
+    multiAiMocks.callMultiAi.mockResolvedValue('<section>Lightning rescue</section>');
 
     const result = await generateEducationalContent('Worksheet', 'Grade 2 maths', 'gemini');
 
     expect(multiAiMocks.callMultiAi).toHaveBeenCalledTimes(1);
-    expect(multiAiMocks.callMultiAi.mock.calls[0][0]).toBe('alibaba-qwen');
-    expect(result).toBe('<section>Qwen rescue</section>');
+    expect(multiAiMocks.callMultiAi.mock.calls[0][0]).toBe('nvidia-nemotron-lightning');
+    expect(result).toBe('<section>Lightning rescue</section>');
   });
 
   it('sends a well-formed system + user message pair to the alternative engine', async () => {
     multiAiMocks.callMultiAi.mockResolvedValue('ok');
 
-    await generateEducationalContent('Lesson Plan', 'Grade 5 fractions', 'nvidia-nemotron-nano');
+    await generateEducationalContent('Lesson Plan', 'Grade 5 fractions', 'nvidia-nemotron-ultra');
 
     const [, messages] = multiAiMocks.callMultiAi.mock.calls[0];
     expect(Array.isArray(messages)).toBe(true);
@@ -136,31 +161,41 @@ describe('generateEducationalContent', () => {
     multiAiMocks.callMultiAi.mockResolvedValue('ok');
     window.localStorage.setItem('eduai.contentDesignStyle', 'light-v5');
 
-    await generateEducationalContent('Lesson Plan', 'Grade 5 fractions', 'alibaba-qwen');
+    await generateEducationalContent('Lesson Plan', 'Grade 5 fractions', 'nvidia-deepseek');
 
     const [, messages] = multiAiMocks.callMultiAi.mock.calls[0];
     expect(messages[0].content).toContain('LIGHT MASTER SYSTEM PROMPT');
     expect(messages[0].content).not.toContain('VISUAL STYLING DOCTRINE');
   });
 
-  it('still rejects when both the alternative engine and Gemini fail', async () => {
+  it('only rejects once every engine in the chain has been tried', async () => {
     multiAiMocks.callMultiAi.mockRejectedValue(gatewayError());
     geminiMocks.generateEducationalContent.mockRejectedValue(gatewayError());
 
     await expect(
-      generateEducationalContent('Worksheet', 'Grade 2 maths', 'alibaba-qwen'),
+      generateEducationalContent('Worksheet', 'Grade 2 maths', 'nvidia-nemotron-ultra'),
     ).rejects.toBeInstanceOf(Error);
+
+    // Ultra → DeepSeek on the NIM path, then Gemini, then Lightning.
+    expect(multiAiMocks.callMultiAi.mock.calls.map((c: any[]) => c[0])).toEqual([
+      'nvidia-nemotron-ultra',
+      'nvidia-deepseek',
+      'nvidia-nemotron-lightning',
+    ]);
+    expect(geminiMocks.generateEducationalContent).toHaveBeenCalledTimes(1);
   });
 
-  it('surfaces an unexpected Gemini error instead of masking it with a second provider', async () => {
+  it('also cascades an unexpected (non-quota) Gemini error to the next engine', async () => {
     geminiMocks.generateEducationalContent.mockRejectedValue(
       new Error('Unexpected token in JSON at position 0'),
     );
+    multiAiMocks.callMultiAi.mockResolvedValue('<section>Lightning rescue</section>');
 
-    await expect(
-      generateEducationalContent('Worksheet', 'Grade 2 maths', 'gemini'),
-    ).rejects.toThrow(/Unexpected token/);
-    expect(multiAiMocks.callMultiAi).not.toHaveBeenCalled();
+    const result = await generateEducationalContent('Worksheet', 'Grade 2 maths', 'gemini');
+
+    // Gemini's fallback is the engine after it in the frozen chain.
+    expect(multiAiMocks.callMultiAi.mock.calls[0][0]).toBe('nvidia-nemotron-lightning');
+    expect(result).toBe('<section>Lightning rescue</section>');
   });
 });
 
@@ -175,29 +210,44 @@ describe('chatWithTutor', () => {
     expect(geminiMocks.chatWithTutor).toHaveBeenCalledTimes(1);
   });
 
-  it('drops from Gemini to Qwen when the tutor hits quota', async () => {
+  it('drops from Gemini to Nemotron 3.5 Lightning when the tutor hits quota', async () => {
     geminiMocks.chatWithTutor.mockRejectedValue(quotaError());
-    multiAiMocks.callMultiAi.mockResolvedValue('Qwen tutor reply');
+    multiAiMocks.callMultiAi.mockResolvedValue('Lightning tutor reply');
 
     const result = await chatWithTutor(tutorTurn('Hi'), 'gemini');
 
-    expect(result).toBe('Qwen tutor reply');
+    expect(multiAiMocks.callMultiAi.mock.calls[0][0]).toBe('nvidia-nemotron-lightning');
+    expect(result).toBe('Lightning tutor reply');
   });
 
-  it('refuses to fall back when the turn carries an image (text models cannot read it)', async () => {
+  it('routes an image turn to the multimodal Nemotron vision engine when Gemini fails', async () => {
     geminiMocks.chatWithTutor.mockRejectedValue(quotaError());
+    multiAiMocks.callMultiAi.mockResolvedValue('Vision tutor reply');
     const imageTurn = [
       { role: 'user', parts: [{ text: 'What is wrong here?' }, { inlineData: { mimeType: 'image/png', data: 'AAA' } }] },
     ];
 
-    await expect(chatWithTutor(imageTurn, 'gemini')).rejects.toThrow(/quota is exceeded/i);
-    expect(multiAiMocks.callMultiAi).not.toHaveBeenCalled();
+    const result = await chatWithTutor(imageTurn, 'gemini');
+
+    // Text-only engines cannot read the image — the vision engine must be used.
+    expect(multiAiMocks.callMultiAi.mock.calls[0][0]).toBe('nvidia-nemotron-vl');
+    expect(result).toBe('Vision tutor reply');
+  });
+
+  it('explains itself when neither multimodal engine can read the image', async () => {
+    geminiMocks.chatWithTutor.mockRejectedValue(quotaError());
+    multiAiMocks.callMultiAi.mockRejectedValue(gatewayError());
+    const imageTurn = [
+      { role: 'user', parts: [{ text: 'What is wrong here?' }, { inlineData: { mimeType: 'image/png', data: 'AAA' } }] },
+    ];
+
+    await expect(chatWithTutor(imageTurn, 'gemini')).rejects.toThrow(/multimodal engine/i);
   });
 
   it('always starts the OpenAI-style conversation with a system + user turn', async () => {
     multiAiMocks.callMultiAi.mockResolvedValue('ok');
 
-    await chatWithTutor(tutorTurn('Explain photosynthesis'), 'alibaba-qwen');
+    await chatWithTutor(tutorTurn('Explain photosynthesis'), 'nvidia-deepseek');
 
     const [, messages] = multiAiMocks.callMultiAi.mock.calls[0];
     expect(messages[0].role).toBe('system');
@@ -206,32 +256,45 @@ describe('chatWithTutor', () => {
   });
 });
 
-describe('runOCRScan', () => {
-  it('uses Gemini vision when it is the selected OCR engine', async () => {
-    geminiMocks.runOCRScan.mockResolvedValue({ extractedText: 'handwritten answer' });
+describe('runOCRScan (frozen vision chain)', () => {
+  it('uses the primary NVIDIA vision engine by default', async () => {
+    multiAiMocks.callMultiAi.mockResolvedValue('handwritten answer');
 
-    const result = await runOCRScan('data:image/png;base64,AAA', 'gemini', 'gemini');
+    const result = await runOCRScan('data:image/png;base64,AAA', 'nvidia-nemotron-ultra', 'nvidia-nemotron-vl');
 
     expect(result).toEqual({ extractedText: 'handwritten answer' });
-    expect(multiAiMocks.performOCR).not.toHaveBeenCalled();
+    expect(multiAiMocks.callMultiAi.mock.calls[0][0]).toBe('nvidia-nemotron-vl');
+    expect(geminiMocks.runOCRScan).not.toHaveBeenCalled();
   });
 
-  it('falls back to OCR.space when Gemini vision hits quota', async () => {
+  it('falls to Gemini multimodal when the NVIDIA vision model fails', async () => {
+    multiAiMocks.callMultiAi.mockRejectedValue(gatewayError());
+    geminiMocks.runOCRScan.mockResolvedValue({ extractedText: 'gemini rescue text' });
+
+    const result = await runOCRScan('data:image/png;base64,AAA', 'nvidia-nemotron-ultra', 'nvidia-nemotron-vl');
+
+    expect(geminiMocks.runOCRScan).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ extractedText: 'gemini rescue text' });
+  });
+
+  it('falls to Llama 3.2 90B Vision when Gemini vision hits quota', async () => {
+    geminiMocks.runOCRScan.mockRejectedValue(quotaError());
+    multiAiMocks.callMultiAi.mockResolvedValue('llama vision text');
+
+    const result = await runOCRScan('data:image/png;base64,AAA', 'nvidia-nemotron-ultra', 'gemini');
+
+    expect(multiAiMocks.callMultiAi.mock.calls[0][0]).toBe('nvidia-llama-vision');
+    expect(result).toEqual({ extractedText: 'llama vision text' });
+  });
+
+  it('reaches OCR.space only after every multimodal engine fails', async () => {
+    multiAiMocks.callMultiAi.mockRejectedValue(gatewayError());
     geminiMocks.runOCRScan.mockRejectedValue(quotaError());
     multiAiMocks.performOCR.mockResolvedValue('ocr space text');
 
-    const result = await runOCRScan('data:image/png;base64,AAA', 'gemini', 'gemini');
+    const result = await runOCRScan('data:image/png;base64,AAA', 'nvidia-nemotron-ultra', 'nvidia-nemotron-vl');
 
     expect(multiAiMocks.performOCR).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ extractedText: 'ocr space text' });
-  });
-
-  it('falls back to Gemini vision when OCR.space fails', async () => {
-    multiAiMocks.performOCR.mockRejectedValue(new Error('ocr.space down'));
-    geminiMocks.runOCRScan.mockResolvedValue({ extractedText: 'gemini rescue text' });
-
-    const result = await runOCRScan('data:image/png;base64,AAA', 'gemini', 'ocrspace');
-
-    expect(result).toEqual({ extractedText: 'gemini rescue text' });
   });
 });

@@ -17,6 +17,9 @@ import {
   AI_ROUTE_GEMINI_RESERVE_MS,
   AI_ROUTE_MIN_ATTEMPT_MS,
   AI_ROUTE_PROVIDER_TIMEOUT_MS,
+  AI_ROUTE_ALTERNATIVE_TIMEOUT_MS,
+  AI_ROUTE_PROBE_MAX_TOKENS,
+  AI_ROUTE_PROBE_TIMEOUT_MS,
   AiRouteBudget,
   withDeadline,
 } from '../src/lib/aiRouteBudget';
@@ -98,5 +101,23 @@ describe('withDeadline', () => {
     await expect(withDeadline(Promise.resolve('ok'), 0)).rejects.toMatchObject({
       code: 'budget_exhausted',
     });
+  });
+});
+
+describe('the chain always fits inside the serverless budget', () => {
+  it('gives a latency probe a short budget instead of a generation budget', () => {
+    // A probe waits for a `max_completion_tokens` of a few tokens. It must not
+    // inherit the multi-second reasoning cap, or every healthy-but-thinking
+    // model is reported as failed.
+    expect(AI_ROUTE_PROBE_TIMEOUT_MS).toBeLessThan(AI_ROUTE_PROVIDER_TIMEOUT_MS);
+    expect(AI_ROUTE_PROBE_MAX_TOKENS).toBeGreaterThanOrEqual(1);
+    expect(AI_ROUTE_PROBE_MAX_TOKENS).toBeLessThan(AI_ROUTE_PROVIDER_TIMEOUT_MS);
+  });
+
+  it('keeps the alternative hops short enough to leave the Gemini reserve intact', () => {
+    // provider cap + alternative cap + reserve must fit inside one request.
+    expect(
+      AI_ROUTE_PROVIDER_TIMEOUT_MS + AI_ROUTE_ALTERNATIVE_TIMEOUT_MS + AI_ROUTE_GEMINI_RESERVE_MS,
+    ).toBeLessThanOrEqual(AI_ROUTE_BUDGET_MS + AI_ROUTE_GEMINI_RESERVE_MS);
   });
 });

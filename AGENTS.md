@@ -17,58 +17,95 @@ specified below.
 
 | App provider id | Model to call (exactly) | Provider / endpoint |
 | --- | --- | --- |
-| `gemini` | `gemini-3.8-flash` (latest GA; reasoning chain `gemini-3.7-flash` → `gemini-3.6-flash` → `gemini-3.5-flash` → `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite` → `gemini-2.5-flash` only when 3.8 is unavailable) | Google Gemini API |
-| `alibaba-qwen` | `qwen3.8-max` | Alibaba Cloud Model Studio (OpenAI-compatible endpoint `https://ws-8ldb9u90tetxcada.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1`, key `ALIBABA_API_KEY`) |
+| `nvidia-nemotron-ultra` | `nvidia/nemotron-ultra-550b-a55b` (Nemotron 3 Ultra 550B-A55B) — **PRIMARY reasoning engine** for lesson plans, assessments and learner diagnosis | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
+| `nvidia-deepseek` | `nvidia/deepseek-v4.1-flash` — **SECONDARY** engine | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
+| `gemini` | `gemini-3.8-flash` (latest GA; reasoning chain `gemini-3.7-flash` → `gemini-3.6-flash` → `gemini-3.5-flash` → `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite` → `gemini-2.5-flash` only when 3.8 is unavailable) — **TERTIARY** engine | Google Gemini API |
+| `nvidia-nemotron-lightning` | `nvidia/nemotron-3.5-lightning-30b-a3b` — **last** engine in the reasoning chain | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
 | `nvidia-nemotron-nano` | `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
-| `nvidia-nemotron-ultra` | `nvidia/nemotron-ultra-550b-a55b` (Nemotron 3 Ultra 550B-A55B) | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
-| `nvidia-nemotron-lightning` | `nvidia/nemotron-3.5-lightning-30b-a3b` | FREE NVIDIA NIM endpoint `https://integrate.api.nvidia.com/v1`, key `NVIDIA_API_KEY` |
 
-### NVIDIA NIM is MANDATORY for every Nemotron model
-* ALL Nemotron models MUST use the FREE NVIDIA NIM endpoint
-  (`https://integrate.api.nvidia.com/v1`). NEVER route Nemotron through Groq,
+### The reasoning fallback chain (explicit user instruction, 24 Nov 2026)
+
+Every model has a fallback. The priority is exactly:
+
+1. **Primary** — `nvidia-nemotron-ultra` (NVIDIA Nemotron 3 Ultra 550B-A55B)
+2. **Secondary** — `nvidia-deepseek` (NVIDIA NIM `nvidia/deepseek-v4.1-flash`)
+3. **Tertiary** — `gemini` (`gemini-3.8-flash`, then the Gemini chain)
+4. **Last** — `nvidia-nemotron-lightning` (`nvidia/nemotron-3.5-lightning-30b-a3b`)
+
+`REASONING_CHAIN` in `src/lib/aiModels.ts` is that list. A request that starts
+on any member walks the members after it, then wraps to the members before it
+(`reasoningFallbacksFor()`), so *any* provider fault — quota, 401/402/403/404,
+5xx, timeout, network, DNS — lands on the next healthy engine instead of
+surfacing an error. Never write a fallback target as a literal; always ask the
+registry.
+
+### Vision / OCR chain (explicit user instruction, 24 Nov 2026)
+
+Scanned worksheets, diagrams and handwritten work use their **own** provider
+graph (`VISION_PROVIDER_CHAIN`), in this priority:
+
+1. **Primary** — `nvidia-nemotron-vl` → `nvidia/nemotron-3.5-super-vl-120b-a12b`
+2. `gemini` → Gemini multimodal (`gemini-3.8-flash`)
+3. `nvidia-llama-vision` → `meta/llama-3.2-90b-vision-instruct`
+4. `ocrspace` → OCR.space (text-only final resort)
+
+All vision models call the FREE NVIDIA NIM endpoint with `NVIDIA_API_KEY`.
+
+### NVIDIA NIM is MANDATORY for every Nemotron, DeepSeek and vision model
+* ALL NVIDIA models MUST use the FREE NVIDIA NIM endpoint
+  (`https://integrate.api.nvidia.com/v1`). NEVER route them through Groq,
   OpenRouter, Alibaba Model Studio, or any other provider or aggregator.
 * Never fall back to the same request through Groq or OpenRouter when the
   NVIDIA key is missing — the baked `NVIDIA_API_KEY` (same key the client/APK
   ships, see `src/lib/aiSecrets.ts`) is the intended server fallback.
-* The provider switch in `server.ts` (`/api/ai/:provider`) routes the three
-  `nvidia-nemotron-*` ids to the NVIDIA NIM client and maps each id to its
-  exact model slug above. Do not remove, rename or re-map those cases.
+* The provider switch in `server.ts` (`/api/ai/:provider`) routes every
+  `nvidia-*` id to the NVIDIA NIM client and maps each id to its exact model
+  slug above. Do not remove, rename or re-map those cases.
 
 ### Gemini rules
-* `gemini` is the primary engine and maps to `gemini-3.8-flash` (the current
-  latest GA). DO NOT map it to outdated models like `gemini-2.0-flash`,
-  `gemini-1.5`, `gemini-2.1`, or older 3.x Flash releases as primary defaults.
-  EVER.
+* Gemini is the **tertiary** engine (and the second vision engine). It maps to
+  `gemini-3.8-flash` (the current latest GA). DO NOT map it to outdated models
+  like `gemini-2.0-flash`, `gemini-1.5`, `gemini-2.1`, or older 3.x Flash
+  releases as defaults. EVER.
+* Gemini must never be removed from the app: it is the guaranteed-answer engine
+  in the reasoning and vision chains.
 
 ### Legacy ids (internal aliases only — not models)
-* `nvidia-nemotron` (old Llama-based Nemotron 49B) and `groq-qwen` /
-  `nvidia-nemotron-ultra-legacy` are retired ids kept ONLY so stale saved
-  settings keep working. They must resolve to the Qwen 3.8 Max engine
-  (`alibaba-qwen`) — never resurrected as their own models.
+* `alibaba-qwen`, `groq-qwen`, `qwen`, `qwen-image`, `nvidia-nemotron` (old
+  Llama-based Nemotron 49B) and `nvidia-nemotron-ultra-legacy` are retired ids
+  kept ONLY so stale saved settings keep working. They must resolve to the
+  DeepSeek engine (`nvidia-deepseek`) — never resurrected as their own models.
 
 ### Strictly Banned / Removed
-* Llama-family models are REMOVED from the app: no Llama model of any version
-  or size, and no Groq-hosted model, may appear anywhere in the app code or UI.
+* **Alibaba Qwen is REMOVED** (24 Nov 2026): no Qwen text model
+  (`qwen3.8-max`, `qwen3-max`, …), no Alibaba Model Studio client, no
+  `ALIBABA_API_KEY` / `DASHSCOPE_*` credential. NVIDIA NIM
+  `nvidia/deepseek-v4.1-flash` holds that slot.
 * Groq and OpenRouter are banned as model providers for text generation — no
-  Groq client, no OpenRouter client, no Groq/OpenRouter key fallback.
-* Any other model not listed above (DeepSeek, etc.) is banned from text
-  content generation.
+  Groq client, no OpenRouter client, no Groq/OpenRouter key fallback. (Groq
+  Whisper TTS is a separate voice pipeline and is unaffected.)
+* Llama-family models are not permitted for **text** generation. The single
+  exception is the vision/OCR engine `meta/llama-3.2-90b-vision-instruct`,
+  which is allowed for image reading only.
+* Any other model not listed above is banned from text content generation.
 * Outdated Gemini defaults (`gemini-2.0-flash`, `gemini-1.5-flash`,
-  `gemini-2.1`) MUST NOT be used as primary defaults.
+  `gemini-2.1`) MUST NOT be used as defaults.
 * Image generation (FLUX.1-schnell on Hugging Face / Pollinations /
-  Google Imagen 3), OCR engines and TTS/voice engines are separate pipelines —
-  leave them exactly as configured.
+  Google Imagen 3) and TTS/voice engines are separate pipelines — leave them
+  exactly as configured.
 
 ### The frozen registry — single source of truth (added 2 Oct 2026)
-All five provider ids, their exact model slugs, the Gemini fallback chain, both
-provider endpoints, the legacy-id aliases and the sibling-engine fallback graph
-live in EXACTLY ONE module:
+All five provider ids, their exact model slugs, the reasoning chain, the
+vision chain, the Gemini fallback chain, the NVIDIA NIM endpoint, the legacy-id
+aliases and the fallback graphs live in EXACTLY ONE module:
 
 * **`src/lib/aiModels.ts`** — exports `AI_PROVIDERS`, `AI_PROVIDER_LABELS`,
-  `GEMINI_MODEL_CHAIN`, `GEMINI_PRIMARY_MODEL`, `QWEN_DEFAULT_MODEL`,
-  `QWEN_BASE_URL`, `NVIDIA_BASE_URL`, `NVIDIA_MODELS`,
-  `resolveProviderModel()`, `alternativeProviderFor()`,
-  `isNemotronProvider()` and `isLegacyProvider()`.
+  `VISION_PROVIDERS`, `VISION_PROVIDER_CHAIN`, `OCR_PROVIDER_LABELS`,
+  `REASONING_CHAIN`, `PRIMARY_REASONING_PROVIDER`, `reasoningFallbacksFor()`,
+  `visionFallbacksFor()`, `GEMINI_MODEL_CHAIN`, `GEMINI_PRIMARY_MODEL`,
+  `NVIDIA_BASE_URL`, `NVIDIA_MODELS`, `DEEPSEEK_DEFAULT_MODEL`,
+  `resolveProviderModel()`, `isNemotronProvider()`, `isVisionProvider()`,
+  `isNvidiaNimProvider()` and `isLegacyProvider()`.
 
 Every call site IMPORTs from this registry — no model string, endpoint or
 provider-id list may be written as a literal anywhere else. Editing the registry
@@ -83,26 +120,25 @@ update to the table above.
 
 ### Application Files Governing Models:
 * **`server.ts`**: The API proxy handling `/api/ai/:provider` must resolve
-  `gemini` to the Gemini chain above, `alibaba-qwen` to `qwen3.8-max` via Model
-  Studio, and the three `nvidia-nemotron-*` ids to their exact NIM model slugs
-  via the NVIDIA NIM endpoint. It contains NO Groq or OpenRouter clients. It
-  imports the ids, slugs, endpoints, legacy aliases and sibling-engine graph from
-  `src/lib/aiModels.ts` — do not re-inline them.
+  `gemini` to the Gemini chain above, and every `nvidia-*` id to its exact NIM
+  model slug via the NVIDIA NIM endpoint. It contains NO Qwen, Groq or
+  OpenRouter clients. It imports the ids, slugs, endpoints, legacy aliases and
+  fallback chain from `src/lib/aiModels.ts` — do not re-inline them.
 * **`src/contexts/AiContext.tsx`**: `AIProvider` is re-exported from, and
   `VALID_PROVIDERS` derived from, `AI_PROVIDERS` in `src/lib/aiModels.ts`. The
-  resolved list must still be exactly `gemini`, `alibaba-qwen`,
-  `nvidia-nemotron-nano`, `nvidia-nemotron-ultra`, `nvidia-nemotron-lightning`.
+  resolved list must still be exactly `nvidia-nemotron-ultra`,
+  `nvidia-deepseek`, `gemini`, `nvidia-nemotron-lightning`,
+  `nvidia-nemotron-nano`, and the OCR list must be derived from
+  `VISION_PROVIDER_CHAIN`.
 * **`src/App.tsx`**: The AI-engine picker and auto-optimize candidates map over
-  `AI_PROVIDERS` + `AI_PROVIDER_LABELS` from `src/lib/aiModels.ts`, so exactly
-  these five providers are exposed (Gemini 3.8 Flash, Qwen 3.8 Max, Nemotron
-  3 Nano, Nemotron 3 Ultra 550B, Nemotron 3.5 Lightning).
+  `AI_PROVIDERS` + `AI_PROVIDER_LABELS` and the OCR picker over
+  `VISION_PROVIDER_CHAIN` + `OCR_PROVIDER_LABELS` from `src/lib/aiModels.ts`.
 * **`src/services/multiAiService.ts`**: NVIDIA NIM client must call the exact
-  Nemotron slugs above on `https://integrate.api.nvidia.com/v1`; Model Studio
-  calls must use `qwen3.8-max`. Both come from `src/lib/aiModels.ts`
-  (`NVIDIA_BASE_URL`, `NVIDIA_MODELS`, `QWEN_DEFAULT_MODEL`).
-* **`src/services/geminiClient.ts` / `geminiService.ts` /
-  `unifiedAiService.ts`**: Must dispatch OCR grading and fallback logic to
-  these exact model strings only.
+  slugs above on `https://integrate.api.nvidia.com/v1`. It has no Model Studio
+  path. All values come from `src/lib/aiModels.ts`.
+* **`src/services/unifiedAiService.ts` / `geminiService.ts` /
+  `geminiClient.ts`**: Must dispatch OCR grading and fallback logic through the
+  registry's reasoning and vision chains — no inlined model strings.
 
 ---
 
@@ -415,10 +451,44 @@ explicit user instructions.
   answers **HTTP 501 + `{configured:false}`** and the client stops attempting
   FLUX for the rest of the session.
 * On the client, `src/lib/imageGeneration.ts` keeps its fixed provider
-  priority/fallback graph (**FLUX → Gemini → Pollinations → placeholder**) and
-  `buildPollinationsUrl()` / `buildDirectImageUrl()` are the live entry
-  points. `buildDirectImageUrl()` points a native build at Pollinations and
-  a web build at `/api/image-proxy`.
+  priority/fallback graph (**Perchance → FLUX → Gemini → Pollinations →
+  placeholder**) via `generateImageWithFallback()` (interactive images: the
+  "Create Image" button, avatars, `AiImage`).
+  `buildPollinationsUrl()` / `buildDirectImageUrl()` remain for the direct-URL
+  helpers, but they are **not** the document illustration path any more.
+* **Document illustrations must go through `src/lib/documentImageEngine.ts`
+  (added 24 Nov 2026).** This is the "Perchance is the primary generator"
+  rule, and it fixes the report *"the app bypasses Perchance and goes straight
+  to Pollinations"*:
+  * `replaceImagePlaceholders()` (`src/lib/imageReplacer.ts`) used to emit
+    `<img src="/api/image-proxy?…">` for every `[Illustration: …]` — and that
+    route renders with **Pollinations**. The browser-only Perchance engine was
+    never in the path, so the primary engine could not win regardless of the
+    Settings choice.
+  * It now calls `resolveDocumentIllustrationTracked()`, which walks the
+    **selected engine first** (`DEFAULT_IMAGE_PROVIDER` = Perchance) and then
+    the frozen fallback graph. `src` is a seeded, always-renderable URL so the
+    picture paints immediately; the async pass upgrades it to the primary
+    engine's result and records telemetry.
+  * The global recovery net (`src/lib/imageRecovery.ts`) and the print/PDF
+    path (`src/lib/printUtils.ts` → `settlePendingIllustrations()`) use the
+    same chain, so a failed illustration is re-resolved on Perchance rather
+    than re-rolled on Pollinations, and exports wait for the primary result.
+  * `src/main.tsx` warms the Perchance engine at boot (`warmUpPerchance()`):
+    the first hidden-iframe request of a session needs Cloudflare clearance,
+    and without the warm-up that first illustration timed out into the
+    fallback chain.
+  * **The warm-up frames the API page, never the Perchance homepage.**
+    `PERCHANCE_WARMUP_URL === PERCHANCE_API_URL`. Confirmed in production
+    (24 Nov 2026): the homepage answers `X-Frame-Options: sameorigin`, so a
+    warm-up frame pointed at it is denied by the browser, never fires
+    `onload`, and only logs a console error. A warm-up is an **optimisation,
+    never a gate**: `generateOnce()` waits at most
+    `WARMUP_WAIT_CAP_MS` (2.5 s) for it and then generates regardless.
+  * Never re-add a path that emits a `/api/image-proxy` or bare Pollinations
+    `src` without first attempting the selected engine. Guarded by
+    `tests/document-image-engine.test.ts` and the document-path block in
+    `tests/image-providers.test.ts`.
 * **Pollinations is the LAST resort, and it throttles.** The anonymous tier
   allows roughly one image every 45 s per IP and answers **HTTP 402
   `{error:{code:"FREE_LIMIT", retryAfter}}`** (sometimes a 200 HTML banner)
@@ -462,10 +532,31 @@ explicit user instructions.
     (`ai-text-to-image-generator`, `ai-images-generator`) send
     `X-Frame-Options: SAMEORIGIN` and can never load — that dead bridge must
     not come back.
+  * **…and only on the EMBED host `null.perchance.org`.** The apex
+    `perchance.org` sends `X-Frame-Options: SAMEORIGIN` on its own
+    `perchance-ai-api` page, so a frame pointed there is refused outright
+    (console: *"…in a frame is denied by X-Frame-Options directive set to
+    sameorigin"* / `NS_ERROR_XFO_VIOLATION`). `PERCHANCE_EMBED_API_URL` is the
+    only frameable URL; `PERCHANCE_API_URL` exists solely to document the
+    endpoint and **must never be framed**. `PERCHANCE_WARMUP_URL` is the embed
+    host too. This constraint has been re-learned three times — PR #63 found
+    it, PR #68 deleted the engine over it, PR #70 reintroduced the apex and hit
+    it again — so `tests/image-providers.test.ts` now fails if any code frames
+    the apex.
+  * A frame refused by `X-Frame-Options` never fires `load` and never posts a
+    message, so `FRAME_LOAD_DEADLINE_MS` (8 s) turns a silent refusal into a
+    fast, explicit error instead of a 60 s stall per illustration.
   * Never `fetch()` `perchance.org` from any layer (client or server): bare
     HTTP is answered by a Cloudflare 403. The hidden iframe IS the transport.
   * The engine is browser-only; server-side callers that ask for `perchance`
     are routed to FLUX (`/api/images/generate`).
+  * The circuit breaker benches after **4** consecutive failures
+    (`PERCHANCE_BENCH_AFTER_FAILURES`, raised from 2 on 24 Nov 2026) for 3
+    minutes. A document renders illustrations in batches, and the old 2-failure
+    threshold benched the PRIMARY engine for 10 minutes after one unlucky
+    batch — which is what made later lessons silently use Pollinations. A bench
+    is always clearable: `resetPerchanceBench()` backs the Settings "Try again"
+    button, and `perchanceFailureInfo()` drives the honest status line.
   * Always send `PERCHANCE_NEGATIVE_PROMPT` (child-safety floor for a school
     product); callers may extend it, never replace it.
 * The image **model list is frozen** — FLUX.1-schnell, Pollinations `flux`

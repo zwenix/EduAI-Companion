@@ -1,6 +1,6 @@
 // ============================================================
 // sa-prompts.ts
-// SA-Compliant Prompt Engineering for Qwen 3.8 (Alibaba Model Studio) & Gemini
+// SA-Compliant Prompt Engineering for Nemotron 3 Ultra (NVIDIA NIM) & Gemini
 // Enhanced integration for EduAI Companion
 // ============================================================
 

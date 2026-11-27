@@ -5,9 +5,8 @@ import { isNativeApp } from '../lib/platform';
 import {
   NVIDIA_BASE_URL,
   NVIDIA_MODELS,
-  QWEN_BASE_URL,
-  QWEN_DEFAULT_MODEL,
-  isNemotronProvider,
+  isNvidiaNimProvider,
+  isVisionProvider,
   isLegacyProvider,
   type AlternativeAiProvider,
 } from '../lib/aiModels';
@@ -16,83 +15,58 @@ import {
 // `src/lib/aiModels.ts` (single source of truth — see AGENTS.md §1).
 export type AIProvider = AlternativeAiProvider;
 
-// ─── Endpoints & model slugs ────────────────────────────────────────────────
-// Qwen 3.8 Max → Alibaba Cloud Model Studio (OpenAI-compatible, workspace
-// scoped; override with VITE_ALIBABA_API_BASE / ALIBABA_API_BASE).
-// Nemotron    → NVIDIA NIM ONLY (never Groq/OpenRouter).
+// ─── Endpoint & model slugs ─────────────────────────────────────────────────
+// EVERY alternative engine is hosted on the FREE NVIDIA NIM endpoint
+// (`https://integrate.api.nvidia.com/v1`): Nemotron 3 Ultra (primary),
+// DeepSeek V4.1 Flash (secondary), Nemotron 3.5 Lightning (last) and the two
+// vision models. Alibaba Model Studio / Qwen was removed on 24 Nov 2026.
 // All values are imported from the frozen registry — do not inline literals.
 
-const executeClientMultiAi = async (provider: AIProvider | string, messages: any[], model?: string) => {
-  // Handle NVIDIA NIM providers
-  if (provider && isNemotronProvider(provider)) {
-    const nvidiaModel = NVIDIA_MODELS[provider];
-    if (!nvidiaModel) {
-      throw new Error(`Unknown NVIDIA Nemotron model: ${provider}`);
-    }
-    
-    const baseUrl = NVIDIA_BASE_URL;
-    const url = `${baseUrl}/chat/completions`;
-    const apiKey = String(
-      (process.env as any).NVIDIA_API_KEY ||
-      (import.meta as any).env?.VITE_NVIDIA_API_KEY ||
-      AI_SECRETS.NVIDIA_API_KEY || ""
-    ).trim().replace(/^['"\s]+|['"\s]+$/g, "");
-    
-    if (!apiKey) {
-      throw new Error(`API key (NVIDIA_API_KEY) for NVIDIA NIM is not configured. Please add it.`);
-    }
-    
-    const selectedModel = model && !/nemotron|nvidia\//i.test(model) ? model : nvidiaModel;
-    
-    const payload: any = {
-      model: selectedModel,
-      messages,
-      temperature: 0.7,
-      top_p: 0.95,
-      max_tokens: 16384,
-    };
-    
-    const response = await axios.post(
-      url,
-      payload,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-      }
-    );
-    const msg = response.data.choices[0]?.message || {};
-    return msg.content || msg.reasoning_content || "";
-  }
-  
-  // Handle Alibaba Qwen providers
-  const baseUrl = String(
-    (import.meta as any).env?.VITE_ALIBABA_API_BASE ||
-    (process.env as any).ALIBABA_API_BASE ||
-    QWEN_BASE_URL
-  ).trim().replace(/\/+$/, "");
-  const url = `${baseUrl}/chat/completions`;
-  const apiKey = String(
-    (process.env as any).ALIBABA_API_KEY ||
-    (import.meta as any).env?.VITE_ALIBABA_API_KEY ||
-    (process.env as any).DASHSCOPE_API_KEY ||
-    AI_SECRETS.ALIBABA_API_KEY || ""
+/** Resolve the NVIDIA NIM key (env → VITE env → baked APK key). */
+const resolveNimKey = (): string =>
+  String(
+    (process.env as any).NVIDIA_API_KEY ||
+    (import.meta as any).env?.VITE_NVIDIA_API_KEY ||
+    AI_SECRETS.NVIDIA_API_KEY || ""
   ).trim().replace(/^['"\s]+|['"\s]+$/g, "");
 
-  // Never forward a legacy provider id or NVIDIA model slug to Model Studio.
-  let selectedModel = model;
+/**
+ * The exact model slug for one NVIDIA NIM engine. A caller-supplied model is
+ * honoured only when it is a genuine slug for that same engine family —
+ * never a legacy alias, and never another provider's model.
+ */
+const nimModelFor = (provider: string, model?: string): string => {
+  const registered = NVIDIA_MODELS[provider];
+  if (!registered) {
+    throw new Error(`Unknown NVIDIA NIM model: ${provider}`);
+  }
   if (
-    !selectedModel ||
-    selectedModel === provider ||
-    isLegacyProvider(selectedModel) ||
-    /nemotron|nvidia\//i.test(selectedModel)
+    !model ||
+    model === provider ||
+    isLegacyProvider(model) ||
+    isNvidiaNimProvider(model) ||
+    !/^[\w.-]+\/[\w.:-]+$/.test(model)
   ) {
-    selectedModel = QWEN_DEFAULT_MODEL;
+    return registered;
+  }
+  return model;
+};
+
+const executeClientMultiAi = async (provider: AIProvider | string, messages: any[], model?: string) => {
+  // Every alternative engine in this app is an NVIDIA NIM model.
+  if (!isNvidiaNimProvider(provider)) {
+    // Qwen / Model Studio ids are retired aliases: they now mean DeepSeek.
+    if (!isLegacyProvider(provider)) {
+      throw new Error(`Unknown AI provider "${provider}". Only NVIDIA NIM engines are served here.`);
+    }
   }
 
+  const nimProvider = isNvidiaNimProvider(provider) ? provider : 'nvidia-deepseek';
+  const selectedModel = nimModelFor(nimProvider, model);
+
+  const apiKey = resolveNimKey();
   if (!apiKey) {
-    throw new Error(`API key (ALIBABA_API_KEY / Model Studio) for Qwen 3.8 is not configured in settings or environment. Please add it.`);
+    throw new Error(`API key (NVIDIA_API_KEY) for NVIDIA NIM is not configured. Please add it.`);
   }
 
   const payload: any = {
@@ -103,10 +77,13 @@ const executeClientMultiAi = async (provider: AIProvider | string, messages: any
     max_tokens: 16384,
   };
 
-  // Let the prompt dictate JSON mode, do not force it which causes issues with certain models
+  if (isVisionProvider(nimProvider)) {
+    // Vision models reject sampling knobs and reasoning-only fields.
+    delete payload.top_p;
+  }
 
   const response = await axios.post(
-    url,
+    `${NVIDIA_BASE_URL}/chat/completions`,
     payload,
     {
       headers: {
@@ -141,7 +118,7 @@ export const callMultiAi = async (provider: AIProvider, messages: any[], model?:
     try {
       return await executeClientMultiAi(provider, messages, model);
     } catch (clientErr: any) {
-      console.log(`[AI Routing] Native client call for ${provider} failed, transitioning to Gemini fallback.`);
+      console.log(`[AI Routing] Native client call for ${provider} failed, walking the fallback chain.`);
       throw clientErr;
     }
   }
@@ -155,8 +132,8 @@ export const callMultiAi = async (provider: AIProvider, messages: any[], model?:
     const backendError = error.response?.data?.error || {};
     const errorMsg = typeof backendError === 'string' ? backendError : backendError?.message || error?.message || '';
 
-    console.log(`[AI Routing] Provider ${provider} unavailable or transitioned (Status: ${status || 'Network'}). Seamlessly routing to Gemini.`);
-    throw new Error(`Provider ${provider} unavailable, transitioning to Gemini fallback: ${errorMsg}`);
+    console.log(`[AI Routing] Provider ${provider} unavailable or transitioned (Status: ${status || 'Network'}). Walking the reasoning chain.`);
+    throw new Error(`Provider ${provider} unavailable, transitioning to the next reasoning engine: ${errorMsg}`);
   }
 };
 

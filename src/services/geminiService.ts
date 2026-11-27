@@ -18,76 +18,107 @@ import {
   AI_PROVIDER_LABELS,
   NVIDIA_BASE_URL,
   NVIDIA_MODELS,
-  QWEN_BASE_URL,
-  QWEN_DEFAULT_MODEL,
+  REASONING_CHAIN,
+  VISION_PROVIDER_CHAIN,
+  visionFallbacksFor,
 } from "../lib/aiModels";
 
-// ─── Browser-side LAST RESORT ───────────────────────────────────────────────
-// If both the backend AND the direct Gemini engine fail (e.g. the shared
-// Gemini key is quota-exhausted or blocked), make one final attempt through
-// the alternative engines whose keys are baked into the app — Qwen 3.8 Max
-// first, then the Nemotron siblings named by the frozen sibling-engine graph
-// (`alternativeProviderFor`). Endpoints and slugs come from the frozen registry
-// in `src/lib/aiModels.ts` (AGENTS.md §1) — never inline them here.
-const LAST_RESORT_PROVIDERS: { name: string; url: string; key: () => string; models: string[] }[] = [
-  {
-    name: AI_PROVIDER_LABELS['alibaba-qwen'],
-    url: `${QWEN_BASE_URL}/chat/completions`,
-    key: () => AI_SECRETS.ALIBABA_API_KEY,
-    models: [QWEN_DEFAULT_MODEL]
-  },
-  {
-    name: AI_PROVIDER_LABELS['nvidia-nemotron-lightning'],
+// ─── Browser-side NVIDIA NIM engine ─────────────────────────────────────────
+// The alternative engines whose keys are baked into the app, in the frozen
+// reasoning order (AGENTS.md §1): Nemotron 3 Ultra (primary) → DeepSeek V4.1
+// Flash (secondary) → Nemotron 3.5 Lightning (last). Gemini is deliberately
+// absent — it is the TERTIARY engine and is always tried before this helper.
+// Endpoints and slugs come from the frozen registry in `src/lib/aiModels.ts`.
+const NIM_PROVIDERS: { name: string; url: string; key: () => string; models: string[] }[] =
+  REASONING_CHAIN.filter((id) => id !== 'gemini').map((id) => ({
+    name: AI_PROVIDER_LABELS[id as keyof typeof AI_PROVIDER_LABELS] ?? id,
     url: `${NVIDIA_BASE_URL}/chat/completions`,
     key: () => AI_SECRETS.NVIDIA_API_KEY,
-    models: [NVIDIA_MODELS['nvidia-nemotron-lightning']]
-  },
-  {
-    name: AI_PROVIDER_LABELS['nvidia-nemotron-nano'],
-    url: `${NVIDIA_BASE_URL}/chat/completions`,
-    key: () => AI_SECRETS.NVIDIA_API_KEY,
-    models: [NVIDIA_MODELS['nvidia-nemotron-nano']]
-  }
-];
+    models: [NVIDIA_MODELS[id]],
+  }));
 
-const callLastResortLLM = async (systemPrompt: string, userPrompt: string): Promise<string> => {
+/** Engines that come AFTER Gemini in the frozen chain (used when Gemini fails). */
+const NIM_PROVIDERS_AFTER_GEMINI = (() => {
+  const chain = [...REASONING_CHAIN];
+  const geminiAt = chain.indexOf('gemini');
+  // Chain order, wrapped: the engines after Gemini, then the ones before it.
+  const ordered = [...chain.slice(geminiAt + 1), ...chain.slice(0, geminiAt)]
+    .filter((id) => id !== 'gemini');
+  return ordered.map((id) => ({
+    name: AI_PROVIDER_LABELS[id as keyof typeof AI_PROVIDER_LABELS] ?? id,
+    url: `${NVIDIA_BASE_URL}/chat/completions`,
+    key: () => AI_SECRETS.NVIDIA_API_KEY,
+    models: [NVIDIA_MODELS[id]],
+  }));
+})();
+
+/**
+ * Call one NVIDIA NIM engine. Returns the raw text, or throws.
+ */
+const callNimProvider = async (
+  provider: { url: string; key: () => string },
+  model: string,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<string> => {
+  const apiKey = (provider.key() || '').trim();
+  if (!apiKey) throw new Error(`NVIDIA_API_KEY is not configured for ${model}.`);
+  const resp = await axios.post(
+    provider.url,
+    {
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 8192,
+    },
+    {
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      timeout: 90000,
+    },
+  );
+  const msg = resp.data?.choices?.[0]?.message || {};
+  return msg.content || msg.reasoning_content || '';
+};
+
+/**
+ * Final safety net shared by every content action: ask the NVIDIA NIM engines
+ * (in the frozen reasoning order) for the same envelope the Gemini engine would
+ * have produced. `providers` selects the sub-chain (all NIM engines by default).
+ */
+const callLastResortLLM = async (
+  systemPrompt: string,
+  userPrompt: string,
+  providers: { name: string; url: string; key: () => string; models: string[] }[] = NIM_PROVIDERS,
+): Promise<string> => {
   let lastErr: any = null;
-  for (const provider of LAST_RESORT_PROVIDERS) {
-    const apiKey = (provider.key() || "").trim();
-    if (!apiKey) continue;
+  for (const provider of providers) {
     for (const model of provider.models) {
       try {
-        console.warn(`[AI Routing] Last-resort attempt via ${provider.name} (${model})...`);
-        const resp = await axios.post(
-          provider.url,
-          {
-            model,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt }
-            ],
-            temperature: 0.7,
-            max_tokens: 8192
-          },
-          {
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-            timeout: 90000
-          }
-        );
-        const msg = resp.data?.choices?.[0]?.message || {};
-        const text = msg.content || msg.reasoning_content || "";
+        console.warn(`[AI Routing] NIM attempt via ${provider.name} (${model})...`);
+        const text = await callNimProvider(provider, model, systemPrompt, userPrompt);
         if (text && String(text).trim()) {
-          console.warn(`[AI Routing] Last-resort ${provider.name} succeeded.`);
+          console.warn(`[AI Routing] ${provider.name} answered.`);
           return text;
         }
+        lastErr = new Error(`${provider.name} returned an empty response.`);
       } catch (e: any) {
         lastErr = e;
-        console.warn(`[AI Routing] Last-resort ${provider.name}/${model} failed:`, e?.response?.data?.error?.message || e?.message);
+        console.warn(`[AI Routing] ${provider.name}/${model} failed:`, e?.response?.data?.error?.message || e?.message);
       }
     }
   }
   throw lastErr || new Error("All fallback AI providers failed");
 };
+
+/**
+ * Gemini failed: continue down the frozen chain with the NIM engines that
+ * follow it (Nemotron 3.5 Lightning, then the engines before Gemini).
+ */
+const rescueAfterGemini = async (systemPrompt: string, userPrompt: string): Promise<string> =>
+  await callLastResortLLM(systemPrompt, userPrompt, NIM_PROVIDERS_AFTER_GEMINI);
 
 // Returns true when the backend request failed in a way the on-device engine
 // can recover from (standalone APK / offline / provider outage / bad server
@@ -838,10 +869,21 @@ const withLastResort = async (
   try {
     return await executeWithContinuation(action, input, onProgress);
   } catch (error: any) {
-    console.warn(`[AI Routing] '${action}' failed on Gemini (${error?.message || error}) — trying alternative engines.`);
+    console.warn(`[AI Routing] '${action}' failed on Gemini (${error?.message || error}) — continuing down the reasoning chain.`);
     try {
       const { system, user } = buildPrompts();
-      const rescued = await callLastResortJson(system, user);
+      // Gemini is TERTIARY, so its fallbacks are the engines after it in the
+      // frozen chain first, then everything else as a last resort.
+      let rescued: any;
+      try {
+        const text = await rescueAfterGemini(system, user);
+        const parsed = safeJsonParse(text);
+        rescued = parsed && Object.keys(parsed).length > 0
+          ? parsed
+          : { content: text, imagePrompt: 'Educational classroom scene' };
+      } catch {
+        rescued = await callLastResortJson(system, user);
+      }
       if (onProgress) onProgress(rescued);
       return rescued;
     } catch (rescueError: any) {
@@ -864,6 +906,56 @@ export const generateVisualAid = async (input: any, onProgress?: (partial: any) 
 export const generateAdminDoc = async (input: any, onProgress?: (partial: any) => void) =>
   withLastResort("generate-admin", input, onProgress, () => buildAdminLabPrompts(input));
 
+/**
+ * NVIDIA NIM vision engine for the OCR pipeline.
+ *
+ * The scan chain is fixed in the registry (`VISION_PROVIDER_CHAIN`): Nemotron
+ * 3.5 Super VL 120B → Gemini multimodal → Llama 3.2 90B Vision → OCR.space.
+ * `unifiedAiService` walks it; this helper serves a single NVIDIA vision hop
+ * for callers that already know which engine they want.
+ */
+export const runNvidiaVisionScan = async (
+  imageData: string | string[],
+  provider: string = VISION_PROVIDER_CHAIN[0],
+  language: string = 'English',
+  isHandwritten: boolean = true,
+) => {
+  const items = Array.isArray(imageData) ? imageData : [imageData];
+  const parts: any[] = [
+    {
+      type: 'text',
+      text: `Extract all text from the attached ${items.length} page/s or document accurately, assuming the text is in ${language}.\n${
+        isHandwritten
+          ? 'The image/document contains handwritten notes, assessments, or drawings. Use professional Multimodal Handwriting Recognition to transcribe printed text, cursive handwriting, math symbols, annotations, and notes precisely.'
+          : ''
+      }\nFormat it cleanly. Make no other comments.`,
+    },
+    ...items.map((url) => ({ type: 'image_url', image_url: { url } })),
+  ];
+
+  const apiKey = (AI_SECRETS.NVIDIA_API_KEY || '').trim();
+  if (!apiKey) throw new Error('NVIDIA_API_KEY is not configured for the vision engine.');
+
+  const resp = await axios.post(
+    `${NVIDIA_BASE_URL}/chat/completions`,
+    {
+      model: NVIDIA_MODELS[provider],
+      messages: [{ role: 'user', content: parts }],
+      max_tokens: 8192,
+      temperature: 0.2,
+    },
+    {
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      timeout: 90000,
+    },
+  );
+  const msg = resp.data?.choices?.[0]?.message || {};
+  return { extractedText: msg.content || msg.reasoning_content || '' };
+};
+
+/** The next vision engine after `provider` in the frozen OCR chain. */
+export const nextVisionProvider = (provider: string): string[] => visionFallbacksFor(provider);
+
 export const runOCRScan = async (imageData: string | string[], language: string = 'English', isHandwritten: boolean = true) => {
   if (isNativeApp()) {
     return await callGeminiClientDirect("ocr-scan", { imageData, language, isHandwritten });
@@ -878,8 +970,19 @@ export const runOCRScan = async (imageData: string | string[], language: string 
     if (isBackendUnavailable(error)) {
       return await callGeminiClientDirect("ocr-scan", { imageData, language, isHandwritten });
     }
+    // Gemini vision is one hop in the frozen vision chain — fall through to the
+    // NVIDIA NIM vision models instead of failing the scan.
     console.error("Express /api/gemini/action failed:", error.message || error);
     checkAndReportApiError(error, "Gemini");
+    for (const engine of nextVisionProvider('gemini')) {
+      if (engine === 'gemini' || engine === 'ocrspace') continue;
+      try {
+        console.warn(`[AI Routing] Gemini vision unavailable — trying ${engine}.`);
+        return await runNvidiaVisionScan(imageData, engine, language, isHandwritten);
+      } catch (visionErr: any) {
+        console.warn(`[AI Routing] Vision engine ${engine} failed:`, visionErr?.message || visionErr);
+      }
+    }
     throw error;
   }
 };

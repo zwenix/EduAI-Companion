@@ -168,7 +168,7 @@ Express API server (server.ts)        Firebase project
 
 - `webDir: "dist"`, `appId: com.eduaicompanion.app`, `androidScheme: "https"`.
 - Shortcuts for native behaviour are centralised in `src/lib/platform.ts` (`isNativeApp`, `isAndroidDevice`, `isWebViewRuntime`, `supportsSystemPrint`, `isLowMemoryDevice`).
-- **On native, AI calls bypass the backend**: `src/services/multiAiService.ts` calls Qwen/NVIDIA endpoints directly, and OCR falls back to OCR.space directly, because there is no Node server in the APK. Embedded fallback credentials are documented in §13.3.
+- **On native, AI calls bypass the backend**: `src/services/multiAiService.ts` calls the NVIDIA NIM endpoints directly, and OCR falls back to OCR.space directly, because there is no Node server in the APK. Embedded fallback credentials are documented in §13.3.
 - Android cannot print or download blobs from the WebView. Boot-time installers in `src/main.tsx` (`installNativeDownloadBridge`, `installImageRecovery`, `installExportSafetyNet`) route exports through the native filesystem + share sheet and repair stuck export overlays (see `docs/android-export-print.md`).
 
 #### 3.4.4 Installed PWA
@@ -292,7 +292,7 @@ Express API server (server.ts)        Firebase project
 
 | State | Mechanism |
 | :--- | :--- |
-| AI provider selections | `src/contexts/AiContext.tsx` — text (`gemini`, `alibaba-qwen`, `nvidia-nemotron-nano`, `nvidia-nemotron-ultra`, `nvidia-nemotron-lightning`), TTS, OCR and image provider. Persisted to `localStorage` with legacy-id migration. |
+| AI provider selections | `src/contexts/AiContext.tsx` — text (`nvidia-nemotron-ultra`, `nvidia-deepseek`, `gemini`, `nvidia-nemotron-lightning`, `nvidia-nemotron-nano`), TTS, OCR and image provider. Persisted to `localStorage` with legacy-id migration. |
 | Authentication/role | Firebase `onAuthStateChanged` in `App.tsx`; cached role in `localStorage` (`userRole_{uid}`) with Firestore as source of truth. |
 | Offline data | `src/lib/offlineDB.ts` (IndexedDB via `idb`): generic `cache` store and a `studyNotes` store with a date index; `localStorage` mirrors for dashboards and settings. |
 | Domain data | Firestore real-time listeners per feature; Firestore persistent local cache is enabled with `persistentMultipleTabManager`. |
@@ -332,7 +332,7 @@ There is no authentication middleware, rate limiting, CSRF layer or CORS configu
 | Method | Path | Purpose | Key inputs |
 | :--- | :--- | :--- | :--- |
 | GET | `/api/health` | Liveness probe. | — |
-| POST | `/api/ai/:provider` | Unified OpenAI-compatible text generation proxy. Provider ids: `gemini`, `alibaba-qwen`, `nvidia-nemotron-nano`, `nvidia-nemotron-ultra`, `nvidia-nemotron-lightning`. Supports streaming. | `messages`, `model?`, `temperature?`, `max_tokens?`, `stream?` |
+| POST | `/api/ai/:provider` | Unified OpenAI-compatible text generation proxy. Provider ids: `nvidia-nemotron-ultra`, `nvidia-deepseek`, `gemini`, `nvidia-nemotron-lightning`, `nvidia-nemotron-nano`. Supports streaming. | `messages`, `model?`, `temperature?`, `max_tokens?`, `stream?` |
 | POST | `/api/ocr` | OCR.space proxy. | `image` (base64), `language?` |
 | POST | `/api/tts/google` | Google Translate TTS URL builder (returns proxied URLs). | `text`, `lang` |
 | GET | `/api/tts/proxy` | Streams Google TTS audio to bypass CORS/referrer restrictions. | `url` |
@@ -344,7 +344,7 @@ There is no authentication middleware, rate limiting, CSRF layer or CORS configu
 | GET | `/api/images/status` | Diagnostics: configured engines/keys and live reachability of every upstream host (including the `fetch failed` cause code). | — |
 | POST | `/api/video/generate` | Starts an OmniHuman-1 or Replicate video job. | `prompt`, `model` |
 | GET | `/api/video/status/:id` | Polls job status (in-memory for OmniHuman; Replicate prediction otherwise). | — |
-| POST | `/api/sa/generate-package` | Full SA compliance package: CAPS pre-flight, prompt build, text generation (Qwen → Gemini), images, assemblers. | `request` (grade, subject, term, contentType…), `provider?`, `generateImages?` |
+| POST | `/api/sa/generate-package` | Full SA compliance package: CAPS pre-flight, prompt build, text generation (reasoning chain: Ultra → DeepSeek → Gemini → Lightning), images, assemblers. | `request` (grade, subject, term, contentType…), `provider?`, `generateImages?` |
 | POST | `/api/reports/ildp` | Individual Learner Development Plan as JSON; local deterministic fallback when Gemini is unconfigured. | `studentName`, `grade`, `subjects` |
 | POST | `/api/gemini/action` | Gemini action endpoint (`gemini-3.8-flash`) with streaming support and the shared fallback chain. | `action`, `input`, `stream?` |
 | GET | `/api/notifications/vapid-public-key` | Reports whether Web Push is configured. Returns `{ enabled: false }` when VAPID keys are absent. | — |
@@ -379,24 +379,28 @@ Per `AGENTS.md` §1, only the following models are permitted for text generation
 
 | Provider id | Model | Endpoint |
 | :--- | :--- | :--- |
-| `gemini` | `gemini-3.8-flash` (primary), with the frozen fallback chain below | Google Gemini API |
-| `alibaba-qwen` | `qwen3.8-max` | Alibaba Cloud Model Studio, OpenAI-compatible workspace endpoint (`ALIBABA_API_KEY`) |
-| `nvidia-nemotron-nano` | `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` | NVIDIA NIM `https://integrate.api.nvidia.com/v1` (`NVIDIA_API_KEY`) |
-| `nvidia-nemotron-ultra` | `nvidia/nemotron-ultra-550b-a55b` | NVIDIA NIM |
-| `nvidia-nemotron-lightning` | `nvidia/nemotron-3.5-lightning-30b-a3b` | NVIDIA NIM |
+| `nvidia-nemotron-ultra` | `nvidia/nemotron-ultra-550b-a55b` — **PRIMARY** reasoning engine | NVIDIA NIM `https://integrate.api.nvidia.com/v1` (`NVIDIA_API_KEY`) |
+| `nvidia-deepseek` | `nvidia/deepseek-v4.1-flash` — **SECONDARY** | NVIDIA NIM |
+| `gemini` | `gemini-3.8-flash` — **TERTIARY**, with the frozen fallback chain below | Google Gemini API |
+| `nvidia-nemotron-lightning` | `nvidia/nemotron-3.5-lightning-30b-a3b` — **last** in the chain | NVIDIA NIM |
+| `nvidia-nemotron-nano` | `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` | NVIDIA NIM |
+
+**Reasoning fallback chain (in priority order):** `nvidia-nemotron-ultra` → `nvidia-deepseek` → `gemini` → `nvidia-nemotron-lightning`. Any request that starts on a member walks the members after it, then wraps to the ones before it, so *every* provider fault (quota, 401/402/403/404, 5xx, timeout, DNS) lands on the next healthy engine. `REASONING_CHAIN` / `reasoningFallbacksFor()` in `src/lib/aiModels.ts` are the only source of this order.
+
+**Vision / OCR chain (separate pipeline, in priority order):** `nvidia/nemotron-3.5-super-vl-120b-a12b` (`nvidia-nemotron-vl`) → Gemini multimodal → `meta/llama-3.2-90b-vision-instruct` (`nvidia-llama-vision`) → OCR.space. Frozen in `VISION_PROVIDER_CHAIN` / `visionFallbacksFor()`.
 
 **Gemini fallback chain (in order):** `gemini-3.8-flash` → `gemini-3.7-flash` → `gemini-3.6-flash` → `gemini-3.5-flash` → `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite` → `gemini-2.5-flash`.
 
 Additional routing rules:
 
-- All Nemotron traffic must use NVIDIA NIM; Groq, OpenRouter and other aggregators are banned as providers.
-- Llama-family models are removed from the application.
-- Legacy ids (`groq-qwen`, `nvidia-nemotron`, `nvidia-nemotron-ultra-legacy`) resolve to `alibaba-qwen` so stale saved settings keep working; they are never resurrected as models.
+- All Nemotron, DeepSeek and vision traffic must use NVIDIA NIM; Groq, OpenRouter, Alibaba Model Studio and other aggregators are banned as text providers.
+- **Alibaba Cloud Model Studio / Qwen is removed** (24 Nov 2026): no Qwen text client, no `ALIBABA_API_KEY` / `DASHSCOPE_*` credential. `nvidia/deepseek-v4.1-flash` holds that slot. Llama-family models are not used for text; the single exception is the vision engine `meta/llama-3.2-90b-vision-instruct`.
+- Legacy ids (`alibaba-qwen`, `groq-qwen`, `qwen`, `qwen-image`, `nvidia-nemotron`, `nvidia-nemotron-ultra-legacy`) resolve to `nvidia-deepseek` so stale saved settings keep working; they are never resurrected as models.
 - A verified working model is cached to cut fallback latency; if the whole chain fails, the cache is invalidated for a 60-second window and requests restart from the top with gentle backoff (503/429 storms).
-- Alternative providers are selectable in the UI, but **any** provider failure is classified and seamlessly routed to Gemini (`src/services/unifiedAiService.ts`).
+- Alternative providers are selectable in the UI, but **any** provider failure is classified and seamlessly routed down the frozen reasoning chain (`src/services/unifiedAiService.ts`): the selected engine, then `reasoningFallbacksFor()`. Gemini is the tertiary engine, not a terminal one.
 - **Client-side chain (`src/services/geminiService.ts`)** — every content action runs backend → on-device Gemini engine → alternative engines, and only surfaces an error when all three are exhausted:
   1. `POST /api/gemini/action` (streaming for the Content Studio).
-  2. On any backend failure — HTTP ≥ 400 (5xx outages, 401/402/403/429 on the shared server keys, 404) and network errors alike — the request is retried on the **on-device Gemini engine** (`src/services/geminiClient.ts`, same baked key, same frozen chain) and, if that fails, the **alternative engines** (Qwen 3.8 Max → Nemotron 3.5 Lightning → Nemotron 3 Nano, endpoints/slugs from `src/lib/aiModels.ts`).
+  2. On any backend failure — HTTP ≥ 400 (5xx outages, 401/402/403/429 on the shared server keys, 404) and network errors alike — the request is retried on the **on-device Gemini engine** (`src/services/geminiClient.ts`, same baked key, same frozen chain) and, if that fails, the **NVIDIA NIM engines in the order that follows Gemini** (Nemotron 3.5 Lightning → Nemotron 3 Ultra → DeepSeek V4.1 Flash, endpoints/slugs from `src/lib/aiModels.ts`).
   3. Every generation failure is surfaced in the Content Studio as a toast plus a "Generation failed" phase label; the "API blocked / unreachable" alert is raised only when nothing is left to try.
   *Regression note (fixed 13 Oct 2026):* the streaming reader threw a bare `Error('HTTP error! status: …')`, which carried no `status`; `isBackendUnavailable()` therefore classified it as terminal and every generation died silently on an HTTP (rather than network-level) failure. `tests/generation-fallback.test.ts` now pins the chain.
 - Non-text pipelines (image, OCR, TTS, video) are explicitly excluded from the frozen model list and have their own provider graphs.
@@ -438,10 +442,17 @@ Content is generated as **HTML styled with Tailwind classes**, not Markdown. Tru
 
 - **Priority**: FLUX.1-schnell (free: Hugging Face `black-forest-labs/FLUX.1-schnell` → Cloudflare Workers AI `@cf/black-forest-labs/flux-1-schnell`) → Gemini image models / Imagen → Pollinations (keyless last resort, ~1 image / 45 s per IP) → inline SVG placeholder (never a broken `<img>`) (`gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image`, `imagen-3.0-generate-002`).
 - Placement-aware sizes (`header`, `inline`, `full_width`, `sidebar`) are defined in `FLUX_CONFIG`; batch generation runs with concurrency 2 and a 2-second pause between batches.
+- **Framing rule (24 Nov 2026):** only `null.perchance.org` may be framed. `perchance.org` answers its own `perchance-ai-api` page with `X-Frame-Options: SAMEORIGIN`, so any frame on the apex is refused before it loads (`NS_ERROR_XFO_VIOLATION`) and the engine can never answer. `PERCHANCE_WARMUP_URL === PERCHANCE_EMBED_API_URL`, the generation frame is hard-wired to the embed host, and `FRAME_LOAD_DEADLINE_MS` (8 s) converts a silent refusal into a fast explicit error instead of a 60 s stall per illustration.
 - **Reinstated 28 Oct 2026**: Perchance, via its purpose-built **Image API v1** (`perchance.org/perchance-ai-api` — hidden iframe + postMessage, no keys, no CORS, unlimited). The old generator-page bridge stays dead (`ai-text-to-image-generator` sends `X-Frame-Options: SAMEORIGIN`); only the API endpoint may be framed, and nothing server-side may fetch perchance.org. Browser-only engine in `src/services/perchanceClient.ts`.
 - **Retired 22 Oct 2026**: Qwen-Image on NVIDIA NIM (`qwen/qwen-image` and `qwen/qwen-image-2512` both 404). Its id remains an alias that resolves to FLUX.
 - `enhancePromptForSA()` injects rainbow-nation diversity, SA landmarks/flora, flag accents and a 300 DPI, no-text, no-watermark requirement.
-- `/api/image-proxy` exists so `<img>` tags can render provider URLs that would otherwise be blocked client-side.
+- `/api/image-proxy` exists so `<img>` tags can render provider URLs that would otherwise be blocked client-side. It renders with **Pollinations**, so it is a *rendering* helper only — never the chain for a generated document (see below).
+- **Document illustrations (`src/lib/documentImageEngine.ts`, 24 Nov 2026).** Generated CAPS documents emit their `[Illustration: …]` placeholders as `<img>` tags long before, and far away from, any React component that could generate art. `replaceImagePlaceholders()` used to point every one of those tags at `/api/image-proxy` — i.e. straight at Pollinations — so the browser-only Perchance engine was never reached and could never win, whatever Settings said. The document path now resolves through `resolveDocumentIllustration()`:
+  1. the **selected engine first** (`DEFAULT_IMAGE_PROVIDER` = Perchance) inside the browser,
+  2. then the frozen fallback graph (FLUX → Imagen → Pollinations),
+  3. and finally a seeded, always-renderable URL.
+  `src` is the seeded URL so the picture paints instantly; the async pass upgrades it to the primary engine's result, records per-engine telemetry (`documentImageTelemetry()`), and the recovery net + PDF export (`settlePendingIllustrations()`) use the same chain. `src/main.tsx` warms the engine at boot.
+- **Perchance circuit breaker**: 4 consecutive failures → benched for 3 minutes (`PERCHANCE_BENCH_AFTER_FAILURES` / `PERCHANCE_BENCH_MS`), always clearable via `resetPerchanceBench()` (Settings → "Try again"). It reports its state through `perchanceFailureInfo()` so a fallback is never silent.
 
 ### 7.5 OCR and autograding
 
@@ -642,7 +653,6 @@ South African English, ZAR currency, DD/MM/YYYY dates, local names/context. Foun
 | Variable | Required | Used by | Notes |
 | :--- | :---: | :--- | :--- |
 | `GEMINI_API_KEY` (aliases `GOOGLE_AI_API_KEY`, `GOOGLE_GENAI_API_KEY`, `VITE_GEMINI_API_KEY`) | ✅ | Server + client | Primary text/vision/image engine. |
-| `ALIBABA_API_KEY`, `ALIBABA_API_BASE` (aliases `DASHSCOPE_*`) | optional | Server + native | Qwen 3.8 Max via Model Studio. |
 | `NVIDIA_API_KEY` (alias `NVIDIA_API_TOKEN`) | optional | Server + native | Nemotron text models. |
 | `OCR_SPACE_API_KEY` | optional | Server/native | Secondary OCR. |
 | `HUGGINGFACE_API_KEY` / `HF_TOKEN` (alias `HUGGINGFACE_IMAGE_MODEL`) | optional | Server + native | HF TTS/inference **and FLUX.1-schnell images** (primary image engine; keyless Pollinations is the fallback). |
@@ -728,14 +738,14 @@ no credentials, no emulator.
 
 | Suite | Locks down |
 | :--- | :--- |
-| `ai-models.test.ts` | The FROZEN provider list and model slugs: Gemini primary/fallback chain order, `qwen3.8-max`, the three NVIDIA NIM Nemotron slugs, the NVIDIA-only endpoint rule, legacy-id aliasing, and the sibling-engine fallback graph. It also **parses `AGENTS.md` §1** and asserts the document and the registry agree value for value, so neither can drift. |
-| `ai-routing.test.ts` | Provider fallback behaviour in `unifiedAiService`: alternative engine → Gemini re-route, Gemini quota → Qwen drop-through, non-quota errors surfacing instead of being masked, image-aware tutor refusal to fall back, OCR.space ↔ Gemini vision fallback. |
+| `ai-models.test.ts` | The FROZEN provider list and model slugs: the reasoning chain order (Ultra → DeepSeek → Gemini → Lightning), the Gemini model chain, the NVIDIA NIM Nemotron, DeepSeek and vision slugs, the reasoning priority chain, the vision/OCR chain, the NVIDIA-only endpoint rule and legacy-id aliasing. It also **parses `AGENTS.md` §1** and asserts the document and the registry agree value for value, so neither can drift. |
+| `ai-routing.test.ts` | Provider fallback behaviour in `unifiedAiService`: the selected engine first, then the frozen chain (Ultra → DeepSeek → Gemini → Lightning), Gemini quota → Lightning drop-through, non-quota errors also cascading, image turns routed to the multimodal engine, and the vision chain (Nemotron VL → Gemini → Llama vision → OCR.space). |
 | `content-template.test.ts` | The ONCE / GRADIENT / FOOTER contract on arbitrary (messy) model output, idempotent wrapping, CAPS-code derivation per phase. |
 | `sa-frameworks.test.ts` | Phase detection, NPA SBA/exam weights per phase, the 7-point rating scale, Bloom's distributions summing to 100%, subject/phase validation, the SIAS levels, and the full `validateCAPSCompliance` checklist. |
 | `foundation-templates.test.ts` | The documented 28 templates split 6/10/6/6, unique ids, authored (non-placeholder) content, grade scoping, filtering, and error-free rendering of every template (including bilingual mode). |
 | `firestore-rules.test.ts` | Deny-by-default posture, per-collection auth guards, no unauthenticated allowance anywhere, the critical invariants (uid pinning, role-escalation block, senderId ownership, tutor-session privacy) and identifier/string size caps. |
 | `rate-limit.test.ts` | Limiter window/limit maths, per-key and per-rule isolation, retry hints, key eviction, endpoint-class budgets, client-key derivation, plus a wiring guard on the middleware in `server.ts`. |
-| `generation-fallback.test.ts` | The content-generation fallback chain in `geminiService`: a 5xx (or 401/402/403/404/429) from `/api/gemini/action` is recoverable rather than terminal, the on-device Gemini engine is tried next, the alternative engines (Qwen 3.8 Max → Nemotron) rescue the generation when both Gemini paths fail, mid-stream aborts recover, a healthy streamed response still parses, and an error is thrown only after every engine has been tried. |
+| `generation-fallback.test.ts` | The content-generation fallback chain in `geminiService`: a 5xx (or 401/402/403/404/429) from `/api/gemini/action` is recoverable rather than terminal, the on-device Gemini engine is tried next, the NVIDIA NIM engines that follow Gemini (Lightning → Ultra → DeepSeek) rescue the generation when both Gemini paths fail, mid-stream aborts recover, a healthy streamed response still parses, and an error is thrown only after every engine has been tried. |
 
 ### 12.3 CI (GitHub Actions)
 
