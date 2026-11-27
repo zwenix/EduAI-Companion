@@ -15,6 +15,7 @@ import {
   PERCHANCE_EMBED_API_URL,
   PERCHANCE_NEGATIVE_PROMPT,
   PERCHANCE_WARMUP_URL,
+  FRAME_LOAD_DEADLINE_MS,
   buildPerchanceRequestUrl,
   generatePerchanceImageClient,
   isPerchanceBenching,
@@ -45,6 +46,9 @@ const installFakeBrowser = (reply: (src: URL, post: (data: any, origin?: string)
         // fire `onload`, which is what "Cloudflare passed the browser" looks
         // like from the app's side.
         if (src.includes('perchance-ai-api') && url.searchParams.get('id')) {
+          // A real frame fires `load` as the page loads; do the same so the
+          // X-Frame-Options refusal guard clears for a *frameable* host.
+          setTimeout(() => frame.onload?.(), 0);
           setTimeout(() => reply(url, post), 0);
         } else if (frame.onload) {
           setTimeout(() => frame.onload(), 0);
@@ -119,7 +123,8 @@ describe('generatePerchanceImageClient', () => {
     expect(url).toBe('https://user.uploads.dev/abc.jpeg');
     // First frame is the documented warm-up; the second is the API call.
     expect(String(env.frames[0].src)).toBe(PERCHANCE_WARMUP_URL);
-    expect(requested!.origin + requested!.pathname).toBe(PERCHANCE_API_URL);
+    // The EMBED host is framed — the apex sends X-Frame-Options: SAMEORIGIN.
+    expect(requested!.origin + requested!.pathname).toBe(PERCHANCE_EMBED_API_URL);
     expect(requested!.searchParams.get('prompt')).toBe('a lion');
     expect(requested!.searchParams.get('format')).toBe('json');
     expect(requested!.searchParams.get('resolution')).toBe('768x512');
@@ -153,8 +158,53 @@ describe('generatePerchanceImageClient', () => {
   });
 
   it('times out so the provider chain can move on', async () => {
-    installFakeBrowser(() => { /* never answers */ });
+    installFakeBrowser((src, _post) => {
+      // The frame LOADS (so it was not refused) but the plugin never answers.
+      void src;
+    });
     await expect(generatePerchanceImageClient('a cat', 1024, 1024, 1, 60)).rejects.toThrow(/timed out/);
+  });
+
+  it('fails fast when the frame is REFUSED, instead of stalling for the full timeout', async () => {
+    // Production evidence 24 Nov 2026: perchance.org answers the API page with
+    // `X-Frame-Options: SAMEORIGIN`, so the browser refuses the frame, no
+    // script runs and no postMessage ever arrives. Without a refusal guard each
+    // illustration waited the full 60s before falling through.
+    //
+    // The fake browser fires `load` for every API frame, so build one here that
+    // behaves like a refused frame: it is appended and then stays silent.
+    const handlers: Handler[] = [];
+    const silentFrames: any[] = [];
+    const silentDocument = {
+      body: {
+        appendChild: (frame: any) => silentFrames.push(frame), // never loads
+      },
+      createElement: () => ({
+        style: {} as any,
+        attrs: {} as Record<string, string>,
+        setAttribute(k: string, v: string) { this.attrs[k] = v; },
+        remove: vi.fn(),
+      }),
+    };
+    const silentWindow = {
+      addEventListener: (_: string, h: Handler) => handlers.push(h),
+      removeEventListener: (_: string, h: Handler) => {
+        const i = handlers.indexOf(h);
+        if (i >= 0) handlers.splice(i, 1);
+      },
+    };
+    vi.stubGlobal('document', silentDocument);
+    vi.stubGlobal('window', silentWindow);
+
+    // The refusal guard is `min(FRAME_LOAD_DEADLINE_MS, timeoutMs)`, so a short
+    // generation timeout exercises exactly the same path a 60s one would.
+    const startedAt = Date.now();
+    await expect(
+      generatePerchanceImageClient('a refused giraffe', 512, 512, 1, 900),
+    ).rejects.toThrow(/X-Frame-Options|refused/i);
+    // Warm-up cap (2.5s) + the 900ms frame deadline, nowhere near 60s.
+    expect(Date.now() - startedAt).toBeLessThan(5_000);
+    expect(silentFrames.length).toBeGreaterThan(0);
   });
 
   it('caches permanent URLs — the same prompt never generates twice', async () => {
@@ -169,18 +219,26 @@ describe('generatePerchanceImageClient', () => {
     expect(generated).toBe(1);
   });
 
-  it('switches to the embed mirror after the primary endpoint fails', async () => {
+  it('only ever frames the embed host — never the apex that forbids framing', async () => {
+    // `perchance.org` sends X-Frame-Options: SAMEORIGIN on its own API page.
+    // Framing it produces NS_ERROR_XFO_VIOLATION and an engine that can never
+    // answer. Every frame, warm-up included, must use the embed host.
     const seen: string[] = [];
-    installFakeBrowser((src) => {
+    installFakeBrowser((src, post) => {
       seen.push(String(src));
-      // Never answers — the timeout drives the failover.
+      post({ api: PERCHANCE_API_MARKER, result: { id: src.searchParams.get('id'), ok: true, url: 'https://user.uploads.dev/ok.jpeg' } });
     });
-    await expect(generatePerchanceImageClient('one', 512, 512, 1, 40)).rejects.toThrow(/timed out/);
-    await expect(generatePerchanceImageClient('two', 512, 512, 2, 40)).rejects.toThrow(/timed out/);
 
-    const apiCalls = seen.filter((s) => s.includes('perchance-ai-api'));
-    expect(apiCalls[0].startsWith(PERCHANCE_API_URL)).toBe(true);
-    expect(apiCalls[1].startsWith(PERCHANCE_EMBED_API_URL)).toBe(true);
+    await generatePerchanceImageClient('one', 512, 512, 1, 5000);
+    await generatePerchanceImageClient('two', 512, 512, 2, 5000);
+
+    expect(seen.length).toBeGreaterThan(0);
+    for (const framed of seen) {
+      expect(framed.startsWith(PERCHANCE_EMBED_API_URL.split('?')[0])).toBe(true);
+      // The apex host itself must never appear as a framed URL.
+      expect(framed.startsWith('https://perchance.org/')).toBe(false);
+    }
+    expect(PERCHANCE_WARMUP_URL).toBe(PERCHANCE_EMBED_API_URL);
   });
 
   it('stays healthy through a single bad document instead of benching the primary engine', async () => {
@@ -231,7 +289,9 @@ describe('generatePerchanceImageClient', () => {
     // The browser logged "The loading of https://perchance.org/welcome in a
     // frame is denied by X-Frame-Options directive set to sameorigin" and the
     // warm-up was pure noise. Only the API page may ever be framed.
-    expect(PERCHANCE_WARMUP_URL).toBe(PERCHANCE_API_URL);
+    // Only null.perchance.org permits being framed; the apex refuses.
+    expect(PERCHANCE_WARMUP_URL).toBe(PERCHANCE_EMBED_API_URL);
+    expect(PERCHANCE_WARMUP_URL).toContain('null.perchance.org');
     expect(PERCHANCE_WARMUP_URL).toContain('perchance-ai-api');
     expect(PERCHANCE_WARMUP_URL).not.toBe('https://perchance.org/');
   });

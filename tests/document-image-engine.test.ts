@@ -231,3 +231,40 @@ describe('seed URL contract', () => {
     expect(url).toContain('seed=5');
   });
 });
+
+describe('the UI explains a Perchance problem in plain language', () => {
+  it('names an X-Frame-Options refusal as a Perchance-side restriction', async () => {
+    const { describePerchanceProblem } = await import('../src/lib/documentImageEngine');
+    const text = describePerchanceProblem({
+      state: 'retrying',
+      consecutiveFailures: 1,
+      benchUntil: 0,
+      lastError: 'Perchance frame was refused (X-Frame-Options) — the embed host could not be loaded',
+      lastFailureAt: Date.now(),
+    });
+    expect(text).toMatch(/refused to load inside the app/i);
+    expect(text).toMatch(/not a settings problem/i);
+  });
+
+  it('offers the retry for a benched engine and stays quiet when healthy', async () => {
+    const { describePerchanceProblem } = await import('../src/lib/documentImageEngine');
+    expect(
+      describePerchanceProblem({
+        state: 'benched',
+        consecutiveFailures: 4,
+        benchUntil: Date.now() + 60_000,
+        lastError: 'Perchance is temporarily benched',
+        lastFailureAt: Date.now(),
+      }),
+    ).toMatch(/Try again/i);
+    expect(
+      describePerchanceProblem({
+        state: 'idle',
+        consecutiveFailures: 0,
+        benchUntil: 0,
+        lastError: null,
+        lastFailureAt: null,
+      }),
+    ).toBeNull();
+  });
+});

@@ -39,24 +39,36 @@
  * through to the next provider in the chain (FLUX → Gemini → Pollinations).
  */
 
-/** The documented API endpoint. This exact URL is what the product uses. */
+/**
+ * The documented API page on the APEX host.
+ *
+ * READ THIS BEFORE CHANGING ANY URL HERE (production evidence, 24 Nov 2026):
+ *
+ *   perchance.org sends **`X-Frame-Options: SAMEORIGIN`** on its own API page.
+ *   The browser refuses the frame outright:
+ *     "…in a frame is denied by X-Frame-Options directive set to sameorigin".
+ *
+ *   So a frame pointed at the apex can NEVER answer — not the generation frame,
+ *   not the warm-up frame. PR #63 found this, PR #68 removed the engine because
+ *   of it, and PR #70 (this client) reintroduced the apex and hit it again.
+ *
+ * `null.perchance.org` is Perchance's designated embed host and the only host
+ * that permits being framed by another site. Every frame must use
+ * {@link PERCHANCE_EMBED_API_URL}; this constant exists only to record the
+ * documented endpoint (docs, tests, status text) and must never be framed.
+ */
 export const PERCHANCE_API_URL = 'https://perchance.org/perchance-ai-api';
-/** Framing mirror documented by Perchance's embed-generator FAQ. */
+/** The ONLY embeddable host (Perchance's designated embed mirror). Frame this. */
 export const PERCHANCE_EMBED_API_URL = 'https://null.perchance.org/perchance-ai-api';
 /**
  * Warm-up target.
  *
- * This MUST be a page that actually allows framing. The obvious choice — the
- * site homepage — is answered with `X-Frame-Options: sameorigin` (confirmed in
- * the console of the Vercel deploy: the browser refused to load the welcome
- * page in a frame), so it never loaded, never fired `onload`, and only
- * produced a console error.
- *
- * The API page itself is the frame we actually need, so warm THAT: it lets
- * Cloudflare clear the browser for the exact origin that will generate the
- * image, and a successful load then also proves the API is frameable.
+ * The warm-up has exactly one job: let Cloudflare clear the browser for the
+ * origin that will actually generate the image. That origin is the EMBED host,
+ * because the apex refuses framing (see {@link PERCHANCE_API_URL}). Warming the
+ * apex was the bug that produced a page full of `NS_ERROR_XFO_VIOLATION`.
  */
-export const PERCHANCE_WARMUP_URL = 'https://perchance.org/perchance-ai-api';
+export const PERCHANCE_WARMUP_URL = PERCHANCE_EMBED_API_URL;
 /** `event.data.api` marker from the official postMessage contract. */
 export const PERCHANCE_API_MARKER = 'perchance-image-api';
 
@@ -232,11 +244,19 @@ export const PERCHANCE_WARMUP_TIMEOUT_MS = 6_000;
 const WARMUP_WAIT_CAP_MS = 2_500;
 
 /**
+ * How long a generation frame may take to fire `load` before we conclude it was
+ * refused by `X-Frame-Options`. A frameable page loads well inside this window;
+ * a refused frame never fires the event at all.
+ */
+export const FRAME_LOAD_DEADLINE_MS = 8_000;
+
+/**
  * Warms the API page in a hidden frame.
  *
  * Two rules learned in production (24 Nov 2026):
- *   1. Never frame `perchance.org/` — it answers `X-Frame-Options: sameorigin`,
- *      so the frame is denied and the warm-up is pure console noise.
+ *   1. Never frame the apex `perchance.org` — it answers
+ *      `X-Frame-Options: sameorigin`, so the frame is denied and the warm-up is
+ *      pure console noise. Warm the EMBED host instead.
  *   2. A warm-up is an OPTIMISATION, never a gate. Generation is always
  *      allowed to proceed; `generateOnce()` only waits for this with a short
  *      cap so a slow CDN cannot stall a document's illustration batch.
@@ -284,14 +304,10 @@ export const warmUpPerchance = (timeoutMs = PERCHANCE_WARMUP_TIMEOUT_MS): Promis
 
     timers.push(setTimeout(() => finish(false), timeoutMs));
 
-    // Warm the primary host first; the mirror exists for framed embeds, so try
-    // it too when the primary cannot load (blocked iframe, DNS, offline).
-    load(PERCHANCE_API_URL);
-    timers.push(
-      setTimeout(() => {
-        if (!settled) load(PERCHANCE_EMBED_API_URL);
-      }, Math.max(1_000, Math.floor(timeoutMs / 2))),
-    );
+    // ONLY the embed host may be framed. Never add the apex here: it answers
+    // `X-Frame-Options: SAMEORIGIN`, so the frame is denied before it loads and
+    // all it produces is a console error.
+    load(PERCHANCE_WARMUP_URL);
   });
   return warmUpPromise;
 };
@@ -323,10 +339,12 @@ const generateOnce = async (
   const run = (async (): Promise<string> => {
     await acquireSlot();
     const requestId = `eduai-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-    const apiBase = useEmbedMirror ? PERCHANCE_EMBED_API_URL : PERCHANCE_API_URL;
+    // The embed host is the ONLY frameable host. `useEmbedMirror` is retained
+    // purely as a diagnostic flag (it tells the UI/tests the mirror answered).
+    const apiBase = PERCHANCE_EMBED_API_URL;
 
     console.log(
-      `[Perchance AI] Generating via ${useEmbedMirror ? 'embed mirror' : 'Image API v1'} | ${requestId} | res ${resolution} | "${request.prompt.slice(0, 60)}..."`
+      `[Perchance AI] Generating via embed mirror (${apiBase}) | ${requestId} | res ${resolution} | "${request.prompt.slice(0, 60)}..."`
     );
 
     try {
@@ -344,6 +362,7 @@ const generateOnce = async (
           if (settled) return;
           settled = true;
           clearTimeout(timeoutId);
+          clearTimeout(frameLoadDeadline);
           window.removeEventListener('message', onMessage);
           frame.remove();
           if (error) reject(error);
@@ -367,11 +386,34 @@ const generateOnce = async (
           else finish(new Error(result.error || 'Perchance generation failed'));
         };
 
+        // A frame refused by `X-Frame-Options` never fires `load`, never runs
+        // its scripts and therefore never posts a message: without this it
+        // would sit here until `timeoutMs` (60s) and look like a slow model
+        // instead of a blocked transport. Browsers give the parent no way to
+        // observe the refusal directly, so watch the frame's load timeout: a
+        // frameable page fires `load` well inside FRAME_LOAD_DEADLINE_MS, and a
+        // refused one never does. Failing here keeps one broken engine from
+        // costing a document 60 seconds per illustration.
+        const frameLoadDeadline = setTimeout(() => {
+          finish(
+            new Error(
+              'Perchance frame was refused (X-Frame-Options) — the embed host could not be loaded',
+            ),
+          );
+        }, Math.min(FRAME_LOAD_DEADLINE_MS, timeoutMs));
+
+        const onFrameLoad = () => {
+          // Loaded: stop the refusal guard, keep waiting for postMessage.
+          clearTimeout(frameLoadDeadline);
+        };
+
         const timeoutId = setTimeout(() => {
           finish(new Error('Perchance image generation timed out'));
         }, timeoutMs);
 
         window.addEventListener('message', onMessage);
+        frame.addEventListener?.('load', onFrameLoad);
+        frame.onload = onFrameLoad;
         frame.src = buildPerchanceRequestUrl(apiBase, request, requestId);
         document.body.appendChild(frame);
       }).then((url) => {

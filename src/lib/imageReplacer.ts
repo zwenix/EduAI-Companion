@@ -17,6 +17,32 @@ import { EDUCATIONAL_IMAGE_STYLE } from './prompt-priority';
 class IllustrationCache {
   private static cache: Record<string, string> = {};
   private static initialized = false;
+  /**
+   * Firestore sync health.
+   *
+   * `illustrations` is a shared, cross-teacher library, so the security rules
+   * that allow it are often missing on a fresh deployment ("Missing or
+   * insufficient permissions"). That failure is NON-FATAL — the in-memory cache
+   * and the live engines still work — but it used to print one console error
+   * per illustration, which made a working app look broken. We report it once,
+   * name the cause, and stop retrying the write for this session.
+   */
+  private static syncFailed = false;
+  private static announceSyncFailure(reason: unknown) {
+    if (this.syncFailed) return;
+    this.syncFailed = true;
+    const message = reason instanceof Error ? reason.message : String(reason ?? '');
+    if (/permission|insufficient/i.test(message)) {
+      console.warn(
+        '[Illustration Cache] Firestore rejected the illustration library ' +
+          '(Missing or insufficient permissions). Illustrations still generate and ' +
+          'display normally; only cross-device caching is disabled. To enable it, ' +
+          'publish rules that allow read/write on the `illustrations` collection.',
+      );
+    } else {
+      console.warn('[Illustration Cache] Cross-device caching disabled for this session:', message);
+    }
+  }
 
   public static init() {
     if (this.initialized) return;
@@ -34,7 +60,7 @@ class IllustrationCache {
         });
         this.cache = newCache;
       }, (error) => {
-        console.error("Failed to sync Illustration Library cache:", error);
+        this.announceSyncFailure(error);
       });
     } catch (e) {
       console.error("Failed to initialize Illustration Library cache:", e);
@@ -79,7 +105,8 @@ class IllustrationCache {
       await setDoc(docRef, payload);
       this.cache[lowerPrompt] = imageUrl;
     } catch (e) {
-      console.error("Non-blocking failure: Could not cache illustration in Firestore", e);
+      // Non-blocking: the image is already on screen. Announce the cause once.
+      this.announceSyncFailure(e);
     }
   }
 }

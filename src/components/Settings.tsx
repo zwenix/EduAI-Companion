@@ -10,7 +10,7 @@ import {
 import { IconSettings, IconLogout } from './LocalIcons';
 import { useAi } from '../contexts/AiContext';
 import { AI_PROVIDER_LABELS, REASONING_CHAIN } from '../lib/aiModels';
-import { documentImageTelemetry, perchanceStatus, retryPerchanceNow } from '../lib/documentImageEngine';
+import { describePerchanceProblem, documentImageTelemetry, perchanceStatus, retryPerchanceNow } from '../lib/documentImageEngine';
 import { getImageProviderOrder, normaliseImageProviderId } from '../lib/imageProviders';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
@@ -1111,11 +1111,15 @@ export default function Settings({
                                   );
                                })()}
                             </div>
-                            {perchanceStatus().lastError && (
-                              <p className="text-[9px] font-mono text-amber-300/80 break-all">
-                                 Last error: {perchanceStatus().lastError}
-                              </p>
-                            )}
+                            {(() => {
+                               const problem = describePerchanceProblem();
+                               if (!problem) return null;
+                               return (
+                                 <p className="text-[10px] text-amber-300/90 leading-relaxed">
+                                    {problem}
+                                 </p>
+                               );
+                            })()}
                          </div>
 
                          <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">

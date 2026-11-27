@@ -95,6 +95,30 @@ export const resetDocumentImageTelemetry = (): void => {
 /** Perchance circuit-breaker state (for the honest "why did it fall back?" UI). */
 export const perchanceStatus = (): PerchanceFailureInfo => perchanceFailureInfo();
 
+/**
+ * Plain-language explanation of the most likely reason Perchance is unavailable.
+ *
+ * Teachers should not have to read `X-Frame-Options` in a console to learn that
+ * the engine is blocked by the site rather than misconfigured by them.
+ */
+export const describePerchanceProblem = (info: PerchanceFailureInfo = perchanceFailureInfo()): string | null => {
+  if (!info.lastError && info.state === 'idle') return null;
+  const error = info.lastError || '';
+  if (/X-Frame-Options|refused/i.test(error)) {
+    return 'Perchance refused to load inside the app (X-Frame-Options), so image generation fell back to another engine. This is a Perchance-side restriction, not a settings problem.';
+  }
+  if (/timed out/i.test(error)) {
+    return 'Perchance did not answer in time (its server can be slow or rate-limited). Generation fell back to another engine.';
+  }
+  if (/benched/i.test(error)) {
+    return 'Perchance is paused after repeated failures. Press "Try again" to give it another attempt.';
+  }
+  if (info.state === 'benched') {
+    return 'Perchance is paused after repeated failures. Press "Try again" to give it another attempt.';
+  }
+  return error ? `Perchance error: ${error}` : null;
+};
+
 /** "Try Again" for illustrations: always hand the PRIMARY engine a fresh turn. */
 export const retryPerchanceNow = (): void => {
   resetPerchanceBench();

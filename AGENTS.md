@@ -532,6 +532,20 @@ explicit user instructions.
     (`ai-text-to-image-generator`, `ai-images-generator`) send
     `X-Frame-Options: SAMEORIGIN` and can never load — that dead bridge must
     not come back.
+  * **…and only on the EMBED host `null.perchance.org`.** The apex
+    `perchance.org` sends `X-Frame-Options: SAMEORIGIN` on its own
+    `perchance-ai-api` page, so a frame pointed there is refused outright
+    (console: *"…in a frame is denied by X-Frame-Options directive set to
+    sameorigin"* / `NS_ERROR_XFO_VIOLATION`). `PERCHANCE_EMBED_API_URL` is the
+    only frameable URL; `PERCHANCE_API_URL` exists solely to document the
+    endpoint and **must never be framed**. `PERCHANCE_WARMUP_URL` is the embed
+    host too. This constraint has been re-learned three times — PR #63 found
+    it, PR #68 deleted the engine over it, PR #70 reintroduced the apex and hit
+    it again — so `tests/image-providers.test.ts` now fails if any code frames
+    the apex.
+  * A frame refused by `X-Frame-Options` never fires `load` and never posts a
+    message, so `FRAME_LOAD_DEADLINE_MS` (8 s) turns a silent refusal into a
+    fast, explicit error instead of a 60 s stall per illustration.
   * Never `fetch()` `perchance.org` from any layer (client or server): bare
     HTTP is answered by a Cloudflare 403. The hidden iframe IS the transport.
   * The engine is browser-only; server-side callers that ask for `perchance`

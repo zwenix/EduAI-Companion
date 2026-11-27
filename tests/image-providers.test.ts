@@ -247,6 +247,27 @@ describe('Perchance Image API v1 integration contract', () => {
     expect(code).not.toMatch(/ai-text-to-image-generator|ai-images-generator/);
   });
 
+  it('frames ONLY the embeddable host — the apex forbids framing', () => {
+    // Production evidence (24 Nov 2026), straight from the browser console:
+    //   The loading of "https://perchance.org/perchance-ai-api?prompt=..." in a
+    //   frame is denied by "X-Frame-Options" directive set to "sameorigin".
+    // So the apex host can never answer a frame. `null.perchance.org` is
+    // Perchance's designated embed host and is the ONLY frameable one. PR #63
+    // found this, PR #68 deleted the engine over it, and PR #70 reintroduced
+    // the apex and hit it again — hence this permanent guard.
+    expect(client).toContain("export const PERCHANCE_EMBED_API_URL = 'https://null.perchance.org/perchance-ai-api'");
+    // The warm-up must use the embed host too (it was warming the apex).
+    expect(client).toContain('export const PERCHANCE_WARMUP_URL = PERCHANCE_EMBED_API_URL');
+    // The generation frame must be hard-wired to the embed host.
+    expect(client).toContain('const apiBase = PERCHANCE_EMBED_API_URL;');
+    // Nothing may set a frame's src to the apex host.
+    expect(client).not.toMatch(/\.src\s*=\s*PERCHANCE_API_URL/);
+    expect(client).not.toMatch(/load\(PERCHANCE_API_URL\)/);
+    // A refused frame must fail fast instead of stalling the whole budget.
+    expect(client).toContain('FRAME_LOAD_DEADLINE_MS');
+    expect(client).toMatch(/X-Frame-Options/);
+  });
+
   it('frames only the documented perchance-ai-api endpoint', () => {
     expect(client).toContain("export const PERCHANCE_API_URL = 'https://perchance.org/perchance-ai-api'");
     // The embed-generator FAQ mirror is allowed as an automatic fallback host.
